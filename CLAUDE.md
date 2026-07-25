@@ -45,8 +45,19 @@ src/
    └─ <Renderer>      React component (DOM) or Phaser scene (canvas)
 ```
 
-Games: memory, coloring, finddiff, hidden (kids) · 2048, tictactoe, minesweeper,
-sudoku, snake (classics).
+Games (10): memory, coloring, finddiff, hidden, math (kids) · 2048, tictactoe,
+minesweeper, sudoku, snake (classics). Every game has a **difficulty selector**
+(a `Button` row, `variant` primary/ghost) and/or endless levels; wins fire
+`celebrate()` (full-screen confetti) from `@juice`.
+
+**Deploy**: pushing to `main` auto-deploys to GitHub Pages
+(`https://ytrofr.github.io/ellaz/`) via `.github/workflows/deploy-pages.yml` — the
+build uses `BASE_PATH=/ellaz/`. The PWA is `registerType: "autoUpdate"` so returning
+players get new versions automatically. Repo is public; collaborator: Benzi.
+
+**RTL gotcha**: a spatial game grid must carry `dir="ltr"` so it does NOT mirror in
+the Hebrew RTL app (else swipe/arrow directions invert — see `src/games/n2048`); the
+math equation is also pinned `dir="ltr"` for standard notation.
 
 ## Non-negotiable conventions
 
