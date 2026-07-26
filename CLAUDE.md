@@ -59,6 +59,27 @@ players get new versions automatically. Repo is public; collaborator: Benzi.
 the Hebrew RTL app (else swipe/arrow directions invert — see `src/games/n2048`); the
 math equation is also pinned `dir="ltr"` for standard notation.
 
+## Engine choice — settled by measurement, don't re-litigate
+
+**Phaser 4 stays.** Two tournaments compared it head-to-head against real
+alternatives on an identical game; the second used a 660-tile scrolling
+platformer with physics, enemies and art, and every arm was proven to run the
+same simulation via a cross-language checksum before any number counted.
+
+| Engine | Verdict |
+|---|---|
+| **Phaser 4** | **Ours.** 60 fps / 0% jank, mounts as a lazy chunk, reuses `logic.ts` verbatim; its 379 KB is paid once and shared across all games. |
+| PixiJS 8 | Credible alternative — same 60 fps, loads 256 ms faster at 36% of the bytes, but it is a renderer: loop, culling and pooling are hand-rolled. Reach for it only if one canvas game is load-critical. |
+| Kaplay | 73 KB and 885 ms — excellent for a **static-screen** game. Janks 40% of frames on a scroller (no culled tilemap), so not for scrolling games. |
+| Excalibur | Out. Slowest JS load and 21 fps at 100% jank. |
+| Defold | Out on integration, not merit — fastest renderer measured, but 3.0 s TTI, iframe-only, can't reuse `logic.ts`. |
+| Godot 4 | Out for web. 22.6 s to interactive — fails CrazyGames' 20 s time-to-gameplay bar. Re-tested with idiomatic rendering and still 14 fps / 100% jank, so this is not an implementation artefact. |
+
+Full evidence: **[`docs/engine-tournament/`](docs/engine-tournament/)** — verdict,
+both dossiers, 294 raw measurement rows, the determinism probe and per-arm
+renders. **Anything 3D is unevaluated** — all six arms were 2D; that would need a
+separate three.js / Babylon / PlayCanvas bake-off.
+
 ## Non-negotiable conventions
 
 - **Pure logic core.** All rules live in `games/<id>/logic.ts` with zero DOM/Phaser
