@@ -22,6 +22,7 @@ behind it.
 | [dev-cost.md](dev-cost.md) | What each engine cost to actually build on — toolchains, friction, port size |
 | [ROUND1-DOSSIER.md](ROUND1-DOSSIER.md) | The first round (Snake) and why it wasn't good enough |
 | [PROBE-SPEC.md](PROBE-SPEC.md) / [PROBE-RESULT.md](PROBE-RESULT.md) | How we proved all six arms ran the *same game* |
+| [ROUND3-PARTIAL.md](ROUND3-PARTIAL.md) | Round 3 (static-screen match-3). Load axis done — **render axis void, machine was 3.2x oversubscribed** |
 
 ## How the comparison was made honest
 

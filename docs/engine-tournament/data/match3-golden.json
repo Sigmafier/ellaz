@@ -1,0 +1,10 @@
+{
+  "checksum": "37cd50e2",
+  "seed": 20260726,
+  "moves": 120,
+  "end": {
+    "score": 20680,
+    "cleared": 1169,
+    "cascades": 298
+  }
+}
