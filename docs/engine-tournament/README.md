@@ -4,9 +4,9 @@ Two head-to-head bake-offs, 294 measured rows, six engines. This folder is the
 durable record so the decision doesn't have to be re-argued from memory.
 
 **Short answer**: Phaser 4 for canvas games. **Kaplay for a static-screen game** —
-round 3 put it ahead of Phaser on every viewport at a fifth of the bytes. PixiJS
-if a specific game is load-critical. Godot, Defold and Excalibur are out, each
-for a different measured reason.
+round 3 put it ahead of Phaser on desktop and tablet (and level on mobile, with
+less jank) at a fifth of the bytes. PixiJS if a specific game is load-critical.
+Godot, Defold and Excalibur are out, each for a different measured reason.
 
 The decision summary lives in [`../../CLAUDE.md`](../../CLAUDE.md) under
 *"Engine choice — settled by measurement"*. Everything here is the evidence
@@ -50,7 +50,9 @@ arms are the same program. Ours were:
   WebGL context what it actually granted (backbuffer size, MSAA samples, WebGL
   version) instead of trusting each engine's config. Added after it caught two
   arms rendering wildly different pixel counts; see
-  [ROUND3-VERDICT.md](ROUND3-VERDICT.md).
+  [ROUND3-VERDICT.md](ROUND3-VERDICT.md). **`probes/` is archived for method and
+  is not runnable from this repo** — the scripts need Playwright and the built
+  arm trees from the (deleted) tournament scratchpad; each says so at the top.
 
 ## The headline numbers
 

@@ -1,3 +1,16 @@
+// ARCHIVED FOR METHOD, NOT RUNNABLE FROM THIS REPO.
+//
+// This file is the equal-work gate that caught the Kaplay backbuffer defect
+// (see ../ROUND3-VERDICT.md). It is committed so the METHOD is auditable --
+// what was asked of the live WebGL context, and what counted as a mismatch.
+//
+// It cannot execute here: it needs `playwright`, a sibling `lib.mjs`, and the
+// built per-arm `dist/` trees, all of which lived in the throwaway tournament
+// scratchpad and were never part of this repo. Re-running it means rebuilding
+// that harness. Treat it as documentation with exact semantics, not a gate you
+// can invoke -- a script that looks runnable but is not is worse than a prose
+// description, so this notice is load-bearing.
+
 // What MSAA does each arm actually get?
 //
 // Round 3's first pass had the Pixi arm explicitly requesting `antialias: true`

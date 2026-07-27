@@ -70,7 +70,7 @@ same simulation via a cross-language checksum before any number counted.
 |---|---|
 | **Phaser 4** | **Ours.** 60 fps / 0% jank, mounts as a lazy chunk, reuses `logic.ts` verbatim; its 379 KB is paid once and shared across all games. |
 | PixiJS 8 | Credible alternative — same 60 fps, loads 256 ms faster at 36% of the bytes, but it is a renderer: loop, culling and pooling are hand-rolled. Reach for it only if one canvas game is load-critical. |
-| Kaplay | **The pick for a static-screen game** — a third bake-off on a match-3 put it ahead of Phaser on *every* viewport (60 fps / 0.2% jank desktop, 0.0% tablet) at 72 KB and 684 ms, a fifth of Phaser's bytes. Still out for **scrolling** games: no culled tilemap, and it janks every frame on mobile there. |
+| Kaplay | **The pick for a static-screen game** — a third bake-off on a match-3 put it ahead of Phaser on desktop and tablet (60 fps / 0.2% jank · 59 fps / 0.0%) at 72 KB and 684 ms, a fifth of Phaser's bytes. On mobile the frame rate ties, but it janks far less (0.5–3.5% vs 5.6–9.3%). Still out for **scrolling** games: no culled tilemap, and it janks every frame on mobile there. |
 | Excalibur | Out. Slowest JS load and 21 fps at 100% jank. |
 | Defold | Out on integration, not merit — fastest renderer measured, but 3.0 s TTI, iframe-only, can't reuse `logic.ts`. |
 | Godot 4 | Out for web. 22.6 s to interactive — fails CrazyGames' 20 s time-to-gameplay bar. Re-tested with idiomatic rendering and still 14 fps / 100% jank, so this is not an implementation artefact. |

@@ -12,24 +12,40 @@ memory, sudoku, tictactoe, math, coloring, minesweeper, 2048. Round 3 asks
 whether Kaplay wins where that handicap does not apply: a static screen that
 instead stresses concurrent tweens, particle bursts and changing text.
 
-## Answer: yes, decisively
+## Answer: yes on desktop and tablet — on mobile, a jank win and an fps tie
 
 Medians of 3 rounds. All arms verified rendering at **488×558 with 4× MSAA**
 before any number was taken.
 
 | arm | PC | tablet | mobile | TTI (PC) | transfer |
 |---|---|---|---|---|---|
-| **kaplay** | **59.9 fps / 0.2% jank** | **59.4 / 0.0%** | **45.0 / 0.7%** | **684 ms** | **72 KB** |
+| **kaplay** | **59.9 fps / 0.2% jank** | **59.4 / 0.0%** | 45.0 / **0.7%** | **684 ms** | **72 KB** |
 | phaser | 57.8 / 0.6% | 51.9 / 2.3% | 43.1 / 7.3% | 1,361 ms | 378 KB |
 | pixi | 43.7 / 0.3% | 39.3 / 2.3% | 35.1 / 11.4% | 1,063 ms | 148 KB |
 
-Kaplay wins **every viewport on both fps and jank**, starts in half the time and
-ships **one fifth** the bytes. On tablet it holds a literal 0.0% jank against
-Phaser's 2.3%; on mobile its jank is an order of magnitude lower (0.7% vs 7.3%).
+**Read the fps margins against the noise, not as raw numbers** — a lead smaller
+than a cell's own round-to-round spread is a tie, however clean the median looks:
+
+| viewport | kaplay − phaser | worst spread | verdict |
+|---|---|---|---|
+| PC | +2.1 fps | 0.3 fps | **real win** |
+| tablet | +7.5 fps | 1.7 fps | **real win** |
+| mobile | +1.9 fps | **3.9 fps** | **tie** — ordering flips in 1 of 3 rounds |
+
+So: Kaplay wins **PC and tablet outright** on both axes, starts in half the time
+and ships **one fifth** the bytes. On **mobile its fps is a statistical tie with
+Phaser** — but its **jank win there is consistent**, lowest in *every* round
+(0.72 / 0.49 / 3.49% against Phaser's 7.27 / 9.09 / 5.60%), which is the axis
+that decides whether a game feels smooth.
 
 It also wins while carrying a handicap it cannot switch off: Kaplay hardcodes
 `antialias: true` and `preserveDrawingBuffer: true` in its `getContext` call,
 with no option to disable either. The result is therefore conservative.
+
+*(The mobile overstatement was caught by `harness/r3-variance.mjs` during
+`/finalize`, after the first version of this file claimed a clean sweep of all
+three viewports. Median-only reporting hid it: the median is a real win, the
+per-round ordering is not.)*
 
 ## The measurement was wrong twice before it was right
 
@@ -81,7 +97,8 @@ count before a sweep is trusted.
 
 Not "the machine was quiet" — that claim failed once already. The dataset
 defends itself: within each viewport the three rounds were taken across a load
-range of **8.4 → 12.1**, and fps is flat across it.
+range of **8.4 → 12.1**, and fps is flat across it (a **+42%** swing in machine
+load moves Phaser's PC result by **0.5%**).
 
 ```
 kaplay   load  8.95 -> 60.1    load  9.94 -> 59.9    load 12.12 -> 59.8
@@ -111,8 +128,9 @@ engines, not the box. That is a much stronger claim than "load was low".
 ## What it changes
 
 Kaplay earns a **documented static-screen carve-out**. For a small game with no
-camera it is strictly better than Phaser here on every axis measured: faster,
-smoother, a fifth of the bytes, half the start time.
+camera it beats Phaser on desktop and tablet frame rate, matches it on mobile
+frame rate while janking far less, and does it at a fifth of the bytes and half
+the start time.
 
 It does **not** displace Phaser as the default. Phaser is second by a small
 margin on a game type Kaplay is best at, and round 2 shows it far ahead once a
