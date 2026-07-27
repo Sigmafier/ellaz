@@ -3,9 +3,10 @@
 Two head-to-head bake-offs, 294 measured rows, six engines. This folder is the
 durable record so the decision doesn't have to be re-argued from memory.
 
-**Short answer**: Phaser 4 for canvas games. PixiJS if a specific game is
-load-critical. Kaplay if we build a small static-screen game. Godot, Defold and
-Excalibur are out, each for a different measured reason.
+**Short answer**: Phaser 4 for canvas games. **Kaplay for a static-screen game** —
+round 3 put it ahead of Phaser on every viewport at a fifth of the bytes. PixiJS
+if a specific game is load-critical. Godot, Defold and Excalibur are out, each
+for a different measured reason.
 
 The decision summary lives in [`../../CLAUDE.md`](../../CLAUDE.md) under
 *"Engine choice — settled by measurement"*. Everything here is the evidence
@@ -22,7 +23,8 @@ behind it.
 | [dev-cost.md](dev-cost.md) | What each engine cost to actually build on — toolchains, friction, port size |
 | [ROUND1-DOSSIER.md](ROUND1-DOSSIER.md) | The first round (Snake) and why it wasn't good enough |
 | [PROBE-SPEC.md](PROBE-SPEC.md) / [PROBE-RESULT.md](PROBE-RESULT.md) | How we proved all six arms ran the *same game* |
-| [ROUND3-PARTIAL.md](ROUND3-PARTIAL.md) | Round 3 (static-screen match-3). Load axis done — **render axis void, machine was 3.2x oversubscribed** |
+| [ROUND3-VERDICT.md](ROUND3-VERDICT.md) | Round 3 (static-screen match-3). **Kaplay wins every viewport** — and how two harness bugs nearly produced the opposite answer |
+| [ROUND2-CORRECTION.md](ROUND2-CORRECTION.md) | **Read with round 2.** The round-2 Kaplay arm rendered ~10.5x the pixels of its rivals; verdict survives, published fps figures do not |
 
 ## How the comparison was made honest
 
@@ -43,6 +45,12 @@ arms are the same program. Ours were:
 - **Screenshots, not proxies.** Every arm's rendering was confirmed by looking at
   it. An earlier round reported "0 lit pixels" for an arm that was rendering
   perfectly well.
+- **Equal work, verified at the context.** Same input is not enough — the arms
+  must also *render the same thing*. `probes/r3-ctx-probe.mjs` asks the live
+  WebGL context what it actually granted (backbuffer size, MSAA samples, WebGL
+  version) instead of trusting each engine's config. Added after it caught two
+  arms rendering wildly different pixel counts; see
+  [ROUND3-VERDICT.md](ROUND3-VERDICT.md).
 
 ## The headline numbers
 
@@ -50,7 +58,7 @@ Median of 3 rounds, warm-up discarded, throttled to ~4 Mbps / 80 ms, gzipped.
 
 ```
                 cold start (desktop)   transfer    fps      janked frames
-kaplay                 885 ms            73 KB     30.0         40%
+kaplay                 885 ms            73 KB     46.4 †       5.9% †
 pixi                 1,170 ms           137 KB     60.0          0%
 phaser               1,426 ms           379 KB     60.0          0%
 excalibur            1,916 ms           129 KB     21.4        100%
@@ -58,8 +66,16 @@ defold               2,984 ms         1,120 KB     60.0          0%
 godot               22,640 ms        10,064 KB     14.1        100%
 ```
 
-Note that mean FPS alone would have been misleading: Kaplay's 30 fps average
-hides that 40% of frames janked, and on mobile it janks on every single frame.
+**† Kaplay's frame-rate figures are corrected and provisional.** The round-2
+Kaplay arm was measured rendering 1440×900 with 4× MSAA while every rival
+rendered 480×256 with none — roughly 10.5× the pixels. The originally published
+30.0 fps / 40% jank was that handicap, not the engine. Re-measured with the
+backbuffer matched it reads 46.4 fps / 5.9%, and it still loses the scroller
+badly (48.7% jank on tablet, 100% on mobile). See
+[ROUND2-CORRECTION.md](ROUND2-CORRECTION.md) — the load axis is unaffected.
+
+Note that mean FPS alone would have been misleading: on mobile Kaplay janks on
+every single frame here, which no average conveys.
 
 ## What this does NOT tell you
 
