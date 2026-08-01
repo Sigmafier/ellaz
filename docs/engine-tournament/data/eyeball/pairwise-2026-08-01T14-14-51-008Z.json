@@ -1,0 +1,61 @@
+{
+  "run": "2026-08-01T14-14-51-008Z",
+  "blind": true,
+  "pair": [
+    "excalibur",
+    "phaser"
+  ],
+  "settings": "mode=play&skin=geo&render=smooth&feel=snappy",
+  "key": {
+    "X": "excalibur",
+    "Y": "phaser",
+    "P": "excalibur",
+    "Q": "phaser",
+    "M": "excalibur",
+    "N": "phaser"
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "labels": [
+        "X",
+        "Y"
+      ],
+      "mapping": {
+        "X": "excalibur",
+        "Y": "phaser"
+      },
+      "picked_label": "X",
+      "picked_engine": "excalibur"
+    },
+    {
+      "round": 2,
+      "labels": [
+        "P",
+        "Q"
+      ],
+      "mapping": {
+        "P": "excalibur",
+        "Q": "phaser"
+      },
+      "picked_label": "Q",
+      "picked_engine": "phaser"
+    },
+    {
+      "round": 3,
+      "labels": [
+        "M",
+        "N"
+      ],
+      "mapping": {
+        "M": "excalibur",
+        "N": "phaser"
+      },
+      "picked_label": "tie",
+      "picked_engine": "tie"
+    }
+  ],
+  "symptoms": [],
+  "notes": "",
+  "recorded_at": "2026-08-01T15:16:07.764Z"
+}

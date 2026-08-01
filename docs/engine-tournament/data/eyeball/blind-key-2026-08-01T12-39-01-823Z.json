@@ -1,0 +1,16 @@
+{
+  "run": "2026-08-01T12-39-01-823Z",
+  "settings": "mode=play&skin=geo&render=smooth&feel=snappy",
+  "key": {
+    "A": "pixi",
+    "B": "excalibur",
+    "C": "kaplay",
+    "D": "phaser"
+  },
+  "bundle_sha": {
+    "A": "c28fe0d90e38",
+    "B": "1874c2d57a38",
+    "C": "a0fa10117a52",
+    "D": "d9023db21a3a"
+  }
+}

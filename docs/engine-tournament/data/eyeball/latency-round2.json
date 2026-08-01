@@ -1,0 +1,118 @@
+{
+  "runs": [
+    {
+      "at": "2026-08-01T15:49:21.649Z",
+      "env": "headless chromium, 60 Hz",
+      "settings": "mode=play&skin=geo&render=smooth&feel=snappy",
+      "trials": 12,
+      "arms": [
+        {
+          "arm": "phaser",
+          "n": 12,
+          "of": 12,
+          "frames_median": 1,
+          "frames_range": "1-1",
+          "ms_median": 1.8,
+          "raf_p50": 33.3,
+          "raf_p99": 66.7,
+          "page_errors": 0,
+          "dropped": []
+        },
+        {
+          "arm": "pixi",
+          "n": 12,
+          "of": 12,
+          "frames_median": 1,
+          "frames_range": "1-1",
+          "ms_median": 1.1,
+          "raf_p50": 16.7,
+          "raf_p99": 33.3,
+          "page_errors": 0,
+          "dropped": []
+        },
+        {
+          "arm": "kaplay",
+          "n": 12,
+          "of": 12,
+          "frames_median": 1,
+          "frames_range": "1-1",
+          "ms_median": 5.4,
+          "raf_p50": 16.7,
+          "raf_p99": 83.3,
+          "page_errors": 0,
+          "dropped": []
+        },
+        {
+          "arm": "excalibur",
+          "n": 12,
+          "of": 12,
+          "frames_median": 1,
+          "frames_range": "1-1",
+          "ms_median": 13.1,
+          "raf_p50": 33.3,
+          "raf_p99": 66.8,
+          "page_errors": 0,
+          "dropped": []
+        }
+      ],
+      "limits": "measures keydown -> position assigned, NOT to composited pixels; operator plays at ~120 Hz with ~25% dropped frames"
+    },
+    {
+      "at": "2026-08-01T15:51:02.635Z",
+      "env": "headless chromium, 60 Hz",
+      "settings": "mode=play&skin=geo&render=smooth&feel=snappy",
+      "trials": 12,
+      "arms": [
+        {
+          "arm": "phaser",
+          "n": 12,
+          "of": 12,
+          "frames_median": 1,
+          "frames_range": "1-1",
+          "ms_median": 1.8,
+          "raf_p50": 16.7,
+          "raf_p99": 50,
+          "page_errors": 0,
+          "dropped": []
+        },
+        {
+          "arm": "pixi",
+          "n": 12,
+          "of": 12,
+          "frames_median": 1,
+          "frames_range": "1-1",
+          "ms_median": 2.2,
+          "raf_p50": 16.7,
+          "raf_p99": 33.4,
+          "page_errors": 0,
+          "dropped": []
+        },
+        {
+          "arm": "kaplay",
+          "n": 12,
+          "of": 12,
+          "frames_median": 1,
+          "frames_range": "1-1",
+          "ms_median": 4.9,
+          "raf_p50": 16.7,
+          "raf_p99": 50.1,
+          "page_errors": 0,
+          "dropped": []
+        },
+        {
+          "arm": "excalibur",
+          "n": 12,
+          "of": 12,
+          "frames_median": 1,
+          "frames_range": "1-1",
+          "ms_median": 7.9,
+          "raf_p50": 33.3,
+          "raf_p99": 66.7,
+          "page_errors": 0,
+          "dropped": []
+        }
+      ],
+      "limits": "measures keydown -> position assigned, NOT to composited pixels; operator plays at ~120 Hz with ~25% dropped frames"
+    }
+  ]
+}
