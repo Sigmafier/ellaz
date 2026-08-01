@@ -72,7 +72,10 @@ numbers are correct; they measured the wrong quantity. The ranked workload was
 by construction), and every probe ran headless at 60 Hz — the one refresh rate
 at which the real defect could not appear. **So do not quote the fps/jank column
 as a proxy for how a game feels.** Payload, time-to-interactive, integration
-cost and dev cost were measured on real artifacts and remain sound.
+cost and dev cost were measured on real artifacts and remain sound — and are
+**re-auditable**: the raw rows live in `docs/engine-tournament/data/` (87 round-2
+rows, round 1, round 3, plus 12 render screenshots in `evidence/`). Every
+published PC cold-TTI figure was re-derived from them to the digit on 2026-08-01.
 
 Three eyeball runs settled it — a named ranking, a blind four-arm re-run, and a
 blind three-round pairwise of the apparent winner against Phaser. The pairwise

@@ -159,14 +159,28 @@ run. It does not affect the blind result above, which is post-fix throughout.
 `harness/latency-probe.mjs` and `harness/render-parity.mjs`, headless at 60 Hz, 12 trials per
 arm, every trial accounted for (no silent drops).
 
-**Input → first changed drawn position:**
+**Input → first changed drawn position**, three independent runs, 12 trials per arm per run,
+every trial accounted for (`results/latency-round2.json`):
 
-| arm | trials | frames | ms | rAF p50 | rAF p99 |
-|---|---|---|---|---|---|
-| phaser | 12/12 | **1** | 5.1 | 16.7 | 16.7 |
-| pixi | 12/12 | **1** | 5.5 | 16.7 | 16.8 |
-| kaplay | 12/12 | **1** | 5.0 | 16.7 | 16.8 |
-| excalibur | 12/12 | **1** | 6.7 | 16.7 | 33.4 |
+| arm | frames (all 3 runs) | ms run 1 / 2 / 3 | ms spread |
+|---|---|---|---|
+| phaser | **1** | 5.1 / 1.8 / 1.8 | 2.8× |
+| pixi | **1** | 5.5 / 1.1 / 2.2 | 5.0× |
+| kaplay | **1** | 5.0 / 5.4 / 4.9 | 1.1× |
+| excalibur | **1** | 6.7 / 13.1 / 7.9 | 2.0× |
+
+**Read the frame column, not the millisecond column.** Frames came back 1 in **144 of 144
+trials** — perfectly stable across three runs on a box whose load moved from 6 to 40 between
+them. The millisecond column moved by up to 5× on identical code over the same period, which
+makes it a measurement of the machine, not of the engines. An earlier version of this page
+quoted a single run's 6.7 ms as "excalibur marginally worse"; three runs show that ordering
+does not survive its own variance, so it has been withdrawn.
+
+One thing the repeats do suggest, at n=3 and confounded by drifting load: Excalibur is the arm
+most often failing to hold 60 fps under contention (a 33.3 ms median frame in 2 of 3 runs,
+against 1 of 3 for phaser and 0 of 3 for the other two). That is consistent with the
+"too slow to sustain 120 Hz, so it accidentally matched the 60 Hz step" hypothesis above, and
+it is not evidence for it.
 
 **Live canvas, read from the running page rather than the config:** all four at a 480×256
 WebGL backbuffer, 2.00× upscale, 123k pixels. Identical.
@@ -182,9 +196,7 @@ So, ruled out:
    already (Kaplay drawing 10× the pixels; a 488×558 config against a 1440×900 render). Not
    this time; the arms are pixel-identical.
 
-Excalibur is in fact marginally *worse* on both measured numbers — but its 6.7 ms sits 1.7 ms
-from the fastest arm with sub-frame granularity at 60 Hz, so that is a **tie**, not a finding.
-Its p99 of 33.4 ms is one dropped frame in twelve trials, equally unremarkable.
+On the one metric that reproduces, all four arms are identical: **one frame, every time**.
 
 **The honest conclusion is that this probe found nothing, and that is informative**: whatever
 Excalibur does better is not in the half of the pipeline that ends at "the engine assigned a
@@ -253,8 +265,27 @@ protect every game we ship regardless of which engine draws it.
 
 ## What this does and does not change
 
-**Still valid** — measured on real artifacts, unaffected by the feel question:
-payload, time-to-interactive, integration cost, dev cost.
+**Still valid, and re-auditable from this repo** — payload, time-to-interactive, integration
+cost and dev cost were measured on real artifacts and are unaffected by the feel question.
+The raw rows are committed here, not left in the scratchpad: `data/raw-round2.json` (87 rows),
+`data/round1.json`, `data/raw-round3.json`, `data/raw-godot-slim.json`, plus 12 render
+screenshots in `evidence/` and the context probes in `probes/`.
+
+Re-derived from `data/raw-round2.json` on 2026-08-01 — every published PC cold-TTI figure
+reproduces exactly:
+
+| arm | re-derived median | published |
+|---|---|---|
+| kaplay | 885 | 885 |
+| pixi | 1,170 | 1,170 |
+| phaser | 1,426 | 1,426 |
+| excalibur | 1,916 | 1,916 |
+| defold | 2,984 | 2,984 |
+| godot | 22,640 | 22,640 |
+
+Quote them freely. (A `/finalize` pass earlier the same day claimed these raw files were lost —
+it had searched the scratchpad `results/` directory and never looked in `docs/`, where the
+archival step had correctly put them. The caveat it added has been withdrawn.)
 
 **Now suspect** — anything derived from the stress harness's fps/jank as a proxy for felt
 quality. That includes **Godot's `14.1 fps / 100% jank`**. Godot remains out, but on

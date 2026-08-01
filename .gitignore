@@ -9,3 +9,7 @@ dist-ssr
 firebase-debug.log
 dev-dist
 shots/
+
+# Browser-automation scratch (MCP session dumps, ad-hoc screenshots)
+.playwright-mcp/
+/*.png
