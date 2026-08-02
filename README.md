@@ -67,12 +67,22 @@ src/
 
 That's the whole factory. The SDK, UI, juice, i18n, PWA, and analytics come for free.
 
-## Deploy (Firebase Hosting)
+## Deploy
 
-```bash
-npm run build
-firebase deploy      # uses firebase.json (CSP headers + SPA rewrite + immutable asset cache)
-```
+**Push to `main`.** Two workflows publish to two hosts automatically:
+
+| URL | Host | Workflow |
+|---|---|---|
+| **<https://ellaz.fun/>** — the live site | Hostinger (FTPS) | `deploy-hostinger.yml` |
+| <https://sigmafier.github.io/ellaz/> | GitHub Pages | `deploy-pages.yml` |
+
+Nothing needs to be built or uploaded by hand, and a green run is not proof a
+deploy happened — check the upload step, not the checkmark. Full runbook,
+verified host settings, cache-header design and troubleshooting:
+**[`docs/deploy.md`](docs/deploy.md)**.
+
+The Firebase config (`firebase.json`) is still in the repo but is not part of any
+pipeline and does not serve ellaz.fun.
 
 ## Roadmap
 

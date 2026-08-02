@@ -30,7 +30,19 @@ for (const r of regs) await r.unregister();
 for (const k of await caches.keys()) await caches.delete(k);
 ```
 
-## Why prompt (not autoUpdate)
+## Why autoUpdate (not prompt)
 
-`autoUpdate` (skipWaiting) could swap the SW mid-game and yank a lazily-loaded
-game chunk. `prompt` is intentional — the stale-during-QA behavior is the trade-off.
+The original choice was `prompt`, on the reasoning that `autoUpdate` (skipWaiting)
+could swap the SW mid-game and yank a lazily-loaded game chunk. That traded a rare
+mid-session hiccup for a permanent one: with no update UI ever built, returning
+players sat on a stale cache forever and never saw new games. `vite.config.ts` has
+said `registerType: "autoUpdate"` since then — this section described the old
+choice for longer than it was true.
+
+The stale-during-QA behaviour above is unchanged either way, and is still the
+trade-off you work around with `npm run dev`.
+
+**Server-side companion**: an `autoUpdate` SW only reaches players if the host
+does not cache `sw.js` and `index.html`. Hostinger's default was `max-age=604800`
+on both; `deploy/hostinger.htaccess` pins them to `no-cache`. See
+[`docs/deploy.md`](../../docs/deploy.md).

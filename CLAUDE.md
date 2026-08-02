@@ -74,27 +74,24 @@ The two are deliberately kept separate rather than pointing ellaz.fun at Pages:
 a Pages custom domain 301-redirects the `github.io` path onto it, so a project
 site gets exactly ONE hostname. Keeping both live costs a second build.
 
-The Hostinger job reads three repo secrets — `FTP_SERVER`, `FTP_USERNAME`,
-`FTP_PASSWORD` (hPanel → Files → FTP Accounts), **already set**. Without them it
-**skips with a warning instead of failing**, so a green checkmark is not proof it
-deployed — read the run, or check the `Upload to Hostinger` step's conclusion.
+The Hostinger job reads three repo secrets (`FTP_SERVER`, `FTP_USERNAME`,
+`FTP_PASSWORD`), already set. Missing them it **skips with a warning instead of
+failing**, so **a green checkmark is not proof it deployed** — check the
+`Upload to Hostinger` step's conclusion, then check the live artifact. Three
+host settings were each verified against the live server on 2026-08-02 because
+each would otherwise produce a green deploy beside a frozen site: the account is
+chrooted so `server-dir` is `./` (not `public_html/`), the username is
+`u210394724.ellaz` (not `…ellaz.fun`), and the cert is `CN=*.hstgr.io` so
+`security: loose` is required.
 
-Three facts about this FTP account, each verified against the live server on
-2026-08-02 and each capable of producing a green deploy that changes nothing:
+Cache headers and the SPA fallback live in `deploy/hostinger.htaccess`, copied to
+`dist/.htaccess` by the workflow and shipped to Hostinger only (Pages runs nginx).
 
-- **The account is chrooted to its own docroot**, so `server-dir` is `./`. There
-  is no `public_html/` beneath it; uploading there nests the site one level down
-  where nothing serves it.
-- **The username is `u210394724.ellaz`**, not `u210394724.ellaz.fun` — the
-  longer form is a different account and answers `530 Access denied`.
-- **The TLS cert is `CN=*.hstgr.io`**, matching neither the FTP IP nor
-  `ftp.ellaz.fun`, so `security: loose` is required or the handshake fails.
-
-Override with the repo variables `FTP_SERVER_DIR` / `FTP_PROTOCOL` if any of
-that changes. Apache config — SPA fallback plus the cache headers that keep
-`index.html`/`sw.js` fresh — lives in `deploy/hostinger.htaccess` and is copied
-to `dist/.htaccess` by the workflow; it ships to Hostinger only, since Pages
-runs nginx and would ignore it.
+**Runbook — read this before touching any of it**:
+[`docs/deploy.md`](docs/deploy.md) (verification commands, troubleshooting table,
+secret rotation, the CDN edge-cache caveat, and how to move to Pages later).
+The discipline that found those three settings:
+[`.claude/rules/verify-the-deploy-target-not-just-the-run.md`](.claude/rules/verify-the-deploy-target-not-just-the-run.md).
 
 **The repo moved to the `Sigmafier` org** (2026-08-02). `ytrofr/ellaz` still
 redirects on push, so a stale remote works and hides the move — but the LIVE URL
