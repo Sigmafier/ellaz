@@ -1,23 +1,12 @@
 import type { Locale } from "@i18n/index";
 import { makeT } from "@i18n/index";
-import { CATALOG, type CatalogEntry } from "./catalog";
-import { audioPort, speechPort, type Category } from "@sdk/index";
+import { CATALOG, CATEGORY_ORDER, type CatalogEntry } from "./catalog";
+import { audioPort, speechPort } from "@sdk/index";
 import { WalletChip } from "./WalletChip";
 
-// Section render order, and the i18n key each section's heading uses. This is the
-// single place the home grid's shape is decided: adding a category means adding a
-// row here (plus the union member in @sdk and the string in @i18n).
-//
-// Sections with zero games are SKIPPED, so a category can be declared long before
-// its first game ships — the grid looks unchanged until a game claims it.
-const CATEGORY_ORDER: ReadonlyArray<{ category: Category; titleKey: string }> = [
-  { category: "kids", titleKey: "forKids" },
-  { category: "learn", titleKey: "learn" },
-  { category: "think", titleKey: "think" },
-  { category: "speed", titleKey: "speed" },
-  { category: "create", titleKey: "create" },
-  { category: "classics", titleKey: "classics" },
-];
+// Section order lives in catalog.ts (pure, so the catalog test can check every
+// category in use has a section here). Sections with zero games are SKIPPED, so
+// a category can be declared long before its first game ships.
 
 // Home grid: icon-first game cards grouped by category. Tapping a card opens the
 // game; hovering/touching prefetches its chunk for instant load.

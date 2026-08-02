@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { CATALOG, findEntry } from "./catalog";
+import { CATALOG, CATEGORY_ORDER, findEntry } from "./catalog";
+import { STRINGS } from "@i18n/index";
 
 // Property-based on purpose: assertions describe what EVERY entry must satisfy,
 // so adding a game passes without touching this file. The count is a ratchet
@@ -39,6 +40,20 @@ describe("catalog", () => {
   });
 
   it("keeps at least the games we shipped (ratchet)", () => {
-    expect(CATALOG.length).toBeGreaterThanOrEqual(10);
+    expect(CATALOG.length).toBeGreaterThanOrEqual(16);
+  });
+
+  // Every category a game claims must have a heading to render under, or the
+  // game silently never appears: Home.tsx only renders sections listed in
+  // CATEGORY_ORDER, and skips the ones with no games. A game in an unlisted
+  // category is therefore invisible with no error anywhere.
+  it("every category in use has a home-grid section and a title in both locales", () => {
+    const rendered = new Set(CATEGORY_ORDER.map((c) => c.category));
+    for (const e of CATALOG) {
+      expect(rendered.has(e.meta.category)).toBe(true);
+      const key = CATEGORY_ORDER.find((c) => c.category === e.meta.category)!.titleKey;
+      expect(STRINGS[key]?.he).toBeTruthy();
+      expect(STRINGS[key]?.en).toBeTruthy();
+    }
   });
 });

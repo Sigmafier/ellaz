@@ -27,7 +27,10 @@ export const STRINGS: Dict = {
   // CATEGORY_ORDER (portal/Home.tsx); a section with no games is skipped, so a
   // key can land here before the first game of that category does.
   forKids: { he: "לילדים", en: "For kids" },
-  learn: { he: "אותיות ומספרים", en: "Letters & numbers" },
+  // Deliberately broader than "letters & numbers": this section also holds the
+  // pre-numeric games (size ordering, counting), which a child plays BEFORE
+  // letters or numerals mean anything to them.
+  learn: { he: "לומדים", en: "Learning" },
   think: { he: "חשיבה", en: "Thinking" },
   speed: { he: "מהירות", en: "Speed" },
   create: { he: "יצירה", en: "Create" },
