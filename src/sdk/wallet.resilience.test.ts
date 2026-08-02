@@ -161,6 +161,66 @@ describe("a refused write is rolled back, never shown as earned", () => {
   });
 });
 
+describe("two tabs on one device must not clobber each other", () => {
+  /** Two wallets over ONE store is exactly two tabs on one phone. */
+  function twoTabs() {
+    const store = memoryBackend();
+    const tabA = createWallet(store);
+    const tabB = createWallet(store); // read its copy at construction, like a real tab
+    return { store, tabA, tabB };
+  }
+
+  it("REGRESSION: without adopting, the second writer erases the first's coins and items", () => {
+    const { store, tabA, tabB } = twoTabs();
+
+    tabA.createRewardsPort("frog").grant({ reason: "level_complete", tier: "hard" });
+    expect(tabA.buy("hat_cap", 5, "hat").ok).toBe(true);
+    expect(migrateProfile(store.read(PROFILE_KEY)).owned).toEqual(["hat_cap"]);
+
+    // tabB is stale and writes the WHOLE record.
+    tabB.createRewardsPort("frog").grant({ reason: "level_complete", tier: "easy" });
+
+    // This asserts the DEFECT, so the fix below is measured against something
+    // real rather than against a scenario that was never broken.
+    const wrecked = migrateProfile(store.read(PROFILE_KEY));
+    expect(wrecked.owned).toEqual([]); // the hat the child bought is gone
+    expect(wrecked.coins).toBe(TIER_COINS.easy); // tabA's earnings gone too
+  });
+
+  it("adopting the peer's write first keeps both tabs' progress", () => {
+    const { store, tabA, tabB } = twoTabs();
+
+    tabA.createRewardsPort("frog").grant({ reason: "level_complete", tier: "hard" });
+    expect(tabA.buy("hat_cap", 5, "hat").ok).toBe(true);
+    const afterA = migrateProfile(store.read(PROFILE_KEY));
+
+    // What the real `storage` event delivers to the other tab.
+    tabB.adoptExternalWrite(store.read(PROFILE_KEY));
+    expect(tabB.coins).toBe(afterA.coins);
+    expect(tabB.owns("hat_cap")).toBe(true);
+
+    tabB.createRewardsPort("frog").grant({ reason: "level_complete", tier: "easy" });
+
+    const merged = migrateProfile(store.read(PROFILE_KEY));
+    expect(merged.owned).toEqual(["hat_cap"]); // purchase survived
+    expect(merged.coins).toBe(afterA.coins + TIER_COINS.easy); // both earnings survived
+  });
+
+  it("notifies subscribers, and survives garbage from the other tab", () => {
+    const { tabB } = twoTabs();
+    const seen: number[] = [];
+    tabB.subscribe((p) => seen.push(p.coins));
+
+    tabB.adoptExternalWrite(JSON.stringify({ v: 1, coins: 42, stars: 3 }));
+    expect(seen.at(-1)).toBe(42); // the chip re-renders off the peer's write
+
+    // A half-written value from a peer must not throw across the event handler.
+    expect(() => tabB.adoptExternalWrite("{not json")).not.toThrow();
+    expect(() => tabB.adoptExternalWrite(null)).not.toThrow();
+    expect(Number.isFinite(tabB.coins)).toBe(true);
+  });
+});
+
 describe("a rolled-back grant does not burn the session budget", () => {
   it("pays in full once storage recovers", () => {
     const backend = flakyBackend();

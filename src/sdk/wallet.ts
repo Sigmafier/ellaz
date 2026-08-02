@@ -55,6 +55,23 @@ export interface Wallet {
    */
   markPlayed(gameId: string): void;
   /**
+   * Adopt a profile another TAB just wrote, and re-render off it.
+   *
+   * Two tabs on one device — an installed PWA beside a browser tab is the
+   * ordinary way to get there — each held their own copy read once at
+   * construction, and each write serialises the WHOLE record. So the second tab
+   * to write silently overwrote the first: coins earned, and items already
+   * bought and placed in the room, both gone with no error anywhere.
+   *
+   * Adopting is safe rather than lossy because every mutation persists
+   * immediately: a tab never holds an unsaved change that adopting could throw
+   * away. Staying current is what stops this tab writing a stale whole-record
+   * later. Exposed on the interface, rather than hidden behind the `storage`
+   * listener, so the merge semantics can be tested in the node test env — which
+   * has no `window` and could not otherwise reach this path at all.
+   */
+  adoptExternalWrite(raw: string | null): void;
+  /**
    * Game ids, most-recently-played FIRST, and ONLY games actually opened.
    *
    * Total and safe: a profile with no plays returns `[]`, a game with no
@@ -196,6 +213,21 @@ class EllazWallet implements Wallet {
     });
   }
 
+  /** See `Wallet.adoptExternalWrite`. Does NOT write back — the peer already did. */
+  adoptExternalWrite(raw: string | null): void {
+    // migrateProfile is total: a truncated or half-written value from the other
+    // tab yields a usable profile rather than throwing across the event handler.
+    this.profile = migrateProfile(raw);
+    const snap = this.snapshot();
+    for (const cb of [...this.listeners]) {
+      try {
+        cb(snap);
+      } catch {
+        /* one bad listener must not stop the others */
+      }
+    }
+  }
+
   markPlayed(gameId: string): void {
     if (typeof gameId !== "string" || gameId === "") return;
     this.mutate(() => {
@@ -315,6 +347,28 @@ export function createWallet(backend: KeyValueBackend = localStorageBackend()): 
 
 /** The one wallet the app shares (module-singleton, like audioPort). */
 export const wallet: Wallet = createWallet();
+
+// Keep this tab current with any other tab on the same device.
+//
+// The `storage` event fires in every OTHER tab when one of them writes, which
+// is exactly the signal needed: without it each tab keeps the copy it read at
+// construction and the next one to write clobbers the other's coins AND their
+// bought items, silently and permanently. There is no backend, so nothing
+// anywhere would notice.
+//
+// Guarded on `window` because this module is imported by node tests, and
+// wrapped because a hostile `storage` handler must never break the page.
+// `e.key === null` is a whole-store `clear()`, which is also worth adopting.
+try {
+  if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+    window.addEventListener("storage", (e: StorageEvent) => {
+      if (e.key !== null && e.key !== PROFILE_KEY) return;
+      wallet.adoptExternalWrite(e.key === null ? null : e.newValue);
+    });
+  }
+} catch {
+  /* a browser that refuses the listener simply keeps the old last-writer-wins */
+}
 
 /** Per-mount rewards port bound to the shared wallet. Used by createContext. */
 export function createRewardsPort(gameId: string): RewardsPort {
