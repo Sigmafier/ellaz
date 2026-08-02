@@ -91,6 +91,110 @@ export function celebrate(opts: { count?: number; colors?: string[] } = {}): voi
   setTimeout(() => layer.remove(), 2600);
 }
 
+export interface FlyToOptions {
+  /** What flies. Coins by default; a game could send ⭐ or a heart. */
+  emoji?: string;
+  count?: number;
+  ms?: number;
+}
+
+/** Honour the reduced-motion preference the same way global.css does. */
+function prefersReducedMotion(): boolean {
+  try {
+    return (
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Fly a small flock of emoji from a screen point to an element (the wallet
+ * chip) — the "you earned this, and here is where it went" moment.
+ *
+ * `from` is in VIEWPORT coordinates, like burst(). PURELY COSMETIC: it reads no
+ * balance and writes none, so a failure here can never cost a player a coin.
+ *
+ * When there is no target to fly to (chip not mounted, game rendered outside the
+ * host) it degrades to burst() at the origin rather than doing nothing — the win
+ * must always feel like something happened.
+ */
+export function flyTo(
+  from: { x: number; y: number },
+  target: HTMLElement | null,
+  opts: FlyToOptions = {},
+): void {
+  const emoji = opts.emoji ?? "🪙";
+  const count = Math.max(1, Math.min(12, Math.round(opts.count ?? 5)));
+  const ms = opts.ms ?? 620;
+
+  // A detached or zero-box target would send the flock to (0,0), which reads as
+  // a bug. Treat "no usable box" exactly like "no target".
+  const rect = target && target.isConnected ? target.getBoundingClientRect() : null;
+  if (!rect || (rect.width === 0 && rect.height === 0)) {
+    burst(from.x, from.y);
+    return;
+  }
+  const dx = rect.left + rect.width / 2 - from.x;
+  const dy = rect.top + rect.height / 2 - from.y;
+
+  const reduced = prefersReducedMotion();
+  const stagger = reduced ? 0 : 55;
+  const dur = reduced ? 260 : ms;
+
+  const layer = document.createElement("div");
+  layer.style.cssText = "position:fixed;left:0;top:0;pointer-events:none;z-index:10001";
+  document.body.appendChild(layer);
+
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement("div");
+    p.textContent = emoji;
+    // Reduced motion: no travel at all — the coins simply appear at the wallet
+    // and fade, so the reward still registers without anything flying across.
+    const startX = reduced ? from.x + dx : from.x;
+    const startY = reduced ? from.y + dy : from.y;
+    p.style.cssText =
+      `position:absolute;left:${startX}px;top:${startY}px;font-size:${20 + Math.random() * 8}px;` +
+      `line-height:1;will-change:transform,opacity`;
+    layer.appendChild(p);
+
+    const frames: Keyframe[] = reduced
+      ? [
+          { transform: "translate(-50%,-50%) scale(0.8)", opacity: 0 },
+          { transform: "translate(-50%,-50%) scale(1)", opacity: 1, offset: 0.4 },
+          { transform: "translate(-50%,-50%) scale(1)", opacity: 0 },
+        ]
+      : [
+          { transform: "translate(-50%,-50%) scale(1)", opacity: 1 },
+          {
+            // Arc: rise above the straight line and scatter sideways, so the
+            // flock reads as several coins rather than one moving blob.
+            transform:
+              `translate(calc(-50% + ${dx * 0.5 + (Math.random() * 2 - 1) * 70}px), ` +
+              `calc(-50% + ${dy * 0.5 - (50 + Math.random() * 70)}px)) scale(1.25)`,
+            opacity: 1,
+            offset: 0.55,
+          },
+          {
+            transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(0.35)`,
+            opacity: 0.15,
+          },
+        ];
+
+    p.animate(frames, {
+      duration: dur,
+      delay: i * stagger,
+      easing: "cubic-bezier(.3,.1,.25,1)",
+      fill: "forwards",
+    });
+  }
+
+  setTimeout(() => layer.remove(), dur + count * stagger + 160);
+}
+
 /** Add a one-shot CSS animation class to an element, auto-removed on finish. */
 export function popEl(el: HTMLElement, cls = "ellaz-pop"): void {
   el.classList.remove(cls);

@@ -1,2 +1,11 @@
 export { vibrate, haptic } from "./haptics";
-export { shake, burst, celebrate, popEl, tween, type BurstOptions } from "./effects";
+export {
+  shake,
+  burst,
+  celebrate,
+  flyTo,
+  popEl,
+  tween,
+  type BurstOptions,
+  type FlyToOptions,
+} from "./effects";

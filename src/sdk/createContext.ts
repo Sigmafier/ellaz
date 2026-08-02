@@ -4,6 +4,8 @@ import type { GameContext } from "./types";
 import { createSaveStore } from "./storage";
 import { createAnalyticsPort } from "./analytics";
 import { audioPort } from "./audio";
+import { speechPort } from "./speech";
+import { createRewardsPort } from "./wallet";
 
 // Assembles the GameContext the portal hands to a game on mount. Owns the
 // pause/resume/resize/exit wiring; a game only subscribes to what it needs.
@@ -32,6 +34,11 @@ export function createHostControls(gameId: string, locale: Locale, mount: HTMLEl
     storage: createSaveStore(gameId),
     analytics: createAnalyticsPort(gameId),
     audio: audioPort,
+    // Shared like audio: voice availability and the mute link are app-global.
+    speech: speechPort,
+    // One port per MOUNT — the session coin cap is a budget for this sitting,
+    // so it belongs here rather than on the shared wallet.
+    rewards: createRewardsPort(gameId),
     lifecycle: {
       loadingStart: () => context.analytics.track("game_loading_start"),
       loadingFinished: () => context.analytics.track("game_loading_finished"),
