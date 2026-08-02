@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Locale } from "@i18n/index";
-import { createHostControls, audioPort } from "@sdk/index";
+import { createHostControls, audioPort, wallet } from "@sdk/index";
 import { IconButton } from "@ui/components";
 import { findEntry } from "./catalog";
 import { WalletChip } from "./WalletChip";
@@ -55,6 +55,17 @@ export function GameHost({
         await gameModule.mount(host.context);
         mod = gameModule;
         setLoading(false);
+        // Explicit, once per successful mount: this is what feeds the home
+        // screen's "keep playing" row. It is deliberately its OWN call rather
+        // than something derived from the analytics or lifecycle events below
+        // - those fire on their own schedule (analytics.levelComplete() fires
+        // on every correct answer in math), and player state must never be a
+        // side effect of a telemetry firehose. See
+        // .claude/rules/rewards-economy-convention.md.
+        //
+        // After mount, not before: a game that failed to load must not leave a
+        // card in the row that opens nothing.
+        wallet.markPlayed(gameId);
         host.context.analytics.track("game_open", { game: gameId });
       })
       .catch((e) => {

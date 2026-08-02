@@ -17,6 +17,15 @@ export const PROFILE_KEY = "ellaz:profile:v1";
 export interface GameRecord {
   wins: number;
   stars: number;
+  /**
+   * Epoch ms of the last time this game was OPENED, or absent if it never was.
+   *
+   * Optional and ADDITIVE on purpose: a record written before this field
+   * existed simply has no key, so `ellaz:profile:v1` stays v1 and older
+   * records stay readable. The absence is meaningful - "never opened" is not
+   * "opened at the epoch" - so nothing may default it to 0.
+   */
+  lastPlayedAt?: number;
 }
 
 export interface ProfileV1 {
@@ -51,6 +60,21 @@ function count(value: unknown): number {
   return Math.max(0, Math.floor(value));
 }
 
+/**
+ * A usable epoch-ms stamp, or `undefined` for anything that isn't one.
+ *
+ * Deliberately NOT `count()`: that coerces junk to 0, and a 0 here would read
+ * as "opened at the epoch" and sort ahead of nothing forever. Anything we
+ * cannot trust is DROPPED, which puts the game back into the honest "never
+ * opened" state. Strings, NaN, Infinity, negatives, objects and 0 all land
+ * there; a fractional value is floored, since it is still a real instant.
+ */
+function timestamp(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value)) return undefined;
+  const ms = Math.floor(value);
+  return ms > 0 ? ms : undefined;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -78,7 +102,13 @@ function sanitizeGames(value: unknown): Record<string, GameRecord> {
   if (!isRecord(value)) return out;
   for (const [gameId, record] of Object.entries(value)) {
     if (!isRecord(record)) continue;
-    out[gameId] = { wins: count(record.wins), stars: count(record.stars) };
+    const sanitized: GameRecord = { wins: count(record.wins), stars: count(record.stars) };
+    // Only ever WRITE the key when it survived coercion, so an unusable value
+    // leaves no trace at all rather than an explicit `undefined` that would
+    // round-trip differently through JSON.
+    const played = timestamp(record.lastPlayedAt);
+    if (played !== undefined) sanitized.lastPlayedAt = played;
+    out[gameId] = sanitized;
   }
   return out;
 }

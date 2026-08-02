@@ -22,6 +22,17 @@ function expectUsable(p: ProfileV1): void {
   expect(Array.isArray(p.equipped)).toBe(false);
   expect(typeof p.games).toBe("object");
   expect(p.games).not.toBeNull();
+  for (const record of Object.values(p.games)) {
+    expect(Number.isFinite(record.wins)).toBe(true);
+    expect(Number.isFinite(record.stars)).toBe(true);
+    // lastPlayedAt is optional. When present it must be a real instant - a
+    // survivor of coercion, never a 0 standing in for "never opened".
+    if ("lastPlayedAt" in record) {
+      expect(typeof record.lastPlayedAt).toBe("number");
+      expect(Number.isFinite(record.lastPlayedAt as number)).toBe(true);
+      expect(record.lastPlayedAt as number).toBeGreaterThan(0);
+    }
+  }
   expect(Number.isFinite(p.updatedAt)).toBe(true);
 }
 
@@ -83,6 +94,22 @@ describe("migrateProfile — NEVER THROWS battery", () => {
     ["nested junk in games", { v: 1, games: { snake: "bad", math: { wins: "3" } } }],
     ["nested junk in owned", { v: 1, owned: ["ok", 5, null, { a: 1 }] }],
     ["nested junk in equipped", { v: 1, equipped: { wall: "blue", floor: 7 } }],
+    // lastPlayedAt is fed the same hand-edited junk as everything else, and it
+    // is the field a "keep playing" row sorts on - a bad value here must never
+    // corrupt the profile or reach the sort.
+    ["lastPlayedAt as string", { v: 1, games: { snake: { wins: 1, stars: 1, lastPlayedAt: "123" } } }],
+    ["lastPlayedAt as ISO string", { v: 1, games: { snake: { lastPlayedAt: "2026-08-02T00:00:00Z" } } }],
+    ["lastPlayedAt NaN", { v: 1, games: { snake: { lastPlayedAt: NaN } } }],
+    ["lastPlayedAt Infinity", { v: 1, games: { snake: { lastPlayedAt: Infinity } } }],
+    ["lastPlayedAt -Infinity", { v: 1, games: { snake: { lastPlayedAt: -Infinity } } }],
+    ["lastPlayedAt negative", { v: 1, games: { snake: { lastPlayedAt: -5 } } }],
+    ["lastPlayedAt zero", { v: 1, games: { snake: { lastPlayedAt: 0 } } }],
+    ["lastPlayedAt fractional", { v: 1, games: { snake: { lastPlayedAt: 1700000000000.7 } } }],
+    ["lastPlayedAt as object", { v: 1, games: { snake: { lastPlayedAt: { at: 1 } } } }],
+    ["lastPlayedAt as array", { v: 1, games: { snake: { lastPlayedAt: [1700000000000] } } }],
+    ["lastPlayedAt as null", { v: 1, games: { snake: { lastPlayedAt: null } } }],
+    ["lastPlayedAt as boolean", { v: 1, games: { snake: { lastPlayedAt: true } } }],
+    ["lastPlayedAt on a truncated record", { v: 1, games: { snake: { lastPlayedAt: 1700000000000 } } }],
   ];
 
   for (const [label, raw] of cases) {
@@ -137,6 +164,55 @@ describe("migrateProfile — NEVER THROWS battery", () => {
   it("drops malformed per-game records", () => {
     const p = migrateProfile({ v: 1, games: { snake: "bad", math: { wins: 3, stars: 1 } } });
     expect(p.games).toEqual({ math: { wins: 3, stars: 1 } });
+  });
+
+  it("keeps a valid lastPlayedAt intact", () => {
+    const p = migrateProfile({ v: 1, games: { snake: { wins: 2, stars: 2, lastPlayedAt: 1700000000000 } } });
+    expect(p.games.snake).toEqual({ wins: 2, stars: 2, lastPlayedAt: 1700000000000 });
+  });
+
+  it("floors a fractional lastPlayedAt rather than dropping a real instant", () => {
+    const p = migrateProfile({ v: 1, games: { snake: { lastPlayedAt: 1700000000000.7 } } });
+    expect(p.games.snake.lastPlayedAt).toBe(1700000000000);
+  });
+
+  it("DROPS an unusable lastPlayedAt instead of coercing it to 0", () => {
+    // 0 would read as "opened at the epoch" and sort ahead of nothing forever.
+    // Absent is the honest answer: this game was never opened.
+    const junk: unknown[] = [
+      "123",
+      "2026-08-02T00:00:00Z",
+      NaN,
+      Infinity,
+      -Infinity,
+      -5,
+      0,
+      null,
+      true,
+      { at: 1 },
+      [1700000000000],
+    ];
+    for (const value of junk) {
+      const p = migrateProfile({ v: 1, games: { snake: { wins: 1, stars: 1, lastPlayedAt: value } } });
+      expect(p.games.snake).toEqual({ wins: 1, stars: 1 });
+      expect("lastPlayedAt" in p.games.snake).toBe(false);
+    }
+  });
+
+  it("a bad lastPlayedAt does not cost the game its wins and stars", () => {
+    const p = migrateProfile({ v: 1, games: { snake: { wins: 4, stars: 3, lastPlayedAt: "nope" } } });
+    expect(p.games.snake.wins).toBe(4);
+    expect(p.games.snake.stars).toBe(3);
+  });
+
+  it("keeps a record that carries ONLY a lastPlayedAt (opened, never won)", () => {
+    const p = migrateProfile({ v: 1, games: { snake: { lastPlayedAt: 1700000000000 } } });
+    expect(p.games.snake).toEqual({ wins: 0, stars: 0, lastPlayedAt: 1700000000000 });
+  });
+
+  it("round-trips lastPlayedAt through JSON, which is how it is really stored", () => {
+    const raw = { v: 1, coins: 0, stars: 0, owned: [], equipped: {}, games: { snake: { wins: 1, stars: 1, lastPlayedAt: 1700000000000 } }, updatedAt: 1700000000000 };
+    expect(migrateProfile(JSON.stringify(raw))).toEqual(raw);
   });
 
   it("never returns an object aliased to its input", () => {

@@ -41,6 +41,25 @@ export interface Wallet {
   /** Spend. Idempotent: buying an owned item is a no-op, never a second charge. */
   buy(itemId: string, price: number, category: string): BuyResult;
   equip(category: string, itemId: string): boolean;
+  /**
+   * Record that a game was OPENED (not won). Persists and notifies exactly like
+   * every other wallet mutation, so the home screen and the wallet chip both
+   * re-render off the same subscription.
+   */
+  markPlayed(gameId: string): void;
+  /**
+   * Game ids, most-recently-played FIRST, and ONLY games actually opened.
+   *
+   * Total and safe: a profile with no plays returns `[]`, a game with no
+   * `lastPlayedAt` is excluded rather than sorted as 0, and equal stamps break
+   * on the game id ascending so the order never depends on sort stability.
+   *
+   * It does NOT know the catalog, and cannot: the SDK is the neutral contract
+   * below the portal. A game that has since been REMOVED is still returned, so
+   * the CALLER must filter against the catalog. Filter first, then slice -
+   * passing `limit` here can hand back fewer live ids than expected.
+   */
+  recentlyPlayed(limit?: number): string[];
   /** One port per game MOUNT — it carries that mount's session coin budget. */
   createRewardsPort(gameId: string): RewardsPort;
 }
@@ -140,6 +159,35 @@ class EllazWallet implements Wallet {
     this.profile.equipped[category] = itemId;
     this.commit();
     return true;
+  }
+
+  markPlayed(gameId: string): void {
+    if (typeof gameId !== "string" || gameId === "") return;
+    // Reuse the existing record so a game's wins and stars survive an open.
+    const record = this.profile.games[gameId] ?? { wins: 0, stars: 0 };
+    record.lastPlayedAt = Date.now();
+    this.profile.games[gameId] = record;
+    this.commit();
+  }
+
+  recentlyPlayed(limit?: number): string[] {
+    const played: Array<[string, number]> = [];
+    for (const [gameId, record] of Object.entries(this.profile.games)) {
+      const at = record.lastPlayedAt;
+      // Absent means never opened, which is NOT the same as opened long ago.
+      if (typeof at !== "number" || !Number.isFinite(at)) continue;
+      played.push([gameId, at]);
+    }
+    // Newest first; identical stamps (two opens inside one millisecond, or a
+    // hand-edited profile) fall back to the id so the order is a pure function
+    // of the profile rather than of the engine's sort stability.
+    played.sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+    const ids = played.map(([gameId]) => gameId);
+
+    if (limit === undefined) return ids;
+    // Fail closed on a nonsense limit: show nothing rather than everything.
+    if (!Number.isFinite(limit) || limit <= 0) return [];
+    return ids.slice(0, Math.floor(limit));
   }
 
   createRewardsPort(gameId: string): RewardsPort {

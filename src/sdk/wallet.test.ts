@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { createWallet } from "./wallet";
 import { PROFILE_KEY, memoryBackend, migrateProfile } from "./profile";
 import { SESSION_COIN_CAP, TIER_COINS } from "./economy";
@@ -327,6 +327,187 @@ describe("snapshot", () => {
     snap.owned.push("hacked");
     expect(wallet.coins).toBe(10);
     expect(wallet.owns("hacked")).toBe(false);
+  });
+});
+
+describe("markPlayed / recentlyPlayed", () => {
+  /** A store seeded with explicit stamps, so ordering never races the clock. */
+  function seedGames(games: Record<string, { wins?: number; stars?: number; lastPlayedAt?: number }>) {
+    return freshWallet({ [PROFILE_KEY]: JSON.stringify({ v: 1, games }) });
+  }
+
+  it("returns an empty list for a player who has opened nothing", () => {
+    const { wallet } = freshWallet();
+    expect(wallet.recentlyPlayed()).toEqual([]);
+    expect(wallet.recentlyPlayed(6)).toEqual([]);
+  });
+
+  it("records an open and returns it", () => {
+    const { wallet } = freshWallet();
+    wallet.markPlayed("snake");
+    expect(wallet.recentlyPlayed()).toEqual(["snake"]);
+  });
+
+  it("orders most-recently-played FIRST", () => {
+    vi.useFakeTimers();
+    try {
+      const { wallet } = freshWallet();
+      vi.setSystemTime(new Date(1_000));
+      wallet.markPlayed("memory");
+      vi.setSystemTime(new Date(2_000));
+      wallet.markPlayed("snake");
+      vi.setSystemTime(new Date(3_000));
+      wallet.markPlayed("math");
+      expect(wallet.recentlyPlayed()).toEqual(["math", "snake", "memory"]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("re-opening a game moves it back to the front", () => {
+    vi.useFakeTimers();
+    try {
+      const { wallet } = freshWallet();
+      vi.setSystemTime(new Date(1_000));
+      wallet.markPlayed("memory");
+      vi.setSystemTime(new Date(2_000));
+      wallet.markPlayed("snake");
+      vi.setSystemTime(new Date(3_000));
+      wallet.markPlayed("memory");
+      expect(wallet.recentlyPlayed()).toEqual(["memory", "snake"]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("EXCLUDES a game that was never opened, rather than sorting it as 0", () => {
+    // A game with wins but no stamp was played before this field existed (or
+    // its stamp was junk). "Never opened" must not outrank nothing.
+    const { wallet } = seedGames({
+      hidden: { wins: 9, stars: 9 },
+      snake: { wins: 1, stars: 1, lastPlayedAt: 5_000 },
+    });
+    expect(wallet.recentlyPlayed()).toEqual(["snake"]);
+  });
+
+  it("excludes a game whose stamp was unusable junk", () => {
+    const { wallet } = freshWallet({
+      [PROFILE_KEY]: '{"v":1,"games":{"snake":{"wins":1,"stars":1,"lastPlayedAt":"yesterday"}}}',
+    });
+    expect(wallet.recentlyPlayed()).toEqual([]);
+  });
+
+  it("breaks ties DETERMINISTICALLY on the game id, ascending", () => {
+    const { wallet } = seedGames({
+      snake: { lastPlayedAt: 100 },
+      math: { lastPlayedAt: 100 },
+      coloring: { lastPlayedAt: 100 },
+      n2048: { lastPlayedAt: 200 },
+    });
+    // Newest first, then id ascending among the three that tie.
+    expect(wallet.recentlyPlayed()).toEqual(["n2048", "coloring", "math", "snake"]);
+  });
+
+  it("gives the same answer regardless of the order the keys were written in", () => {
+    const forward = seedGames({ a: { lastPlayedAt: 100 }, b: { lastPlayedAt: 100 } }).wallet;
+    const reverse = seedGames({ b: { lastPlayedAt: 100 }, a: { lastPlayedAt: 100 } }).wallet;
+    expect(forward.recentlyPlayed()).toEqual(reverse.recentlyPlayed());
+    expect(forward.recentlyPlayed()).toEqual(["a", "b"]);
+  });
+
+  it("honours a limit, taking the newest", () => {
+    const { wallet } = seedGames({
+      a: { lastPlayedAt: 100 },
+      b: { lastPlayedAt: 200 },
+      c: { lastPlayedAt: 300 },
+    });
+    expect(wallet.recentlyPlayed(2)).toEqual(["c", "b"]);
+    expect(wallet.recentlyPlayed(99)).toEqual(["c", "b", "a"]);
+  });
+
+  it("fails CLOSED on a nonsense limit - shows nothing, never everything", () => {
+    const { wallet } = seedGames({ a: { lastPlayedAt: 100 }, b: { lastPlayedAt: 200 } });
+    expect(wallet.recentlyPlayed(0)).toEqual([]);
+    expect(wallet.recentlyPlayed(-3)).toEqual([]);
+    expect(wallet.recentlyPlayed(NaN)).toEqual([]);
+    expect(wallet.recentlyPlayed(Infinity)).toEqual([]);
+    expect(wallet.recentlyPlayed(1.9)).toEqual(["b"]);
+  });
+
+  it("ignores an empty or non-string game id instead of writing a junk key", () => {
+    const { wallet } = freshWallet();
+    wallet.markPlayed("");
+    wallet.markPlayed(undefined as unknown as string);
+    wallet.markPlayed(null as unknown as string);
+    expect(wallet.recentlyPlayed()).toEqual([]);
+    expect(wallet.snapshot().games).toEqual({});
+  });
+
+  it("PERSISTS through the backend, so a reload still knows what was played", () => {
+    const { backend, wallet } = freshWallet();
+    wallet.markPlayed("snake");
+
+    const stored = migrateProfile(backend.read(PROFILE_KEY));
+    expect(typeof stored.games.snake.lastPlayedAt).toBe("number");
+
+    expect(createWallet(backend).recentlyPlayed()).toEqual(["snake"]);
+  });
+
+  it("NOTIFIES subscribers, the same as every other wallet mutation", () => {
+    const { wallet } = freshWallet();
+    let fired = 0;
+    const off = wallet.subscribe(() => fired++);
+    wallet.markPlayed("snake");
+    expect(fired).toBe(1);
+    off();
+    wallet.markPlayed("math");
+    expect(fired).toBe(1);
+  });
+
+  it("does not fire for an ignored game id", () => {
+    const { wallet } = freshWallet();
+    let fired = 0;
+    wallet.subscribe(() => fired++);
+    wallet.markPlayed("");
+    expect(fired).toBe(0);
+  });
+
+  it("never touches coins or stars - opening a game is not a win", () => {
+    const { wallet } = freshWallet({ [PROFILE_KEY]: '{"v":1,"coins":40,"stars":6}' });
+    wallet.markPlayed("snake");
+    expect(wallet.coins).toBe(40);
+    expect(wallet.stars).toBe(6);
+    expect(wallet.snapshot().games.snake).toEqual({
+      wins: 0,
+      stars: 0,
+      lastPlayedAt: wallet.snapshot().games.snake.lastPlayedAt,
+    });
+  });
+
+  it("preserves the game's existing wins and stars", () => {
+    const { wallet } = seedGames({ snake: { wins: 4, stars: 3 } });
+    wallet.markPlayed("snake");
+    const record = wallet.snapshot().games.snake;
+    expect(record.wins).toBe(4);
+    expect(record.stars).toBe(3);
+    expect(record.lastPlayedAt).toBeGreaterThan(0);
+  });
+
+  it("a win after an open keeps the stamp", () => {
+    const { wallet } = freshWallet();
+    wallet.markPlayed("snake");
+    const at = wallet.snapshot().games.snake.lastPlayedAt;
+    wallet.createRewardsPort("snake").grant({ reason: "level_complete", tier: "easy" });
+    expect(wallet.snapshot().games.snake.lastPlayedAt).toBe(at);
+    expect(wallet.recentlyPlayed()).toEqual(["snake"]);
+  });
+
+  it("a snapshot cannot be used to rewrite the stamp", () => {
+    const { wallet } = freshWallet();
+    wallet.markPlayed("snake");
+    const snap = wallet.snapshot();
+    snap.games.snake.lastPlayedAt = 1;
+    expect(wallet.snapshot().games.snake.lastPlayedAt).toBeGreaterThan(1);
   });
 });
 
