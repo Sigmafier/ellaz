@@ -6,13 +6,59 @@ import { burst, shake, haptic } from "@juice/index";
 import { winMoment } from "@shared/index";
 import { generateProblem, isCorrect, type MathLevel, type Problem } from "./logic";
 
-// Difficulty options in display order, with bilingual labels.
+// Two rows, because the seven levels are two different games for two different
+// ages. The pre-arithmetic row asks nothing a four-year-old cannot answer by
+// counting pictures; the number row needs numerals. Both rows are the shared
+// <DifficultySelector> and both drive the same `level` state, so whichever row
+// does not hold the current level simply shows no highlighted button.
+const PRE_LEVEL_OPTIONS: DifficultyOption<MathLevel>[] = [
+  { id: "count", label: { he: "ספירה", en: "Count" } },
+  { id: "match", label: { he: "התאמה", en: "Match" } },
+  { id: "visual", label: { he: "תמונות", en: "Pictures" } },
+];
+
 const LEVEL_OPTIONS: DifficultyOption<MathLevel>[] = [
   { id: "up5", label: { he: "עד 5", en: "Up to 5" } },
   { id: "up10", label: { he: "עד 10", en: "Up to 10" } },
   { id: "up20", label: { he: "עד 20", en: "Up to 20" } },
   { id: "mult", label: { he: "כפל", en: "Times ×" } },
 ];
+
+// Bottom-of-screen hint, per mode.
+const HINTS: Record<Problem["mode"], { he: string; en: string }> = {
+  arith: { he: "בחרו את התשובה הנכונה", en: "Tap the right answer" },
+  count: { he: "כמה יש? בחרו את המספר", en: "How many? Tap the number" },
+  match: { he: "בחרו את הקבוצה עם המספר הזה", en: "Tap the group with that many" },
+  visual: { he: "ספרו את התמונות ובחרו את המספר", en: "Count the pictures, tap the number" },
+};
+
+/**
+ * A group of `n` glyphs, wrapped at five per row so a child can count it at a
+ * glance instead of scanning one long line. Pinned `dir="ltr"` like every other
+ * spatial arrangement in this RTL app.
+ */
+function GlyphGroup({ n, glyph, size }: { n: number; glyph?: string; size: string }) {
+  if (!glyph || n <= 0) return null;
+  return (
+    <div
+      dir="ltr"
+      style={{
+        display: "grid",
+        gridTemplateColumns: `repeat(${Math.min(n, 5)}, auto)`,
+        gap: "0.12em",
+        justifyContent: "center",
+        fontSize: size,
+        lineHeight: 1.15,
+      }}
+    >
+      {Array.from({ length: n }, (_, i) => (
+        <span key={i} aria-hidden="true">
+          {glyph}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export function MathGame({ ctx }: { ctx: GameContext }) {
   const [level, setLevel] = useState<MathLevel>("up10");
@@ -107,12 +153,21 @@ export function MathGame({ ctx }: { ctx: GameContext }) {
         <Stat label={ctx.t("best")} value={best} />
       </div>
 
-      <DifficultySelector
-        options={LEVEL_OPTIONS}
-        value={level}
-        onChange={chooseLevel}
-        locale={ctx.locale}
-      />
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+        <DifficultySelector
+          options={PRE_LEVEL_OPTIONS}
+          value={level}
+          onChange={chooseLevel}
+          locale={ctx.locale}
+          kids
+        />
+        <DifficultySelector
+          options={LEVEL_OPTIONS}
+          value={level}
+          onChange={chooseLevel}
+          locale={ctx.locale}
+        />
+      </div>
 
       <div
         ref={cardRef}
@@ -125,32 +180,85 @@ export function MathGame({ ctx }: { ctx: GameContext }) {
           boxShadow: "var(--shadow-2)",
         }}
       >
-        <div
-          dir="ltr"
-          style={{
-            fontSize: "clamp(44px, 15vw, 84px)",
-            fontWeight: 800,
-            lineHeight: 1.1,
-            letterSpacing: 2,
-          }}
-        >
-          {problem.a} {problem.op} {problem.b} = <span style={{ color: "var(--yellow)" }}>?</span>
-        </div>
+        {/*
+          Every question is pinned dir="ltr". For the equation that is standard
+          notation in an RTL app; for the two-group visual sum it is load-bearing
+          in the same way - otherwise RTL mirrors the row and 3 + 2 is drawn as
+          2 + 3, which is a different (and for subtraction, unanswerable) sum.
+        */}
+        {problem.mode === "arith" && (
+          <div
+            dir="ltr"
+            style={{
+              fontSize: "clamp(44px, 15vw, 84px)",
+              fontWeight: 800,
+              lineHeight: 1.1,
+              letterSpacing: 2,
+            }}
+          >
+            {problem.a} {problem.op} {problem.b} = <span style={{ color: "var(--yellow)" }}>?</span>
+          </div>
+        )}
+
+        {problem.mode === "count" && (
+          <GlyphGroup n={problem.groups[0]} glyph={problem.glyph} size="clamp(30px, 9vw, 52px)" />
+        )}
+
+        {/* Matching: the numeral IS the question, and the groups are the buttons. */}
+        {problem.mode === "match" && (
+          <div
+            dir="ltr"
+            style={{
+              fontSize: "clamp(56px, 20vw, 104px)",
+              fontWeight: 800,
+              lineHeight: 1.1,
+              color: "var(--yellow)",
+            }}
+          >
+            {problem.answer}
+          </div>
+        )}
+
+        {problem.mode === "visual" && (
+          <div
+            dir="ltr"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexWrap: "wrap",
+              gap: 10,
+              fontSize: "clamp(28px, 9vw, 46px)",
+              fontWeight: 800,
+              lineHeight: 1.1,
+            }}
+          >
+            <GlyphGroup n={problem.a} glyph={problem.glyph} size="clamp(24px, 7vw, 40px)" />
+            <span>{problem.op}</span>
+            <GlyphGroup n={problem.b} glyph={problem.glyph} size="clamp(24px, 7vw, 40px)" />
+            <span>=</span>
+            <span style={{ color: "var(--yellow)" }}>?</span>
+          </div>
+        )}
       </div>
 
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "center" }}>
         {problem.choices.map((c) => {
           const isWrong = wrongChoice === c;
+          // In matching mode the buttons ARE the groups, so they need room for
+          // up to six glyphs. Both shapes stay well past the 64px kids target.
+          const isGroup = problem.choiceKind === "group";
           return (
             <button
               key={c}
               aria-label={`answer ${c}`}
               onPointerDown={(e) => answer(c, e)}
               style={{
-                width: "var(--tap-kids)",
-                height: "var(--tap-kids)",
-                minWidth: 72,
+                width: isGroup ? "auto" : "var(--tap-kids)",
+                height: isGroup ? "auto" : "var(--tap-kids)",
+                minWidth: isGroup ? 96 : 72,
                 minHeight: 72,
+                padding: isGroup ? "12px 14px" : 0,
                 border: "none",
                 borderRadius: 20,
                 background: isWrong ? "var(--red)" : "linear-gradient(180deg,var(--brand-2),var(--brand))",
@@ -160,16 +268,15 @@ export function MathGame({ ctx }: { ctx: GameContext }) {
                 boxShadow: "var(--shadow-1)",
               }}
             >
-              {c}
+              {isGroup ? <GlyphGroup n={c} glyph={problem.glyph} size="clamp(18px, 5vw, 26px)" /> : c}
             </button>
           );
         })}
       </div>
 
       <div style={{ color: "var(--text-dim)", fontSize: 14 }}>
-        {ctx.locale === "he"
-          ? `בחרו את התשובה הנכונה ${level === "mult" ? "✖️" : "➕➖"}`
-          : `Tap the right answer ${level === "mult" ? "✖️" : "➕➖"}`}
+        {HINTS[problem.mode][ctx.locale]}{" "}
+        {problem.mode === "arith" ? (level === "mult" ? "✖️" : "➕➖") : problem.glyph}
       </div>
     </div>
   );

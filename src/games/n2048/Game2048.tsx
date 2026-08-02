@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { GameContext, RewardTier } from "@sdk/index";
+import type { Locale } from "@i18n/index";
 import { Button, Stat } from "@ui/components";
 import { DifficultySelector, type DifficultyOption } from "@ui/DifficultySelector";
 import { shake, haptic } from "@juice/index";
@@ -47,7 +48,34 @@ function tileText(v: number): string {
   return v >= 8 ? "#f9f6f2" : "#5b5147";
 }
 
-export function Game2048({ ctx }: { ctx: GameContext }) {
+/** What a skin paints on one non-empty tile. */
+export interface SkinTile {
+  /** The glyph drawn instead of the number. */
+  glyph: string;
+  /** Bilingual name, used as the tile's aria-label (a number reads itself; a glyph does not). */
+  label: Record<Locale, string>;
+  bg: string;
+}
+
+/**
+ * An optional repaint of the board. ABSENT (the default) = today's numbers and
+ * palette, unchanged — every skin-aware branch below falls back to the exact
+ * literal it replaced, so the 2048 game renders and behaves identically.
+ *
+ * A skin owns its own value -> tile mapping, so this renderer never learns what
+ * ladder a skinned game uses. `tile()` MUST be TOTAL over every positive value
+ * (clamp at the top rung): a value it declines to map falls back to the number,
+ * which is honest but off-theme.
+ */
+export interface TileSkin {
+  boardBg: string;
+  emptyBg: string;
+  /** Bump the difficulty row to the age-5 touch target (kids games). */
+  kids?: boolean;
+  tile(value: number): SkinTile | null;
+}
+
+export function Game2048({ ctx, skin }: { ctx: GameContext; skin?: TileSkin }) {
   const [level, setLevel] = useState<LevelKey>("classic");
   const { size, target } = LEVELS[level];
   const [grid, setGrid] = useState<Grid>(() => newGame(size));
@@ -207,6 +235,7 @@ export function Game2048({ ctx }: { ctx: GameContext }) {
         value={level}
         onChange={resetLevel}
         locale={ctx.locale}
+        kids={skin?.kids}
       />
 
       <div style={{ display: "flex", gap: 10 }}>
@@ -225,7 +254,7 @@ export function Game2048({ ctx }: { ctx: GameContext }) {
           position: "relative",
           width: "min(88vw, 62vh, 420px)",
           aspectRatio: "1",
-          background: "#bbada0",
+          background: skin ? skin.boardBg : "#bbada0",
           borderRadius: 14,
           padding: 10,
           display: "grid",
@@ -235,28 +264,41 @@ export function Game2048({ ctx }: { ctx: GameContext }) {
           touchAction: "none",
         }}
       >
-        {grid.flat().map((v, i) => (
-          <div
-            key={i}
-            className={mergedIdx.has(i) ? "ellaz-merge" : undefined}
-            style={{
-              display: "grid",
-              placeItems: "center",
-              minWidth: 0,
-              minHeight: 0,
-              overflow: "hidden",
-              background: v === 0 ? "rgba(238,228,218,0.35)" : TILE_COLORS[v] ?? "#3c3a32",
-              borderRadius: 8,
-              color: tileText(v),
-              fontWeight: 800,
-              lineHeight: 1,
-              fontSize: v >= 1024 ? "clamp(18px,5vw,30px)" : "clamp(22px,7vw,40px)",
-              transition: "background 0.12s ease",
-            }}
-          >
-            {v > 0 ? v : ""}
-          </div>
-        ))}
+        {grid.flat().map((v, i) => {
+          // Null whenever there is no skin (the number path) or the tile is empty.
+          const painted = v > 0 && skin ? skin.tile(v) : null;
+          const emptyBg = skin ? skin.emptyBg : "rgba(238,228,218,0.35)";
+          return (
+            <div
+              key={i}
+              className={mergedIdx.has(i) ? "ellaz-merge" : undefined}
+              // A number reads itself to a screen reader; a glyph needs the name.
+              role={painted ? "img" : undefined}
+              aria-label={painted ? painted.label[ctx.locale] : undefined}
+              style={{
+                display: "grid",
+                placeItems: "center",
+                minWidth: 0,
+                minHeight: 0,
+                overflow: "hidden",
+                background:
+                  v === 0 ? emptyBg : painted ? painted.bg : TILE_COLORS[v] ?? "#3c3a32",
+                borderRadius: 8,
+                color: tileText(v),
+                fontWeight: 800,
+                lineHeight: 1,
+                fontSize: painted
+                  ? "clamp(24px,7vw,44px)"
+                  : v >= 1024
+                    ? "clamp(18px,5vw,30px)"
+                    : "clamp(22px,7vw,40px)",
+                transition: "background 0.12s ease",
+              }}
+            >
+              {painted ? painted.glyph : v > 0 ? v : ""}
+            </div>
+          );
+        })}
 
         {(won || over) && (
           <div
