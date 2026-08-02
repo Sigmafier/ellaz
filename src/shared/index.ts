@@ -21,5 +21,33 @@ export {
 } from "./sequence";
 // Pause-aware game clock (React hook).
 export { useGameTimer, type GameTimer, type GameTimerOptions } from "./useGameTimer";
+// Spawn/expire/tap rules for the games where things appear, move and get
+// tapped. PURE half — safe to import from a logic.ts (via `@shared/spawn.pure`).
+export {
+  SPAWN_DIFFICULTIES,
+  SPAWN_PRESETS,
+  alive,
+  dueToSpawn,
+  isAlive,
+  isSustainable,
+  judgeTap,
+  pickLane,
+  spawn,
+  steadyStateAlive,
+  type Prop,
+  type SpawnDifficulty,
+  type SpawnOptions,
+  type SpawnSpec,
+  type TapVerdict,
+} from "./spawn.pure";
+// ...and the React + Web Animations glue over it. Motion is DECLARED to the
+// browser, never stepped by a hand-rolled loop — see the header of spawn.ts.
+export {
+  PLAY_SURFACE_STYLE,
+  useSpawner,
+  type SpawnMotion,
+  type Spawner,
+  type SpawnerOptions,
+} from "./spawn";
 // The instruction chip every kids game shows at the top.
 export { Prompt, type PromptProps } from "./Prompt";

@@ -22,7 +22,18 @@ const SHARED_DIR = join(HERE, "..", "shared");
 
 // Modules that must stay free of DOM, React and Phaser.
 const PURE_BASENAMES = ["logic.ts", "skin.ts"];
-const PURE_SHARED = ["rng.ts", "cast.ts", "shapes.ts", "sequence.ts", "notes.ts"];
+
+// `src/shared` is guarded by EXCLUSION, not by a hand-kept list of pure files.
+// A list of pure files fails OPEN: a new shared module is unguarded until
+// someone remembers to add it, which is exactly how spawn.pure.ts arrived
+// outside the gate. Inverted, a new module is guarded the moment it exists and
+// anything genuinely React-bearing has to be named here on purpose.
+const IMPURE_SHARED = new Set([
+  "index.ts", // the barrel re-exports the React modules below
+  "winMoment.ts", // reaches @juice and the wallet anchor by design
+  "useGameTimer.ts", // a React hook
+  "spawn.ts", // the WAAPI/React glue half of the spawner
+]);
 
 // Each entry is [pattern, why it is banned] so a failure explains itself
 // instead of just naming a regex.
@@ -46,9 +57,11 @@ function pureFiles(): string[] {
       if (existsSync(p)) found.push(p);
     }
   }
-  for (const base of PURE_SHARED) {
-    const p = join(SHARED_DIR, base);
-    if (existsSync(p)) found.push(p);
+  for (const entry of readdirSync(SHARED_DIR, { withFileTypes: true })) {
+    if (!entry.isFile()) continue;
+    if (!entry.name.endsWith(".ts") || entry.name.endsWith(".test.ts")) continue;
+    if (IMPURE_SHARED.has(entry.name)) continue;
+    found.push(join(SHARED_DIR, entry.name));
   }
   return found;
 }
@@ -63,6 +76,10 @@ describe("pure logic modules stay pure", () => {
     expect(files.length).toBeGreaterThanOrEqual(15);
     expect(files.some((f) => f.endsWith(join("memory", "logic.ts")))).toBe(true);
     expect(files.some((f) => f.endsWith(join("shared", "rng.ts")))).toBe(true);
+    // The exclusion list is the risky half: too broad and the gate quietly
+    // guards nothing. Pin that a module NOT on it is picked up automatically.
+    expect(files.some((f) => f.endsWith(join("shared", "spawn.pure.ts")))).toBe(true);
+    expect(files.some((f) => f.endsWith(join("shared", "winMoment.ts")))).toBe(false);
   });
 
   it("import nothing from React, Phaser, @ui, @juice, or the @shared barrel", () => {
