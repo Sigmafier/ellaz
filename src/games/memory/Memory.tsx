@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { GameContext } from "@sdk/index";
 import { Button, Stat } from "@ui/components";
-import { burst, haptic, celebrate } from "@juice/index";
+import { DifficultySelector, type DifficultyOption } from "@ui/DifficultySelector";
+import { burst, haptic } from "@juice/index";
+import { winMoment } from "@shared/index";
 import { newGame, flip, resolveMismatch, isWon, type MemoryState } from "./logic";
 
 // Big, colorful, icon-first faces — no reading required (age 5). Each themed set
@@ -21,6 +23,13 @@ const LEVELS = [
   { id: "medium", pairs: 8, cols: 4, he: "בינוני", en: "Med" },
   { id: "hard", pairs: 10, cols: 5, he: "קשה", en: "Hard" },
 ] as const;
+
+type LevelId = (typeof LEVELS)[number]["id"];
+
+const LEVEL_OPTIONS: DifficultyOption<LevelId>[] = LEVELS.map((lv) => ({
+  id: lv.id,
+  label: { he: lv.he, en: lv.en },
+}));
 
 function deckFor(setIdx: number, levelIdx: number) {
   return newGame(FACE_SETS[setIdx].slice(0, LEVELS[levelIdx].pairs));
@@ -58,6 +67,7 @@ export function Memory({ ctx }: { ctx: GameContext }) {
   const onCard = useCallback(
     (index: number) => {
       ctx.audio.unlock();
+      ctx.speech.unlock();
       const { state: ns, outcome } = flip(state, index);
       if (outcome.kind === "ignored") return;
       setState(ns);
@@ -68,16 +78,18 @@ export function Memory({ ctx }: { ctx: GameContext }) {
         ctx.audio.play("success");
         haptic.success();
         const el = gridRef.current;
-        if (el) {
-          const r = el.getBoundingClientRect();
-          burst(r.left + r.width / 2, r.top + r.height / 2, { count: 10 });
-        }
+        const r = el?.getBoundingClientRect();
+        const centre = r ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : undefined;
+        if (centre) burst(centre.x, centre.y, { count: 10 });
         if (isWon(ns)) {
           setWon(true);
-          ctx.audio.play("win");
-          haptic.win();
-          celebrate();
-          ctx.analytics.levelComplete(`set-${setIdx + 1}-${LEVELS[levelIdx].id}`, ns.moves);
+          winMoment(ctx, {
+            reason: "level_complete",
+            tier: LEVELS[levelIdx].id,
+            level: `set-${setIdx + 1}-${LEVELS[levelIdx].id}`,
+            ms: ns.moves,
+            at: centre,
+          });
         }
       } else if (outcome.kind === "mismatch") {
         const { a, b } = outcome;
@@ -101,19 +113,13 @@ export function Memory({ ctx }: { ctx: GameContext }) {
         </Button>
       </div>
 
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        {LEVELS.map((lv, i) => (
-          <Button
-            key={lv.id}
-            variant={i === levelIdx ? "primary" : "ghost"}
-            kids
-            ariaLabel={ctx.locale === "he" ? lv.he : lv.en}
-            onClick={() => reset({ level: i })}
-          >
-            {ctx.locale === "he" ? lv.he : lv.en}
-          </Button>
-        ))}
-      </div>
+      <DifficultySelector
+        options={LEVEL_OPTIONS}
+        value={LEVELS[levelIdx].id}
+        onChange={(id) => reset({ level: LEVEL_OPTIONS.findIndex((o) => o.id === id) })}
+        locale={ctx.locale}
+        kids
+      />
 
       <div
         ref={gridRef}

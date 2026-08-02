@@ -1,15 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { GameContext } from "@sdk/index";
+import type { GameContext, RewardTier } from "@sdk/index";
 import { Button } from "@ui/components";
-import { burst, haptic, celebrate } from "@juice/index";
+import { DifficultySelector, type DifficultyOption } from "@ui/DifficultySelector";
+import { burst } from "@juice/index";
+import { winMoment } from "@shared/index";
 import { generate, setCell, conflicts, isSolved, type SudokuState, type Level } from "./logic";
 
-const LEVELS: Level[] = ["easy", "medium", "hard", "expert"];
-const LEVEL_LABELS: Record<Level, { he: string; en: string }> = {
-  easy: { he: "קל", en: "Easy" },
-  medium: { he: "בינוני", en: "Med" },
-  hard: { he: "קשה", en: "Hard" },
-  expert: { he: "מומחה", en: "Expert" },
+const LEVEL_OPTIONS: DifficultyOption<Level>[] = [
+  { id: "easy", label: { he: "קל", en: "Easy" } },
+  { id: "medium", label: { he: "בינוני", en: "Med" } },
+  { id: "hard", label: { he: "קשה", en: "Hard" } },
+  { id: "expert", label: { he: "מומחה", en: "Expert" } },
+];
+
+// Sudoku has four levels; the economy has three tiers. Expert pays as hard.
+const LEVEL_TIER: Record<Level, RewardTier> = {
+  easy: "easy",
+  medium: "medium",
+  hard: "hard",
+  expert: "hard",
 };
 
 export function Sudoku({ ctx }: { ctx: GameContext }) {
@@ -47,19 +56,23 @@ export function Sudoku({ ctx }: { ctx: GameContext }) {
       const [r, c] = sel;
       if (state.given[r][c]) return;
       ctx.audio.unlock();
+      ctx.speech.unlock();
       const ns = setCell(state, r, c, v);
       setState(ns);
       ctx.audio.play(v === 0 ? "tap" : "pop");
       if (isSolved(ns)) {
         setWon(true);
-        ctx.audio.play("win");
-        haptic.win();
-        celebrate();
-        if (boardRef.current) {
-          const rect = boardRef.current.getBoundingClientRect();
-          burst(rect.left + rect.width / 2, rect.top + rect.height / 2, { count: 16 });
-        }
-        ctx.analytics.levelComplete(level, 0);
+        const rect = boardRef.current?.getBoundingClientRect();
+        const centre = rect
+          ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+          : undefined;
+        if (centre) burst(centre.x, centre.y, { count: 16 });
+        winMoment(ctx, {
+          reason: "level_complete",
+          tier: LEVEL_TIER[level],
+          level,
+          at: centre,
+        });
       }
     },
     [ctx, sel, state, won, level],
@@ -83,11 +96,12 @@ export function Sudoku({ ctx }: { ctx: GameContext }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: 12 }}>
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
-        {LEVELS.map((lv) => (
-          <Button key={lv} variant={level === lv ? "primary" : "ghost"} onClick={() => reset(lv)}>
-            {LEVEL_LABELS[lv][ctx.locale === "he" ? "he" : "en"]}
-          </Button>
-        ))}
+        <DifficultySelector
+          options={LEVEL_OPTIONS}
+          value={level}
+          onChange={(lv) => reset(lv)}
+          locale={ctx.locale}
+        />
         <Button variant="ghost" onClick={() => reset()}>
           {ctx.t("restart")}
         </Button>

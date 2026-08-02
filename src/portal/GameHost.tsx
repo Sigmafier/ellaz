@@ -3,6 +3,7 @@ import type { Locale } from "@i18n/index";
 import { createHostControls, audioPort } from "@sdk/index";
 import { IconButton } from "@ui/components";
 import { findEntry } from "./catalog";
+import { WalletChip } from "./WalletChip";
 
 // Loads a game module, builds its GameContext, mounts it into a neutral element,
 // and wires portal chrome (back button, mute). Handles pause on tab-hide and
@@ -92,7 +93,9 @@ export function GameHost({
         <IconButton ariaLabel="back" onClick={onExit}>
           {locale === "he" ? "→" : "←"}
         </IconButton>
-        <div style={{ flex: 1 }} />
+        <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
+          <WalletChip />
+        </div>
         <IconButton ariaLabel="mute" active={!muted} onClick={() => audioPort.toggleMute()}>
           {muted ? "🔇" : "🔊"}
         </IconButton>

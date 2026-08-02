@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import type { GameContext } from "@sdk/index";
+import type { GameContext, RewardTier } from "@sdk/index";
 import { Button, Stat } from "@ui/components";
-import { shake, haptic, celebrate } from "@juice/index";
+import { DifficultySelector, type DifficultyOption } from "@ui/DifficultySelector";
+import { shake, haptic } from "@juice/index";
+import { winMoment } from "@shared/index";
 import {
   newGame,
   move,
@@ -14,12 +16,18 @@ import {
   type LevelKey,
 } from "./logic";
 
-const LEVEL_LABELS: Record<LevelKey, { he: string; en: string }> = {
-  kids: { he: "ילדים", en: "Kids" },
-  classic: { he: "קלאסי", en: "Classic" },
-  hard: { he: "קשה", en: "Hard" },
+const LEVEL_OPTIONS: DifficultyOption<LevelKey>[] = [
+  { id: "kids", label: { he: "ילדים", en: "Kids" } },
+  { id: "classic", label: { he: "קלאסי", en: "Classic" } },
+  { id: "hard", label: { he: "קשה", en: "Hard" } },
+];
+
+// The board sizes are the game's own vocabulary; the economy speaks in tiers.
+const LEVEL_TIER: Record<LevelKey, RewardTier> = {
+  kids: "easy",
+  classic: "medium",
+  hard: "hard",
 };
-const LEVEL_ORDER: LevelKey[] = ["kids", "classic", "hard"];
 
 const TILE_COLORS: Record<number, string> = {
   2: "#eee4da",
@@ -50,6 +58,11 @@ export function Game2048({ ctx }: { ctx: GameContext }) {
   const [mergedIdx, setMergedIdx] = useState<Set<number>>(() => new Set());
   const boardRef = useRef<HTMLDivElement>(null);
   const startedRef = useRef(false);
+  // Authoritative best + a once-per-run latch: every merge past the old record
+  // is technically "a new best", so without the latch one good run would mint a
+  // personal-best reward on every move.
+  const bestRef = useRef(best);
+  const bestFiredRef = useRef(false);
 
   // Reset the game to a given level (board size + win target).
   const resetLevel = useCallback(
@@ -59,6 +72,7 @@ export function Game2048({ ctx }: { ctx: GameContext }) {
       setScore(0);
       setWon(false);
       setOver(false);
+      bestFiredRef.current = false;
       ctx.analytics.levelStart(key);
     },
     [ctx],
@@ -74,48 +88,63 @@ export function Game2048({ ctx }: { ctx: GameContext }) {
     }
   }, [ctx]);
 
+  // Everything here runs in the HANDLER, never inside a setGrid updater: React
+  // may run an updater twice, which would double-grant the win.
   const doMove = useCallback(
     (dir: Direction) => {
       if (over) return;
-      setGrid((g) => {
-        const res = move(g, dir);
-        if (!res.moved) return g;
-        ctx.audio.unlock();
-        const next = spawn(res.grid);
-        if (res.gained > 0) {
-          ctx.audio.play("success");
-          haptic.tap();
-          setScore((s) => {
-            const ns = s + res.gained;
-            setBest((b) => {
-              const nb = Math.max(b, ns);
-              ctx.storage.set("best", nb);
-              return nb;
+      const res = move(grid, dir);
+      if (!res.moved) return;
+      ctx.audio.unlock();
+      ctx.speech.unlock();
+      const next = spawn(res.grid);
+      setGrid(next);
+
+      const el = boardRef.current;
+      const r = el?.getBoundingClientRect();
+      const centre = r ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : undefined;
+
+      if (res.gained > 0) {
+        const ns = score + res.gained;
+        ctx.audio.play("success");
+        haptic.tap();
+        setScore(ns);
+        if (ns > bestRef.current) {
+          bestRef.current = ns;
+          ctx.storage.set("best", ns);
+          setBest(ns);
+          if (!bestFiredRef.current) {
+            bestFiredRef.current = true;
+            winMoment(ctx, {
+              reason: "personal_best",
+              level: `best-${ns}`,
+              at: centre,
+              confetti: false,
             });
-            return ns;
-          });
-          // Pulse each merged tile for tactile feedback.
-          const idx = new Set(res.merged.map(([r, c]) => r * size + c));
-          setMergedIdx(idx);
-          setTimeout(() => setMergedIdx(new Set()), 260);
+          }
         }
-        if (!won && hasWon(next, target)) {
-          setWon(true);
-          ctx.audio.play("win");
-          haptic.win();
-          celebrate();
-          ctx.analytics.levelComplete(`reach-${target}`, 0);
-        }
-        if (!hasMoves(next)) {
-          setOver(true);
-          ctx.audio.play("fail");
-          if (boardRef.current) shake(boardRef.current);
-          ctx.analytics.levelFail(level, "no-moves");
-        }
-        return next;
-      });
+        // Pulse each merged tile for tactile feedback.
+        const idx = new Set(res.merged.map(([rr, cc]) => rr * size + cc));
+        setMergedIdx(idx);
+        setTimeout(() => setMergedIdx(new Set()), 260);
+      }
+      if (!won && hasWon(next, target)) {
+        setWon(true);
+        winMoment(ctx, {
+          reason: "level_complete",
+          tier: LEVEL_TIER[level],
+          level: `reach-${target}`,
+          at: centre,
+        });
+      }
+      if (!hasMoves(next)) {
+        setOver(true);
+        ctx.audio.play("fail");
+        if (el) shake(el);
+        ctx.analytics.levelFail(level, "no-moves");
+      }
     },
-    [ctx, over, won, size, target, level],
+    [ctx, grid, score, over, won, size, target, level],
   );
 
   // Keyboard (desktop).
@@ -173,17 +202,12 @@ export function Game2048({ ctx }: { ctx: GameContext }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: 16 }}>
-      <div style={{ display: "flex", gap: 8 }}>
-        {LEVEL_ORDER.map((key) => (
-          <Button
-            key={key}
-            variant={key === level ? "primary" : "ghost"}
-            onClick={() => resetLevel(key)}
-          >
-            {ctx.dir === "rtl" ? LEVEL_LABELS[key].he : LEVEL_LABELS[key].en}
-          </Button>
-        ))}
-      </div>
+      <DifficultySelector
+        options={LEVEL_OPTIONS}
+        value={level}
+        onChange={resetLevel}
+        locale={ctx.locale}
+      />
 
       <div style={{ display: "flex", gap: 10 }}>
         <Stat label={ctx.t("score")} value={score} />

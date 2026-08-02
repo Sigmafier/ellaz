@@ -1,22 +1,43 @@
 import type { Locale } from "@i18n/index";
 import { makeT } from "@i18n/index";
 import { CATALOG, type CatalogEntry } from "./catalog";
-import { audioPort } from "@sdk/index";
+import { audioPort, speechPort, type Category } from "@sdk/index";
+import { WalletChip } from "./WalletChip";
+
+// Section render order, and the i18n key each section's heading uses. This is the
+// single place the home grid's shape is decided: adding a category means adding a
+// row here (plus the union member in @sdk and the string in @i18n).
+//
+// Sections with zero games are SKIPPED, so a category can be declared long before
+// its first game ships — the grid looks unchanged until a game claims it.
+const CATEGORY_ORDER: ReadonlyArray<{ category: Category; titleKey: string }> = [
+  { category: "kids", titleKey: "forKids" },
+  { category: "learn", titleKey: "learn" },
+  { category: "think", titleKey: "think" },
+  { category: "speed", titleKey: "speed" },
+  { category: "create", titleKey: "create" },
+  { category: "classics", titleKey: "classics" },
+];
 
 // Home grid: icon-first game cards grouped by category. Tapping a card opens the
 // game; hovering/touching prefetches its chunk for instant load.
 export function Home({
   locale,
   onOpen,
+  onOpenWorld,
   onToggleLocale,
 }: {
   locale: Locale;
   onOpen: (id: string) => void;
+  onOpenWorld: () => void;
   onToggleLocale: () => void;
 }) {
   const t = makeT(locale);
-  const kids = CATALOG.filter((e) => e.meta.category === "kids");
-  const classics = CATALOG.filter((e) => e.meta.category === "classics");
+  const sections = CATEGORY_ORDER.map(({ category, titleKey }) => ({
+    category,
+    title: t(titleKey),
+    entries: CATALOG.filter((e) => e.meta.category === category),
+  })).filter((s) => s.entries.length > 0);
 
   return (
     <div className="ellaz-scroll" style={{ flex: 1 }}>
@@ -34,6 +55,27 @@ export function Home({
           <h1 style={{ fontSize: 30, lineHeight: 1 }}>{t("appName")}</h1>
           <div style={{ color: "var(--text-dim)", fontSize: 14 }}>{t("tagline")}</div>
         </div>
+        <WalletChip />
+        <button
+          aria-label={t("world")}
+          onClick={() => {
+            audioPort.play("tap");
+            onOpenWorld();
+          }}
+          style={{
+            minHeight: "var(--tap)",
+            minWidth: "var(--tap)",
+            padding: "0 12px",
+            borderRadius: "var(--radius-pill)",
+            border: "none",
+            background: "var(--surface-2)",
+            color: "var(--text)",
+            fontSize: 24,
+            lineHeight: 1,
+          }}
+        >
+          <span aria-hidden="true">🏝️</span>
+        </button>
         <button
           aria-label={t("language")}
           onClick={onToggleLocale}
@@ -52,8 +94,15 @@ export function Home({
         </button>
       </header>
 
-      <Section title={t("forKids")} entries={kids} locale={locale} onOpen={onOpen} />
-      <Section title={t("classics")} entries={classics} locale={locale} onOpen={onOpen} />
+      {sections.map((s) => (
+        <Section
+          key={s.category}
+          title={s.title}
+          entries={s.entries}
+          locale={locale}
+          onOpen={onOpen}
+        />
+      ))}
 
       <p style={{ color: "var(--text-dim)", fontSize: 13, textAlign: "center", marginTop: 28 }}>
         📲 {t("installHint")}
@@ -109,7 +158,11 @@ function GameCard({
       onPointerEnter={prefetch}
       onTouchStart={prefetch}
       onClick={() => {
+        // First gesture of the session: unlock BOTH audio engines here, before any
+        // game mounts. iOS refuses the first utterance outside a user gesture, so
+        // without this line Hebrew speech stays silently locked all session.
         audioPort.unlock();
+        speechPort.unlock();
         audioPort.play("tap");
         onOpen(meta.id);
       }}

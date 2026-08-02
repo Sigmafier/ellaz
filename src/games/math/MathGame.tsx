@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import type { GameContext } from "@sdk/index";
-import { Button, Stat } from "@ui/components";
-import { burst, shake, haptic, celebrate } from "@juice/index";
+import { Stat } from "@ui/components";
+import { DifficultySelector, type DifficultyOption } from "@ui/DifficultySelector";
+import { burst, shake, haptic } from "@juice/index";
+import { winMoment } from "@shared/index";
 import { generateProblem, isCorrect, type MathLevel, type Problem } from "./logic";
 
 // Difficulty options in display order, with bilingual labels.
-const LEVEL_OPTIONS: { id: MathLevel; he: string; en: string }[] = [
-  { id: "up5", he: "עד 5", en: "Up to 5" },
-  { id: "up10", he: "עד 10", en: "Up to 10" },
-  { id: "up20", he: "עד 20", en: "Up to 20" },
-  { id: "mult", he: "כפל", en: "Times ×" },
+const LEVEL_OPTIONS: DifficultyOption<MathLevel>[] = [
+  { id: "up5", label: { he: "עד 5", en: "Up to 5" } },
+  { id: "up10", label: { he: "עד 10", en: "Up to 10" } },
+  { id: "up20", label: { he: "עד 20", en: "Up to 20" } },
+  { id: "mult", label: { he: "כפל", en: "Times ×" } },
 ];
 
 export function MathGame({ ctx }: { ctx: GameContext }) {
@@ -22,6 +24,12 @@ export function MathGame({ ctx }: { ctx: GameContext }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const started = useRef(false);
   const streakRef = useRef(0); // authoritative streak for side-effects (no stale closure)
+  // The best at the START of this run, plus a once-per-run latch. Without the
+  // latch a first-time player sets a "new best" on every single answer (1 > 0,
+  // 2 > 1, …) and mints a personal-best reward each time; one record per run is
+  // the honest reading of "beat your own record".
+  const bestRef = useRef(best);
+  const bestFiredRef = useRef(false);
 
   useEffect(() => {
     if (!started.current) {
@@ -40,6 +48,7 @@ export function MathGame({ ctx }: { ctx: GameContext }) {
   const chooseLevel = useCallback((lvl: MathLevel) => {
     setLevel(lvl);
     streakRef.current = 0;
+    bestFiredRef.current = false;
     setScore(0);
     setStreak(0);
     setWrongChoice(null);
@@ -49,6 +58,7 @@ export function MathGame({ ctx }: { ctx: GameContext }) {
   const answer = useCallback(
     (choice: number, e: ReactPointerEvent) => {
       ctx.audio.unlock();
+      ctx.speech.unlock();
       if (isCorrect(problem, choice)) {
         const ns = streakRef.current + 1;
         streakRef.current = ns;
@@ -57,14 +67,22 @@ export function MathGame({ ctx }: { ctx: GameContext }) {
         burst(e.clientX, e.clientY, { count: 12 });
         setScore((s) => s + 1);
         setStreak(ns);
-        setBest((b) => {
-          const nb = Math.max(b, ns);
-          ctx.storage.set("best", nb);
-          return nb;
-        });
-        // Side-effect lives in the handler (not a state updater) so it fires once,
-        // reliably, on every 5-in-a-row.
-        if (ns % 5 === 0) celebrate();
+        const at = { x: e.clientX, y: e.clientY };
+        if (ns > bestRef.current) {
+          bestRef.current = ns;
+          ctx.storage.set("best", ns);
+          setBest(ns);
+          if (!bestFiredRef.current) {
+            bestFiredRef.current = true;
+            winMoment(ctx, { reason: "personal_best", level: `streak-${ns}`, at, confetti: false });
+          }
+        }
+        // Reward side-effects live in the handler (not a state updater) so they
+        // fire once, reliably, on every 5-in-a-row.
+        if (ns % 5 === 0) {
+          winMoment(ctx, { reason: "milestone", level: `streak-${ns}`, at, confetti: false });
+        }
+        // The per-answer analytics event is NOT the reward trigger — see above.
         ctx.analytics.levelComplete("addsub10", 0);
         next();
       } else {
@@ -89,19 +107,12 @@ export function MathGame({ ctx }: { ctx: GameContext }) {
         <Stat label={ctx.t("best")} value={best} />
       </div>
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-        {LEVEL_OPTIONS.map((opt) => (
-          <Button
-            key={opt.id}
-            variant={opt.id === level ? "primary" : "ghost"}
-            ariaLabel={`level ${opt.id}`}
-            onClick={() => chooseLevel(opt.id)}
-            style={{ fontSize: 16, padding: "0 var(--space-4)", minHeight: 44 }}
-          >
-            {ctx.locale === "he" ? opt.he : opt.en}
-          </Button>
-        ))}
-      </div>
+      <DifficultySelector
+        options={LEVEL_OPTIONS}
+        value={level}
+        onChange={chooseLevel}
+        locale={ctx.locale}
+      />
 
       <div
         ref={cardRef}

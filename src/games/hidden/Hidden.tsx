@@ -1,7 +1,9 @@
 import { useCallback, useRef, useState, useEffect, type PointerEvent as ReactPointerEvent } from "react";
 import type { GameContext } from "@sdk/index";
 import { Button, Stat } from "@ui/components";
-import { burst, shake, haptic, celebrate } from "@juice/index";
+import { DifficultySelector, type DifficultyOption } from "@ui/DifficultySelector";
+import { burst, shake, haptic } from "@juice/index";
+import { shuffle, winMoment } from "@shared/index";
 import { newGame, tapObject, isWon, targetIcons, type HiddenState } from "./logic";
 
 // A big cast of original characters (>=34 distinct so "hard" has a full crowd);
@@ -21,27 +23,16 @@ const DIFFICULTIES: Record<Difficulty, { crowd: number; targets: number }> = {
   hard: { crowd: 32, targets: 5 },
 };
 
-const DIFF_ORDER: Difficulty[] = ["easy", "medium", "hard"];
-
-const DIFF_LABEL: Record<Difficulty, { he: string; en: string }> = {
-  easy: { he: "קל", en: "Easy" },
-  medium: { he: "בינוני", en: "Med" },
-  hard: { he: "קשה", en: "Hard" },
-};
-
-function shuffled<T>(arr: T[]): T[] {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
+const DIFF_OPTIONS: DifficultyOption<Difficulty>[] = [
+  { id: "easy", label: { he: "קל", en: "Easy" } },
+  { id: "medium", label: { he: "בינוני", en: "Med" } },
+  { id: "hard", label: { he: "קשה", en: "Hard" } },
+];
 
 // Fresh random layout for a difficulty: a shuffled crowd slice + random targets.
 function makeRound(difficulty: Difficulty): HiddenState {
   const cfg = DIFFICULTIES[difficulty];
-  const crowd = shuffled(CAST).slice(0, cfg.crowd);
+  const crowd = shuffle(CAST).slice(0, cfg.crowd);
   return newGame(crowd, cfg.targets);
 }
 
@@ -92,6 +83,7 @@ export function Hidden({ ctx }: { ctx: GameContext }) {
   const onObject = useCallback(
     (id: string, e: ReactPointerEvent) => {
       ctx.audio.unlock();
+      ctx.speech.unlock();
       const { state: ns, result } = tapObject(state, id);
       if (result.kind === "found") {
         setState(ns);
@@ -100,10 +92,12 @@ export function Hidden({ ctx }: { ctx: GameContext }) {
         burst(e.clientX, e.clientY, { count: 10 });
         if (isWon(ns)) {
           setJustWon(true);
-          ctx.audio.play("win");
-          haptic.win();
-          celebrate();
-          ctx.analytics.levelComplete("crowd", 0);
+          winMoment(ctx, {
+            reason: "level_complete",
+            tier: difficulty,
+            level: "crowd",
+            at: { x: e.clientX, y: e.clientY },
+          });
           // Auto-advance to the next endless round, keeping difficulty.
           advanceTimer.current = setTimeout(() => {
             setRound((r) => r + 1);
@@ -127,20 +121,13 @@ export function Hidden({ ctx }: { ctx: GameContext }) {
       {/* Level indicator + difficulty selector */}
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
         <Stat label={ctx.locale === "he" ? "שלב" : "Level"} value={round} />
-        <div style={{ display: "flex", gap: 6 }}>
-          {DIFF_ORDER.map((d) => (
-            <Button
-              key={d}
-              kids
-              variant={d === difficulty ? "primary" : "ghost"}
-              ariaLabel={`difficulty ${d}`}
-              onClick={() => changeDifficulty(d)}
-              style={{ fontSize: 16, padding: "0 var(--space-3)" }}
-            >
-              {ctx.locale === "he" ? DIFF_LABEL[d].he : DIFF_LABEL[d].en}
-            </Button>
-          ))}
-        </div>
+        <DifficultySelector
+          options={DIFF_OPTIONS}
+          value={difficulty}
+          onChange={changeDifficulty}
+          locale={ctx.locale}
+          kids
+        />
       </div>
 
       {/* Target strip: the characters to find */}

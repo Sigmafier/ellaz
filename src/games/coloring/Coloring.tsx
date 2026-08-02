@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { GameContext } from "@sdk/index";
 import { Button } from "@ui/components";
-import { haptic, celebrate } from "@juice/index";
+import { haptic } from "@juice/index";
+import { winMoment } from "@shared/index";
 import { PICTURES, PALETTE } from "./pictures";
 
 // SVG region-fill coloring. Tap a color, tap a region — the region fills.
@@ -21,23 +22,27 @@ export function Coloring({ ctx }: { ctx: GameContext }) {
     }
   }, [ctx, pic.id]);
 
-  const paint = (regionId: string) => {
+  // The win is decided HERE, in the handler — never inside a setFills updater.
+  // React may run an updater twice, which would double-count the picture.
+  const paint = (regionId: string, el: SVGPathElement) => {
     ctx.audio.unlock();
+    ctx.speech.unlock();
     ctx.audio.play("pop");
     haptic.tap();
-    setFills((f) => {
-      const nf = { ...f, [regionId]: color };
-      // Celebrate once the whole picture is colored in.
-      const wasComplete = pic.regions.every((r) => f[r.id]);
-      const nowComplete = pic.regions.every((r) => nf[r.id]);
-      if (!wasComplete && nowComplete) {
-        ctx.audio.play("win");
-        haptic.win();
-        celebrate();
-        ctx.analytics.levelComplete(pic.id, 0);
-      }
-      return nf;
-    });
+    const nf = { ...fills, [regionId]: color };
+    const wasComplete = pic.regions.every((r) => fills[r.id]);
+    const nowComplete = pic.regions.every((r) => nf[r.id]);
+    setFills(nf);
+    if (!wasComplete && nowComplete) {
+      // Coins fly from the region that completed the picture.
+      const r = el.getBoundingClientRect();
+      winMoment(ctx, {
+        reason: "level_complete",
+        tier: "easy",
+        level: pic.id,
+        at: { x: r.left + r.width / 2, y: r.top + r.height / 2 },
+      });
+    }
     ctx.analytics.track("region_filled", { picture: pic.id, region: regionId });
   };
 
@@ -87,7 +92,7 @@ export function Coloring({ ctx }: { ctx: GameContext }) {
               stroke="#2d3436"
               strokeWidth={2}
               strokeLinejoin="round"
-              onPointerDown={() => paint(r.id)}
+              onPointerDown={(e) => paint(r.id, e.currentTarget)}
               style={{ cursor: "pointer" }}
             />
           ))}

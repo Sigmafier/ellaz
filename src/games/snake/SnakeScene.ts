@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import type { GameContext } from "@sdk/index";
-import { celebrate } from "@juice/index";
+import { winMoment } from "@shared/index";
 import { newGame, step, turn, type SnakeState, type Dir } from "./logic";
 
 const COLS = 17;
@@ -34,6 +34,8 @@ export class SnakeScene extends Phaser.Scene {
   private scoreText!: Phaser.GameObjects.Text;
   private overText!: Phaser.GameObjects.Text;
   private speedButtons: Phaser.GameObjects.Text[] = [];
+  /** Stored high score, so a death that beats it can pay a personal best once. */
+  private best = 0;
 
   constructor() {
     super("snake");
@@ -61,6 +63,7 @@ export class SnakeScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(10);
 
+    this.best = this.ctx.storage.get("best", 0);
     this.ctx.lifecycle.gameplayStart();
     this.ctx.analytics.levelStart("classic");
 
@@ -71,6 +74,7 @@ export class SnakeScene extends Phaser.Scene {
       };
       const dir = map[e.key];
       this.ctx.audio.unlock();
+      this.ctx.speech.unlock();
       if (this.phase === "over") {
         this.restart();
         return;
@@ -89,6 +93,7 @@ export class SnakeScene extends Phaser.Scene {
       sx = p.x;
       sy = p.y;
       this.ctx.audio.unlock();
+      this.ctx.speech.unlock();
       if (this.phase === "over") this.restart();
     });
     this.input.on("pointerup", (p: Phaser.Input.Pointer) => {
@@ -117,6 +122,35 @@ export class SnakeScene extends Phaser.Scene {
 
   private computeCell() {
     this.cell = Math.floor(Math.min(this.scale.width, this.scale.height) / COLS);
+  }
+
+  // Board origin inside the canvas, in canvas pixels (shared by draw + headPoint).
+  private boardOrigin(): { ox: number; oy: number } {
+    return {
+      ox: Math.floor((this.scale.width - COLS * this.cell) / 2),
+      oy: Math.floor((this.scale.height - ROWS * this.cell) / 2),
+    };
+  }
+
+  /**
+   * The snake's head in VIEWPORT coordinates — where the flying coins should
+   * start from. Canvas pixels are not viewport pixels: Phaser's FIT scale mode
+   * letterboxes the canvas, so the canvas's CSS size differs from
+   * `scale.width/height` and both axes need their own factor.
+   */
+  private headPoint(): { x: number; y: number } | undefined {
+    const canvas = this.game.canvas;
+    if (!canvas) return undefined;
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return undefined;
+    const { ox, oy } = this.boardOrigin();
+    const head = this.state.body[0];
+    const sx = rect.width / this.scale.width;
+    const sy = rect.height / this.scale.height;
+    return {
+      x: rect.left + (ox + head.x * this.cell + this.cell / 2) * sx,
+      y: rect.top + (oy + head.y * this.cell + this.cell / 2) * sy,
+    };
   }
 
   // Current level (1-based) and the effective tick after progressive speed-up.
@@ -167,6 +201,7 @@ export class SnakeScene extends Phaser.Scene {
         .setInteractive({ useHandCursor: true });
       btn.on("pointerdown", () => {
         this.ctx.audio.unlock();
+        this.ctx.speech.unlock();
         this.selectSpeed(o.key);
       });
       this.speedButtons.push(btn);
@@ -198,12 +233,30 @@ export class SnakeScene extends Phaser.Scene {
       this.state = step(this.state);
       if (this.state.score > prevScore) {
         this.ctx.audio.play("success");
-        if (this.state.score % 5 === 0) celebrate({ count: 40 }); // reward milestone
+        // Endless game: a mid-run ping every 5 food. Coins, no star, no confetti.
+        if (this.state.score % 5 === 0) {
+          winMoment(this.ctx, {
+            reason: "milestone",
+            level: `score-${this.state.score}`,
+            at: this.headPoint(),
+            confetti: false,
+          });
+        }
       }
       if (!this.state.alive) {
         this.phase = "over";
         this.ctx.audio.play("fail");
         this.ctx.analytics.levelFail("classic", "collision");
+        // A run that beat the stored record ends on a high note.
+        if (this.state.score > this.best) {
+          this.best = this.state.score;
+          this.ctx.storage.set("best", this.state.score);
+          winMoment(this.ctx, {
+            reason: "personal_best",
+            level: `score-${this.state.score}`,
+            at: this.headPoint(),
+          });
+        }
       }
       this.draw();
     }
@@ -214,8 +267,7 @@ export class SnakeScene extends Phaser.Scene {
     const c = this.cell;
     const boardW = COLS * c;
     const boardH = ROWS * c;
-    const ox = Math.floor((this.scale.width - boardW) / 2);
-    const oy = Math.floor((this.scale.height - boardH) / 2);
+    const { ox, oy } = this.boardOrigin();
     g.clear();
     // board: lighter fill + border so the play area reads clearly against the page
     g.fillStyle(0x1e2240, 1).fillRoundedRect(ox - 6, oy - 6, boardW + 12, boardH + 12, 12);

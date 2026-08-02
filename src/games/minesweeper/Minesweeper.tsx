@@ -1,13 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { GameContext } from "@sdk/index";
 import { Button, Stat } from "@ui/components";
-import { burst, shake, haptic, celebrate } from "@juice/index";
+import { DifficultySelector, type DifficultyOption } from "@ui/DifficultySelector";
+import { burst, shake, haptic } from "@juice/index";
+import { winMoment } from "@shared/index";
 import { newGame, reveal, toggleFlag, DIFFICULTIES, type MineState, type Difficulty } from "./logic";
 
 const NUM_COLORS = ["", "#4d7cff", "#2e9e5b", "#e0533d", "#7a44c9", "#c9962e", "#2aa7b8", "#c94f9e", "#666"];
 
-// Analytics level name for a given config (avoids brittle chained ternaries as difficulties grow).
-function levelName(d: Difficulty): "easy" | "medium" | "hard" {
+type DiffKey = "easy" | "medium" | "hard";
+
+const DIFF_OPTIONS: DifficultyOption<DiffKey>[] = [
+  { id: "easy", label: { he: "קל", en: "Easy" } },
+  { id: "medium", label: { he: "בינוני", en: "Med" } },
+  { id: "hard", label: { he: "קשה", en: "Hard" } },
+];
+
+// Analytics/reward level name for a given config (avoids brittle chained ternaries as difficulties grow).
+function levelName(d: Difficulty): DiffKey {
   if (d === DIFFICULTIES.hard) return "hard";
   if (d === DIFFICULTIES.medium) return "medium";
   return "easy";
@@ -41,6 +51,7 @@ export function Minesweeper({ ctx }: { ctx: GameContext }) {
     (r: number, c: number, flag: boolean, clientX?: number, clientY?: number) => {
       if (state.dead || state.won) return;
       ctx.audio.unlock();
+      ctx.speech.unlock();
       if (flag) {
         setState(toggleFlag(state, r, c));
         ctx.audio.play("tap");
@@ -55,11 +66,19 @@ export function Minesweeper({ ctx }: { ctx: GameContext }) {
         if (boardRef.current) shake(boardRef.current);
         ctx.analytics.levelFail(levelName(diff), "mine");
       } else if (ns.won) {
-        ctx.audio.play("win");
-        haptic.win();
-        celebrate();
         if (clientX != null && clientY != null) burst(clientX, clientY, { count: 14 });
-        ctx.analytics.levelComplete(levelName(diff), 0);
+        const board = boardRef.current?.getBoundingClientRect();
+        winMoment(ctx, {
+          reason: "level_complete",
+          tier: levelName(diff),
+          level: levelName(diff),
+          at:
+            clientX != null && clientY != null
+              ? { x: clientX, y: clientY }
+              : board
+                ? { x: board.left + board.width / 2, y: board.top + board.height / 2 }
+                : undefined,
+        });
       } else {
         ctx.audio.play("pop");
       }
@@ -88,24 +107,12 @@ export function Minesweeper({ ctx }: { ctx: GameContext }) {
         <Button variant="ghost" onClick={() => reset()}>
           {state.dead ? "😵" : state.won ? "😎" : "🙂"}
         </Button>
-        <Button
-          variant={diff === DIFFICULTIES.easy ? "primary" : "ghost"}
-          onClick={() => reset(DIFFICULTIES.easy)}
-        >
-          {ctx.locale === "he" ? "קל" : "Easy"}
-        </Button>
-        <Button
-          variant={diff === DIFFICULTIES.medium ? "primary" : "ghost"}
-          onClick={() => reset(DIFFICULTIES.medium)}
-        >
-          {ctx.locale === "he" ? "בינוני" : "Med"}
-        </Button>
-        <Button
-          variant={diff === DIFFICULTIES.hard ? "primary" : "ghost"}
-          onClick={() => reset(DIFFICULTIES.hard)}
-        >
-          {ctx.locale === "he" ? "קשה" : "Hard"}
-        </Button>
+        <DifficultySelector
+          options={DIFF_OPTIONS}
+          value={levelName(diff)}
+          onChange={(id) => reset(DIFFICULTIES[id])}
+          locale={ctx.locale}
+        />
       </div>
 
       <div

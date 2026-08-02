@@ -1,10 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { GameContext } from "@sdk/index";
 import { Button, Stat } from "@ui/components";
-import { burst, shake, haptic, celebrate } from "@juice/index";
+import { DifficultySelector, type DifficultyOption } from "@ui/DifficultySelector";
+import { burst, shake, haptic } from "@juice/index";
+import { winMoment } from "@shared/index";
 import { emptyBoard, winner, isDraw, place, chooseMove, type Board, type Difficulty } from "./logic";
 
 type Score = { wins: number; losses: number; draws: number };
+
+const DIFF_OPTIONS: DifficultyOption<Difficulty>[] = [
+  { id: "easy", label: { he: "קל", en: "Easy" } },
+  { id: "medium", label: { he: "בינוני", en: "Med" } },
+  { id: "hard", label: { he: "קשה", en: "Hard" } },
+];
 
 // Human is X (goes first), AI is O. Tap a cell to play. Difficulty tunes the AI:
 // easy = random, medium = ~50% optimal, hard = unbeatable minimax.
@@ -39,14 +47,17 @@ export function TicTacToe({ ctx }: { ctx: GameContext }) {
       if (w) {
         if (w.player === "X") {
           setScore((s) => ({ ...s, wins: s.wins + 1 }));
-          ctx.audio.play("win");
-          haptic.win();
-          celebrate();
-          if (boardRef.current) {
-            const r = boardRef.current.getBoundingClientRect();
-            burst(r.left + r.width / 2, r.top + r.height / 2, { count: 14 });
-          }
-          ctx.analytics.levelComplete("vs-ai", 0);
+          const r = boardRef.current?.getBoundingClientRect();
+          const centre = r ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : undefined;
+          if (centre) burst(centre.x, centre.y, { count: 14 });
+          // Only a WIN pays. A loss or a draw grants nothing — never a
+          // consolation reward, and the wallet is add-only so never a penalty.
+          winMoment(ctx, {
+            reason: "level_complete",
+            tier: difficulty,
+            level: "vs-ai",
+            at: centre,
+          });
         } else {
           setScore((s) => ({ ...s, losses: s.losses + 1 }));
           ctx.audio.play("fail");
@@ -58,7 +69,7 @@ export function TicTacToe({ ctx }: { ctx: GameContext }) {
         ctx.audio.play("pop");
       }
     },
-    [ctx],
+    [ctx, difficulty],
   );
 
   // Switching difficulty starts a clean slate: fresh board + zeroed tally, so
@@ -77,6 +88,7 @@ export function TicTacToe({ ctx }: { ctx: GameContext }) {
     (i: number) => {
       if (done || busy || board[i] !== null) return;
       ctx.audio.unlock();
+      ctx.speech.unlock();
       ctx.audio.play("tap");
       haptic.tap();
       const afterHuman = place(board, i, "X");
@@ -120,23 +132,12 @@ export function TicTacToe({ ctx }: { ctx: GameContext }) {
         </Button>
       </div>
 
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        {(
-          [
-            ["easy", ctx.locale === "he" ? "קל" : "Easy"],
-            ["medium", ctx.locale === "he" ? "בינוני" : "Med"],
-            ["hard", ctx.locale === "he" ? "קשה" : "Hard"],
-          ] as [Difficulty, string][]
-        ).map(([level, label]) => (
-          <Button
-            key={level}
-            variant={difficulty === level ? "primary" : "ghost"}
-            onClick={() => changeDifficulty(level)}
-          >
-            {label}
-          </Button>
-        ))}
-      </div>
+      <DifficultySelector
+        options={DIFF_OPTIONS}
+        value={difficulty}
+        onChange={changeDifficulty}
+        locale={ctx.locale}
+      />
 
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
         <Stat label={ctx.locale === "he" ? "ניצחונות" : "Wins"} value={score.wins} />

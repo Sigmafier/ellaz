@@ -1,9 +1,19 @@
 import { useCallback, useMemo, useRef, useState, useEffect, type PointerEvent as ReactPointerEvent } from "react";
-import type { GameContext } from "@sdk/index";
+import type { GameContext, RewardTier } from "@sdk/index";
 import { Button, Stat } from "@ui/components";
-import { burst, shake, haptic, celebrate } from "@juice/index";
+import { burst, shake, haptic } from "@juice/index";
+import { winMoment } from "@shared/index";
 import { newGame, tapAt, isWon, remaining, type FindState } from "./logic";
 import { SCENES, diffsOf, type Scene } from "./scenes";
+
+// Scenes are authored easiest-first, so the scene's position IS its difficulty:
+// the first third pays as easy, the last third as hard.
+function tierForScene(idx: number): RewardTier {
+  const third = SCENES.length / 3;
+  if (idx < third) return "easy";
+  if (idx < third * 2) return "medium";
+  return "hard";
+}
 
 // Two pictures, spot the differences. Tap a difference on EITHER picture.
 export function FindDiff({ ctx }: { ctx: GameContext }) {
@@ -44,6 +54,7 @@ export function FindDiff({ ctx }: { ctx: GameContext }) {
   const onTapPicture = useCallback(
     (e: ReactPointerEvent<SVGSVGElement>) => {
       ctx.audio.unlock();
+      ctx.speech.unlock();
       const svg = e.currentTarget;
       const rect = svg.getBoundingClientRect();
       // Map client coords → scene (0..100) coords.
@@ -57,17 +68,20 @@ export function FindDiff({ ctx }: { ctx: GameContext }) {
         burst(e.clientX, e.clientY, { count: 10 });
         if (isWon(ns)) {
           setWon(true);
-          ctx.audio.play("win");
-          haptic.win();
-          celebrate();
-          ctx.analytics.levelComplete(scene.id, ns.misses);
+          winMoment(ctx, {
+            reason: "level_complete",
+            tier: tierForScene(sceneIdx),
+            level: scene.id,
+            ms: ns.misses,
+            at: { x: e.clientX, y: e.clientY },
+          });
         }
       } else if (result.kind === "miss") {
         ctx.audio.play("fail");
         if (wrapRef.current) shake(wrapRef.current, 4, 160);
       }
     },
-    [ctx, state, scene.id],
+    [ctx, state, scene.id, sceneIdx],
   );
 
   const markers = useMemo(
