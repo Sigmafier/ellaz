@@ -1,0 +1,49 @@
+# Apache config for the ellaz.fun production build (Hostinger).
+#
+# Copied to dist/.htaccess by .github/workflows/deploy-hostinger.yml. It lives
+# here rather than in public/ so it ships ONLY to Hostinger — the GitHub Pages
+# build runs on nginx and would just carry it as dead weight.
+
+# --- SPA fallback -----------------------------------------------------------
+# Routing is hash-based (#/game/<id>), so every real route already resolves out
+# of index.html. This only catches a stray non-hash path — a hand-typed /world,
+# an old link — and hands it the shell instead of an Apache 404.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  # Anything that exists on disk (assets, sw.js, icons) is served as-is.
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# --- Caching ----------------------------------------------------------------
+# Order is load-bearing: the immutable rule is broad, the no-cache rule below
+# it narrows back the three files that must never go stale. A later
+# `Header set` replaces an earlier one for the same header.
+<IfModule mod_headers.c>
+  # Hashed build output is content-addressed — a change is a new filename, so
+  # these can be cached forever.
+  <FilesMatch "\.(js|css|woff2?)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  # The shell, the service worker and the manifest ARE the update mechanism.
+  # Cache any of them and a deploy never reaches a returning player — exactly
+  # the stale-bundle failure the PWA's autoUpdate mode exists to prevent.
+  <FilesMatch "^(index\.html|sw\.js|manifest\.webmanifest)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>
+
+# --- MIME types -------------------------------------------------------------
+<IfModule mod_mime.c>
+  AddType application/manifest+json .webmanifest
+  AddType image/svg+xml            .svg
+</IfModule>
+
+# --- Compression ------------------------------------------------------------
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml application/manifest+json
+</IfModule>

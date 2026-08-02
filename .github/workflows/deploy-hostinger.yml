@@ -1,0 +1,79 @@
+name: Deploy to Hostinger (ellaz.fun)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# ellaz.fun is a different host from the Pages site, so this gets its own lane:
+# an FTP hiccup must not hold up the Pages deploy, or be held up by it.
+concurrency:
+  group: hostinger
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Fail SOFT while the FTP secrets are missing. A red X on every push would
+      # train us to ignore this workflow; a skipped run with a warning does not.
+      - name: Check FTP credentials
+        id: creds
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          if [ -n "$FTP_SERVER" ] && [ -n "$FTP_USERNAME" ] && [ -n "$FTP_PASSWORD" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::FTP_SERVER / FTP_USERNAME / FTP_PASSWORD are not set - skipping the ellaz.fun deploy. Add them under Settings > Secrets and variables > Actions."
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.creds.outputs.ready == 'true'
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+        if: steps.creds.outputs.ready == 'true'
+
+      # No BASE_PATH: ellaz.fun serves from the domain ROOT, unlike the Pages
+      # site which lives under /ellaz/. Same source, two base paths, two hosts.
+      # `npm run build` is also the type-check gate (tsc --noEmit).
+      - name: Build for the root domain
+        if: steps.creds.outputs.ready == 'true'
+        run: npm run build
+
+      - name: Add the Apache config (SPA fallback + cache headers)
+        if: steps.creds.outputs.ready == 'true'
+        run: cp deploy/hostinger.htaccess dist/.htaccess
+
+      - name: Upload to Hostinger
+        if: steps.creds.outputs.ready == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          # FTPS is what Hostinger offers on port 21. Set the repo variable
+          # FTP_PROTOCOL to "ftp" only if the handshake fails.
+          protocol: ${{ vars.FTP_PROTOCOL || 'ftps' }}
+          local-dir: ./dist/
+          # public_html/ is the docroot when ellaz.fun is the plan's PRIMARY
+          # domain. If hPanel shows it as an addon domain, set the repo variable
+          # FTP_SERVER_DIR to domains/ellaz.fun/public_html/ instead.
+          server-dir: ${{ vars.FTP_SERVER_DIR || 'public_html/' }}
+          # The action keeps a .ftp-deploy-sync-state.json on the server and only
+          # transfers what changed. These stay untouched so a stray panel file or
+          # a mail directory is never swept up by the sync.
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            default.php
+            .well-known/**

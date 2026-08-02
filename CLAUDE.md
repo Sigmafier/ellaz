@@ -61,10 +61,29 @@ picks speed from in-canvas Phaser buttons. Wins go through **`winMoment()`** fro
 `@shared`, which owns the confetti (there are zero `celebrate()` calls left in
 `src/games/`).
 
-**Deploy**: pushing to `main` auto-deploys to GitHub Pages
-(**`https://sigmafier.github.io/ellaz/`**) via `.github/workflows/deploy-pages.yml` —
-the build uses `BASE_PATH=/ellaz/`. The PWA is `registerType: "autoUpdate"` so
+**Deploy**: pushing to `main` deploys to **two hosts in parallel**, from the same
+source at two different base paths. The PWA is `registerType: "autoUpdate"` so
 returning players get new versions automatically. Repo is public; collaborator: Benzi.
+
+| URL | Host | Workflow | Base |
+|---|---|---|---|
+| **`https://ellaz.fun/`** (the live site) | Hostinger, over FTPS | `deploy-hostinger.yml` | `/` |
+| `https://sigmafier.github.io/ellaz/` | GitHub Pages | `deploy-pages.yml` | `/ellaz/` |
+
+The two are deliberately kept separate rather than pointing ellaz.fun at Pages:
+a Pages custom domain 301-redirects the `github.io` path onto it, so a project
+site gets exactly ONE hostname. Keeping both live costs a second build.
+
+The Hostinger job needs three repo secrets — `FTP_SERVER`, `FTP_USERNAME`,
+`FTP_PASSWORD` (hPanel → Files → FTP Accounts). Without them it **skips with a
+warning instead of failing**, so a green checkmark is not proof it deployed —
+read the run. Two optional repo variables override defaults: `FTP_SERVER_DIR`
+(default `public_html/`; use `domains/ellaz.fun/public_html/` if hPanel lists
+ellaz.fun as an addon rather than the primary domain) and `FTP_PROTOCOL`
+(default `ftps`). Apache config — SPA fallback plus the cache headers that keep
+`index.html`/`sw.js` fresh — lives in `deploy/hostinger.htaccess` and is copied
+to `dist/.htaccess` by the workflow; it ships to Hostinger only, since Pages
+runs nginx and would ignore it.
 
 **The repo moved to the `Sigmafier` org** (2026-08-02). `ytrofr/ellaz` still
 redirects on push, so a stale remote works and hides the move — but the LIVE URL
@@ -251,10 +270,18 @@ a shared vendor chunk (`vite.config` `manualChunks`) cached across all canvas ga
   mitigation idea is an export/import backup code the player can write down; it is
   explicitly OUT of scope, and it is not a reason to build accounts.
 
-## Deploy (Firebase Hosting)
+## Deploy
+
+**Normal path: push to `main`.** Both hosts build and publish themselves — see
+the Deploy table under Architecture. Nothing needs to be built or uploaded by
+hand, and a hand-uploaded `dist/` is how the two hosts drift apart.
+
+Manual escape hatches, for when CI is down:
 
 ```bash
-npm run build && firebase deploy    # firebase.json: SPA rewrite, CSP headers, immutable assets
+npm run build && firebase deploy    # legacy Firebase target (firebase.json)
+# Hostinger by hand: npm run build, cp deploy/hostinger.htaccess dist/.htaccess,
+# then upload dist/ to public_html via hPanel's File Manager.
 ```
 
 Analytics key is `VITE_POSTHOG_KEY` (public); see `.env.example`.
