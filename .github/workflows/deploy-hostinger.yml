@@ -44,10 +44,22 @@ jobs:
 
       # No BASE_PATH: ellaz.fun serves from the domain ROOT, unlike the Pages
       # site which lives under /ellaz/. Same source, two base paths, two hosts.
-      # `npm run build` is also the type-check gate (tsc --noEmit).
+      # `npm run build` is also the type-check gate (tsc --noEmit), and
+      # build:check adds scripts/assert-precache.mjs on top of it.
+      #
+      # That gate is what makes adding VITE_POSTHOG_KEY safe. PostHog is
+      # lazy-loaded, and a lazy chunk is precached BY DEFAULT unless
+      # vite.config globIgnores names it — so setting the secret before that
+      # entry exists would put ~222 KiB back on every child's first visit
+      # behind a green deploy. With the gate, that build goes red instead.
+      # See .claude/rules/precache-glob-sweeps-new-chunks.md.
       - name: Build for the root domain
         if: steps.creds.outputs.ready == 'true'
-        run: npm run build
+        run: npm run build:check
+        env:
+          # Optional. Unset, Vite substitutes undefined, the init is
+          # dead-code-eliminated and no analytics ships at all.
+          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
 
       - name: Add the Apache config (SPA fallback + cache headers)
         if: steps.creds.outputs.ready == 'true'

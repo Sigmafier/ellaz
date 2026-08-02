@@ -26,10 +26,19 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # build:check = build + scripts/assert-precache.mjs. The gate is what makes
+      # adding VITE_POSTHOG_KEY safe: PostHog is lazy-loaded, and a lazy chunk is
+      # precached BY DEFAULT unless vite.config globIgnores names it. Without the
+      # gate, setting the secret would silently put ~222 KiB back on every first
+      # visit with a green deploy. With it, that build goes red instead.
+      # See .claude/rules/precache-glob-sweeps-new-chunks.md.
       - name: Build (base = /ellaz/ for the project Pages site)
-        run: npm run build
+        run: npm run build:check
         env:
           BASE_PATH: /ellaz/
+          # Optional. Unset, Vite substitutes undefined, the init is
+          # dead-code-eliminated and no analytics ships at all.
+          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
       # Hash routing means deep links resolve client-side, but a 404 fallback keeps
       # any stray path on the SPA instead of a GitHub 404.
       - run: cp dist/index.html dist/404.html
