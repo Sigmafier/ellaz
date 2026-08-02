@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import type { Locale } from "@i18n/index";
+import { makeT, type Locale } from "@i18n/index";
 import { createHostControls, audioPort, wallet } from "@sdk/index";
-import { IconButton } from "@ui/components";
+import { Button, IconButton } from "@ui/components";
 import { findEntry } from "./catalog";
 import { WalletChip } from "./WalletChip";
 
@@ -21,6 +21,7 @@ export function GameHost({
   const [loading, setLoading] = useState(true);
   const [muted, setMuted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const t = makeT(locale);
 
   useEffect(() => {
     const entry = findEntry(gameId);
@@ -130,11 +131,36 @@ export function GameHost({
         </div>
       )}
       {error && (
-        <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", gap: 12 }}>
-          <div style={{ fontSize: 40 }}>😵</div>
-          <IconButton ariaLabel="back" onClick={onExit}>
-            {locale === "he" ? "→" : "←"}
-          </IconButton>
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "grid",
+            placeItems: "center",
+            alignContent: "center",
+            gap: 14,
+            padding: 24,
+            textAlign: "center",
+          }}
+        >
+          <div style={{ fontSize: 40 }} aria-hidden>
+            {error === "not-found" ? "🔍" : "😵"}
+          </div>
+          {/* A glyph alone is not a message. Before this, a failed chunk left a
+              child looking at a dizzy face with no words and no way forward but
+              the back arrow — and the most likely cause (an open tab meeting a
+              new deploy) is one reload away from fixed. */}
+          <div style={{ fontSize: 18, fontWeight: 600, maxWidth: "22ch" }}>
+            {t(error === "not-found" ? "gameMissing" : "gameLoadFailed")}
+          </div>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            {error !== "not-found" && (
+              <Button onClick={() => window.location.reload()}>{t("tryAgain")}</Button>
+            )}
+            <IconButton ariaLabel={t("back")} onClick={onExit}>
+              {locale === "he" ? "→" : "←"}
+            </IconButton>
+          </div>
         </div>
       )}
     </div>

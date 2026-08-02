@@ -46,6 +46,14 @@ export const STRINGS: Dict = {
   // languages need the distinction and both get it, rather than tolerating a
   // grammar error in the app's own default language.
   starEarnedOne: { he: "כוכב", en: "star" },
+  // The two ways opening a game can fail. They are deliberately DIFFERENT
+  // messages: a game that is not in the catalog will never load however many
+  // times you retry, so offering "try again" there would be a lie. A chunk that
+  // failed to fetch usually just needs a reload — the common cause is an open
+  // tab meeting a new deploy, which is exactly what reloading fixes.
+  gameMissing: { he: "לא מצאנו את המשחק", en: "We couldn't find that game" },
+  gameLoadFailed: { he: "המשחק לא נטען", en: "The game didn't load" },
+  tryAgain: { he: "נסו שוב", en: "Try again" },
   moves: { he: "מהלכים", en: "Moves" },
   pairs: { he: "זוגות", en: "Pairs" },
   pickColor: { he: "בחרו צבע", en: "Pick a color" },

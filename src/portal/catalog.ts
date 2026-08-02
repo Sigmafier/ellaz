@@ -23,6 +23,8 @@ import { meta as evolve } from "../games/evolve/meta";
 import { meta as balloons } from "../games/balloons/meta";
 import { meta as bubbles } from "../games/bubbles/meta";
 import { meta as bees } from "../games/bees/meta";
+import { meta as frog } from "../games/frog/meta";
+import { meta as reaction } from "../games/reaction/meta";
 
 export interface CatalogEntry {
   meta: GameMeta;
@@ -78,6 +80,11 @@ export const CATALOG: CatalogEntry[] = [
   { meta: balloons, load: () => import("../games/balloons/index") },
   { meta: bubbles, load: () => import("../games/bubbles/index") },
   { meta: bees, load: () => import("../games/bees/index") },
+  { meta: frog, load: () => import("../games/frog/index") },
+  // `reaction` is the one Wave 2 game that does NOT use the shared spawner, on
+  // purpose: there is a single light, it never moves and never expires, and the
+  // quantity that matters is a timestamp — none of which the spawner models.
+  { meta: reaction, load: () => import("../games/reaction/index") },
 ];
 
 export function findEntry(id: string): CatalogEntry | undefined {
