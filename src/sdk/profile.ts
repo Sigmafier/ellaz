@@ -150,7 +150,16 @@ export function migrateProfile(raw: unknown): ProfileV1 {
 /** The seam that lets the wallet be driven by a real store or a fake one. */
 export interface KeyValueBackend {
   read(key: string): string | null;
-  write(key: string, value: string): void;
+  /**
+   * TRUE only if the value is actually stored.
+   *
+   * This returns a boolean rather than `void` because a write that fails
+   * silently is worse than one that throws: the caller keeps its in-memory
+   * change, the child watches coins land in the wallet, and the reward is gone
+   * on the next reload with nothing anywhere having reported a problem. A
+   * caller cannot honour what it cannot observe.
+   */
+  write(key: string, value: string): boolean;
 }
 
 /**
@@ -167,11 +176,16 @@ export function localStorageBackend(): KeyValueBackend {
         return null;
       }
     },
-    write(key: string, value: string): void {
+    write(key: string, value: string): boolean {
       try {
         localStorage.setItem(key, value);
+        return true;
       } catch {
-        /* storage unavailable — the session simply won't persist */
+        // Quota exhausted, storage disabled by device policy, or Safari private
+        // mode (which throws on the FIRST setItem). Still never rethrown at a
+        // game — but the caller is now told, so it can decline to claim the
+        // reward stuck rather than showing a coin it cannot keep.
+        return false;
       }
     },
   };
@@ -184,6 +198,7 @@ export function memoryBackend(seed?: Record<string, string>): KeyValueBackend {
     read: (key) => store.get(key) ?? null,
     write: (key, value) => {
       store.set(key, value);
+      return true;
     },
   };
 }

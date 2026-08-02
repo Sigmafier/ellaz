@@ -25,7 +25,14 @@ export interface BuyResult {
   alreadyOwned: boolean;
   /** The balance after the call — unchanged on a rejection. */
   coins: number;
-  reason?: "unaffordable" | "invalid";
+  /**
+   * `unsaved` means the purchase was legal and affordable but the device
+   * refused to store it, so it was rolled back rather than shown as owned. It
+   * is a distinct reason because the World screen's answer is the same gentle
+   * shake, but the CAUSE is not the child's balance and mislabelling it
+   * `unaffordable` would send anyone debugging it to the wrong place.
+   */
+  reason?: "unaffordable" | "invalid" | "unsaved";
 }
 
 export interface Wallet {
@@ -99,14 +106,35 @@ class EllazWallet implements Wallet {
     return () => this.listeners.delete(cb);
   }
 
-  /** Persist first, then notify — a listener must never read a stale balance. */
-  private commit(): void {
+  /**
+   * Apply a change, persist it, and ROLL IT BACK if the store refused it.
+   * Returns whether the change actually stuck.
+   *
+   * The rollback is the point. Without it the in-memory profile and storage
+   * disagree, and they disagree in the worst direction: the wallet chip counts
+   * up, coins fly across the screen, and the next reload silently returns the
+   * child to where they were. A reward that is not saved must not be shown as
+   * earned — so on failure we restore the previous profile and let the caller
+   * report zero, which is disappointing but true.
+   *
+   * Listeners are notified AFTER the rollback decision, never before, so no
+   * subscriber can ever render a balance that storage rejected.
+   */
+  private mutate(apply: () => void): boolean {
+    const before = clone(this.profile);
+    apply();
     this.profile.updatedAt = Date.now();
+
+    let stored = false;
     try {
-      this.backend.write(PROFILE_KEY, JSON.stringify(this.profile));
+      stored = this.backend.write(PROFILE_KEY, JSON.stringify(this.profile));
     } catch {
-      /* serialisation/quota failure must not break the run */
+      // A backend that throws despite the contract, or a value JSON cannot
+      // serialise. Same outcome as a refusal: nothing was saved.
+      stored = false;
     }
+    if (!stored) this.profile = before;
+
     const snap = this.snapshot();
     for (const cb of [...this.listeners]) {
       try {
@@ -115,6 +143,7 @@ class EllazWallet implements Wallet {
         /* one bad listener must not stop the others, or the game */
       }
     }
+    return stored;
   }
 
   canAfford(price: number): boolean {
@@ -146,9 +175,15 @@ class EllazWallet implements Wallet {
       return { ok: false, alreadyOwned: false, coins: this.profile.coins, reason: "unaffordable" };
     }
 
-    this.profile.coins -= Math.floor(price);
-    this.profile.owned.push(itemId);
-    this.commit();
+    const stored = this.mutate(() => {
+      this.profile.coins -= Math.floor(price);
+      this.profile.owned.push(itemId);
+    });
+    // Rolled back. Reporting `ok` here would show the item placed in the room
+    // and the coins spent, both of which vanish on reload.
+    if (!stored) {
+      return { ok: false, alreadyOwned: false, coins: this.profile.coins, reason: "unsaved" };
+    }
     analytics.track("shop_buy", { item: itemId, category, price: Math.floor(price) });
     return { ok: true, alreadyOwned: false, coins: this.profile.coins };
   }
@@ -156,18 +191,19 @@ class EllazWallet implements Wallet {
   equip(category: string, itemId: string): boolean {
     // Fail closed: you can only place something you actually own.
     if (!this.owns(itemId)) return false;
-    this.profile.equipped[category] = itemId;
-    this.commit();
-    return true;
+    return this.mutate(() => {
+      this.profile.equipped[category] = itemId;
+    });
   }
 
   markPlayed(gameId: string): void {
     if (typeof gameId !== "string" || gameId === "") return;
-    // Reuse the existing record so a game's wins and stars survive an open.
-    const record = this.profile.games[gameId] ?? { wins: 0, stars: 0 };
-    record.lastPlayedAt = Date.now();
-    this.profile.games[gameId] = record;
-    this.commit();
+    this.mutate(() => {
+      // Reuse the existing record so a game's wins and stars survive an open.
+      const record = this.profile.games[gameId] ?? { wins: 0, stars: 0 };
+      record.lastPlayedAt = Date.now();
+      this.profile.games[gameId] = record;
+    });
   }
 
   recentlyPlayed(limit?: number): string[] {
@@ -211,22 +247,42 @@ class EllazWallet implements Wallet {
         const budgetLeft = Math.max(0, SESSION_COIN_CAP - spentThisSession);
         const coins = Math.min(wantedCoins, budgetLeft);
         const capped = coins < wantedCoins;
-        spentThisSession += coins;
 
-        wallet.profile.coins += coins;
-        // The cap throttles CURRENCY only. Stars are the trophy record and are
-        // always awarded in full — nothing in the SDK ever reduces them.
-        wallet.profile.stars += stars;
+        // Persisted before this function returns, per the port contract — and
+        // rolled back if the device refused, so the numbers reported below are
+        // what a reload will actually show.
+        const persisted = wallet.mutate(() => {
+          wallet.profile.coins += coins;
+          // The cap throttles CURRENCY only. Stars are the trophy record and are
+          // always awarded in full — nothing in the SDK ever reduces them.
+          wallet.profile.stars += stars;
 
-        const record = wallet.profile.games[gameId] ?? { wins: 0, stars: 0 };
-        // A milestone is a mid-run ping, not a win, so it must not inflate the
-        // win count. Star-bearing reasons are the real completions.
-        if (stars > 0) record.wins += 1;
-        record.stars += stars;
-        wallet.profile.games[gameId] = record;
+          const record = wallet.profile.games[gameId] ?? { wins: 0, stars: 0 };
+          // A milestone is a mid-run ping, not a win, so it must not inflate the
+          // win count. Star-bearing reasons are the real completions.
+          if (stars > 0) record.wins += 1;
+          record.stars += stars;
+          wallet.profile.games[gameId] = record;
+        });
 
-        // Persisted before this function returns, per the port contract.
-        wallet.commit();
+        // Charge the session budget ONLY for coins that actually stuck.
+        // Counting a rolled-back payout would let a failing device burn through
+        // the cap and then refuse real rewards once storage recovered.
+        if (persisted) spentThisSession += coins;
+
+        // Nothing was banked, so report nothing. `winMoment` already skips the
+        // coin flight when `coins` is 0, which means the animation disappears
+        // for free rather than lying about where the coins went.
+        if (!persisted) {
+          return {
+            coins: 0,
+            stars: 0,
+            totalCoins: wallet.profile.coins,
+            totalStars: wallet.profile.stars,
+            capped: false,
+            persisted: false,
+          };
+        }
 
         // Anonymous + kid-safe: a game id and a reason, no PII, never identify().
         analytics.track("reward_grant", {
@@ -245,6 +301,7 @@ class EllazWallet implements Wallet {
           totalCoins: wallet.profile.coins,
           totalStars: wallet.profile.stars,
           capped,
+          persisted: true,
         };
       },
     };

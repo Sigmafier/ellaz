@@ -44,19 +44,51 @@ const MILESTONE_COINS = 1;
 export const SESSION_COIN_CAP = 40;
 
 /**
- * What a grant is worth in coins. Never negative; a tier the caller omitted is
- * treated as the gentlest one, so a game that forgets to declare difficulty
- * under-pays rather than over-pays.
+ * The reasons that actually pay. A grant carrying anything else is not a
+ * generous edge case, it is a BUG in the calling game, and it pays nothing.
+ *
+ * `RewardGrant.reason` is a TypeScript union, which is a compile-time promise
+ * and not a runtime one: `SaveStore.get<T>` casts unvalidated JSON, so a
+ * hand-edited or truncated save can put any string here. Checking the value at
+ * runtime is the only thing that actually holds.
+ */
+const KNOWN_REASONS: ReadonlySet<string> = new Set<RewardReason>([
+  "level_complete",
+  "milestone",
+  "personal_best",
+]);
+
+/**
+ * What a grant is worth in coins. Never negative, never NaN.
+ *
+ * Two fallbacks, and they deliberately point in OPPOSITE directions:
+ *
+ * - An OMITTED tier is treated as the gentlest one, so a game that forgets to
+ *   declare its difficulty under-pays rather than over-pays.
+ * - An UNKNOWN tier or reason pays ZERO. It cannot be honoured, and honouring
+ *   it by accident is how a typo becomes an economy.
+ *
+ * The `?? TIER_COINS.easy` is load-bearing rather than defensive: without it an
+ * out-of-union tier indexes to `undefined`, which propagates to `NaN`, which
+ * serialises as `null`, which the profile migration then reads back as 0 — so a
+ * single bad string does not under-pay a child, it silently ANNIHILATES their
+ * balance and poisons the session budget for every valid grant after it.
  */
 export function coinsFor(g: RewardGrant): number {
+  if (!KNOWN_REASONS.has(g.reason)) return 0;
   if (g.reason === "milestone") return MILESTONE_COINS;
-  return TIER_COINS[g.tier ?? "easy"];
+  return TIER_COINS[g.tier ?? "easy"] ?? TIER_COINS.easy;
 }
 
 /**
  * What a grant is worth in stars. Stars are the trophy currency: one per real
  * accomplishment, none for a mid-run milestone, and never spendable.
+ *
+ * An unknown reason earns no star, which also keeps it out of the win count —
+ * the wallet increments `wins` from `stars > 0`, so failing closed here fails
+ * closed there too.
  */
 export function starsFor(g: RewardGrant): number {
+  if (!KNOWN_REASONS.has(g.reason)) return 0;
   return g.reason === "milestone" ? 0 : 1;
 }

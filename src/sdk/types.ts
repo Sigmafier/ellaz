@@ -118,6 +118,17 @@ export interface RewardResult {
   totalStars: number;
   /** True when the session cap swallowed some or all of the coin payout. */
   capped: boolean;
+  /**
+   * False when the device refused to store the profile, so the grant was rolled
+   * back and `coins`/`stars` are both 0.
+   *
+   * There is no backend, so storage is the only copy of a child's progress.
+   * Quota exhaustion, a device storage policy, and Safari private mode all make
+   * writes fail — and previously they failed SILENTLY, leaving the wallet chip
+   * counting up for coins that were already gone. A caller that shows a reward
+   * should key off this, not off having called `grant()`.
+   */
+  persisted: boolean;
 }
 
 /**
