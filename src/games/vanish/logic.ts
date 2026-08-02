@@ -14,15 +14,11 @@
 //
 // The `rng` parameter goes LAST and defaults to `Math.random`, matching every
 // other game signature in the repo.
-import {
-  CAST_THEMES,
-  drawCast,
-  pick,
-  randInt,
-  shuffle,
-  type CastItem,
-  type CastTheme,
-} from "@shared/index";
+// Direct module paths, NOT the `@shared` barrel: the barrel re-exports Prompt
+// (React) and useGameTimer, so a pure logic module importing it drags React and
+// a CSS side-effect into the logic core. Enforced by `logic-is-pure.test.ts`.
+import { CAST_THEMES, drawCast, type CastItem, type CastTheme } from "@shared/cast";
+import { pick, randInt, shuffle } from "@shared/rng";
 
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 

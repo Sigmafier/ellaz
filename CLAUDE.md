@@ -62,9 +62,14 @@ picks speed from in-canvas Phaser buttons. Wins go through **`winMoment()`** fro
 `src/games/`).
 
 **Deploy**: pushing to `main` auto-deploys to GitHub Pages
-(`https://ytrofr.github.io/ellaz/`) via `.github/workflows/deploy-pages.yml` — the
-build uses `BASE_PATH=/ellaz/`. The PWA is `registerType: "autoUpdate"` so returning
-players get new versions automatically. Repo is public; collaborator: Benzi.
+(**`https://sigmafier.github.io/ellaz/`**) via `.github/workflows/deploy-pages.yml` —
+the build uses `BASE_PATH=/ellaz/`. The PWA is `registerType: "autoUpdate"` so
+returning players get new versions automatically. Repo is public; collaborator: Benzi.
+
+**The repo moved to the `Sigmafier` org** (2026-08-02). `ytrofr/ellaz` still
+redirects on push, so a stale remote works and hides the move — but the LIVE URL
+changed with it, and `ytrofr.github.io/ellaz` is not it. Verify with
+`gh api repos/Sigmafier/ellaz/pages --jq .html_url` rather than trusting this line.
 
 **RTL gotcha**: a spatial game grid must carry `dir="ltr"` so it does NOT mirror in
 the Hebrew RTL app (else swipe/arrow directions invert — see `src/games/n2048`); the

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { CAST_THEMES, castOf, mulberry32 } from "@shared/index";
+import { CAST_THEMES, castOf } from "@shared/cast";
+import { mulberry32 } from "@shared/rng";
 import {
   COVER_MS,
   DIFFICULTIES,
