@@ -2,6 +2,8 @@
 // 0..5, 0..10, or 0..20, plus a multiplication mode (a×b, a,b in 1..5). Every
 // operand and answer stays inside the level's range. Deterministic given a RNG.
 // No DOM.
+import { randInt, shuffle } from "@shared/rng";
+
 export type Op = "+" | "-" | "×";
 
 export type MathLevel = "up5" | "up10" | "up20" | "mult";
@@ -22,19 +24,6 @@ export const LEVELS: Record<MathLevel, LevelConfig> = {
 };
 
 const N_CHOICES = 3;
-
-function randInt(min: number, max: number, rng: () => number): number {
-  return min + Math.floor(rng() * (max - min + 1));
-}
-
-function shuffle<T>(arr: T[], rng: () => number): T[] {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
 export interface Problem {
   a: number;

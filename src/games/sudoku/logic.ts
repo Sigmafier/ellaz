@@ -1,6 +1,8 @@
 // Sudoku — pure generator + solver + play state. Puzzles are generated with a
 // uniqueness guarantee (a cell is only removed if the puzzle stays uniquely
 // solvable). Deterministic given a RNG. No DOM.
+import { shuffle } from "@shared/rng";
+
 export type Grid = number[][]; // 9x9, 0 = empty
 
 export interface SudokuState {
@@ -30,21 +32,14 @@ export function isValid(g: Grid, r: number, c: number, v: number): boolean {
   return true;
 }
 
-function shuffled(rng: () => number): number[] {
-  const a = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
+const DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 
 // Fill an empty grid with a random complete valid solution.
 function fillFull(g: Grid, rng: () => number): boolean {
   for (let r = 0; r < 9; r++)
     for (let c = 0; c < 9; c++) {
       if (g[r][c] === 0) {
-        for (const v of shuffled(rng)) {
+        for (const v of shuffle(DIGITS, rng)) {
           if (isValid(g, r, c, v)) {
             g[r][c] = v;
             if (fillFull(g, rng)) return true;
@@ -83,11 +78,10 @@ export function generate(level: Level, rng: () => number = Math.random): SudokuS
 
   const puzzle = cloneGrid(solution);
   const target = GIVENS[level];
-  const cells = Array.from({ length: 81 }, (_, i) => i);
-  for (let i = cells.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [cells[i], cells[j]] = [cells[j], cells[i]];
-  }
+  const cells = shuffle(
+    Array.from({ length: 81 }, (_, i) => i),
+    rng,
+  );
 
   let givens = 81;
   for (const idx of cells) {

@@ -38,16 +38,30 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Precache the shell (app JS/CSS/HTML). Game chunks are matched below and
-        // cached lazily the first time a player opens that game.
+        // Precache the SHELL only: index.html, css, the React vendor chunk, icons,
+        // fonts. Per-game chunks and the (large) Phaser vendor chunk are excluded
+        // here and picked up lazily by the CacheFirst route below, the first time a
+        // player actually opens a game that needs them.
+        //
+        // The globIgnores are load-bearing: without them `globPatterns` sweeps every
+        // emitted chunk into the precache manifest, so a first visit downloads all
+        // 32 games plus Phaser before the home grid is usable. They only work
+        // because `manualChunks` below gives game chunks a `game-` name prefix —
+        // a runtime rule matching `game-` against Rollup's default `index-<hash>`
+        // names is dead code that silently never fires.
         globPatterns: ["**/*.{html,css,js,svg,woff2}"],
+        globIgnores: ["**/game-*.js", "**/vendor-phaser-*.js"],
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => url.pathname.includes("/assets/game-"),
+            // maxEntries covers 32 games + the Phaser vendor chunk, with headroom
+            // for stale hashed copies left behind across a few deploys.
+            urlPattern: ({ url }) =>
+              url.pathname.includes("/assets/game-") ||
+              url.pathname.includes("/assets/vendor-phaser-"),
             handler: "CacheFirst",
             options: {
               cacheName: "ellaz-games",
-              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              expiration: { maxEntries: 120, maxAgeSeconds: 60 * 60 * 24 * 30 },
             },
           },
         ],
@@ -60,15 +74,51 @@ export default defineConfig({
       "@ui": fileURLToPath(new URL("./src/ui", import.meta.url)),
       "@juice": fileURLToPath(new URL("./src/juice", import.meta.url)),
       "@i18n": fileURLToPath(new URL("./src/i18n", import.meta.url)),
+      "@shared": fileURLToPath(new URL("./src/shared", import.meta.url)),
     },
   },
   build: {
     target: "es2022",
     rollupOptions: {
       output: {
-        manualChunks: {
-          "vendor-phaser": ["phaser"],
-          "vendor-react": ["react", "react-dom"],
+        // Explicit so game chunks land as `assets/game-<id>-<hash>.js`. The PWA
+        // precache exclusions and the CacheFirst route both key off that `game-`
+        // prefix, so the name is a contract, not cosmetics.
+        chunkFileNames: "assets/[name]-[hash].js",
+        manualChunks(id) {
+          const path = id.replace(/\\/g, "/");
+
+          if (path.includes("/node_modules/")) {
+            if (/\/node_modules\/phaser\//.test(path)) return "vendor-phaser";
+            // scheduler is react-dom's own dep — keep it in the same chunk so the
+            // React vendor bundle stays self-contained.
+            if (/\/node_modules\/(react|react-dom|scheduler)\//.test(path))
+              return "vendor-react";
+            // Everything else (posthog, canvas-confetti…) follows its importer.
+            return undefined;
+          }
+
+          // `meta.ts` is imported STATICALLY by the portal catalog so the home grid
+          // can render without any game code. It must never land in a lazy game
+          // chunk — that would make the shell pull all 32 games in on first paint.
+          if (/\/src\/games\/[^/]+\/meta\.tsx?$/.test(path)) return "shell";
+
+          // One chunk per game directory, so 32 games are 32 independently
+          // cacheable files instead of one wall of `index-<hash>.js`.
+          const game = /\/src\/games\/([^/]+)\//.exec(path);
+          if (game) return `game-${game[1]}`;
+
+          // Shared app code, imported by BOTH the shell and the games. Pin it to
+          // the shell side explicitly: left unassigned, Rollup folds it into
+          // whichever game chunk claims it first (measured — it chose game-memory,
+          // dragging posthog and the whole SDK in with it, and then the shell had
+          // to statically import that game chunk, plus every sibling that shared
+          // it). An unassigned shared module is not neutral; it picks a side.
+          if (/\/src\/(sdk|ui|juice|i18n|shared)\//.test(path)) return "shell";
+          if (/\/src\/games\/reactHost\./.test(path)) return "shell";
+
+          // src/portal/** and src/main.tsx stay in the entry chunk.
+          return undefined;
         },
       },
     },

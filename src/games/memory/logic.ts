@@ -1,5 +1,10 @@
 // Memory match — pure logic. Kid-friendly: tap a card, tap another; matches stay
 // face-up. No drag. Deterministic given a RNG (for tests + replay).
+import { shuffle } from "@shared/rng";
+
+// Re-exported: this module was the original home of `shuffle`, and callers
+// (including logic.test.ts) still import it from here.
+export { shuffle };
 
 export interface Card {
   id: number; // unique per card instance
@@ -15,15 +20,6 @@ export interface MemoryState {
   moves: number;
   matchedPairs: number;
   totalPairs: number;
-}
-
-export function shuffle<T>(arr: T[], rng: () => number = Math.random): T[] {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
 }
 
 export function newGame(faces: string[], rng: () => number = Math.random): MemoryState {

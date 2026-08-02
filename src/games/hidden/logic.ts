@@ -1,6 +1,8 @@
 // Hidden-object ("find the character in the crowd") — pure logic. A crowd of
 // placed characters (original emoji cast, no trademarked characters); the player
 // must find the few on the target list. Deterministic given a RNG. No DOM.
+import { shuffle } from "@shared/rng";
+
 export interface Placed {
   id: string;
   icon: string;
@@ -12,15 +14,6 @@ export interface HiddenState {
   placed: Placed[];
   targets: string[]; // ids to find
   found: string[];
-}
-
-function seededShuffle<T>(arr: T[], rng: () => number): T[] {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
 }
 
 // Scatter `icons` across the scene, then choose `numTargets` of them to find.
@@ -35,7 +28,7 @@ export function newGame(
     x: 6 + rng() * 88,
     y: 12 + rng() * 80,
   }));
-  const targets = seededShuffle(placed, rng)
+  const targets = shuffle(placed, rng)
     .slice(0, Math.min(numTargets, placed.length))
     .map((p) => p.id);
   return { placed, targets, found: [] };

@@ -22,7 +22,9 @@
       "@sdk/*": ["src/sdk/*"],
       "@ui/*": ["src/ui/*"],
       "@juice/*": ["src/juice/*"],
-      "@i18n/*": ["src/i18n/*"]
+      "@i18n/*": ["src/i18n/*"],
+      "@shared": ["src/shared/index.ts"],
+      "@shared/*": ["src/shared/*"]
     }
   },
   "include": ["src", "vite.config.ts"]
