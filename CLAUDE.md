@@ -27,28 +27,39 @@ fresh build use `npm run dev` (no SW) or clear the SW/caches first.
 
 Single Vite + React 18 + TypeScript app. Phaser 4 powers canvas games. Internal
 module boundaries mirror extractable packages 1:1 (import via the `@sdk`/`@ui`/
-`@juice`/`@i18n` aliases, never deep paths):
+`@juice`/`@i18n`/`@shared` aliases, never deep paths):
 
 ```
 src/
-├─ sdk/      Game SDK — the neutral contract every game implements
+├─ sdk/      Game SDK - the neutral contract every game implements
 │            GameModule/GameContext, SaveStore (localStorage), analytics port
-│            (PostHog behind an interface), audio port, lifecycle, ads stubs
+│            (PostHog behind an interface), audio port (named SFX + tone/time),
+│            speech port (Web Speech TTS), lifecycle, ads stubs, and the rewards
+│            economy (economy + profile + wallet, surfaced as ctx.rewards)
+├─ shared/   Neutral game helpers - rng (mulberry32/seedFrom/randInt/pick/shuffle),
+│            pentatonic notes, winMoment() (the canonical win)
 ├─ ui/       Design tokens + RTL-aware components (Hebrew-first fonts, big targets)
-├─ juice/    Game-feel kit — haptics, screen shake, particle burst, tween
+│            + DifficultySelector (the shared level row)
+├─ juice/    Game-feel kit - haptics, screen shake, particle burst, full-screen
+│            confetti, flyTo (coins arc to the wallet chip), tween
 ├─ i18n/     he (default, RTL) + en (LTR) strings + direction
-├─ portal/   Shell — App (hash router), Home (grid), GameHost (mount/unmount bridge),
-│            catalog (game registry with lazy loaders)
+├─ portal/   Shell - App (hash router: #/, #/game/<id>, #/world), Home (grid),
+│            GameHost (mount/unmount bridge), WalletChip, catalog (game registry
+│            with lazy loaders), world/ (the room + shop)
 └─ games/<id>/
-   ├─ logic.ts        PURE game logic — NO DOM/Phaser imports; unit-tested (TDD)
+   ├─ meta.ts         DOM-free GameMeta - catalog.ts imports it statically
+   ├─ logic.ts        PURE game logic - NO DOM/Phaser imports; unit-tested (TDD)
    ├─ logic.test.ts
    └─ <Renderer>      React component (DOM) or Phaser scene (canvas)
 ```
 
 Games (10): memory, coloring, finddiff, hidden, math (kids) · 2048, tictactoe,
-minesweeper, sudoku, snake (classics). Every game has a **difficulty selector**
-(a `Button` row, `variant` primary/ghost) and/or endless levels; wins fire
-`celebrate()` (full-screen confetti) from `@juice`.
+minesweeper, sudoku, snake (classics). Every game offers a **difficulty selector**
+and/or endless levels: 7 of the 10 render the shared `<DifficultySelector>` from
+`@ui`, coloring and finddiff advance through endless levels instead, and snake
+picks speed from in-canvas Phaser buttons. Wins go through **`winMoment()`** from
+`@shared`, which owns the confetti (there are zero `celebrate()` calls left in
+`src/games/`).
 
 **Deploy**: pushing to `main` auto-deploys to GitHub Pages
 (`https://ytrofr.github.io/ellaz/`) via `.github/workflows/deploy-pages.yml` — the
@@ -58,6 +69,46 @@ players get new versions automatically. Repo is public; collaborator: Benzi.
 **RTL gotcha**: a spatial game grid must carry `dir="ltr"` so it does NOT mirror in
 the Hebrew RTL app (else swipe/arrow directions invert — see `src/games/n2048`); the
 math equation is also pinned `dir="ltr"` for standard notation.
+
+## Rewards, the World, and speech
+
+**The economy.** A game reports WHAT HAPPENED and never says what that is worth.
+`ctx.rewards.grant({ reason, tier?, level? })` takes one of three reasons
+(`level_complete`, `milestone`, `personal_best`) plus an optional tier
+(`easy`/`medium`/`hard`), and `src/sdk/economy.ts` alone decides the payout: 3/5/8
+coins by tier, a flat 1 coin for a milestone, and one star for every reason that
+is not a milestone. Coins are spent. Stars are a trophy count that is never spent
+and never lost, and they also gate the premium shop items (`requiresStars`). Full
+rule and traps: [`.claude/rules/rewards-economy-convention.md`](.claude/rules/rewards-economy-convention.md).
+
+**Add-only by design.** `RewardsPort` has no `spend()`. A game can only ever put
+coins in. Spending happens in exactly one place, the World screen, against the
+`wallet` singleton, so no game (and no bug in a game) can take a player's coins.
+The profile persists at `ellaz:profile:v1` behind `migrateProfile()`, which
+coerces anything it is handed (missing key, truncated write, hand-edited junk, a
+future shape) into a usable profile and must never throw.
+
+**The win moment.** `winMoment(ctx, {...})` from `@shared` is the canonical win:
+it grants and persists FIRST, then plays sound, haptics, confetti and the coin
+flight to the wallet chip, then fires analytics. The cosmetic half is wrapped in
+try/catch, so a thrown animation can never cost a kid a coin. Confetti defaults
+ON; endless-game milestones pass `confetti: false`.
+
+**The World** (`#/world`) is a room and a character with 8 slots (wall, floor,
+rug, plant, poster, outfit, hat, pet) holding 24 items in original inline SVG.
+Buying also places the item, one tap, no confirm dialog. An item the player
+cannot afford or has not unlocked answers with a gentle shake and says nothing,
+because a refusal is not an error. Every category ships exactly one free
+`price: 0` default (pinned by `world/items.test.ts`), so the room is complete
+before a player has earned anything. **Item ids are persisted in
+`profile.owned` forever: never rename one, never reuse one.**
+
+**Speech** (`ctx.speech`) is Web Speech TTS for Hebrew and English letters and
+words. Zero assets, zero network. Voices load ASYNCHRONOUSLY, so subscribe with
+`onAvailabilityChange()` rather than reading `available()` once; call `unlock()`
+inside a user gesture for iOS; it follows the global mute; and nothing it does
+ever throws or rejects. It is ALWAYS supplementary, never the question itself:
+see the hard rule at the top of `src/sdk/speech.ts`.
 
 ## Engine choice — settled, but read the caveat before quoting a number
 
@@ -119,6 +170,21 @@ separate three.js / Babylon / PlayCanvas bake-off.
 - **Games talk only to `GameContext`** (`@sdk`) — never to portal internals. The
   lifecycle + ads shape matches the **Poki + CrazyGames** union so games can list on
   those portals later with no rewrites.
+- **Wins go through `winMoment()`** (`@shared`), never a hand-rolled
+  celebrate-plus-grant block. And **games report reward REASONS, never amounts**:
+  `grant()` takes `level_complete`/`milestone`/`personal_best` plus a tier, and the
+  earn table lives in one file so 30+ games cannot each invent their own
+  economics. `analytics.levelComplete()` is NOT a win signal (see the rewards rule).
+- **Speech is supplementary, never the question.** A voice can be present, be
+  selected, fire `onend` on time and still emit no sound, and that failure is
+  undetectable from JavaScript. A letter game SHOWS the letter and offers a speaker
+  button that says it; it never asks "tap what you hear". If removing speech would
+  make the game unplayable, the design is wrong.
+- **`@ui` may import `@i18n`.** Sanctioned and deliberate: `DifficultySelector`
+  takes a `locale` and renders bilingual labels, which is precisely what removed a
+  locale ternary from every game with levels. i18n is a leaf module with no
+  dependencies of its own, so this arrow can never become a cycle. Do not "fix" it
+  back into 22 copies of `locale === "he" ? ... : ...`.
 - **No external network requests from games** (Poki rule). Wrap all `localStorage` in
   try/catch (incognito-safe). Unlock audio on the first user gesture.
 - **Input:** Pointer Events only (`pointerdown/move/up` + `setPointerCapture`);
@@ -126,8 +192,14 @@ separate three.js / Babylon / PlayCanvas bake-off.
 - **Responsive:** size boards with `min(<vw>, <vh>, <cap>px)` so they fit portrait,
   landscape, and tablet. `GameHost`'s mount is a scroll container with `minHeight:0`
   (flexbox scroll trap) — tall games scroll, never clip.
-- **Kids games** (`ageBand: "kids"`): tap-only (no drag), ≥2×2cm targets, icon+audio
-  navigation (no reading required), instant restart, no fail-punishment.
+- **Kids games** (`ageBand: "kids"`): **tap-completable; drag optional.** Drag is
+  never REQUIRED. Four of the games coming next (jigsaw, shape-fit, build-a-house,
+  build-a-word) do use drag, and every one of them must also be finishable by
+  tap-select then tap-target. Two reasons, and the second is the load-bearing one:
+  a five-year-old on a phone, and anyone on assistive input, cannot reliably hold a
+  sustained pointer gesture; and a tap path means the wave ships even if the shared
+  drag utility slips. Plus ≥2×2cm targets, icon+audio navigation (no reading
+  required), instant restart, no fail-punishment.
 - **Analytics is anonymous + kid-safe** (COPPA internal-operations): PostHog
   anonymous-events mode only — **never `identify()`**, no PII, no session replay, no
   autocapture, no behavioral ads. Analytics failure must never block gameplay.
@@ -136,17 +208,28 @@ separate three.js / Babylon / PlayCanvas bake-off.
 
 ## Add a new game (~30 min)
 
-1. `src/games/<id>/logic.ts` — pure rules + `logic.test.ts` (write tests first).
-2. Renderer:
+1. `src/games/<id>/meta.ts` - the `GameMeta` (id, bilingual title, emoji, color,
+   ageBand, category, orientation, renderer). Keep it **DOM-free**: `catalog.ts`
+   imports it statically, so the home grid renders without pulling React, Phaser,
+   or any game code into the shell bundle.
+2. `src/games/<id>/logic.ts` - pure rules + `logic.test.ts` (write tests first).
+   Take an injectable `rng` as the LAST parameter defaulting to `Math.random`, and
+   use `mulberry32`/`seedFrom`/`shuffle` from `@shared` rather than a private copy.
+3. Renderer:
    - **DOM:** a `<Game>.tsx` taking `{ ctx }`, then `index.ts` =
      `reactGame(meta, ctx => createElement(Game, { ctx }))`.
    - **Canvas:** a `Phaser.Scene` + `index.ts` exporting a `GameModule` that boots
      `new Phaser.Game({ parent: ctx.mount, scale: { mode: Phaser.Scale.FIT } })`
      (see `games/snake`).
-3. Register in `src/portal/catalog.ts` (metadata + `load: () => import(...)`).
+4. On a win, call `winMoment(ctx, { reason, tier, level, at })` from `@shared` -
+   from the event handler, never inside a `setState` updater. Render the level row
+   with `<DifficultySelector>` from `@ui`.
+5. Register in `src/portal/catalog.ts`: `import { meta as <id> } from "../games/<id>/meta"`
+   plus a `load: () => import("../games/<id>/index")` row. `catalog.test.ts` is
+   property-based with a count ratchet, so a well-formed entry needs no test edit.
 
-The SDK, UI, juice, i18n, PWA, and analytics come for free. Phaser lives in a shared
-vendor chunk (`vite.config` `manualChunks`) cached across all canvas games.
+The SDK, UI, juice, i18n, PWA, rewards, and analytics come for free. Phaser lives in
+a shared vendor chunk (`vite.config` `manualChunks`) cached across all canvas games.
 
 ## Known traps (learned here)
 
@@ -155,6 +238,13 @@ vendor chunk (`vite.config` `manualChunks`) cached across all canvas games.
   nested root during the portal's own unmount throws `removeChild: node is not a
   child`. Don't also clear the mount node in `GameHost` (double-free).
 - **SW serves stale bundle** during QA (see Commands). This is intended `prompt` behavior.
+- **No backend by design, so clearing browser storage erases the child's coins,
+  stars and room.** Everything lives in `localStorage` (`ellaz:profile:v1` plus the
+  per-game save keys), which also means a phone and a tablet are two separate
+  players with two separate rooms. `migrateProfile()` salvages a corrupt or partial
+  record rather than throwing, but nothing can recover a cleared one. The v2
+  mitigation idea is an export/import backup code the player can write down; it is
+  explicitly OUT of scope, and it is not a reason to build accounts.
 
 ## Deploy (Firebase Hosting)
 
