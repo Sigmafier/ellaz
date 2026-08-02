@@ -7,6 +7,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:check": "npm run build && node scripts/assert-precache.mjs",
+    "assert:precache": "node scripts/assert-precache.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
