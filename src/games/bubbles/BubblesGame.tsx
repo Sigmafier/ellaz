@@ -1,14 +1,22 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import type { GameContext } from "@sdk/index";
 import { Button, DifficultySelector, Stat, type DifficultyOption } from "@ui/index";
 import { burst, haptic, shake } from "@juice/index";
 import {
   PLAY_SURFACE_STYLE,
   Prompt,
+  judgeTap,
   useSpawner,
   winMoment,
   type Prop,
   type SpawnMotion,
+  type TapVerdict,
 } from "@shared/index";
 import {
   LANES,
@@ -40,6 +48,27 @@ const DIFF_OPTIONS: DifficultyOption<Difficulty>[] = [
   { id: "medium", label: { he: "בינוני", en: "Med" } },
   { id: "hard", label: { he: "קשה", en: "Hard" } },
 ];
+
+/**
+ * What a screen reader says for ONE bubble.
+ *
+ * The character leads, because the character IS the question — a label of
+ * "bubble" would leave a child who cannot see the screen with four identical
+ * controls and no way to pick. The lane follows for the same reason `sortsize`
+ * exposes "3 of 4": two bubbles carrying different characters are still only
+ * tellable apart by where they are while they rise.
+ */
+function bubbleLabel(char: string, lane: number, he: boolean): string {
+  return he
+    ? `בועה עם ${char}, מסלול ${lane + 1} מתוך ${LANES}`
+    : `bubble with ${char}, lane ${lane + 1} of ${LANES}`;
+}
+
+/** Is the keyboard currently sitting on the button for this prop? */
+function focusIsOn(propId: number): boolean {
+  const active = typeof document === "undefined" ? null : document.activeElement;
+  return active instanceof HTMLElement && active.dataset.propId === String(propId);
+}
 
 /** One shared gradient, defined once — a per-bubble `<defs>` would repeat its id. */
 function BubbleDefs() {
@@ -157,6 +186,14 @@ export function BubblesGame({ ctx }: { ctx: GameContext }) {
       sinceTargetRef.current = next.sinceTarget;
       return next.kind;
     },
+    // Nothing is scored here — a bubble reaching the top costs nothing, as it
+    // always did. This exists only so a bubble that floats away while the
+    // KEYBOARD is on it does not drop focus to <body>, which would throw a
+    // keyboard player back to the top of the page mid-round.
+    onExpire: (p) => {
+      skinsRef.current.delete(p.id);
+      if (focusIsOn(p.id)) surfaceRef.current?.focus({ preventScroll: true });
+    },
   });
 
   function startRound(d: Difficulty, avoid: string | null) {
@@ -217,6 +254,18 @@ export function BubblesGame({ ctx }: { ctx: GameContext }) {
     startRound(difficulty, next.target);
   }
 
+  /**
+   * Judge ONE bubble. The pointer path and the keyboard path both land here, so
+   * a key press can never be judged by different rules than a tap — and only
+   * ONE of the two ever runs per input. The pointer path stays on the SURFACE
+   * handler and the bubbles carry no `onClick`, because a click fires after a
+   * pointer tap as well and the two together would judge the same tap twice.
+   */
+  function resolve(prop: Prop<string>, verdict: TapVerdict, x: number, y: number) {
+    if (verdict === "wrong") return nudge(prop);
+    popBubble(prop, x, y);
+  }
+
   function onPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
     // Inside the gesture, so iOS opens both the audio and the speech gate.
     ctx.audio.unlock();
@@ -224,8 +273,29 @@ export function BubblesGame({ ctx }: { ctx: GameContext }) {
     const { prop, verdict } = spawner.tap(e.clientX, e.clientY, roundRef.current.target);
     // Empty water is not a mistake — a tap that hit nothing says nothing.
     if (!prop || verdict === "miss") return;
-    if (verdict === "wrong") return nudge(prop);
-    popBubble(prop, e.clientX, e.clientY);
+    resolve(prop, verdict, e.clientX, e.clientY);
+  }
+
+  /**
+   * The keyboard path: Enter or Space on the bubble that has focus.
+   *
+   * `preventDefault` does two jobs. Space would scroll the page, and BOTH keys
+   * make a native <button> synthesise a `click` — stopping the default is what
+   * keeps this to exactly one judgement per press. `e.repeat` closes the other
+   * door: holding Enter down repeats keydown forever.
+   */
+  function onKeyDown(e: ReactKeyboardEvent<HTMLButtonElement>, prop: Prop<string>) {
+    if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
+    e.preventDefault();
+    if (e.repeat) return;
+    ctx.audio.unlock();
+    ctx.speech.unlock();
+    const r = e.currentTarget.getBoundingClientRect();
+    const verdict = judgeTap(prop, roundRef.current.target);
+    // A caught bubble unmounts under the keyboard, so hand focus to the water
+    // BEFORE it goes. A wrong one just wobbles, and keeps its focus.
+    if (verdict === "hit") surfaceRef.current?.focus({ preventScroll: true });
+    resolve(prop, verdict, r.left + r.width / 2, r.top + r.height / 2);
   }
 
   return (
@@ -304,6 +374,9 @@ export function BubblesGame({ ctx }: { ctx: GameContext }) {
       <div
         ref={surfaceRef}
         dir="ltr"
+        // Reachable by script, never by Tab: this is only ever where focus lands
+        // when the bubble it was on is caught or floats away.
+        tabIndex={-1}
         onPointerDown={onPointerDown}
         style={{
           ...PLAY_SURFACE_STYLE,
@@ -315,9 +388,23 @@ export function BubblesGame({ ctx }: { ctx: GameContext }) {
         }}
       >
         {spawner.props.map((p) => (
-          <div
+          /*
+            A REAL <button>, and it has to be THIS element rather than a wrapper
+            around it: `attach` starts the WAAPI float on the node it is given
+            and `hitTest` reads that same node's `getBoundingClientRect()`, so
+            the animated node, the hit box and the accessible control are one
+            thing by construction. Everything a UA draws on a button is reset,
+            so it looks exactly as it did as a <div>. `pointerEvents: none`
+            stays: it keeps the pointer path on the surface handler, where it
+            already was, so a tap can never be judged twice.
+          */
+          <button
             key={p.id}
+            type="button"
             ref={(el) => spawner.attach(p, el)}
+            data-prop-id={p.id}
+            aria-label={bubbleLabel(p.kind, p.lane, he)}
+            onKeyDown={(e) => onKeyDown(e, p)}
             style={{
               position: "absolute",
               bottom: 0,
@@ -332,6 +419,12 @@ export function BubblesGame({ ctx }: { ctx: GameContext }) {
               // handler, so a bubble never needs to receive an event itself.
               pointerEvents: "none",
               willChange: "transform, opacity",
+              border: "none",
+              padding: 0,
+              background: "transparent",
+              font: "inherit",
+              color: "inherit",
+              touchAction: "none",
             }}
           >
             <div
@@ -342,7 +435,7 @@ export function BubblesGame({ ctx }: { ctx: GameContext }) {
             >
               <Bubble char={p.kind} />
             </div>
-          </div>
+          </button>
         ))}
       </div>
 

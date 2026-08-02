@@ -4,13 +4,22 @@ import {
   useMemo,
   useRef,
   useState,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactElement,
 } from "react";
 import type { GameContext } from "@sdk/index";
 import { Button, DifficultySelector, Stat, type DifficultyOption } from "@ui/index";
 import { burst, haptic, shake } from "@juice/index";
-import { PLAY_SURFACE_STYLE, Prompt, useSpawner, winMoment, type Prop } from "@shared/index";
+import {
+  PLAY_SURFACE_STYLE,
+  Prompt,
+  judgeTap,
+  useSpawner,
+  winMoment,
+  type Prop,
+  type TapVerdict,
+} from "@shared/index";
 import {
   colorOf,
   isRoundComplete,
@@ -67,6 +76,43 @@ const DIFF_OPTIONS: DifficultyOption<Difficulty>[] = [
   { id: "medium", label: { he: "בינוני", en: "Med" } },
   { id: "hard", label: { he: "קשה", en: "Hard" } },
 ];
+
+/**
+ * Hebrew SINGULAR colour names, for the per-balloon accessible name.
+ *
+ * `logic.ts` carries the PLURAL adjectives the prompt is written around
+ * ("פוצצו בלונים אדומים"), and one balloon has to say "בלון אדום" — a plural
+ * there names a group rather than the single thing under the finger. English
+ * needs no table: `color.en` is already the singular adjective.
+ */
+const HE_SINGULAR: Record<ColorId, string> = {
+  red: "אדום",
+  blue: "כחול",
+  yellow: "צהוב",
+  green: "ירוק",
+  purple: "סגול",
+};
+
+/**
+ * What a screen reader says for ONE balloon.
+ *
+ * The COLOUR leads, because the colour is the entire question this game asks —
+ * a label of "balloon" would leave a child who cannot see the screen with five
+ * identical controls and nothing to choose between. The lane follows for the
+ * same reason `sortsize` exposes "3 of 4": two red balloons are only tellable
+ * apart by where they are.
+ */
+function balloonLabel(color: BalloonColor, lane: number, he: boolean): string {
+  return he
+    ? `בלון ${HE_SINGULAR[color.id]}, מסלול ${lane + 1} מתוך ${LANES}`
+    : `${color.en} balloon, lane ${lane + 1} of ${LANES}`;
+}
+
+/** Is the keyboard currently sitting on the button for this prop? */
+function focusIsOn(propId: number): boolean {
+  const active = typeof document === "undefined" ? null : document.activeElement;
+  return active instanceof HTMLElement && active.dataset.propId === String(propId);
+}
 
 /**
  * Dark mark or light mark, decided from the fill's own brightness rather than
@@ -183,6 +229,9 @@ export function BalloonsGame({ ctx }: { ctx: GameContext }): ReactElement {
   // silently swallowed.
   const bodies = useRef(new Map<number, HTMLElement>());
   const mounted = useRef(false);
+  // The sky itself. Focusable only programmatically (`tabIndex={-1}`): it is
+  // where the keyboard is parked when the balloon it was on disappears.
+  const surfaceRef = useRef<HTMLDivElement>(null);
 
   targetRef.current = round.target;
 
@@ -209,8 +258,14 @@ export function BalloonsGame({ ctx }: { ctx: GameContext }): ReactElement {
    *
    * `top` stays pinned at RESTING_TOP and the fractions below are measured FROM
    * it: the old 104%/50%/-45% top-values become +62%/+8%/-87% of surface height.
-   * The `translate(-50%, 0)` centring is repeated in every keyframe because the
-   * animation replaces the element's transform outright while it runs.
+   *
+   * These keyframes carry NO centring term, deliberately. A running animation
+   * replaces the element's transform outright, so centring had to live in every
+   * keyframe while it was a transform — and that is precisely what broke under
+   * `prefers-reduced-motion`, where the spawner discards these keyframes for its
+   * own scale-only fade and the centring went with them. Centring is a negative
+   * margin on the element now (see the style below), which is layout and which
+   * no animation can overwrite, so both paths land in the same place.
    *
    * Under `prefers-reduced-motion` the spawner IGNORES this and fades the prop
    * in place — which is why the element's own style parks it at RESTING_TOP,
@@ -221,12 +276,12 @@ export function BalloonsGame({ ctx }: { ctx: GameContext }): ReactElement {
     const rise = (fraction: number) => `translateY(calc(${SURFACE_H} * ${fraction}))`;
     return {
       keyframes: [
-        { transform: `translate(-50%, 0) ${rise(0.62)} rotate(0deg)` },
+        { transform: `${rise(0.62)} rotate(0deg)` },
         {
-          transform: `translate(-50%, 0) ${rise(0.08)} translateX(${sway}px) rotate(${sway / 3}deg)`,
+          transform: `${rise(0.08)} translateX(${sway}px) rotate(${sway / 3}deg)`,
           offset: 0.5,
         },
-        { transform: `translate(-50%, 0) ${rise(-0.87)} rotate(0deg)` },
+        { transform: `${rise(-0.87)} rotate(0deg)` },
       ],
       options: { easing: "linear" as const },
     };
@@ -244,6 +299,11 @@ export function BalloonsGame({ ctx }: { ctx: GameContext }): ReactElement {
     // does not accumulate entries for balloons that are gone.
     onExpire: (p) => {
       bodies.current.delete(p.id);
+      // A balloon that drifts off the top while the KEYBOARD is on it gets
+      // unmounted, and a browser answers that by dropping focus to <body> —
+      // which throws a keyboard player back to the top of the page mid-round.
+      // Parking focus on the sky keeps the next Tab where the child already was.
+      if (focusIsOn(p.id)) surfaceRef.current?.focus({ preventScroll: true });
     },
   });
 
@@ -294,19 +354,20 @@ export function BalloonsGame({ ctx }: { ctx: GameContext }): ReactElement {
     [difficulty, startRound],
   );
 
-  const onTap = useCallback(
-    (e: ReactPointerEvent<HTMLDivElement>) => {
-      if (phase !== "play" || lockRef.current) return;
-      // Inside the gesture, so iOS opens both gates.
-      ctx.audio.unlock();
-      ctx.speech.unlock();
-
-      const { prop, verdict } = spawner.tap(e.clientX, e.clientY, targetRef.current);
-
-      // Empty sky. Nothing at all happens — a tap that hit nothing is not a
-      // mistake, and answering it would teach a child to stop trying.
-      if (verdict === "miss" || !prop) return;
-
+  /**
+   * Judge ONE balloon and play the consequences. `at` is where the juice fires
+   * from — a real touch point on the pointer path, the balloon's own centre on
+   * the keyboard path.
+   *
+   * Both paths land here so a keyboard press can never be judged by different
+   * rules than a tap, and — just as important — only ONE of the two ever runs
+   * per input. The pointer path stays on the SURFACE handler and the balloons
+   * carry no `onClick`, because a click fires after a pointer tap as well: the
+   * two together would judge the same tap twice and double-grant the coin on
+   * the last balloon of a round.
+   */
+  const resolve = useCallback(
+    (prop: Prop<ColorId>, verdict: TapVerdict, at: { x: number; y: number }) => {
       if (verdict === "wrong") {
         // A wrong colour WOBBLES AND STAYS. No score loss, no sad sound, no
         // state change of any kind: the balloon is simply still there to think
@@ -322,7 +383,7 @@ export function BalloonsGame({ ctx }: { ctx: GameContext }): ReactElement {
       bodies.current.delete(prop.id);
       ctx.audio.play("pop");
       haptic.success();
-      burst(e.clientX, e.clientY, { count: 14, colors: [colorOf(prop.kind).hex] });
+      burst(at.x, at.y, { count: 14, colors: [colorOf(prop.kind).hex] });
 
       const next = poppedRef.current + 1;
       poppedRef.current = next;
@@ -338,7 +399,7 @@ export function BalloonsGame({ ctx }: { ctx: GameContext }): ReactElement {
         reason: "level_complete",
         tier: difficulty,
         level: `${difficulty}-${level}`,
-        at: { x: e.clientX, y: e.clientY },
+        at,
         ms: Date.now() - startedAt.current,
       });
       cheerTimer.current = setTimeout(() => {
@@ -346,7 +407,54 @@ export function BalloonsGame({ ctx }: { ctx: GameContext }): ReactElement {
         startRound(difficulty, targetRef.current);
       }, 1200);
     },
-    [ctx, difficulty, level, phase, spawner, startRound],
+    [ctx, difficulty, level, spawner, startRound],
+  );
+
+  /** The pointer path: one handler on the SURFACE, hit-testing real rectangles. */
+  const onTap = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (phase !== "play" || lockRef.current) return;
+      // Inside the gesture, so iOS opens both gates.
+      ctx.audio.unlock();
+      ctx.speech.unlock();
+
+      const { prop, verdict } = spawner.tap(e.clientX, e.clientY, targetRef.current);
+
+      // Empty sky. Nothing at all happens — a tap that hit nothing is not a
+      // mistake, and answering it would teach a child to stop trying.
+      if (verdict === "miss" || !prop) return;
+
+      resolve(prop, verdict, { x: e.clientX, y: e.clientY });
+    },
+    [ctx, phase, resolve, spawner],
+  );
+
+  /**
+   * The keyboard path: Enter or Space on the balloon that has focus.
+   *
+   * `preventDefault` is doing two jobs. Space would scroll the page, and BOTH
+   * keys make a native <button> synthesise a `click` — stopping the default is
+   * what keeps this to exactly one judgement per press. `e.repeat` closes the
+   * other door: holding Enter down repeats keydown forever.
+   */
+  const onKey = useCallback(
+    (e: ReactKeyboardEvent<HTMLButtonElement>, prop: Prop<ColorId>) => {
+      if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
+      e.preventDefault();
+      if (e.repeat) return;
+      if (phase !== "play" || lockRef.current) return;
+      ctx.audio.unlock();
+      ctx.speech.unlock();
+
+      const r = e.currentTarget.getBoundingClientRect();
+      const at = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      const verdict = judgeTap(prop, targetRef.current);
+      // A popped balloon unmounts under the keyboard, so hand focus to the sky
+      // BEFORE it goes. A wrong one stays put, and so does the focus.
+      if (verdict === "hit") surfaceRef.current?.focus({ preventScroll: true });
+      resolve(prop, verdict, at);
+    },
+    [ctx, phase, resolve],
   );
 
   const he = ctx.locale === "he";
@@ -396,7 +504,11 @@ export function BalloonsGame({ ctx }: { ctx: GameContext }): ReactElement {
       {/* `dir="ltr"`: the lanes are SPATIAL, and the app is Hebrew-RTL by
           default, which would mirror them away from the order they were dealt. */}
       <div
+        ref={surfaceRef}
         dir="ltr"
+        // Reachable by script, never by Tab: this is only ever the place focus
+        // lands when the balloon it was on pops or drifts away.
+        tabIndex={-1}
         onPointerDown={onTap}
         style={{
           ...PLAY_SURFACE_STYLE,
@@ -412,19 +524,51 @@ export function BalloonsGame({ ctx }: { ctx: GameContext }): ReactElement {
         }}
       >
         {spawner.props.map((p) => (
-          <div
+          /*
+            A REAL <button>, and it has to be THIS element rather than a wrapper
+            around it: `attach` starts the WAAPI float on the node it is given
+            and `hitTest` reads that same node's `getBoundingClientRect()`, so
+            the animated node, the hit box and the accessible control are one
+            thing by construction. Everything a UA draws on a button is reset,
+            so it looks exactly as it did as a <div>.
+          */
+          <button
             key={p.id}
+            type="button"
             ref={(el) => spawner.attach(p, el)}
+            data-prop-id={p.id}
+            aria-label={balloonLabel(colorOf(p.kind), p.lane, he)}
+            onKeyDown={(e) => onKey(e, p)}
             style={{
               position: "absolute",
               left: `${((p.lane + 0.5) / LANES) * 100}%`,
               top: RESTING_TOP,
               width: BALLOON_W,
               height: BALLOON_H,
-              transform: "translate(-50%, 0)",
+              // CENTRED WITH A NEGATIVE MARGIN, NOT `translate(-50%, 0)`.
+              //
+              // Under `prefers-reduced-motion` the spawner ignores this game's
+              // keyframes and substitutes its own scale-only fade — and those
+              // keyframes run with `fill: forwards`, so `transform: scale(1)`
+              // REPLACES the element's transform outright. A balloon centred by
+              // transform would then sit half its own width to the side of its
+              // lane, for reduced-motion children only, which is exactly the
+              // kind of bug nobody finds by looking. A margin is layout, so
+              // nothing an animation does can overwrite it.
+              marginLeft: `calc(-0.5 * ${BALLOON_W})`,
               // The whole balloon is the hit box, string included — generous on
               // purpose for a five-year-old's aim on a moving target.
-              willChange: "top, transform",
+              willChange: "transform",
+              border: "none",
+              padding: 0,
+              background: "transparent",
+              font: "inherit",
+              color: "inherit",
+              touchAction: "none",
+              // Taps are hit-tested against real rectangles by the SURFACE's own
+              // handler. Letting a balloon receive the pointer event itself buys
+              // nothing and is the one way a tap could ever be judged twice.
+              pointerEvents: "none",
             }}
           >
             <div
@@ -435,7 +579,7 @@ export function BalloonsGame({ ctx }: { ctx: GameContext }): ReactElement {
             >
               <BalloonArt color={colorOf(p.kind)} />
             </div>
-          </div>
+          </button>
         ))}
       </div>
 

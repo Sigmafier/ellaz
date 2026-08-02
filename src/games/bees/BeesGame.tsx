@@ -3,6 +3,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactElement,
 } from "react";
@@ -12,11 +13,13 @@ import { burst, haptic } from "@juice/index";
 import {
   PLAY_SURFACE_STYLE,
   Prompt,
+  judgeTap,
   useGameTimer,
   useSpawner,
   winMoment,
   type Prop,
   type SpawnMotion,
+  type TapVerdict,
 } from "@shared/index";
 import {
   LANES,
@@ -144,6 +147,34 @@ function laneTop(lane: number): string {
   return `calc((100% - ${SIZE}px) * ${lane / (LANES - 1)})`;
 }
 
+/**
+ * What a screen reader says for ONE creature.
+ *
+ * WHICH CREATURE it is leads, because that is the entire question this game
+ * asks — a label of "creature" would leave a child who cannot see the screen
+ * with six identical controls and no way to practise the restraint the game is
+ * about. The lane follows for the same reason `sortsize` exposes "3 of 4": two
+ * bees crossing at once are only tellable apart by where they are.
+ */
+function creatureLabel(creature: Creature, lane: number, he: boolean): string {
+  const name = he
+    ? creature === "bee"
+      ? "דבורה"
+      : "פרפר"
+    : creature === "bee"
+      ? "bee"
+      : "butterfly";
+  return he
+    ? `${name}, מסלול ${lane + 1} מתוך ${LANES}`
+    : `${name}, lane ${lane + 1} of ${LANES}`;
+}
+
+/** Is the keyboard currently sitting on the button for this prop? */
+function focusIsOn(propId: number): boolean {
+  const active = typeof document === "undefined" ? null : document.activeElement;
+  return active instanceof HTMLElement && active.dataset.propId === String(propId);
+}
+
 type Phase = "ready" | "playing" | "done";
 
 export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
@@ -228,6 +259,10 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
       // A bee that got away and a butterfly left in peace are both just counted.
       // Nothing is played, nothing is deducted, nothing is said.
       bump(countExpire(scoreRef.current, p.kind));
+      // ...but if the KEYBOARD was on it, the unmount would drop focus to
+      // <body> and throw a keyboard player back to the top of the page
+      // mid-round. Park it on the sky instead.
+      if (focusIsOn(p.id)) surfaceRef.current?.focus({ preventScroll: true });
     },
     [bump],
   );
@@ -253,16 +288,28 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
       setBest(final.caught);
     }
 
+    // A round where the child caught NOTHING pays nothing.
+    //
+    // This is not a punishment and it must not read as one: the round still
+    // ends warmly, nothing is deducted, and the next one starts instantly. But
+    // a star means "I did something", and handing one over for letting the
+    // clock run out empties the word — a child who put the phone down gets the
+    // same trophy as one who caught twenty-eight. The house rule is "losing
+    // gives nothing, and never takes anything away"; the first half of that
+    // sentence is doing work here, not just the second.
+    //
     // ONE grant per round, from the clock's handler flow — never from inside a
     // state updater. The best above is a DISPLAY stat only: a second grant fired
     // in the same instant would double the coin flight and double-count the
     // moment, and a fixed-length round already banks on completion.
-    winMoment(ctx, {
-      reason: "level_complete",
-      tier: difficulty,
-      level: `${difficulty}-${roundNo}`,
-      ms: ROUND_MS,
-    });
+    if (final.caught > 0) {
+      winMoment(ctx, {
+        reason: "level_complete",
+        tier: difficulty,
+        level: `${difficulty}-${roundNo}`,
+        ms: ROUND_MS,
+      });
+    }
   }, [ctx, difficulty, roundNo, spawner]);
 
   const timer = useGameTimer(ctx, {
@@ -309,20 +356,25 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
     [difficulty, rearm],
   );
 
-  const onPointerDown = useCallback(
-    (e: ReactPointerEvent<HTMLDivElement>) => {
-      if (phase !== "playing") return;
-      const { prop, verdict } = spawner.tap(e.clientX, e.clientY, TARGET);
-      // A tap on empty sky is not a mistake and gets no response at all.
-      if (!prop || verdict === "miss") return;
-
+  /**
+   * Judge ONE creature. `at` is where the juice fires from — a real touch point
+   * on the pointer path, the creature's own centre on the keyboard path.
+   *
+   * Both paths land here so a key press can never be judged by different rules
+   * than a tap, and only ONE of the two ever runs per input: the pointer path
+   * stays on the SURFACE handler and the creatures carry no `onClick`, because
+   * a click fires after a pointer tap as well and the two together would count
+   * the same tap twice.
+   */
+  const resolve = useCallback(
+    (prop: Prop<Creature>, verdict: TapVerdict, at: { x: number; y: number }) => {
       spawner.remove(prop.id);
       bump(countTap(scoreRef.current, prop.kind));
 
       if (verdict === "hit") {
         ctx.audio.play("pop");
         haptic.tap();
-        burst(e.clientX, e.clientY, { count: 10, spread: 60, colors: ["#f6b93b", "#ffeaa7", "#ffffff"] });
+        burst(at.x, at.y, { count: 10, spread: 60, colors: ["#f6b93b", "#ffeaa7", "#ffffff"] });
         return;
       }
       // A butterfly. It flutters off unharmed — a soft, neutral acknowledgement
@@ -330,9 +382,47 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
       // "wrong". Not tapping it is the skill; tapping it is not a crime.
       ctx.audio.play("tap");
       haptic.tap();
-      burst(e.clientX, e.clientY, { count: 5, spread: 40, colors: ["#e79bf9", "#ffffff"] });
+      burst(at.x, at.y, { count: 5, spread: 40, colors: ["#e79bf9", "#ffffff"] });
     },
-    [phase, spawner, bump, ctx],
+    [spawner, bump, ctx],
+  );
+
+  const onPointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (phase !== "playing") return;
+      const { prop, verdict } = spawner.tap(e.clientX, e.clientY, TARGET);
+      // A tap on empty sky is not a mistake and gets no response at all.
+      if (!prop || verdict === "miss") return;
+      resolve(prop, verdict, { x: e.clientX, y: e.clientY });
+    },
+    [phase, spawner, resolve],
+  );
+
+  /**
+   * The keyboard path: Enter or Space on the creature that has focus.
+   *
+   * `preventDefault` does two jobs. Space would scroll the page, and BOTH keys
+   * make a native <button> synthesise a `click` — stopping the default is what
+   * keeps this to exactly one judgement per press. `e.repeat` closes the other
+   * door: holding Enter down repeats keydown forever.
+   */
+  const onKeyDown = useCallback(
+    (e: ReactKeyboardEvent<HTMLButtonElement>, prop: Prop<Creature>) => {
+      if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
+      e.preventDefault();
+      if (e.repeat) return;
+      if (phase !== "playing") return;
+
+      const r = e.currentTarget.getBoundingClientRect();
+      // Tapped or freed, the creature leaves the sky either way, so the button
+      // under the keyboard is about to unmount. Park focus first.
+      surfaceRef.current?.focus({ preventScroll: true });
+      resolve(prop, judgeTap(prop, TARGET), {
+        x: r.left + r.width / 2,
+        y: r.top + r.height / 2,
+      });
+    },
+    [phase, resolve],
   );
 
   const secs = phase === "ready" ? ROUND_MS / 1000 : secondsLeft(timer.elapsedMs);
@@ -381,8 +471,15 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
       <div
         ref={surfaceRef}
         dir="ltr"
-        role="application"
+        // `group`, not `application`. The creatures are real <button>s now, so
+        // there is no custom widget left to claim — and `application` switches a
+        // screen reader out of browse mode, which would make the closing
+        // "you caught N bees!" text inside this box unreadable.
+        role="group"
         aria-label={he ? "שמיים עם דבורים ופרפרים" : "sky with bees and butterflies"}
+        // Reachable by script, never by Tab: this is only ever where focus lands
+        // when the creature it was on is tapped or flies off.
+        tabIndex={-1}
         onPointerDown={onPointerDown}
         style={{
           ...PLAY_SURFACE_STYLE,
@@ -394,9 +491,23 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
         }}
       >
         {spawner.props.map((p) => (
-          <div
+          /*
+            A REAL <button>, and it has to be THIS element rather than a wrapper
+            around it: `attach` starts the WAAPI flight on the node it is given
+            and `hitTest` reads that same node's `getBoundingClientRect()`, so
+            the animated node, the hit box and the accessible control are one
+            thing by construction. Everything a UA draws on a button is reset,
+            so it looks exactly as it did as a <div>. `pointerEvents: none`
+            stays: it keeps the pointer path on the surface handler, where it
+            already was, so a tap can never be counted twice.
+          */
+          <button
             key={p.id}
+            type="button"
             ref={(el) => spawner.attach(p, el)}
+            data-prop-id={p.id}
+            aria-label={creatureLabel(p.kind, p.lane, he)}
+            onKeyDown={(e) => onKeyDown(e, p)}
             style={{
               position: "absolute",
               left: 0,
@@ -408,10 +519,16 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
               // rectangles, so a child element intercepting the event would only
               // ever be a way for taps to go missing.
               pointerEvents: "none",
+              border: "none",
+              padding: 0,
+              background: "transparent",
+              font: "inherit",
+              color: "inherit",
+              touchAction: "none",
             }}
           >
             {p.kind === "bee" ? <Bee /> : <Butterfly />}
-          </div>
+          </button>
         ))}
 
         {phase !== "playing" ? (
