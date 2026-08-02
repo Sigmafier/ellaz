@@ -63,11 +63,17 @@ jobs:
           # FTPS is what Hostinger offers on port 21. Set the repo variable
           # FTP_PROTOCOL to "ftp" only if the handshake fails.
           protocol: ${{ vars.FTP_PROTOCOL || 'ftps' }}
+          # Hostinger presents a wildcard cert for *.hstgr.io, which matches
+          # neither the FTP IP nor ftp.ellaz.fun — strict verification fails the
+          # handshake outright. Verified 2026-08-02 by reading the served cert.
+          security: loose
           local-dir: ./dist/
-          # public_html/ is the docroot when ellaz.fun is the plan's PRIMARY
-          # domain. If hPanel shows it as an addon domain, set the repo variable
-          # FTP_SERVER_DIR to domains/ellaz.fun/public_html/ instead.
-          server-dir: ${{ vars.FTP_SERVER_DIR || 'public_html/' }}
+          # "./", NOT "public_html/". The FTP account is chrooted to
+          # /home/<id>/domains/ellaz.fun/public_html, so its root already IS the
+          # docroot — verified by listing it. Uploading to public_html/ would
+          # nest the whole site one level down, where nothing serves it, and the
+          # deploy would go green while ellaz.fun stayed frozen.
+          server-dir: ${{ vars.FTP_SERVER_DIR || './' }}
           # The action keeps a .ftp-deploy-sync-state.json on the server and only
           # transfers what changed. These stay untouched so a stray panel file or
           # a mail directory is never swept up by the sync.

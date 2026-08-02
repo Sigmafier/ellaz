@@ -74,13 +74,24 @@ The two are deliberately kept separate rather than pointing ellaz.fun at Pages:
 a Pages custom domain 301-redirects the `github.io` path onto it, so a project
 site gets exactly ONE hostname. Keeping both live costs a second build.
 
-The Hostinger job needs three repo secrets — `FTP_SERVER`, `FTP_USERNAME`,
-`FTP_PASSWORD` (hPanel → Files → FTP Accounts). Without them it **skips with a
-warning instead of failing**, so a green checkmark is not proof it deployed —
-read the run. Two optional repo variables override defaults: `FTP_SERVER_DIR`
-(default `public_html/`; use `domains/ellaz.fun/public_html/` if hPanel lists
-ellaz.fun as an addon rather than the primary domain) and `FTP_PROTOCOL`
-(default `ftps`). Apache config — SPA fallback plus the cache headers that keep
+The Hostinger job reads three repo secrets — `FTP_SERVER`, `FTP_USERNAME`,
+`FTP_PASSWORD` (hPanel → Files → FTP Accounts), **already set**. Without them it
+**skips with a warning instead of failing**, so a green checkmark is not proof it
+deployed — read the run, or check the `Upload to Hostinger` step's conclusion.
+
+Three facts about this FTP account, each verified against the live server on
+2026-08-02 and each capable of producing a green deploy that changes nothing:
+
+- **The account is chrooted to its own docroot**, so `server-dir` is `./`. There
+  is no `public_html/` beneath it; uploading there nests the site one level down
+  where nothing serves it.
+- **The username is `u210394724.ellaz`**, not `u210394724.ellaz.fun` — the
+  longer form is a different account and answers `530 Access denied`.
+- **The TLS cert is `CN=*.hstgr.io`**, matching neither the FTP IP nor
+  `ftp.ellaz.fun`, so `security: loose` is required or the handshake fails.
+
+Override with the repo variables `FTP_SERVER_DIR` / `FTP_PROTOCOL` if any of
+that changes. Apache config — SPA fallback plus the cache headers that keep
 `index.html`/`sw.js` fresh — lives in `deploy/hostinger.htaccess` and is copied
 to `dist/.htaccess` by the workflow; it ships to Hostinger only, since Pages
 runs nginx and would ignore it.
