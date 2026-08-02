@@ -183,7 +183,7 @@ exposed — snake steps at a game speed, and the rest are DOM/event-driven.
 
 | Engine | Verdict |
 |---|---|
-| **Phaser 4** | **Ours.** 60 fps / 0% jank, mounts as a lazy chunk, reuses `logic.ts` verbatim; its 379 KB is paid once and shared across all games. |
+| **Phaser 4** | **Ours.** 60 fps / 0% jank, mounts as a lazy chunk, reuses `logic.ts` verbatim. Its 379 KB is **paid by snake alone** — snake is the only game that imports it (`grep -rln 'from "phaser"' src/`, verified 2026-08-02). It is lazy and precache-excluded, so it costs nothing on a first visit, but "shared across all games" was never true. |
 | PixiJS 8 | Credible alternative — same 60 fps, loads 256 ms faster at 36% of the bytes, but it is a renderer: loop, culling and pooling are hand-rolled. Reach for it only if one canvas game is load-critical. |
 | Kaplay | **The pick for a static-screen game** — a third bake-off on a match-3 put it ahead of Phaser on desktop and tablet (60 fps / 0.2% jank · 59 fps / 0.0%) at 72 KB and 684 ms, a fifth of Phaser's bytes. On mobile the frame rate ties, but it janks far less (0.5–3.5% vs 5.6–9.3%). Still out for **scrolling** games: no culled tilemap, and it janks every frame on mobile there. |
 | Excalibur | Out — but on cost, not on feel. A blind pairwise against Phaser came back 1-1-tie with no symptom reported, so its apparent feel win was a four-way ranking forcing an order between level arms. Slowest JS load of the four (1,916 ms PC / 2,910 ms mobile), though the second-smallest payload at 129 KB. Its 21 fps / 100% jank came from the disqualified stress workload — don't quote it. |
@@ -235,6 +235,13 @@ separate three.js / Babylon / PlayCanvas bake-off.
 - **Analytics is anonymous + kid-safe** (COPPA internal-operations): PostHog
   anonymous-events mode only — **never `identify()`**, no PII, no session replay, no
   autocapture, no behavioral ads. Analytics failure must never block gameplay.
+  PostHog is **lazy-loaded after first paint** (`src/sdk/analytics.ts`) behind a
+  bounded queue (cap 50, drop oldest); a failed import drops events silently.
+  **Adding a chunk is three changes, not one** — the dynamic import, a NAMED
+  `manualChunks` branch, and a matching `globIgnores` entry. The precache glob
+  sweeps `**/*.js`, so skipping the third leaves the payload unmoved behind a
+  green build. `npm run build:check` enforces it and runs in both deploy
+  workflows. See `.claude/rules/precache-glob-sweeps-new-chunks.md`.
 - **Legal:** original art and names only. No trademarked names/trade dress (no
   "Tetris"/"Wordle"/"Waldo"; change shapes/colors/names for any cloned mechanic).
 
@@ -292,4 +299,18 @@ npm run build && firebase deploy    # legacy Firebase target (firebase.json)
 # then upload dist/ to public_html via hPanel's File Manager.
 ```
 
-Analytics key is `VITE_POSTHOG_KEY` (public); see `.env.example`.
+Analytics key is `VITE_POSTHOG_KEY` (public); see `.env.example`. Both workflows
+pass it through from a repo secret of the same name.
+
+**It is not set yet, and until it is, analytics does nothing.** `import.meta.env.VITE_*`
+is substituted at BUILD time, so with the secret absent Vite writes `undefined`,
+`if (!key) return` becomes always-true, and the whole init is dead-code-eliminated.
+Verified against the live bundle on 2026-08-02: `person_profiles:"never"`,
+`capture_pageview:!1` and `respect_dnt:!0` all had zero occurrences. Every event
+since launch has been discarded — which is why economy tuning from `reward_grant`
+has never had data to tune against.
+
+Setting the secret is safe at any time: `build:check` fails the deploy if the
+PostHog chunk would land in the precache, rather than shipping it behind a green
+checkmark. **First visit is 69,624 B gz** (measured on the live artifact
+2026-08-02, down from 143,234).
