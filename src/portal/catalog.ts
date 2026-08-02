@@ -26,17 +26,25 @@ export interface CatalogEntry {
   load: () => Promise<{ default: GameModule }>;
 }
 
-// Home-grid section order, and the i18n key each heading uses. It lives HERE
-// rather than in Home.tsx so `catalog.test.ts` can assert that every category a
-// game claims actually has a section to render under — Home skips sections with
-// no games, so a game in an unlisted category is invisible with no error at all.
-export const CATEGORY_ORDER: ReadonlyArray<{ category: Category; titleKey: string }> = [
-  { category: "kids", titleKey: "forKids" },
-  { category: "learn", titleKey: "learn" },
-  { category: "think", titleKey: "think" },
-  { category: "speed", titleKey: "speed" },
-  { category: "create", titleKey: "create" },
-  { category: "classics", titleKey: "classics" },
+// Home filter order, the i18n key each label uses, and the GLYPH that stands in
+// for it. It lives HERE rather than in Home.tsx so `catalog.test.ts` can assert
+// that every category a game claims is actually reachable — the home screen only
+// renders the categories listed here, so a game in an unlisted one is invisible
+// with no error at all.
+//
+// The glyph is not decoration: it is how a four-year-old who cannot yet read
+// "חשיבה" navigates. It must be legible at 26px and distinct from the others.
+export const CATEGORY_ORDER: ReadonlyArray<{
+  category: Category;
+  titleKey: string;
+  glyph: string;
+}> = [
+  { category: "kids", titleKey: "forKids", glyph: "🧸" },
+  { category: "learn", titleKey: "learn", glyph: "🔤" },
+  { category: "think", titleKey: "think", glyph: "🧠" },
+  { category: "speed", titleKey: "speed", glyph: "⚡" },
+  { category: "create", titleKey: "create", glyph: "🎨" },
+  { category: "classics", titleKey: "classics", glyph: "♟️" },
 ];
 
 // Curated order — this is the order the home grid renders in.

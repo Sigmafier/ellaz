@@ -35,6 +35,17 @@ export const STRINGS: Dict = {
   speed: { he: "מהירות", en: "Speed" },
   create: { he: "יצירה", en: "Create" },
   classics: { he: "קלאסי", en: "Classics" },
+  // Home filter rail + the keep-playing row.
+  allCategories: { he: "הכול", en: "All" },
+  keepPlaying: { he: "להמשיך לשחק", en: "Keep playing" },
+  enterWorld: { he: "כניסה", en: "Enter" },
+  worldInvite: { he: "שחקו כדי להרוויח מטבעות", en: "Play to earn coins" },
+  noStarsYet: { he: "עוד לא שיחקתם", en: "Not played yet" },
+  starsEarned: { he: "כוכבים", en: "stars" },
+  // Hebrew takes the SINGULAR at one, so "1 כוכבים" is simply wrong. Both
+  // languages need the distinction and both get it, rather than tolerating a
+  // grammar error in the app's own default language.
+  starEarnedOne: { he: "כוכב", en: "star" },
   moves: { he: "מהלכים", en: "Moves" },
   pairs: { he: "זוגות", en: "Pairs" },
   pickColor: { he: "בחרו צבע", en: "Pick a color" },

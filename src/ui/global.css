@@ -57,6 +57,21 @@ h3 {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Horizontal rails (the home category filter, the keep-playing row). The
+   scrollbar is hidden because on a phone it is a grey smear across the art and
+   there is nothing to drag anyway; the rail is still fully scrollable by touch,
+   wheel and keyboard. `overscroll-behavior-inline: contain` stops a swipe that
+   reaches the end of the rail from turning into a browser back-navigation,
+   which on iOS would otherwise dump a child out of the app mid-scroll. */
+.ellaz-rail {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  overscroll-behavior-inline: contain;
+}
+.ellaz-rail::-webkit-scrollbar {
+  display: none;
+}
+
 /* Reusable game-feel animations (juice). Applied via classes so any game can use
    them without per-game CSS. */
 @keyframes ellaz-pop {
