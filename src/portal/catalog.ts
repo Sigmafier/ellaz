@@ -20,6 +20,9 @@ import { meta as shadows } from "../games/shadows/meta";
 import { meta as sortsize } from "../games/sortsize/meta";
 import { meta as echo } from "../games/echo/meta";
 import { meta as evolve } from "../games/evolve/meta";
+import { meta as balloons } from "../games/balloons/meta";
+import { meta as bubbles } from "../games/bubbles/meta";
+import { meta as bees } from "../games/bees/meta";
 
 export interface CatalogEntry {
   meta: GameMeta;
@@ -68,6 +71,13 @@ export const CATALOG: CatalogEntry[] = [
   { meta: vanish, load: () => import("../games/vanish/index") },
   { meta: shadows, load: () => import("../games/shadows/index") },
   { meta: echo, load: () => import("../games/echo/index") },
+
+  // Wave 2 — the tap-the-moving-target cluster, all three on the shared
+  // spawner (`@shared/spawn`). `bees` is the first game in the `speed`
+  // section, which until now was declared in CATEGORY_ORDER but empty.
+  { meta: balloons, load: () => import("../games/balloons/index") },
+  { meta: bubbles, load: () => import("../games/bubbles/index") },
+  { meta: bees, load: () => import("../games/bees/index") },
 ];
 
 export function findEntry(id: string): CatalogEntry | undefined {

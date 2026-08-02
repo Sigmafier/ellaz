@@ -40,7 +40,7 @@ describe("catalog", () => {
   });
 
   it("keeps at least the games we shipped (ratchet)", () => {
-    expect(CATALOG.length).toBeGreaterThanOrEqual(16);
+    expect(CATALOG.length).toBeGreaterThanOrEqual(19);
   });
 
   // Every category a game claims must have a heading to render under, or the
