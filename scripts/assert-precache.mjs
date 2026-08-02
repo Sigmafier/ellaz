@@ -35,12 +35,38 @@ export function extractPrecacheUrls(swSource) {
   return [...swSource.matchAll(/[{,]url:"([^"]+)"/g)].map((m) => m[1]);
 }
 
-/** Chunks that must never reach a first visit. Prefix is a build contract. */
-const FORBIDDEN = [
-  { prefix: "game-", why: "per-game chunk — runtime-cached on first play" },
-  { prefix: "vendor-analytics-", why: "PostHog — deferred past first paint" },
-  { prefix: "vendor-phaser-", why: "engine for one game — runtime-cached" },
-  { prefix: "lab-", why: "dev-only Juice Lab — nothing links to it" },
+// An ALLOWLIST, not a denylist, and the distinction is the whole point.
+//
+// A denylist of known-bad prefixes (game-, vendor-phaser-, ...) cannot catch the
+// failure it exists to catch. When a chunk has no manualChunks branch, Rollup
+// names it `module-<hash>.js` — so the very case worth catching is the one with
+// no prefix to match. Measured 2026-08-02: a keyed build with the dynamic import
+// but no `vendor-analytics` branch precached `module-BPhPDZCf.js`, 222 KiB of
+// PostHog, and the denylist version of this script printed "OK".
+//
+// So: name what MAY be precached, and fail everything else. A new shell asset is
+// a deliberate decision that edits this list; a stray chunk is a bug that stops
+// the build.
+const ALLOWED = [
+  { re: /^index\.html$/, why: "the app shell" },
+  { re: /^manifest\.webmanifest$/, why: "PWA manifest" },
+  { re: /^(icon|favicon)\.svg$/, why: "app icons" },
+  { re: /^shell-[A-Za-z0-9_-]+\.(js|css)$/, why: "shared app code + styles" },
+  { re: /^index-[A-Za-z0-9_-]+\.js$/, why: "entry chunk" },
+  { re: /^vendor-react-[A-Za-z0-9_-]+\.js$/, why: "React runtime" },
+  { re: /^workbox-window\.prod\.es5-[A-Za-z0-9_-]+\.js$/, why: "SW registration" },
+];
+
+/** Known offenders, used only to print a more useful message. Not the gate. */
+const KNOWN_BAD = [
+  { prefix: "game-", why: "per-game chunk — runtime-cached on first play; add to globIgnores" },
+  { prefix: "vendor-analytics-", why: "PostHog — deferred past first paint; add to globIgnores" },
+  { prefix: "vendor-phaser-", why: "engine for one game — runtime-cached; add to globIgnores" },
+  { prefix: "lab-", why: "dev-only Juice Lab — nothing links to it; add to globIgnores" },
+  {
+    prefix: "module-",
+    why: "an UNNAMED chunk — it has no manualChunks branch, so there is no prefix to exclude. Name it in vite.config manualChunks first, then add that name to globIgnores",
+  },
 ];
 
 const basename = (url) => url.slice(url.lastIndexOf("/") + 1);
@@ -74,8 +100,12 @@ function main() {
   const violations = [];
   for (const url of urls) {
     const name = basename(url);
-    const hit = FORBIDDEN.find((f) => name.startsWith(f.prefix));
-    if (hit) violations.push({ url, ...hit });
+    if (ALLOWED.some((a) => a.re.test(name))) continue;
+    const known = KNOWN_BAD.find((f) => name.startsWith(f.prefix));
+    violations.push({
+      url,
+      why: known ? known.why : "not a known shell asset — precache is an allowlist",
+    });
   }
 
   const total = urls.reduce((n, u) => n + sizeOf(u), 0);
@@ -88,17 +118,15 @@ function main() {
   // Same extractor, a manifest with one planted entry per forbidden prefix.
   // This must find all of them; if it finds none, the extractor silently
   // matches nothing and the real assertion above was vacuous.
-  const planted = `precacheAndRoute([${FORBIDDEN.map(
+  const planted = `precacheAndRoute([${KNOWN_BAD.map(
     (f, i) => `{url:"assets/${f.prefix}PLANTED${i}.js",revision:null}`,
   ).join(",")}]);`;
   const controlUrls = extractPrecacheUrls(planted);
-  const controlHits = controlUrls.filter((u) =>
-    FORBIDDEN.some((f) => basename(u).startsWith(f.prefix)),
-  );
-  const controlOk = controlHits.length === FORBIDDEN.length;
+  const controlHits = controlUrls.filter((u) => !ALLOWED.some((a) => a.re.test(basename(u))));
+  const controlOk = controlHits.length === KNOWN_BAD.length;
   console.log(
-    `negative control: extractor found ${controlHits.length}/${FORBIDDEN.length} planted entries` +
-      ` — ${controlOk ? "FIRES (matcher is live)" : "DEAD"}`,
+    `negative control: rejected ${controlHits.length}/${KNOWN_BAD.length} planted entries` +
+      ` — ${controlOk ? "FIRES (gate is live)" : "DEAD"}`,
   );
   if (!controlOk) {
     console.error("FAIL  the matcher did not fire on planted entries. Every result above is void.");
@@ -108,7 +136,7 @@ function main() {
 
   if (violations.length > 0) {
     console.error(`\nFAIL  ${violations.length} chunk(s) precached that must not be:`);
-    for (const v of violations) console.error(`  ${v.url}\n    ${v.why} — add it to globIgnores`);
+    for (const v of violations) console.error(`  ${v.url}\n    ${v.why}`);
     process.exit(1);
   }
 
