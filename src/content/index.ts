@@ -1,5 +1,7 @@
 import type { GameContent, Locale } from "./types";
 import { memory } from "./games/memory";
+import { snake } from "./games/snake";
+import { sudoku } from "./games/sudoku";
 
 export type { GameContent, GameCopy, FaqItem, Titled, Provenance, Locale } from "./types";
 
@@ -20,6 +22,8 @@ export type { GameContent, GameCopy, FaqItem, Titled, Provenance, Locale } from 
  */
 export const CONTENT: Record<string, GameContent> = {
   [memory.id]: memory,
+  [sudoku.id]: sudoku,
+  [snake.id]: snake,
 };
 
 /** The ids that have prose today. */
