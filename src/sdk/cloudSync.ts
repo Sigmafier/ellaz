@@ -13,7 +13,7 @@
 // Nothing here is on a gameplay path. Every function resolves to a null, a
 // false, or nothing at all when the cloud is unreachable, and no caller is
 // allowed to care.
-import type { Cloud, CloudIdentity, DeviceState } from "./cloud";
+import type { BoardStanding, BoardWindow, Cloud, CloudIdentity, DeviceState } from "./cloud";
 import { boardId } from "./board";
 import { readRecords } from "./records";
 import { wallet } from "./wallet";
@@ -220,4 +220,22 @@ export async function cloudRestore(code: string): Promise<DeviceState | null> {
   const cloud = await load();
   if (!cloud) return null;
   return cloud.restore(code);
+}
+
+/**
+ * Read a board. `null` when the cloud is unreachable, which a screen shows as
+ * "we could not load this" rather than as an empty board — an empty board says
+ * nobody is playing, and that is a different and sadder claim.
+ */
+export async function boardStanding(
+  game: string,
+  board: string,
+  window: BoardWindow,
+  unit: string,
+): Promise<BoardStanding | null> {
+  const id = boardId(game, board);
+  if (id === null) return null;
+  const cloud = await load();
+  if (!cloud) return null;
+  return cloud.board(id, window, unit);
 }
