@@ -419,6 +419,18 @@ negative, which is how the original "no rules release exists at all" was found.
 Cloud backup is a **backup and a transfer, not live sync**; making it live needs
 per-device counters on the profile first.
 
+**Restoring is the only action in this app that destroys progress**, so it carries
+two guarantees that no other screen needs and that a future destructive feature
+must inherit: the confirm shows a NUMBER for what is lost beside what is gained
+(prose describes a risk, a number lets someone notice it is the wrong tablet), and
+`adoptRestored()` keeps the replaced profile at `ellaz:profile:undo:v1` so
+`undoRestore()` works **after a reload** — the realistic moment anyone notices is a
+child opening the app hours later. Its sibling: the backup code is generated
+locally, so it exists whether or not anything reached the cloud. It is shown dimmed
+and labelled unsaved until an upload confirms, never as a promise the network has
+not made. Both rules, and the `void someAsyncSave()` tell that hides the second one:
+[`.claude/rules/destructive-actions-show-both-sides.md`](.claude/rules/destructive-actions-show-both-sides.md).
+
 Firestore's free daily quota is the real design constraint, and running out is
 fail-closed - reads are refused until it resets, which costs nothing and shows a
 child a stale board rather than a charge. Confirm the current numbers at

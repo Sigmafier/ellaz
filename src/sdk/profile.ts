@@ -16,6 +16,20 @@ import { isPlayerName, type PlayerName } from "./names";
 /** Bump the suffix when the shape changes incompatibly; v1 data then stays untouched. */
 export const PROFILE_KEY = "ellaz:profile:v1";
 
+/**
+ * The profile a restore REPLACED, kept so the replacement can be taken back.
+ *
+ * Restoring from a backup code is the only action in this app that destroys a
+ * child's progress, and the person tapping the button is a parent who may be
+ * holding the wrong tablet. An in-memory undo would be gone by the time anyone
+ * notices, because the realistic moment of discovery is a child opening the app
+ * later and finding their room empty — so it lives on disk.
+ *
+ * Nothing may ever adopt this automatically. It is written by a restore, read
+ * only when someone asks to undo one, and cleared the moment it is used.
+ */
+export const RESTORE_UNDO_KEY = "ellaz:profile:undo:v1";
+
 export interface GameRecord {
   wins: number;
   stars: number;

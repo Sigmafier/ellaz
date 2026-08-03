@@ -80,11 +80,23 @@ export const STRINGS: Dict = {
     en: "Write this code down. If this device is wiped, or you want your room on another one, this code brings it back.",
   },
   backupOffline: { he: "אין חיבור כרגע", en: "No connection right now" },
+  // Shown INSTEAD of the "write this down" hint when the save did not land. A
+  // code with nothing behind it restores nothing, and the family would only
+  // find that out on the day they needed it.
+  backupUnsaved: {
+    he: "לא הצלחנו לשמור כרגע. הקוד יעבוד רק אחרי שמירה.",
+    en: "We couldn't save just now. The code only works once it saves.",
+  },
+  backupRetry: { he: "נסו שוב", en: "Try again" },
   haveCode: { he: "יש לי קוד", en: "I have a code" },
   enterCode: { he: "הקלידו את הקוד", en: "Enter the code" },
   lookUp: { he: "חיפוש", en: "Look up" },
   codeNotFound: { he: "לא מצאנו את הקוד הזה", en: "We couldn't find that code" },
-  restoreFound: { he: "מצאנו:", en: "Found:" },
+  restoreFound: { he: "בקוד הזה:", en: "In this code:" },
+  // Both sides, always. The old copy named only what was ARRIVING, so the one
+  // thing a parent could actually lose — whatever this device already had —
+  // was the one thing the screen never showed them.
+  restoreHere: { he: "במכשיר הזה עכשיו:", en: "On this device now:" },
   restoreReplaces: {
     he: "שחזור יחליף את מה שיש במכשיר הזה עכשיו.",
     en: "Restoring replaces what is on this device now.",
@@ -92,6 +104,8 @@ export const STRINGS: Dict = {
   restoreConfirm: { he: "שחזרו", en: "Restore" },
   restoreCancel: { he: "ביטול", en: "Cancel" },
   restoreDone: { he: "שוחזר!", en: "Restored!" },
+  restoreUndo: { he: "בטלו את השחזור", en: "Undo the restore" },
+  restoreUndone: { he: "הוחזר למה שהיה", en: "Put back the way it was" },
   restoreFailed: { he: "השחזור לא נשמר", en: "The restore didn't save" },
   coinsLabel: { he: "מטבעות", en: "coins" },
   itemsLabel: { he: "פריטים", en: "items" },

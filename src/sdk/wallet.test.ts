@@ -608,3 +608,104 @@ describe("the player's name", () => {
     expect(wallet.name!.noun).not.toBe("tampered");
   });
 });
+
+describe("restoring from a backup code is undoable", () => {
+  // Restoring is the only action in this app that can destroy a child's
+  // progress. It is reached deliberately, behind a confirm that shows what is
+  // arriving — but the thing being LOST is whatever this device already had,
+  // and the person tapping the button is a parent who may be looking at the
+  // wrong tablet. So the previous profile is kept, on disk, until it is either
+  // used or replaced by the next restore.
+
+  const incoming = (coins: number) => ({
+    v: 1 as const,
+    coins,
+    stars: 1,
+    owned: ["hat-crown"],
+    equipped: {},
+    games: {},
+    updatedAt: 1_700_000_000_000,
+  });
+
+  it("has nothing to undo before a restore has happened", () => {
+    const { wallet } = freshWallet();
+    expect(wallet.canUndoRestore()).toBe(false);
+    expect(wallet.undoRestore()).toBe(false);
+  });
+
+  it("puts the previous profile back, coins items and all", () => {
+    const { wallet } = freshWallet();
+    wallet.createRewardsPort("snake").grant({ reason: "level_complete", tier: "hard" });
+    wallet.buy("hat-party", 0, "hat");
+    const before = wallet.snapshot();
+
+    expect(wallet.adoptRestored(incoming(3))).toBe(true);
+    expect(wallet.coins).toBe(3);
+    expect(wallet.owns("hat-party")).toBe(false);
+
+    expect(wallet.canUndoRestore()).toBe(true);
+    expect(wallet.undoRestore()).toBe(true);
+    expect(wallet.coins).toBe(before.coins);
+    expect(wallet.stars).toBe(before.stars);
+    expect(wallet.owns("hat-party")).toBe(true);
+  });
+
+  it("survives a reload — the realistic moment anyone notices is the next day", () => {
+    const { backend, wallet } = freshWallet();
+    wallet.createRewardsPort("snake").grant({ reason: "level_complete", tier: "hard" });
+    const before = wallet.coins;
+    wallet.adoptRestored(incoming(3));
+
+    const reloaded = createWallet(backend);
+    expect(reloaded.coins).toBe(3);
+    expect(reloaded.canUndoRestore()).toBe(true);
+    expect(reloaded.undoRestore()).toBe(true);
+    expect(reloaded.coins).toBe(before);
+  });
+
+  it("is a single step, not a stack — a second restore replaces what undo returns to", () => {
+    const { wallet } = freshWallet();
+    wallet.createRewardsPort("snake").grant({ reason: "level_complete", tier: "hard" });
+
+    wallet.adoptRestored(incoming(3));
+    wallet.adoptRestored(incoming(5));
+    expect(wallet.undoRestore()).toBe(true);
+    expect(wallet.coins).toBe(3);
+  });
+
+  it("is spent once — a second undo cannot resurrect it", () => {
+    const { wallet } = freshWallet();
+    wallet.adoptRestored(incoming(3));
+    expect(wallet.undoRestore()).toBe(true);
+    expect(wallet.canUndoRestore()).toBe(false);
+    expect(wallet.undoRestore()).toBe(false);
+  });
+
+  it("notifies subscribers, so the room on screen goes back too", () => {
+    const { wallet } = freshWallet();
+    wallet.adoptRestored(incoming(3));
+    const seen = vi.fn();
+    wallet.subscribe(seen);
+    wallet.undoRestore();
+    expect(seen).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports honestly when the device refuses to keep the undo copy", () => {
+    // A device that cannot store the snapshot must not be told it can undo —
+    // offering a button that does nothing is worse than not offering one.
+    const backend: KeyValueBackend = {
+      read: () => null,
+      write: (key) => key === PROFILE_KEY,
+    };
+    const wallet = createWallet(backend);
+    expect(wallet.adoptRestored(incoming(3))).toBe(true);
+    expect(wallet.canUndoRestore()).toBe(false);
+  });
+
+  it("salvages a corrupt undo copy rather than throwing on the way back", () => {
+    const { wallet } = freshWallet({ "ellaz:profile:undo:v1": "{oh no" });
+    expect(wallet.canUndoRestore()).toBe(true);
+    expect(() => wallet.undoRestore()).not.toThrow();
+    expect(wallet.coins).toBe(0);
+  });
+});

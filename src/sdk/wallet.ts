@@ -11,6 +11,7 @@
 import { analytics } from "./analytics";
 import {
   PROFILE_KEY,
+  RESTORE_UNDO_KEY,
   localStorageBackend,
   migrateProfile,
   type KeyValueBackend,
@@ -105,8 +106,26 @@ export interface Wallet {
    * action that has already been shown what it is about to receive. Nothing
    * automatic may call it. Returns false if the write was refused, in which
    * case the previous profile is still intact.
+   *
+   * It also keeps what it replaced, so `undoRestore()` can put it back.
    */
   adoptRestored(profile: ProfileV1): boolean;
+  /**
+   * Is there a profile a restore replaced, still recoverable?
+   *
+   * False on a device that refused to store the copy — a screen must not offer
+   * an undo button that would do nothing.
+   */
+  canUndoRestore(): boolean;
+  /**
+   * Put back the profile the last restore replaced, and forget it.
+   *
+   * ONE step, not a stack: a second restore overwrites the copy, so undo always
+   * returns to the state immediately before the most recent restore. That is
+   * the state the person is thinking of, and a deeper history would be a
+   * promise this has no way to keep across a cleared browser.
+   */
+  undoRestore(): boolean;
   /**
    * Game ids, most-recently-played FIRST, and ONLY games actually opened.
    *
@@ -301,9 +320,55 @@ class EllazWallet implements Wallet {
     // hostile or truncated document degrades to a usable profile instead of
     // poisoning storage.
     const next = migrateProfile(JSON.stringify(profile));
+
+    // Keep what is about to be replaced, BEFORE replacing it. A failure here is
+    // not a reason to refuse the restore the player asked for — it only means
+    // there will be no undo, which `canUndoRestore` then reports honestly.
+    this.write(RESTORE_UNDO_KEY, JSON.stringify(this.profile));
+
     return this.mutate(() => {
       this.profile = next;
     });
+  }
+
+  canUndoRestore(): boolean {
+    return this.backendRead(RESTORE_UNDO_KEY) !== null;
+  }
+
+  undoRestore(): boolean {
+    const raw = this.backendRead(RESTORE_UNDO_KEY);
+    if (raw === null) return false;
+
+    // Total, like every other read of stored state: a truncated or hand-edited
+    // copy yields a usable profile rather than throwing out of a button press.
+    const previous = migrateProfile(raw);
+    const restored = this.mutate(() => {
+      this.profile = previous;
+    });
+    // Spent either way. Leaving it behind would let a second tap put the player
+    // back again from a state they had already returned to, which is not what
+    // "undo" means to anyone.
+    this.write(RESTORE_UNDO_KEY, "");
+    return restored;
+  }
+
+  /** A write whose failure is not the caller's problem. Never throws. */
+  private write(key: string, value: string): boolean {
+    try {
+      return this.backend.write(key, value);
+    } catch {
+      return false;
+    }
+  }
+
+  /** A read that treats an empty string as absent, so clearing needs no delete. */
+  private backendRead(key: string): string | null {
+    try {
+      const raw = this.backend.read(key);
+      return raw === null || raw === "" ? null : raw;
+    } catch {
+      return null;
+    }
   }
 
   markPlayed(gameId: string): void {
