@@ -362,6 +362,39 @@ npm run build && firebase deploy    # legacy Firebase target (firebase.json)
 # then upload dist/ to public_html via hPanel's File Manager.
 ```
 
+## Firebase — the project is real now, and it must stay free
+
+`.firebaserc` has named `ellaz-games` since long before the project existed, so
+that `firebase deploy` line above would simply have failed. The project was
+created for real on 2026-08-03 (number `93565492047`): Firebase added, a web app,
+Firestore Native in **me-west1 (Tel Aviv)**, and Anonymous sign-in enabled. It
+backs the players/boards work, not hosting - the live site stays on Hostinger.
+
+**It has NO billing account, and that is the whole cost guarantee. Never link
+one.** A GCP project with no billing account has no payment path at all: every
+service either runs inside its free quota or returns an error. It cannot produce
+a bill, so no budget alert is needed and none can be set.
+
+The one way to break that is to accept an **"Upgrade to Blaze"** prompt, which
+Firebase offers whenever you touch Cloud Storage, Cloud Functions, or extensions.
+**Decline it, every time.** Nothing this platform needs requires Blaze:
+
+- **Anonymous auth is free** and has no paid tier here. Note the trap - the
+  *console* toggle is free Firebase Auth, while the `identityPlatform:initializeAuth`
+  **API** is the paid Identity Platform product and answers `BILLING_NOT_ENABLED`.
+  That error means "use the console", never "enable billing".
+- **Phone auth bills per SMS even at tiny volume.** It is off. Leave it off - we
+  ask a child for nothing, so there is no reason to turn it on.
+- **Cloud Storage is not provisioned** and must not be. Original SVG ships in the
+  bundle; the World needs no uploads.
+
+Firestore's free daily quota is the real design constraint, and running out is
+fail-closed - reads are refused until it resets, which costs nothing and shows a
+child a stale board rather than a charge. Confirm the current numbers at
+<https://firebase.google.com/pricing> before designing near the edge, and assume a
+naive "top 100" board read costs 100 reads. Prefer `count()` aggregations and
+cache what you can, which is also why the board design is percentile-first.
+
 Analytics key is `VITE_POSTHOG_KEY` (public); see `.env.example`. Both workflows
 pass it through from a repo secret of the same name.
 
