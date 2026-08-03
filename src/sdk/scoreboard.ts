@@ -1,0 +1,77 @@
+// The stateful half of the score contract — where a personal best is kept.
+//
+// Split from score.ts on purpose, the same way wallet.ts is split from
+// economy.ts: score.ts is the pure ranking policy and stays testable with no
+// storage at all, and this module is the thin layer that remembers.
+//
+// The SaveStore is injected rather than constructed here so the port is
+// testable in the node vitest env (no localStorage) — the same convention as
+// the injectable `rng` in every games/<id>/logic.ts.
+import { bestOf, directionFor, isBetter, isRankable } from "./score";
+import type { SaveStore, ScorePort, ScoreReport, ScoreResult } from "./types";
+
+export type { ScorePort, ScoreReport, ScoreResult };
+
+/**
+ * Namespace for persisted bests.
+ *
+ * Deliberately NOT the bare `best` key: six games (bees, echo, math, n2048,
+ * reaction, snake) already store their own ad-hoc `best`, and silently reading
+ * or overwriting those would either import a number ranked by different rules
+ * or destroy a child's record. Those games migrate deliberately, one at a time.
+ */
+export const SCORE_KEY_PREFIX = "score:";
+
+const keyFor = (board: string) => `${SCORE_KEY_PREFIX}${board}`;
+
+export function createScorePort(store: SaveStore): ScorePort {
+  /**
+   * Read a stored best, treating anything unrankable as ABSENT rather than as a
+   * record. A corrupt or hand-edited save must not permanently block every
+   * future personal best — and `store.get` itself can throw (incognito, quota,
+   * disabled storage), which must never reach a win path.
+   */
+  function readBest(board: string): number | undefined {
+    try {
+      const raw = store.get<unknown>(keyFor(board), undefined);
+      return isRankable(raw as number) ? (raw as number) : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  return {
+    best(board = "default") {
+      return readBest(board);
+    },
+
+    report({ value, unit, board = "default" }) {
+      const prev = readBest(board);
+
+      // Junk never becomes a record, and never destroys one either.
+      if (!isRankable(value)) {
+        return { value, best: prev, isPersonalBest: false, rejected: true };
+      }
+
+      const direction = directionFor(unit);
+      const better = isBetter(value, prev, direction);
+
+      if (better) {
+        try {
+          store.set(keyFor(board), value);
+        } catch {
+          // Storage refused. The run still counts as a best for THIS session —
+          // telling a child they did not beat their record because the disk is
+          // full would be a lie about what they just did.
+        }
+      }
+
+      return {
+        value,
+        best: prev === undefined ? value : bestOf(value, prev, direction),
+        isPersonalBest: better,
+        rejected: false,
+      };
+    },
+  };
+}

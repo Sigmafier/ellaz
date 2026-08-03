@@ -4,8 +4,10 @@
 // the lifecycle/ads shape matches the Poki + CrazyGames union for later portability.
 import type { Locale } from "@i18n/index";
 import type { RewardReason, RewardTier } from "./economy";
+import type { ScoreUnit } from "./score";
 
 export type { RewardReason, RewardTier };
+export type { ScoreDirection, ScoreUnit } from "./score";
 
 export interface SaveStore {
   get<T>(key: string, fallback: T): T;
@@ -149,6 +151,42 @@ export interface RewardsPort {
   grant(g: RewardGrant): RewardResult;
 }
 
+export interface ScoreReport {
+  /** What the player achieved. */
+  value: number;
+  /** What the number measures — this alone decides which way it ranks. */
+  unit: ScoreUnit;
+  /**
+   * Which board this belongs to, e.g. a difficulty. Bests are per board, so an
+   * easy run can never overwrite a hard one's record. Defaults to "default".
+   */
+  board?: string;
+}
+
+export interface ScoreResult {
+  /** The value exactly as reported. */
+  value: number;
+  /** The personal best AFTER this report; undefined only if nothing landed. */
+  best: number | undefined;
+  /** True when this report set a new personal best. */
+  isPersonalBest: boolean;
+  /** True when the value could not be ranked, so nothing was stored. */
+  rejected: boolean;
+}
+
+/**
+ * Report a score, read a personal best. Deliberately has NO way to say which
+ * direction a score sorts — that is derived from the unit in score.ts, so a
+ * game cannot invert its own ranking. Mirrors RewardsPort, which has no way to
+ * say how many coins a win is worth.
+ */
+export interface ScorePort {
+  /** Report a finished run. Never throws. */
+  report(s: ScoreReport): ScoreResult;
+  /** Current personal best for a board, or undefined if never set. */
+  best(board?: string): number | undefined;
+}
+
 export interface GameContext {
   mount: HTMLElement;
   locale: Locale;
@@ -163,6 +201,13 @@ export interface GameContext {
   ads: AdsPort;
   /** Earn coins/stars. Add-only by design — see RewardsPort. */
   rewards: RewardsPort;
+  /**
+   * Report a run's score and read the personal best. The game reports WHAT it
+   * measured (points/ms/moves); score.ts alone decides which way that ranks —
+   * see scoreboard.ts. Optional so a game with no meaningful score (coloring)
+   * simply never touches it.
+   */
+  score?: ScorePort;
   /** Portal asks the game to exit back to the home grid. */
   onRequestExit(cb: () => void): void;
   requestExit(): void;

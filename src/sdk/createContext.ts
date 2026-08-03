@@ -6,6 +6,7 @@ import { createAnalyticsPort } from "./analytics";
 import { audioPort } from "./audio";
 import { speechPort } from "./speech";
 import { createRewardsPort } from "./wallet";
+import { createScorePort } from "./scoreboard";
 
 // Assembles the GameContext the portal hands to a game on mount. Owns the
 // pause/resume/resize/exit wiring; a game only subscribes to what it needs.
@@ -26,12 +27,17 @@ export function createHostControls(gameId: string, locale: Locale, mount: HTMLEl
   let exitHandler: (() => void) | undefined;
   let requestExit: () => void = () => {};
 
+  // One store, shared by the game's own saves and its personal bests, so both
+  // live under the same `ellaz:<gameId>:` namespace and a single storage
+  // failure degrades both the same way.
+  const storage = createSaveStore(gameId);
+
   const context: GameContext = {
     mount,
     locale,
     dir: DIR[locale],
     t: makeT(locale),
-    storage: createSaveStore(gameId),
+    storage,
     analytics: createAnalyticsPort(gameId),
     audio: audioPort,
     // Shared like audio: voice availability and the mute link are app-global.
@@ -39,6 +45,10 @@ export function createHostControls(gameId: string, locale: Locale, mount: HTMLEl
     // One port per MOUNT — the session coin cap is a budget for this sitting,
     // so it belongs here rather than on the shared wallet.
     rewards: createRewardsPort(gameId),
+    // Personal bests. Unlike rewards there is no per-mount budget here — a
+    // record is a fact about the player, not a payout, so the port is a thin
+    // wrapper over the same store and carries no session state.
+    score: createScorePort(storage),
     lifecycle: {
       loadingStart: () => context.analytics.track("game_loading_start"),
       loadingFinished: () => context.analytics.track("game_loading_finished"),

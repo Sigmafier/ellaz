@@ -19,6 +19,11 @@ export type {
   RewardResult,
   RewardReason,
   RewardTier,
+  ScorePort,
+  ScoreReport,
+  ScoreResult,
+  ScoreUnit,
+  ScoreDirection,
 } from "./types";
 export { createSaveStore } from "./storage";
 export { createAnalyticsPort, analytics } from "./analytics";
@@ -29,6 +34,12 @@ export { createHostControls, type HostControls } from "./createContext";
 // Rewards economy — earn rates, the persisted profile, and the wallet.
 // Games only ever see ctx.rewards (add-only); the World screen imports `wallet`.
 export { TIER_COINS, SESSION_COIN_CAP, coinsFor, starsFor } from "./economy";
+
+// The score contract — the ranking sibling of the economy. score.ts is the pure
+// policy (which way a unit sorts); scoreboard.ts persists the personal best.
+// Games only ever see ctx.score, which cannot say which direction it ranks.
+export { UNIT_DIRECTION, bestOf, directionFor, formatScore, isBetter, isRankable } from "./score";
+export { SCORE_KEY_PREFIX, createScorePort } from "./scoreboard";
 export {
   PROFILE_KEY,
   emptyProfile,
