@@ -53,6 +53,10 @@ that are not comparable, which is most of the time:
 | sudoku | `ms` | level | a 4x4 animal board is not an expert 9x9 |
 | minesweeper | `ms` | difficulty | nine mines and forty are different games |
 | hidden | `points` | difficulty | the round counter resets on a difficulty change |
+| balloons, bubbles, frog, sequence, shadows, sortsize | `points` | difficulty | endless level ladders; the level resets to 1 on a difficulty change |
+| vanish | `points` | difficulty | same, counting rounds rather than levels |
+| tictactoe | `points` | difficulty | longest run of wins; three genuinely different opponents |
+| finddiff | `points` | `default` | one endless ladder, no difficulty selector |
 | bees, echo, math, n2048, reaction, snake | - | `default` | see below |
 
 Those last six are on `default` **deliberately, not by oversight**: their pre-Wave-B `best`

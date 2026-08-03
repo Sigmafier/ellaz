@@ -136,11 +136,22 @@ and a unit** (`points`/`ms`/`moves`) and `src/sdk/economy.ts`'s sibling
 could report `ms` as "higher is better" and order its own leaderboard backwards.
 The record rides the existing win as `winMoment(ctx, { …, score: { value, unit,
 board } })`; `ctx.score` is add-only, with no `clear()`, exactly like
-`ctx.rewards`. **11 of the 21 games have one so far** (bees, echo, finddiff,
-hidden, math, memory, minesweeper, n2048, reaction, snake, sudoku). **coloring
-gets none, ever** — ranking a child's drawing is the opposite of this platform's
-premise. The other nine are Wave 2 games not yet covered, and tictactoe has no
-obvious record to keep; both are open work, not a decision.
+`ctx.rewards`. **20 of the 21 games have one**, and **coloring gets none, ever**
+— ranking a child's drawing is the opposite of this platform's premise. That is
+the whole roster: every other game keeps a record, so a missing one is a bug
+rather than a gap. (evolve carries one without a line of its own — it renders
+`n2048`'s component under its own game id, so it gets its own storage namespace
+and its own board for free.)
+
+What each game records is the honest answer to "how well did that go", not one
+imposed shape: a **time** where a clock exists (sudoku, minesweeper), **moves**
+where the game already counted them (memory), **how far up an endless ladder**
+a run got (balloons, bubbles, frog, sequence, shadows, sortsize, vanish, hidden,
+finddiff), and for tictactoe the **longest run of wins** against that difficulty's
+AI. Two of those deserve their traps written down: finddiff records cumulative
+scenes cleared rather than the "Level" it displays, because Level only bumps
+after a full pass and would leave most players a permanent record of 1; and
+tictactoe's hard AI is unbeatable minimax, so its record may honestly stay empty.
 `board` scopes a record to a difficulty wherever the scales differ
 (6 pairs vs 10, a 4×4 animal sudoku vs an expert 9×9). The six games that kept
 their own `best` before this existed are on the default board **on purpose**, so
