@@ -1,7 +1,23 @@
 #!/usr/bin/env node
-// Assert that the PWA precache manifest contains only shell assets.
+// Assert that a FIRST VISIT downloads only shell assets.
 //
-// Run after `npm run build`:  node scripts/assert-precache.mjs
+// Run after `npm run build`:  node scripts/assert-first-visit.mjs
+//
+// TWO delivery paths, and they are independent. A chunk reaches a child's
+// first visit if EITHER is true, so both are checked here:
+//
+//   1. index.html    — `<script src>` and `<link rel="modulepreload">`. The
+//                      browser fetches these eagerly, on the very first paint,
+//                      service worker or not.
+//   2. sw.js         — the workbox precache manifest, governed by globIgnores.
+//
+// This script checked only (2) until 2026-08-03, and that gap shipped: the
+// dev-only Juice Lab was correctly excluded from the precache AND correctly
+// behind a dev route guard, yet a module-scope `lazy(() => import(…))` kept it
+// in the production module graph, so Vite wrote a modulepreload for it into
+// index.html and every child downloaded 27 KB gz of tournament scaffolding.
+// The precache check passed, truthfully and uselessly. Verified live at
+// https://ellaz.fun before the fix.
 //
 // WHY THIS EXISTS
 // The workbox glob is `**/*.{html,css,js,svg,woff2}` — it sweeps EVERYTHING.
@@ -59,10 +75,10 @@ const ALLOWED = [
 
 /** Known offenders, used only to print a more useful message. Not the gate. */
 const KNOWN_BAD = [
-  { prefix: "game-", why: "per-game chunk — runtime-cached on first play; add to globIgnores" },
-  { prefix: "vendor-analytics-", why: "PostHog — deferred past first paint; add to globIgnores" },
-  { prefix: "vendor-phaser-", why: "engine for one game — runtime-cached; add to globIgnores" },
-  { prefix: "lab-", why: "dev-only Juice Lab — nothing links to it; add to globIgnores" },
+  { prefix: "game-", why: "per-game chunk — runtime-cached on first play" },
+  { prefix: "vendor-analytics-", why: "PostHog — deferred past first paint" },
+  { prefix: "vendor-phaser-", why: "engine for one game — runtime-cached" },
+  { prefix: "lab-", why: "dev-only Juice Lab — nothing links to it" },
   {
     prefix: "module-",
     why: "an UNNAMED chunk — it has no manualChunks branch, so there is no prefix to exclude. Name it in vite.config manualChunks first, then add that name to globIgnores",
@@ -77,6 +93,66 @@ function sizeOf(url) {
   } catch {
     return 0; // revisioned entries like index.html always exist; be forgiving.
   }
+}
+
+/**
+ * Every asset index.html tells the browser to fetch before anything renders.
+ * `<script src>` and `<link rel="modulepreload">` are both eager — a preload is
+ * not a hint the browser may ignore, it is a download.
+ */
+export function extractEagerHtmlAssets(html) {
+  const out = [];
+  for (const m of html.matchAll(/<script[^>]+src="([^"]+)"/g)) out.push(m[1]);
+  for (const m of html.matchAll(/<link[^>]+rel="modulepreload"[^>]+href="([^"]+)"/g)) out.push(m[1]);
+  // href may precede rel in the emitted tag; catch that ordering too.
+  for (const m of html.matchAll(/<link[^>]+href="([^"]+)"[^>]*rel="modulepreload"/g)) out.push(m[1]);
+  return [...new Set(out)];
+}
+
+function checkIndexHtml() {
+  let html;
+  try {
+    html = readFileSync(join(DIST, "index.html"), "utf8");
+  } catch {
+    console.error(`FAIL  no ${DIST}/index.html — run \`npm run build\` first.`);
+    process.exit(1);
+  }
+
+  const assets = extractEagerHtmlAssets(html);
+  if (assets.length === 0) {
+    console.error("FAIL  index.html lists no eager assets — the matcher is broken, not the build.");
+    process.exit(1);
+  }
+
+  const bad = [];
+  for (const a of assets) {
+    const name = basename(a);
+    if (ALLOWED.some((x) => x.re.test(name))) continue;
+    const known = KNOWN_BAD.find((f) => name.startsWith(f.prefix));
+    bad.push({
+      a,
+      why: known ? known.why : "not a known shell asset — first visit is an allowlist",
+    });
+  }
+
+  console.log(`\nindex.html: ${assets.length} eager asset(s)`);
+  for (const a of assets) console.log(`  ${a}`);
+
+  if (bad.length > 0) {
+    console.error(`\nFAIL  ${bad.length} chunk(s) fetched eagerly on first visit:`);
+    for (const b of bad) {
+      console.error(`  ${b.a}\n    ${b.why}`);
+      console.error(
+        "    NOTE: globIgnores cannot help here — a modulepreload is not the precache.",
+      );
+      console.error(
+        "    Something in the production module graph still references it; a module-scope",
+      );
+      console.error("    lazy(() => import(…)) is the usual cause. Guard the import itself.");
+    }
+    process.exit(1);
+  }
+  console.log("OK  index.html fetches shell assets only.");
 }
 
 function main() {
@@ -136,11 +212,15 @@ function main() {
 
   if (violations.length > 0) {
     console.error(`\nFAIL  ${violations.length} chunk(s) precached that must not be:`);
-    for (const v of violations) console.error(`  ${v.url}\n    ${v.why}`);
+    for (const v of violations)
+      console.error(`  ${v.url}\n    ${v.why} — add it to globIgnores`);
     process.exit(1);
   }
 
   console.log("\nOK  precache holds shell assets only.");
+
+  // The other delivery path. Runs last so its failure is the last thing printed.
+  checkIndexHtml();
 }
 
 main();
