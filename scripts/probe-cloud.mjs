@@ -132,7 +132,89 @@ const run = async () => {
   const unauth = await fetch(`${DOCS}/players/${a.localId}`);
   check("an UNAUTHENTICATED reader is refused", unauth.status === 403, `status ${unauth.status}`);
 
-  console.log("5. cleanup");
+  console.log("5. the leaderboard");
+  // A probe-only board id, so nothing here can ever appear beside a real
+  // player. `__` is our own separator, and no catalog game is called this.
+  const board = `probe__${Date.now().toString(36).toUpperCase().slice(-4)}`;
+  const row = (uid, value) => ({
+    fields: {
+      name: { stringValue: "swift__tiger" },
+      unit: { stringValue: "points" },
+      best: { doubleValue: value },
+      d: { stringValue: "2026-08-03" },
+      dBest: { doubleValue: value },
+      w: { stringValue: "2026-W32" },
+      wBest: { doubleValue: value },
+      m: { stringValue: "2026-08" },
+      mBest: { doubleValue: value },
+      at: { integerValue: String(Date.now()) },
+    },
+  });
+
+  const wroteScore = await call(a.idToken, `boards/${board}/scores/${a.localId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(row(a.localId, 4200)),
+  });
+  check("a player may write their OWN board row", wroteScore.ok, `status ${wroteScore.status}`);
+
+  const readScore = await call(b.idToken, `boards/${board}/scores/${a.localId}`);
+  check("anyone signed in may READ a board row", readScore.ok, `status ${readScore.status}`);
+  check(
+    "the score survives the round trip",
+    readScore.body?.fields?.best?.doubleValue === 4200,
+    JSON.stringify(readScore.body?.fields?.best),
+  );
+
+  // The negatives. Each one is paired with a positive above, so a rule that
+  // refused everybody could not pass this section.
+  const hijackScore = await call(b.idToken, `boards/${board}/scores/${a.localId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(row(a.localId, 999999)),
+  });
+  check(
+    "a stranger may NOT write under someone else's name (403)",
+    hijackScore.status === 403,
+    `status ${hijackScore.status}`,
+  );
+
+  const junkField = await call(a.idToken, `boards/${board}/scores/${a.localId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      fields: { ...row(a.localId, 1).fields, evil: { stringValue: "x" } },
+    }),
+  });
+  check(
+    "an unknown field is refused (403)",
+    junkField.status === 403,
+    `status ${junkField.status}`,
+  );
+
+  const longName = await call(a.idToken, `boards/${board}/scores/${a.localId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      fields: { ...row(a.localId, 1).fields, name: { stringValue: "x".repeat(200) } },
+    }),
+  });
+  check(
+    "an unbounded name is refused (403)",
+    longName.status === 403,
+    `status ${longName.status}`,
+  );
+
+  const delScore = await call(a.idToken, `boards/${board}/scores/${a.localId}`, {
+    method: "DELETE",
+  });
+  check(
+    "a record cannot be taken away, even by its owner (403)",
+    delScore.status === 403,
+    `status ${delScore.status}`,
+  );
+
+  console.log("6. cleanup");
   const delProfile = await call(a.idToken, `players/${a.localId}`, { method: "DELETE" });
   check("owner may delete their own doc", delProfile.ok, `status ${delProfile.status}`);
   const delCode = await call(a.idToken, `codes/${code}`, { method: "DELETE" });

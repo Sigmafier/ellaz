@@ -31,6 +31,7 @@ import { cloudConfig } from "./cloudConfig";
 import { makeBackupCode, normalizeBackupCode } from "./backupCode";
 import { migrateProfile, type ProfileV1 } from "./profile";
 import type { Records } from "./records";
+import { windowsFor } from "./board";
 
 /** Where the anonymous identity is kept. Cleared with the rest of storage. */
 export const CLOUD_KEY = "ellaz:cloud:v1";
@@ -80,6 +81,21 @@ export interface DeviceState {
   records: Records;
 }
 
+/**
+ * A personal best, on its way to a board.
+ *
+ * `board` is an already-validated `boardId()` — this module does not sanitise
+ * it, because a sanitised id would silently merge two different boards.
+ */
+export interface BoardPublish {
+  board: string;
+  /** `adj__noun` word ids, or `""` for a player with no name yet. */
+  name: string;
+  unit: string;
+  value: number;
+  at: number;
+}
+
 export interface Cloud {
   /** Sign in (reusing the stored identity when there is one). `null` on any failure. */
   connect(): Promise<CloudIdentity | null>;
@@ -89,6 +105,8 @@ export interface Cloud {
   push(state: DeviceState): Promise<boolean>;
   /** Fetch what is behind someone's backup code. `null` if there isn't anything. */
   restore(code: string): Promise<DeviceState | null>;
+  /** Put a personal best on its board. `false` on any failure. */
+  publish(entry: BoardPublish): Promise<boolean>;
 }
 
 /** A request that cannot outlive TIMEOUT_MS, and never rejects. */
@@ -386,6 +404,54 @@ export function createCloud(options: CloudOptions = {}): Cloud {
       if (!owner) return null;
 
       return decodeState(await authed(`players/${owner}`));
+    },
+
+    /**
+     * One document per player per board, overwritten blind — no read first.
+     *
+     * That is sound because of WHEN this is called: only on a personal best,
+     * which by definition beats everything this player has ever done, and
+     * therefore also beats their best today, this week and this month. So all
+     * four windows can be set to the same value without knowing what was there.
+     * One write, zero reads, and nothing to get wrong about merging.
+     *
+     * The consequence is worth stating plainly, because it decides what a
+     * board MEANS: the all-time board is the classic best-ever ranking, and the
+     * day/week/month boards hold the players who set a new personal best in
+     * that window. "Who got better today", not "who scored highest today".
+     * On a platform whose rule is that no child is shown as last, a board that
+     * refreshes with whoever is improving is the kinder one — and it is also
+     * the one that costs a single write.
+     */
+    async publish(entry: BoardPublish) {
+      if (!stored) await connect();
+      const id = stored;
+      if (!id) return false;
+      if (!Number.isFinite(entry.value)) return false;
+
+      const { d, w, m } = windowsFor(entry.at);
+      const fields = {
+        name: { stringValue: entry.name },
+        unit: { stringValue: entry.unit },
+        best: { doubleValue: entry.value },
+        d: { stringValue: d },
+        dBest: { doubleValue: entry.value },
+        w: { stringValue: w },
+        wBest: { doubleValue: entry.value },
+        m: { stringValue: m },
+        mBest: { doubleValue: entry.value },
+        at: { integerValue: String(Math.floor(entry.at)) },
+      };
+      const mask = Object.keys(fields)
+        .map((f) => `updateMask.fieldPaths=${f}`)
+        .join("&");
+
+      const wrote = await authed(`boards/${entry.board}/scores/${id.uid}?${mask}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fields }),
+      });
+      return wrote !== null;
     },
   };
 }
