@@ -109,6 +109,9 @@ export const STRINGS: Dict = {
   restoreFailed: { he: "השחזור לא נשמר", en: "The restore didn't save" },
   coinsLabel: { he: "מטבעות", en: "coins" },
   itemsLabel: { he: "פריטים", en: "items" },
+  // Personal bests. Counted on the restore screen because they are the half of
+  // a transfer that used to vanish without saying anything.
+  recordsLabel: { he: "שיאים", en: "records" },
   coins: { he: "מטבעות", en: "Coins" },
   stars: { he: "כוכבים", en: "Stars" },
   owned: { he: "יש לך", en: "Owned" },

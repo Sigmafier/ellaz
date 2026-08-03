@@ -74,4 +74,12 @@ export { wallet, createWallet, createRewardsPort, type Wallet, type BuyResult } 
 // dynamically imported by cloudSync so it stays out of the shell chunk. Adding
 // a re-export of `./cloud` to this barrel would silently undo that.
 export { startCloudSync, pushNow, cloudIdentity, cloudRestore } from "./cloudSync";
-export type { CloudIdentity } from "./cloud";
+export type { CloudIdentity, DeviceState } from "./cloud";
+// Personal bests are the half of a transfer that does NOT live in the profile.
+export {
+  readRecords,
+  adoptRecords,
+  canUndoRecords,
+  undoRecords,
+  type Records,
+} from "./records";

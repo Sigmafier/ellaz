@@ -30,6 +30,7 @@
 import { cloudConfig } from "./cloudConfig";
 import { makeBackupCode, normalizeBackupCode } from "./backupCode";
 import { migrateProfile, type ProfileV1 } from "./profile";
+import type { Records } from "./records";
 
 /** Where the anonymous identity is kept. Cleared with the rest of storage. */
 export const CLOUD_KEY = "ellaz:cloud:v1";
@@ -66,15 +67,28 @@ export interface CloudStore {
   write(key: string, value: string): boolean;
 }
 
+/**
+ * Everything one device holds that another device should end up with.
+ *
+ * Two fields rather than one because they live in two unrelated places on
+ * disk: the profile is a single key, and the records are one key per game per
+ * board. Carrying only the profile is what made the first version of this
+ * feature restore a room without the personal bests that filled it.
+ */
+export interface DeviceState {
+  profile: ProfileV1;
+  records: Records;
+}
+
 export interface Cloud {
   /** Sign in (reusing the stored identity when there is one). `null` on any failure. */
   connect(): Promise<CloudIdentity | null>;
   /** The identity already in hand, without touching the network. */
   identity(): CloudIdentity | null;
   /** Upload a snapshot. `false` on any failure, including "not connected". */
-  push(profile: ProfileV1): Promise<boolean>;
-  /** Fetch the profile behind someone's backup code. `null` if there isn't one. */
-  restore(code: string): Promise<ProfileV1 | null>;
+  push(state: DeviceState): Promise<boolean>;
+  /** Fetch what is behind someone's backup code. `null` if there isn't anything. */
+  restore(code: string): Promise<DeviceState | null>;
 }
 
 /** A request that cannot outlive TIMEOUT_MS, and never rejects. */
@@ -117,23 +131,45 @@ function str(value: unknown): string | undefined {
  * needs no decoder at all and a document written by a newer build cannot break
  * an older one.
  */
-function encodeDoc(profile: ProfileV1, code: string): string {
+function encodeDoc(state: DeviceState, code: string): string {
   return JSON.stringify({
     fields: {
-      profile: { stringValue: JSON.stringify(profile) },
+      profile: { stringValue: JSON.stringify(state.profile) },
+      // Records travel as their own string field rather than inside the profile
+      // so this stays ADDITIVE: a document written before records existed simply
+      // has no key here, and an older build reading a newer document ignores it.
+      records: { stringValue: JSON.stringify(state.records) },
       code: { stringValue: code },
-      updatedAt: { integerValue: String(profile.updatedAt) },
+      updatedAt: { integerValue: String(state.profile.updatedAt) },
     },
   });
 }
 
-function decodeProfile(doc: unknown): ProfileV1 | null {
+function decodeState(doc: unknown): DeviceState | null {
   if (!isRecord(doc) || !isRecord(doc.fields)) return null;
   const field = doc.fields.profile;
   if (!isRecord(field)) return null;
   const raw = str(field.stringValue);
   if (!raw) return null;
-  return migrateProfile(raw);
+
+  // The profile is what makes a document a document. Records are optional and
+  // a missing or unreadable set degrades to none rather than failing the whole
+  // restore — losing the records is bad; refusing to return the room is worse.
+  return { profile: migrateProfile(raw), records: decodeRecords(doc.fields.records) };
+}
+
+function decodeRecords(field: unknown): Records {
+  if (!isRecord(field)) return {};
+  const raw = str(field.stringValue);
+  if (!raw) return {};
+  try {
+    const value: unknown = JSON.parse(raw);
+    // Shape only. `adoptRecords` is what validates every key and value before
+    // any of this reaches the disk, and it is the only thing allowed to.
+    return isRecord(value) ? (value as Records) : {};
+  } catch {
+    return {};
+  }
 }
 
 export interface CloudOptions {
@@ -308,15 +344,15 @@ export function createCloud(options: CloudOptions = {}): Cloud {
 
     connect,
 
-    async push(profile: ProfileV1) {
+    async push(state: DeviceState) {
       if (!stored) await connect();
       const id = stored;
       if (!id) return false;
 
-      const wrote = await authed(`players/${id.uid}?updateMask.fieldPaths=profile&updateMask.fieldPaths=code&updateMask.fieldPaths=updatedAt`, {
+      const wrote = await authed(`players/${id.uid}?updateMask.fieldPaths=profile&updateMask.fieldPaths=records&updateMask.fieldPaths=code&updateMask.fieldPaths=updatedAt`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: encodeDoc(profile, id.code),
+        body: encodeDoc(state, id.code),
       });
       if (!wrote) return false;
       if (indexWritten) return true;
@@ -349,7 +385,7 @@ export function createCloud(options: CloudOptions = {}): Cloud {
       const owner = isRecord(index.fields.uid) ? str(index.fields.uid.stringValue) : undefined;
       if (!owner) return null;
 
-      return decodeProfile(await authed(`players/${owner}`));
+      return decodeState(await authed(`players/${owner}`));
     },
   };
 }
