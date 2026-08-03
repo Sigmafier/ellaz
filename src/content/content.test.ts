@@ -24,11 +24,20 @@ describe("the content roster lines up with the catalog", () => {
     expect(PAGES.length).toBeGreaterThan(0);
   });
 
-  // The reverse assertion - every catalogued game HAS content - turns on once
-  // the roster is complete. Three pilots ship first so the operator can correct
-  // the voice while it costs three pages instead of twenty-one. Until then this
-  // would just fail on eighteen games nobody has written yet.
-  it.todo("every catalogued game has content, once all 21 are written");
+  // ARMED 2026-08-03, once all 21 were written. Until then it was a todo,
+  // because three pilots shipped first so the operator could correct the voice
+  // while it cost three pages instead of twenty-one.
+  //
+  // From here this is the gate that makes a new game impossible to ship
+  // wordless: `catalog.test.ts` ratchets the game count up, and this fails the
+  // moment that count exceeds the number of pages. The two together mean adding
+  // a game to the catalog without adding its content is a red build, which is
+  // the whole point of step 6 in the add-a-game recipe.
+  it("every catalogued game has content", () => {
+    const written = new Set(CONTENT_IDS);
+    const missing = CATALOG.map((e) => e.meta.id).filter((id) => !written.has(id));
+    expect(missing, `games in the catalog with no page: ${missing.join(", ")}`).toEqual([]);
+  });
 });
 
 describe("the voice gate, on every real page", () => {

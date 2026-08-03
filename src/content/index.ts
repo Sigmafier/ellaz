@@ -8,6 +8,11 @@ import { sequence } from "./games/sequence";
 import { shadows } from "./games/shadows";
 import { sortsize } from "./games/sortsize";
 import { vanish } from "./games/vanish";
+import { coloring } from "./games/coloring";
+import { evolve } from "./games/evolve";
+import { finddiff } from "./games/finddiff";
+import { hidden } from "./games/hidden";
+import { math } from "./games/math";
 import { memory } from "./games/memory";
 import { minesweeper } from "./games/minesweeper";
 import { n2048 } from "./games/n2048";
@@ -50,6 +55,11 @@ export const CONTENT: Record<string, GameContent> = {
   [shadows.id]: shadows,
   [sortsize.id]: sortsize,
   [vanish.id]: vanish,
+  [coloring.id]: coloring,
+  [evolve.id]: evolve,
+  [finddiff.id]: finddiff,
+  [hidden.id]: hidden,
+  [math.id]: math,
 };
 
 /** The ids that have prose today. */
