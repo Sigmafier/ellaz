@@ -8,6 +8,12 @@ Ellaz is a **cross-device casual-games PWA** — one website where kids and adul
 play our games on phone, tablet, and PC. Hebrew (default, RTL) + English (LTR).
 Anonymous play, on-device saves, anonymous kid-safe analytics. No backend.
 
+**What shipped, in order, with the measured numbers and the traps each one
+cost**: [`docs/build-log.md`](docs/build-log.md). Read it before re-deriving a
+payload figure, re-litigating the engine choice, or wondering why analytics has
+never produced data. [`docs/architecture.md`](docs/architecture.md) is the
+module map and the SDK contract.
+
 ## Commands
 
 ```bash

@@ -1,106 +1,152 @@
 # Ellaz Architecture
 
-Ellaz is a cross-device casual-games **PWA**: one website, many small games, playable
-on phone, tablet, and PC with touch, mouse, or keyboard. Hebrew (default, RTL) +
-English (LTR). Anonymous play, on-device saves, anonymous kid-safe analytics, no backend.
+Ellaz is a cross-device casual-games **PWA**: one website, 21 small games,
+playable on phone, tablet, and PC with touch, mouse, or keyboard. Hebrew
+(default, RTL) + English (LTR). Anonymous play, on-device saves, anonymous
+kid-safe analytics.
+
+**"No backend" is no longer strictly true, and the distinction matters.** There
+is still no server the app talks to in order to be playable — every game runs
+offline against `localStorage`, and that is not changing. A Firebase project
+exists (`ellaz-games`, Firestore in me-west1) to back anonymous players and
+leaderboards. Gameplay must never depend on it: if Firestore is unreachable, or
+its free daily quota is spent, a child plays exactly as before and sees a stale
+board rather than an error.
 
 ## System diagram
 
 ```mermaid
 graph TD
-  U[Player: phone / tablet / PC browser] --> P[apps: portal shell<br/>home grid · hash router · i18n he/en RTL · PWA]
-  P -- "lazy import()" --> G1[games/memory · DOM]
-  P -- "lazy import()" --> G2[games/coloring · DOM+SVG]
-  P -- "lazy import()" --> G3[games/finddiff · DOM+SVG]
-  P -- "lazy import()" --> G4[games/hidden · DOM]
-  P -- "lazy import()" --> G5[games/2048 · DOM]
-  P -- "lazy import()" --> G6[games/tictactoe · DOM]
-  P -- "lazy import()" --> G7[games/snake · Phaser 4]
-  G1 & G2 & G3 & G4 & G5 & G6 & G7 -- GameContext --> SDK[game SDK]
-  SDK --> LS[(localStorage saves)]
-  SDK --> PH[(PostHog · anonymous events)]
-  P --> FB[Firebase Hosting CDN]
+  U[Player: phone / tablet / PC browser] --> P[portal shell<br/>home grid · hash router · i18n he/en RTL · PWA]
+  P -- "lazy import() per game" --> G[games/&lt;id&gt; · 21 of them<br/>20 DOM · snake on Phaser 4]
+  P --> W[world: room · character · shop]
+  G -- GameContext --> SDK[game SDK]
+  W --> WA[wallet singleton]
+  SDK --> WA
+  WA --> LS[(localStorage · ellaz:profile:v1)]
+  SDK --> LS
+  SDK -. "lazy, after first paint" .-> PH[(PostHog · anonymous events)]
+  P --> H[Hostinger · ellaz.fun]
+  P --> GP[GitHub Pages · mirror]
 ```
 
 ## Module layout
 
-Single Vite app; internal modules mirror extractable packages 1:1 (imported via the
-`@sdk` / `@ui` / `@juice` / `@i18n` aliases):
+Single Vite app; internal modules mirror extractable packages 1:1 (imported via
+the `@sdk` / `@ui` / `@juice` / `@i18n` / `@shared` aliases, never deep paths):
 
 | Module | Responsibility |
 |--------|----------------|
-| `src/sdk` | The neutral **GameModule / GameContext** contract every game implements: `SaveStore` (localStorage), analytics port (PostHog behind an interface), audio port, lifecycle, ads stubs |
-| `src/ui` | Design tokens + RTL-aware components (Hebrew-first fonts, big touch targets) |
-| `src/juice` | Game-feel kit — haptics, screen shake, particle burst, tween |
+| `src/sdk` | The neutral **GameModule / GameContext** contract: `SaveStore`, analytics, audio, speech, lifecycle, ads stubs, plus the two policy modules below |
+| `src/sdk/economy.ts` | The **only** place a reward amount is decided |
+| `src/sdk/score.ts` | The **only** place a ranking direction is decided |
+| `src/shared` | Neutral game helpers — seeded rng, pentatonic notes, `winMoment()` (the canonical win) |
+| `src/ui` | Design tokens + RTL-aware components + `DifficultySelector` |
+| `src/juice` | Game-feel kit — haptics, shake, particle burst, confetti, `flyTo`, tween |
 | `src/i18n` | he (RTL) + en (LTR) strings + direction |
-| `src/portal` | Shell: `App` (hash router), `Home` (grid), `GameHost` (mount/unmount bridge), `catalog` (registry + lazy loaders) |
+| `src/portal` | Shell: `App` (hash router), `Home` (grid), `GameHost` (mount bridge), `catalog` (registry + lazy loaders), `world/` (room + shop) |
 | `src/games/<id>` | `logic.ts` (pure, TDD) + `logic.test.ts` + a DOM (React) or canvas (Phaser) renderer |
 
 ## The SDK contract
 
-Games never touch portal internals — only `GameContext`. Its lifecycle + ads shape
-matches the **Poki + CrazyGames** union, so games can list on those portals later
-with no rewrites.
+Games never touch portal internals — only `GameContext`. Its lifecycle + ads
+shape matches the **Poki + CrazyGames** union, so games can list on those
+portals later with no rewrites.
 
 ```ts
-interface GameModule {
-  meta: { id; title: {he,en}; emoji; color; ageBand: "kids"|"all";
-          category: "kids"|"classics"; orientation; renderer: "dom"|"phaser" };
-  mount(ctx: GameContext): Promise<void>;
-  unmount(): void;
-}
 interface GameContext {
   mount: HTMLElement; locale; dir; t;
   storage: SaveStore;                 // gameId-scoped, incognito-safe
   analytics: AnalyticsPort;           // anonymous, kid-safe (never identify())
   audio: AudioPort;                   // WebAudio synth; unlock() on first gesture
+  speech: SpeechPort;                 // Web Speech TTS; ALWAYS supplementary
+  rewards: RewardsPort;               // grant() only — no spend()
+  score: ScorePort;                   // report()/best() only — no clear()
   lifecycle: { loadingStart/Finished; gameplayStart/Stop };
   ads: { interstitial(); rewarded() };// no-op stubs in v1
   onRequestExit; onPause; onResume; onResize;
 }
 ```
 
+### The two add-only ports, and why they are shaped that way
+
+`RewardsPort` has no `spend()` and `ScorePort` has no `clear()`. A game can only
+ever put value in. Spending happens in exactly one place — the World screen,
+against the `wallet` singleton — so no game, and no bug in a game, can take a
+child's coins or delete their record.
+
+Neither port lets a game state its own terms. `grant()` takes a **reason**, not
+an amount. `report()` takes a **unit**, not a direction. Both exist so that ~30
+games cannot each invent their own economics or their own idea of which way a
+leaderboard sorts. Tuning either is a one-file change.
+
+Details: [`rewards-economy-convention.md`](../.claude/rules/rewards-economy-convention.md)
+· [`score-contract-convention.md`](../.claude/rules/score-contract-convention.md).
+
 ## Rendering split
 
-- **React DOM** — board/card/grid/word games (memory, coloring, finddiff, hidden,
-  2048, tictactoe). Free accessibility, text, responsive layout, trivial input.
-- **Phaser 4** — action/canvas games (snake, and future arcade). Phaser lives in a
-  **shared vendor chunk** (`vite.config` `manualChunks`) downloaded once and cached
-  across all canvas games.
+- **React DOM** — 20 of 21 games. Free accessibility, text, responsive layout,
+  trivial input.
+- **Phaser 4** — snake, and only snake. `grep -rln 'from "phaser"' src/` returns
+  two files, both under `games/snake/`. Its 379 KB is a lazy, precache-excluded
+  chunk, so it costs a first-time visitor nothing — but the older claim that it
+  is "paid once and shared across all canvas games" was never true.
 
 Each game is lazy-loaded via `import()` so only the code you play is downloaded.
+The engine question is settled and re-litigating it is explicitly discouraged —
+see [`engine-tournament/EYEBALL-VERDICT.md`](engine-tournament/EYEBALL-VERDICT.md),
+including the published claim in it that turned out to be false.
 
 ## Cross-device rules
 
 - **Input:** Pointer Events only (`pointerdown/move/up` + `setPointerCapture`);
   `touch-action: none` on play surfaces; `keydown` state map for desktop.
-- **Sizing:** boards use `min(<vw>, <vh>, <cap>px)` so they fit portrait, landscape,
-  and tablet. `GameHost`'s mount is a scroll container with `minHeight: 0` (flexbox
-  scroll trap) — tall games scroll, never clip.
-- **Kids games:** tap-only (no drag), ≥2×2cm targets, icon+audio navigation, instant
-  restart, no fail-punishment.
+- **Sizing:** boards use `min(<vw>, <vh>, <cap>px)` so they fit portrait,
+  landscape, and tablet. `GameHost`'s mount is a scroll container with
+  `minHeight: 0` (flexbox scroll trap) — tall games scroll, never clip.
+- **Kids games:** **tap-completable; drag optional, never required.** Plus
+  ≥2×2cm targets, icon+audio navigation, instant restart, no fail-punishment.
+- **RTL:** a spatial grid carries `dir="ltr"` so it does not mirror inside the
+  Hebrew app — otherwise swipe and arrow directions invert.
 
-## Analytics (evolve loop)
+## Analytics
 
 Anonymous, kid-safe (COPPA internal-operations): PostHog **anonymous-events mode
-only** — never `identify()`, no PII, no session replay, no autocapture, no behavioral
-ads. Event taxonomy: `session_start`, `game_open`, `game_loading_finished`,
-`gameplay_start/stop`, `level_start/complete/fail`. Evolve gates: D1 25-35%, D7
-8-15%, session 3-5 min; fix the first level-funnel step with a >10% drop.
+only** — never `identify()`, no PII, no session replay, no autocapture, no
+behavioral ads. Analytics failure must never block gameplay. Loaded lazily after
+first paint behind a bounded queue; a failed import drops events silently.
+
+**It is currently inert** — `VITE_POSTHOG_KEY` is unset, so the init is
+dead-code-eliminated at build time. See [`build-log.md`](build-log.md).
 
 ## Performance
 
-Initial shell ≈126 KB gzip (index + React); Phaser (≈381 KB gzip) is split into its
-own lazy chunk, loaded only when a canvas game opens. Each game is a ~4 KB chunk.
-Target: Lighthouse mobile ≥90, INP ≤200 ms.
+**First visit: 69,624 B gz**, measured on the live artifact 2026-08-02 (down
+from 143,234). Each game is a ~3.5 KB chunk. Phaser and PostHog are lazy and
+precache-excluded.
+
+**Adding a chunk is three coordinated changes** — the dynamic `import()`, a
+*named* `manualChunks` branch, and a `globIgnores` entry — and a fourth if the
+import sits at module scope, where it must be behind the same guard as its
+route. `npm run build:check` enforces both first-visit paths. See
+[`precache-glob-sweeps-new-chunks.md`](../.claude/rules/precache-glob-sweeps-new-chunks.md).
 
 ## Add a game
 
-See the "Add a new game (~30 min)" section in [`CLAUDE.md`](../CLAUDE.md).
+See "Add a new game (~30 min)" in [`CLAUDE.md`](../CLAUDE.md).
 
 ## Known traps
 
 - **Nested React-root teardown** — defer via `queueMicrotask`
-  (`.claude/rules/react-nested-root-teardown.md`).
-- **PWA prompt-update serves the stale bundle during QA**
-  (`.claude/rules/pwa-stale-bundle-qa.md`).
+  ([rule](../.claude/rules/react-nested-root-teardown.md)).
+- **The service worker serves a stale bundle during QA** — use `npm run dev`
+  ([rule](../.claude/rules/pwa-stale-bundle-qa.md)).
+- **A green deploy is not a changed site** — read the upload step's conclusion,
+  then the live asset hash
+  ([rule](../.claude/rules/verify-the-deploy-target-not-just-the-run.md)).
+- **A fixed 60 Hz simulation step freezes every second frame on a 120 Hz
+  display** — preventive; no current game is exposed
+  ([rule](../.claude/rules/fixed-timestep-must-match-display.md)).
+- **Clearing browser storage erases the child's coins, stars and room**, and a
+  phone and a tablet are two separate players. There is no recovery. This is
+  what Wave C addresses.
