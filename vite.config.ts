@@ -53,7 +53,16 @@ export default defineConfig({
         // `lab-*.js` is the Juice Lab, a dev-only surface nothing links to.
         // Without this line the glob above would sweep it into the precache and
         // every child would download the tournament on their first visit.
-        globIgnores: ["**/game-*.js", "**/vendor-phaser-*.js", "**/lab-*.js"],
+        // `vendor-analytics-*.js` is PostHog, deferred past first paint. Without
+        // this entry the glob above precaches it anyway and the whole lazy-load
+        // buys nothing — green build, unmoved payload. `npm run build:check`
+        // enforces it; see .claude/rules/precache-glob-sweeps-new-chunks.md.
+        globIgnores: [
+          "**/game-*.js",
+          "**/vendor-phaser-*.js",
+          "**/lab-*.js",
+          "**/vendor-analytics-*.js",
+        ],
         runtimeCaching: [
           {
             // maxEntries covers 32 games + the Phaser vendor chunk, with headroom
@@ -97,7 +106,14 @@ export default defineConfig({
             // React vendor bundle stays self-contained.
             if (/\/node_modules\/(react|react-dom|scheduler)\//.test(path))
               return "vendor-react";
-            // Everything else (posthog, canvas-confetti…) follows its importer.
+            // PostHog is dynamically imported after first paint (see
+            // sdk/analytics.ts). NAMING it is half of what makes that work: an
+            // unnamed chunk is emitted as `module-<hash>.js`, which no
+            // globIgnores entry can match, so it lands straight back in the
+            // precache and the deferral buys nothing. Measured — that unnamed
+            // chunk was 222 KiB and the manifest grew to 437 KiB.
+            if (/\/node_modules\/posthog-js\//.test(path)) return "vendor-analytics";
+            // Everything else (canvas-confetti…) follows its importer.
             return undefined;
           }
 
