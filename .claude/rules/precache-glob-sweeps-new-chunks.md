@@ -25,6 +25,34 @@ The only thing that reveals it is the precache manifest, which nobody reads by d
 `game-`, `vendor-phaser-`, `vendor-analytics-` and `lab-` prefixes all exist for this reason.
 Renaming one without updating the other silently ships it to every child on first load.
 
+## `globIgnores` is only ONE of the two ways a chunk reaches a first visit
+
+The precache is not the only delivery path, and the other one ignores `globIgnores`
+entirely:
+
+| Path | Governed by | Fetched |
+|---|---|---|
+| `sw.js` precache manifest | `workbox.globIgnores` | on first visit, by the service worker |
+| `index.html` `<script src>` + `<link rel="modulepreload">` | the production **module graph** | eagerly, on first paint, SW or not |
+
+A `modulepreload` is not a hint the browser may ignore. It is a download.
+
+**Measured here 2026-08-03**: the dev-only Juice Lab was excluded from the precache AND
+behind an `import.meta.env.DEV` route guard AND carved into its own `lab-*` chunk — three
+defences — and still shipped 27 KB gz to every child, because
+`const X = lazy(() => import("…"))` at **module scope** keeps the chunk in the production
+module graph even when the branch that renders it is statically dropped. Vite then writes a
+modulepreload for it. Guard the import itself, not just the render:
+
+```ts
+const JuiceLab = import.meta.env.DEV
+  ? lazy(() => import("@juice/lab/JuiceLab").then((m) => ({ default: m.JuiceLab })))
+  : null;
+```
+
+Verify on the artifact, never by reading the guard: `npm run build && grep -c 'lab-' dist/index.html`
+must be `0`. `npm run build:check` now asserts both paths.
+
 ## The gate must be an ALLOWLIST — a denylist cannot see this bug
 
 Listing known-bad prefixes (`game-`, `vendor-phaser-`, …) feels natural and cannot work.

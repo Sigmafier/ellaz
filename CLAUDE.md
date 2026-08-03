@@ -277,11 +277,15 @@ rather than by argument: 45 physics-synthesised sound characters (0 KB, offline,
 no trade dress), six blind ranking rounds, and a Tier 1 shell-juice demo running
 on the **real** Home component. It opens in guided mode, one task at a time.
 
-Nothing reaches a player, three ways over: the route branch is behind
-`import.meta.env.DEV`, the chunk is carved out as `lab-*`, and `lab-*.js` is in
-the PWA `globIgnores`. In production `#/lab` falls through to the games grid.
-**All three must hold** — re-verify with the two greps in the runbook after
-touching routing, chunking, or the PWA config.
+Keeping it off a child's device needs **four** things, and the fourth is the one
+that was missed and shipped: the route branch is behind `import.meta.env.DEV`,
+the chunk is carved out as `lab-*`, `lab-*.js` is in the PWA `globIgnores` —
+and the `lazy(() => import(...))` **at module scope in `App.tsx` is itself
+behind `import.meta.env.DEV`**. Without that last one the first three are all
+true and Vite still writes a `<link rel="modulepreload">` into `index.html`, so
+every child eagerly downloads the chunk on first paint. It was live on ellaz.fun
+until 2026-08-03. Verify with `npm run build:check`, never by reading the code —
+the greps that missed it were each individually correct.
 
 Two results worth not re-litigating: the **coin and wrong sounds already shipped
 won their own blind rounds** against 4-5 new challengers each (do not "improve"

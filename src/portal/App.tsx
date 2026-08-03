@@ -7,12 +7,23 @@ import { GameHost } from "./GameHost";
 import { World } from "./world/World";
 import { hashFor, parseHash, type Route } from "./route";
 
-// Tournament scaffolding, lazily loaded so none of it reaches the shell bundle
-// unless #/lab is typed by hand. Deleted along with src/juice/lab/ once the
-// winners are folded into the real audio/juice modules.
-const JuiceLab = lazy(() =>
-  import("@juice/lab/JuiceLab").then((m) => ({ default: m.JuiceLab })),
-);
+// Tournament scaffolding. Deleted along with src/juice/lab/ once the winners
+// are folded into the real audio/juice modules.
+//
+// The `import.meta.env.DEV &&` guard is LOAD-BEARING and must not be tidied
+// away as redundant with the route check further down. `lazy(() => import(…))`
+// at module scope keeps the lab in the production module graph even when the
+// route branch that renders it is statically dropped: Rollup still emits the
+// chunk, Vite still writes a `<link rel="modulepreload">` for it into
+// index.html, and every child then downloads the whole tournament on first
+// paint. Behind the guard the ternary folds to `null` in a production build
+// and the dynamic import disappears with it.
+//
+// Verify with the artifact, never by reading this comment:
+//   npm run build && grep -c 'lab-' dist/index.html   # must be 0
+const JuiceLab = import.meta.env.DEV
+  ? lazy(() => import("@juice/lab/JuiceLab").then((m) => ({ default: m.JuiceLab })))
+  : null;
 
 const LOCALE_KEY = "ellaz:locale";
 
@@ -116,7 +127,7 @@ export function App() {
   // the boundary and the notice - is statically dropped rather than shipped to
   // every child for a route they can never reach. In prod, #/lab falls through
   // to the games grid, which is the right answer for a stale bookmark anyway.
-  if (import.meta.env.DEV && route.kind === "lab") {
+  if (import.meta.env.DEV && route.kind === "lab" && JuiceLab) {
     return (
       <LabBoundary onExit={exit}>
         <Suspense fallback={<LabNotice text="Loading the Juice Lab..." />}>

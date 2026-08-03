@@ -34,26 +34,60 @@ purely cosmetic. See [`rewards-economy-convention.md`](../.claude/rules/rewards-
 
 ## Nothing here reaches a player
 
-Three independent layers, each verified rather than assumed:
+**This section was wrong once, and it shipped.** Read the failure first, because
+it is the reason the checks are shaped the way they are.
 
-1. **The route branch is dev-gated.** `App.tsx` wraps the whole `#/lab` branch —
-   lazy import, error boundary and all — in `import.meta.env.DEV`, which Rollup
-   evaluates to `false` and drops. In production `#/lab` falls through to the
-   games grid, which is the right answer for a stale bookmark anyway.
+### The bug this section used to hide
+
+Four guarantees were claimed and three of them were true:
+
+1. **The route branch is dev-gated.** `App.tsx` wraps the whole `#/lab` branch in
+   `import.meta.env.DEV`, which Rollup evaluates to `false` and drops. In
+   production `#/lab` falls through to the games grid — the right answer for a
+   stale bookmark anyway. ✅ true
 2. **The chunk is carved out.** `vite.config.ts` assigns `/src/juice/lab/` to a
-   `lab` chunk *before* the shared-code rule, which would otherwise pin it to the
-   shell and put the whole tournament in the first paint.
-3. **The PWA precache excludes it.** `globPatterns` sweeps every emitted `.js`,
-   so without `"**/lab-*.js"` in `globIgnores` every child would download the
-   tournament on their first visit. The `lab-` prefix is a contract between
-   those two settings, the same way `game-` is.
+   `lab` chunk *before* the shared-code rule, which would otherwise pin it to
+   the shell. ✅ true
+3. **The PWA precache excludes it** via `"**/lab-*.js"` in `globIgnores`. ✅ true
+4. **Therefore no player downloads it.** ❌ **false.**
 
-Verify after any change to the above:
+A module-scope `lazy(() => import("@juice/lab/JuiceLab"))` keeps the lab in the
+production module graph even when every branch that renders it is dropped. Vite
+then writes a `<link rel="modulepreload">` for the chunk into `index.html`, and
+the browser fetches it eagerly on first paint — service worker or not. Every
+child downloaded ~27 KB gzipped of tournament scaffolding. It was live on
+ellaz.fun until the fix.
+
+The fix is the `import.meta.env.DEV &&` guard *at the import site*, so the
+ternary folds to `null` and the dynamic import disappears with it. Do not tidy
+it away as redundant with the route check — it is not.
+
+### Why the old checks passed
 
 ```bash
-npm run build
-grep -c '#/lab' dist/assets/shell-*.js      # 0
-grep -o 'lab-[A-Za-z0-9_-]*\.js' dist/sw.js # no output
+grep -c '#/lab' dist/assets/shell-*.js      # 0  — true, and irrelevant
+grep -o 'lab-[A-Za-z0-9_-]*\.js' dist/sw.js # none — true, and irrelevant
+```
+
+Both were correct. Neither looked at `index.html`, which is where the bug was.
+**There are two independent delivery paths and these checked only one.** A
+check whose scope excludes the claim it is quoted for reports green while
+lying.
+
+### What to actually run
+
+```bash
+npm run build:check     # build + scripts/assert-first-visit.mjs
+```
+
+That gate asserts a first visit downloads only shell assets, across **both**
+paths — `index.html` (script tags and modulepreloads) and the workbox precache
+manifest in `sw.js`. It is an allowlist, not a denylist, because a denylist can
+only forbid the chunks somebody already thought of. By hand:
+
+```bash
+grep -c 'lab-' dist/index.html   # must be 0
+ls dist/assets/lab-*.js          # must not exist at all
 ```
 
 ## The three questions it asks
