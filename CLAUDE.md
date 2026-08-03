@@ -270,6 +270,32 @@ separate three.js / Babylon / PlayCanvas bake-off.
 The SDK, UI, juice, i18n, PWA, rewards, and analytics come for free. Phaser lives in
 a shared vendor chunk (`vite.config` `manualChunks`) cached across all canvas games.
 
+## How the app FEELS — the Juice Lab
+
+`#/lab` is a **dev-only** tournament for choosing sounds and effects by ear
+rather than by argument: 45 physics-synthesised sound characters (0 KB, offline,
+no trade dress), six blind ranking rounds, and a Tier 1 shell-juice demo running
+on the **real** Home component. It opens in guided mode, one task at a time.
+
+Nothing reaches a player, three ways over: the route branch is behind
+`import.meta.env.DEV`, the chunk is carved out as `lab-*`, and `lab-*.js` is in
+the PWA `globIgnores`. In production `#/lab` falls through to the games grid.
+**All three must hold** — re-verify with the two greps in the runbook after
+touching routing, chunking, or the PWA config.
+
+Two results worth not re-litigating: the **coin and wrong sounds already shipped
+won their own blind rounds** against 4-5 new challengers each (do not "improve"
+them without a fresh blind test), and **`Home.tsx` had zero juice and zero
+sound** — every game was full of feel while the screen every session starts on
+was inert.
+
+This is scaffolding with a kill date: when the winners land in `sdk/audio.ts`
+and the portal, `src/juice/lab/` gets **deleted in that same commit**.
+
+Full runbook, the ethical line it declines to cross, the damping law that made
+the sounds stop reading as synthetic, and the traps it cost:
+[`docs/juice-lab.md`](docs/juice-lab.md).
+
 ## Known traps (learned here)
 
 - **Nested React root teardown:** DOM games mount their own React root via
