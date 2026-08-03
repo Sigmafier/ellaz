@@ -121,7 +121,7 @@ describe("pushing a snapshot", () => {
     const cloud = createCloud({ fetchImpl: backend.fetchImpl, store: memStore(), rng: mulberry32(1) });
 
     const profile = { ...emptyProfile(), coins: 42, stars: 7 };
-    expect(await cloud.push(profile)).toBe(true);
+    expect(await cloud.push({ profile, records: {} })).toBe(true);
 
     const id = cloud.identity()!;
     const doc = backend.docs.get(`players/${id.uid}`) as { fields: Record<string, { stringValue: string }> };
@@ -132,7 +132,7 @@ describe("pushing a snapshot", () => {
   it("connects on its own if nobody did", async () => {
     const backend = fakeBackend();
     const cloud = createCloud({ fetchImpl: backend.fetchImpl, store: memStore() });
-    expect(await cloud.push(emptyProfile())).toBe(true);
+    expect(await cloud.push({ profile: emptyProfile(), records: {} })).toBe(true);
     expect(cloud.identity()).not.toBeNull();
   });
 
@@ -141,7 +141,7 @@ describe("pushing a snapshot", () => {
       fetchImpl: () => Promise.reject(new Error("offline")),
       store: memStore(),
     });
-    await expect(cloud.push(emptyProfile())).resolves.toBe(false);
+    await expect(cloud.push({ profile: emptyProfile(), records: {} })).resolves.toBe(false);
   });
 
   it("reports false when the code index fails, even though the profile landed", async () => {
@@ -149,13 +149,13 @@ describe("pushing a snapshot", () => {
     // resolve, so a half-written pair must not report success.
     const backend = fakeBackend({ failOn: /\/codes\// });
     const cloud = createCloud({ fetchImpl: backend.fetchImpl, store: memStore() });
-    expect(await cloud.push(emptyProfile())).toBe(false);
+    expect(await cloud.push({ profile: emptyProfile(), records: {} })).toBe(false);
   });
 
   it("reports false when the profile write fails", async () => {
     const backend = fakeBackend({ failOn: /\/players\// });
     const cloud = createCloud({ fetchImpl: backend.fetchImpl, store: memStore() });
-    expect(await cloud.push(emptyProfile())).toBe(false);
+    expect(await cloud.push({ profile: emptyProfile(), records: {} })).toBe(false);
   });
 
   it("writes the code index once per page load, not once per push", async () => {
@@ -165,8 +165,8 @@ describe("pushing a snapshot", () => {
     const backend = fakeBackend();
     const cloud = createCloud({ fetchImpl: backend.fetchImpl, store: memStore() });
 
-    expect(await cloud.push({ ...emptyProfile(), coins: 1 })).toBe(true);
-    expect(await cloud.push({ ...emptyProfile(), coins: 2 })).toBe(true);
+    expect(await cloud.push({ profile: { ...emptyProfile(), coins: 1 }, records: {} })).toBe(true);
+    expect(await cloud.push({ profile: { ...emptyProfile(), coins: 2 }, records: {} })).toBe(true);
 
     const id = cloud.identity()!;
     const writes = backend.calls.filter((c) => c.startsWith("PATCH "));
@@ -186,12 +186,12 @@ describe("pushing a snapshot", () => {
       store: memStore(),
     });
 
-    expect(await cloud.push(emptyProfile())).toBe(false);
+    expect(await cloud.push({ profile: emptyProfile(), records: {} })).toBe(false);
     const id = cloud.identity()!;
     expect(backend.docs.has(`codes/${id.code}`)).toBe(false);
 
     indexOffline = false;
-    expect(await cloud.push(emptyProfile())).toBe(true);
+    expect(await cloud.push({ profile: emptyProfile(), records: {} })).toBe(true);
     expect(backend.docs.has(`codes/${id.code}`)).toBe(true);
   });
 });
@@ -200,7 +200,10 @@ describe("restoring from a code", () => {
   async function seeded() {
     const backend = fakeBackend();
     const donor = createCloud({ fetchImpl: backend.fetchImpl, store: memStore(), rng: mulberry32(2) });
-    await donor.push({ ...emptyProfile(), coins: 120, stars: 9, owned: ["hat-crown"] });
+    await donor.push({
+      profile: { ...emptyProfile(), coins: 120, stars: 9, owned: ["hat-crown"] },
+      records: { "ellaz:snake:score:default": 4200 },
+    });
     return { backend, code: donor.identity()!.code };
   }
 
@@ -209,9 +212,34 @@ describe("restoring from a code", () => {
     const fresh = createCloud({ fetchImpl: backend.fetchImpl, store: memStore() });
 
     const restored = await fresh.restore(code);
-    expect(restored?.coins).toBe(120);
-    expect(restored?.stars).toBe(9);
-    expect(restored?.owned).toEqual(["hat-crown"]);
+    expect(restored?.profile.coins).toBe(120);
+    expect(restored?.profile.stars).toBe(9);
+    expect(restored?.profile.owned).toEqual(["hat-crown"]);
+  });
+
+  it("brings back the personal bests too, which the first version silently dropped", async () => {
+    // The whole reason DeviceState has two fields. Records live in their own
+    // storage keys, so a document carrying only the profile restored a room
+    // with none of the records that filled it, and said nothing about it.
+    const { backend, code } = await seeded();
+    const fresh = createCloud({ fetchImpl: backend.fetchImpl, store: memStore() });
+
+    const restored = await fresh.restore(code);
+    expect(restored?.records).toEqual({ "ellaz:snake:score:default": 4200 });
+  });
+
+  it("still returns the room when a document predates records", async () => {
+    // An older client wrote documents with no `records` field at all. Losing
+    // the records is bad; refusing to return the profile would be worse.
+    const { backend, code } = await seeded();
+    for (const [path, doc] of backend.docs) {
+      if (path.startsWith("players/")) delete (doc as { fields: Record<string, unknown> }).fields.records;
+    }
+    const fresh = createCloud({ fetchImpl: backend.fetchImpl, store: memStore() });
+
+    const restored = await fresh.restore(code);
+    expect(restored?.profile.coins).toBe(120);
+    expect(restored?.records).toEqual({});
   });
 
   it("accepts the code as a child would type it", async () => {

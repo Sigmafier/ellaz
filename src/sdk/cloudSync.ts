@@ -13,8 +13,8 @@
 // Nothing here is on a gameplay path. Every function resolves to a null, a
 // false, or nothing at all when the cloud is unreachable, and no caller is
 // allowed to care.
-import type { Cloud, CloudIdentity } from "./cloud";
-import type { ProfileV1 } from "./profile";
+import type { Cloud, CloudIdentity, DeviceState } from "./cloud";
+import { readRecords } from "./records";
 import { wallet } from "./wallet";
 
 /**
@@ -75,13 +75,14 @@ function load(): Promise<Cloud | null> {
  * keeps the free quota spent on real players and means a child who never earns
  * anything never touches the network at all.
  */
-function worthSaving(profile: ProfileV1): boolean {
+function worthSaving({ profile, records }: DeviceState): boolean {
   return (
     profile.coins > 0 ||
     profile.stars > 0 ||
     profile.owned.length > 0 ||
     profile.name !== undefined ||
-    Object.keys(profile.games).length > 0
+    Object.keys(profile.games).length > 0 ||
+    Object.keys(records).length > 0
   );
 }
 
@@ -101,26 +102,34 @@ function schedule(): void {
  * could never match twice and the skip below would be dead code that always let
  * the push through. Dropping the stamp is the entire point of this function.
  */
-function fingerprint(profile: ProfileV1): string {
-  const { updatedAt: _ignored, ...rest } = profile;
-  return JSON.stringify(rest);
+function fingerprint(state: DeviceState): string {
+  const { updatedAt: _ignored, ...rest } = state.profile;
+  // Records are part of it: a personal best set while the session coin cap is
+  // holding would otherwise move nothing in the profile, and the push carrying
+  // that record would be skipped as "already sent".
+  return JSON.stringify({ profile: rest, records: state.records });
 }
 
-/** Upload the current profile now, skipping the debounce. Never throws. */
+/** Everything this device would hand to another one. */
+function deviceState(): DeviceState {
+  return { profile: wallet.snapshot(), records: readRecords() };
+}
+
+/** Upload the current progress now, skipping the debounce. Never throws. */
 export async function pushNow(): Promise<boolean> {
-  const profile = wallet.snapshot();
-  if (!worthSaving(profile)) return false;
+  const state = deviceState();
+  if (!worthSaving(state)) return false;
 
   // Re-uploading a document byte-for-byte identical to the one already up there
   // spends a write out of the daily quota to change nothing. `true` because the
-  // cloud does hold this profile, which is what a caller asking "is it backed
+  // cloud does hold this progress, which is what a caller asking "is it backed
   // up?" wants to hear.
-  const fresh = fingerprint(profile);
+  const fresh = fingerprint(state);
   if (fresh === lastPushed) return true;
 
   const cloud = await load();
   if (!cloud) return false;
-  const pushed = await cloud.push(profile);
+  const pushed = await cloud.push(state);
   // Only a real success may be remembered. Forgetting on failure is what makes
   // a failed upload retry instead of being skipped as "already sent".
   lastPushed = pushed ? fresh : null;
@@ -173,7 +182,7 @@ export async function cloudIdentity(): Promise<CloudIdentity | null> {
  * device that already has progress is the one genuinely destructive thing this
  * feature can do.
  */
-export async function cloudRestore(code: string): Promise<ProfileV1 | null> {
+export async function cloudRestore(code: string): Promise<DeviceState | null> {
   const cloud = await load();
   if (!cloud) return null;
   return cloud.restore(code);

@@ -59,6 +59,37 @@ the value and be clear about its status, not to hide it.
 Watch for `void someAsyncSave()` next to a confident piece of UI. That discarded promise is
 the bug.
 
+## A transfer must carry everything a player would mourn, and nothing that can name its own keys
+
+A player's progress is not in one place. The profile — coins, stars, the room — is a
+single key. Every personal best is somewhere else entirely, one key per game per board,
+written by each game's own `SaveStore`. The first version of cloud backup carried the
+profile, so it restored a room with **none of the records that filled it**, and said
+nothing about it. No error, no empty state: just a save file that looked complete.
+
+So when adding anything persisted, ask where it lives relative to what a transfer copies.
+The answer is not obvious, because the two stores are both "localStorage" and look alike.
+
+**But an incoming document may never name its own storage keys.** It arrived over the
+network, behind a code, and if it could choose keys it would choose `ellaz:cloud:v1` —
+this device's anonymous identity — or `ellaz:profile:v1`, the balance. Every key from a
+restored document is matched against an anchored pattern (`ellaz:<game>:score:<board>`)
+before it reaches the disk, the count is bounded, and every value must be a finite number.
+That validation is the security boundary, not a tidiness check.
+
+Two deliberate limits worth not re-deriving:
+
+- **Adoption unions, it does not replace.** A board this device holds and the incoming set
+  does not is left alone, because `ctx.score` has no `clear()` and a transfer must not
+  become one by the back door.
+- **It cannot merge by taking the better of the two.** Only the number is persisted, not
+  the unit, so nothing can tell whether 12,750 beats 9,100 or loses to it. Fixing that is
+  a change to the score contract, not to the transfer.
+
+And the line on *what* travels is drawn at records on purpose: `ctx.storage` lets a game
+persist anything, including a coloring drawing as a data URL, and the document has a 1 MiB
+ceiling. Records are small, bounded, and the thing a child would actually miss.
+
 ## When to Apply
 
 - Any new action that overwrites profile state (a future account merge, a device transfer,

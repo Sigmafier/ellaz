@@ -419,6 +419,18 @@ negative, which is how the original "no rules release exists at all" was found.
 Cloud backup is a **backup and a transfer, not live sync**; making it live needs
 per-device counters on the profile first.
 
+**A transfer carries two things, because progress lives in two places.** The
+profile (coins, stars, the room) is one key; every personal best is a separate
+key per game per board, written by each game's own `SaveStore`. The first version
+carried only the profile, so it restored a room with none of the records that
+filled it and said nothing - `src/sdk/records.ts` is the missing half. An incoming
+document may **never name its own storage keys**: every key is matched against an
+anchored `ellaz:<game>:score:<board>` pattern before it reaches the disk, because
+otherwise a crafted document could write `ellaz:cloud:v1` (this device's identity)
+or `ellaz:profile:v1`. Adoption **unions** rather than replaces - `ctx.score` has
+no `clear()` and a transfer must not become one - and it cannot merge by taking
+the better of two values, because only the number is persisted and not the unit.
+
 **Restoring is the only action in this app that destroys progress**, so it carries
 two guarantees that no other screen needs and that a future destructive feature
 must inherit: the confirm shows a NUMBER for what is lost beside what is gained

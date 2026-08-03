@@ -1,5 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { cloudIdentity, cloudRestore, pushNow, wallet, type ProfileV1 } from "@sdk/index";
+import {
+  adoptRecords,
+  canUndoRecords,
+  cloudIdentity,
+  cloudRestore,
+  pushNow,
+  readRecords,
+  undoRecords,
+  wallet,
+  type DeviceState,
+} from "@sdk/index";
 import { Button } from "@ui/components";
 import { shake } from "@juice/index";
 
@@ -43,7 +53,7 @@ type Phase =
   | { kind: "typing" }
   | { kind: "looking" }
   | { kind: "missing" }
-  | { kind: "found"; incoming: ProfileV1; current: ProfileV1 }
+  | { kind: "found"; incoming: DeviceState; current: DeviceState }
   | { kind: "done"; canUndo: boolean }
   | { kind: "undone" }
   | { kind: "failed" };
@@ -99,22 +109,39 @@ export function Backup({ t }: { t: (key: string) => string }) {
       if (cardRef.current) shake(cardRef.current, 4, 180);
       return;
     }
-    // Captured now, so the confirm screen shows the two profiles the decision
-    // is actually being made between.
-    setPhase({ kind: "found", incoming, current: wallet.snapshot() });
+    // Captured now, so the confirm screen shows the two states the decision is
+    // actually being made between.
+    setPhase({
+      kind: "found",
+      incoming,
+      current: { profile: wallet.snapshot(), records: readRecords() },
+    });
   };
 
-  const confirm = (incoming: ProfileV1) => {
-    const saved = wallet.adoptRestored(incoming);
-    setPhase(saved ? { kind: "done", canUndo: wallet.canUndoRestore() } : { kind: "failed" });
-    // Mirror the restored profile straight back up, so this device's own
-    // document matches what the player now sees. Without it the next push
-    // would be the first thing to write it, up to a debounce later.
+  const confirm = (incoming: DeviceState) => {
+    const saved = wallet.adoptRestored(incoming.profile);
+    // Records live in their own keys, so they are their own step. Applied after
+    // the profile and only when it stuck: bringing across someone else's
+    // records on top of THIS device's coins would be a state neither device
+    // ever had.
+    if (saved) adoptRecords(incoming.records);
+    setPhase(
+      saved
+        ? { kind: "done", canUndo: wallet.canUndoRestore() || canUndoRecords() }
+        : { kind: "failed" },
+    );
+    // Mirror the restored state straight back up, so this device's own document
+    // matches what the player now sees. Without it the next push would be the
+    // first thing to write it, up to a debounce later.
     if (saved) void pushNow();
   };
 
   const undo = () => {
-    setPhase(wallet.undoRestore() ? { kind: "undone" } : { kind: "failed" });
+    // Both halves, and the profile decides what the screen says: it is the one
+    // the player can see. Records coming back is silent either way.
+    const back = wallet.undoRestore();
+    undoRecords();
+    setPhase(back ? { kind: "undone" } : { kind: "failed" });
     void pushNow();
   };
 
@@ -220,8 +247,8 @@ export function Backup({ t }: { t: (key: string) => string }) {
         <div style={{ marginTop: 12 }}>
           {/* BOTH sides, before replacing anything. Showing only what arrives
               tells a parent what they gain and hides what they spend. */}
-          <Tally label={t("restoreHere")} profile={phase.current} t={t} />
-          <Tally label={t("restoreFound")} profile={phase.incoming} t={t} />
+          <Tally label={t("restoreHere")} state={phase.current} t={t} />
+          <Tally label={t("restoreFound")} state={phase.incoming} t={t} />
           <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "8px 0 10px" }}>
             {t("restoreReplaces")}
           </p>
@@ -261,22 +288,29 @@ export function Backup({ t }: { t: (key: string) => string }) {
   );
 }
 
-/** One line of "what is in this profile", in the units a child recognises. */
+/**
+ * One line of "what is in here", in the units a child recognises.
+ *
+ * Records are counted alongside the coins because they are the half a transfer
+ * used to drop silently, and because a number is the only way a parent can see
+ * that the code they typed holds fewer of them than this device already does.
+ */
 function Tally({
   label,
-  profile,
+  state,
   t,
 }: {
   label: string;
-  profile: ProfileV1;
+  state: DeviceState;
   t: (key: string) => string;
 }) {
   return (
     <p style={{ fontSize: 14, margin: "0 0 4px" }}>
       <span style={{ color: "var(--text-dim)" }}>{label}</span>{" "}
       <strong>
-        {profile.coins} {t("coinsLabel")} · {profile.stars} {t("starsEarned")} ·{" "}
-        {profile.owned.length} {t("itemsLabel")}
+        {state.profile.coins} {t("coinsLabel")} · {state.profile.stars} {t("starsEarned")} ·{" "}
+        {state.profile.owned.length} {t("itemsLabel")} · {Object.keys(state.records).length}{" "}
+        {t("recordsLabel")}
       </strong>
     </p>
   );
