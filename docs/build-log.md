@@ -197,9 +197,79 @@ Two things the probe established, both worth not re-deriving:
 1 KB gz was not worth putting a spinner in front of a screen children open
 deliberately.
 
+## Wave C step 2a — progress leaves the device
+
+**Commit**: `04bfd6d`.
+
+Anonymous auth plus one Firestore document per player, reached with `fetch`.
+A backup code is shown in the World; entering it on another device brings the
+room across.
+
+### No Firebase SDK, on purpose
+
+`firebase/app` + `auth` + `firestore` is roughly 150-200 KB gz even tree-shaken
+— close to **three times this app's entire first visit**, which the previous two
+waves were spent halving. What the platform needs from it is: sign in
+anonymously, read one document, write one document. All three are ordinary REST
+calls, so they are ~250 lines of our own code and **zero dependencies**. The
+SDK's real value is offline persistence and realtime listeners, and neither is
+wanted here — `localStorage` is already the offline store, and a board that
+updates on open is the better product anyway.
+
+The client lands in a lazy `cloud-*` chunk (the same three coordinated changes
+as PostHog) and is not fetched at all until the player has something worth
+saving, so a first-time visitor who bounces makes no request and mints no
+account.
+
+### What it is not
+
+**A backup and a transfer, not live two-way sync.** Restoring copies progress
+across; from then on the two devices drift apart again. Merging two
+independently-earned coin balances correctly needs per-device counters the
+profile does not carry (a PN-counter: each device increments only its own entry,
+so a merge is a per-key max and the totals stay exact). Shipping a
+plausible-looking merge instead is how coins quietly vanish, which is the exact
+failure the wallet's rollback discipline exists to prevent. That is step 2b, and
+the UI says what it does rather than implying more.
+
+### Why there is a code at all
+
+Anonymous identity lives in the browser's own storage, so "clear browsing data"
+destroys the key to the cloud copy at the same moment it destroys the local one.
+**Nothing inside the device can survive that.** So the app asks for a piece of
+paper and explains why.
+
+The alphabet is Crockford base32 without I, L, O and U — the first three because
+a handwritten `1` and `I` are the same mark, and U so eight random characters
+cannot spell something a parent then has to explain. Reading a code back
+**repairs** those confusions rather than rejecting them.
+
+### Verified against the real project, not just the tests
+
+The unit tests drive a fake backend, which proves the logic and nothing about
+the URLs, the auth, or the rules. `npm run probe:cloud` drives the live project:
+**12/12**, with a **positive control on every negative** — owner *can* write,
+stranger *can* read — so a rule that refused everyone could not pass it. A
+stranger gets 403 overwriting progress and 403 repointing a code; an
+unauthenticated reader gets 403.
+
+Two things that only a live probe could have caught:
+
+- **Firestore had no rules release at all.** The database was created by API and
+  nothing had ever been published, so every client call would have been denied.
+  Rules are released through the Firebase Rules API, **not by this repo's CI**,
+  which means a `firestore.rules` edit that was never released is invisible from
+  the source tree. That is why the probe exists and why it should be re-run after
+  any rules change.
+- The client builds **masked** PATCH URLs (`?updateMask.fieldPaths=…`) while the
+  first probe used unmasked ones. Those were driven against live Firestore
+  separately before being trusted.
+
 ## Still open
 
-- **Wave C** — anonymous players who keep their progress, and a name pool.
+- **Wave C step 2b** — live two-way sync. Needs the profile to carry per-device
+  earned/spent counters before a merge can be correct; until then the cloud is a
+  backup and a transfer, and the UI says so.
 - **Wave D** — the boards, percentile-first: a child is never told they came
   last. Firestore's free daily quota is the design constraint, and it is
   fail-closed (reads refused until reset, never a charge), which is why the

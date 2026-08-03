@@ -407,6 +407,18 @@ Firebase offers whenever you touch Cloud Storage, Cloud Functions, or extensions
 - **Cloud Storage is not provisioned** and must not be. Original SVG ships in the
   bundle; the World needs no uploads.
 
+**Cloud backup talks to it over plain HTTP — there is no `firebase` dependency
+and there must not be one.** The SDK is ~150-200 KB gz, close to three times the
+whole first visit, to do three things that are ordinary REST calls: anonymous
+sign-in, read one document, write one document. `src/sdk/cloud.ts` is the client
+and it lives in a lazy `cloud-*` chunk. **Rules are released through the Firebase
+Rules API, not by this repo's CI**, so a `firestore.rules` edit that was never
+released is invisible from the source tree — run `npm run probe:cloud` after any
+rules change. It drives the live project with a positive control on every
+negative, which is how the original "no rules release exists at all" was found.
+Cloud backup is a **backup and a transfer, not live sync**; making it live needs
+per-device counters on the profile first.
+
 Firestore's free daily quota is the real design constraint, and running out is
 fail-closed - reads are refused until it resets, which costs nothing and shows a
 child a stale board rather than a charge. Confirm the current numbers at
