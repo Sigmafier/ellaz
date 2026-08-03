@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Locale } from "@i18n/index";
 import { makeT } from "@i18n/index";
-import { audioPort, wallet, type ProfileV1 } from "@sdk/index";
+import { audioPort, nameEmoji, renderName, wallet, type ProfileV1 } from "@sdk/index";
 import { IconButton } from "@ui/components";
 import { burst, popEl, shake } from "@juice/index";
 import { WalletChip } from "../WalletChip";
@@ -53,6 +53,13 @@ export function World({ locale, onExit }: { locale: Locale; onExit: () => void }
   // wallet.subscribe returns its own unsubscribe, so it IS the cleanup.
   useEffect(() => wallet.subscribe(setProfile), []);
 
+  // Name the player on their first visit HERE, rather than at app boot: a child
+  // who only ever plays games needs no name, and this is the first screen that
+  // shows one. The wallet notifies, so the subscription above re-renders us.
+  useEffect(() => {
+    wallet.ensureName();
+  }, []);
+
   const shown = ALL_ITEMS.filter((item) => item.category === active);
 
   const equippedId = (category: ItemCategory): string =>
@@ -93,6 +100,8 @@ export function World({ locale, onExit }: { locale: Locale; onExit: () => void }
           <h1 style={{ flex: 1, fontSize: 26, lineHeight: 1 }}>{t("world")}</h1>
           <WalletChip />
         </header>
+
+        <NamePlate profile={profile} locale={locale} t={t} />
 
         <div ref={sceneRef}>
           <Scene equipped={profile.equipped} />
@@ -165,6 +174,80 @@ export function World({ locale, onExit }: { locale: Locale; onExit: () => void }
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Who the player is — an animal face and a two-word name, with a button that
+ * gives them another one.
+ *
+ * There is no text input here and there never will be: names come from a fixed
+ * word list, which is why the button says "another name" rather than "edit".
+ * That single decision removes moderation from this platform entirely — there
+ * is nothing a child can type, so there is nothing to review or report.
+ *
+ * A name that does not resolve (a profile written by a newer build, met by a
+ * stale tab) renders as the placeholder rather than crashing or being
+ * overwritten. The reroll button is right there, which is the honest fix.
+ */
+function NamePlate({
+  profile,
+  locale,
+  t,
+}: {
+  profile: ProfileV1;
+  locale: Locale;
+  t: (key: string) => string;
+}) {
+  const plateRef = useRef<HTMLDivElement>(null);
+  const name = renderName(profile.name, locale);
+  const emoji = nameEmoji(profile.name);
+
+  const reroll = () => {
+    audioPort.play("pop");
+    wallet.rerollName();
+    if (plateRef.current) popEl(plateRef.current);
+  };
+
+  return (
+    <div
+      ref={plateRef}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "10px 14px",
+        marginBottom: 12,
+        borderRadius: "var(--radius-2)",
+        background: "var(--surface-2)",
+        boxShadow: "var(--shadow-1)",
+      }}
+    >
+      <span aria-hidden="true" style={{ fontSize: 34, lineHeight: 1 }}>
+        {emoji ?? "🙂"}
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{t("yourName")}</div>
+        {/* dir="auto" per string, not per container: one name is one script, so
+            each resolves its own direction and an English name inside the
+            Hebrew app still reads correctly. */}
+        <div
+          dir="auto"
+          style={{
+            fontSize: 20,
+            fontWeight: 800,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {name ?? "—"}
+        </div>
+      </div>
+      <IconButton ariaLabel={t("newName")} onClick={reroll}>
+        🎲
+      </IconButton>
     </div>
   );
 }

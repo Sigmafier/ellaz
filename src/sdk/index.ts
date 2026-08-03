@@ -40,6 +40,24 @@ export { TIER_COINS, SESSION_COIN_CAP, coinsFor, starsFor } from "./economy";
 // Games only ever see ctx.score, which cannot say which direction it ranks.
 export { UNIT_DIRECTION, bestOf, directionFor, formatScore, isBetter, isRankable } from "./score";
 export { SCORE_KEY_PREFIX, createScorePort } from "./scoreboard";
+// The name pool — the player's display name, held as word ids so it renders in
+// whichever language the app is in. No child ever types a name.
+export {
+  ADJECTIVES,
+  NOUNS,
+  NAME_COMBINATIONS,
+  isPlayerName,
+  nameEmoji,
+  pickName,
+  renderName,
+  rerollName,
+  resolveName,
+  type PlayerName,
+  type Adjective,
+  type Noun,
+  type Gender,
+} from "./names";
+
 export {
   PROFILE_KEY,
   emptyProfile,

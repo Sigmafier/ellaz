@@ -3,6 +3,8 @@ import { createWallet } from "./wallet";
 import { PROFILE_KEY, memoryBackend, migrateProfile } from "./profile";
 import { SESSION_COIN_CAP, TIER_COINS } from "./economy";
 import type { KeyValueBackend } from "./profile";
+import { renderName, resolveName } from "./names";
+import { mulberry32 } from "@shared/rng";
 
 /** A wallet on a private in-memory store, plus the store, so a test can reload. */
 function freshWallet(seed?: Record<string, string>) {
@@ -520,5 +522,89 @@ describe("corrupt storage", () => {
       wallet.createRewardsPort("snake").grant({ reason: "level_complete", tier: "easy" }),
     ).not.toThrow();
     expect(wallet.coins).toBe(TIER_COINS.easy);
+  });
+});
+
+describe("the player's name", () => {
+  it("starts absent — a child who never opens the World needs no name", () => {
+    const { backend, wallet } = freshWallet();
+    expect(wallet.name).toBeUndefined();
+    // And nothing was written just by asking.
+    expect(backend.read(PROFILE_KEY)).toBeNull();
+  });
+
+  it("picks and persists one on first ensure, then never changes it", () => {
+    const { backend, wallet } = freshWallet();
+    const first = wallet.ensureName(mulberry32(4));
+
+    expect(resolveName(first)).toBeDefined();
+    expect(migrateProfile(backend.read(PROFILE_KEY)).name).toEqual(first);
+
+    // A different rng must NOT produce a different name — it is already chosen.
+    expect(wallet.ensureName(mulberry32(999))).toEqual(first);
+    expect(createWallet(backend).name).toEqual(first);
+  });
+
+  it("keeps a name this build cannot render rather than overwriting it", () => {
+    // The realistic source is a profile written by a NEWER build, met by a
+    // stale tab. Renaming the child there would be a worse bug than showing
+    // them the reroll button.
+    const stored = JSON.stringify({ v: 1, name: { adj: "purple", noun: "dragon" } });
+    const { wallet } = freshWallet({ [PROFILE_KEY]: stored });
+
+    expect(renderName(wallet.name, "he")).toBeUndefined();
+    expect(wallet.ensureName(mulberry32(1))).toEqual({ adj: "purple", noun: "dragon" });
+  });
+
+  it("rerolls to something different, and persists it", () => {
+    const { backend, wallet } = freshWallet();
+    const rng = mulberry32(12);
+    let current = wallet.ensureName(rng);
+
+    for (let i = 0; i < 50; i++) {
+      const next = wallet.rerollName(rng);
+      expect(next).not.toEqual(current);
+      expect(migrateProfile(backend.read(PROFILE_KEY)).name).toEqual(next);
+      current = next;
+    }
+  });
+
+  it("rerolls from nothing without an ensure first", () => {
+    const { wallet } = freshWallet();
+    expect(resolveName(wallet.rerollName(mulberry32(2)))).toBeDefined();
+  });
+
+  it("still answers with a name when storage refuses the write", () => {
+    // A name is not a balance: a coin that did not persist must be reported as
+    // zero, but a name that did not persist can still be shown for the session.
+    const backend: KeyValueBackend = { read: () => null, write: () => false };
+    const wallet = createWallet(backend);
+
+    const name = wallet.ensureName(mulberry32(8));
+    expect(resolveName(name)).toBeDefined();
+    // Rolled back in memory, so the next call picks again rather than lying
+    // about a stored value.
+    expect(wallet.name).toBeUndefined();
+  });
+
+  it("survives junk in the name slot without losing the rest of the profile", () => {
+    for (const junk of ['"tiger"', "42", "null", '{"adj":"swift"}', '{"adj":"","noun":"x"}']) {
+      const stored = `{"v":1,"coins":9,"stars":2,"name":${junk}}`;
+      const { wallet } = freshWallet({ [PROFILE_KEY]: stored });
+      expect(wallet.name, junk).toBeUndefined();
+      expect(wallet.coins, junk).toBe(9);
+      expect(wallet.stars, junk).toBe(2);
+    }
+  });
+
+  it("hands out a defensive copy, like every other snapshot", () => {
+    const { wallet } = freshWallet();
+    const name = wallet.ensureName(mulberry32(6));
+    name.adj = "tampered";
+    expect(wallet.name!.adj).not.toBe("tampered");
+
+    const snap = wallet.snapshot();
+    snap.name!.noun = "tampered";
+    expect(wallet.name!.noun).not.toBe("tampered");
   });
 });

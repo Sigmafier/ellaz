@@ -11,6 +11,8 @@
 // the try/catch discipline in storage.ts — a player in incognito, or with
 // storage disabled, must still be able to play.
 
+import { isPlayerName, type PlayerName } from "./names";
+
 /** Bump the suffix when the shape changes incompatibly; v1 data then stays untouched. */
 export const PROFILE_KEY = "ellaz:profile:v1";
 
@@ -30,6 +32,16 @@ export interface GameRecord {
 
 export interface ProfileV1 {
   v: 1;
+  /**
+   * The player's display name, held as two WORD IDS rather than a rendered
+   * string so it re-renders in whichever language the app is currently in.
+   *
+   * Optional and ADDITIVE, exactly like `lastPlayedAt`: every profile written
+   * before names existed simply has no key, so `ellaz:profile:v1` stays v1.
+   * Absent means "not named yet", which is a real state — a child who has never
+   * opened the World has no name and does not need one.
+   */
+  name?: PlayerName;
   /** Spendable currency. */
   coins: number;
   /** Trophy count — NEVER spent, never lost. Nothing in the SDK decrements it. */
@@ -136,8 +148,16 @@ export function migrateProfile(raw: unknown): ProfileV1 {
 
   if (!isRecord(value)) return emptyProfile();
 
+  // Shape-checked, NOT vocabulary-checked, and never defaulted to a picked
+  // name. Junk drops the key entirely and leaves the honest "not named yet"
+  // state; minting a name here would hand one to a child who never opened the
+  // World, and would silently REPLACE the name of anyone whose profile was
+  // written by a build with a word this one doesn't know.
+  const name = isPlayerName(value.name) ? { adj: value.name.adj, noun: value.name.noun } : undefined;
+
   return {
     v: 1,
+    ...(name ? { name } : {}),
     coins: count(value.coins),
     stars: count(value.stars),
     owned: sanitizeOwned(value.owned),

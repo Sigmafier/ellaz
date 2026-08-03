@@ -17,6 +17,7 @@ import {
   type ProfileV1,
 } from "./profile";
 import { SESSION_COIN_CAP, coinsFor, starsFor } from "./economy";
+import { pickName, rerollName as rollDifferentName, type PlayerName } from "./names";
 import type { RewardGrant, RewardResult, RewardsPort } from "./types";
 
 export interface BuyResult {
@@ -38,6 +39,26 @@ export interface BuyResult {
 export interface Wallet {
   readonly coins: number;
   readonly stars: number;
+  /** The stored name, or `undefined` for a player who has never been named. */
+  readonly name: PlayerName | undefined;
+  /**
+   * The player's name, picking and persisting one on first call.
+   *
+   * Lazy on purpose: a child who only ever plays games needs no name, and
+   * minting one at boot would write to storage on a first visit for nothing.
+   * It is called by the first screen that actually shows a name.
+   *
+   * An EXISTING name is returned untouched even when this build cannot render
+   * it — a profile written by a newer build carries words this one has never
+   * heard of, and overwriting it here would rename the child on every stale tab
+   * or downgrade. Re-naming is the reroll button's job, never a side effect.
+   *
+   * If storage refuses the write the picked name is still returned, so the
+   * screen shows something sensible for this session and tries again next time.
+   */
+  ensureName(rng?: () => number): PlayerName;
+  /** A different name, persisted. Guaranteed not to be the current one. */
+  rerollName(rng?: () => number): PlayerName;
   /** A defensive copy — mutating it cannot reach the wallet. */
   snapshot(): ProfileV1;
   /** Re-render hook for UI. Returns an unsubscribe function. */
@@ -91,6 +112,9 @@ export interface Wallet {
 function clone(profile: ProfileV1): ProfileV1 {
   return {
     ...profile,
+    // Copied, not shared: `snapshot()` promises a defensive copy, and a caller
+    // mutating the returned name would otherwise reach into the live profile.
+    ...(profile.name ? { name: { ...profile.name } } : {}),
     owned: [...profile.owned],
     equipped: { ...profile.equipped },
     games: Object.fromEntries(Object.entries(profile.games).map(([id, r]) => [id, { ...r }])),
@@ -112,6 +136,33 @@ class EllazWallet implements Wallet {
 
   get stars(): number {
     return this.profile.stars;
+  }
+
+  get name(): PlayerName | undefined {
+    return this.profile.name ? { ...this.profile.name } : undefined;
+  }
+
+  ensureName(rng?: () => number): PlayerName {
+    const existing = this.profile.name;
+    if (existing) return { ...existing };
+    return this.writeName(pickName(rng));
+  }
+
+  rerollName(rng?: () => number): PlayerName {
+    return this.writeName(rollDifferentName(this.profile.name, rng));
+  }
+
+  /**
+   * Persist a name. Unlike a purchase, a REFUSED write is NOT rolled back and
+   * the name is still returned: a name is not a balance. Showing a child a name
+   * that a broken storage layer will forget costs them nothing, while showing
+   * them nothing at all — or an error — costs them the screen.
+   */
+  private writeName(name: PlayerName): PlayerName {
+    this.mutate(() => {
+      this.profile.name = name;
+    });
+    return { ...name };
   }
 
   snapshot(): ProfileV1 {

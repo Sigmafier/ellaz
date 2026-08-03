@@ -67,6 +67,10 @@ export const STRINGS: Dict = {
   // count that is never spent and never lost.
   world: { he: "העולם שלי", en: "My world" },
   shop: { he: "חנות", en: "Shop" },
+  // The player's name. Nobody types one — it is picked from a word list, so the
+  // button says "another one", not "edit".
+  yourName: { he: "השם שלי", en: "My name" },
+  newName: { he: "שם אחר", en: "Another name" },
   coins: { he: "מטבעות", en: "Coins" },
   stars: { he: "כוכבים", en: "Stars" },
   owned: { he: "יש לך", en: "Owned" },
