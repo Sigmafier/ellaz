@@ -40,6 +40,11 @@ export function Memory({ ctx }: { ctx: GameContext }) {
   const [levelIdx, setLevelIdx] = useState(0);
   const [state, setState] = useState<MemoryState>(() => deckFor(0, 0));
   const [won, setWon] = useState(false);
+  // Fewest moves, per DIFFICULTY. A board is scoped to LEVELS[i].id because
+  // clearing 6 pairs and clearing 10 are not the same achievement, and one
+  // shared record would mean a child's easy run permanently outranks every
+  // hard one they will ever play.
+  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best(LEVELS[0].id));
   const gridRef = useRef<HTMLDivElement>(null);
   const started = useRef(false);
 
@@ -59,6 +64,7 @@ export function Memory({ ctx }: { ctx: GameContext }) {
       setLevelIdx(li);
       setState(deckFor(si, li));
       setWon(false);
+      setBest(ctx.score?.best(LEVELS[li].id));
       ctx.analytics.levelStart(`set-${si + 1}-${LEVELS[li].id}`);
     },
     [ctx, setIdx, levelIdx],
@@ -83,13 +89,19 @@ export function Memory({ ctx }: { ctx: GameContext }) {
         if (centre) burst(centre.x, centre.y, { count: 10 });
         if (isWon(ns)) {
           setWon(true);
-          winMoment(ctx, {
+          // `ms` is deliberately absent. It used to carry `ns.moves`, which is
+          // not a duration — it fed analytics.levelComplete() as one and would
+          // have reported a 14-move game as a 14-millisecond game. Memory keeps
+          // no clock, so the honest answer is "not measured"; the moves count
+          // now goes where it means something, as the score.
+          const result = winMoment(ctx, {
             reason: "level_complete",
             tier: LEVELS[levelIdx].id,
             level: `set-${setIdx + 1}-${LEVELS[levelIdx].id}`,
-            ms: ns.moves,
             at: centre,
+            score: { value: ns.moves, unit: "moves", board: LEVELS[levelIdx].id },
           });
+          if (result.score) setBest(result.score.best);
         }
       } else if (outcome.kind === "mismatch") {
         const { a, b } = outcome;
@@ -105,6 +117,7 @@ export function Memory({ ctx }: { ctx: GameContext }) {
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
         <Stat label={ctx.t("pairs")} value={`${state.matchedPairs}/${state.totalPairs}`} />
         <Stat label={ctx.t("moves")} value={state.moves} />
+        <Stat label={ctx.t("best")} value={best ?? "-"} />
         <Button variant="ghost" kids onClick={() => reset()}>
           🔄
         </Button>

@@ -41,6 +41,10 @@ export function Hidden({ ctx }: { ctx: GameContext }) {
   const [round, setRound] = useState(1);
   const [state, setState] = useState<HiddenState>(() => makeRound("easy"));
   const [justWon, setJustWon] = useState(false);
+  // Furthest round reached, per DIFFICULTY — the round counter resets to 1 on a
+  // difficulty change, so a shared record would let an easy streak stand as the
+  // record on hard, where a crowd is twice the size.
+  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best("easy"));
   const sceneRef = useRef<HTMLDivElement>(null);
   const started = useRef(false);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -75,6 +79,7 @@ export function Hidden({ ctx }: { ctx: GameContext }) {
       setRound(1);
       setState(makeRound(d));
       setJustWon(false);
+      setBest(ctx.score?.best(d));
       ctx.analytics.levelStart("crowd");
     },
     [ctx, difficulty],
@@ -92,12 +97,14 @@ export function Hidden({ ctx }: { ctx: GameContext }) {
         burst(e.clientX, e.clientY, { count: 10 });
         if (isWon(ns)) {
           setJustWon(true);
-          winMoment(ctx, {
+          const result = winMoment(ctx, {
             reason: "level_complete",
             tier: difficulty,
             level: "crowd",
             at: { x: e.clientX, y: e.clientY },
+            score: { value: round, unit: "points", board: difficulty },
           });
+          if (result.score) setBest(result.score.best);
           // Auto-advance to the next endless round, keeping difficulty.
           advanceTimer.current = setTimeout(() => {
             setRound((r) => r + 1);
@@ -111,7 +118,10 @@ export function Hidden({ ctx }: { ctx: GameContext }) {
         if (sceneRef.current) shake(sceneRef.current, 3, 130);
       }
     },
-    [ctx, state, difficulty],
+    // `round` is read for the score. It is in here deliberately: without it the
+    // handler would only refresh because `state` happens to change on every
+    // tap, which is luck rather than correctness.
+    [ctx, state, difficulty, round],
   );
 
   const targets = targetIcons(state);
@@ -121,6 +131,7 @@ export function Hidden({ ctx }: { ctx: GameContext }) {
       {/* Level indicator + difficulty selector */}
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
         <Stat label={ctx.locale === "he" ? "שלב" : "Level"} value={round} />
+        <Stat label={ctx.t("best")} value={best ?? "-"} />
         <DifficultySelector
           options={DIFF_OPTIONS}
           value={difficulty}

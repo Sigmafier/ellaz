@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { GameContext } from "@sdk/index";
+import { formatScore, type GameContext } from "@sdk/index";
 import { Button, Stat } from "@ui/components";
 import { DifficultySelector, type DifficultyOption } from "@ui/DifficultySelector";
 import { burst, shake, haptic } from "@juice/index";
-import { winMoment } from "@shared/index";
+import { useGameTimer, winMoment } from "@shared/index";
 import { newGame, reveal, toggleFlag, DIFFICULTIES, type MineState, type Difficulty } from "./logic";
 
 const NUM_COLORS = ["", "#4d7cff", "#2e9e5b", "#e0533d", "#7a44c9", "#c9962e", "#2aa7b8", "#c94f9e", "#666"];
@@ -27,8 +27,14 @@ export function Minesweeper({ ctx }: { ctx: GameContext }) {
   const [diff, setDiff] = useState<Difficulty>(DIFFICULTIES.easy);
   const [state, setState] = useState<MineState>(() => newGame(DIFFICULTIES.easy));
   const [flagMode, setFlagMode] = useState(false);
+  // Fastest clear, per DIFFICULTY. Nine mines and forty are different games.
+  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best("easy"));
   const boardRef = useRef<HTMLDivElement>(null);
   const started = useRef(false);
+
+  // Stops on a win AND on a death — a board you lost has no time worth showing.
+  // useGameTimer also stops on pause, so putting the tablet down costs nothing.
+  const timer = useGameTimer(ctx, { running: !state.won && !state.dead });
 
   useEffect(() => {
     if (!started.current) {
@@ -42,9 +48,11 @@ export function Minesweeper({ ctx }: { ctx: GameContext }) {
     (d = diff) => {
       setDiff(d);
       setState(newGame(d));
+      setBest(ctx.score?.best(levelName(d)));
+      timer.reset();
       ctx.analytics.levelStart(levelName(d));
     },
-    [ctx, diff],
+    [ctx, diff, timer],
   );
 
   const act = useCallback(
@@ -68,10 +76,15 @@ export function Minesweeper({ ctx }: { ctx: GameContext }) {
       } else if (ns.won) {
         if (clientX != null && clientY != null) burst(clientX, clientY, { count: 14 });
         const board = boardRef.current?.getBoundingClientRect();
-        winMoment(ctx, {
+        // Read the clock now: `state.won` flips on the next render, so the
+        // timer is still running at this point.
+        const clearedMs = timer.elapsedMs;
+        const result = winMoment(ctx, {
           reason: "level_complete",
           tier: levelName(diff),
           level: levelName(diff),
+          ms: clearedMs,
+          score: { value: clearedMs, unit: "ms", board: levelName(diff) },
           at:
             clientX != null && clientY != null
               ? { x: clientX, y: clientY }
@@ -79,6 +92,7 @@ export function Minesweeper({ ctx }: { ctx: GameContext }) {
                 ? { x: board.left + board.width / 2, y: board.top + board.height / 2 }
                 : undefined,
         });
+        if (result.score) setBest(result.score.best);
       } else {
         ctx.audio.play("pop");
       }
@@ -97,6 +111,15 @@ export function Minesweeper({ ctx }: { ctx: GameContext }) {
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: 12 }}>
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
         <Stat label={ctx.locale === "he" ? "דגלים" : "Flags"} value={state.flagsLeft} />
+        {/* Numbers stay LTR inside the Hebrew app — "1:30" must not mirror. */}
+        <Stat
+          label={ctx.t("time")}
+          value={<span dir="ltr">{formatScore(timer.elapsedMs, "ms")}</span>}
+        />
+        <Stat
+          label={ctx.t("best")}
+          value={<span dir="ltr">{best === undefined ? "-" : formatScore(best, "ms")}</span>}
+        />
         <Button
           variant={flagMode ? "primary" : "ghost"}
           ariaLabel="flag mode"

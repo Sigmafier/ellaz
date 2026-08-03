@@ -16,6 +16,7 @@ export const STRINGS: Dict = {
   restart: { he: "מהתחלה", en: "Restart" },
   score: { he: "ניקוד", en: "Score" },
   best: { he: "שיא", en: "Best" },
+  time: { he: "זמן", en: "Time" },
   youWon: { he: "כל הכבוד!", en: "You win!" },
   gameOver: { he: "המשחק נגמר", en: "Game over" },
   loading: { he: "טוען…", en: "Loading…" },

@@ -138,3 +138,28 @@ describe("formatScore — what a child reads", () => {
     expect(formatScore(10.6, "points")).toBe("11");
   });
 });
+
+describe("formatScore — a minute is not 90 seconds", () => {
+  // Sudoku and minesweeper are measured in MINUTES, not the seconds a reaction
+  // tap takes. "420.3s" is technically the same number and unreadable; nobody
+  // counts a board in seconds once past a minute.
+  it("switches to m:ss at one minute", () => {
+    expect(formatScore(60_000, "ms")).toBe("1:00");
+    expect(formatScore(90_000, "ms")).toBe("1:30");
+    expect(formatScore(423_400, "ms")).toBe("7:03");
+  });
+
+  it("pads the seconds so it never reads as 7:3", () => {
+    expect(formatScore(421_000, "ms")).toBe("7:01");
+  });
+
+  it("still reads short times in seconds, where tenths matter", () => {
+    expect(formatScore(12_750, "ms")).toBe("12.8s");
+    expect(formatScore(59_900, "ms")).toBe("59.9s");
+  });
+
+  it("does not let rounding produce a 60th second", () => {
+    // 59.96s rounds to "60.0s" under toFixed(1) — a time that does not exist.
+    expect(formatScore(59_960, "ms")).toBe("1:00");
+  });
+});

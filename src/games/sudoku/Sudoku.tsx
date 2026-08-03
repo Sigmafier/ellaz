@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { GameContext, RewardTier } from "@sdk/index";
-import { Button } from "@ui/components";
+import { formatScore, type GameContext, type RewardTier } from "@sdk/index";
+import { Button, Stat } from "@ui/components";
 import { DifficultySelector, type DifficultyOption } from "@ui/DifficultySelector";
 import { burst } from "@juice/index";
-import { winMoment } from "@shared/index";
+import { useGameTimer, winMoment } from "@shared/index";
 import { generate, setCell, conflicts, isSolved, type SudokuState, type Level } from "./logic";
 
 // Two rows, both the shared <DifficultySelector>: the animal boards a young
@@ -46,8 +46,16 @@ export function Sudoku({ ctx }: { ctx: GameContext }) {
   const [state, setState] = useState<SudokuState>(() => generate("easy"));
   const [sel, setSel] = useState<[number, number] | null>(null);
   const [won, setWon] = useState(false);
+  // Fastest solve, per LEVEL. A 4×4 animal board and an expert 9×9 are not the
+  // same puzzle, so they are not the same record.
+  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best("easy"));
   const boardRef = useRef<HTMLDivElement>(null);
   const started = useRef(false);
+
+  // The clock stops the moment the board is solved, and useGameTimer already
+  // stops it on pause — a child who puts the tablet down mid-puzzle must not
+  // come back to a ruined time.
+  const timer = useGameTimer(ctx, { running: !won });
 
   useEffect(() => {
     if (!started.current) {
@@ -71,9 +79,11 @@ export function Sudoku({ ctx }: { ctx: GameContext }) {
       setState(generate(lv));
       setSel(null);
       setWon(false);
+      setBest(ctx.score?.best(lv));
+      timer.reset();
       ctx.analytics.levelStart(lv);
     },
-    [ctx, level],
+    [ctx, level, timer],
   );
 
   const enter = useCallback(
@@ -93,15 +103,21 @@ export function Sudoku({ ctx }: { ctx: GameContext }) {
           ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
           : undefined;
         if (centre) burst(centre.x, centre.y, { count: 16 });
-        winMoment(ctx, {
+        // Read the clock here, not from a later render: `won` has only just
+        // been set, so the timer is still running for one more tick.
+        const solvedMs = timer.elapsedMs;
+        const result = winMoment(ctx, {
           reason: "level_complete",
           tier: LEVEL_TIER[level],
           level,
           at: centre,
+          ms: solvedMs,
+          score: { value: solvedMs, unit: "ms", board: level },
         });
+        if (result.score) setBest(result.score.best);
       }
     },
-    [ctx, sel, state, won, level],
+    [ctx, sel, state, won, level, timer],
   );
 
   useEffect(() => {
@@ -141,6 +157,15 @@ export function Sudoku({ ctx }: { ctx: GameContext }) {
         <Button variant="ghost" onClick={() => reset()}>
           {ctx.t("restart")}
         </Button>
+        {/* Numbers stay LTR inside the Hebrew app — "1:30" must not mirror. */}
+        <Stat
+          label={ctx.t("time")}
+          value={<span dir="ltr">{formatScore(timer.elapsedMs, "ms")}</span>}
+        />
+        <Stat
+          label={ctx.t("best")}
+          value={<span dir="ltr">{best === undefined ? "-" : formatScore(best, "ms")}</span>}
+        />
       </div>
 
       {/* dir="ltr" — a spatial grid must not mirror in the Hebrew RTL app, so

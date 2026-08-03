@@ -89,9 +89,23 @@ export function bestOf(a: number, b: number, direction: ScoreDirection): number 
  * "12.8s" does. An unrankable value renders as an em-dash placeholder rather
  * than the word NaN — the display is the last place a corrupt save should
  * surface, and "—" reads as "nothing yet" to a child, which is the truth.
+ *
+ * Past a minute it flips to m:ss. A reaction tap is a thing you measure in
+ * tenths; a sudoku board is not, and "423.4s" is the same number rendered
+ * unreadably. The threshold is applied to the ROUNDED tenth, not the raw
+ * value, so 59.96s cannot print as "60.0s" — a time that does not exist.
  */
+const MINUTE_MS = 60_000;
+
 export function formatScore(value: number, unit: ScoreUnit): string {
   if (!isRankable(value)) return "—";
-  if (unit === "ms") return `${(value / 1000).toFixed(1)}s`;
-  return String(Math.round(value));
+  if (unit !== "ms") return String(Math.round(value));
+
+  const tenths = `${(value / 1000).toFixed(1)}s`;
+  if (value < MINUTE_MS && tenths !== "60.0s") return tenths;
+
+  const totalSeconds = Math.round(value / 1000);
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  return `${mins}:${String(secs).padStart(2, "0")}`;
 }

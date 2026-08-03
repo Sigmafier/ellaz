@@ -22,6 +22,12 @@ export function FindDiff({ ctx }: { ctx: GameContext }) {
   const scene: Scene = SCENES[sceneIdx];
   const [state, setState] = useState<FindState>(() => newGame(diffsOf(scene)));
   const [won, setWon] = useState(false);
+  // Furthest progress ever reached, counted in SCENES CLEARED rather than in
+  // the Level shown above it. Level only bumps after a full pass through every
+  // scene, so most players would carry a permanent record of 1 — a number that
+  // says nothing about whether they got further this time. Scenes cleared moves
+  // on every win, which is what "how far have I got" should mean here.
+  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best());
   const wrapRef = useRef<HTMLDivElement>(null);
   const started = useRef(false);
 
@@ -68,20 +74,26 @@ export function FindDiff({ ctx }: { ctx: GameContext }) {
         burst(e.clientX, e.clientY, { count: 10 });
         if (isWon(ns)) {
           setWon(true);
-          winMoment(ctx, {
+          // `ms` is gone rather than replaced. It used to carry `ns.misses`,
+          // which is not a duration — analytics.levelComplete() would have
+          // logged a 3-miss round as a 3-millisecond one. This game keeps no
+          // clock, so "not measured" is the honest answer.
+          const cleared = (level - 1) * SCENES.length + sceneIdx + 1;
+          const result = winMoment(ctx, {
             reason: "level_complete",
             tier: tierForScene(sceneIdx),
             level: scene.id,
-            ms: ns.misses,
             at: { x: e.clientX, y: e.clientY },
+            score: { value: cleared, unit: "points" },
           });
+          if (result.score) setBest(result.score.best);
         }
       } else if (result.kind === "miss") {
         ctx.audio.play("fail");
         if (wrapRef.current) shake(wrapRef.current, 4, 160);
       }
     },
-    [ctx, state, scene.id, sceneIdx],
+    [ctx, state, scene.id, sceneIdx, level],
   );
 
   const markers = useMemo(
@@ -102,6 +114,7 @@ export function FindDiff({ ctx }: { ctx: GameContext }) {
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
         <Stat label={ctx.locale === "he" ? "שלב" : "Level"} value={level} />
         <Stat label={ctx.locale === "he" ? "נותרו" : "Left"} value={remaining(state)} />
+        <Stat label={ctx.t("best")} value={best ?? "-"} />
         <div style={{ fontWeight: 800 }}>{scene.name[ctx.locale]}</div>
         <Button variant="ghost" kids ariaLabel="restart" onClick={() => reset()}>
           🔄
