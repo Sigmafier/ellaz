@@ -318,9 +318,46 @@ separate three.js / Babylon / PlayCanvas bake-off.
 5. Register in `src/portal/catalog.ts`: `import { meta as <id> } from "../games/<id>/meta"`
    plus a `load: () => import("../games/<id>/index")` row. `catalog.test.ts` is
    property-based with a count ratchet, so a well-formed entry needs no test edit.
+6. `src/content/games/<id>.ts` - the page's words, in Hebrew AND English, plus a
+   `provenance` row for every number the prose quotes. See the next section.
 
 The SDK, UI, juice, i18n, PWA, rewards, and analytics come for free. Phaser lives in
 a shared vendor chunk (`vite.config` `manualChunks`) cached across all canvas games.
+
+## The words on a game page
+
+Each game gets ~750 words per language at `src/content/games/<id>.ts`. Three rules,
+all mechanised in `npx vitest run src/content/`:
+
+**Authors write prose; code supplies facts.** Difficulty tiers, what the record
+measures, the platform facts (free, no ads, no account, offline) are read from
+`meta.ts`, the game's own `DifficultySelector` options and `sdk/score.ts` at render
+time. A writer cannot claim something the game does not do, because they are not the
+one saying it.
+
+**Every number names the script that derives it.** `provenance` rows are
+repo-relative paths and `content.test.ts` asserts the file exists. The memory page's
+"9.2 moves" comes from `scripts/sim/memory-moves.mjs`, which parses the real level
+table out of `Memory.tsx` and simulates 20,000 games, so it fails loudly if a
+difficulty changes. The first draft said "under twenty-eight moves" and nothing
+produced that number; this field is why the next one cannot happen quietly.
+
+**Never translate - write it twice.** A translation carries the source language's
+rhythm, and that rhythm is exactly what reads as machine-made.
+
+`src/content/voice.ts` is the measurable half of "does this sound like a person", and
+the measurable half is mostly **uniformity**: our first draft's five paragraphs were
+57, 53, 50, 56 and 54 words, a 5% spread where humans run 30 to 60. It also bans the
+tell vocabulary per language, the em dash, more than one rule-of-three, and the
+"it's not just X, it's Y" crutch. It cannot see whether the admission is true, whether
+a statistic was derived, or whether it sounds like us - which is why three pilots ship
+before the other eighteen.
+
+**`src/content/` is build-time only.** `no-app-imports.test.ts` forbids portal, ui,
+sdk, games, juice, shared and i18n from importing it; one stray import would put every
+word of all 21 pages into the precached shell a child downloads before choosing a game.
+
+Full rule: [`.claude/rules/game-content-template.md`](.claude/rules/game-content-template.md).
 
 ## How the app FEELS — the Juice Lab
 
