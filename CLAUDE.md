@@ -174,6 +174,19 @@ because a refusal is not an error. Every category ships exactly one free
 before a player has earned anything. **Item ids are persisted in
 `profile.owned` forever: never rename one, never reuse one.**
 
+**The player's name.** Every player is called something — one adjective plus one
+animal, drawn from a pool of 16 × 20 in `src/sdk/names.ts` and shown on the World
+screen with a reroll button. **No child ever types a name**, which removes
+moderation from this platform entirely: there is nothing to review because there
+is nothing anyone can type. The profile stores the two **word ids**, never a
+rendered string, so one player has one name in both languages. Hebrew adjectives
+agree with their noun and follow it, so every noun declares a gender and every
+adjective carries both forms — `זריז נמר` is the wrong order and `לטאה זריז` is
+the wrong gender, and an English-shaped pool makes both mistakes at once. **Word
+ids are persisted forever: never rename one, never remove one**, exactly like the
+shop item ids. Full rule and the rest of the traps:
+[`.claude/rules/name-pool-convention.md`](.claude/rules/name-pool-convention.md).
+
 **Speech** (`ctx.speech`) is Web Speech TTS for Hebrew and English letters and
 words. Zero assets, zero network. Voices load ASYNCHRONOUSLY, so subscribe with
 `onAvailabilityChange()` rather than reading `available()` once; call `unlock()`

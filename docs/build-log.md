@@ -156,6 +156,47 @@ tries to get you to break it.
 
 ---
 
+## Wave C step 1 — the player has a name
+
+**Commit**: `4777ce8`.
+
+A pool of 16 adjectives × 20 animals, stored on the profile as two **word ids**
+and rendered per locale, shown on the World screen with a reroll button. Local
+only: no Firebase, no new dependency, nothing over the network. Wave C step 2 is
+the anonymous uid and cloud sync; this ships and works without it.
+
+The design rule and its traps live in
+[`name-pool-convention.md`](../.claude/rules/name-pool-convention.md). The short
+version: no child ever types a name, which removes moderation entirely; ids
+rather than a string, so a name survives a language switch; and Hebrew
+adjectives agree with their noun and follow it, so an English-shaped
+adjective+noun pool gets both the order and the gender wrong.
+
+**Cost: +2,135 B gz on the first visit** (69,624 → 71,759), measured on a
+key-matched arm (`VITE_POSTHOG_KEY=""` in both, per the Wave B lesson above).
+
+### The optimisation that the measurement killed
+
+The obvious response to that cost was to make the World a lazy route — it is a
+secondary screen holding 327 lines of inline SVG, so the estimate was 4-6 KB gz.
+
+**Built it and measured: the World chunk is 4,390 B raw, and the first visit
+drops only 1,005 B gz.** Reverted.
+
+Two things the probe established, both worth not re-deriving:
+
+- **`Home.tsx` imports `world/Scene`** to preview the child's room on the home
+  screen, so `art.tsx` and `items.ts` are in the shell regardless of what
+  happens to `World.tsx`. Lazy-loading the World can never move them.
+- **Vite did NOT write a `modulepreload` for the World chunk.** `index.html`
+  still listed exactly three eager assets. That is worth knowing because the
+  comment above the Juice Lab guard in `App.tsx` says a module-scope
+  `lazy(() => import(…))` gets one — true in that case, not universally. Verify
+  on the artifact, as that comment itself instructs.
+
+1 KB gz was not worth putting a spinner in front of a screen children open
+deliberately.
+
 ## Still open
 
 - **Wave C** — anonymous players who keep their progress, and a name pool.
