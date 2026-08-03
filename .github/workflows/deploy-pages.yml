@@ -39,9 +39,15 @@ jobs:
           # Optional. Unset, Vite substitutes undefined, the init is
           # dead-code-eliminated and no analytics ships at all.
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
-      # Hash routing means deep links resolve client-side, but a 404 fallback keeps
-      # any stray path on the SPA instead of a GitHub 404.
-      - run: cp dist/index.html dist/404.html
+      # NO `cp dist/index.html dist/404.html` HERE.
+      #
+      # It used to live here, from when every route was a hash fragment and the
+      # app shell was a reasonable answer to any path. The build now emits a real
+      # `dist/404.html`, and copying the shell over it would replace a page that
+      # says "nothing here" with one that answers 200-shaped content at every
+      # wrong URL - a soft 404, which search engines treat worse than the missing
+      # page. `scripts/assert-pages.mjs` asserts the two files differ, but it runs
+      # inside `build:check` above, so it cannot see anything done after it.
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

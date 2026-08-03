@@ -315,14 +315,79 @@ separate three.js / Babylon / PlayCanvas bake-off.
 4. On a win, call `winMoment(ctx, { reason, tier, level, at })` from `@shared` -
    from the event handler, never inside a `setState` updater. Render the level row
    with `<DifficultySelector>` from `@ui`.
-5. Register in `src/portal/catalog.ts`: `import { meta as <id> } from "../games/<id>/meta"`
-   plus a `load: () => import("../games/<id>/index")` row. `catalog.test.ts` is
-   property-based with a count ratchet, so a well-formed entry needs no test edit.
+5. Register in **two** places, which are deliberately different lists:
+   `src/portal/games.ts` holds the ordered roster (`import { meta as <id> }` plus a
+   row in `GAMES`), and `src/portal/catalog.ts` holds the lazy loader
+   (`<id>: () => import("../games/<id>/index")`). The ORDER lives in one file and
+   the loaders in the other because the build-time page emitter reads the roster
+   and must never touch game code - a stray `import("../games/snake")` at config
+   time would load Phaser inside `vite.config.ts`. `catalog.test.ts` is
+   property-based with a count ratchet, and `build.test.ts` asserts the two lists
+   stay identical, so a well-formed entry needs no test edit.
 6. `src/content/games/<id>.ts` - the page's words, in Hebrew AND English, plus a
    `provenance` row for every number the prose quotes. See the next section.
 
 The SDK, UI, juice, i18n, PWA, rewards, and analytics come for free. Phaser lives in
 a shared vendor chunk (`vite.config` `manualChunks`) cached across all canvas games.
+**Two web pages come for free as well** - the route table is derived from the
+roster, so `/games/<id>/` and `/en/games/<id>/` are emitted, sitemapped and gated
+the moment step 5 lands. Missing step 6 is a red build, not a thin page.
+
+## Every game has a real web address
+
+The site used to be one document. It is now 47: `dist/index.html` (still the app,
+unchanged) plus **46 emitted pages** built by `src/build/**` inside a Vite plugin,
+so `npm run build` cannot skip them and neither deploy workflow can forget.
+
+| URL | What it is |
+|---|---|
+| `/` | the application. The emitter only adds head tags here, never overwrites it |
+| `/games/<id>/` · `/en/games/<id>/` | 21 games x 2 languages, ~900 words each |
+| `/en/` | the English home index, with 21 real links |
+| `/world/` · `/en/world/` | the room |
+| `/404.html` | bilingual, `noindex`, and `ErrorDocument`-wired on Hostinger |
+| `robots.txt` · `sitemap.xml` · `llms.txt` | emitted, not in `public/` (see below) |
+
+**The slug is `meta.id`, never the directory name.** `src/games/n2048/` publishes at
+`/games/2048/`, so a hand-written `/games/n2048/` is a 404 that only the link
+checker in `scripts/assert-pages.mjs` would catch.
+
+**These pages carry no JavaScript at all.** No `<script src>`, no `#root`, no app
+stylesheet - a document, not a shell. That is deliberate three times over: the
+app's `global.css` sets `body { overflow: hidden }`, which would leave every word
+below the fold unreachable by scroll while a crawler read it perfectly; an
+asset-hash `<link>` would couple 46 files to a build hash; and with no runtime
+there is nothing that can hide the prose. The play button is a plain link into the
+hash app. Phase 5 turns it into an in-place mount, and that is the only thing about
+these pages that changes.
+
+**Canonical never carries the base.** `https://ellaz.fun/games/snake/` on both
+hosts; the GitHub Pages copy adds `noindex` to every page and a `Disallow: /`
+robots.txt, and emits no sitemap. `robots.txt` is emitted rather than dropped in
+`public/` precisely because the two hosts need opposite files.
+
+**Two gates, and `build:check` runs both.** `assert-first-visit.mjs` now matches
+FULL dist-relative paths rather than basenames - `games/2048/index.html` has the
+basename `index.html`, which the old matcher waved through as "the app shell".
+`assert-pages.mjs` checks the pages themselves: prose floor, canonical, hreflang,
+noindex, internal-link integrity, JSON-LD parse, sitemap bijection, no page
+precached, and no `NavigationRoute` in `sw.js`. Every check has a negative control,
+and all of them were mutation-proven against a real `dist/` on 2026-08-04.
+
+Run the gate under **both** bases before believing it:
+`npm run build:check` then `BASE_PATH=/ellaz/ npx vite build --outDir dist-ellaz &&
+DIST_DIR=dist-ellaz npm run assert:pages`. Half these failures are base-dependent
+and each workflow only ever sees one arm.
+
+**The service-worker trap that would have broken all of it**, for returning
+visitors and nobody else:
+[`.claude/rules/sw-navigation-fallback-hijacks-real-pages.md`](.claude/rules/sw-navigation-fallback-hijacks-real-pages.md).
+
+**Still authored by hand, not derived**: the difficulty tiers and what each game's
+record measures. Both live inside renderers that import React, so a build-time
+import is not possible; the pages simply do not state them yet. Deriving them means
+declaring `levels` in each DOM-free `meta.ts` with a test that pins it to the
+renderer's own `DifficultySelector` options.
 
 ## The words on a game page
 

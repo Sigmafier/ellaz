@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import { fileURLToPath, URL } from "node:url";
+import { pagesPlugin } from "./src/build/pages";
 
 // Ellaz portal build config.
 // - Phaser is isolated into its own stable vendor chunk so it is downloaded once
@@ -38,6 +39,22 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // THE MOST DANGEROUS LINE IN THIS FILE, and it is a deletion.
+        //
+        // vite-plugin-pwa defaults `navigateFallback` to "index.html", which
+        // registers a workbox NavigationRoute with no denylist. Every navigation
+        // then resolves to the app shell — so a RETURNING visitor (one with the
+        // service worker installed) asking for /games/snake/ receives the home
+        // page instead, while fresh browsers, incognito windows and every
+        // crawler receive the real document. A human-only, cache-only failure
+        // that no static check and no crawler test can see.
+        //
+        // Undefined kills the route outright: it cannot serve the wrong document
+        // because it serves none. Offline navigation is picked up by the
+        // NetworkFirst rule below instead, which caches each page as it is
+        // visited. `npm run assert:pages` asserts `sw.js` contains zero
+        // NavigationRoute so nothing can quietly put it back.
+        navigateFallback: undefined,
         // Precache the SHELL only: index.html, css, the React vendor chunk, icons,
         // fonts. Per-game chunks and the (large) Phaser vendor chunk are excluded
         // here and picked up lazily by the CacheFirst route below, the first time a
@@ -60,14 +77,36 @@ export default defineConfig({
         // `cloud-*.js` is the backup client, dynamically imported after first
         // paint (see sdk/cloudSync.ts) and only ever fetched by a player who
         // has something to back up.
+        // The four directory entries are the emitted content pages. They are
+        // real documents of ~30 KB each and there are 46 of them; precaching
+        // them would put roughly a megabyte of prose in front of a child who
+        // has not chosen a game yet. They are served from the network and
+        // cached as they are visited (the navigate rule below).
         globIgnores: [
           "**/game-*.js",
           "**/vendor-phaser-*.js",
           "**/lab-*.js",
           "**/vendor-analytics-*.js",
           "**/cloud-*.js",
+          "games/**",
+          "en/**",
+          "world/**",
+          "404.html",
         ],
         runtimeCaching: [
+          {
+            // Navigations. This replaces what `navigateFallback` used to do, and
+            // it replaces it with something that cannot serve the wrong page:
+            // the network decides what a URL means, and the cache only answers
+            // when the network cannot.
+            urlPattern: ({ request }) => request.mode === "navigate",
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "ellaz-pages",
+              networkTimeoutSeconds: 3,
+              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
+          },
           {
             // maxEntries covers 32 games + the Phaser vendor chunk, with headroom
             // for stale hashed copies left behind across a few deploys.
@@ -83,6 +122,9 @@ export default defineConfig({
         ],
       },
     }),
+    // Registered LAST so its `transformIndexHtml` runs after VitePWA has
+    // injected the manifest link and the registerSW script.
+    pagesPlugin(base),
   ],
   resolve: {
     alias: {

@@ -63,14 +63,21 @@ export function extractPrecacheUrls(swSource) {
 // So: name what MAY be precached, and fail everything else. A new shell asset is
 // a deliberate decision that edits this list; a stray chunk is a bug that stops
 // the build.
+//
+// The patterns match a FULL dist-relative path, not a basename, and that
+// distinction is load-bearing since the content pages landed. `games/2048/
+// index.html` has the basename `index.html`, which the old basename matcher
+// waved through as "the app shell" — so all 46 emitted pages could have been
+// precached and this script would have printed OK over roughly a megabyte of
+// prose downloaded before a child picks a game.
 const ALLOWED = [
   { re: /^index\.html$/, why: "the app shell" },
   { re: /^manifest\.webmanifest$/, why: "PWA manifest" },
   { re: /^(icon|favicon)\.svg$/, why: "app icons" },
-  { re: /^shell-[A-Za-z0-9_-]+\.(js|css)$/, why: "shared app code + styles" },
-  { re: /^index-[A-Za-z0-9_-]+\.js$/, why: "entry chunk" },
-  { re: /^vendor-react-[A-Za-z0-9_-]+\.js$/, why: "React runtime" },
-  { re: /^workbox-window\.prod\.es5-[A-Za-z0-9_-]+\.js$/, why: "SW registration" },
+  { re: /^assets\/shell-[A-Za-z0-9_-]+\.(js|css)$/, why: "shared app code + styles" },
+  { re: /^assets\/index-[A-Za-z0-9_-]+\.js$/, why: "entry chunk" },
+  { re: /^assets\/vendor-react-[A-Za-z0-9_-]+\.js$/, why: "React runtime" },
+  { re: /^assets\/workbox-window\.prod\.es5-[A-Za-z0-9_-]+\.js$/, why: "SW registration" },
 ];
 
 /** Known offenders, used only to print a more useful message. Not the gate. */
@@ -85,7 +92,22 @@ const KNOWN_BAD = [
   },
 ];
 
-const basename = (url) => url.slice(url.lastIndexOf("/") + 1);
+/**
+ * The base this build was made for. Read from the artifact rather than from the
+ * environment: the gate should describe the `dist/` in front of it, not the
+ * shell variable that happens to be set now.
+ */
+function distBase() {
+  try {
+    return JSON.parse(readFileSync(join(DIST, "pages.json"), "utf8")).base;
+  } catch {
+    return "/";
+  }
+}
+const BASE = distBase();
+
+/** A URL as it appears under `dist/`: no base, no leading slash. */
+const rel = (url) => (url.startsWith(BASE) ? url.slice(BASE.length) : url).replace(/^\//, "");
 
 function sizeOf(url) {
   try {
@@ -126,9 +148,9 @@ function checkIndexHtml() {
 
   const bad = [];
   for (const a of assets) {
-    const name = basename(a);
+    const name = rel(a);
     if (ALLOWED.some((x) => x.re.test(name))) continue;
-    const known = KNOWN_BAD.find((f) => name.startsWith(f.prefix));
+    const known = KNOWN_BAD.find((f) => name.slice(name.lastIndexOf("/") + 1).startsWith(f.prefix));
     bad.push({
       a,
       why: known ? known.why : "not a known shell asset — first visit is an allowlist",
@@ -175,9 +197,9 @@ function main() {
 
   const violations = [];
   for (const url of urls) {
-    const name = basename(url);
+    const name = rel(url);
     if (ALLOWED.some((a) => a.re.test(name))) continue;
-    const known = KNOWN_BAD.find((f) => name.startsWith(f.prefix));
+    const known = KNOWN_BAD.find((f) => name.slice(name.lastIndexOf("/") + 1).startsWith(f.prefix));
     violations.push({
       url,
       why: known ? known.why : "not a known shell asset — precache is an allowlist",
@@ -194,14 +216,24 @@ function main() {
   // Same extractor, a manifest with one planted entry per forbidden prefix.
   // This must find all of them; if it finds none, the extractor silently
   // matches nothing and the real assertion above was vacuous.
-  const planted = `precacheAndRoute([${KNOWN_BAD.map(
-    (f, i) => `{url:"assets/${f.prefix}PLANTED${i}.js",revision:null}`,
+  //
+  // `games/2048/index.html` is planted alongside them because it is the entry
+  // the OLD basename matcher accepted: its basename is `index.html`, which is
+  // on the allowlist. If this script is ever reverted to matching basenames,
+  // this control is what says so.
+  const PLANTED = [
+    ...KNOWN_BAD.map((f, i) => `assets/${f.prefix}PLANTED${i}.js`),
+    "games/2048/index.html",
+    "en/games/snake/index.html",
+  ];
+  const planted = `precacheAndRoute([${PLANTED.map(
+    (u) => `{url:"${u}",revision:null}`,
   ).join(",")}]);`;
   const controlUrls = extractPrecacheUrls(planted);
-  const controlHits = controlUrls.filter((u) => !ALLOWED.some((a) => a.re.test(basename(u))));
-  const controlOk = controlHits.length === KNOWN_BAD.length;
+  const controlHits = controlUrls.filter((u) => !ALLOWED.some((a) => a.re.test(rel(u))));
+  const controlOk = controlHits.length === PLANTED.length;
   console.log(
-    `negative control: rejected ${controlHits.length}/${KNOWN_BAD.length} planted entries` +
+    `negative control: rejected ${controlHits.length}/${PLANTED.length} planted entries` +
       ` — ${controlOk ? "FIRES (gate is live)" : "DEAD"}`,
   );
   if (!controlOk) {

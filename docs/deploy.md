@@ -126,6 +126,37 @@ curl -s https://ellaz.fun/ | grep -oE 'assets/index-[A-Za-z0-9_-]+\.js'
 # compare against the hash in your local dist/index.html
 ```
 
+### The content pages (since 2026-08-04)
+
+The build emits 46 real documents. Four checks, and the last one is the only one
+that can catch the failure that matters most.
+
+```bash
+# 1. A game page is a real document with its own words, JavaScript or not.
+curl -s https://ellaz.fun/games/2048/ | grep -c '<h1'          # 1
+curl -s https://ellaz.fun/games/2048/ | wc -w                   # ~900+
+
+# 2. The slug is meta.id, not the directory name.
+curl -sI https://ellaz.fun/games/n2048/ | head -1               # 404, on purpose
+
+# 3. Each host asks for what it should.
+curl -s https://ellaz.fun/robots.txt | head -5                  # Allow: / + Sitemap:
+curl -s https://sigmafier.github.io/ellaz/robots.txt            # Disallow: /
+curl -s https://sigmafier.github.io/ellaz/games/2048/ | grep -c noindex   # 1
+
+# 4. A trailing-slash-less URL redirects rather than answering twice.
+curl -sI https://ellaz.fun/games/2048 | head -1                 # 301
+```
+
+**The fifth check cannot be curled.** A service worker with a navigation fallback
+answers every URL with the app shell — for returning visitors only. `curl`,
+incognito and every crawler see the correct page, so the bug is invisible to all
+four checks above. Load `https://ellaz.fun/` in a normal browser, wait for
+`navigator.serviceWorker.controller` to be non-null, and only then navigate to
+`/games/2048/`. You must land on the game's own `<h1>`, not the home grid. Why the
+config says `navigateFallback: undefined`:
+[`.claude/rules/sw-navigation-fallback-hijacks-real-pages.md`](../.claude/rules/sw-navigation-fallback-hijacks-real-pages.md).
+
 ## Troubleshooting
 
 | Symptom | Cause to check first |

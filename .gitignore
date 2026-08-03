@@ -1,6 +1,8 @@
 node_modules
 dist
 dist-ssr
+# second-base build arm, produced by scripts/check-both-bases.sh
+dist-ellaz
 *.local
 .env
 .env.local

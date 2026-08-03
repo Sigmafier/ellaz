@@ -1,0 +1,165 @@
+import type { Locale } from "./types";
+
+/**
+ * The words that are the same on every page: section headings, the platform
+ * facts, the home and world pages, the 404.
+ *
+ * These are AUTHORED, like the per-game copy, but they are authored once. The
+ * per-game files must never restate a platform fact ("free", "no ads", "works
+ * offline") in a field of their own - a writer who types it can get it wrong,
+ * and twenty-one copies of a claim is twenty-one chances to drift. The page
+ * renderer reads it from here instead.
+ *
+ * Build-time only, like everything under `src/content/`.
+ */
+
+export const ORIGIN = "https://ellaz.fun";
+
+export interface SiteCopy {
+  brand: string;
+  tagline: string;
+  /** Breadcrumb root. */
+  home: string;
+  /** The label on the button that takes a visitor into the game. */
+  play: string;
+  playNote: string;
+  /** Section headings on a game page, in render order. */
+  headings: {
+    howToPlay: string;
+    about: string;
+    teaches: string;
+    tips: string;
+    ages: string;
+    accessibility: string;
+    together: string;
+    faq: string;
+    related: string;
+  };
+  /** The platform facts strip. Derived facts, stated once. */
+  facts: string[];
+  /** Category labels, keyed by the `Category` union in the SDK. */
+  categories: Record<string, string>;
+  homePage: { title: string; description: string; h1: string; lede: string; body: string[] };
+  worldPage: { title: string; description: string; h1: string; lede: string; body: string[] };
+  notFound: { title: string; h1: string; body: string; back: string };
+  footer: string;
+}
+
+const he: SiteCopy = {
+  brand: "Ellaz",
+  tagline: "משחקים חינם בעברית, ישר בדפדפן",
+  home: "בית",
+  play: "לשחק",
+  playNote: "נפתח במשחק עצמו. בלי הורדה ובלי הרשמה.",
+  headings: {
+    howToPlay: "איך משחקים?",
+    about: "על המשחק",
+    teaches: "מה המשחק מלמד?",
+    tips: "טיפים",
+    ages: "מאיזה גיל מתאים?",
+    accessibility: "נגישות",
+    together: "לשחק ביחד",
+    faq: "שאלות נפוצות",
+    related: "משחקים נוספים",
+  },
+  facts: ["חינם", "בלי פרסומות", "בלי הרשמה", "בלי הורדה", "עובד בלי אינטרנט", "שחקן אחד"],
+  categories: {
+    kids: "לילדים",
+    learn: "לימוד",
+    think: "חשיבה",
+    speed: "מהירות",
+    create: "יצירה",
+    classics: "קלאסיים",
+  },
+  homePage: {
+    title: "Ellaz - משחקים חינם בעברית לילדים ולמבוגרים",
+    description:
+      "עשרים ואחד משחקים חינמיים בעברית, ישר בדפדפן. בלי הורדה, בלי הרשמה ובלי פרסומות. עובדים על טלפון, טאבלט ומחשב.",
+    h1: "משחקים חינם בעברית",
+    lede: "כל המשחקים כאן פתוחים מהרגע הראשון, רצים בדפדפן ועובדים גם בלי אינטרנט אחרי ביקור אחד.",
+    body: [
+      "האתר נבנה סביב שאלה אחת: מה ילד בן ארבע יכול לפתוח לבד. אין קריאה בשום מקום, אין חשבון למלא ואין מסך שמבקש משהו לפני שמשחקים. נוגעים במשחק והוא מתחיל.",
+      "יש כאן משחקי זיכרון, חשיבה, מהירות ויצירה, ולצידם כמה קלאסיקות שמבוגר יאהב באותה מידה. כל משחק שומר שיא על המכשיר עצמו, וכל שיא נשמר בנפרד לכל רמה.",
+    ],
+  },
+  worldPage: {
+    title: "החדר שלי - Ellaz",
+    description:
+      "החדר של השחקן ב-Ellaz. מטבעות שנצברו במשחקים קונים רהיטים, בעלי חיים ובגדים, והכל נשמר על המכשיר.",
+    h1: "החדר שלי",
+    lede: "כל ניצחון במשחק מכניס מטבעות לארנק, והמטבעות האלה קונים דברים לחדר.",
+    body: [
+      "לחדר יש שמונה מקומות שאפשר למלא: קיר, רצפה, שטיח, צמח, פוסטר, בגד, כובע וחיה. בכל קטגוריה יש פריט אחד חינמי מההתחלה, כך שהחדר שלם עוד לפני שנצבר מטבע אחד.",
+      "קנייה היא נגיעה אחת, בלי חלון אישור ובלי בקשת פרטים. פריט שאין מספיק מטבעות בשבילו פשוט מרטט קלות ולא אומר כלום, כי סירוב הוא לא שגיאה.",
+      "לכל שחקן יש גם שם: שם תואר וחיה, מתוך רשימה סגורה, עם כפתור שמגריל מחדש. אף ילד לא מקליד שם, ולכן אין כאן שום דבר שצריך לפקח עליו.",
+    ],
+  },
+  notFound: {
+    title: "הדף לא נמצא - Ellaz",
+    h1: "אין כאן כלום",
+    body: "הכתובת הזאת לא קיימת. אולי המשחק עבר, ואולי נפלה טעות בהעתקה.",
+    back: "חזרה לכל המשחקים",
+  },
+  footer: "Ellaz - משחקים חינם בעברית ובאנגלית. אין פרסומות, אין הרשמה, ואין איסוף מידע על ילדים.",
+};
+
+const en: SiteCopy = {
+  brand: "Ellaz",
+  tagline: "Free browser games, no download and no account",
+  home: "Home",
+  play: "Play",
+  playNote: "Opens the game itself. Nothing to download, nothing to sign up for.",
+  headings: {
+    howToPlay: "How do you play?",
+    about: "About this game",
+    teaches: "What does it teach?",
+    tips: "Tips",
+    ages: "What age is it for?",
+    accessibility: "Accessibility",
+    together: "Playing together",
+    faq: "Common questions",
+    related: "More games",
+  },
+  facts: ["Free", "No ads", "No account", "No download", "Works offline", "Single player"],
+  categories: {
+    kids: "For kids",
+    learn: "Learning",
+    think: "Thinking",
+    speed: "Speed",
+    create: "Creative",
+    classics: "Classics",
+  },
+  homePage: {
+    title: "Ellaz - free browser games for kids and grown-ups",
+    description:
+      "Twenty-one free games that run in the browser. No download, no account, no ads. They work on a phone, a tablet and a computer, and offline after one visit.",
+    h1: "Free games in your browser",
+    lede: "Every game here is open from the first second, runs in the browser, and keeps working with no connection once you have loaded it.",
+    body: [
+      "The whole site is built around one question: what can a four-year-old open on their own. There is no reading anywhere, no account to fill in, and no screen asking for something before you get to play. You tap a game and it starts.",
+      "There are memory games, thinking games, speed games and drawing, plus a handful of classics a grown-up will happily lose an evening to. Each game keeps its record on the device, and each difficulty keeps its own.",
+    ],
+  },
+  worldPage: {
+    title: "My room - Ellaz",
+    description:
+      "The player's room in Ellaz. Coins earned in the games buy furniture, pets and outfits, and everything is stored on the device.",
+    h1: "My room",
+    lede: "Every win drops coins into the wallet, and those coins buy things for the room.",
+    body: [
+      "The room has eight slots to fill: wall, floor, rug, plant, poster, outfit, hat and pet. Every category ships one free item, so the room is complete before a single coin has been earned.",
+      "Buying is one tap. No confirm dialog, no details to enter. An item you cannot afford yet gives a small shake and says nothing at all, because being told no is not an error.",
+      "Every player is called something too: an adjective and an animal, drawn from a fixed list, with a button to reroll. No child types a name, which is why there is nothing here anyone needs to moderate.",
+    ],
+  },
+  notFound: {
+    title: "Page not found - Ellaz",
+    h1: "Nothing here",
+    body: "That address does not exist. The game may have moved, or a character may have gone missing from the link.",
+    back: "Back to all the games",
+  },
+  footer:
+    "Ellaz - free games in Hebrew and English. No ads, no accounts, and nothing collected about a child.",
+};
+
+export const SITE: Record<Locale, SiteCopy> = { he, en };

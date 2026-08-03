@@ -4,18 +4,23 @@
 # here rather than in public/ so it ships ONLY to Hostinger — the GitHub Pages
 # build runs on nginx and would just carry it as dead weight.
 
-# --- SPA fallback -----------------------------------------------------------
-# Routing is hash-based (#/game/<id>), so every real route already resolves out
-# of index.html. This only catches a stray non-hash path — a hand-typed /world,
-# an old link — and hands it the shell instead of an Apache 404.
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteBase /
-  # Anything that exists on disk (assets, sw.js, icons) is served as-is.
-  RewriteCond %{REQUEST_FILENAME} -f [OR]
-  RewriteCond %{REQUEST_FILENAME} -d
-  RewriteRule ^ - [L]
-  RewriteRule ^ index.html [L]
+# --- Real pages, and no SPA catch-all ---------------------------------------
+# Every route is now a real document on disk: /games/<id>/index.html and its
+# English twin, /world/, /en/. Apache's DirectoryIndex serves each of those for
+# the directory URL, and DirectorySlash (on by default) 301s /games/2048 to
+# /games/2048/ so the two forms do not both answer 200.
+#
+# The SPA catch-all that used to live here is GONE on purpose. With real pages
+# the only thing it still caught was a typo, and answering a typo with 200 plus
+# the home page is a soft 404 — which search engines treat worse than the
+# missing page it was covering for. A real 404 is the honest answer.
+ErrorDocument 404 /404.html
+
+# MultiViews would let Apache guess: a request for /games/2048 could be answered
+# with some other file whose name it liked, before DirectorySlash ever got the
+# chance to redirect. Off.
+<IfModule mod_negotiation.c>
+  Options -MultiViews
 </IfModule>
 
 # --- Caching ----------------------------------------------------------------
@@ -32,8 +37,19 @@
   # The shell, the service worker and the manifest ARE the update mechanism.
   # Cache any of them and a deploy never reaches a returning player — exactly
   # the stale-bundle failure the PWA's autoUpdate mode exists to prevent.
-  <FilesMatch "^(index\.html|sw\.js|manifest\.webmanifest)$">
+  #
+  # This FilesMatch is basename-scoped, which is what makes it reach the 46
+  # nested content pages too: `games/2048/index.html` matches `^index\.html$`
+  # the same way the shell does. They carry no content hash, so a revalidate on
+  # every visit is exactly right for them.
+  <FilesMatch "^(index\.html|404\.html|sw\.js|manifest\.webmanifest)$">
     Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+
+  # robots.txt and the sitemap change whenever a game is added. An hour is long
+  # enough to be free and short enough that a crawler is never a day behind.
+  <FilesMatch "^(robots\.txt|sitemap\.xml|llms\.txt)$">
+    Header set Cache-Control "public, max-age=3600"
   </FilesMatch>
 </IfModule>
 
@@ -45,5 +61,5 @@
 
 # --- Compression ------------------------------------------------------------
 <IfModule mod_deflate.c>
-  AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml application/manifest+json
+  AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml application/manifest+json text/plain application/xml
 </IfModule>

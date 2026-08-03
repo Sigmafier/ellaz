@@ -24,6 +24,13 @@ const APP_DIRS = ["portal", "ui", "sdk", "games", "juice", "shared", "i18n"];
 const IMPORTS_CONTENT =
   /(?:from\s*|import\s*\(\s*)["'`][^"'`]*\/content(?:\/[^"'`]*)?["'`]/;
 
+/**
+ * The same rule one layer over. `src/build/**` READS `src/content`, so an app
+ * module that imports the page renderer pulls the prose in behind it - the
+ * boundary above would still be green, and the shell would still triple.
+ */
+const IMPORTS_BUILD = /(?:from\s*|import\s*\(\s*)["'`][^"'`]*\/build(?:\/[^"'`]*)?["'`]/;
+
 function sourceFiles(dir: string): string[] {
   const out: string[] = [];
   for (const entry of readdirSync(dir)) {
@@ -60,6 +67,18 @@ describe("src/content is build-time only", () => {
     ).toEqual([]);
   });
 
+  it("no app module imports the page renderer either", () => {
+    const offenders = APP_FILES.filter((f) => IMPORTS_BUILD.test(readFileSync(f, "utf8"))).map((f) =>
+      relative(SRC, f),
+    );
+    expect(
+      offenders,
+      `These modules ship to the browser and import src/build:\n  ${offenders.join("\n  ")}\n` +
+        `src/build reads src/content, so importing it pulls the prose in behind it and the ` +
+        `content boundary above stays green while the shell triples.`,
+    ).toEqual([]);
+  });
+
   it("the matcher fires on the shape it claims to catch", () => {
     expect(IMPORTS_CONTENT.test('import { CONTENT } from "../content";')).toBe(true);
     expect(IMPORTS_CONTENT.test('import { memory } from "../../content/games/memory";')).toBe(true);
@@ -68,6 +87,11 @@ describe("src/content is build-time only", () => {
     expect(IMPORTS_CONTENT.test('import { x } from "../portal/contentish";')).toBe(false);
     expect(IMPORTS_CONTENT.test("el.textContent = title;")).toBe(false);
     expect(IMPORTS_CONTENT.test('import { GameHost } from "./GameHost";')).toBe(false);
+
+    expect(IMPORTS_BUILD.test('import { gamePage } from "../build/gamePage";')).toBe(true);
+    expect(IMPORTS_BUILD.test('const p = await import("../../build/pages");')).toBe(true);
+    expect(IMPORTS_BUILD.test('import { x } from "./rebuild";')).toBe(false);
+    expect(IMPORTS_BUILD.test("const built = build(x);")).toBe(false);
   });
 
   it("actually scanned the app tree", () => {
