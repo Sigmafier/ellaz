@@ -53,10 +53,13 @@ src/
    └─ <Renderer>      React component (DOM) or Phaser scene (canvas)
 ```
 
-Games (10): memory, coloring, finddiff, hidden, math (kids) · 2048, tictactoe,
-minesweeper, sudoku, snake (classics). Every game offers a **difficulty selector**
-and/or endless levels: 7 of the 10 render the shared `<DifficultySelector>` from
-`@ui`, coloring and finddiff advance through endless levels instead, and snake
+**Games (21)** — 16 `ageBand: "kids"` (balloons, bees, bubbles, coloring, echo,
+evolve, finddiff, frog, hidden, math, memory, reaction, sequence, shadows,
+sortsize, vanish) and 5 `"all"` (minesweeper, n2048, snake, sudoku, tictactoe).
+Counts here go stale fast — `src/portal/catalog.ts` is the source of truth and
+`catalog.test.ts` ratchets the count. Every game offers a **difficulty selector**
+and/or endless levels: 17 render the shared `<DifficultySelector>` from `@ui`,
+coloring, finddiff and hidden advance through endless levels instead, and snake
 picks speed from in-canvas Phaser buttons. Wins go through **`winMoment()`** from
 `@shared`, which owns the confetti (there are zero `celebrate()` calls left in
 `src/games/`).
@@ -125,6 +128,25 @@ it grants and persists FIRST, then plays sound, haptics, confetti and the coin
 flight to the wallet chip, then fires analytics. The cosmetic half is wrapped in
 try/catch, so a thrown animation can never cost a kid a coin. Confetti defaults
 ON; endless-game milestones pass `confetti: false`.
+
+**Scores.** Same shape as the economy, one layer over: a game reports a **value
+and a unit** (`points`/`ms`/`moves`) and `src/sdk/economy.ts`'s sibling
+`src/sdk/score.ts` decides how that ranks — `points` high, `ms` and `moves` low.
+**There is no `direction` parameter and there must never be one**, or a game
+could report `ms` as "higher is better" and order its own leaderboard backwards.
+The record rides the existing win as `winMoment(ctx, { …, score: { value, unit,
+board } })`; `ctx.score` is add-only, with no `clear()`, exactly like
+`ctx.rewards`. **11 of the 21 games have one so far** (bees, echo, finddiff,
+hidden, math, memory, minesweeper, n2048, reaction, snake, sudoku). **coloring
+gets none, ever** — ranking a child's drawing is the opposite of this platform's
+premise. The other nine are Wave 2 games not yet covered, and tictactoe has no
+obvious record to keep; both are open work, not a decision.
+`board` scopes a record to a difficulty wherever the scales differ
+(6 pairs vs 10, a 4×4 animal sudoku vs an expert 9×9). The six games that kept
+their own `best` before this existed are on the default board **on purpose**, so
+their players' records survived; a read-through `legacyKey` shim carries those
+old keys, and it has a kill date. Full rule, the board table, and the `ms`-is-a-
+duration trap: [`.claude/rules/score-contract-convention.md`](.claude/rules/score-contract-convention.md).
 
 **The World** (`#/world`) is a room and a character with 8 slots (wall, floor,
 rug, plant, poster, outfit, hat, pet) holding 24 items in original inline SVG.
