@@ -3,6 +3,11 @@ import { balloons } from "./games/balloons";
 import { bees } from "./games/bees";
 import { bubbles } from "./games/bubbles";
 import { frog } from "./games/frog";
+import { echo } from "./games/echo";
+import { sequence } from "./games/sequence";
+import { shadows } from "./games/shadows";
+import { sortsize } from "./games/sortsize";
+import { vanish } from "./games/vanish";
 import { memory } from "./games/memory";
 import { minesweeper } from "./games/minesweeper";
 import { n2048 } from "./games/n2048";
@@ -40,6 +45,11 @@ export const CONTENT: Record<string, GameContent> = {
   [bubbles.id]: bubbles,
   [frog.id]: frog,
   [reaction.id]: reaction,
+  [echo.id]: echo,
+  [sequence.id]: sequence,
+  [shadows.id]: shadows,
+  [sortsize.id]: sortsize,
+  [vanish.id]: vanish,
 };
 
 /** The ids that have prose today. */

@@ -1,0 +1,278 @@
+import type { GameContent } from "../types";
+
+/**
+ * Pattern completion, and a page whose interesting content is the taxonomy: the
+ * eight families are real, distinct kinds of pattern, and which three a level
+ * draws from is what the difficulty actually means.
+ *
+ * The honest wrinkle is that two of the hard families do not repeat at all -
+ * GROW and NUMBER have period 0 - so a child who has learned to count the cycle
+ * has to notice that counting has stopped working. That is a genuinely
+ * different cognitive step and the page says so.
+ */
+export const sequence: GameContent = {
+  id: "sequence",
+
+  he: {
+    metaTitle: "מה בא אחר כך - משחק דפוסים לילדים | Ellaz",
+    metaDescription:
+      "משחק דפוסים חינם לילדים. רואים סדרה ומשלימים את הבא בתור. שמונה סוגי דפוסים, בלי הרשמה.",
+
+    lede: "משחק חינם שבו מופיעה סדרה של צורות או צבעים, והילד בוחר מה בא אחריה. שלוש רמות, ובכל אחת סוגים אחרים של דפוסים.",
+
+    body: [
+      "סדרה על המסך. אדום, כחול, אדום, כחול. מה עכשיו?",
+
+      "מאחורי המשחק הזה יש 8 משפחות של דפוסים, וכל רמה שואבת מ-3 מהן. הקלה נותנת ABAB ו-AAB, כלומר מחזורים באורך 2 ו-3. הבינונית מוסיפה ABC, AABB ודפוס שמשנה גודל במקום צבע, במחזורים של 3, 4 ו-2. הקשה עוברת ל-ABBA, מחזור באורך 4 עם היפוך באמצע, ולשתי משפחות שאין להן מחזור בכלל: אחת שגדלה ואחת שסופרת. ילד שלמד לספור את המחזור צריך לגלות שהספירה הפסיקה לעבוד, וזו קפיצה מחשבתית אחרת לגמרי מלמידה של מחזור ארוך יותר.",
+
+      "יש 6 צבעים בסך הכול, לא יותר. שני גוונים שילד בן חמש לא מפריד ביניהם על מסך קטן הופכים משחק דפוסים למשחק ניחושים, אז אין פה אדום שני ואין כחול שני. ניחוש עיוור שווה 1 מתוך 6, כלומר 16.7%, ולא משנה כמה הדפוס מתוחכם.",
+
+      "אין שעון, ואין עונש על טעות. אפשר להסתכל על הסדרה כמה שרוצים, לומר אותה בקול, ולנסות שוב. השלבים ממשיכים בלי סוף ומה שנשמר הוא כמה רחוק הגעתם ברמה הזאת.",
+
+      "זה אחד המשחקים הבודדים כאן שילדים באמת פותרים בקול. הם אומרים אדום כחול אדום כחול ואז עוצרים, וזו בדיוק המחשבה קורית בקול רם.",
+    ],
+
+    howToPlay: [
+      { title: "בוחרים רמה", body: "קלה, בינונית או קשה. משתנים סוגי הדפוסים ולא רק אורכם." },
+      { title: "קוראים את הסדרה", body: "היא מוצגת שמאלה לימינה, גדולה וברורה." },
+      { title: "בוחרים את הבא", body: "נוגעים באפשרות שלדעתכם ממשיכה. טעות לא עולה כלום." },
+      { title: "עולים שלב", body: "תשובה נכונה מביאה דפוס חדש, לפעמים ממשפחה אחרת." },
+    ],
+
+    tips: [
+      {
+        title: "לומר את הסדרה בקול",
+        body: "אדום, כחול, אדום. השמיעה חושפת את המחזור הרבה לפני שהעין מוצאת אותו.",
+      },
+      {
+        title: "לספור את המחזור",
+        body: "רוב הדפוסים חוזרים כל 2, 3 או 4 פריטים. מציאת האורך פותרת את השאר לבד.",
+      },
+      {
+        title: "ברמה הקשה, לבדוק אם זה בכלל חוזר",
+        body: "2 מתוך 3 המשפחות שם לא חוזרות אף פעם. אחת גדלה ואחת סופרת, ושתיהן נראות שבורות עד שמבינים.",
+      },
+      {
+        title: "להסתכל על הגודל",
+        body: "יש דפוס שמשנה גודל ולא צבע. ילדים מפספסים אותו כי הם מסתכלים על הצבע בלבד.",
+      },
+    ],
+
+    teaches: [
+      { title: "זיהוי דפוס", body: "המיומנות שמתחת לכל מתמטיקה שבאה אחר כך, ופה היא נלמדת בלי מספרים." },
+      { title: "חיזוי", body: "לא מה יש, אלא מה יהיה. זו קפיצה אמיתית בחשיבה של ילד בן חמש." },
+      { title: "לספור מחזורים", body: "כל דפוס חוזר הוא תרגיל ספירה מוסווה, וילדים סופרים אותו בלי שאמרו להם." },
+      {
+        title: "לגלות שכלל השתנה",
+        body: "שתי משפחות ברמה הקשה לא מתנהגות כמו האחרות. לזהות שהשיטה הישנה לא עובדת זו מיומנות בפני עצמה.",
+      },
+    ],
+
+    ages: [
+      { title: "3 עד 4", body: "קלה. ABAB זה בדיוק הדפוס הראשון שילדים קולטים, ורובם קולטים אותו כאן." },
+      { title: "5 עד 6", body: "קלה ואז בינונית. פה מתחילים לראות דפוסים של שלושה ושל גודל." },
+      { title: "7 ומעלה", body: "קשה, עם המשפחות שגדלות וסופרות." },
+      {
+        title: "הורים",
+        body: "אין שעון ואין עונש, אז ילד שנתקע פשוט מסתכל עוד. שווה לשבת לידו בקשה.",
+      },
+    ],
+
+    accessibility:
+      "נגיעה אחת, בלי גרירה ובלי החזקה. האפשרויות גדולות ומרווחות. 6 הצבעים נבחרו רחוקים זה מזה בכוונה, ולכל צורה יש גם מתאר משלה, אז אפשר לשחק לפי צורה ולא לפי גוון. אין שעון על התשובה, אז אפשר להסתכל על הסדרה כמה זמן שרוצים. אין הבהובים ואפשר לשחק בשקט מוחלט. הסדרה מוצגת שמאלה לימינה גם בעברית, כי סדר קריאה של דפוס הוא חלק מהשאלה.",
+
+    together: [
+      { title: "לומר ביחד", body: "קראו את הסדרה בקול בתורות, פריט לכל אחד. המחזור נשמע מיד." },
+      {
+        title: "דפוס על השולחן",
+        body: "בנו סדרה מכפתורים או מקוביות ובקשו מהילד להמשיך. אותו משחק בדיוק ביד.",
+      },
+      { title: "הילד בונה", body: "תנו לו להמציא דפוס ואתם תמשיכו. להמציא קשה יותר מלפתור." },
+      {
+        title: "לחפש דפוסים בבית",
+        body: "אריחים, גדר, פסים על חולצה. אחרי סיבוב אחד ילדים מתחילים לראות אותם בכל מקום.",
+      },
+    ],
+
+    faq: [
+      {
+        q: "המשחק חינמי?",
+        a: "כן, לגמרי. אין תשלום ואין רכישות בתוך המשחק. כל המשחקים באתר פתוחים מהרגע הראשון.",
+      },
+      {
+        q: "צריך להוריד או להירשם?",
+        a: "לא. רץ בדפדפן, בלי הורדה ובלי חשבון. גם מייל אנחנו לא מבקשים.",
+      },
+      {
+        q: "אילו סוגי דפוסים יש?",
+        a: "8 משפחות, 3 בכל רמה. הקלה נותנת ABAB ו-AAB במחזורים של 2 ו-3, הבינונית ABC, AABB ודפוס גודל, והקשה ABBA ו-2 משפחות שלא חוזרות בכלל.",
+      },
+      {
+        q: "מה קורה בתשובה שגויה?",
+        a: "כלום. אין ניקוד שיורד ואין חיים, ואפשר לנסות שוב מיד. אין גם שעון על התשובה.",
+      },
+      { q: "יש פרסומות?", a: "אין. לא באנרים ולא סרטונים בין שלבים." },
+      {
+        q: "אפשר לשחק בלי אינטרנט?",
+        a: "כן. אחרי ביקור אחד המשחק נשמר במכשיר ורץ גם במטוס.",
+      },
+      {
+        q: "למה יש רק שישה צבעים?",
+        a: "כי 2 גוונים שילד בן 5 לא מפריד ביניהם על מסך קטן היו הופכים משחק דפוסים למשחק ניחושים. אין פה אדום שני ואין כחול שני, בכוונה.",
+      },
+      {
+        q: "הילד לא יודע לקרוא. זה בעיה?",
+        a: "לא. אין מילה שצריך לקרוא, והדפוסים בנויים מצורות וצבעים בלבד.",
+      },
+      {
+        q: "מאיזה גיל זה מתאים?",
+        a: "משלוש בערך, ברמה הקלה. ABAB הוא הדפוס הראשון שילדים קולטים, בדרך כלל לפני שהם סופרים.",
+      },
+      {
+        q: "המשחק אוסף מידע על הילד?",
+        a: "לא. אין הרשמה ואין שם. אין הקלטת מסך ואין פרסום מבוסס התנהגות. אנחנו סופרים כמה פעמים משחק נפתח, בלי שום דבר שמזהה מי פתח אותו.",
+      },
+    ],
+
+    keywords: ["דפוסים", "סדרות", "מה בא אחר כך", "חשיבה", "לגיל הרך", "היגיון"],
+  },
+
+  en: {
+    metaTitle: "What Comes Next - Free Pattern Game for Kids | Ellaz",
+    metaDescription:
+      "A free pattern game for children. See a sequence and pick what continues it. Eight kinds of pattern, no download or signup.",
+
+    lede: "A free game where a sequence of shapes or colours appears and your child picks what comes next. Three levels, each drawing on different kinds of pattern.",
+
+    body: [
+      "A sequence on screen. Red, blue, red, blue. What now?",
+
+      "Behind this game sit 8 families of pattern, and each level draws on 3 of them. Easy gives you ABAB and AAB, cycles of length 2 and 3. Medium adds ABC, AABB and a pattern that changes size instead of colour, at lengths 3, 4 and 2. Hard moves to ABBA, a cycle of 4 with a reversal in the middle, and to 2 families with no cycle at all: one that grows and one that counts. A child who has learned to count the cycle has to work out that counting has stopped working, and that is a completely different mental step from learning a longer cycle.",
+
+      "There are 6 colours in total and no more. Two hues a five-year-old cannot separate on a small screen would turn a pattern game into a guessing game, so there is no second red and no second blue here. A blind guess is worth 1 in 6, or 16.7%, however clever the pattern happens to be.",
+
+      "There is no clock and no penalty for a wrong answer. You can stare at the sequence as long as you like, say it out loud, and try again. Levels continue without end and what gets kept is how far you got at that difficulty.",
+
+      "This is one of the few games here that children genuinely solve out loud. They say red blue red blue and then stop, and that pause is thinking happening audibly.",
+    ],
+
+    howToPlay: [
+      { title: "Pick a level", body: "Easy, medium or hard. The kinds of pattern change, not just their length." },
+      { title: "Read the sequence", body: "It runs left to right, large and clear." },
+      { title: "Pick what continues", body: "Touch the option you think comes next. A mistake costs nothing." },
+      { title: "Move up", body: "A correct answer brings a new pattern, sometimes from a different family." },
+    ],
+
+    tips: [
+      {
+        title: "Say the sequence out loud",
+        body: "Red, blue, red. Hearing it exposes the cycle long before the eye finds it.",
+      },
+      {
+        title: "Count the cycle",
+        body: "Most patterns repeat every 2, 3 or 4 items. Finding that length solves the rest by itself.",
+      },
+      {
+        title: "On hard, check whether it repeats at all",
+        body: "2 of the 3 families there never repeat. One grows and one counts, and both look broken until you see it.",
+      },
+      {
+        title: "Watch the size",
+        body: "One pattern family changes size rather than colour. Children miss it because they are only looking at colour.",
+      },
+    ],
+
+    teaches: [
+      { title: "Pattern recognition", body: "The skill underneath all the mathematics that comes later, learned here without numbers." },
+      { title: "Prediction", body: "Not what is there but what will be. That is a real leap in a five-year-old's thinking." },
+      { title: "Counting cycles", body: "Every repeating pattern is counting practice in disguise, and children do it unprompted." },
+      {
+        title: "Noticing a changed rule",
+        body: "Two hard families behave unlike the others. Recognising that your method stopped working is a skill of its own.",
+      },
+    ],
+
+    ages: [
+      { title: "3 to 4", body: "Easy. ABAB is the first pattern children grasp, and most of them grasp it right here." },
+      { title: "5 to 6", body: "Easy then medium. This is where three-part and size patterns start landing." },
+      { title: "7 and up", body: "Hard, with the families that grow and count." },
+      {
+        title: "Parents",
+        body: "No clock and no penalty, so a stuck child simply looks longer. Worth sitting alongside for hard.",
+      },
+    ],
+
+    accessibility:
+      "One tap, no dragging and no holding. The options are large and well spaced. The 6 colours were chosen far apart on purpose and every shape has its own outline as well, so the game can be played by shape rather than hue. There is no clock on the answer, so the sequence can be studied for as long as needed. Nothing flashes and it plays fully in silence. The sequence runs left to right even in Hebrew, because reading order is part of the question.",
+
+    together: [
+      { title: "Say it together", body: "Read the sequence aloud in turns, one item each. The cycle becomes audible immediately." },
+      {
+        title: "Patterns on the table",
+        body: "Build a sequence from buttons or blocks and ask your child to continue it. Exactly the same game, in hand.",
+      },
+      { title: "Let them invent", body: "They make a pattern and you continue it. Inventing is harder than solving." },
+      {
+        title: "Spot patterns at home",
+        body: "Tiles, fences, stripes on a shirt. After one round children start seeing them everywhere.",
+      },
+    ],
+
+    faq: [
+      {
+        q: "Is the game free?",
+        a: "Completely. Nothing to pay and no purchases inside the game. Every game on the site is open from the first second.",
+      },
+      {
+        q: "Do I need to download or sign up?",
+        a: "No to both. It runs in the browser with no download and no account, and we do not ask for an email.",
+      },
+      {
+        q: "What kinds of pattern are there?",
+        a: "8 families, 3 per level. Easy has ABAB and AAB at cycle lengths 2 and 3, medium has ABC, AABB and a size pattern, and hard has ABBA plus 2 families that never repeat at all.",
+      },
+      {
+        q: "What happens on a wrong answer?",
+        a: "Nothing. No score drops and there are no lives, and another try is available immediately. There is no clock on the answer either.",
+      },
+      { q: "Are there ads?", a: "None. No banners and no video between levels." },
+      {
+        q: "Does it work offline?",
+        a: "Yes. After one visit the game is stored on the device and runs on a plane.",
+      },
+      {
+        q: "Why only six colours?",
+        a: "Because 2 hues a five-year-old cannot separate on a small screen would turn a pattern game into a guessing game. There is no second red and no second blue, deliberately.",
+      },
+      {
+        q: "My child cannot read yet. Is that a problem?",
+        a: "No. There is not a word to read, and the patterns are built from shapes and colours only.",
+      },
+      {
+        q: "What age is this for?",
+        a: "From about three on easy. ABAB is the first pattern children grasp, usually before they can count.",
+      },
+      {
+        q: "Does it collect data about my child?",
+        a: "No. There is no signup and no name. No session recording and no behavioural advertising. We count how many times a game was opened, with nothing attached that identifies who opened it.",
+      },
+    ],
+
+    keywords: ["patterns", "sequences", "what comes next", "logic", "preschool", "thinking"],
+  },
+
+  provenance: [
+    {
+      claim: "eight pattern families, three per level; easy has cycles of 2 and 3, hard includes two with no cycle",
+      source: "scripts/sim/thinking-levels.mjs",
+    },
+    {
+      claim: "six colours in the palette, so a blind guess is worth 16.7%",
+      source: "scripts/sim/thinking-levels.mjs",
+    },
+    {
+      claim: "the record counts levels cleared, higher is better, scoped per difficulty",
+      source: "src/sdk/score.ts",
+    },
+  ],
+};
