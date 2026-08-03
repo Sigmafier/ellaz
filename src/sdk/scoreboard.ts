@@ -24,7 +24,26 @@ export const SCORE_KEY_PREFIX = "score:";
 
 const keyFor = (board: string) => `${SCORE_KEY_PREFIX}${board}`;
 
-export function createScorePort(store: SaveStore): ScorePort {
+/** The board a pre-Wave-B `best` belongs to. It only ever held one number. */
+const DEFAULT_BOARD = "default";
+
+export interface ScorePortOptions {
+  /**
+   * A key this game wrote its record under BEFORE the score port existed.
+   *
+   * Six games (bees, echo, math, n2048, reaction, snake) each kept their own
+   * `best`. Pointing them at `ctx.score.best()` without this would show every
+   * existing player a record of zero — a silent, unrecoverable-looking loss on
+   * a platform whose saves live only on the device.
+   *
+   * The adoption is READ-THROUGH and one-directional: the old key is never
+   * written, never deleted, and never consulted once a namespaced best exists.
+   * Nothing to roll back, and no window where the two disagree.
+   */
+  legacyKey?: string;
+}
+
+export function createScorePort(store: SaveStore, opts: ScorePortOptions = {}): ScorePort {
   /**
    * Read a stored best, treating anything unrankable as ABSENT rather than as a
    * record. A corrupt or hand-edited save must not permanently block every
@@ -34,18 +53,38 @@ export function createScorePort(store: SaveStore): ScorePort {
   function readBest(board: string): number | undefined {
     try {
       const raw = store.get<unknown>(keyFor(board), undefined);
-      return isRankable(raw as number) ? (raw as number) : undefined;
+      if (isRankable(raw as number)) return raw as number;
+      return board === DEFAULT_BOARD ? readLegacy() : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * The pre-Wave-B record, or undefined if there is not a real one.
+   *
+   * A stored 0 is NOT a record — all six games initialised their best to 0
+   * meaning "none yet". Adopting it literally would be harmless noise in a
+   * points game and a disaster in a timed one: reaction ranks LOW, so a best of
+   * 0 ms could never be beaten again. reaction/logic.ts already reads
+   * `!(prevBestMs > 0)` as no record; this matches it.
+   */
+  function readLegacy(): number | undefined {
+    if (!opts.legacyKey) return undefined;
+    try {
+      const raw = store.get<unknown>(opts.legacyKey, undefined);
+      return isRankable(raw as number) && (raw as number) > 0 ? (raw as number) : undefined;
     } catch {
       return undefined;
     }
   }
 
   return {
-    best(board = "default") {
+    best(board = DEFAULT_BOARD) {
       return readBest(board);
     },
 
-    report({ value, unit, board = "default" }) {
+    report({ value, unit, board = DEFAULT_BOARD }) {
       const prev = readBest(board);
 
       // Junk never becomes a record, and never destroys one either.

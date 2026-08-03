@@ -48,7 +48,13 @@ export function createHostControls(gameId: string, locale: Locale, mount: HTMLEl
     // Personal bests. Unlike rewards there is no per-mount budget here — a
     // record is a fact about the player, not a payout, so the port is a thin
     // wrapper over the same store and carries no session state.
-    score: createScorePort(storage),
+    // `legacyKey` is a migration shim with a kill date: bees, echo, math,
+    // n2048, reaction and snake each kept a record under a bare `best` before
+    // this port existed, and their players must not open the game to a record
+    // of zero. Storage is already namespaced per game, so this reads only that
+    // game's own old key, and only READS it. Remove it once those six have been
+    // shipping the port long enough that no returning player still has one.
+    score: createScorePort(storage, { legacyKey: "best" }),
     lifecycle: {
       loadingStart: () => context.analytics.track("game_loading_start"),
       loadingFinished: () => context.analytics.track("game_loading_finished"),
