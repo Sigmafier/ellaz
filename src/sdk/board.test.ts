@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { readFile } from "node:fs/promises";
 import { boardId, isSafeId, windowsFor } from "./board";
 
 describe("which day, week and month a run belongs to", () => {
@@ -73,5 +74,32 @@ describe("the board a game and difficulty share", () => {
     expect(isSafeId("a".repeat(65))).toBe(false);
     expect(isSafeId("has space")).toBe(false);
     expect(isSafeId("__both__")).toBe(false);
+  });
+});
+
+describe("the board's idea of which way a unit ranks", () => {
+  it("agrees with score.ts, which is the only place that decides it", async () => {
+    // cloud.ts keeps its own small set of "smaller is better" units rather than
+    // importing the ranking table, so the lazy cloud chunk does not drag
+    // score.ts in for one Set. The cost of that trade is exactly this test: a
+    // unit added to UNIT_DIRECTION and not to LOW_UNITS would rank a whole
+    // board backwards, silently, and only for the games using it.
+    const { UNIT_DIRECTION } = await import("./score");
+    const source = await readFile(new URL("./cloud.ts", import.meta.url), "utf8");
+    const match = source.match(/const LOW_UNITS = new Set\(\[([^\]]*)\]\)/);
+    expect(match, "LOW_UNITS not found in cloud.ts — did it move?").not.toBeNull();
+
+    const low = new Set(
+      match![1]
+        .split(",")
+        .map((s) => s.trim().replace(/^["']|["']$/g, ""))
+        .filter(Boolean),
+    );
+    const expected = new Set(
+      Object.entries(UNIT_DIRECTION)
+        .filter(([, dir]) => dir === "low")
+        .map(([unit]) => unit),
+    );
+    expect([...low].sort()).toEqual([...expected].sort());
   });
 });

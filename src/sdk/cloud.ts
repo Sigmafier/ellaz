@@ -96,6 +96,28 @@ export interface BoardPublish {
   at: number;
 }
 
+/** Which slice of time a board covers. */
+export type BoardWindow = "d" | "w" | "m" | "all";
+
+export interface BoardRow {
+  /** `adj__noun` word ids, rendered per locale by the caller. */
+  name: string;
+  value: number;
+  /** True for the reader's own row, so a screen can point at it. */
+  me: boolean;
+}
+
+export interface BoardStanding {
+  /** The leaders, best first. Short on purpose — see `board()`. */
+  rows: BoardRow[];
+  /** Everyone on this board in this window. */
+  total: number;
+  /** How many did better than the reader. */
+  better: number;
+  /** The reader's own value here, or undefined if they have no row yet. */
+  mine?: number;
+}
+
 export interface Cloud {
   /** Sign in (reusing the stored identity when there is one). `null` on any failure. */
   connect(): Promise<CloudIdentity | null>;
@@ -107,6 +129,8 @@ export interface Cloud {
   restore(code: string): Promise<DeviceState | null>;
   /** Put a personal best on its board. `false` on any failure. */
   publish(entry: BoardPublish): Promise<boolean>;
+  /** Read a board: the leaders, the size, and where the reader sits. */
+  board(board: string, window: BoardWindow, unit: string): Promise<BoardStanding | null>;
 }
 
 /** A request that cannot outlive TIMEOUT_MS, and never rejects. */
@@ -174,6 +198,31 @@ function decodeState(doc: unknown): DeviceState | null {
   // a missing or unreadable set degrades to none rather than failing the whole
   // restore — losing the records is bad; refusing to return the room is worse.
   return { profile: migrateProfile(raw), records: decodeRecords(doc.fields.records) };
+}
+
+/**
+ * Units where a SMALLER number is better.
+ *
+ * Duplicated from score.ts rather than imported, and that is a deliberate trade
+ * rather than an oversight: importing it would pull the ranking module into the
+ * lazy cloud chunk for one Set. If a unit is ever added there and not here, a
+ * board ranks backwards — so the two are pinned together by a test.
+ */
+const LOW_UNITS = new Set(["ms", "moves"]);
+
+function numberField(doc: unknown, field: string): number | undefined {
+  if (!isRecord(doc) || !isRecord(doc.fields)) return undefined;
+  const cell = doc.fields[field];
+  if (!isRecord(cell)) return undefined;
+  const raw = cell.doubleValue ?? cell.integerValue;
+  const n = typeof raw === "string" ? Number(raw) : typeof raw === "number" ? raw : NaN;
+  return Number.isFinite(n) ? n : undefined;
+}
+
+function stringField(doc: unknown, field: string): string | undefined {
+  if (!isRecord(doc) || !isRecord(doc.fields)) return undefined;
+  const cell = doc.fields[field];
+  return isRecord(cell) ? str(cell.stringValue) : undefined;
 }
 
 function decodeRecords(field: unknown): Records {
@@ -453,5 +502,128 @@ export function createCloud(options: CloudOptions = {}): Cloud {
       });
       return wrote !== null;
     },
+
+    /**
+     * A board, in four requests: the reader's own row, the leaders, the size,
+     * and how many beat them.
+     *
+     * Four rather than one because the counts are AGGREGATIONS — Firestore
+     * returns the number without transferring the rows, so a board with ten
+     * thousand players costs the same as one with ten. The alternative, reading
+     * every row and counting locally, is the version that stops working exactly
+     * when the platform starts succeeding.
+     *
+     * `rows` is deliberately short. A leaderboard's job here is to show a child
+     * that other people are playing, not to enumerate everyone above them.
+     */
+    async board(board: string, window: BoardWindow, unit: string) {
+      if (!stored) await connect();
+      const id = stored;
+      if (!id) return null;
+
+      const all = window === "all";
+      const valueField = all ? "best" : `${window}Best`;
+      const direction = LOW_UNITS.has(unit) ? "ASCENDING" : "DESCENDING";
+      const key = all ? null : windowsFor(Date.now())[window];
+
+      // The reader's own row first: it carries their value in EVERY window, so
+      // one read answers "where do I sit" for whichever one is on screen.
+      const mineDoc = await authed(`boards/${board}/scores/${id.uid}`);
+      const mine = numberField(mineDoc, valueField);
+      // Their row only counts for a WINDOW if it was set inside it. A best from
+      // last Tuesday is not on today's board, which is the whole point of the
+      // windows resetting.
+      const inWindow = all || stringField(mineDoc, window) === key;
+      const myValue = inWindow ? mine : undefined;
+
+      const windowFilter = all
+        ? undefined
+        : { fieldFilter: { field: { fieldPath: window }, op: "EQUAL", value: { stringValue: key } } };
+
+      const top = await query(`boards/${board}:runQuery`, {
+        structuredQuery: {
+          from: [{ collectionId: "scores" }],
+          ...(windowFilter ? { where: windowFilter } : {}),
+          orderBy: [{ field: { fieldPath: valueField }, direction }],
+          limit: 5,
+        },
+      });
+
+      const rows: BoardRow[] = [];
+      if (Array.isArray(top)) {
+        for (const entry of top) {
+          if (!isRecord(entry) || !isRecord(entry.document)) continue;
+          const doc = entry.document;
+          const value = numberField(doc, valueField);
+          if (value === undefined) continue;
+          rows.push({
+            name: stringField(doc, "name") ?? "",
+            value,
+            me: typeof doc.name === "string" && doc.name.endsWith(`/${id.uid}`),
+          });
+        }
+      }
+
+      const total = await count(board, windowFilter, undefined);
+      // "Better" is direction-aware: fewer milliseconds is better, more points
+      // is better, and getting this backwards would rank a child last for being
+      // fast. It comes from the unit, exactly as the ordering does.
+      const better =
+        myValue === undefined
+          ? 0
+          : await count(board, windowFilter, {
+              fieldFilter: {
+                field: { fieldPath: valueField },
+                op: direction === "ASCENDING" ? "LESS_THAN" : "GREATER_THAN",
+                value: { doubleValue: myValue },
+              },
+            });
+
+      return { rows, total: total ?? rows.length, better: better ?? 0, mine: myValue };
+    },
   };
+
+  /** POST a structured query and hand back the raw array, or null. */
+  async function query(path: string, body: unknown): Promise<unknown> {
+    return authed(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  /** One aggregation request. `null` when it could not be answered. */
+  async function count(
+    board: string,
+    windowFilter: unknown,
+    extra: unknown,
+  ): Promise<number | null> {
+    const filters = [windowFilter, extra].filter(Boolean);
+    const where =
+      filters.length === 0
+        ? undefined
+        : filters.length === 1
+          ? filters[0]
+          : { compositeFilter: { op: "AND", filters } };
+
+    const res = await query(`boards/${board}:runAggregationQuery`, {
+      structuredAggregationQuery: {
+        structuredQuery: {
+          from: [{ collectionId: "scores" }],
+          ...(where ? { where } : {}),
+        },
+        aggregations: [{ alias: "n", count: {} }],
+      },
+    });
+    if (!Array.isArray(res)) return null;
+    for (const entry of res) {
+      if (!isRecord(entry) || !isRecord(entry.result)) continue;
+      const fields = entry.result.aggregateFields;
+      if (!isRecord(fields) || !isRecord(fields.n)) continue;
+      const raw = fields.n.integerValue;
+      const n = typeof raw === "string" ? Number(raw) : typeof raw === "number" ? raw : NaN;
+      if (Number.isFinite(n)) return n;
+    }
+    return null;
+  }
 }

@@ -214,7 +214,85 @@ const run = async () => {
     `status ${delScore.status}`,
   );
 
-  console.log("6. cleanup");
+  console.log("6. the queries the boards are made of");
+  // A second player on the SAME board, so ordering and counting have something
+  // to be wrong about. One row can be ranked correctly by accident.
+  await call(b.idToken, `boards/${board}/scores/${b.localId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(row(b.localId, 900)),
+  });
+
+  const runQuery = async (token, body) => {
+    const res = await fetch(`${DOCS}/boards/${board}:runQuery`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    return { status: res.status, body: await res.json().catch(() => null) };
+  };
+  const runAgg = async (token, body) => {
+    const res = await fetch(`${DOCS}/boards/${board}:runAggregationQuery`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    return { status: res.status, body: await res.json().catch(() => null) };
+  };
+
+  // The windowed board: equality on the day key, ordered by that day's best.
+  // This is the exact query shape the composite index exists for — without it
+  // Firestore answers 400 with a "create an index" link, which is a runtime
+  // failure that no unit test can reach.
+  const top = await runQuery(a.idToken, {
+    structuredQuery: {
+      from: [{ collectionId: "scores" }],
+      where: {
+        fieldFilter: {
+          field: { fieldPath: "d" },
+          op: "EQUAL",
+          value: { stringValue: "2026-08-03" },
+        },
+      },
+      orderBy: [{ field: { fieldPath: "dBest" }, direction: "DESCENDING" }],
+      limit: 10,
+    },
+  });
+  check("the windowed board query runs (the composite index exists)", top.status === 200, `status ${top.status} ${JSON.stringify(top.body).slice(0, 200)}`);
+
+  const names = (top.body ?? [])
+    .filter((r) => r.document)
+    .map((r) => Number(r.document.fields.dBest.doubleValue));
+  check(
+    "it comes back in the right order, highest first",
+    names.length >= 2 && names[0] === 4200 && names[1] === 900,
+    JSON.stringify(names),
+  );
+
+  // The percentile: how many players did better than me. One aggregation,
+  // exact, and it never transfers the rows themselves.
+  const better = await runAgg(b.idToken, {
+    structuredAggregationQuery: {
+      structuredQuery: {
+        from: [{ collectionId: "scores" }],
+        where: {
+          compositeFilter: {
+            op: "AND",
+            filters: [
+              { fieldFilter: { field: { fieldPath: "d" }, op: "EQUAL", value: { stringValue: "2026-08-03" } } },
+              { fieldFilter: { field: { fieldPath: "dBest" }, op: "GREATER_THAN", value: { doubleValue: 900 } } },
+            ],
+          },
+        },
+      },
+      aggregations: [{ alias: "n", count: {} }],
+    },
+  });
+  const n = better.body?.[0]?.result?.aggregateFields?.n?.integerValue;
+  check("counting who did better works", better.status === 200, `status ${better.status}`);
+  check("and counts the right number", String(n) === "1", `got ${n}`);
+
+  console.log("7. cleanup");
   const delProfile = await call(a.idToken, `players/${a.localId}`, { method: "DELETE" });
   check("owner may delete their own doc", delProfile.ok, `status ${delProfile.status}`);
   const delCode = await call(a.idToken, `codes/${code}`, { method: "DELETE" });

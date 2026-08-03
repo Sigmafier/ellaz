@@ -1,0 +1,75 @@
+{
+  "_comment": [
+    "Composite indexes for the leaderboards. Declared here so they are visible",
+    "from the source tree — the same reason firestore.rules is a file rather",
+    "than something that only exists in a console. Apply with",
+    "`bash scripts/deploy-indexes.sh`, which is NOT run by this repo's CI.",
+    "",
+    "Firestore creates single-field indexes automatically, so the all-time",
+    "board (order by `best`) needs nothing here. A composite index is required",
+    "the moment a query combines an equality filter with an order-by on a",
+    "different field, which is exactly the shape of every windowed board:",
+    "`where d == '2026-08-04' order by dBest`.",
+    "",
+    "Both directions per window, because direction is a property of the UNIT and",
+    "the catalog has both: points ranks high, while ms and moves rank low. An",
+    "index built in only one direction would make half the games' boards fail at",
+    "runtime rather than at deploy — and fail with a 400 that reads like a bug in",
+    "the query.",
+    "",
+    "queryScope COLLECTION (not COLLECTION_GROUP): every board is queried on its",
+    "own path, `boards/<game>__<difficulty>/scores`. A COLLECTION-scoped index on",
+    "the `scores` collection id covers all of them at once, so adding a game",
+    "needs no new index."
+  ],
+  "indexes": [
+    {
+      "collectionGroup": "scores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "d", "order": "ASCENDING" },
+        { "fieldPath": "dBest", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "scores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "d", "order": "ASCENDING" },
+        { "fieldPath": "dBest", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "scores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "w", "order": "ASCENDING" },
+        { "fieldPath": "wBest", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "scores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "w", "order": "ASCENDING" },
+        { "fieldPath": "wBest", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "scores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "m", "order": "ASCENDING" },
+        { "fieldPath": "mBest", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "scores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "m", "order": "ASCENDING" },
+        { "fieldPath": "mBest", "order": "ASCENDING" }
+      ]
+    }
+  ]
+}
