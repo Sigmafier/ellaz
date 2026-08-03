@@ -106,6 +106,30 @@ export function Home({
           >
             {locale === "he" ? "EN" : "עב"}
           </button>
+          {/* Dev-only door to the Juice Lab. `import.meta.env.DEV` is statically
+              false in a production build, so Rollup drops this whole block and
+              no player ever sees it - the same dev-bypass idiom the PWA config
+              uses. It exists because a route you can only reach by typing the
+              hash has no way to tell you when it failed to load. */}
+          {import.meta.env.DEV ? (
+            <a
+              href="#/lab"
+              style={{
+                minHeight: "var(--tap)",
+                display: "inline-flex",
+                alignItems: "center",
+                padding: "0 16px",
+                borderRadius: "var(--radius-pill)",
+                background: "var(--surface-2)",
+                color: "var(--text)",
+                fontWeight: 800,
+                fontSize: 15,
+                textDecoration: "none",
+              }}
+            >
+              🎛
+            </a>
+          ) : null}
         </header>
 
         <WorldHero profile={profile} locale={locale} onOpenWorld={onOpenWorld} />

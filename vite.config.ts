@@ -50,7 +50,10 @@ export default defineConfig({
         // a runtime rule matching `game-` against Rollup's default `index-<hash>`
         // names is dead code that silently never fires.
         globPatterns: ["**/*.{html,css,js,svg,woff2}"],
-        globIgnores: ["**/game-*.js", "**/vendor-phaser-*.js"],
+        // `lab-*.js` is the Juice Lab, a dev-only surface nothing links to.
+        // Without this line the glob above would sweep it into the precache and
+        // every child would download the tournament on their first visit.
+        globIgnores: ["**/game-*.js", "**/vendor-phaser-*.js", "**/lab-*.js"],
         runtimeCaching: [
           {
             // maxEntries covers 32 games + the Phaser vendor chunk, with headroom
@@ -108,6 +111,13 @@ export default defineConfig({
           const game = /\/src\/games\/([^/]+)\//.exec(path);
           if (game) return `game-${game[1]}`;
 
+          // The Juice Lab is dev-only tournament scaffolding reached by typing
+          // #/lab. It must be carved out BEFORE the shared-code rule below, which
+          // would otherwise pin it to the shell (it lives under src/juice/) and
+          // ship the whole tournament to every player on first paint. The `lab-`
+          // prefix is a contract with the PWA globIgnores above, same as `game-`.
+          if (path.includes("/src/juice/lab/")) return "lab";
+
           // Shared app code, imported by BOTH the shell and the games. Pin it to
           // the shell side explicitly: left unassigned, Rollup folds it into
           // whichever game chunk claims it first (measured — it chose game-memory,
@@ -123,6 +133,18 @@ export default defineConfig({
       },
     },
   },
-  server: { port: 5180, host: true },
+  server: {
+    port: 5180,
+    host: true,
+    // This repo lives on /mnt/c (a Windows drive). Under WSL2 the kernel emits
+    // NO inotify events for Windows-mounted filesystems, so Vite's watcher never
+    // learns a file changed: it keeps serving the transform it compiled at boot
+    // and HMR silently does nothing. The failure is nasty because the server
+    // looks healthy - every request is a cheerful 200 - and edits appear to have
+    // had no effect, which reads as "my change didn't work" rather than "the
+    // server never saw it". Polling is the standard workaround; node_modules is
+    // already outside the watch set, so this walks src/ and little else.
+    watch: { usePolling: true, interval: 300 },
+  },
   preview: { port: 5180, host: true },
 });

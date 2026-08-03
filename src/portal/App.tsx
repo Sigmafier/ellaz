@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Component, Suspense, lazy, useEffect, useState, type ReactNode } from "react";
 import type { Locale } from "@i18n/index";
 import { DIR } from "@i18n/index";
 import { analytics } from "@sdk/index";
@@ -7,7 +7,56 @@ import { GameHost } from "./GameHost";
 import { World } from "./world/World";
 import { hashFor, parseHash, type Route } from "./route";
 
+// Tournament scaffolding, lazily loaded so none of it reaches the shell bundle
+// unless #/lab is typed by hand. Deleted along with src/juice/lab/ once the
+// winners are folded into the real audio/juice modules.
+const JuiceLab = lazy(() =>
+  import("@juice/lab/JuiceLab").then((m) => ({ default: m.JuiceLab })),
+);
+
 const LOCALE_KEY = "ellaz:locale";
+
+function LabNotice({ text, detail }: { text: string; detail?: string }) {
+  return (
+    <div dir="ltr" style={{ padding: 24, fontFamily: "ui-monospace, monospace", lineHeight: 1.6 }}>
+      <p>{text}</p>
+      {detail ? <pre style={{ whiteSpace: "pre-wrap", opacity: 0.7 }}>{detail}</pre> : null}
+      <p style={{ opacity: 0.7 }}>
+        If this persists, a stale service worker is probably serving a cached bundle. Open
+        DevTools &gt; Application &gt; Service Workers &gt; Unregister, then hard-reload.
+      </p>
+      <a href="#/">Back to the games</a>
+    </div>
+  );
+}
+
+/**
+ * A chunk-load failure inside Suspense renders NOTHING by default - a white
+ * screen with the reason sitting only in the console. For a route reached by
+ * typing a hash by hand, that is indistinguishable from "the route does not
+ * exist", which is exactly the wrong thing to conclude.
+ */
+class LabBoundary extends Component<
+  { children: ReactNode; onExit: () => void },
+  { error: Error | null }
+> {
+  state: { error: Error | null } = { error: null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error("[ellaz] juice lab failed to load", error);
+  }
+
+  render() {
+    if (this.state.error) {
+      return <LabNotice text="The Juice Lab failed to load." detail={this.state.error.message} />;
+    }
+    return this.props.children;
+  }
+}
 
 function initialLocale(): Locale {
   try {
@@ -62,6 +111,19 @@ export function App() {
   }
   if (route.kind === "world") {
     return <World locale={locale} onExit={exit} />;
+  }
+  // Dev-gated so that in a production build the whole branch - the lazy import,
+  // the boundary and the notice - is statically dropped rather than shipped to
+  // every child for a route they can never reach. In prod, #/lab falls through
+  // to the games grid, which is the right answer for a stale bookmark anyway.
+  if (import.meta.env.DEV && route.kind === "lab") {
+    return (
+      <LabBoundary onExit={exit}>
+        <Suspense fallback={<LabNotice text="Loading the Juice Lab..." />}>
+          <JuiceLab locale={locale} onExit={exit} />
+        </Suspense>
+      </LabBoundary>
+    );
   }
   return (
     <Home

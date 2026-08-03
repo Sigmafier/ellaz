@@ -5,7 +5,14 @@
 // stale bookmark, a hand-typed fragment. Pure functions mean every one of those
 // cases is a unit test instead of a click-through.
 
-export type Route = { kind: "home" } | { kind: "game"; id: string } | { kind: "world" };
+export type Route =
+  | { kind: "home" }
+  | { kind: "game"; id: string }
+  | { kind: "world" }
+  // The Juice Lab: a dev-only tournament surface. Deliberately unreachable from
+  // the UI - nothing links to it and it is not in the catalog - so it is only
+  // ever found by typing the hash. Lazily loaded, so it costs the shell nothing.
+  | { kind: "lab" };
 
 const GAME_PREFIX = "game/";
 
@@ -27,6 +34,7 @@ export function parseHash(hash: string): Route {
   const path = withoutHash.startsWith("/") ? withoutHash.slice(1) : withoutHash;
 
   if (path === "world") return { kind: "world" };
+  if (path === "lab") return { kind: "lab" };
   if (path.startsWith(GAME_PREFIX)) {
     const id = decodeSafe(path.slice(GAME_PREFIX.length));
     // "#/game/" carries no game, so it is not a game route.
@@ -44,6 +52,8 @@ export function hashFor(route: Route): string {
       return `#/game/${encodeURIComponent(route.id)}`;
     case "world":
       return "#/world";
+    case "lab":
+      return "#/lab";
     default:
       return "#/";
   }
