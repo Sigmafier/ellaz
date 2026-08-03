@@ -20,18 +20,35 @@ import { wallet } from "./wallet";
 /**
  * How long the app sits on a change before uploading.
  *
- * A child clearing a level can move coins, stars, a per-game record and a
- * purchase within a second or two of each other, and each of those is its own
- * wallet notification. Uploading per notification would be several requests for
- * one moment of play. Five seconds coalesces a burst into a single write while
- * staying far shorter than the time it takes to put a tablet down.
+ * Sized against the free daily write quota, which is FAIL-CLOSED: once it is
+ * spent, writes are refused for the rest of the day and backups stop working
+ * for every player, not just the one who spent it. So the number of writes is a
+ * correctness concern rather than a tuning knob, and the honest question is
+ * what a longer window actually costs.
+ *
+ * It costs at most the last 30 seconds of play, and only when a tab dies
+ * without a visibility change — a crash or a force-quit. That is the whole
+ * downside, because this is a BACKUP and not live sync: nothing on screen waits
+ * for an upload, and the local profile is already saved. Against it, thirty
+ * seconds instead of five is a 6x cut in writes during a burst of play.
+ *
+ * The `visibilitychange` flush below is what makes that trade safe on a phone.
+ * Backgrounding the tab is how a mobile session actually ends, and it fires the
+ * pending push immediately, so the 30s window is only ever really open while
+ * the child is still looking at the game.
  */
-const DEBOUNCE_MS = 5000;
+const DEBOUNCE_MS = 30000;
 
 let loaded: Cloud | null = null;
 let loading: Promise<Cloud | null> | null = null;
 let timer: ReturnType<typeof setTimeout> | null = null;
 let started = false;
+/**
+ * The last profile that actually REACHED the cloud, serialised without
+ * `updatedAt`. `null` means "nothing known to be up there", which is also what
+ * a failure resets it to.
+ */
+let lastPushed: string | null = null;
 
 /** Load the chunk at most once. A failed load is not cached — the next call retries. */
 function load(): Promise<Cloud | null> {
@@ -76,13 +93,38 @@ function schedule(): void {
   }, DEBOUNCE_MS);
 }
 
+/**
+ * What this profile would look like to a player, ignoring when it was written.
+ *
+ * `updatedAt` moves on EVERY wallet mutation, including ones that changed
+ * nothing a player could see, so a comparison over the whole serialised profile
+ * could never match twice and the skip below would be dead code that always let
+ * the push through. Dropping the stamp is the entire point of this function.
+ */
+function fingerprint(profile: ProfileV1): string {
+  const { updatedAt: _ignored, ...rest } = profile;
+  return JSON.stringify(rest);
+}
+
 /** Upload the current profile now, skipping the debounce. Never throws. */
 export async function pushNow(): Promise<boolean> {
   const profile = wallet.snapshot();
   if (!worthSaving(profile)) return false;
+
+  // Re-uploading a document byte-for-byte identical to the one already up there
+  // spends a write out of the daily quota to change nothing. `true` because the
+  // cloud does hold this profile, which is what a caller asking "is it backed
+  // up?" wants to hear.
+  const fresh = fingerprint(profile);
+  if (fresh === lastPushed) return true;
+
   const cloud = await load();
   if (!cloud) return false;
-  return cloud.push(profile);
+  const pushed = await cloud.push(profile);
+  // Only a real success may be remembered. Forgetting on failure is what makes
+  // a failed upload retry instead of being skipped as "already sent".
+  lastPushed = pushed ? fresh : null;
+  return pushed;
 }
 
 /**

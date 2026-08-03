@@ -151,6 +151,49 @@ describe("pushing a snapshot", () => {
     const cloud = createCloud({ fetchImpl: backend.fetchImpl, store: memStore() });
     expect(await cloud.push(emptyProfile())).toBe(false);
   });
+
+  it("reports false when the profile write fails", async () => {
+    const backend = fakeBackend({ failOn: /\/players\// });
+    const cloud = createCloud({ fetchImpl: backend.fetchImpl, store: memStore() });
+    expect(await cloud.push(emptyProfile())).toBe(false);
+  });
+
+  it("writes the code index once per page load, not once per push", async () => {
+    // Neither the uid nor the code ever changes for a device, so re-writing the
+    // index on every push spends a document write against a fail-closed daily
+    // quota to store a value that is already there.
+    const backend = fakeBackend();
+    const cloud = createCloud({ fetchImpl: backend.fetchImpl, store: memStore() });
+
+    expect(await cloud.push({ ...emptyProfile(), coins: 1 })).toBe(true);
+    expect(await cloud.push({ ...emptyProfile(), coins: 2 })).toBe(true);
+
+    const id = cloud.identity()!;
+    const writes = backend.calls.filter((c) => c.startsWith("PATCH "));
+    expect(writes.filter((c) => c.includes(`/codes/${id.code}`))).toHaveLength(1);
+    expect(writes.filter((c) => c.includes(`/players/${id.uid}`))).toHaveLength(2);
+  });
+
+  it("retries the index on the next push when the first attempt failed", async () => {
+    // The "already written" latch is in memory and set only on success, so a
+    // dropped index write is repaired by the next push rather than skipped for
+    // the rest of the session.
+    let indexOffline = true;
+    const backend = fakeBackend();
+    const cloud = createCloud({
+      fetchImpl: (url, init) =>
+        indexOffline && url.includes("/codes/") ? Promise.resolve(fail()) : backend.fetchImpl(url, init),
+      store: memStore(),
+    });
+
+    expect(await cloud.push(emptyProfile())).toBe(false);
+    const id = cloud.identity()!;
+    expect(backend.docs.has(`codes/${id.code}`)).toBe(false);
+
+    indexOffline = false;
+    expect(await cloud.push(emptyProfile())).toBe(true);
+    expect(backend.docs.has(`codes/${id.code}`)).toBe(true);
+  });
 });
 
 describe("restoring from a code", () => {

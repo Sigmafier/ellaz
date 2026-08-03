@@ -433,7 +433,18 @@ not made. Both rules, and the `void someAsyncSave()` tell that hides the second 
 
 Firestore's free daily quota is the real design constraint, and running out is
 fail-closed - reads are refused until it resets, which costs nothing and shows a
-child a stale board rather than a charge. Confirm the current numbers at
+child a stale board rather than a charge. **That makes write VOLUME a correctness
+question, not a tuning one**: exhausting the daily allowance stops backups for
+every player at once. Three things hold it down, and all three are load-bearing -
+the sync debounce is 30s (not 5s, which cost up to 720 pushes an hour of play and
+is only safe to lengthen because `visibilitychange` flushes, which is how phone
+sessions actually end); the `codes/<code>` index is written **once per page load**
+rather than once per push, latched in memory so a fresh load re-verifies it and
+quietly repairs a lost index; and a push whose profile is byte-identical to the
+last successful one is skipped. The skip compares the profile **without
+`updatedAt`** - that stamp moves on every wallet mutation, so comparing the whole
+serialised record would never match twice and the check would be dead code that
+always passed. Together: ~1,440 writes/hour worst case down to ~121. Confirm the current numbers at
 <https://firebase.google.com/pricing> before designing near the edge, and assume a
 naive "top 100" board read costs 100 reads. Prefer `count()` aggregations and
 cache what you can, which is also why the board design is percentile-first.

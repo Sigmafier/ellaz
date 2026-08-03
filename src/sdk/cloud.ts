@@ -176,6 +176,19 @@ export function createCloud(options: CloudOptions = {}): Cloud {
   let idTokenExpiry = 0;
   /** One in-flight connect at a time — a boot and a World open must not race. */
   let connecting: Promise<CloudIdentity | null> | null = null;
+  /**
+   * Has `codes/<code>` been written during THIS page load?
+   *
+   * Neither the uid nor the code ever changes for a device, so the index only
+   * has to be written once — and it is a whole document write against a
+   * fail-closed daily quota, which every push used to spend re-storing a value
+   * that was already there.
+   *
+   * Deliberately in memory rather than persisted: a fresh page load re-verifies
+   * the index once, which is cheap and quietly repairs an index that some other
+   * failure lost. A persisted flag would remember a lie forever.
+   */
+  let indexWritten = false;
 
   function readStored(): StoredIdentity | null {
     try {
@@ -193,6 +206,11 @@ export function createCloud(options: CloudOptions = {}): Cloud {
   }
 
   function writeStored(next: StoredIdentity): void {
+    // A dead refresh token sends `connect` through a fresh sign-up, which mints
+    // a NEW code. The latch is about the code that was actually indexed, so
+    // carrying it across would leave the new code resolving to nothing for the
+    // rest of the session.
+    if (next.code !== stored?.code) indexWritten = false;
     stored = next;
     store.write(CLOUD_KEY, JSON.stringify(next));
   }
@@ -301,6 +319,7 @@ export function createCloud(options: CloudOptions = {}): Cloud {
         body: encodeDoc(profile, id.code),
       });
       if (!wrote) return false;
+      if (indexWritten) return true;
 
       // The code index is what makes the code usable from another device. It is
       // written AFTER the profile and its failure is reported, because a code
@@ -311,7 +330,11 @@ export function createCloud(options: CloudOptions = {}): Cloud {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ fields: { uid: { stringValue: id.uid } } }),
       });
-      return indexed !== null;
+      // Latched only on a real success. Setting it before the answer arrives
+      // would turn one dropped request into a code that never resolves.
+      if (indexed === null) return false;
+      indexWritten = true;
+      return true;
     },
 
     async restore(code: string) {
