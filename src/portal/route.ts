@@ -9,6 +9,8 @@ export type Route =
   | { kind: "home" }
   | { kind: "game"; id: string }
   | { kind: "world" }
+  // The leaderboards. Reachable from Home, and safe to link to directly.
+  | { kind: "boards" }
   // The Juice Lab: a dev-only tournament surface. Deliberately unreachable from
   // the UI - nothing links to it and it is not in the catalog - so it is only
   // ever found by typing the hash. Lazily loaded, so it costs the shell nothing.
@@ -34,6 +36,7 @@ export function parseHash(hash: string): Route {
   const path = withoutHash.startsWith("/") ? withoutHash.slice(1) : withoutHash;
 
   if (path === "world") return { kind: "world" };
+  if (path === "boards") return { kind: "boards" };
   if (path === "lab") return { kind: "lab" };
   if (path.startsWith(GAME_PREFIX)) {
     const id = decodeSafe(path.slice(GAME_PREFIX.length));
@@ -52,6 +55,8 @@ export function hashFor(route: Route): string {
       return `#/game/${encodeURIComponent(route.id)}`;
     case "world":
       return "#/world";
+    case "boards":
+      return "#/boards";
     case "lab":
       return "#/lab";
     default:

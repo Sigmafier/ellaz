@@ -81,3 +81,20 @@ describe("round trip", () => {
     });
   }
 });
+
+describe("the boards route", () => {
+  it("parses and round-trips", () => {
+    expect(parseHash("#/boards")).toEqual({ kind: "boards" });
+    expect(parseHash("#boards")).toEqual({ kind: "boards" });
+    expect(hashFor({ kind: "boards" })).toBe("#/boards");
+    expect(parseHash(hashFor({ kind: "boards" }))).toEqual({ kind: "boards" });
+  });
+
+  it("does not swallow near-misses into the boards screen", () => {
+    // A stale link or a typo lands on home, like every other unrecognised
+    // fragment — never on a screen the player did not ask for.
+    for (const near of ["#/board", "#/boards/", "#/boardsx", "#/BOARDS"]) {
+      expect(parseHash(near), near).toEqual({ kind: "home" });
+    }
+  });
+});

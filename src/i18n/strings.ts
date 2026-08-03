@@ -66,6 +66,19 @@ export const STRINGS: Dict = {
   // World / shop — the progression layer. Coins are spent, stars are a trophy
   // count that is never spent and never lost.
   world: { he: "העולם שלי", en: "My world" },
+  // The leaderboards. Every string here is written so that a player who is NOT
+  // near the top never reads a sentence about being behind — see standing.ts.
+  boards: { he: "השיאים", en: "Leaderboards" },
+  boardsNoGames: {
+    he: "שחקו משחק ותופיעו כאן",
+    en: "Play a game and you'll show up here",
+  },
+  boardsOffline: { he: "לא הצלחנו לטעון כרגע", en: "We couldn't load this right now" },
+  boardsEmpty: { he: "עוד אין שיאים כאן. תהיו הראשונים!", en: "No records here yet. Be the first!" },
+  boardsYouAre: { he: "אתם במקום", en: "You're at" },
+  boardsTop: { he: "אתם בטופ", en: "You're in the top" },
+  boardsYourBest: { he: "השיא שלכם:", en: "Your best:" },
+  boardsPlayToJoin: { he: "שחקו כדי להצטרף לשיאים", en: "Play to join the board" },
   shop: { he: "חנות", en: "Shop" },
   // The player's name. Nobody types one — it is picked from a word list, so the
   // button says "another one", not "edit".
