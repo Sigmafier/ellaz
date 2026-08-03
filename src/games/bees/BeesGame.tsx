@@ -181,7 +181,7 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const [phase, setPhase] = useState<Phase>("ready");
   const [score, setScore] = useState<RoundScore>(emptyScore);
-  const [best, setBest] = useState<number>(() => ctx.storage.get("best", 0));
+  const [best, setBest] = useState<number>(() => ctx.score?.best() ?? 0);
   const [roundNo, setRoundNo] = useState(1);
 
   const he = ctx.locale === "he";
@@ -192,7 +192,6 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
   // `setScore(prev => ...)` updater is exactly the place a side effect must not
   // read from (see .claude/rules/game-difficulty-and-juice-convention.md).
   const scoreRef = useRef<RoundScore>(score);
-  const bestRef = useRef(best);
   // One end-of-round per round. The clock ticks several times past the boundary
   // before `running` flips, and each of those would otherwise grant again.
   const endedRef = useRef(false);
@@ -282,10 +281,17 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
     setPhase("done");
     spawner.reset();
 
-    if (final.caught > bestRef.current) {
-      bestRef.current = final.caught;
-      ctx.storage.set("best", final.caught);
-      setBest(final.caught);
+    // The record belongs to the score port: it compares, ranks and persists,
+    // and reports back whether this round beat the old one. `best` in state is
+    // a display stat mirroring that answer, never the source of truth — which
+    // is why there is no ref to keep in sync any more.
+    //
+    // A round that caught nothing is not reported at all. Zero is the absence
+    // of a score, not a score of zero, and recording it would make "no record
+    // yet" indistinguishable from a genuine blank round.
+    if (final.caught > 0) {
+      const record = ctx.score?.report({ value: final.caught, unit: "points" });
+      if (record?.isPersonalBest) setBest(final.caught);
     }
 
     // A round where the child caught NOTHING pays nothing.

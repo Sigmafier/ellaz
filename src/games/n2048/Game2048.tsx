@@ -80,16 +80,15 @@ export function Game2048({ ctx, skin }: { ctx: GameContext; skin?: TileSkin }) {
   const { size, target } = LEVELS[level];
   const [grid, setGrid] = useState<Grid>(() => newGame(size));
   const [score, setScore] = useState(0);
-  const [best, setBest] = useState(() => ctx.storage.get("best", 0));
+  const [best, setBest] = useState(() => ctx.score?.best() ?? 0);
   const [won, setWon] = useState(false);
   const [over, setOver] = useState(false);
   const [mergedIdx, setMergedIdx] = useState<Set<number>>(() => new Set());
   const boardRef = useRef<HTMLDivElement>(null);
   const startedRef = useRef(false);
-  // Authoritative best + a once-per-run latch: every merge past the old record
-  // is technically "a new best", so without the latch one good run would mint a
-  // personal-best reward on every move.
-  const bestRef = useRef(best);
+  // A once-per-run latch over the score port's verdict: every merge past the
+  // old record is technically "a new best", so without the latch one good run
+  // would mint a personal-best reward on every move.
   const bestFiredRef = useRef(false);
 
   // Reset the game to a given level (board size + win target).
@@ -137,9 +136,7 @@ export function Game2048({ ctx, skin }: { ctx: GameContext; skin?: TileSkin }) {
         ctx.audio.play("success");
         haptic.tap();
         setScore(ns);
-        if (ns > bestRef.current) {
-          bestRef.current = ns;
-          ctx.storage.set("best", ns);
+        if (ctx.score?.report({ value: ns, unit: "points" }).isPersonalBest) {
           setBest(ns);
           if (!bestFiredRef.current) {
             bestFiredRef.current = true;

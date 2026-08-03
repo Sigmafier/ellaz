@@ -65,16 +65,15 @@ export function MathGame({ ctx }: { ctx: GameContext }) {
   const [problem, setProblem] = useState<Problem>(() => generateProblem("up10"));
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
-  const [best, setBest] = useState(() => ctx.storage.get("best", 0));
+  const [best, setBest] = useState(() => ctx.score?.best() ?? 0);
   const [wrongChoice, setWrongChoice] = useState<number | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const started = useRef(false);
   const streakRef = useRef(0); // authoritative streak for side-effects (no stale closure)
-  // The best at the START of this run, plus a once-per-run latch. Without the
-  // latch a first-time player sets a "new best" on every single answer (1 > 0,
-  // 2 > 1, …) and mints a personal-best reward each time; one record per run is
-  // the honest reading of "beat your own record".
-  const bestRef = useRef(best);
+  // A once-per-run latch over the score port's verdict. Without it a first-time
+  // player sets a "new best" on every single answer (1 > 0, 2 > 1, …) and mints
+  // a personal-best reward each time; one record per run is the honest reading
+  // of "beat your own record".
   const bestFiredRef = useRef(false);
 
   useEffect(() => {
@@ -114,9 +113,7 @@ export function MathGame({ ctx }: { ctx: GameContext }) {
         setScore((s) => s + 1);
         setStreak(ns);
         const at = { x: e.clientX, y: e.clientY };
-        if (ns > bestRef.current) {
-          bestRef.current = ns;
-          ctx.storage.set("best", ns);
+        if (ctx.score?.report({ value: ns, unit: "points" }).isPersonalBest) {
           setBest(ns);
           if (!bestFiredRef.current) {
             bestFiredRef.current = true;

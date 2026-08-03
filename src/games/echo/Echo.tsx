@@ -70,7 +70,7 @@ export function Echo({ ctx }: { ctx: GameContext }) {
   /** Which pad is lit right now. The ONLY channel the game truly needs. */
   const [lit, setLit] = useState<number | null>(null);
   const [paused, setPaused] = useState(false);
-  const [best, setBest] = useState(() => ctx.storage.get("best", 0));
+  const [best, setBest] = useState(() => ctx.score?.best() ?? 0);
 
   const gridRef = useRef<HTMLDivElement>(null);
   const startedRef = useRef(false);
@@ -82,10 +82,10 @@ export function Echo({ ctx }: { ctx: GameContext }) {
     seqRef.current = seq;
     padsRef.current = level.pads;
   });
-  // The record at the START of this run, plus a once-per-run latch: without it a
-  // first-time player beats their record on literally every round (1 > 0, then
-  // 2 > 1, ...) and mints a personal-best reward each time.
-  const bestRef = useRef(best);
+  // A once-per-run latch. The score port answers "was that a record?" on every
+  // round, and without this a first-time player would hear yes on literally
+  // every one of them (1 > 0, then 2 > 1, ...) and mint a personal-best reward
+  // each time. One record per run is the moment worth celebrating.
   const bestFiredRef = useRef(false);
   // Timers that are NOT playback: the press flash and the pause before the next
   // round. Playback owns its own timers inside its effect, whose cleanup is what
@@ -223,9 +223,7 @@ export function Echo({ ctx }: { ctx: GameContext }) {
       if (isMilestoneRound(round)) {
         winMoment(ctx, { reason: "milestone", level: `round-${round}`, at, confetti: false });
       }
-      if (round > bestRef.current) {
-        bestRef.current = round;
-        ctx.storage.set("best", round);
+      if (ctx.score?.report({ value: round, unit: "points" }).isPersonalBest) {
         setBest(round);
         if (!bestFiredRef.current) {
           bestFiredRef.current = true;

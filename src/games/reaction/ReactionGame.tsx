@@ -13,12 +13,11 @@ import { Button, DifficultySelector, Stat, type DifficultyOption } from "@ui/ind
 import { burst, haptic, shake } from "@juice/index";
 import { Prompt, useGameTimer, winMoment } from "@shared/index";
 import {
+  NO_BEST,
   READY,
   armAttempt,
-  bestOf,
   goLive,
   isMilestone,
-  isNewBest,
   isPlausible,
   praiseFor,
   readTapTime,
@@ -155,7 +154,9 @@ function TrafficLight({ live, dim }: { live: boolean; dim: boolean }): ReactElem
 export function ReactionGame({ ctx }: { ctx: GameContext }): ReactElement {
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const [attempt, setAttempt] = useState<Attempt>(READY);
-  const [best, setBest] = useState<number>(() => ctx.storage.get("best", 0));
+  // NO_BEST (0) means "no record yet" here, and the port says the same thing
+  // with `undefined` — lower is better, so a stored zero could never be beaten.
+  const [best, setBest] = useState<number>(() => ctx.score?.best() ?? NO_BEST);
   /** True after an early tap, until the next green. Drives the gentle "not yet". */
   const [nudged, setNudged] = useState(false);
 
@@ -167,7 +168,6 @@ export function ReactionGame({ ctx }: { ctx: GameContext }): ReactElement {
   // through a `setState` updater — see .claude/rules/rewards-economy-convention.md.
   const attemptRef = useRef(attempt);
   const difficultyRef = useRef(difficulty);
-  const bestRef = useRef(best);
   /** Successful, MEASURABLE green taps this run. Feeds the milestone drip. */
   const successRef = useRef(0);
   /** One personal-best moment per run. Without this latch a child who improves
@@ -273,12 +273,14 @@ export function ReactionGame({ ctx }: { ctx: GameContext }): ReactElement {
       successRef.current = n;
       burst(at.x, at.y, { count: 12, spread: 70, colors: ["#2ecc71", "#a8f0c6", "#ffffff"] });
 
-      const beaten = isNewBest(bestRef.current, ms);
-      if (beaten) {
-        bestRef.current = bestOf(bestRef.current, ms);
-        ctx.storage.set("best", bestRef.current);
-        setBest(bestRef.current);
-      }
+      // The port ranks `ms` LOW without being told to, the same way economy.ts
+      // decides what a tier pays. It is only reached with a plausible reading:
+      // the `!isPlausible(ms)` guard above has already returned, which matters
+      // because the port's own validity check is finite-number-only and would
+      // otherwise bank an anticipated tap as a record nobody can beat.
+      const record = ctx.score?.report({ value: ms, unit: "ms" });
+      const beaten = record?.isPersonalBest ?? false;
+      if (beaten) setBest(ms);
 
       // One moment per tap. A personal best outranks the milestone drip, so the
       // two can never fire together and double-celebrate the same instant.

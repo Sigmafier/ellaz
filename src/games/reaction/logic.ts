@@ -227,6 +227,13 @@ export function isPlausible(ms: number): boolean {
 /** No record yet. Lower is better here, so zero cannot double as a score. */
 export const NO_BEST = 0;
 
+// `isNewBest` / `bestOf` below are NO LONGER on the win path: ranking moved to
+// the score port in Wave B, which derives "lower is better" from the `ms` unit
+// so no game can invert its own board. They are kept because they still pin the
+// plausibility WINDOW (a thing the port knows nothing about) and because
+// ReactionGame's early `!isPlausible(ms)` return is what makes handing `ms` to
+// the port safe. Do not reintroduce them as a second ranking rule.
+
 export function isNewBest(prevBestMs: number, ms: number): boolean {
   if (!isPlausible(ms)) return false;
   // A corrupt stored best (NaN, negative, a hand-edited save) reads as "none"

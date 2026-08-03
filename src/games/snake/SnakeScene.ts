@@ -34,8 +34,6 @@ export class SnakeScene extends Phaser.Scene {
   private scoreText!: Phaser.GameObjects.Text;
   private overText!: Phaser.GameObjects.Text;
   private speedButtons: Phaser.GameObjects.Text[] = [];
-  /** Stored high score, so a death that beats it can pay a personal best once. */
-  private best = 0;
 
   constructor() {
     super("snake");
@@ -63,7 +61,6 @@ export class SnakeScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(10);
 
-    this.best = this.ctx.storage.get("best", 0);
     this.ctx.lifecycle.gameplayStart();
     this.ctx.analytics.levelStart("classic");
 
@@ -247,10 +244,13 @@ export class SnakeScene extends Phaser.Scene {
         this.phase = "over";
         this.ctx.audio.play("fail");
         this.ctx.analytics.levelFail("classic", "collision");
-        // A run that beat the stored record ends on a high note.
-        if (this.state.score > this.best) {
-          this.best = this.state.score;
-          this.ctx.storage.set("best", this.state.score);
+        // A run that beat the stored record ends on a high note. The port owns
+        // the record outright now — it compares, persists and answers, so the
+        // scene keeps no copy to drift out of sync (snake never displays it).
+        // Reported once, at death: snake's score only ever climbs, so asking
+        // per food would put the same question dozens of times a run.
+        const record = this.ctx.score?.report({ value: this.state.score, unit: "points" });
+        if (record?.isPersonalBest) {
           winMoment(this.ctx, {
             reason: "personal_best",
             level: `score-${this.state.score}`,
