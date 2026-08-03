@@ -172,6 +172,10 @@ export function FrogGame({ ctx }: { ctx: GameContext }): ReactElement {
   const [hops, setHops] = useState(0);
   // "cheer" freezes the pond (no spawning, no expiry) while the win plays out.
   const [phase, setPhase] = useState<"play" | "cheer">("play");
+  // Furthest level reached, per DIFFICULTY — the level counter resets to 1 on a
+  // difficulty change, so a shared record would let an easy streak stand as the
+  // record on hard, where the frog hops sooner and the round asks for more.
+  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best("easy"));
 
   const he = ctx.locale === "he";
   const pads = useMemo(() => padsFor(difficulty), [difficulty]);
@@ -311,9 +315,10 @@ export function FrogGame({ ctx }: { ctx: GameContext }): ReactElement {
       if (d === difficulty) return;
       setDifficulty(d);
       setLevel(1);
+      setBest(ctx.score?.best(d));
       startRound();
     },
-    [difficulty, startRound],
+    [ctx, difficulty, startRound],
   );
 
   const onTap = useCallback(
@@ -352,13 +357,17 @@ export function FrogGame({ ctx }: { ctx: GameContext }): ReactElement {
       // real coin. `lockRef` closes the same door against two taps in one tick.
       lockRef.current = true;
       setPhase("cheer");
-      winMoment(ctx, {
+      // `level` is the level being COMPLETED — the bump to the next one happens
+      // inside the cheer timer below, so this is the furthest the player has got.
+      const won = winMoment(ctx, {
         reason: "level_complete",
         tier: difficulty,
         level: `${difficulty}-${level}`,
         at: { x: e.clientX, y: e.clientY },
         ms: Date.now() - startedAt.current,
+        score: { value: level, unit: "points", board: difficulty },
       });
+      if (won.score) setBest(won.score.best);
       cheerTimer.current = setTimeout(() => {
         setLevel((n) => n + 1);
         startRound();
@@ -392,6 +401,7 @@ export function FrogGame({ ctx }: { ctx: GameContext }): ReactElement {
         }}
       >
         <Stat label={he ? "שלב" : "Level"} value={level} />
+        <Stat label={ctx.t("best")} value={best ?? "-"} />
         <Stat label={he ? "תפסתם" : "Caught"} value={`${caught}/${ROUND_GOAL[difficulty]}`} />
         <DifficultySelector
           options={DIFF_OPTIONS}

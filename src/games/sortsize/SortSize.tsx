@@ -46,6 +46,10 @@ export function SortSize({ ctx }: { ctx: GameContext }) {
   const [level, setLevel] = useState(1);
   const [state, setState] = useState<RoundState>(() => newGame("easy"));
   const [justWon, setJustWon] = useState(false);
+  // Furthest level reached, per DIFFICULTY — the level counter resets to 1 on a
+  // difficulty change, so a shared record would let an easy streak stand as the
+  // record on hard, where the sizes are far closer together.
+  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best("easy"));
   const surfaceRef = useRef<HTMLDivElement>(null);
   const started = useRef(false);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -83,6 +87,7 @@ export function SortSize({ ctx }: { ctx: GameContext }) {
       if (advanceTimer.current) clearTimeout(advanceTimer.current);
       setDifficulty(d);
       setLevel(1);
+      setBest(ctx.score?.best(d));
       setState(newGame(d));
       setJustWon(false);
       ctx.analytics.levelStart("sortsize");
@@ -104,7 +109,7 @@ export function SortSize({ ctx }: { ctx: GameContext }) {
   const win = useCallback(
     (at: { x: number; y: number }) => {
       setJustWon(true);
-      winMoment(ctx, {
+      const won = winMoment(ctx, {
         reason: "level_complete",
         tier: difficulty,
         // The round KIND, not the round NUMBER: an endless counter would be
@@ -112,7 +117,13 @@ export function SortSize({ ctx }: { ctx: GameContext }) {
         // the difficulty, and economy.ts is what turns that into a payout.
         level: LEVELS[difficulty].kind,
         at,
+        // The record is how far up the endless ladder this run got. `level` is
+        // the level being COMPLETED right here — the bump happens below, in the
+        // advance timer. No `ms`: this game keeps no clock, and `ms` is a real
+        // duration on the analytics side, not a spare slot for a count.
+        score: { value: level, unit: "points", board: difficulty },
       });
+      if (won.score) setBest(won.score.best);
       advanceTimer.current = setTimeout(() => {
         setLevel((n) => n + 1);
         setState(newGame(difficulty));
@@ -120,7 +131,8 @@ export function SortSize({ ctx }: { ctx: GameContext }) {
         ctx.analytics.levelStart("sortsize");
       }, 1100);
     },
-    [ctx, difficulty],
+    // `level` is read for the score — the record is the level just completed.
+    [ctx, difficulty, level],
   );
 
   const onItem = useCallback(
@@ -206,6 +218,7 @@ export function SortSize({ ctx }: { ctx: GameContext }) {
         }}
       >
         <Stat label={he ? "שלב" : "Level"} value={level} />
+        <Stat label={ctx.t("best")} value={best ?? "-"} />
         <DifficultySelector
           options={DIFF_OPTIONS}
           value={difficulty}

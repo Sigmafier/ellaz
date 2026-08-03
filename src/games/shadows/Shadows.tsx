@@ -40,6 +40,10 @@ export function Shadows({ ctx }: { ctx: GameContext }) {
   const [level, setLevel] = useState(1);
   const [round, setRound] = useState<ShadowRound>(() => newRound("easy"));
   const [solved, setSolved] = useState(false);
+  // Furthest level reached, per DIFFICULTY — the level counter resets to 1 on a
+  // difficulty change, so a shared record would let an easy streak stand as the
+  // record on hard, where the choices are a harder read.
+  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best("easy"));
 
   // The double-grant guard. `solved` is state and therefore stale inside a
   // handler that fires twice in one tick; a ref is read at call time, so two
@@ -85,9 +89,10 @@ export function Shadows({ ctx }: { ctx: GameContext }) {
       if (d === difficulty) return;
       setDifficulty(d);
       setLevel(1);
+      setBest(ctx.score?.best(d));
       deal(d);
     },
-    [deal, difficulty],
+    [ctx, deal, difficulty],
   );
 
   const onChoice = useCallback(
@@ -113,13 +118,17 @@ export function Shadows({ ctx }: { ctx: GameContext }) {
       burst(e.clientX, e.clientY, { count: 12 });
       // Fired from the HANDLER, never from inside a setState updater: React may
       // run an updater twice, and that would double-grant a real coin.
-      winMoment(ctx, {
+      // `level` here is the level being COMPLETED — it is bumped later, inside
+      // the advance timer below — so it is the right number to record.
+      const won = winMoment(ctx, {
         reason: "level_complete",
         tier: difficulty,
         level: `${difficulty}-${level}`,
         at: { x: e.clientX, y: e.clientY },
         ms: Date.now() - startedAt.current,
+        score: { value: level, unit: "points", board: difficulty },
       });
+      if (won.score) setBest(won.score.best);
       advanceTimer.current = setTimeout(() => {
         setLevel((n) => n + 1);
         deal(difficulty);
@@ -154,6 +163,7 @@ export function Shadows({ ctx }: { ctx: GameContext }) {
         }}
       >
         <Stat label={ctx.locale === "he" ? "שלב" : "Level"} value={level} />
+        <Stat label={ctx.t("best")} value={best ?? "-"} />
         <DifficultySelector
           options={DIFF_OPTIONS}
           value={difficulty}

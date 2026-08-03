@@ -74,6 +74,11 @@ export function Vanish({ ctx }: { ctx: GameContext }) {
     const saved = ctx.storage.get<string>("level", "easy");
     return isDifficulty(saved) ? saved : "easy";
   });
+  // Furthest round reached, per DIFFICULTY — `roundNo` resets to 1 on a fresh run
+  // at a new difficulty, so a shared record would let an easy streak stand as the
+  // record on hard. Seeded from the RESTORED difficulty, not "easy": the level is
+  // persisted, so a returning player must see the record for the one they are on.
+  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best(level));
   const [round, setRound] = useState<Round>(() => newRound(level));
   const [phase, setPhase] = useState<Phase>("study");
   const [solved, setSolved] = useState(false);
@@ -114,6 +119,9 @@ export function Vanish({ ctx }: { ctx: GameContext }) {
     (d: Difficulty, opts?: { fresh?: boolean }) => {
       setLevel(d);
       ctx.storage.set("level", d);
+      // The record is scoped to the difficulty, so switching boards must show the
+      // record for the board actually being played.
+      setBest(ctx.score?.best(d));
       setRound(newRound(d));
       setSolved(false);
       setPhase("study");
@@ -150,14 +158,20 @@ export function Vanish({ ctx }: { ctx: GameContext }) {
       const r = el.getBoundingClientRect();
       // From the event handler, never from inside a setState updater: React may
       // run an updater twice, and that would double-grant the coins.
-      winMoment(ctx, {
+      // No `ms` here on purpose: the only clock in this file counts the STUDY
+      // beat down, not how long the answer took, and `ms` is read as a solve
+      // duration. "Not measured" is the honest answer.
+      const won = winMoment(ctx, {
         reason: "level_complete",
         tier: round.difficulty,
         level: `vanish-${round.difficulty}`,
         at: { x: r.left + r.width / 2, y: r.top + r.height / 2 },
+        score: { value: roundNo, unit: "points", board: round.difficulty },
       });
+      if (won.score) setBest(won.score.best);
     },
-    [ctx, phase, round, solved],
+    // `roundNo` is read for the score — the round being solved IS the record.
+    [ctx, phase, round, solved, roundNo],
   );
 
   const gone = vanishedItem(round);
@@ -191,6 +205,7 @@ export function Vanish({ ctx }: { ctx: GameContext }) {
           label={phase === "study" ? t.time : t.found}
           value={phase === "study" ? secondsLeft : foundCount}
         />
+        <Stat label={ctx.t("best")} value={best ?? "-"} />
         <Button variant="ghost" kids ariaLabel={t.again} onClick={() => startRound(level, { fresh: true })}>
           🔄
         </Button>

@@ -141,6 +141,10 @@ export function BubblesGame({ ctx }: { ctx: GameContext }) {
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const [round, setRound] = useState<Round>(() => newRound("easy", ctx.locale));
   const [level, setLevel] = useState(1);
+  // Furthest level reached, per DIFFICULTY — the level counter resets to 1 on a
+  // difficulty change, so a shared record would let an easy streak stand as the
+  // record on hard, where a round asks for more.
+  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best("easy"));
 
   // The handler's source of truth. State is stale inside a handler that fires
   // twice in one tick; a ref is read at call time, so two fast taps cannot bank
@@ -214,6 +218,7 @@ export function BubblesGame({ ctx }: { ctx: GameContext }) {
     setDifficulty(d);
     levelRef.current = 1;
     setLevel(1);
+    setBest(ctx.score?.best(d));
     startRound(d, null);
   }
 
@@ -242,13 +247,17 @@ export function BubblesGame({ ctx }: { ctx: GameContext }) {
 
     // From the HANDLER, never inside a setState updater: React may run an
     // updater twice, and that would grant a real coin twice.
-    winMoment(ctx, {
+    // `levelRef.current` — not the `level` state — is the level being COMPLETED
+    // here, and it is still the pre-increment value at this point in the handler.
+    const won = winMoment(ctx, {
       reason: "level_complete",
       tier: difficulty,
       level: `${difficulty}-${levelRef.current}`,
       at: { x, y },
       ms: Date.now() - startedAt.current,
+      score: { value: levelRef.current, unit: "points", board: difficulty },
     });
+    if (won.score) setBest(won.score.best);
     levelRef.current += 1;
     setLevel(levelRef.current);
     startRound(difficulty, next.target);
@@ -330,6 +339,7 @@ export function BubblesGame({ ctx }: { ctx: GameContext }) {
           value={<span style={{ fontSize: 30, lineHeight: 1 }}>{round.target}</span>}
         />
         <Stat label={he ? "שלב" : "Level"} value={level} />
+        <Stat label={ctx.t("best")} value={best ?? "-"} />
         <Stat
           label={he ? "נתפסו" : "Caught"}
           // dir="ltr": a count reads left-to-right in both languages.

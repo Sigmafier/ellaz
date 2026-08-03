@@ -21,6 +21,15 @@ export function TicTacToe({ ctx }: { ctx: GameContext }) {
   const [busy, setBusy] = useState(false);
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [score, setScore] = useState<Score>({ wins: 0, losses: 0, draws: 0 });
+  // The record is the LONGEST RUN OF WINS in a row, per DIFFICULTY — the three
+  // AIs are different opponents (easy is random, hard is unbeatable minimax), and
+  // the tally already zeroes on a difficulty change. Hard's record may honestly
+  // stay empty: a perfect minimax opponent can be drawn but never beaten.
+  // Seeded from "medium" because that is this game's opening difficulty.
+  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best("medium"));
+  // Held in a ref, not state: `finish` runs both from the click handler and from
+  // a setTimeout, where a state read would be stale — and this count must be exact.
+  const streakRef = useRef(0);
   const boardRef = useRef<HTMLDivElement>(null);
   const started = useRef(false);
   const win = winner(board);
@@ -35,6 +44,11 @@ export function TicTacToe({ ctx }: { ctx: GameContext }) {
     }
   }, [ctx]);
 
+  // Restart deliberately does NOT break the streak: abandoning a board is not a
+  // loss, and this platform does not punish walking away from one. The cost is
+  // that a streak can be farmed by restarting every game that turns bad — which
+  // is fine for a personal best and is worth remembering before this number is
+  // ever ranked against other players.
   const reset = useCallback(() => {
     setBoard(emptyBoard());
     setBusy(false);
@@ -52,19 +66,29 @@ export function TicTacToe({ ctx }: { ctx: GameContext }) {
           if (centre) burst(centre.x, centre.y, { count: 14 });
           // Only a WIN pays. A loss or a draw grants nothing — never a
           // consolation reward, and the wallet is add-only so never a penalty.
-          winMoment(ctx, {
+          // Extend the run BEFORE reporting, so the score is this win included.
+          streakRef.current += 1;
+          const won = winMoment(ctx, {
             reason: "level_complete",
             tier: difficulty,
             level: "vs-ai",
             at: centre,
+            score: { value: streakRef.current, unit: "points", board: difficulty },
           });
+          if (won.score) setBest(won.score.best);
         } else {
+          // The AI won: the run of wins is over.
+          streakRef.current = 0;
           setScore((s) => ({ ...s, losses: s.losses + 1 }));
           ctx.audio.play("fail");
           if (boardRef.current) shake(boardRef.current);
           ctx.analytics.levelFail("vs-ai", "ai-won");
         }
       } else if (isDraw(b)) {
+        // A draw also breaks the run — it is a streak of WINS. Hard mode is
+        // unbeatable minimax, so a draw there is the common outcome and must
+        // never quietly count as one.
+        streakRef.current = 0;
         setScore((s) => ({ ...s, draws: s.draws + 1 }));
         ctx.audio.play("pop");
       }
@@ -79,9 +103,11 @@ export function TicTacToe({ ctx }: { ctx: GameContext }) {
       if (level === difficulty) return;
       setDifficulty(level);
       setScore({ wins: 0, losses: 0, draws: 0 });
+      streakRef.current = 0;
+      setBest(ctx.score?.best(level));
       reset();
     },
-    [difficulty, reset],
+    [ctx, difficulty, reset],
   );
 
   const onCell = useCallback(
@@ -143,6 +169,7 @@ export function TicTacToe({ ctx }: { ctx: GameContext }) {
         <Stat label={ctx.locale === "he" ? "ניצחונות" : "Wins"} value={score.wins} />
         <Stat label={ctx.locale === "he" ? "הפסדים" : "Losses"} value={score.losses} />
         <Stat label={ctx.locale === "he" ? "תיקו" : "Draws"} value={score.draws} />
+        <Stat label={ctx.t("best")} value={best ?? "-"} />
       </div>
 
       <div

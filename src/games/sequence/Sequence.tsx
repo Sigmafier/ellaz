@@ -76,6 +76,10 @@ export function Sequence({ ctx }: { ctx: GameContext }): ReactElement {
   const [level, setLevel] = useState(1);
   const [round, setRound] = useState<Round>(() => newRound("easy"));
   const [solved, setSolved] = useState(false);
+  // Furthest level reached, per DIFFICULTY — the level counter resets to 1 on a
+  // difficulty change, so a shared record would let an easy streak stand as the
+  // record on hard, where the patterns are longer.
+  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best("easy"));
   // The latch is a REF, not the `solved` state: two fast taps land in the same
   // React batch, so a state read would still be false on the second one and the
   // win would be granted twice.
@@ -114,9 +118,10 @@ export function Sequence({ ctx }: { ctx: GameContext }): ReactElement {
       if (d === difficulty) return;
       setDifficulty(d);
       setLevel(1);
+      setBest(ctx.score?.best(d));
       dealRound(d);
     },
-    [difficulty, dealRound],
+    [ctx, difficulty, dealRound],
   );
 
   const onChoice = useCallback(
@@ -141,18 +146,26 @@ export function Sequence({ ctx }: { ctx: GameContext }): ReactElement {
       burst(e.clientX, e.clientY, { count: 12 });
       // Fired from the handler, never from a setState updater: an updater may run
       // twice, and this one banks coins.
-      winMoment(ctx, {
+      // `level` here is the level being COMPLETED — the bump happens below, in
+      // the advance timer. No `ms`: this game keeps no clock, and that field is
+      // a genuine duration.
+      const won = winMoment(ctx, {
         reason: "level_complete",
         tier: difficulty,
         level: `${difficulty}-${round.family}`,
         at: { x: e.clientX, y: e.clientY },
+        score: { value: level, unit: "points", board: difficulty },
       });
+      if (won.score) setBest(won.score.best);
       advanceTimer.current = setTimeout(() => {
         setLevel((n) => n + 1);
         dealRound(difficulty);
       }, 1100);
     },
-    [ctx, round, difficulty, dealRound],
+    // `level` is read for the score, so it belongs in here: without it the
+    // handler would only refresh because `round` happens to change every deal,
+    // which is luck rather than correctness.
+    [ctx, round, difficulty, level, dealRound],
   );
 
   const promptText = ctx.locale === "he" ? "מה בא אחר כך?" : "What comes next?";
@@ -163,6 +176,7 @@ export function Sequence({ ctx }: { ctx: GameContext }): ReactElement {
 
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
         <Stat label={ctx.locale === "he" ? "שלב" : "Level"} value={level} />
+        <Stat label={ctx.t("best")} value={best ?? "-"} />
         <DifficultySelector
           options={DIFF_OPTIONS}
           value={difficulty}
