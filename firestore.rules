@@ -1,0 +1,63 @@
+rules_version = '2';
+
+// Ellaz — cloud backup rules.
+//
+// The threat model is small and worth stating, because it is what makes these
+// rules simple enough to be obviously correct. A player document holds a coin
+// balance, a star count, shop item ids, per-game records and a two-word name
+// picked from a fixed list. There is no name a child typed, no email, no age,
+// no free text of any kind, and nothing that identifies a person. So the thing
+// worth protecting is a player's progress from being DAMAGED, not their
+// document from being read.
+//
+// Everything requires an anonymous account, so nothing here is open to the
+// unauthenticated internet.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // One document per anonymous player, holding the whole profile as a JSON
+    // string in `profile`.
+    match /players/{uid} {
+      // Readable by any signed-in user. This is deliberate and it is what makes
+      // the backup code work: restoring onto a new tablet means reading the
+      // OLD player's document while signed in as a NEW anonymous user, and a
+      // rule cannot see whether the caller knows the code. Uids are
+      // unguessable, the contents are not sensitive, and the alternative
+      // designs all end in a rule that can be satisfied by lying.
+      allow read: if request.auth != null;
+
+      // Only the owner writes. This is the half that matters: it means no
+      // caller can damage another player's progress, however many uids they
+      // enumerate.
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // code -> uid, so a code written on a piece of paper can find a document.
+    match /codes/{code} {
+      allow read: if request.auth != null;
+
+      // A code may only ever be claimed FOR YOURSELF, and only while it is
+      // unclaimed. Without the `!exists` half, anyone could repoint an existing
+      // code at their own empty document and a child restoring from their note
+      // would silently receive a stranger's blank profile instead of their
+      // room — losing everything with no error anywhere.
+      //
+      // The cost of this is that a code collision (1 in ~1.1e12) permanently
+      // burns that code for the second player. Their data is fine; their note
+      // is not, which is the right direction to fail.
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid;
+      allow update: if request.auth != null
+                    && resource.data.uid == request.auth.uid
+                    && request.resource.data.uid == request.auth.uid;
+      allow delete: if false;
+    }
+
+    // Nothing else exists yet. Leaderboards (Wave D) get their own rules with
+    // their own bounds; until then, deny by default rather than leaving a hole
+    // for a future collection to fall into.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

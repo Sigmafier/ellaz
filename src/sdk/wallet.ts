@@ -93,6 +93,21 @@ export interface Wallet {
    */
   adoptExternalWrite(raw: string | null): void;
   /**
+   * REPLACE this device's profile with a restored one, and persist it.
+   *
+   * The destructive sibling of `adoptExternalWrite`, and deliberately a
+   * separate method rather than a flag on it. That one adopts a write a peer
+   * TAB already made to the same storage key, so there is nothing to lose;
+   * this one overwrites what is on this device with something that came from
+   * somewhere else, and whatever was here is gone.
+   *
+   * It must therefore only ever be reached from an explicit, confirmed player
+   * action that has already been shown what it is about to receive. Nothing
+   * automatic may call it. Returns false if the write was refused, in which
+   * case the previous profile is still intact.
+   */
+  adoptRestored(profile: ProfileV1): boolean;
+  /**
    * Game ids, most-recently-played FIRST, and ONLY games actually opened.
    *
    * Total and safe: a profile with no plays returns `[]`, a game with no
@@ -277,6 +292,18 @@ class EllazWallet implements Wallet {
         /* one bad listener must not stop the others */
       }
     }
+  }
+
+  adoptRestored(profile: ProfileV1): boolean {
+    // Run it through the migrator rather than trusting the caller's object: it
+    // arrived over the network as JSON and may have been written by a build
+    // that knows fields this one does not. migrateProfile is total, so a
+    // hostile or truncated document degrades to a usable profile instead of
+    // poisoning storage.
+    const next = migrateProfile(JSON.stringify(profile));
+    return this.mutate(() => {
+      this.profile = next;
+    });
   }
 
   markPlayed(gameId: string): void {

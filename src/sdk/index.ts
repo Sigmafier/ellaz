@@ -69,3 +69,9 @@ export {
   type KeyValueBackend,
 } from "./profile";
 export { wallet, createWallet, createRewardsPort, type Wallet, type BuyResult } from "./wallet";
+
+// Cloud backup. Only the THIN half is exported here — `cloud.ts` itself is
+// dynamically imported by cloudSync so it stays out of the shell chunk. Adding
+// a re-export of `./cloud` to this barrel would silently undo that.
+export { startCloudSync, pushNow, cloudIdentity, cloudRestore } from "./cloudSync";
+export type { CloudIdentity } from "./cloud";

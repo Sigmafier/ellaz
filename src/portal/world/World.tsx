@@ -6,6 +6,7 @@ import { IconButton } from "@ui/components";
 import { burst, popEl, shake } from "@juice/index";
 import { WalletChip } from "../WalletChip";
 import { Scene } from "./Scene";
+import { Backup } from "./Backup";
 import { ALL_ITEMS, CATEGORIES, defaultFor, type ItemCategory, type ShopItem } from "./items";
 
 // "My world" — the screen the coins are FOR.
@@ -173,6 +174,10 @@ export function World({ locale, onExit }: { locale: Locale; onExit: () => void }
             />
           ))}
         </div>
+
+        {/* Under the shop on purpose: this is the one thing here addressed to a
+            grown-up, and it must not sit between a child and their room. */}
+        <Backup t={t} />
       </div>
     </div>
   );

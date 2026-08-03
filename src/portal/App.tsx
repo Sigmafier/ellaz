@@ -1,7 +1,7 @@
 import { Component, Suspense, lazy, useEffect, useState, type ReactNode } from "react";
 import type { Locale } from "@i18n/index";
 import { DIR } from "@i18n/index";
-import { analytics } from "@sdk/index";
+import { analytics, startCloudSync } from "@sdk/index";
 import { Home } from "./Home";
 import { GameHost } from "./GameHost";
 import { World } from "./world/World";
@@ -89,6 +89,10 @@ export function App() {
   useEffect(() => {
     analytics.init();
     analytics.track("session_start", { locale });
+    // Only subscribes. The cloud chunk is not fetched until the player actually
+    // has something worth backing up, so a first-time visitor who bounces off
+    // the home screen makes no network request and mints no account.
+    startCloudSync();
     const onHash = () => setRoute(parseHash(window.location.hash));
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);

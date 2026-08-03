@@ -10,8 +10,15 @@ export function Button(props: {
   kids?: boolean;
   style?: CSSProperties;
   ariaLabel?: string;
+  /**
+   * Only for actions that are genuinely impossible right now — an empty form
+   * field, a request already in flight. NEVER as a way of telling a child they
+   * have not earned something: this platform answers that with a gentle shake
+   * and no words, so an unaffordable item stays tappable.
+   */
+  disabled?: boolean;
 }) {
-  const { children, onClick, variant = "primary", kids, style, ariaLabel } = props;
+  const { children, onClick, variant = "primary", kids, style, ariaLabel, disabled } = props;
   const min = kids ? "var(--tap-kids)" : "var(--tap)";
   const bg =
     variant === "primary"
@@ -21,7 +28,9 @@ export function Button(props: {
     <button
       aria-label={ariaLabel}
       onClick={onClick}
+      disabled={disabled}
       style={{
+        opacity: disabled ? 0.45 : 1,
         minHeight: min,
         minWidth: min,
         padding: "0 var(--space-5)",

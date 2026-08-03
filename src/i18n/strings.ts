@@ -71,6 +71,30 @@ export const STRINGS: Dict = {
   // button says "another one", not "edit".
   yourName: { he: "השם שלי", en: "My name" },
   newName: { he: "שם אחר", en: "Another name" },
+  // Cloud backup. The copy is deliberately plain about what the code is and
+  // what it does — this is the one place the app asks something of a grown-up,
+  // and pretending it is magic would be how a family loses a room.
+  keepProgress: { he: "לשמור את ההתקדמות", en: "Keep your progress" },
+  backupHint: {
+    he: "רשמו את הקוד על פתק. אם המכשיר יימחק, או שתרצו את החדר גם בטאבלט, הקוד מחזיר הכול.",
+    en: "Write this code down. If this device is wiped, or you want your room on another one, this code brings it back.",
+  },
+  backupOffline: { he: "אין חיבור כרגע", en: "No connection right now" },
+  haveCode: { he: "יש לי קוד", en: "I have a code" },
+  enterCode: { he: "הקלידו את הקוד", en: "Enter the code" },
+  lookUp: { he: "חיפוש", en: "Look up" },
+  codeNotFound: { he: "לא מצאנו את הקוד הזה", en: "We couldn't find that code" },
+  restoreFound: { he: "מצאנו:", en: "Found:" },
+  restoreReplaces: {
+    he: "שחזור יחליף את מה שיש במכשיר הזה עכשיו.",
+    en: "Restoring replaces what is on this device now.",
+  },
+  restoreConfirm: { he: "שחזרו", en: "Restore" },
+  restoreCancel: { he: "ביטול", en: "Cancel" },
+  restoreDone: { he: "שוחזר!", en: "Restored!" },
+  restoreFailed: { he: "השחזור לא נשמר", en: "The restore didn't save" },
+  coinsLabel: { he: "מטבעות", en: "coins" },
+  itemsLabel: { he: "פריטים", en: "items" },
   coins: { he: "מטבעות", en: "Coins" },
   stars: { he: "כוכבים", en: "Stars" },
   owned: { he: "יש לך", en: "Owned" },

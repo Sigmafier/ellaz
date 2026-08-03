@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Ellaz — a cross-device games platform. Play on phone, tablet, and PC.",
+  "description": "Ellaz \u2014 a cross-device games platform. Play on phone, tablet, and PC.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -11,7 +11,8 @@
     "assert:first-visit": "node scripts/assert-first-visit.mjs",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "probe:cloud": "node scripts/probe-cloud.mjs"
   },
   "dependencies": {
     "phaser": "^4.2.1",

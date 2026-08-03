@@ -57,11 +57,15 @@ export default defineConfig({
         // this entry the glob above precaches it anyway and the whole lazy-load
         // buys nothing — green build, unmoved payload. `npm run build:check`
         // enforces it; see .claude/rules/precache-glob-sweeps-new-chunks.md.
+        // `cloud-*.js` is the backup client, dynamically imported after first
+        // paint (see sdk/cloudSync.ts) and only ever fetched by a player who
+        // has something to back up.
         globIgnores: [
           "**/game-*.js",
           "**/vendor-phaser-*.js",
           "**/lab-*.js",
           "**/vendor-analytics-*.js",
+          "**/cloud-*.js",
         ],
         runtimeCaching: [
           {
@@ -133,6 +137,14 @@ export default defineConfig({
           // ship the whole tournament to every player on first paint. The `lab-`
           // prefix is a contract with the PWA globIgnores above, same as `game-`.
           if (path.includes("/src/juice/lab/")) return "lab";
+
+          // The cloud backup client, same arrangement and same reason. It must
+          // be carved out BEFORE the shared-code rule below, which would
+          // otherwise pin it to the shell because it lives under src/sdk/ —
+          // and then the dynamic import in cloudSync.ts would buy nothing.
+          // `cloudSync.ts` itself is NOT here: it is the thin always-loaded
+          // half that holds the import.
+          if (/\/src\/sdk\/(cloud|cloudConfig|backupCode)\.ts$/.test(path)) return "cloud";
 
           // Shared app code, imported by BOTH the shell and the games. Pin it to
           // the shell side explicitly: left unassigned, Rollup folds it into
