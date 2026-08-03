@@ -41,6 +41,19 @@ export interface ScorePortOptions {
    * Nothing to roll back, and no window where the two disagree.
    */
   legacyKey?: string;
+  /**
+   * Called when a report turns out to be a new personal best.
+   *
+   * A CALLBACK rather than a direct publish, so this module keeps knowing
+   * nothing about the network — score.ts is the ranking policy, this is the
+   * thin layer that remembers, and neither should learn what a board is. The
+   * host wires it to the cloud; a test wires it to a spy; a game that is not
+   * on a board wires nothing.
+   *
+   * It must never throw into a win, so it is called inside a try/catch here
+   * rather than trusting every future caller to be careful.
+   */
+  onPersonalBest?: (report: { board: string; value: number; unit: string }) => void;
 }
 
 export function createScorePort(store: SaveStore, opts: ScorePortOptions = {}): ScorePort {
@@ -102,6 +115,15 @@ export function createScorePort(store: SaveStore, opts: ScorePortOptions = {}): 
           // Storage refused. The run still counts as a best for THIS session —
           // telling a child they did not beat their record because the disk is
           // full would be a lie about what they just did.
+        }
+      }
+
+      if (better && opts.onPersonalBest) {
+        try {
+          opts.onPersonalBest({ board, value, unit });
+        } catch {
+          // A board is decoration on a fact that is already saved. Nothing it
+          // does may cost a child the record they just set.
         }
       }
 

@@ -7,6 +7,7 @@ import { audioPort } from "./audio";
 import { speechPort } from "./speech";
 import { createRewardsPort } from "./wallet";
 import { createScorePort } from "./scoreboard";
+import { publishScore } from "./cloudSync";
 
 // Assembles the GameContext the portal hands to a game on mount. Owns the
 // pause/resume/resize/exit wiring; a game only subscribes to what it needs.
@@ -54,7 +55,16 @@ export function createHostControls(gameId: string, locale: Locale, mount: HTMLEl
     // of zero. Storage is already namespaced per game, so this reads only that
     // game's own old key, and only READS it. Remove it once those six have been
     // shipping the port long enough that no returning player still has one.
-    score: createScorePort(storage, { legacyKey: "best" }),
+    score: createScorePort(storage, {
+      legacyKey: "best",
+      // A new personal best is also the only moment worth putting on a board,
+      // so the board write hangs off the fact rather than off the win. The
+      // score port itself never learns the network exists — it calls this, and
+      // this is where the game id lives.
+      onPersonalBest: ({ board, value, unit }) => {
+        void publishScore(gameId, board, value, unit);
+      },
+    }),
     lifecycle: {
       loadingStart: () => context.analytics.track("game_loading_start"),
       loadingFinished: () => context.analytics.track("game_loading_finished"),

@@ -14,6 +14,7 @@
 // false, or nothing at all when the cloud is unreachable, and no caller is
 // allowed to care.
 import type { Cloud, CloudIdentity, DeviceState } from "./cloud";
+import { boardId } from "./board";
 import { readRecords } from "./records";
 import { wallet } from "./wallet";
 
@@ -165,6 +166,39 @@ export function startCloudSync(): void {
   } catch {
     /* a browser that refuses the listener simply waits for the debounce */
   }
+}
+
+/**
+ * Put a personal best on its board. Fire-and-forget; never throws.
+ *
+ * Reached from a win, so everything about it is best-effort: a game id that
+ * cannot be a document id, an unnamed player, no network, an exhausted quota —
+ * each one silently does nothing. A board is a nice thing to be on, never a
+ * thing a child can fail to do.
+ */
+export async function publishScore(
+  game: string,
+  board: string,
+  value: number,
+  unit: string,
+  at: number = Date.now(),
+): Promise<boolean> {
+  const id = boardId(game, board);
+  if (id === null) return false;
+
+  const cloud = await load();
+  if (!cloud) return false;
+
+  // The stored word ids, not a rendered string: one player has one name in both
+  // languages, and the board renders it in whichever the reader is using.
+  const name = wallet.name;
+  return cloud.publish({
+    board: id,
+    name: name ? `${name.adj}__${name.noun}` : "",
+    unit,
+    value,
+    at,
+  });
 }
 
 /** The backup code to show the player, connecting if necessary. `null` if unreachable. */

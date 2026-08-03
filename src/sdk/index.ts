@@ -73,7 +73,8 @@ export { wallet, createWallet, createRewardsPort, type Wallet, type BuyResult } 
 // Cloud backup. Only the THIN half is exported here — `cloud.ts` itself is
 // dynamically imported by cloudSync so it stays out of the shell chunk. Adding
 // a re-export of `./cloud` to this barrel would silently undo that.
-export { startCloudSync, pushNow, cloudIdentity, cloudRestore } from "./cloudSync";
+export { startCloudSync, pushNow, cloudIdentity, cloudRestore, publishScore } from "./cloudSync";
+export { boardId, windowsFor, isSafeId, type BoardWindows } from "./board";
 export type { CloudIdentity, DeviceState } from "./cloud";
 // Personal bests are the half of a transfer that does NOT live in the profile.
 export {
