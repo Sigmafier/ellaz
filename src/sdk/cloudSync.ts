@@ -172,9 +172,16 @@ export function startCloudSync(): void {
  * Put a personal best on its board. Fire-and-forget; never throws.
  *
  * Reached from a win, so everything about it is best-effort: a game id that
- * cannot be a document id, an unnamed player, no network, an exhausted quota —
- * each one silently does nothing. A board is a nice thing to be on, never a
- * thing a child can fail to do.
+ * cannot be a document id, no network, an exhausted quota — each one silently
+ * does nothing. A board is a nice thing to be on, never a thing a child can
+ * fail to do.
+ *
+ * A name is MINTED here if the player has none. Names are created lazily by the
+ * first screen that shows one, and nothing on the way to a personal best ever
+ * shows a child their name — so on the realistic path (open a game, play it
+ * well, never visit the room) `wallet.name` is undefined and the row would land
+ * on a public board permanently blank. This is the first moment a name is
+ * genuinely needed, which is exactly where the name-pool rule says to mint one.
  */
 export async function publishScore(
   game: string,
@@ -183,6 +190,8 @@ export async function publishScore(
   unit: string,
   at: number = Date.now(),
 ): Promise<boolean> {
+  // Both checked BEFORE minting a name: a publish that will not happen must not
+  // leave a side effect behind to show for it.
   const id = boardId(game, board);
   if (id === null) return false;
 
@@ -191,10 +200,15 @@ export async function publishScore(
 
   // The stored word ids, not a rendered string: one player has one name in both
   // languages, and the board renders it in whichever the reader is using.
-  const name = wallet.name;
+  //
+  // `ensureName` returns the picked name even on a device that refused to store
+  // it, so a locked-down browser gets a named row rather than a blank one — it
+  // just gets a different name next session, which is the better half of that
+  // trade.
+  const name = wallet.ensureName();
   return cloud.publish({
     board: id,
-    name: name ? `${name.adj}__${name.noun}` : "",
+    name: `${name.adj}__${name.noun}`,
     unit,
     value,
     at,

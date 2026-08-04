@@ -91,5 +91,6 @@ export {
   adoptRecords,
   canUndoRecords,
   undoRecords,
+  parseRecordKey,
   type Records,
 } from "./records";

@@ -29,6 +29,11 @@ const fake = vi.hoisted(() => ({
   records: {} as Records,
   pushed: [] as DeviceState[],
   pushOk: true,
+  /** Undefined is the REALISTIC state: a name is minted lazily, by a screen. */
+  name: undefined as { adj: string; noun: string } | undefined,
+  named: 0,
+  published: [] as { board: string; name: string; unit: string; value: number }[],
+  publishOk: true,
 }));
 
 vi.mock("./records", () => ({
@@ -39,6 +44,14 @@ vi.mock("./wallet", () => ({
   wallet: {
     snapshot: () => JSON.parse(JSON.stringify(fake.profile)) as ProfileV1,
     subscribe: () => () => {},
+    get name() {
+      return fake.name;
+    },
+    ensureName() {
+      fake.named += 1;
+      fake.name ??= { adj: "swift", noun: "tiger" };
+      return fake.name;
+    },
   },
 }));
 
@@ -49,6 +62,10 @@ vi.mock("./cloud", () => ({
     push: async (state: DeviceState) => {
       fake.pushed.push(state);
       return fake.pushOk;
+    },
+    publish: async (entry: { board: string; name: string; unit: string; value: number }) => {
+      fake.published.push(entry);
+      return fake.publishOk;
     },
     restore: async () => null,
   }),
@@ -75,6 +92,48 @@ beforeEach(() => {
   fake.records = {};
   fake.pushed = [];
   fake.pushOk = true;
+  fake.name = undefined;
+  fake.named = 0;
+  fake.published = [];
+  fake.publishOk = true;
+});
+
+describe("what a published board row is called", () => {
+  it("names a player who has only ever played", async () => {
+    // A name is minted LAZILY, by the first screen that shows one. Publishing
+    // fires from a personal best, and nothing on the way to a personal best has
+    // ever shown a child their name — so on the realistic path `wallet.name` is
+    // undefined and the row lands on a public board permanently blank, with no
+    // error and nothing to notice.
+    //
+    // The board is the first place a name is genuinely NEEDED, which is exactly
+    // where the name-pool rule says to mint one. Anywhere earlier writes to
+    // storage on a first visit for nothing.
+    const { publishScore } = await freshSync();
+
+    expect(await publishScore("snake", "default", 4200, "points")).toBe(true);
+    expect(fake.published[0].name).toBe("swift__tiger");
+    expect(fake.named).toBe(1);
+  });
+
+  it("leaves a player who already has one alone", async () => {
+    fake.name = { adj: "brave", noun: "otter" };
+    const { publishScore } = await freshSync();
+
+    expect(await publishScore("snake", "default", 4200, "points")).toBe(true);
+    expect(fake.published[0].name).toBe("brave__otter");
+  });
+
+  it("mints nothing for a board id it will not publish to", async () => {
+    // A rejected id never reaches the network, so it must not reach storage
+    // either — a refused publish that still wrote a name would be a side effect
+    // with nothing to show for it.
+    const { publishScore } = await freshSync();
+
+    expect(await publishScore("sn/ake", "default", 4200, "points")).toBe(false);
+    expect(fake.named).toBe(0);
+    expect(fake.published).toHaveLength(0);
+  });
 });
 
 describe("skipping a push that would change nothing", () => {

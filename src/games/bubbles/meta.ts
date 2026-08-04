@@ -11,4 +11,5 @@ export const meta: GameMeta = {
   category: "learn",
   orientation: "any",
   renderer: "dom",
+  scoreUnit: "points",
 };

@@ -5,6 +5,7 @@ import {
   adoptRecords,
   canUndoRecords,
   isRecordKey,
+  parseRecordKey,
   readRecords,
   undoRecords,
   type RecordStore,
@@ -52,6 +53,21 @@ describe("which storage keys are records", () => {
       "",
     ]) {
       expect(isRecordKey(key), key).toBe(false);
+    }
+  });
+});
+
+describe("reading a key back apart", () => {
+  it("names the game and the board", () => {
+    expect(parseRecordKey("ellaz:snake:score:hard")).toEqual({ game: "snake", board: "hard" });
+    expect(parseRecordKey("ellaz:2048:score:default")).toEqual({ game: "2048", board: "default" });
+  });
+
+  it("refuses everything isRecordKey refuses", () => {
+    // Same guard, one entry point: a parser that accepted a key the validator
+    // rejects would be a second, weaker gate on the same strings.
+    for (const key of ["ellaz:profile:v1", "ellaz:cloud:v1", "ellaz:a:score:b:c", "", "snake"]) {
+      expect(parseRecordKey(key)).toBeNull();
     }
   });
 });

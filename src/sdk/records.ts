@@ -54,6 +54,22 @@ export function isRecordKey(key: string): boolean {
   return typeof key === "string" && RECORD_KEY.test(key);
 }
 
+/**
+ * `ellaz:snake:score:hard` -> `{ game: "snake", board: "hard" }`, or null.
+ *
+ * The leaderboards read this to find out which boards a player actually HAS a
+ * record on, which is the only place that knowledge exists: a game scopes its
+ * record per difficulty inside its own renderer, and the catalog can never
+ * import a renderer. Splitting a key the regex already validated is safe by
+ * construction — it has exactly four segments and neither capture can hold a
+ * colon.
+ */
+export function parseRecordKey(key: string): { game: string; board: string } | null {
+  if (!isRecordKey(key)) return null;
+  const [, game, , board] = key.split(":");
+  return { game, board };
+}
+
 /** The seam. Tests drive a Map; the app drives localStorage. */
 export interface RecordStore {
   keys(): string[];
