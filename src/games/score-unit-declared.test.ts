@@ -16,10 +16,15 @@
 // that use it. So this test reads each game's OWN source, finds the `unit:` it
 // reports, and requires the two to agree. That is the same trade `board.test.ts`
 // makes for the cloud chunk's LOW_UNITS set, for the same reason.
+//
+// It reads the tree rather than importing the roster, deliberately. The roster
+// module has moved once already, and a test that pins two files to each other
+// should not also be pinned to where a third one lives - `catalog.test.ts`
+// ratchets the roster itself. Everything here is source text, so this holds
+// whichever module happens to own the list.
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { GAMES } from "../portal/games";
 
 const GAMES_DIR = new URL(".", import.meta.url).pathname;
 
@@ -55,12 +60,21 @@ const DIRS = readdirSync(GAMES_DIR, { withFileTypes: true })
   .filter((e) => e.isDirectory())
   .map((e) => e.name);
 
-const DIR_FOR_ID = new Map<string, string>(
-  DIRS.map((dir) => {
-    const src = readFileSync(join(GAMES_DIR, dir, "meta.ts"), "utf8");
-    return [src.match(/id: *"([^"]+)"/)?.[1] ?? dir, dir];
-  }),
-);
+interface Declared {
+  dir: string;
+  id: string;
+  /** What `meta.ts` claims, or undefined when it claims nothing. */
+  scoreUnit?: string;
+}
+
+const METAS: Declared[] = DIRS.map((dir) => {
+  const src = readFileSync(join(GAMES_DIR, dir, "meta.ts"), "utf8");
+  return {
+    dir,
+    id: src.match(/\bid: *"([^"]+)"/)?.[1] ?? dir,
+    scoreUnit: src.match(/\bscoreUnit: *"([a-z]+)"/)?.[1],
+  };
+});
 
 /** What this game's source says it measures, following a borrowed renderer. */
 function unitFromSource(dir: string): string | undefined {
@@ -79,11 +93,8 @@ function unitFromSource(dir: string): string | undefined {
 }
 
 describe("what each game says its record measures", () => {
-  it.each(GAMES.map((m) => [m.id, m] as const))("%s", (id, meta) => {
-    const dir = DIR_FOR_ID.get(id);
-    expect(dir, `no directory declares the id "${id}"`).toBeDefined();
-
-    const reported = unitFromSource(dir!);
+  it.each(METAS.map((m) => [m.id, m] as const))("%s", (id, meta) => {
+    const reported = unitFromSource(meta.dir);
     expect(
       meta.scoreUnit,
       reported
@@ -99,16 +110,16 @@ describe("what each game says its record measures", () => {
     // Deliberate and permanent: ranking a child's drawing is the opposite of
     // this platform's premise. Named here rather than left to the general rule
     // above, so adding one is a test someone has to delete on purpose.
-    const coloring = GAMES.find((m) => m.id === "coloring");
-    expect(coloring, "coloring left the roster").toBeDefined();
+    const coloring = METAS.find((m) => m.id === "coloring");
+    expect(coloring, "coloring left the tree").toBeDefined();
     expect(coloring!.scoreUnit).toBeUndefined();
   });
 
-  it("covers the whole roster but coloring", () => {
+  it("covers every game but coloring", () => {
     // A count ratchet in the same spirit as catalog.test.ts: a game that quietly
     // loses its record would otherwise pass every assertion above by declaring
     // nothing and reporting nothing.
-    const scored = GAMES.filter((m) => m.scoreUnit !== undefined);
-    expect(scored).toHaveLength(GAMES.length - 1);
+    const scored = METAS.filter((m) => m.scoreUnit !== undefined);
+    expect(scored).toHaveLength(METAS.length - 1);
   });
 });
