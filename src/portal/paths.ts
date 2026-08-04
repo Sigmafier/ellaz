@@ -35,3 +35,7 @@ export function gameHref(id: string, locale: Locale): string {
 export function worldHref(locale: Locale): string {
   return `${BASE}${prefix(locale)}world/`;
 }
+
+export function boardsHref(locale: Locale): string {
+  return `${BASE}${prefix(locale)}boards/`;
+}

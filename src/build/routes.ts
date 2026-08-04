@@ -10,7 +10,7 @@ import { GAMES } from "../portal/games";
  * assertions with no edit here. `routes.test.ts` pins the shape.
  */
 
-export type PageKind = "home" | "game" | "world" | "notFound";
+export type PageKind = "home" | "game" | "world" | "boards" | "notFound";
 
 export interface Route {
   kind: PageKind;
@@ -62,6 +62,10 @@ export function worldPath(locale: Locale): string {
   return `${localePrefix(locale)}/world/`;
 }
 
+export function boardsPath(locale: Locale): string {
+  return `${localePrefix(locale)}/boards/`;
+}
+
 /** `dist/`-relative file for a directory-style path. `/games/x/` -> `games/x/index.html`. */
 function fileFor(path: string): string {
   return `${path.slice(1)}index.html`;
@@ -99,6 +103,16 @@ export const ROUTES: Route[] = [
       locale,
       path: worldPath(locale),
       file: fileFor(worldPath(locale)),
+      emit: true,
+      indexable: true,
+    }),
+  ),
+  ...LOCALES.map(
+    (locale): Route => ({
+      kind: "boards",
+      locale,
+      path: boardsPath(locale),
+      file: fileFor(boardsPath(locale)),
       emit: true,
       indexable: true,
     }),

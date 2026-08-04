@@ -14,7 +14,7 @@ import type { Locale } from "@i18n/index";
  * hitting. The document cannot be wrong about what the document is.
  */
 
-export type PageKind = "app" | "game" | "world";
+export type PageKind = "app" | "game" | "world" | "boards";
 
 export interface PageContext {
   kind: PageKind;
@@ -50,5 +50,6 @@ export function readPageContext(doc: Document = document): PageContext {
   const walletSlot = doc.getElementById("wallet-slot") ?? undefined;
 
   if (page === "world") return { kind: "world", locale, frame, walletSlot };
+  if (page === "boards") return { kind: "boards", locale, frame, walletSlot };
   return { kind: "game", gameId: doc.body.dataset.game, locale, frame, walletSlot };
 }

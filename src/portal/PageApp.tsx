@@ -1,6 +1,7 @@
 import { createRoot, type Root } from "react-dom/client";
 import type { Locale } from "@i18n/index";
 import { analytics, startCloudSync } from "@sdk/index";
+import { Boards } from "./Boards";
 import { GameHost } from "./GameHost";
 import { World } from "./world/World";
 import { WalletChip } from "./WalletChip";
@@ -82,6 +83,8 @@ export function bootContentPage(ctx: PageContext): void {
     root.render(
       ctx.kind === "world" ? (
         <World locale={locale} onExit={exitTo(locale)} />
+      ) : ctx.kind === "boards" ? (
+        <Boards locale={locale} onExit={exitTo(locale)} />
       ) : (
         <GameHost
           gameId={ctx.gameId ?? ""}

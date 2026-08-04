@@ -3,7 +3,7 @@ import type { Locale } from "@i18n/index";
 import { makeT } from "@i18n/index";
 import { CATALOG, CATEGORY_ORDER, findEntry, type CatalogEntry } from "./catalog";
 import { audioPort, speechPort, wallet, type Category, type ProfileV1 } from "@sdk/index";
-import { gameHref, worldHref } from "./paths";
+import { boardsHref, gameHref, worldHref } from "./paths";
 import { WalletChip } from "./WalletChip";
 import { Scene } from "./world/Scene";
 
@@ -127,6 +127,36 @@ export function Home({
         </header>
 
         <WorldHero profile={profile} locale={locale} onTap={tap} />
+
+        {/* The boards, and only once there is something to be on.
+            A first visit is for games. A leaderboard link on a home screen
+            nobody has played yet leads to "play a game and you'll show up
+            here", which is honest and is still clutter in front of a child
+            choosing their first game. It appears the moment it means
+            something. Deliberately NOT nested inside the room card above:
+            an <a> inside an <a> is invalid and browsers close the outer one
+            mid-DOM, which would take the room card apart. */}
+        {recent.length > 0 && (
+          <a
+            href={boardsHref(locale)}
+            onClick={tap}
+            style={{
+              display: "block",
+              width: "calc(100% - 8px)",
+              margin: "0 4px 20px",
+              padding: "11px 14px",
+              borderRadius: "var(--radius-3)",
+              background: "var(--surface-2)",
+              boxShadow: "var(--shadow-1)",
+              color: "var(--text)",
+              textDecoration: "none",
+              fontWeight: 800,
+              fontSize: 15,
+            }}
+          >
+            <span aria-hidden="true">🏆</span> {t("boards")}
+          </a>
+        )}
 
         {recent.length > 0 && (
           <section style={{ marginBottom: 20 }}>

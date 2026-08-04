@@ -4,11 +4,14 @@ import { makeT } from "@i18n/index";
 import {
   boardStanding,
   formatScore,
+  parseRecordKey,
+  readRecords,
   renderName,
   standingView,
   wallet,
   type BoardStanding,
   type BoardWindow,
+  type GameMeta,
   type ScoreUnit,
 } from "@sdk/index";
 import { IconButton } from "@ui/components";
@@ -25,6 +28,14 @@ import { CATALOG } from "./catalog";
 // The names are two words from a fixed list, so a public board carries nothing
 // a child typed and nothing that identifies them. That is what makes it safe to
 // show at all, and it is why the name pool has no free-text escape hatch.
+//
+// WHICH BOARD, AND IN WHAT UNIT
+// Both have to come from somewhere other than this file. A game scopes its
+// record per difficulty inside its own renderer, which the portal can never
+// import — so the boards a player HAS are read back out of their own record
+// keys, and what the number MEASURES is read off the game's DOM-free meta,
+// where `score-unit-declared.test.ts` pins it to the renderer. Guessing either
+// one shows a fast time ranked as if slow were better.
 
 const WINDOWS: { id: BoardWindow; label: { he: string; en: string } }[] = [
   { id: "d", label: { he: "היום", en: "Today" } },
@@ -33,23 +44,79 @@ const WINDOWS: { id: BoardWindow; label: { he: string; en: string } }[] = [
   { id: "all", label: { he: "תמיד", en: "All time" } },
 ];
 
-/** Games the player has actually opened, newest first, filtered to the catalog. */
-function myGames(): { id: string; title: { he: string; en: string }; emoji: string }[] {
+/**
+ * Board ids are a game's own difficulty ids, so most of the catalog shares a
+ * handful. An id with no entry renders as itself rather than as a blank — an
+ * honest raw label beats a missing one, and it is also how a new difficulty
+ * announces that it wants a translation.
+ */
+const BOARD_LABELS: Record<string, { he: string; en: string }> = {
+  default: { he: "הכול", en: "All" },
+  easy: { he: "קל", en: "Easy" },
+  medium: { he: "בינוני", en: "Med" },
+  hard: { he: "קשה", en: "Hard" },
+  expert: { he: "מומחה", en: "Expert" },
+  kids4: { he: "חיות 4×4", en: "Animals 4×4" },
+  kids6: { he: "חיות 6×6", en: "Animals 6×6" },
+};
+
+function boardLabel(board: string): { he: string; en: string } {
+  return BOARD_LABELS[board] ?? { he: board, en: board };
+}
+
+interface Playable {
+  meta: GameMeta;
+  unit: ScoreUnit;
+  boards: string[];
+}
+
+/**
+ * Games this player has opened that keep a record, newest first, each with the
+ * boards they actually hold one on.
+ *
+ * A game opened but never won has no record key, so it falls back to the
+ * default board: the reader can still look at it and see what there is to beat.
+ */
+function myGames(): Playable[] {
   const known = new Map(CATALOG.map((g) => [g.meta.id, g.meta]));
+
+  const boardsByGame = new Map<string, string[]>();
+  for (const key of Object.keys(readRecords())) {
+    const parsed = parseRecordKey(key);
+    if (!parsed) continue;
+    const list = boardsByGame.get(parsed.game) ?? [];
+    list.push(parsed.board);
+    boardsByGame.set(parsed.game, list);
+  }
+
   return wallet
     .recentlyPlayed()
     .map((id) => known.get(id))
-    .filter((m): m is NonNullable<typeof m> => m !== undefined)
-    .map((m) => ({ id: m.id, title: m.title, emoji: m.emoji }));
+    .filter((m): m is GameMeta => m !== undefined && m.scoreUnit !== undefined)
+    .map((meta) => ({
+      meta,
+      unit: meta.scoreUnit as ScoreUnit,
+      boards: (boardsByGame.get(meta.id) ?? ["default"]).slice().sort(),
+    }));
 }
 
 export function Boards({ locale, onExit }: { locale: Locale; onExit: () => void }) {
   const t = makeT(locale);
-  const games = myGames();
-  const [gameId, setGameId] = useState<string>(() => games[0]?.id ?? "");
+  const [games] = useState(myGames);
+  const [gameId, setGameId] = useState<string>(() => games[0]?.meta.id ?? "");
   const [window_, setWindow] = useState<BoardWindow>("d");
 
-  const game = games.find((g) => g.id === gameId);
+  const game = games.find((g) => g.meta.id === gameId);
+  // Reset with the game rather than persisting: "hard" on one game is not the
+  // same achievement as "hard" on another, and a board id that game does not
+  // have would ask the network for a document nobody has ever written.
+  const [board, setBoard] = useState<string>(() => games[0]?.boards[0] ?? "default");
+
+  const pick = (id: string) => {
+    const next = games.find((g) => g.meta.id === id);
+    setGameId(id);
+    setBoard(next?.boards[0] ?? "default");
+  };
 
   return (
     <div className="ellaz-scroll" style={{ flex: 1 }}>
@@ -68,12 +135,23 @@ export function Boards({ locale, onExit }: { locale: Locale; onExit: () => void 
         ) : (
           <>
             <DifficultySelector
-              options={games.map((g) => ({ id: g.id, label: g.title }))}
+              options={games.map((g) => ({ id: g.meta.id, label: g.meta.title }))}
               value={gameId}
-              onChange={setGameId}
+              onChange={pick}
               locale={locale}
               kids
             />
+            {game && game.boards.length > 1 ? (
+              <>
+                <div style={{ height: 10 }} />
+                <DifficultySelector
+                  options={game.boards.map((b) => ({ id: b, label: boardLabel(b) }))}
+                  value={board}
+                  onChange={setBoard}
+                  locale={locale}
+                />
+              </>
+            ) : null}
             <div style={{ height: 10 }} />
             <DifficultySelector
               options={WINDOWS.map((w) => ({ id: w.id, label: w.label }))}
@@ -82,7 +160,16 @@ export function Boards({ locale, onExit }: { locale: Locale; onExit: () => void 
               locale={locale}
             />
 
-            {game ? <Board gameId={game.id} window={window_} locale={locale} t={t} /> : null}
+            {game ? (
+              <Board
+                gameId={game.meta.id}
+                board={board}
+                unit={game.unit}
+                window={window_}
+                locale={locale}
+                t={t}
+              />
+            ) : null}
           </>
         )}
       </div>
@@ -90,18 +177,19 @@ export function Boards({ locale, onExit }: { locale: Locale; onExit: () => void 
   );
 }
 
-type Load =
-  | { kind: "loading" }
-  | { kind: "offline" }
-  | { kind: "ready"; standing: BoardStanding };
+type Load = { kind: "loading" } | { kind: "offline" } | { kind: "ready"; standing: BoardStanding };
 
 function Board({
   gameId,
+  board,
+  unit,
   window: win,
   locale,
   t,
 }: {
   gameId: string;
+  board: string;
+  unit: ScoreUnit;
   window: BoardWindow;
   locale: Locale;
   t: (key: string) => string;
@@ -112,17 +200,14 @@ function Board({
     let alive = true;
     setLoad({ kind: "loading" });
     void (async () => {
-      // "default" is the board every game writes to unless it scopes per
-      // difficulty. A per-difficulty picker is the obvious next thing here, and
-      // deliberately not in this first version.
-      const standing = await boardStanding(gameId, "default", win, "points");
+      const standing = await boardStanding(gameId, board, win, unit);
       if (!alive) return;
       setLoad(standing ? { kind: "ready", standing } : { kind: "offline" });
     })();
     return () => {
       alive = false;
     };
-  }, [gameId, win]);
+  }, [gameId, board, unit, win]);
 
   if (load.kind === "loading") {
     return <p style={{ marginTop: 18, color: "var(--text-dim)" }}>…</p>;
@@ -164,14 +249,14 @@ function Board({
                 {nameOf(row.name, locale) ?? "—"}
               </span>
               <span dir="ltr" style={{ fontSize: 15, fontWeight: 800 }}>
-                {formatScore(row.value, "points")}
+                {formatScore(row.value, unit)}
               </span>
             </li>
           ))}
         </ol>
       )}
 
-      <You view={view} mine={mine} t={t} />
+      <You view={view} mine={mine} unit={unit} t={t} />
     </div>
   );
 }
@@ -186,10 +271,12 @@ function Board({
 function You({
   view,
   mine,
+  unit,
   t,
 }: {
   view: ReturnType<typeof standingView>;
   mine: number | undefined;
+  unit: ScoreUnit;
   t: (key: string) => string;
 }) {
   const line =
@@ -198,7 +285,7 @@ function You({
       : view.kind === "percentile"
         ? `${t("boardsTop")} ${view.top}%`
         : mine !== undefined
-          ? `${t("boardsYourBest")} ${formatScore(mine, "points")}`
+          ? `${t("boardsYourBest")} ${formatScore(mine, unit)}`
           : t("boardsPlayToJoin");
 
   return (
@@ -224,7 +311,3 @@ function nameOf(packed: string, locale: Locale): string | undefined {
   if (!adj || !noun) return undefined;
   return renderName({ adj, noun }, locale);
 }
-
-// Re-exported type only, so the unit passed above stays honest if it ever
-// becomes per-game rather than hardcoded.
-export type { ScoreUnit };

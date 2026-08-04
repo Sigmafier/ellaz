@@ -188,7 +188,11 @@ function main() {
     // names carry a content hash, so a page whose set has drifted is a page
     // running different code from the one at `/` - and the shape that failure
     // takes is a game that never mounts, on a page that looks perfect.
-    const boots = page.kind === "game" || page.kind === "world";
+    // Read off the emitter's own manifest, so "which pages boot" cannot drift
+    // between the route table and this gate. A page kind missing here is not a
+    // soft failure: it gets held to the DOCUMENT rules instead and fails for a
+    // reason that has nothing to do with what is wrong.
+    const boots = page.kind === "game" || page.kind === "world" || page.kind === "boards";
     const eager = eagerAssets(html).map(norm).sort();
     if (boots) {
       if (JSON.stringify(eager) !== JSON.stringify(rootEager)) {

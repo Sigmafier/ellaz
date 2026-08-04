@@ -1,5 +1,5 @@
 import { parseHash } from "./route";
-import { gameHref, worldHref } from "./paths";
+import { boardsHref, gameHref, worldHref } from "./paths";
 import type { Locale } from "@i18n/index";
 
 /**
@@ -33,6 +33,10 @@ export function redirectLegacyHash(
   }
   if (route.kind === "world") {
     loc.replace(worldHref(locale));
+    return true;
+  }
+  if (route.kind === "boards") {
+    loc.replace(boardsHref(locale));
     return true;
   }
   // "home" (which is also what an unrecognised hash parses to) and "lab" both

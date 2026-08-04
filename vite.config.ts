@@ -92,6 +92,7 @@ export default defineConfig({
           "games/**",
           "en/**",
           "world/**",
+          "boards/**",
           "404.html",
         ],
         runtimeCaching: [
@@ -197,7 +198,13 @@ export default defineConfig({
           // `world/items.ts`, `Scene.tsx` and `art.tsx` are deliberately NOT
           // here: Home renders the child's real room in its world card, so they
           // belong to the shell either way.
-          if (/\/src\/portal\/(PageApp|GameHost)\.tsx$/.test(path)) return "page";
+          //
+          // `Boards.tsx` is here for exactly the same reason and it is the one
+          // that would have gone wrong quietly: it lives in `src/portal/`, so
+          // the explicit shell rule below would have claimed it and shipped the
+          // whole leaderboard screen to every child on first paint. Only
+          // `/boards/` ever renders it.
+          if (/\/src\/portal\/(PageApp|GameHost|Boards)\.tsx$/.test(path)) return "page";
           if (/\/src\/portal\/world\/(World|Backup)\.tsx$/.test(path)) return "page";
 
           // EVERY OTHER portal module goes to the shell side, explicitly.

@@ -4,7 +4,7 @@ import { SITE } from "../content/site";
 import { GAMES, metaFor } from "../portal/games";
 import { ROUTES, canonicalUrl, gamePath, homePath, type Route } from "./routes";
 import { gamePage } from "./gamePage";
-import { homePage, notFoundPage, worldPage } from "./sitePages";
+import { boardsPage, homePage, notFoundPage, worldPage } from "./sitePages";
 import { homeGraph } from "./schema";
 import { jsonLd, toHtml } from "./html";
 import { llmsTxt, robotsTxt, sitemapXml } from "./siteFiles";
@@ -41,6 +41,9 @@ export function renderRoute(route: Route, base: string, headAssets?: HeadAssets)
   }
   if (route.kind === "world") {
     return worldPage({ locale: route.locale, games: GAMES, base, indexable, headAssets });
+  }
+  if (route.kind === "boards") {
+    return boardsPage({ locale: route.locale, games: GAMES, base, indexable, headAssets });
   }
 
   const meta = metaFor(route.id!);

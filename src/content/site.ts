@@ -51,6 +51,7 @@ export interface SiteCopy {
   categories: Record<string, string>;
   homePage: { title: string; description: string; h1: string; lede: string; body: string[] };
   worldPage: { title: string; description: string; h1: string; lede: string; body: string[] };
+  boardsPage: { title: string; description: string; h1: string; lede: string; body: string[] };
   notFound: { title: string; h1: string; body: string; back: string };
   footer: string;
 }
@@ -105,6 +106,19 @@ const he: SiteCopy = {
       "לחדר יש שמונה מקומות שאפשר למלא: קיר, רצפה, שטיח, צמח, פוסטר, בגד, כובע וחיה. בכל קטגוריה יש פריט אחד חינמי מההתחלה, כך שהחדר שלם עוד לפני שנצבר מטבע אחד.",
       "קנייה היא נגיעה אחת, בלי חלון אישור ובלי בקשת פרטים. פריט שאין מספיק מטבעות בשבילו פשוט מרטט קלות ולא אומר כלום, כי סירוב הוא לא שגיאה.",
       "לכל שחקן יש גם שם: שם תואר וחיה, מתוך רשימה סגורה, עם כפתור שמגריל מחדש. אף ילד לא מקליד שם, ולכן אין כאן שום דבר שצריך לפקח עליו.",
+    ],
+  },
+  boardsPage: {
+    title: "השיאים - Ellaz",
+    description:
+      "לוחות השיאים של Ellaz. כל משחק שומר שיא לכל רמה, ואפשר לראות איפה הוא עומד מול שאר השחקנים: היום, השבוע, החודש ותמיד.",
+    h1: "השיאים",
+    lede: "השיא שלכם בכל משחק, ולידו המקום שלו מול כל מי שמשחק כאן.",
+    body: [
+      "כל משחק שומר את התוצאה הטובה ביותר, בנפרד לכל רמת קושי. חלק מהמשחקים סופרים נקודות, חלק סופרים זמן וחלק סופרים מהלכים, ולכל אחד יש לוח משלו. בסודוקו מנצח מי שסיים מהר. בזיכרון מנצח מי שהפך פחות קלפים.",
+      "הלוח לא מדרג את כולם, וזה בכוונה. מי שקרוב לראש רואה מקום מדויק, אחריו מופיע אחוזון כל עוד הוא נעים לקריאה, וכל השאר רואים את השיא של עצמם בלי שום מיקום. אף ילד לא יראה כאן שהוא אחרון.",
+      "השמות באים מרשימה סגורה: שם תואר וחיה. אף אחד לא מקליד שם, ולכן אין בלוח שום דבר שמזהה ילד.",
+      "מה שהלוח לא עושה: הכול נשמר על המכשיר עצמו, אז מחיקה של נתוני הדפדפן מוחקת גם את השיאים. בחדר יש קוד גיבוי, וכדאי לרשום אותו על פתק לפני היום שבו הוא נחוץ.",
     ],
   },
   notFound: {
@@ -166,6 +180,19 @@ const en: SiteCopy = {
       "The room has eight slots to fill: wall, floor, rug, plant, poster, outfit, hat and pet. Every category ships one free item, so the room is complete before a single coin has been earned.",
       "Buying is one tap. No confirm dialog, no details to enter. An item you cannot afford yet gives a small shake and says nothing at all, because being told no is not an error.",
       "Every player is called something too: an adjective and an animal, drawn from a fixed list, with a button to reroll. No child types a name, which is why there is nothing here anyone needs to moderate.",
+    ],
+  },
+  boardsPage: {
+    title: "Leaderboards - Ellaz",
+    description:
+      "The Ellaz leaderboards. Every game keeps a record for every difficulty, and you can see where yours stands against everyone else playing: today, this week, this month, or ever.",
+    h1: "Leaderboards",
+    lede: "Your own best in every game, and where it sits among everyone else playing.",
+    body: [
+      "Each game keeps your best result, one for every difficulty. Some games count points, some count seconds, some count moves, and each of those gets a board of its own. In Sudoku the fastest finish wins. In Memory it is whoever turned over the fewest cards.",
+      "The board does not rank everybody, and that is deliberate. Near the top you get a place. Below that you get a percentile, for as long as reading one is still a pleasant thing to do. Everybody else sees their own record and nothing about position at all. No child is ever shown as last.",
+      "Names come from a fixed list: one adjective, one animal. Nobody types one, so nothing on the board identifies a child.",
+      "What it does not do: all of this lives on the device, so clearing your browser data clears the records with it. There is a backup code in the room, and it is worth writing down before the day you need it.",
     ],
   },
   notFound: {

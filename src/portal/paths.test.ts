@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from "vitest";
 import { GAMES } from "./games";
-import { gameHref, homeHref, worldHref } from "./paths";
+import { boardsHref, gameHref, homeHref, worldHref } from "./paths";
 import { readPageContext } from "./pageContext";
 import { redirectLegacyHash } from "./legacyHash";
-import { gamePath, homePath, worldPath } from "../build/routes";
+import { boardsPath, gamePath, homePath, worldPath } from "../build/routes";
 
 /**
  * The app's link generator and the page emitter's route table are two
@@ -19,10 +19,11 @@ describe("the app links to the pages the emitter actually writes", () => {
     expect(gameHref(id, "en")).toBe(gamePath(id, "en"));
   });
 
-  it("agrees about the home and the room too", () => {
+  it("agrees about the home, the room and the boards too", () => {
     for (const locale of ["he", "en"] as const) {
       expect(homeHref(locale)).toBe(homePath(locale));
       expect(worldHref(locale)).toBe(worldPath(locale));
+      expect(boardsHref(locale)).toBe(boardsPath(locale));
     }
   });
 
@@ -65,6 +66,15 @@ describe("what page am I on", () => {
     expect(readPageContext().kind).toBe("world");
   });
 
+  it("recognises the boards", () => {
+    // Without this branch the boards page falls through to the game arm and
+    // mounts a GameHost with an empty id — a page that renders its prose
+    // perfectly and shows "we couldn't find that game" where the boards go.
+    document.body.dataset.page = "boards";
+    document.body.innerHTML = '<div id="game-frame"></div>';
+    expect(readPageContext().kind).toBe("boards");
+  });
+
   it("falls back to the app rather than mounting nothing", () => {
     // A half-deployed or hand-edited document with neither marker must still
     // boot something. Rendering nothing at all is the worse failure: it looks
@@ -98,6 +108,12 @@ describe("old hash links keep working", () => {
     const loc = { ...spy(), hash: "#/world" };
     expect(redirectLegacyHash(loc)).toBe(true);
     expect(loc.calls).toEqual(["/world/"]);
+  });
+
+  it("sends #/boards to the leaderboards", () => {
+    const loc = { ...spy(), hash: "#/boards" };
+    expect(redirectLegacyHash(loc)).toBe(true);
+    expect(loc.calls).toEqual(["/boards/"]);
   });
 
   it("leaves the dev lab alone", () => {

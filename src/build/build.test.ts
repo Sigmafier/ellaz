@@ -119,7 +119,7 @@ describe("related games", () => {
 });
 
 describe("every page renders", () => {
-  it.each(BASES)("base %s: all 46 documents, and none of them empty", (base) => {
+  it.each(BASES)("base %s: all 48 documents, and none of them empty", (base) => {
     const files = allEmittedFiles(base);
     const pages = files.filter((f) => f.fileName.endsWith(".html"));
     expect(pages).toHaveLength(ROUTES.filter((r) => r.emit).length);
@@ -143,14 +143,17 @@ describe("every page renders", () => {
       scripts: ['<script type="module" src="/assets/index-abc.js"></script>'],
     };
     for (const f of allEmittedFiles("/", assets).filter((x) => x.fileName.endsWith(".html"))) {
-      const boots = /(^|\/)games\//.test(f.fileName) || f.fileName.includes("world/");
+      const boots =
+        /(^|\/)games\//.test(f.fileName) ||
+        f.fileName.includes("world/") ||
+        f.fileName.includes("boards/");
       expect(f.source.includes("/assets/index-abc.js"), f.fileName).toBe(boots);
       if (!boots) continue;
       // The frame is emitted EMPTY. Markup inside it would be a node React does
       // not know about, inside a tree it reconciles.
       expect(f.source, f.fileName).toContain('<div id="game-frame"></div>');
       expect(f.source, f.fileName).toContain('id="game-poster"');
-      expect(f.source, f.fileName).toMatch(/<body[^>]+data-page="(game|world)"/);
+      expect(f.source, f.fileName).toMatch(/<body[^>]+data-page="(game|world|boards)"/);
     }
   });
 

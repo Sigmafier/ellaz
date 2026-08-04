@@ -4,7 +4,7 @@ import { SITE } from "../content/site";
 import { html } from "./html";
 import { renderDocument } from "./layout";
 import { gameCards, stage } from "./gamePage";
-import { homePath, href, worldPath } from "./routes";
+import { boardsPath, homePath, href, worldPath } from "./routes";
 import { homeGraph, worldGraph } from "./schema";
 import type { HeadAssets } from "./assets";
 
@@ -40,6 +40,7 @@ export function homePage(opts: SitePageOptions): string {
     ${gameCards(opts.games, locale, base)}
     ${copy.body.map((p) => html`<p>${p}</p>`)}
     <p><a href="${href(worldPath(locale), base)}">${site.worldPage.h1}</a></p>
+    <p><a href="${href(boardsPath(locale), base)}">${site.boardsPage.h1}</a></p>
   `;
 
   return renderDocument({
@@ -88,6 +89,49 @@ export function worldPage(opts: SitePageOptions): string {
     bodyData: { page: "world", locale },
     // No wallet slot here: the room screen shows its own chip, and two of them
     // in one viewport reads as a bug rather than as emphasis.
+  });
+}
+
+/**
+ * The leaderboards.
+ *
+ * Emitted exactly like the room, and for the same reason: the screen is a real
+ * destination, so it gets a real address rather than a fragment. What a visitor
+ * with no JavaScript reads here is the honest half - what the boards measure,
+ * and the rule that nobody is shown as last - because the standings themselves
+ * are a network read that only the runtime can make.
+ */
+export function boardsPage(opts: SitePageOptions): string {
+  const { locale, base } = opts;
+  const site = SITE[locale];
+  const copy = site.boardsPage;
+
+  const body = html`
+    <nav class="bc"><a href="${href(homePath(locale), base)}">${site.home}</a> › ${copy.h1}</nav>
+    ${stage("🏆", site, true)}
+    <h1>${copy.h1}</h1>
+    <p class="lede">${copy.lede}</p>
+    ${copy.body.map((p) => html`<p>${p}</p>`)}
+    <p><a href="${href(worldPath(locale), base)}">${site.worldPage.h1}</a></p>
+  `;
+
+  return renderDocument({
+    locale,
+    title: copy.title,
+    description: copy.description,
+    path: boardsPath(locale),
+    alternates: [
+      { locale: "he", path: boardsPath("he") },
+      { locale: "en", path: boardsPath("en") },
+    ],
+    schema: worldGraph(locale, copy),
+    body,
+    base,
+    indexable: opts.indexable,
+    headAssets: opts.headAssets,
+    bodyData: { page: "boards", locale },
+    // Same call as the room: the boards screen carries the wallet in its own
+    // header, and two chips in one viewport reads as a bug.
   });
 }
 
