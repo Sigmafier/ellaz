@@ -114,7 +114,7 @@ export function Memory({ ctx }: { ctx: GameContext }) {
   const cols = LEVELS[levelIdx].cols;
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: 16 }}>
-      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center", maxWidth: "100%" }}>
         <Stat label={ctx.t("pairs")} value={`${state.matchedPairs}/${state.totalPairs}`} />
         <Stat label={ctx.t("moves")} value={state.moves} />
         <Stat label={ctx.t("best")} value={best ?? "-"} />

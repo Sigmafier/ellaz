@@ -256,7 +256,7 @@ export function Echo({ ctx }: { ctx: GameContext }) {
     >
       <Prompt ctx={ctx} glyph="💡" text={promptFor(seq.phase, seq.round, he)} />
 
-      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center", maxWidth: "100%" }}>
         <Stat label={he ? "שלב" : "Round"} value={seq.round} />
         <Stat label={ctx.t("best")} value={best} />
         <Button variant="ghost" kids ariaLabel={ctx.t("restart")} onClick={startRun}>

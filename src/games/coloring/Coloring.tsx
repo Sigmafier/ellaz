@@ -57,7 +57,7 @@ export function Coloring({ ctx }: { ctx: GameContext }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: 12 }}>
-      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center", maxWidth: "100%" }}>
         <Button variant="ghost" kids ariaLabel="clear" onClick={clearPage}>
           🧽
         </Button>

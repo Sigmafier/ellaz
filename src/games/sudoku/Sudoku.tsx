@@ -267,7 +267,7 @@ export function Sudoku({ ctx }: { ctx: GameContext }) {
         </button>
       </div>
 
-      <div style={{ color: "var(--text-dim)", fontSize: 13, display: "flex", gap: 10, alignItems: "center" }}>
+      <div style={{ color: "var(--text-dim)", fontSize: 13, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center", maxWidth: "100%" }}>
         <span>
           {won
             ? ctx.t("youWon") + " 🎉"

@@ -10,18 +10,35 @@
 }
 
 html,
-body,
-#root {
-  height: 100%;
+body {
   margin: 0;
 }
 
 body {
   font-family: var(--font);
   color: var(--text);
-  background: radial-gradient(1200px 800px at 50% -10%, #202650 0%, var(--bg) 55%);
-  overflow: hidden; /* the app manages its own scroll regions */
   overscroll-behavior: none;
+}
+
+/* EVERYTHING BELOW IS SCOPED TO THE APP SHELL, AND THE SCOPE IS LOAD-BEARING.
+   `index.html` carries `class="app-shell"`; the 46 emitted content pages do
+   not. Unscoped, `overflow: hidden` on <body> is correct for an application
+   that manages its own scroll regions and catastrophic for a document: every
+   word below the fold becomes unreachable by scroll while a crawler reads the
+   page perfectly. Human-only, silent, and invisible to every check that reads
+   the HTML.
+
+   The dark page background is scoped for the same class of reason - a content
+   page paints its own light document theme, and a stray dark <body> underneath
+   it shows through wherever the document CSS does not reach. */
+body.app-shell {
+  height: 100%;
+  overflow: hidden;
+  background: radial-gradient(1200px 800px at 50% -10%, #202650 0%, var(--bg) 55%);
+}
+
+html:has(body.app-shell) {
+  height: 100%;
 }
 
 #root {

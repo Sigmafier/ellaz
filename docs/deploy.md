@@ -79,8 +79,15 @@ Ships to Hostinger only — Pages runs nginx and ignores `.htaccess`. It sets:
   Safe because the filename changes whenever the content does.
 - **`index.html`, `sw.js`, `manifest.webmanifest`** → `no-cache, must-revalidate`.
   These three ARE the update mechanism; caching them strands returning players.
-- SPA fallback to `index.html` for any path that isn't a real file. Routing is
-  hash-based, so this only catches a stray hand-typed path.
+- **The nested content pages** inherit the `no-cache` rule: the `FilesMatch` is
+  basename-scoped, so `games/2048/index.html` matches `^index\.html$` exactly as
+  the shell does. They carry no content hash, so revalidating each visit is right.
+- **`robots.txt`, `sitemap.xml`, `llms.txt`** → `max-age=3600`.
+- **`ErrorDocument 404 /404.html`**, and no SPA catch-all. Every route is a real
+  document now; the only thing the catch-all still caught was a typo, and
+  answering a typo with 200 plus the home page is a soft 404, which search
+  engines treat worse than the missing page. `Options -MultiViews` stops Apache
+  guessing a filename before `DirectorySlash` can redirect.
 - gzip, plus correct MIME for `.webmanifest`.
 
 Order matters: the immutable rule is broad and the `no-cache` block below it
@@ -148,14 +155,36 @@ curl -s https://sigmafier.github.io/ellaz/games/2048/ | grep -c noindex   # 1
 curl -sI https://ellaz.fun/games/2048 | head -1                 # 301
 ```
 
-**The fifth check cannot be curled.** A service worker with a navigation fallback
-answers every URL with the app shell — for returning visitors only. `curl`,
-incognito and every crawler see the correct page, so the bug is invisible to all
-four checks above. Load `https://ellaz.fun/` in a normal browser, wait for
-`navigator.serviceWorker.controller` to be non-null, and only then navigate to
+**The last two checks cannot be curled**, and they are the two that matter.
+
+*The service worker.* One with a navigation fallback answers every URL with the
+app shell — for returning visitors only. `curl`, incognito and every crawler see
+the correct page, so the bug is invisible to all four checks above. Load
+`https://ellaz.fun/` in a normal browser, wait for
+`navigator.serviceWorker.controller` to be non-null, and only THEN navigate to
 `/games/2048/`. You must land on the game's own `<h1>`, not the home grid. Why the
 config says `navigateFallback: undefined`:
 [`.claude/rules/sw-navigation-fallback-hijacks-real-pages.md`](../.claude/rules/sw-navigation-fallback-hijacks-real-pages.md).
+
+*The game actually mounting.* A page can carry the prose, the schema, the
+canonical and the right head tags and still never start the game — and that
+failure reads as perfect in every check that only reads HTML. In the same
+browser, on `/games/2048/`:
+
+```js
+// after ~2s on the page
+document.getElementById("game-poster").hasAttribute("hidden")   // true
+document.getElementById("game-frame").children.length            // > 0
+document.getElementById("wallet-slot").innerText                 // the coins
+getComputedStyle(document.body).overflow                         // "visible"
+```
+
+That last one is the prose check: `body { overflow: hidden }` is scoped to
+`body.app-shell`, and if it ever leaks back onto a content page every word below
+the fold becomes unreachable by scroll while a crawler still reads it perfectly.
+
+Both were verified this way against a local production build on 2026-08-04,
+with the service worker in control.
 
 ## Troubleshooting
 

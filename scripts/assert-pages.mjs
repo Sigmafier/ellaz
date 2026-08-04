@@ -17,6 +17,9 @@
 //   * a NavigationRoute back in sw.js, hijacking every page for returning
 //     visitors and nobody else
 //   * `cp dist/index.html dist/404.html` in a workflow, overwriting the real 404
+//   * a page that carries the prose but not the runtime, so the frame stays a
+//     black box and the game never mounts - perfect in every check that reads
+//     the HTML, broken for every human who opens it
 //
 // Every check below is followed by a negative control at the bottom of the file
 // that plants the exact defect and requires the check to fire. A check nobody
@@ -60,6 +63,21 @@ export function eagerAssets(html) {
   for (const m of html.matchAll(/<link[^>]+rel="modulepreload"[^>]+href="([^"]+)"/gi)) out.push(m[1]);
   for (const m of html.matchAll(/<link[^>]+href="([^"]+)"[^>]*rel="modulepreload"/gi)) out.push(m[1]);
   return out;
+}
+
+/** Local stylesheet links, base-relative. The Google Fonts one is skipped. */
+export function localStylesheets(html) {
+  const out = [];
+  for (const m of html.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/gi)) {
+    if (!/^https?:/i.test(m[1])) out.push(m[1]);
+  }
+  return out;
+}
+
+/** What `#game-frame` contains in the EMITTED html. Must be nothing. */
+export function frameContents(html) {
+  const m = /<div id="game-frame"[^>]*>([\s\S]*?)<\/div>/i.exec(html);
+  return m ? m[1].trim() : null;
 }
 
 export function jsonLdBlocks(html) {
@@ -109,6 +127,16 @@ function main() {
   let words = Infinity;
   let thinnest = "";
 
+  // The app's own eager asset set, as the yardstick every booting page is
+  // measured against. Read once, from the artifact.
+  const indexHtml = readFileSync(join(DIST, "index.html"), "utf8");
+  const norm = (u) => (u.startsWith(base) ? u.slice(base.length) : u).replace(/^\//, "");
+  const rootEager = eagerAssets(indexHtml).map(norm).sort();
+  if (rootEager.length === 0) {
+    console.error("FAIL  index.html lists no eager assets — the matcher is broken, not the build.");
+    process.exit(1);
+  }
+
   for (const page of emitted) {
     const file = join(DIST, page.file);
     if (!existsSync(file)) {
@@ -154,15 +182,46 @@ function main() {
       fail(`${where} must be noindex — an indexable 404 body is a soft 404`);
     }
 
-    // --- no app runtime ---------------------------------------------------
-    // These pages are documents. Nothing on them executes, so nothing on them
-    // can hide the prose, and a visitor with JavaScript off reads every word.
-    const eager = eagerAssets(html);
-    if (eager.length > 0) {
-      fail(`${where} fetches ${eager.length} script(s) eagerly: ${eager.join(", ")}`);
+    // --- the runtime, and the two elements it is allowed to own -----------
+    //
+    // A page that boots the app must load EXACTLY what the app loads. The
+    // names carry a content hash, so a page whose set has drifted is a page
+    // running different code from the one at `/` - and the shape that failure
+    // takes is a game that never mounts, on a page that looks perfect.
+    const boots = page.kind === "game" || page.kind === "world";
+    const eager = eagerAssets(html).map(norm).sort();
+    if (boots) {
+      if (JSON.stringify(eager) !== JSON.stringify(rootEager)) {
+        fail(
+          `${where} loads a different asset set from index.html.\n` +
+            `    page: ${eager.join(", ") || "(none)"}\n    root: ${rootEager.join(", ")}`,
+        );
+      }
+      if (localStylesheets(html).length === 0) {
+        fail(`${where} boots the app with no app stylesheet — the game renders unstyled`);
+      }
+      if (!/<div id="game-frame"[^>]*>/.test(html)) {
+        fail(`${where} boots the app but has no #game-frame to mount into`);
+      }
+      // React owns the CHILDREN of #game-frame. Anything emitted inside it is a
+      // node React does not know about sitting in a tree it reconciles - the
+      // nested-root teardown bug in a different costume.
+      const inside = frameContents(html);
+      if (inside) fail(`${where} emits markup inside #game-frame: ${inside.slice(0, 60)}`);
+      if (!/id="game-poster"/.test(html)) {
+        fail(`${where} has no poster — the frame is a black box until the game arrives`);
+      }
+      if (page.kind === "game" && !/id="wallet-slot"/.test(html)) {
+        fail(`${where} has no #wallet-slot`);
+      }
+      if (!/<body[^>]+data-page="/.test(html)) {
+        fail(`${where} carries no data-page — the runtime cannot tell what page it is on`);
+      }
+    } else if (eager.length > 0) {
+      fail(`${where} is a document and should fetch nothing eagerly: ${eager.join(", ")}`);
     }
     if (/id="root"/.test(html)) {
-      fail(`${where} contains #root — the app would boot over the prose`);
+      fail(`${where} contains #root — the app shell would boot over the prose`);
     }
 
     // --- structured data --------------------------------------------------
@@ -187,8 +246,7 @@ function main() {
   }
 
   // --- index.html: the app shell, head-enhanced in place --------------------
-  const indexPath = join(DIST, "index.html");
-  const index = readFileSync(indexPath, "utf8");
+  const index = indexHtml;
   if (canonicalOf(index) !== `https://ellaz.fun/`) {
     fail(`index.html canonical is ${canonicalOf(index)}, expected https://ellaz.fun/`);
   }
@@ -305,6 +363,20 @@ function runControls() {
     [
       "an external link is NOT treated as internal",
       () => internalLinks('<a href="https://example.com/">x</a>').length === 0,
+    ],
+    [
+      "markup left inside the game frame",
+      () => frameContents('<div id="game-frame"><p>hi</p></div>') === "<p>hi</p>",
+    ],
+    [
+      "an empty frame reads as empty",
+      () => frameContents('<div id="game-frame"></div>') === "",
+    ],
+    [
+      "a remote stylesheet is not counted as the app's",
+      () =>
+        localStylesheets('<link rel="stylesheet" href="https://fonts.googleapis.com/x">').length ===
+        0,
     ],
     [
       "a page stripped of its prose",

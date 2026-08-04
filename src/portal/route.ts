@@ -1,9 +1,18 @@
-// The portal's hash router — pure string in, route out.
+// The hash router, RETIRED as navigation and kept as a READER.
 //
-// It lives on its own (rather than inline in App.tsx) because it is the only
-// part of the shell a browser can feed arbitrary input to: a shared link, a
-// stale bookmark, a hand-typed fragment. Pure functions mean every one of those
-// cases is a unit test instead of a click-through.
+// Every route is a real URL now (`/games/snake/`, `/world/`), so nothing in the
+// app writes a hash any more. What survives is the parser, because the old
+// fragments are in bookmarks and in messages people already sent:
+// `legacyHash.ts` reads one here and redirects it once, at boot. `#/lab` is the
+// last live hash, and it is dev-only scaffolding with a kill date.
+//
+// `hashFor` is kept as the parser's inverse - it is what makes every
+// parseHash/hashFor round-trip in `route.test.ts` a real assertion rather than
+// a restatement of the parser. Deleting it would not shrink the shipped bundle
+// (tree-shaking already drops it) and would cost the round-trip tests.
+//
+// Pure string in, route out: every stale-link case is a unit test instead of a
+// click-through.
 
 export type Route =
   | { kind: "home" }

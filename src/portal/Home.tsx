@@ -3,6 +3,7 @@ import type { Locale } from "@i18n/index";
 import { makeT } from "@i18n/index";
 import { CATALOG, CATEGORY_ORDER, findEntry, type CatalogEntry } from "./catalog";
 import { audioPort, speechPort, wallet, type Category, type ProfileV1 } from "@sdk/index";
+import { gameHref, worldHref } from "./paths";
 import { WalletChip } from "./WalletChip";
 import { Scene } from "./world/Scene";
 
@@ -28,13 +29,9 @@ const RECENT_LIMIT = 4;
 
 export function Home({
   locale,
-  onOpen,
-  onOpenWorld,
   onToggleLocale,
 }: {
   locale: Locale;
-  onOpen: (id: string) => void;
-  onOpenWorld: () => void;
   onToggleLocale: () => void;
 }) {
   const t = makeT(locale);
@@ -62,18 +59,15 @@ export function Home({
     .filter((e): e is CatalogEntry => Boolean(e))
     .slice(0, RECENT_LIMIT);
 
-  // First tap of the session unlocks both audio engines. iOS refuses the first
-  // utterance outside a user gesture, so without this Hebrew speech stays
-  // silently locked for the whole session.
-  const unlockAudio = () => {
+  // Every card is a real <a> now, so opening a game is a navigation and this
+  // only has to make the tap FEEL like something. The audio unlock that used to
+  // live here moved to a first-gesture listener in `PageApp.tsx`, because a
+  // player arriving from a shared link or a search result never taps a card at
+  // all and would otherwise have Hebrew speech silently locked all visit.
+  const tap = () => {
     audioPort.unlock();
     speechPort.unlock();
     audioPort.play("tap");
-  };
-
-  const openGame = (id: string) => {
-    unlockAudio();
-    onOpen(id);
   };
 
   return (
@@ -132,7 +126,7 @@ export function Home({
           ) : null}
         </header>
 
-        <WorldHero profile={profile} locale={locale} onOpenWorld={onOpenWorld} />
+        <WorldHero profile={profile} locale={locale} onTap={tap} />
 
         {recent.length > 0 && (
           <section style={{ marginBottom: 20 }}>
@@ -144,7 +138,7 @@ export function Home({
               style={{ display: "flex", gap: 12, overflowX: "auto", padding: "2px 4px 4px" }}
             >
               {recent.map((e) => (
-                <RecentCard key={e.meta.id} entry={e} locale={locale} onOpen={openGame} />
+                <RecentCard key={e.meta.id} entry={e} locale={locale} onTap={tap} />
               ))}
             </div>
           </section>
@@ -178,7 +172,7 @@ export function Home({
               entry={e}
               locale={locale}
               stars={profile.games[e.meta.id]?.stars ?? 0}
-              onOpen={openGame}
+              onTap={tap}
               t={t}
             />
           ))}
@@ -203,19 +197,17 @@ export function Home({
 function WorldHero({
   profile,
   locale,
-  onOpenWorld,
+  onTap,
 }: {
   profile: ProfileV1;
   locale: Locale;
-  onOpenWorld: () => void;
+  onTap: () => void;
 }) {
   const t = makeT(locale);
   return (
-    <button
-      onClick={() => {
-        audioPort.play("tap");
-        onOpenWorld();
-      }}
+    <a
+      href={worldHref(locale)}
+      onClick={onTap}
       aria-label={t("world")}
       style={{
         display: "flex",
@@ -230,6 +222,7 @@ function WorldHero({
         boxShadow: "var(--shadow-1)",
         color: "var(--text)",
         textAlign: "start",
+        textDecoration: "none",
       }}
     >
       <div style={{ flex: "0 0 92px", width: 92 }}>
@@ -259,7 +252,7 @@ function WorldHero({
       >
         {t("enterWorld")}
       </span>
-    </button>
+    </a>
   );
 }
 
@@ -329,17 +322,18 @@ function CategoryRail({
 function RecentCard({
   entry,
   locale,
-  onOpen,
+  onTap,
 }: {
   entry: CatalogEntry;
   locale: Locale;
-  onOpen: (id: string) => void;
+  onTap: () => void;
 }) {
   const { meta } = entry;
   return (
-    <button
+    <a
+      href={gameHref(meta.id, locale)}
       onPointerEnter={() => void entry.load().catch(() => {})}
-      onClick={() => onOpen(meta.id)}
+      onClick={onTap}
       style={{
         flex: "0 0 auto",
         width: 132,
@@ -350,6 +344,9 @@ function RecentCard({
         background: "var(--surface)",
         boxShadow: "var(--shadow-1)",
         textAlign: "center",
+        display: "block",
+        color: "inherit",
+        textDecoration: "none",
       }}
     >
       <span style={{ display: "block", fontSize: 46, padding: "14px 0 6px" }} aria-hidden="true">
@@ -373,7 +370,7 @@ function RecentCard({
       >
         {meta.title[locale]}
       </span>
-    </button>
+    </a>
   );
 }
 
@@ -381,22 +378,23 @@ function GameCard({
   entry,
   locale,
   stars,
-  onOpen,
+  onTap,
   t,
 }: {
   entry: CatalogEntry;
   locale: Locale;
   stars: number;
-  onOpen: (id: string) => void;
+  onTap: () => void;
   t: (k: string) => string;
 }) {
   const { meta } = entry;
   const prefetch = () => void entry.load().catch(() => {});
   return (
-    <button
+    <a
+      href={gameHref(meta.id, locale)}
       onPointerEnter={prefetch}
       onTouchStart={prefetch}
-      onClick={() => onOpen(meta.id)}
+      onClick={onTap}
       // The star count belongs in the label, not just the picture: a screen
       // reader announcing only the game name would lose the progress entirely.
       aria-label={
@@ -416,6 +414,8 @@ function GameCard({
         display: "flex",
         flexDirection: "column",
         position: "relative",
+        color: "inherit",
+        textDecoration: "none",
       }}
     >
       <span
@@ -473,6 +473,6 @@ function GameCard({
       >
         {meta.title[locale]}
       </span>
-    </button>
+    </a>
   );
 }

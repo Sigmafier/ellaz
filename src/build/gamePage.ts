@@ -1,10 +1,11 @@
 import type { GameMeta } from "../sdk/types";
 import type { GameCopy, Locale, Titled } from "../content/types";
-import { SITE } from "../content/site";
-import { html, raw, type RawHtml } from "./html";
+import { SITE, type SiteCopy } from "../content/site";
+import { html, type RawHtml } from "./html";
 import { renderDocument } from "./layout";
-import { gamePath, homePath, href, playHref } from "./routes";
+import { gamePath, homePath, href } from "./routes";
 import { gameGraph } from "./schema";
+import type { HeadAssets } from "./assets";
 
 /**
  * One game's page.
@@ -14,10 +15,15 @@ import { gameGraph } from "./schema";
  * headings, the platform facts. A writer never types "free" or "works offline"
  * into a content file, so no page can claim something the platform does not do.
  *
- * There is no React here and no runtime on the page at all. A visitor with
- * JavaScript switched off reads every word and can still reach the game; the
- * play button is a plain link into the app. Phase 5 turns that link into an
- * in-place mount, and that is the ONLY thing about this page that changes.
+ * There is no React in this file. The page carries the app's own head tags, so
+ * the same bundle boots here as at `/`, and it mounts into exactly two elements:
+ * `#game-frame` and `#wallet-slot`. Everything else on the page - every word of
+ * it - is emitted once and never reconciled, which is what makes hydration
+ * mismatch structurally impossible rather than merely unlikely.
+ *
+ * The poster is a SIBLING of the frame, not a child. A node React does not know
+ * about, sitting inside a tree it reconciles, is the nested-root teardown bug in
+ * a different costume (see `.claude/rules/react-nested-root-teardown.md`).
  */
 
 /** `title - body` pairs, as an ordered list. Used for the how-to-play steps. */
@@ -74,6 +80,41 @@ export function headingFor(meta: GameMeta, locale: Locale): string {
   return locale === "he" ? `משחק ${meta.title.he}` : meta.title.en;
 }
 
+/**
+ * The stage: a poster that paints immediately, and the empty box the game
+ * mounts into.
+ *
+ * The three poster strings ride on `data-` attributes rather than being
+ * duplicated into `@i18n`, because the runtime may not import `src/content`
+ * (that would put every word of every page into the precached shell) and a
+ * second copy of a string is a second chance for it to drift.
+ *
+ * The poster's DEFAULT state is the honest one - a real button and a line
+ * saying the game needs JavaScript. The runtime rewrites both on boot: it
+ * hides the button and says the game is loading by itself, unless the visitor
+ * has data saver on, in which case the button stays and waits for their tap.
+ *
+ * Emitting the optimistic state instead ("loading...") would be a lie to
+ * anyone with JavaScript off, and they are exactly the visitor who cannot be
+ * told otherwise later.
+ */
+export function stage(emoji: string, site: SiteCopy, room = false): RawHtml {
+  return html`<div class="stage${room ? " room" : ""}">
+    <div class="box">
+      <div id="game-frame"></div>
+      <div
+        id="game-poster"
+        data-loading="${site.loading}"
+        data-saver="${site.dataSaver}"
+      >
+        <span class="em" aria-hidden="true">${emoji}</span>
+        <button class="play" id="game-play" type="button">${site.play}</button>
+        <span class="msg" id="game-msg">${site.noScript}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
 export interface GamePageOptions {
   meta: GameMeta;
   copy: GameCopy;
@@ -81,6 +122,7 @@ export interface GamePageOptions {
   all: ReadonlyArray<GameMeta>;
   base: string;
   indexable: boolean;
+  headAssets?: HeadAssets;
 }
 
 export function gamePage(opts: GamePageOptions): string {
@@ -95,16 +137,13 @@ export function gamePage(opts: GamePageOptions): string {
       ${site.categories[meta.category] ?? ""} › ${meta.title[locale]}
     </nav>
 
+    ${stage(meta.emoji, site)}
+
     <h1>${headingFor(meta, locale)}</h1>
     <p class="lede">${copy.lede}</p>
     <ul class="facts">
       ${site.facts.map((f) => html`<li>${f}</li>`)}
     </ul>
-
-    <p class="cta">
-      <a class="play" href="${playHref(meta.id, base)}">${site.play} ${raw("&nbsp;")}${meta.emoji}</a>
-      <span class="note">${site.playNote}</span>
-    </p>
 
     <h2>${h.howToPlay}</h2>
     ${steps(copy.howToPlay)}
@@ -148,5 +187,8 @@ export function gamePage(opts: GamePageOptions): string {
     body,
     base,
     indexable: opts.indexable,
+    headAssets: opts.headAssets,
+    bodyData: { page: "game", game: meta.id, locale },
+    headerSlot: html`<span id="wallet-slot"></span>`,
   });
 }

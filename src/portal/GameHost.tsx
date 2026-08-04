@@ -12,10 +12,19 @@ export function GameHost({
   gameId,
   locale,
   onExit,
+  variant = "app",
 }: {
   gameId: string;
   locale: Locale;
   onExit: () => void;
+  /**
+   * "app" fills a viewport and owns its own chrome. "page" sits inside the
+   * frame on a game page, where the breadcrumb above it is already the way
+   * back and the wallet chip is already in the page header - so it renders
+   * neither, and two of each in one viewport reads as a bug rather than as
+   * emphasis. Mute stays, because nothing else on the page offers it.
+   */
+  variant?: "app" | "page";
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
@@ -91,6 +100,8 @@ export function GameHost({
     };
   }, [gameId, locale, onExit]);
 
+  const onPage = variant === "page";
+
   return (
     <div style={{ position: "relative", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
       <div
@@ -98,15 +109,17 @@ export function GameHost({
           display: "flex",
           alignItems: "center",
           gap: 10,
-          padding: "10px 12px",
+          padding: onPage ? "6px 10px" : "10px 12px",
           flexShrink: 0,
         }}
       >
-        <IconButton ariaLabel="back" onClick={onExit}>
-          {locale === "he" ? "→" : "←"}
-        </IconButton>
+        {!onPage && (
+          <IconButton ariaLabel="back" onClick={onExit}>
+            {locale === "he" ? "→" : "←"}
+          </IconButton>
+        )}
         <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
-          <WalletChip />
+          {!onPage && <WalletChip />}
         </div>
         <IconButton ariaLabel="mute" active={!muted} onClick={() => audioPort.toggleMute()}>
           {muted ? "🔇" : "🔊"}

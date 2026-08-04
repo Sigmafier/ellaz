@@ -87,6 +87,10 @@ const KNOWN_BAD = [
   { prefix: "vendor-phaser-", why: "engine for one game — runtime-cached" },
   { prefix: "lab-", why: "dev-only Juice Lab — nothing links to it" },
   {
+    prefix: "page-",
+    why: "the content-page runtime (game host + room) — only a game page or /world/ needs it, so `/` must not fetch it",
+  },
+  {
     prefix: "module-",
     why: "an UNNAMED chunk — it has no manualChunks branch, so there is no prefix to exclude. Name it in vite.config manualChunks first, then add that name to globIgnores",
   },

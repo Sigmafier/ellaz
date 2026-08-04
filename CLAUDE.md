@@ -49,9 +49,13 @@ src/
 ├─ juice/    Game-feel kit - haptics, screen shake, particle burst, full-screen
 │            confetti, flyTo (coins arc to the wallet chip), tween
 ├─ i18n/     he (default, RTL) + en (LTR) strings + direction
-├─ portal/   Shell - App (hash router: #/, #/game/<id>, #/world), Home (grid),
-│            GameHost (mount/unmount bridge), WalletChip, catalog (game registry
-│            with lazy loaders), world/ (the room + shop)
+├─ portal/   Shell - App (the home screen at `/`), Home (grid of real links),
+│            PageApp (boots a game or the room on its own page), GameHost
+│            (mount/unmount bridge), WalletChip, games (the ordered roster),
+│            catalog (roster + lazy loaders), paths/pageContext/legacyHash,
+│            world/ (the room + shop)
+├─ build/    BUILD-TIME ONLY - the 46 emitted pages. Pure strings, no DOM, no
+│            React. Nothing in the app may import it (it reads src/content)
 └─ games/<id>/
    ├─ meta.ts         DOM-free GameMeta - catalog.ts imports it statically
    ├─ logic.ts        PURE game logic - NO DOM/Phaser imports; unit-tested (TDD)
@@ -93,8 +97,11 @@ chrooted so `server-dir` is `./` (not `public_html/`), the username is
 `u210394724.ellaz` (not `…ellaz.fun`), and the cert is `CN=*.hstgr.io` so
 `security: loose` is required.
 
-Cache headers and the SPA fallback live in `deploy/hostinger.htaccess`, copied to
-`dist/.htaccess` by the workflow and shipped to Hostinger only (Pages runs nginx).
+Cache headers live in `deploy/hostinger.htaccess`, copied to `dist/.htaccess` by
+the workflow and shipped to Hostinger only (Pages runs nginx). The SPA catch-all
+that used to live there is gone: every route is a real document now, so the only
+thing it still caught was a typo, and answering a typo with 200 plus the home
+page is a soft 404. `ErrorDocument 404 /404.html` replaces it.
 
 **Runbook — read this before touching any of it**:
 [`docs/deploy.md`](docs/deploy.md) (verification commands, troubleshooting table,
@@ -352,14 +359,38 @@ so `npm run build` cannot skip them and neither deploy workflow can forget.
 `/games/2048/`, so a hand-written `/games/n2048/` is a 404 that only the link
 checker in `scripts/assert-pages.mjs` would catch.
 
-**These pages carry no JavaScript at all.** No `<script src>`, no `#root`, no app
-stylesheet - a document, not a shell. That is deliberate three times over: the
-app's `global.css` sets `body { overflow: hidden }`, which would leave every word
-below the fold unreachable by scroll while a crawler read it perfectly; an
-asset-hash `<link>` would couple 46 files to a build hash; and with no runtime
-there is nothing that can hide the prose. The play button is a plain link into the
-hash app. Phase 5 turns it into an in-place mount, and that is the only thing about
-these pages that changes.
+**The game plays on its own page, and React owns exactly two elements there.**
+A game page carries the app's own head tags - lifted verbatim off `index.html`,
+never reconstructed, because the names carry a content hash - and mounts into
+`#game-frame` and `#wallet-slot`. Everything else on the page is emitted once
+and never reconciled, which is what makes hydration mismatch structurally
+impossible rather than merely unlikely.
+
+The poster is a **sibling** of the frame, not a child: a node React does not know
+about, inside a tree it reconciles, is `react-nested-root-teardown` in a
+different costume. It paints instantly (the game's emoji on its own colour), and
+the runtime hides it when the game is up. Its emitted state is the honest one -
+a real button and "the game needs JavaScript" - because that is what a visitor
+with no JavaScript will keep seeing. The runtime rewrites both on boot: it hides
+the button and fetches on browser idle, unless data saver is on, in which case
+the button stays and waits for their tap.
+
+**`body { overflow: hidden }` is now scoped to `body.app-shell`.** Unscoped it is
+correct for an application that manages its own scroll regions and catastrophic
+for a document - every word below the fold unreachable by scroll while a crawler
+reads the page perfectly. `index.html` carries the class; the 46 content pages do
+not.
+
+**The hash router is retired.** `/#/game/snake` and `/#/world` redirect once at
+boot (`legacyHash.ts`, `location.replace` so Back does not bounce), the home
+cards are real `<a href>`, and Back, shareable game URLs and middle-click all
+work without a line of code. `#/lab` is deliberately left alone - it is dev-only
+scaffolding with a kill date and has no page of its own.
+
+`src/portal/paths.ts` generates those links and `src/build/routes.ts` writes the
+files. They are two implementations on purpose, because the app may never import
+`src/build` (it reads `src/content`); `paths.test.ts` asserts they agree on every
+game, so the copy cannot drift into a card that links to a page nobody wrote.
 
 **Canonical never carries the base.** `https://ellaz.fun/games/snake/` on both
 hosts; the GitHub Pages copy adds `noindex` to every page and a `Disallow: /`
@@ -388,6 +419,32 @@ record measures. Both live inside renderers that import React, so a build-time
 import is not possible; the pages simply do not state them yet. Deriving them means
 declaring `levels` in each DOM-free `meta.ts` with a test that pins it to the
 renderer's own `DifficultySelector` options.
+
+**The content-page runtime is a lazy `page-*` chunk** - the game host and the
+whole room, 8.8 KB gz, which `/` never needs. Adding it caught the documented
+three-change trap live: the dynamic import and the chunk name were right, and
+`WalletChip`, `catalog` and `world/Scene` (imported by BOTH the home grid and
+the page runtime) were left unassigned, so Rollup folded them into `page-*` and
+made the ENTRY import from it. Vite then wrote a `<link rel="modulepreload">`
+for the whole thing into `index.html`. `assert-first-visit.mjs` failed the build
+by name. Every portal module that is not one of the four page files is now
+pinned to the shell explicitly: an unassigned shared module is not neutral, it
+picks a side.
+
+**First visit measured on the artifact 2026-08-04: 72,984 B gz.** The plan's
+ceiling is 76,000; the live 2026-08-02 baseline was 69,624. The whole gap
+predates the page work - it read 74,391 before Phase 4 started and is
+un-isolated, which is worth someone's twenty minutes with `git bisect` and the
+gz sum.
+
+**Games size themselves against the VIEWPORT, not their container** (`min(90vw,
+60vh, <cap>px)`), so the stage breaks out of the page gutter on a phone. Giving
+the frame the full width is cheaper and more honest than teaching 21 games a new
+sizing rule. Verifying that surfaced a pre-existing responsive defect it did not
+cause: nine games laid their stat row out as a non-wrapping flex under
+`alignItems: "center"`, which sizes to max-content and overflows any narrow
+screen - 439px of row on a 390px phone. Two games already carried
+`flexWrap: "wrap"`; the rest now do.
 
 ## The words on a game page
 

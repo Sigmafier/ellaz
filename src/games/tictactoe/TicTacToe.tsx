@@ -151,7 +151,7 @@ export function TicTacToe({ ctx }: { ctx: GameContext }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 18, padding: 16 }}>
-      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center", maxWidth: "100%" }}>
         <Stat label={ctx.locale === "he" ? "מצב" : "Status"} value={status} />
         <Button variant="ghost" onClick={reset}>
           {ctx.t("restart")}
@@ -165,7 +165,7 @@ export function TicTacToe({ ctx }: { ctx: GameContext }) {
         locale={ctx.locale}
       />
 
-      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center", maxWidth: "100%" }}>
         <Stat label={ctx.locale === "he" ? "ניצחונות" : "Wins"} value={score.wins} />
         <Stat label={ctx.locale === "he" ? "הפסדים" : "Losses"} value={score.losses} />
         <Stat label={ctx.locale === "he" ? "תיקו" : "Draws"} value={score.draws} />

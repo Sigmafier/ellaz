@@ -111,7 +111,7 @@ export function FindDiff({ ctx }: { ctx: GameContext }) {
 
   return (
     <div ref={wrapRef} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: 12 }}>
-      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center", maxWidth: "100%" }}>
         <Stat label={ctx.locale === "he" ? "שלב" : "Level"} value={level} />
         <Stat label={ctx.locale === "he" ? "נותרו" : "Left"} value={remaining(state)} />
         <Stat label={ctx.t("best")} value={best ?? "-"} />

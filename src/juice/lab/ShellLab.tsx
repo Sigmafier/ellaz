@@ -63,13 +63,22 @@ export function ShellLab({ locale }: { locale: Locale }) {
 
   // A tap on a card in the lab must NOT open the game - it fires the reward
   // moment instead, which is the thing being judged.
-  const reward = useCallback(() => {
-    if (!on) return;
-    const { x, y } = lastPoint.current;
-    floatNumber(x, y, "+3");
-    playWinner("coin");
-    flyToRich({ x, y }, getWalletAnchor(), { count: 3, trail: true });
-  }, [on]);
+  //
+  // Since the cards became real <a> links, "must not open the game" also means
+  // "must not navigate". Capture phase, preventDefault, then the reward: the
+  // pane keeps working exactly as it did, and this file is the only one that
+  // has to know the cards are links now.
+  const reward = useCallback(
+    (e?: { preventDefault: () => void }) => {
+      e?.preventDefault();
+      if (!on) return;
+      const { x, y } = lastPoint.current;
+      floatNumber(x, y, "+3");
+      playWinner("coin");
+      flyToRich({ x, y }, getWalletAnchor(), { count: 3, trail: true });
+    },
+    [on],
+  );
 
   return (
     <div>
@@ -124,14 +133,14 @@ export function ShellLab({ locale }: { locale: Locale }) {
           display: "flex",
         }}
       >
-        <Home
-          // Remounting on every toggle is what replays the cascade.
-          key={`${on}`}
-          locale={locale}
-          onOpen={reward}
-          onOpenWorld={reward}
-          onToggleLocale={() => {}}
-        />
+        <div onClickCapture={reward} style={{ display: "contents" }}>
+          <Home
+            // Remounting on every toggle is what replays the cascade.
+            key={`${on}`}
+            locale={locale}
+            onToggleLocale={() => {}}
+          />
+        </div>
       </div>
     </div>
   );

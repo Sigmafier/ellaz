@@ -129,7 +129,7 @@ export function Hidden({ ctx }: { ctx: GameContext }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: 12 }}>
       {/* Level indicator + difficulty selector */}
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center", maxWidth: "100%" }}>
         <Stat label={ctx.locale === "he" ? "שלב" : "Level"} value={round} />
         <Stat label={ctx.t("best")} value={best ?? "-"} />
         <DifficultySelector
@@ -142,7 +142,7 @@ export function Hidden({ ctx }: { ctx: GameContext }) {
       </div>
 
       {/* Target strip: the characters to find */}
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center", maxWidth: "100%" }}>
         <span style={{ color: "var(--text-dim)", fontSize: 14 }}>
           {ctx.locale === "he" ? "מצאו:" : "Find:"}
         </span>

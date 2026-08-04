@@ -79,5 +79,9 @@ export function toHtml(value: RawHtml): string {
  * Escaping `<` as `\u003c` is valid JSON and inert to the HTML parser.
  */
 export function jsonLd(graph: unknown): RawHtml {
-  return raw(JSON.stringify(graph, null, 2).replace(/</g, "\\u003c").replace(/>/g, "\\u003e"));
+  // Minified, not pretty-printed. This is machine-read, and the indentation is
+  // not free: the home page's `ItemList` of all 21 games rides in `index.html`,
+  // which IS the first visit, so two-space indent was ~2.3 KB of whitespace on
+  // every child's first load. Validators and answer engines read it identically.
+  return raw(JSON.stringify(graph).replace(/</g, "\\u003c").replace(/>/g, "\\u003e"));
 }

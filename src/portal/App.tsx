@@ -3,9 +3,7 @@ import type { Locale } from "@i18n/index";
 import { DIR } from "@i18n/index";
 import { analytics, startCloudSync } from "@sdk/index";
 import { Home } from "./Home";
-import { GameHost } from "./GameHost";
-import { World } from "./world/World";
-import { hashFor, parseHash, type Route } from "./route";
+import { parseHash } from "./route";
 
 // Tournament scaffolding. Deleted along with src/juice/lab/ once the winners
 // are folded into the real audio/juice modules.
@@ -36,7 +34,7 @@ function LabNotice({ text, detail }: { text: string; detail?: string }) {
         If this persists, a stale service worker is probably serving a cached bundle. Open
         DevTools &gt; Application &gt; Service Workers &gt; Unregister, then hard-reload.
       </p>
-      <a href="#/">Back to the games</a>
+      <a href={import.meta.env.BASE_URL}>Back to the games</a>
     </div>
   );
 }
@@ -79,12 +77,20 @@ function initialLocale(): Locale {
   return "he";
 }
 
-// Root shell: owns locale + which screen is open. Routing itself lives in
-// `route.ts` (pure + unit-tested); this component only reacts to it, so browser
-// Back keeps working exactly as it did.
+// Root shell for `/`, and ONLY for `/`.
+//
+// Games and the room live on their own pages now, each one a real document that
+// boots this same bundle and mounts into `#game-frame` (see `PageApp.tsx`). So
+// this component no longer routes: it renders the home grid, whose cards are
+// real links, and the browser does the navigating. The hash router is gone with
+// it - `legacyHash.ts` redirects the old fragments once, at boot, before
+// anything renders.
+//
+// What that buys, and none of it needed code: Back works, a game URL is
+// shareable, middle-click opens a game in a new tab, and a crawler that lands
+// here finds twenty-one links instead of twenty-one buttons.
 export function App() {
   const [locale, setLocale] = useState<Locale>(initialLocale);
-  const [route, setRoute] = useState<Route>(() => parseHash(window.location.hash));
 
   useEffect(() => {
     analytics.init();
@@ -93,9 +99,6 @@ export function App() {
     // has something worth backing up, so a first-time visitor who bounces off
     // the home screen makes no network request and mints no account.
     startCloudSync();
-    const onHash = () => setRoute(parseHash(window.location.hash));
-    window.addEventListener("hashchange", onHash);
-    return () => window.removeEventListener("hashchange", onHash);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -104,13 +107,6 @@ export function App() {
     document.documentElement.dir = DIR[locale];
   }, [locale]);
 
-  const go = (next: Route) => {
-    window.location.hash = hashFor(next);
-    setRoute(next);
-  };
-  const open = (id: string) => go({ kind: "game", id });
-  const exit = () => go({ kind: "home" });
-  const openWorld = () => go({ kind: "world" });
   const toggleLocale = () => {
     const next: Locale = locale === "he" ? "en" : "he";
     setLocale(next);
@@ -121,31 +117,23 @@ export function App() {
     }
   };
 
-  if (route.kind === "game") {
-    return <GameHost gameId={route.id} locale={locale} onExit={exit} />;
-  }
-  if (route.kind === "world") {
-    return <World locale={locale} onExit={exit} />;
-  }
-  // Dev-gated so that in a production build the whole branch - the lazy import,
-  // the boundary and the notice - is statically dropped rather than shipped to
-  // every child for a route they can never reach. In prod, #/lab falls through
-  // to the games grid, which is the right answer for a stale bookmark anyway.
-  if (import.meta.env.DEV && route.kind === "lab" && JuiceLab) {
+  // The Juice Lab is still hash-reached and still dev-only. It is deliberately
+  // NOT given a URL: it is scaffolding with a kill date, and `legacyHash.ts`
+  // leaves `#/lab` alone for exactly that reason. In a production build this
+  // whole branch - the lazy import, the boundary, the notice - is statically
+  // dropped rather than shipped to every child for a route they cannot reach.
+  if (import.meta.env.DEV && JuiceLab && parseHash(window.location.hash).kind === "lab") {
+    const back = () => {
+      window.location.hash = "";
+    };
     return (
-      <LabBoundary onExit={exit}>
+      <LabBoundary onExit={back}>
         <Suspense fallback={<LabNotice text="Loading the Juice Lab..." />}>
-          <JuiceLab locale={locale} onExit={exit} />
+          <JuiceLab locale={locale} onExit={back} />
         </Suspense>
       </LabBoundary>
     );
   }
-  return (
-    <Home
-      locale={locale}
-      onOpen={open}
-      onOpenWorld={openWorld}
-      onToggleLocale={toggleLocale}
-    />
-  );
+
+  return <Home locale={locale} onToggleLocale={toggleLocale} />;
 }

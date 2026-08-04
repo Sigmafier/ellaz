@@ -4,7 +4,7 @@ import { SITE } from "../content/site";
 import { GAMES } from "../portal/games";
 import { CATALOG } from "../portal/catalog";
 import { escapeHtml, html, jsonLd, raw, toHtml } from "./html";
-import { ROUTES, canonicalUrl, gamePath, homePath, href, playHref } from "./routes";
+import { ROUTES, canonicalUrl, gamePath, homePath, href } from "./routes";
 import { allEmittedFiles, indexHeadTags, renderRoute } from "./pages";
 import { headingFor, relatedTo } from "./gamePage";
 import { llmsTxt, robotsTxt, sitemapXml } from "./siteFiles";
@@ -88,7 +88,6 @@ describe("the route table", () => {
   it("puts the base on every internal href", () => {
     expect(href("/games/2048/", "/ellaz/")).toBe("/ellaz/games/2048/");
     expect(href("/", "/ellaz/")).toBe("/ellaz/");
-    expect(playHref("2048", "/ellaz/")).toBe("/ellaz/#/game/2048");
   });
 });
 
@@ -130,14 +129,39 @@ describe("every page renders", () => {
     }
   });
 
-  it.each(BASES)("base %s: no page carries an app script", (base) => {
-    // These are documents. Nothing on them executes, so nothing on them can
-    // hide the prose from a human while leaving it readable to a crawler -
-    // which is what `body { overflow: hidden }` in the app's stylesheet does.
+  it.each(BASES)("base %s: no page carries #root", (base) => {
+    // #root is the app SHELL's mount point. On a content page it would boot the
+    // full-viewport application straight over the prose.
     for (const f of allEmittedFiles(base).filter((x) => x.fileName.endsWith(".html"))) {
-      expect(/<script[^>]+src=/.test(f.source), f.fileName).toBe(false);
       expect(f.source.includes('id="root"'), f.fileName).toBe(false);
     }
+  });
+
+  it("gives the runtime only the two elements it is allowed to own", () => {
+    const assets = {
+      tags: ['<script type="module" src="/assets/index-abc.js"></script>'],
+      scripts: ['<script type="module" src="/assets/index-abc.js"></script>'],
+    };
+    for (const f of allEmittedFiles("/", assets).filter((x) => x.fileName.endsWith(".html"))) {
+      const boots = /(^|\/)games\//.test(f.fileName) || f.fileName.includes("world/");
+      expect(f.source.includes("/assets/index-abc.js"), f.fileName).toBe(boots);
+      if (!boots) continue;
+      // The frame is emitted EMPTY. Markup inside it would be a node React does
+      // not know about, inside a tree it reconciles.
+      expect(f.source, f.fileName).toContain('<div id="game-frame"></div>');
+      expect(f.source, f.fileName).toContain('id="game-poster"');
+      expect(f.source, f.fileName).toMatch(/<body[^>]+data-page="(game|world)"/);
+    }
+  });
+
+  it("stamps the game id and the language on the body, for the runtime to read", () => {
+    const route = ROUTES.find((r) => r.kind === "game" && r.id === "2048" && r.locale === "en")!;
+    const page = renderRoute(route, "/ellaz/");
+    // Read from the DOCUMENT, never re-derived from a pathname - the site ships
+    // under two bases and a runtime that parses the URL is wrong on one host.
+    expect(page).toContain('data-page="game"');
+    expect(page).toContain('data-game="2048"');
+    expect(page).toContain('data-locale="en"');
   });
 
   it("marks the Pages duplicate noindex and the primary host indexable", () => {

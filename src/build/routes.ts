@@ -134,12 +134,3 @@ export function canonicalUrl(path: string): string {
 export function href(path: string, base: string): string {
   return `${base}${path.slice(1)}`;
 }
-
-/** The hash URL that plays a game in the app as it stands today. */
-export function playHref(gameId: string, base: string): string {
-  return `${base}#/game/${encodeURIComponent(gameId)}`;
-}
-
-export function worldHref(base: string): string {
-  return `${base}#/world`;
-}

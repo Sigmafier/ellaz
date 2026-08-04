@@ -8,6 +8,7 @@ import { homePage, notFoundPage, worldPage } from "./sitePages";
 import { homeGraph } from "./schema";
 import { jsonLd, toHtml } from "./html";
 import { llmsTxt, robotsTxt, sitemapXml } from "./siteFiles";
+import { DEV_HEAD_ASSETS, extractHeadAssets, type HeadAssets } from "./assets";
 
 /**
  * The Vite plugin that turns the route table into real files.
@@ -27,15 +28,19 @@ function isPrimaryHost(base: string): boolean {
   return base === "/";
 }
 
-export function renderRoute(route: Route, base: string): string {
+export function renderRoute(route: Route, base: string, headAssets?: HeadAssets): string {
   const indexable = route.indexable && isPrimaryHost(base);
 
+  // The 404 and the English home index are pure documents. They carry no
+  // runtime because there is nothing on them to run - and the 404 in
+  // particular is served for URLs that do not exist, where booting an app
+  // would be a download nobody asked for.
   if (route.kind === "notFound") return notFoundPage(base);
-  if (route.kind === "world") {
-    return worldPage({ locale: route.locale, games: GAMES, base, indexable });
-  }
   if (route.kind === "home") {
     return homePage({ locale: route.locale, games: GAMES, base, indexable });
+  }
+  if (route.kind === "world") {
+    return worldPage({ locale: route.locale, games: GAMES, base, indexable, headAssets });
   }
 
   const meta = metaFor(route.id!);
@@ -47,7 +52,7 @@ export function renderRoute(route: Route, base: string): string {
         `Every catalogued game needs src/content/games/${meta.id}.ts - see content.test.ts.`,
     );
   }
-  return gamePage({ meta, copy, locale: route.locale, all: GAMES, base, indexable });
+  return gamePage({ meta, copy, locale: route.locale, all: GAMES, base, indexable, headAssets });
 }
 
 /**
@@ -93,10 +98,10 @@ export interface EmittedFile {
 }
 
 /** Everything this plugin writes, as data. Pure, so the gate's tests can read it. */
-export function allEmittedFiles(base: string): EmittedFile[] {
+export function allEmittedFiles(base: string, headAssets?: HeadAssets): EmittedFile[] {
   const files: EmittedFile[] = ROUTES.filter((r) => r.emit).map((r) => ({
     fileName: r.file,
-    source: renderRoute(r, base),
+    source: renderRoute(r, base, headAssets),
   }));
 
   files.push({ fileName: "robots.txt", source: robotsTxt(base) });
@@ -144,8 +149,21 @@ export function pagesPlugin(base: string): Plugin {
       return html.replace("</head>", `  ${indexHeadTags(base)}\n  </head>`);
     },
 
-    generateBundle() {
-      const files = allEmittedFiles(base);
+    generateBundle(_options, bundle) {
+      // The app's head tags, lifted off the index.html Vite just wrote. Reading
+      // them from the bundle rather than reconstructing them is what stops the
+      // pages and the app ever loading different code: the names carry a
+      // content hash, and anything that guesses at it is a second, wrong
+      // implementation of Rollup's naming.
+      const index = bundle["index.html"];
+      if (!index || index.type !== "asset") {
+        throw new Error(
+          "page emitter: index.html is not in the bundle. This plugin must run AFTER " +
+            "Vite's html plugin - check that it is registered with enforce: \"post\".",
+        );
+      }
+      const headAssets = extractHeadAssets(String(index.source));
+      const files = allEmittedFiles(base, headAssets);
 
       // A page count that silently drops to zero is the shape every gate in this
       // repo exists to catch, so the emitter refuses to produce one.
@@ -189,7 +207,10 @@ export function pagesPlugin(base: string): Plugin {
         if (!route) return next();
 
         res.setHeader("Content-Type", "text/html; charset=utf-8");
-        res.end(renderRoute(route, base));
+        // Vite injects its own client into any html it TRANSFORMS; this response
+        // never passes through that pipeline, so the HMR client is absent here
+        // by design. The page still boots the real app through the real entry.
+        res.end(renderRoute(route, base, DEV_HEAD_ASSETS));
       });
     },
   };

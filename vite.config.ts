@@ -88,6 +88,7 @@ export default defineConfig({
           "**/lab-*.js",
           "**/vendor-analytics-*.js",
           "**/cloud-*.js",
+          "**/page-*.js",
           "games/**",
           "en/**",
           "world/**",
@@ -187,6 +188,29 @@ export default defineConfig({
           // `cloudSync.ts` itself is NOT here: it is the thin always-loaded
           // half that holds the import.
           if (/\/src\/sdk\/(cloud|cloudConfig|backupCode)\.ts$/.test(path)) return "cloud";
+
+          // The content-page runtime: the game host and the whole room. Only a
+          // game page or /world/ ever needs either, so `/` must not download
+          // them. Same arrangement and same reason as `cloud` above, and it must
+          // be carved out BEFORE the shared-code rule below.
+          //
+          // `world/items.ts`, `Scene.tsx` and `art.tsx` are deliberately NOT
+          // here: Home renders the child's real room in its world card, so they
+          // belong to the shell either way.
+          if (/\/src\/portal\/(PageApp|GameHost)\.tsx$/.test(path)) return "page";
+          if (/\/src\/portal\/world\/(World|Backup)\.tsx$/.test(path)) return "page";
+
+          // EVERY OTHER portal module goes to the shell side, explicitly.
+          //
+          // Not tidiness - the same "an unassigned shared module picks a side"
+          // trap as the rule below, and it fired the first time this chunk
+          // existed. `WalletChip`, `catalog` and `world/Scene` are imported by
+          // BOTH the home grid and the page runtime; left unassigned, Rollup
+          // folded them into `page-*` and made the ENTRY import from it, so Vite
+          // wrote a `<link rel="modulepreload">` for the whole content-page
+          // runtime into index.html. The lazy import was still there, still
+          // correct, and buying nothing. `assert-first-visit.mjs` caught it.
+          if (path.includes("/src/portal/")) return "shell";
 
           // Shared app code, imported by BOTH the shell and the games. Pin it to
           // the shell side explicitly: left unassigned, Rollup folds it into

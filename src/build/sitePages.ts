@@ -3,9 +3,10 @@ import type { Locale } from "../content/types";
 import { SITE } from "../content/site";
 import { html } from "./html";
 import { renderDocument } from "./layout";
-import { gameCards } from "./gamePage";
-import { homePath, href, worldHref, worldPath } from "./routes";
+import { gameCards, stage } from "./gamePage";
+import { homePath, href, worldPath } from "./routes";
 import { homeGraph, worldGraph } from "./schema";
+import type { HeadAssets } from "./assets";
 
 /**
  * The three pages that are not about one game: the home index, the room, and
@@ -21,6 +22,8 @@ export interface SitePageOptions {
   games: ReadonlyArray<GameMeta>;
   base: string;
   indexable: boolean;
+  /** Only the world page boots the app. The home index and the 404 are documents. */
+  headAssets?: HeadAssets;
 }
 
 export function homePage(opts: SitePageOptions): string {
@@ -62,12 +65,9 @@ export function worldPage(opts: SitePageOptions): string {
 
   const body = html`
     <nav class="bc"><a href="${href(homePath(locale), base)}">${site.home}</a> › ${copy.h1}</nav>
+    ${stage("🏠", site, true)}
     <h1>${copy.h1}</h1>
     <p class="lede">${copy.lede}</p>
-    <p class="cta">
-      <a class="play" href="${worldHref(base)}">${copy.h1}</a>
-      <span class="note">${site.playNote}</span>
-    </p>
     ${copy.body.map((p) => html`<p>${p}</p>`)}
   `;
 
@@ -84,6 +84,10 @@ export function worldPage(opts: SitePageOptions): string {
     body,
     base,
     indexable: opts.indexable,
+    headAssets: opts.headAssets,
+    bodyData: { page: "world", locale },
+    // No wallet slot here: the room screen shows its own chip, and two of them
+    // in one viewport reads as a bug rather than as emphasis.
   });
 }
 

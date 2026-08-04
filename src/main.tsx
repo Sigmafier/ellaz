@@ -1,13 +1,41 @@
 import { createRoot } from "react-dom/client";
 import "@ui/index";
 import { App } from "./portal/App";
+import { readPageContext } from "./portal/pageContext";
+import { unlockAudioOnFirstGesture } from "./portal/unlockAudio";
+import { redirectLegacyHash } from "./portal/legacyHash";
 import { registerSW } from "virtual:pwa-register";
 
-// Register the service worker with a prompt update flow (a mid-game SW swap must
-// not yank game chunks — the user is asked before we reload).
+// One bundle, two shapes of page.
+//
+//   /                    the app shell. React owns #root and the whole viewport.
+//   /games/<id>/         a document. React owns #game-frame and #wallet-slot,
+//   /world/              and nothing else on the page is ever reconciled.
+//
+// Which one is decided by reading the DOCUMENT, never by parsing the URL: this
+// site ships under two bases ("/" and "/ellaz/"), and a runtime that re-derives
+// the base gets it wrong on one host and renders prose that never mounts a game.
+
 registerSW({ immediate: true });
 
-const rootEl = document.getElementById("root");
-if (rootEl) {
-  createRoot(rootEl).render(<App />);
+// Old links first, before anything renders. Every URL this app ever shared was
+// a hash - #/game/snake, #/world - and those are in bookmarks and in messages.
+// If one redirects, the document is about to be replaced and does not need a
+// React tree built into it.
+if (!redirectLegacyHash()) {
+  const page = readPageContext();
+  unlockAudioOnFirstGesture();
+
+  if (page.kind === "app") {
+    const rootEl = document.getElementById("root");
+    if (rootEl) createRoot(rootEl).render(<App />);
+  } else {
+    // Lazily, and the laziness is the point. The room and the game host are
+    // only ever needed on a content page, so a child landing on `/` should not
+    // download either - and this import is what keeps them out of the first
+    // visit. Named `page-*` in vite.config manualChunks and excluded in
+    // globIgnores; see .claude/rules/precache-glob-sweeps-new-chunks.md, where
+    // doing only one of those three things is the documented trap.
+    void import("./portal/PageApp").then((m) => m.bootContentPage(page));
+  }
 }

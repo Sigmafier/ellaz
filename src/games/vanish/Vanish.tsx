@@ -199,7 +199,7 @@ export function Vanish({ ctx }: { ctx: GameContext }) {
         padding: 16,
       }}
     >
-      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center", maxWidth: "100%" }}>
         <Stat label={t.round} value={roundNo} />
         <Stat
           label={phase === "study" ? t.time : t.found}

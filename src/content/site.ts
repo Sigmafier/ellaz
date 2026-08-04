@@ -20,9 +20,19 @@ export interface SiteCopy {
   tagline: string;
   /** Breadcrumb root. */
   home: string;
-  /** The label on the button that takes a visitor into the game. */
+  /** The label on the button that starts the game. */
   play: string;
   playNote: string;
+  /**
+   * What the poster says before any JavaScript has run. It is the EMITTED
+   * state, so it has to be true for someone who never gets any: the game needs
+   * a script, the rest of the page does not.
+   */
+  noScript: string;
+  /** What the poster says once the runtime has taken over and is fetching. */
+  loading: string;
+  /** Shown instead, when the visitor has data saver on and we wait for a tap. */
+  dataSaver: string;
   /** Section headings on a game page, in render order. */
   headings: {
     howToPlay: string;
@@ -51,6 +61,9 @@ const he: SiteCopy = {
   home: "בית",
   play: "לשחק",
   playNote: "נפתח במשחק עצמו. בלי הורדה ובלי הרשמה.",
+  noScript: "המשחק דורש JavaScript. שאר העמוד לא.",
+  loading: "המשחק נטען מעצמו. אין מה ללחוץ.",
+  dataSaver: "חיסכון בנתונים פעיל, אז אנחנו מחכים לאישור ולא מורידים לבד.",
   headings: {
     howToPlay: "איך משחקים?",
     about: "על המשחק",
@@ -109,6 +122,9 @@ const en: SiteCopy = {
   home: "Home",
   play: "Play",
   playNote: "Opens the game itself. Nothing to download, nothing to sign up for.",
+  noScript: "The game needs JavaScript. The rest of this page does not.",
+  loading: "The game loads by itself. Nothing to tap.",
+  dataSaver: "Data saver is on, so we wait for your tap instead of downloading on our own.",
   headings: {
     howToPlay: "How do you play?",
     about: "About this game",

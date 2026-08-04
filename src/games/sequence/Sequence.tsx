@@ -174,7 +174,7 @@ export function Sequence({ ctx }: { ctx: GameContext }): ReactElement {
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: 12 }}>
       <Prompt ctx={ctx} glyph="🔗" text={promptText} />
 
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center", maxWidth: "100%" }}>
         <Stat label={ctx.locale === "he" ? "שלב" : "Level"} value={level} />
         <Stat label={ctx.t("best")} value={best ?? "-"} />
         <DifficultySelector
