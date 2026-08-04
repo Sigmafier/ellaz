@@ -156,6 +156,18 @@ rather than a gap. (evolve carries one without a line of its own — it renders
 `n2048`'s component under its own game id, so it gets its own storage namespace
 and its own board for free.)
 
+**The unit is also declared, in `meta.ts`, because only the VALUE is persisted.**
+`ellaz:sudoku:score:easy` holds a bare `12750`, and nothing reading it back can
+tell milliseconds from points — which is the difference between fast winning and
+slow winning. So `scoreUnit` lives on the DOM-free meta, the one place the
+catalog can read without importing a renderer, and
+`score-unit-declared.test.ts` reads each game's own source and requires the two
+to agree. A unit copied to the wrong game type-checks, renders, and orders that
+board backwards for exactly the games using it, so the pin is the whole point;
+it was mutation-proved on sudoku and memory. It follows a borrowed renderer
+rather than hardcoding one, so evolve resolves through `n2048` with no special
+case.
+
 What each game records is the honest answer to "how well did that go", not one
 imposed shape: a **time** where a clock exists (sudoku, minesweeper), **moves**
 where the game already counted them (memory), **how far up an endless ladder**
@@ -307,9 +319,14 @@ separate three.js / Babylon / PlayCanvas bake-off.
 ## Add a new game (~30 min)
 
 1. `src/games/<id>/meta.ts` - the `GameMeta` (id, bilingual title, emoji, color,
-   ageBand, category, orientation, renderer). Keep it **DOM-free**: `catalog.ts`
-   imports it statically, so the home grid renders without pulling React, Phaser,
-   or any game code into the shell bundle.
+   ageBand, category, orientation, renderer, and **`scoreUnit`** if the game keeps
+   a record). Keep it **DOM-free**: `catalog.ts` imports it statically, so the home
+   grid renders without pulling React, Phaser, or any game code into the shell
+   bundle. `scoreUnit` must match the `unit:` the renderer reports and
+   `score-unit-declared.test.ts` enforces that, because only the VALUE of a record
+   is persisted and never the unit - so the leaderboards read the unit here to
+   decide whether fast or slow wins, and a wrong one orders that board backwards
+   in silence.
 2. `src/games/<id>/logic.ts` - pure rules + `logic.test.ts` (write tests first).
    Take an injectable `rng` as the LAST parameter defaulting to `Math.random`, and
    use `mulberry32`/`seedFrom`/`shuffle` from `@shared` rather than a private copy.
@@ -342,8 +359,8 @@ the moment step 5 lands. Missing step 6 is a red build, not a thin page.
 
 ## Every game has a real web address
 
-The site used to be one document. It is now 47: `dist/index.html` (still the app,
-unchanged) plus **46 emitted pages** built by `src/build/**` inside a Vite plugin,
+The site used to be one document. It is now 49: `dist/index.html` (still the app,
+unchanged) plus **48 emitted pages** built by `src/build/**` inside a Vite plugin,
 so `npm run build` cannot skip them and neither deploy workflow can forget.
 
 | URL | What it is |
@@ -352,8 +369,19 @@ so `npm run build` cannot skip them and neither deploy workflow can forget.
 | `/games/<id>/` · `/en/games/<id>/` | 21 games x 2 languages, ~900 words each |
 | `/en/` | the English home index, with 21 real links |
 | `/world/` · `/en/world/` | the room |
+| `/boards/` · `/en/boards/` | the leaderboards |
 | `/404.html` | bilingual, `noindex`, and `ErrorDocument`-wired on Hostinger |
 | `robots.txt` · `sitemap.xml` · `llms.txt` | emitted, not in `public/` (see below) |
+
+**Adding a page kind means finding every list that says which pages boot the app.**
+There were three, and they do not live together: `build.test.ts`'s `boots`
+predicate, `scripts/assert-pages.mjs`'s, and the runtime's own switch in
+`pageContext.ts`. Miss one and the page is held to the DOCUMENT rules instead,
+so it fails the build for a reason that has nothing to do with what is wrong -
+which is what happened, and is the gate working. The runtime one is worse: a
+missing branch there falls through to the game arm and mounts a `GameHost` with
+an empty id, so the page renders its prose perfectly and shows "we couldn't find
+that game" where the screen should be.
 
 **The slug is `meta.id`, never the directory name.** `src/games/n2048/` publishes at
 `/games/2048/`, so a hand-written `/games/n2048/` is a 404 that only the link

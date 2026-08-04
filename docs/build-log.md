@@ -113,13 +113,32 @@ Full rule, the per-difficulty board table, and the traps:
 
 After deploying, the live shell hash did not match a local build — which looks
 exactly like a failed deploy. The entire difference was `try{}catch{}` versus
-`try{const n=""}catch{}`, because CI passes `VITE_POSTHOG_KEY` as an **empty
-string** (the secret is absent, so Actions substitutes `""`) while the local arm
-had it unset. The minifier then renamed four variables downstream of that one
-expression. Rebuilding with `VITE_POSTHOG_KEY=""` reproduced all four live
-hashes exactly, and the live balloons chunk was byte-identical.
+`try{const n=""}catch{}`, one build-time constant, with the minifier renaming
+four variables downstream of it.
 
-**To reproduce a CI artifact locally you must set the var, not leave it unset.**
+**Corrected 2026-08-04, by measurement.** This section used to say CI passes the
+key as an empty string, so reproducing a CI artifact required setting
+`VITE_POSTHOG_KEY=""`. The artifact says the reverse. A local build with
+`VITE_POSTHOG_KEY=""` emits `const n=""`; the deployed shell has no such
+constant, which is what Vite writes when the variable is **absent** rather than
+present-and-empty. Both workflows do pass `VITE_POSTHOG_KEY: ${{ secrets.… }}`,
+but with the secret undefined the variable does not reach the build at all.
+
+So: **to reproduce a CI artifact locally, leave the var UNSET** —
+`env -u VITE_POSTHOG_KEY npx vite build`. Verified byte-for-byte on 2026-08-04
+against the live `shell-C7VlYQOC.js` and `cloud-CYSAdfXq.js`; the `""` arm
+reproduced neither.
+
+The wider lesson is the one that keeps repaying: the hash mismatch cost a
+verification detour on two separate days, and both times the cheap move was to
+diff the two files and read the first differing offset rather than to reason
+about the build. It took one command and named the cause exactly. Once the
+constant disappears, every downstream name shifts and one lazy chunk's hash
+changes, which changes the dependency map embedded in the shell — so a one-token
+difference reliably presents as "nothing matches".
+
+**A hash mismatch is not evidence of a failed deploy.** Verify by content, then
+find the constant.
 
 ---
 
@@ -173,7 +192,9 @@ adjectives agree with their noun and follow it, so an English-shaped
 adjective+noun pool gets both the order and the gender wrong.
 
 **Cost: +2,135 B gz on the first visit** (69,624 → 71,759), measured on a
-key-matched arm (`VITE_POSTHOG_KEY=""` in both, per the Wave B lesson above).
+key-matched arm — both arms treated the key the same way, which is the part that
+matters. (Which way that is, is the corrected note above: to match CI, unset it.
+A single arm set to `""` is still a valid A/B, it just is not the CI artifact.)
 
 ### The optimisation that the measurement killed
 
