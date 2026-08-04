@@ -234,6 +234,24 @@ export interface GameMeta {
   category: Category;
   orientation: "portrait" | "landscape" | "any";
   renderer: Renderer;
+  /**
+   * What this game's personal best MEASURES. Absent means it keeps none.
+   *
+   * A stored best is a bare number — only the value is persisted, never the
+   * unit — so nothing reading one back off the disk can tell 12,750 ms from
+   * 12,750 points. The leaderboards need it twice: to rank the board the right
+   * way round, and to print the number in the shape it belongs to.
+   *
+   * It lives here, in the DOM-free meta, because the catalog imports this
+   * statically and must never pull a renderer into the shell.
+   * `score-unit-declared.test.ts` pins every one of these to the `unit:` the
+   * game's own source reports, so a value copied to the wrong game fails the
+   * build rather than ordering that board backwards in silence.
+   *
+   * `coloring` has none and never will: ranking a child's drawing is the
+   * opposite of this platform's premise.
+   */
+  scoreUnit?: ScoreUnit;
 }
 
 export interface GameModule {

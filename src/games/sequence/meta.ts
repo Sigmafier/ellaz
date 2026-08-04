@@ -11,4 +11,5 @@ export const meta: GameMeta = {
   category: "think",
   orientation: "any",
   renderer: "dom",
+  scoreUnit: "points",
 };
