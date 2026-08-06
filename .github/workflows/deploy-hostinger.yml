@@ -61,7 +61,7 @@ jobs:
           # dead-code-eliminated and no analytics ships at all.
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
 
-      - name: Add the Apache config (SPA fallback + cache headers)
+      - name: Add the Apache config (404 document + cache headers)
         if: steps.creds.outputs.ready == 'true'
         run: cp deploy/hostinger.htaccess dist/.htaccess
 
