@@ -209,11 +209,25 @@ export function pagesPlugin(base: string): Plugin {
         const route = byPath.get(path) ?? byPath.get(`${path}/`);
         if (!route) return next();
 
-        res.setHeader("Content-Type", "text/html; charset=utf-8");
-        // Vite injects its own client into any html it TRANSFORMS; this response
-        // never passes through that pipeline, so the HMR client is absent here
-        // by design. The page still boots the real app through the real entry.
-        res.end(renderRoute(route, base, DEV_HEAD_ASSETS));
+        // Through Vite's OWN html pipeline, which is not optional and is not
+        // about HMR. `@vitejs/plugin-react` injects a react-refresh PREAMBLE
+        // into every html it transforms, and its generated modules assert that
+        // preamble is present - so a page served straight out of this renderer
+        // throws "can't detect preamble" on the first component it evaluates
+        // and NOTHING boots. In dev only, and only on these pages, so `/` looked
+        // perfect while every game, the room and the boards sat on their
+        // no-JavaScript poster. Production is unaffected: there is no preamble
+        // in a built bundle, which is exactly why this hid for so long.
+        //
+        // Calling the pipeline rather than pasting the preamble in is the point
+        // - the preamble is a plugin's private detail and a copy of it here
+        // would be a second implementation to keep in step.
+        void server
+          .transformIndexHtml(req.originalUrl ?? url, renderRoute(route, base, DEV_HEAD_ASSETS))
+          .then((html) => {
+            res.setHeader("Content-Type", "text/html; charset=utf-8");
+            res.end(html);
+          }, next);
       });
     },
   };

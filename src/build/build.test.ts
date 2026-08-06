@@ -5,7 +5,7 @@ import { GAMES } from "../portal/games";
 import { CATALOG } from "../portal/catalog";
 import { escapeHtml, html, jsonLd, raw, toHtml } from "./html";
 import { ROUTES, canonicalUrl, gamePath, homePath, href } from "./routes";
-import { allEmittedFiles, indexHeadTags, renderRoute } from "./pages";
+import { allEmittedFiles, indexHeadTags, pagesPlugin, renderRoute } from "./pages";
 import { headingFor, relatedTo } from "./gamePage";
 import { llmsTxt, robotsTxt, sitemapXml } from "./siteFiles";
 
@@ -198,6 +198,73 @@ describe("every page renders", () => {
   it("states the platform facts from one place, never from a content file", () => {
     const page = renderRoute(ROUTES.find((r) => r.kind === "game" && r.locale === "he")!, "/");
     for (const fact of SITE.he.facts) expect(page).toContain(escapeHtml(fact));
+  });
+});
+
+describe("the dev middleware", () => {
+  /**
+   * Serving a page STRAIGHT out of the renderer is the version that looks
+   * right and boots nothing: `@vitejs/plugin-react` injects a react-refresh
+   * preamble into every html it transforms, and its generated modules throw
+   * "can't detect preamble" without it. Dev only, content pages only, so `/`
+   * stays perfect while every game, the room and the boards sit on their
+   * no-JavaScript poster - which is exactly how it was found, by a person
+   * opening one.
+   */
+  function driveMiddleware(url: string) {
+    const plugin = pagesPlugin("/");
+    let middleware: ((req: unknown, res: unknown, next: () => void) => void) | undefined;
+    const transformed: string[] = [];
+    const server = {
+      middlewares: {
+        use(fn: (req: unknown, res: unknown, next: () => void) => void) {
+          middleware = fn;
+        },
+      },
+      transformIndexHtml: (_url: string, html: string) => {
+        transformed.push(html);
+        return Promise.resolve(`<!--transformed-->${html}`);
+      },
+    };
+    (plugin.configureServer as (s: unknown) => void).call(plugin, server);
+
+    let sent: string | undefined;
+    let nexted = false;
+    const done = new Promise<void>((resolve) => {
+      middleware!(
+        { url, originalUrl: url },
+        {
+          setHeader() {},
+          end(body: string) {
+            sent = body;
+            resolve();
+          },
+        },
+        () => {
+          nexted = true;
+          resolve();
+        },
+      );
+    });
+    return done.then(() => ({ sent, nexted, transformed }));
+  }
+
+  it("hands every page through Vite's own html pipeline", async () => {
+    for (const url of ["/boards/", "/world/", "/games/2048/"]) {
+      const { sent, transformed } = await driveMiddleware(url);
+      expect(transformed, `${url} was served without transformIndexHtml`).toHaveLength(1);
+      expect(sent, `${url} sent something other than the transformed html`).toBe(
+        `<!--transformed-->${transformed[0]}`,
+      );
+    }
+  });
+
+  it("leaves the application and unknown paths alone", async () => {
+    for (const url of ["/", "/not-a-page/"]) {
+      const { nexted, transformed } = await driveMiddleware(url);
+      expect(nexted, `${url} should fall through to Vite`).toBe(true);
+      expect(transformed).toHaveLength(0);
+    }
   });
 });
 
