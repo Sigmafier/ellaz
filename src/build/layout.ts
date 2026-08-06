@@ -3,6 +3,9 @@ import { SITE } from "../content/site";
 import { html, raw, jsonLd, toHtml, type RawHtml } from "./html";
 import type { HeadAssets } from "./assets";
 import { canonicalUrl, homePath, href } from "./routes";
+// themes.ts imports nothing, which is what lets both the Vite config and this
+// build-time renderer read the same theme list. See src/ui/themes.ts.
+import { DEFAULT_THEME, themeBootScript, themeById } from "../ui/themes";
 
 /**
  * The document shell every emitted page shares: head, header, footer.
@@ -32,12 +35,36 @@ const FONTS =
  */
 export const DOCUMENT_CSS = `
 /* Every custom property here is --doc-*, and that prefix is load-bearing.
-   A page that boots the app links tokens.css BEFORE this block, so a bare
-   --bg or --ink declared here would WIN and repaint every game component
-   inside the frame with document colours. Never reuse an app token name. */
+   A page that boots the app also links tokens.css, so a bare --bg or --ink
+   declared here would collide with an app token. Never reuse an app name.
+
+   THE VALUES DERIVE FROM THE THEME, with a literal fallback.
+
+   Custom properties resolve at computed-value time, AFTER every stylesheet
+   has parsed - so var(--text) here picks up tokens.css even though this block
+   is inlined above the app's <link>. On a page that carries no app runtime
+   (the 404, the English index) the fallback applies instead, which is why
+   every one of these has one.
+
+   NO BACKTICKS IN THIS COMMENT. It lives inside a JS template literal, and a
+   backtick closes the string - the file then fails to parse somewhere far
+   below with an error naming a CSS word as an undefined variable. Third time
+   in this repo.
+
+   Before this, a game page was a white article with a navy rectangle punched
+   into it: the app was dark, the document was light, and they were two
+   products on one screen. */
 *,*::before,*::after{box-sizing:border-box}
-:root{--doc-ink:#1b1b2b;--doc-soft:#5a5a72;--doc-line:#e4e2ef;--doc-bg:#fdfcff;
-  --doc-brand:#6c5ce7;--doc-sun:#ffc730}
+:root{
+  --doc-ink:var(--text,#1b1b2b);
+  --doc-soft:var(--text-dim,#5a5a72);
+  --doc-line:var(--line,#e4e2ef);
+  --doc-bg:var(--bg,#fdfcff);
+  --doc-card:var(--surface,#ffffff);
+  --doc-brand:var(--brand-ink,#6c5ce7);
+  --doc-sun:var(--yellow,#ffc730);
+  --doc-stage:var(--stage-bg,#12142b);
+}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--doc-bg);color:var(--doc-ink);
   font:400 17px/1.7 Heebo,Assistant,Rubik,system-ui,-apple-system,sans-serif}
@@ -49,7 +76,7 @@ h2{font-size:1.35rem;font-weight:600;margin-block:44px 12px}
 h3{font-size:1.05rem;font-weight:600;margin-block:22px 4px}
 p{margin-block:0 14px}
 a{color:var(--doc-brand)}
-.top{border-block-end:1px solid var(--doc-line);background:#fff}
+.top{border-block-end:1px solid var(--doc-line);background:var(--doc-card)}
 .top .in{max-width:44rem;margin-inline:auto;padding:12px 20px;display:flex;
   align-items:center;gap:12px}
 .brand{font-family:Fredoka,system-ui,sans-serif;font-size:1.15rem;font-weight:600;
@@ -60,7 +87,7 @@ a{color:var(--doc-brand)}
 .bc a{text-decoration:none}
 .lede{font-size:1.12rem;color:var(--doc-ink)}
 .facts{list-style:none;display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:18px 0 0}
-.facts li{border:1px solid var(--doc-line);background:#fff;border-radius:999px;
+.facts li{border:1px solid var(--doc-line);background:var(--doc-card);border-radius:999px;
   padding:5px 13px;font-size:.82rem;font-weight:600;color:var(--doc-soft)}
 .cta{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin:26px 0 8px}
 .play{display:inline-flex;align-items:center;justify-content:center;min-height:76px;
@@ -72,10 +99,10 @@ ol,ul.steps{padding-inline-start:1.3em}
 ol li,ul.steps li{margin-block-end:8px}
 table{border-collapse:collapse;width:100%;margin-block:14px;font-size:.95rem}
 th,td{border:1px solid var(--doc-line);padding:8px 12px;text-align:start}
-th{background:#fff;font-weight:600}
+th{background:var(--doc-card);font-weight:600}
 .grid{list-style:none;padding:0;margin:20px 0 0;display:grid;gap:12px;
   grid-template-columns:repeat(auto-fill,minmax(9.5rem,1fr))}
-.grid a{display:flex;align-items:center;gap:10px;padding:12px 14px;background:#fff;
+.grid a{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--doc-card);
   border:1px solid var(--doc-line);border-radius:16px;text-decoration:none;
   color:var(--doc-ink);font-weight:600}
 .grid .em{font-size:1.5rem;line-height:1}
@@ -117,17 +144,17 @@ footer .in{max-width:44rem;margin-inline:auto;display:flex;flex-wrap:wrap;gap:14
    absolutely positioned and contributes no height of its own: before the game
    mounts, this is the only thing holding the box open. */
 .stage .box{position:relative;border-radius:22px;overflow:hidden;
-  background:#12142b;box-shadow:0 5px 0 var(--doc-line);
+  background:var(--doc-stage);box-shadow:0 5px 0 var(--doc-line);
   min-height:clamp(420px,calc(100dvh - 145px),860px);display:flex;flex-direction:column}
 #game-frame{flex:1;min-height:0;display:flex;flex-direction:column}
 #game-poster{position:absolute;inset:0;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:18px;text-align:center;padding:24px;
-  color:#fff;transition:opacity .25s ease}
+  color:var(--doc-ink);transition:opacity .25s ease}
 #game-poster[hidden]{display:none}
 #game-poster .em{font-size:64px;line-height:1}
 #game-poster .msg{font-size:.95rem;opacity:.75;max-width:22ch}
 .stage .noscript{position:absolute;inset-inline:0;bottom:0;padding:12px;
-  background:rgba(0,0,0,.55);color:#fff;font-size:.85rem;text-align:center}
+  background:var(--badge-fill,rgba(0,0,0,.55));color:var(--on-brand,#fff);font-size:.85rem;text-align:center}
 @media (max-width:719px){.stage .box{border-radius:0;box-shadow:none;
   border-block:1px solid var(--doc-line)}}
 @media (max-width:480px){body{font-size:16px}h1{font-size:1.6rem}.play{width:100%}
@@ -197,7 +224,16 @@ export function renderDocument(opts: DocumentOptions): string {
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-        <meta name="theme-color" content="#6c5ce7" />
+        <!-- FIRST, and synchronous. data-theme is deliberately never baked into
+             these documents - they are cached and it would be wrong for whoever
+             chose the other theme - so this is what sets it before the first
+             paint. A module import runs far too late and the page visibly
+             flashes the other theme. Generated from themes.ts, never written
+             out here, so adding a theme cannot leave it behind. -->
+        <script>
+          ${raw(themeBootScript())}
+        </script>
+        <meta name="theme-color" content="${themeById(DEFAULT_THEME).browserChrome}" />
         <title>${opts.title}</title>
         <meta name="description" content="${opts.description}" />
         <link rel="canonical" href="${canonical}" />

@@ -14,9 +14,29 @@ body {
   margin: 0;
 }
 
-body {
+/* THE APP'S OWN TYPOGRAPHY, AND THE SCOPE IS LOAD-BEARING FOR THE SAME REASON
+   AS THE BLOCK BELOW - these are APPLICATION defaults, and an emitted content
+   page is not an application.
+
+   The ordering that makes an unscoped rule here dangerous: `renderDocument`
+   inlines the document stylesheet in <head> and appends the app's <link> AFTER
+   it, so at equal specificity this file wins on source order and repaints the
+   document. Measured on the artifact 2026-08-04, before this scope existed:
+   `color: var(--text)` put #f5f6ff prose on a #fdfcff page - about 750 words
+   per page unreadable to a human and perfect to a crawler - and `margin: 0`
+   flattened every heading against the paragraph under it. Neither is visible
+   to a word count, which is what the phase that shipped them checked.
+
+   `#game-frame` is listed beside the shell because it IS an app region: the
+   game host and the game mount inside it on a content page, and they are built
+   against the app tokens, not the document's. */
+body.app-shell,
+#game-frame {
   font-family: var(--font);
   color: var(--text);
+}
+
+body.app-shell {
   overscroll-behavior: none;
 }
 
@@ -34,7 +54,27 @@ body {
 body.app-shell {
   height: 100%;
   overflow: hidden;
-  background: radial-gradient(1200px 800px at 50% -10%, #202650 0%, var(--bg) 55%);
+  background: var(--page-bg);
+}
+
+/* THE PER-GAME CARD WASH, and it has to be a class rather than a token.
+   `var()` inside a custom property substitutes where the property is
+   DECLARED, not where it is used - so a `--wash` defined at `:root` that
+   mentions `--game` would resolve against a `--game` that does not exist
+   there, every time. The card sets `--game` inline; the theme declares the
+   recipe here, against the card, where `--game` is in scope.
+
+   Night's recipe is arithmetically the 20%-alpha radial the cards already
+   carried inline; market lays a flatter tint because a 20% radial is nearly
+   invisible on cream. */
+.ellaz-tint {
+  background:
+    radial-gradient(
+      120px 90px at 50% 30%,
+      color-mix(in srgb, var(--game) calc(var(--tint-strength) * 100%), transparent),
+      transparent
+    ),
+    var(--surface-fill);
 }
 
 html:has(body.app-shell) {
@@ -62,9 +102,15 @@ button {
   user-select: none;
 }
 
-h1,
-h2,
-h3 {
+/* Scoped for the ordering reason above: unscoped, `margin: 0` won over the
+   document's own `margin-block` on every emitted page and left each heading
+   sitting flush on its paragraph. */
+body.app-shell h1,
+body.app-shell h2,
+body.app-shell h3,
+#game-frame h1,
+#game-frame h2,
+#game-frame h3 {
   font-family: "Fredoka", var(--font);
   margin: 0;
 }
@@ -121,13 +167,18 @@ h3 {
   animation: ellaz-merge 0.24s var(--ease) both;
 }
 
+/* The pulse ring follows the theme's success green. It was rgba(85,239,196,…),
+   which is night's --green written out - correct until the day the theme
+   changes and this one halo stays neon on a cream card. Mixed rather than
+   `transparent` at the 0 stop so both keyframes interpolate through the same
+   hue. */
 @keyframes ellaz-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(85, 239, 196, 0);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 0%, transparent);
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(85, 239, 196, 0.5);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--green) 50%, transparent);
   }
 }
 .ellaz-pulse {

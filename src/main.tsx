@@ -4,6 +4,7 @@ import { App } from "./portal/App";
 import { readPageContext } from "./portal/pageContext";
 import { unlockAudioOnFirstGesture } from "./portal/unlockAudio";
 import { redirectLegacyHash } from "./portal/legacyHash";
+import { themePort } from "@ui/theme";
 import { registerSW } from "virtual:pwa-register";
 
 // One bundle, two shapes of page.
@@ -24,6 +25,11 @@ registerSW({ immediate: true });
 // React tree built into it.
 if (!redirectLegacyHash()) {
   const page = readPageContext();
+  // Adopt whatever the inline boot script already decided. It does NOT re-apply
+  // the attribute - that happened before first paint, and re-applying here
+  // would give the same fact two owners. Both branches, because a content page
+  // has a theme too.
+  themePort.init();
   unlockAudioOnFirstGesture();
 
   if (page.kind === "app") {

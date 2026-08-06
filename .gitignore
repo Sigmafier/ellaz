@@ -15,3 +15,4 @@ shots/
 # Browser-automation scratch (MCP session dumps, ad-hoc screenshots)
 .playwright-mcp/
 /*.png
+screenshots/

@@ -1,6 +1,46 @@
 // DOM game-feel effects: screen shake, success particle burst, and a tiny
 // rAF tween. Kept framework-neutral (plain elements) so any renderer can use them.
 
+/**
+ * The confetti palette, read off the live theme.
+ *
+ * A CSS custom property holds arbitrary text, so `--confetti-colors` is a
+ * comma list and this splits it. That is the whole mechanism, and it is why
+ * this file follows the theme without importing React, a palette module, or
+ * anything that would drag a framework into the juice layer.
+ *
+ * The fallback matters as much as the read: this runs in jsdom under test and
+ * in a browser before the stylesheet has parsed, and in both cases
+ * `getPropertyValue` returns an empty string. Confetti with no colours is
+ * invisible confetti - a win that silently stops feeling like one - so an
+ * empty read falls back to night's list rather than to nothing.
+ */
+function themeColors(name: string, fallback: string[]): string[] {
+  try {
+    const raw = getComputedStyle(document.documentElement).getPropertyValue(name);
+    const parsed = raw
+      .split(",")
+      .map((c) => c.trim())
+      .filter(Boolean);
+    if (parsed.length > 0) return parsed;
+  } catch {
+    // No document, no computed style: fall through.
+  }
+  return fallback;
+}
+
+const SPARK_FALLBACK = ["#6c5ce7", "#00cec9", "#fdcb6e", "#ff7675", "#55efc4"];
+const CONFETTI_FALLBACK = [
+  "#6c5ce7",
+  "#a29bfe",
+  "#00cec9",
+  "#fdcb6e",
+  "#ff7675",
+  "#55efc4",
+  "#fd79a8",
+  "#74b9ff",
+];
+
 export function shake(el: HTMLElement, intensity = 6, ms = 240): void {
   const start = performance.now();
   const base = el.style.transform;
@@ -29,7 +69,7 @@ export interface BurstOptions {
 // animated with the Web Animations API, and self-remove on finish.
 export function burst(x: number, y: number, opts: BurstOptions = {}): void {
   const count = opts.count ?? 14;
-  const colors = opts.colors ?? ["#6c5ce7", "#00cec9", "#fdcb6e", "#ff7675", "#55efc4"];
+  const colors = opts.colors ?? themeColors("--spark-colors", SPARK_FALLBACK);
   const spread = opts.spread ?? 90;
   const layer = document.createElement("div");
   layer.style.cssText = `position:fixed;left:0;top:0;pointer-events:none;z-index:9999`;
@@ -61,9 +101,7 @@ export function burst(x: number, y: number, opts: BurstOptions = {}): void {
 // reward moment. Heavier than burst(); use it for wins and milestones.
 export function celebrate(opts: { count?: number; colors?: string[] } = {}): void {
   const count = opts.count ?? 60;
-  const colors = opts.colors ?? [
-    "#6c5ce7", "#a29bfe", "#00cec9", "#fdcb6e", "#ff7675", "#55efc4", "#fd79a8", "#74b9ff",
-  ];
+  const colors = opts.colors ?? themeColors("--confetti-colors", CONFETTI_FALLBACK);
   const layer = document.createElement("div");
   layer.style.cssText =
     "position:fixed;inset:0;pointer-events:none;z-index:10000;overflow:hidden";

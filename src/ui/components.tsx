@@ -20,10 +20,10 @@ export function Button(props: {
 }) {
   const { children, onClick, variant = "primary", kids, style, ariaLabel, disabled } = props;
   const min = kids ? "var(--tap-kids)" : "var(--tap)";
-  const bg =
-    variant === "primary"
-      ? "linear-gradient(180deg, var(--brand-2), var(--brand))"
-      : "var(--surface-2)";
+  // The theme owns what "primary" is filled with. Night's --brand-fill is the
+  // exact gradient this line used to hardcode; market's is a flat colour, and
+  // `background` takes either, so there is no branch and no class here.
+  const bg = variant === "primary" ? "var(--brand-fill)" : "var(--surface-2)";
   return (
     <button
       aria-label={ariaLabel}

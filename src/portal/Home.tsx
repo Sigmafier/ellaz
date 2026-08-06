@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import type { Locale } from "@i18n/index";
 import { makeT } from "@i18n/index";
 import { CATALOG, CATEGORY_ORDER, findEntry, type CatalogEntry } from "./catalog";
 import { audioPort, speechPort, wallet, type Category, type ProfileV1 } from "@sdk/index";
 import { boardsHref, gameHref, worldHref } from "./paths";
+import { inkFor } from "@ui/ink";
+import { useTheme } from "@ui/useTheme";
+import { themeById } from "@ui/themes";
 import { WalletChip } from "./WalletChip";
 import { Scene } from "./world/Scene";
 
@@ -74,7 +77,13 @@ export function Home({
     <div className="ellaz-scroll" style={{ flex: 1 }}>
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "8px 16px 32px" }}>
         <header
-          style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 4px 16px" }}
+          // gap 8, not 12. The header carries five things on a 430px phone -
+          // emoji, title block, wallet, theme, language - and measured at 383px
+          // wide the children plus 4x12 of gap left the title block 64px, which
+          // wrapped the tagline onto three lines. The tagline was already on
+          // two before the theme toggle existed; adding a fifth child is what
+          // made it three. Recovering the gap is cheaper than hiding a word.
+          style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 4px 16px" }}
         >
           <div style={{ fontSize: 40 }} aria-hidden="true">
             🎮
@@ -84,6 +93,7 @@ export function Home({
             <div style={{ color: "var(--text-dim)", fontSize: 14 }}>{t("tagline")}</div>
           </div>
           <WalletChip />
+          <ThemeToggle locale={locale} onTap={tap} />
           <button
             aria-label={t("language")}
             onClick={onToggleLocale}
@@ -223,6 +233,47 @@ export function Home({
   );
 }
 
+/**
+ * Day / night, as one pill beside the language toggle.
+ *
+ * One tap, one result - the same language the rest of this app speaks. There
+ * is deliberately no settings screen: a screen for two switches is a screen a
+ * five-year-old has to learn to leave.
+ *
+ * It shows the theme it will switch TO, not the one you are in, because the
+ * glyph is a button label rather than a status readout. Its `aria-label` says
+ * so in words, since a sun on its own is ambiguous either way.
+ */
+function ThemeToggle({ locale, onTap }: { locale: Locale; onTap: () => void }) {
+  const [theme, setTheme] = useTheme();
+  const next = themeById(theme === "night" ? "market" : "night");
+  return (
+    <button
+      aria-label={`${locale === "he" ? "ערכת נושא" : "Theme"}: ${next.label[locale]}`}
+      onClick={() => {
+        onTap();
+        setTheme(next.id);
+      }}
+      style={{
+        // No horizontal padding: minWidth already holds the 48px tap target,
+        // and on a narrow header every pixel here comes out of the title.
+        minHeight: "var(--tap)",
+        minWidth: "var(--tap)",
+        padding: 0,
+        flexShrink: 0,
+        borderRadius: "var(--radius-pill)",
+        border: "none",
+        background: "var(--surface-2)",
+        color: "var(--text)",
+        fontSize: 18,
+        lineHeight: 1,
+      }}
+    >
+      <span aria-hidden="true">{next.glyph}</span>
+    </button>
+  );
+}
+
 /** The world, showing the child's REAL room rather than a generic illustration. */
 function WorldHero({
   profile,
@@ -331,7 +382,9 @@ function CategoryRail({
         <span style={{ fontSize: 26, lineHeight: 1 }} aria-hidden="true">
           {glyph}
         </span>
-        <span style={{ fontSize: 11, fontWeight: 700, color: on ? "#fff" : "var(--text-dim)" }}>
+        <span
+          style={{ fontSize: 11, fontWeight: 700, color: on ? "var(--on-brand)" : "var(--text-dim)" }}
+        >
           {label}
         </span>
       </button>
@@ -392,7 +445,10 @@ function RecentCard({
           fontWeight: 800,
           fontSize: 14,
           background: meta.color,
-          color: "#1b1b2b",
+          // Derived, not fixed: one ink cannot serve twenty-one accents. See
+          // ui/ink.ts - a hardcoded dark ink here read at 3.23:1 on
+          // minesweeper's slate and 3.49:1 on sequence's violet.
+          color: inkFor(meta.color),
           whiteSpace: "nowrap",
           overflow: "hidden",
           textOverflow: "ellipsis",
@@ -460,13 +516,13 @@ function GameCard({
           // The dark pill is EARNED. An unearned slot is a bare outline star,
           // because a filled disc on all sixteen cards reads to a new player as
           // smudges on the screen rather than as empty slots to collect.
-          background: stars > 0 ? "rgba(6, 8, 20, 0.72)" : "transparent",
+          background: stars > 0 ? "var(--badge-fill)" : "transparent",
           borderRadius: "var(--radius-pill)",
           padding: stars > 0 ? "2px 8px" : "2px 4px",
           fontSize: 12,
           fontWeight: stars > 0 ? 800 : 600,
           opacity: stars > 0 ? 1 : 0.3,
-          textShadow: stars > 0 ? "none" : "0 1px 2px rgba(0,0,0,.7)",
+          textShadow: stars > 0 ? "none" : "var(--badge-glow)",
           display: "inline-flex",
           alignItems: "center",
           gap: 3,
@@ -478,13 +534,20 @@ function GameCard({
         {stars > 0 ? `⭐${stars}` : "☆"}
       </span>
       <span
-        style={{
-          flex: 1,
-          display: "grid",
-          placeItems: "center",
-          fontSize: 42,
-          background: `radial-gradient(120px 90px at 50% 30%, ${meta.color}33, transparent), var(--surface)`,
-        }}
+        className="ellaz-tint"
+        // `--game` is set HERE and the recipe lives in the theme (.ellaz-tint
+        // in global.css). It cannot be the other way round: a var() inside a
+        // custom property resolves where it is declared, and --game does not
+        // exist at :root.
+        style={
+          {
+            flex: 1,
+            display: "grid",
+            placeItems: "center",
+            fontSize: 42,
+            "--game": meta.color,
+          } as CSSProperties
+        }
         aria-hidden="true"
       >
         {meta.emoji}
@@ -495,7 +558,7 @@ function GameCard({
           fontWeight: 800,
           fontSize: 13.5,
           background: meta.color,
-          color: "#1b1b2b",
+          color: inkFor(meta.color),
           whiteSpace: "nowrap",
           overflow: "hidden",
           textOverflow: "ellipsis",

@@ -3,6 +3,53 @@ import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import { fileURLToPath, URL } from "node:url";
 import { pagesPlugin } from "./src/build/pages";
+import { DEFAULT_THEME, needsThemeBoot, themeBootScript, themeById } from "./src/ui/themes";
+
+// The default theme, read from the one file that declares it. `themes.ts`
+// imports nothing precisely so it can be imported HERE - Vite's resolve.alias
+// does not apply to this config's own imports, so an `@ui/...` path would fail.
+const defaultTheme = themeById(DEFAULT_THEME);
+
+/**
+ * Inline the no-flash theme script into every document, first thing in <head>.
+ *
+ * It has to be inline and synchronous: `data-theme` is deliberately never
+ * baked into the emitted HTML (it would be wrong for half of visitors, and
+ * these pages are cached), so something has to set it before the first paint.
+ * A module import runs far too late and the page flashes the other theme.
+ *
+ * Generated from `themes.ts` rather than written out here, so adding a theme
+ * cannot leave this script behind - `theme-sync.test.ts` drives the generated
+ * source against junk, an empty store and a throwing localStorage, because a
+ * script that throws at the top of <head> takes the whole app with it.
+ *
+ * This is the APP SHELL's copy. The 48 emitted pages carry their own, inlined
+ * by `renderDocument`, because they are written to disk and never transformed -
+ * so `needsThemeBoot` skips the ones that already have it. That matters only in
+ * dev, where emitted pages DO pass through this hook; production never sees
+ * them here at all.
+ */
+function themeBootPlugin() {
+  return {
+    name: "ellaz-theme-boot",
+    transformIndexHtml: {
+      order: "pre" as const,
+      handler(html: string) {
+        if (!needsThemeBoot(html)) return html;
+        return {
+          html,
+          tags: [
+            {
+              tag: "script",
+              children: themeBootScript(),
+              injectTo: "head-prepend" as const,
+            },
+          ],
+        };
+      },
+    },
+  };
+}
 
 // Ellaz portal build config.
 // - Phaser is isolated into its own stable vendor chunk so it is downloaded once
@@ -15,6 +62,8 @@ const base = process.env.BASE_PATH ?? "/";
 export default defineConfig({
   base,
   plugins: [
+    // First, so its head-prepend lands above everything else in <head>.
+    themeBootPlugin(),
     react(),
     VitePWA({
       // autoUpdate: a new deploy activates on the user's next load and reloads the
@@ -26,8 +75,12 @@ export default defineConfig({
         name: "Ellaz Games",
         short_name: "Ellaz",
         description: "Fun games for phone, tablet, and computer.",
-        theme_color: "#6c5ce7",
-        background_color: "#0f1226",
+        // Derived, never typed twice. This colour used to be the literal
+        // #6c5ce7 in three files that could each drift; theme-sync.test.ts
+        // now asserts the manifest, index.html's meta and the bare `:root`
+        // block all name the same default.
+        theme_color: defaultTheme.browserChrome,
+        background_color: defaultTheme.background,
         display: "standalone",
         orientation: "any",
         // relative so it resolves correctly under any base ("/" or "/ellaz/")
