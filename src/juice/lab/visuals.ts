@@ -98,7 +98,7 @@ export function hitStop(ms: number, flash = true): Promise<void> {
 // ---------------------------------------------------------------------------
 
 /** An expanding ring at the touch point - the cheapest "I felt that" there is. */
-export function ripple(x: number, y: number, color = "var(--accent, #6c5ce7)"): void {
+export function ripple(x: number, y: number, color = "var(--brand)"): void {
   if (prefersReducedMotion()) return;
   const host = layer(9998);
   const ring = document.createElement("div");
