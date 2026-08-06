@@ -97,10 +97,28 @@ footer .in{max-width:44rem;margin-inline:auto;display:flex;flex-wrap:wrap;gap:14
    new sizing rule. */
 .stage{position:relative;margin-block:14px 6px;margin-inline:-20px}
 @media (min-width:720px){.stage{margin-inline:0}}
+/* MIN-height, not height, and that is the whole fix for the frame.
+
+   A fixed height makes the box a viewport the game has to fit inside, and it
+   cannot: a game sizes its board against the WINDOW (min(94vw, 60vh, ...))
+   and then stacks its own stats, difficulty row and keypad on top, so the
+   total exceeds a frame that is only a FRACTION of that window. Sudoku wanted
+   778px inside 508px and answered with an inner scrollbar - a second one, in
+   the same axis as the page's, which is what reads as broken rather than
+   merely tall.
+
+   Min-height instead: the box fills the window down to the fold (145px is the
+   header, breadcrumb and margin above it) and GROWS for a game that needs
+   more. Nothing is cut off, and there is only ever one scrollbar - the page's,
+   which every visitor already understands. dvh, not vh, so a phone's
+   collapsing address bar does not leave a gap.
+
+   It also has to be min-height rather than height because the poster is
+   absolutely positioned and contributes no height of its own: before the game
+   mounts, this is the only thing holding the box open. */
 .stage .box{position:relative;border-radius:22px;overflow:hidden;
   background:#12142b;box-shadow:0 5px 0 var(--doc-line);
-  height:min(74vh,620px);display:flex;flex-direction:column}
-.stage.room .box{height:min(88vh,860px)}
+  min-height:clamp(420px,calc(100dvh - 145px),860px);display:flex;flex-direction:column}
 #game-frame{flex:1;min-height:0;display:flex;flex-direction:column}
 #game-poster{position:absolute;inset:0;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:18px;text-align:center;padding:24px;
@@ -113,7 +131,7 @@ footer .in{max-width:44rem;margin-inline:auto;display:flex;flex-wrap:wrap;gap:14
 @media (max-width:719px){.stage .box{border-radius:0;box-shadow:none;
   border-block:1px solid var(--doc-line)}}
 @media (max-width:480px){body{font-size:16px}h1{font-size:1.6rem}.play{width:100%}
-  .stage .box{height:min(76vh,600px)}.stage.room .box{height:min(86vh,760px)}
+  .stage .box{min-height:clamp(420px,calc(100dvh - 120px),860px)}
   .tagline{display:none}}
 `.trim();
 
