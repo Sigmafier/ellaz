@@ -41,12 +41,20 @@ function connectionIsStingy(): boolean {
   return c.saveData === true || /(^|-)2g$/.test(c.effectiveType ?? "");
 }
 
-function whenIdle(run: () => void): void {
-  const ric = (window as Window & { requestIdleCallback?: (cb: () => void, o?: object) => number })
-    .requestIdleCallback;
-  if (ric) ric(run, { timeout: 2000 });
-  else window.setTimeout(run, 200);
-}
+/**
+ * Start the game NOW, not on the next idle frame.
+ *
+ * Waiting for idle is the right instinct on a page whose main content is
+ * something else - it keeps a background fetch out of the way of first paint.
+ * This page is not that page: the visitor came for the game, and first paint
+ * has ALREADY happened, because the poster is emitted HTML that needs no
+ * JavaScript at all. So the wait bought nothing and cost a serialised gap
+ * between two fetches, since the game's own chunk is only requested once
+ * GameHost mounts.
+ *
+ * Data saver still gets the old behaviour, one branch up: their tap, their
+ * bytes.
+ */
 
 function mountWallet(slot: HTMLElement | undefined): Root | null {
   if (!slot) return null;
@@ -112,5 +120,5 @@ export function bootContentPage(ctx: PageContext): void {
   // running, both can be replaced with the truth.
   if (button) button.hidden = true;
   if (message && poster) message.textContent = poster.dataset.loading ?? message.textContent;
-  whenIdle(start);
+  start();
 }
