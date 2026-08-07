@@ -54,16 +54,55 @@ const rel = (url) => (url.startsWith(BASE) ? url.slice(BASE.length) : url).repla
 /**
  * Bytes, gzipped, for a first visit.
  *
- * 82,000 as of 2026-08-07. History, so the next person raising it can see what
- * they are joining:
+ * 86,000 as of 2026-08-07 (was 82,000). History, so the next person raising it
+ * can see what they are joining:
  *   69,624  2026-08-02  live baseline after the payload work
  *   72,984  2026-08-04  the app moved onto real URLs (page-* runtime)
  *   74,290  2026-08-06  the theme layer, carrying a second complete value set
  *   79,489  2026-08-07  21 drawn game scenes (~3.5 KB) + the boards work
- * The headroom above 79,489 is deliberate but small: enough that an ordinary
- * change does not trip it, tight enough that another 3 KB has to be argued for.
+ *   80,345  2026-08-07  the boards redesign (+302)
+ *
+ * THE ARGUMENT FOR THE 4 KB, because the line above this one asks for one.
+ *
+ * A commit-level sweep of all 60 commits since the 2026-08-02 baseline, one
+ * extractor and one env throughout, attributes the growth precisely rather than
+ * approximately. Every delta below is measured, not estimated:
+ *
+ *   +4,624  090fe08  the game drawings  <- measured against its DIRECT parent
+ *   +1,762  04bfd6d  cloud backup
+ *   +1,332  4777ce8  the name pool
+ *     +498  9b3a7c8  restore and undo
+ *     +302  c360bdb  the boards redesign
+ *     +179  657dbb8  the two themes
+ *   -2,551           the pages + chunking work GAVE BACK
+ *
+ * The "~3.5 KB" above is right and now sharper: emptying the ART map at HEAD,
+ * with the module shape and every export preserved, moves the first visit
+ * 80,345 -> 76,465. The drawings cost 3,880 B gz, 4.8% of everything a child
+ * fetches before choosing a game. They are also above the fold on the one
+ * screen every session starts on, so deferring them buys bytes and spends a
+ * visible emoji-to-art flash on the primary surface.
+ *
+ * Why 4 KB and not less: the six measured deltas run 179 to 4,624, a 26x
+ * spread. 4,000 B is FOUR median-sized features (median 915) or ONE art-sized
+ * one. It is not "three features" - quoting the mean over that spread would be
+ * a forecast the data does not support.
+ *
+ * Why it is safe in absolute terms: the researched initial-shell budget for
+ * this class of app is 130-170 KB gz on low-end Android over 4G. At ~80 KB the
+ * site sits at roughly half.
+ *
+ * The unit is Node zlib at its default level, which is what `gzBytes` below
+ * uses. It is exact and consistent, and it is a PROXY for wire bytes rather
+ * than wire bytes: the same four assets fetched live and compressed with system
+ * `gzip -9` measure 79,812, and what the server negotiates is its own business.
+ * Compare like with like - never a number from here against one from elsewhere.
+ *
+ * The tightness above was deliberate and it stays deliberate: 5,655 B of
+ * headroom is one art-sized feature, and the next one still has to be argued
+ * for here.
  */
-const CEILING = 82_000;
+const CEILING = 86_000;
 
 function gzBytes(path) {
   return gzipSync(readFileSync(path)).length;
