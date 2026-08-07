@@ -290,6 +290,40 @@ describe("robots, sitemap and llms", () => {
     expect(locs).not.toContain(canonicalUrl("/404.html"));
   });
 
+  // The bug this pins was live for as long as the boards existed: the alternates
+  // were a ternary chain ending in a hand-written `/world/` literal, so `boards`
+  // matched no branch, fell into the else, and both boards rows declared the ROOM
+  // as their Hebrew and English alternate.
+  //
+  // Nothing caught it. The row count was right, every URL was real and on-domain,
+  // the XML parsed, and the pages' own `<link rel="alternate">` tags were correct
+  // throughout - so the only artifact that was wrong is the one no human opens.
+  // Assert the PROPERTY instead: an alternate is a translation of its own page.
+  it("points every sitemap alternate at the same page in the other language", () => {
+    const xml = sitemapXml();
+    const byUrl = new Map(ROUTES.map((r) => [canonicalUrl(r.path), r] as const));
+    const rows = [...xml.matchAll(/<url>([\s\S]*?)<\/url>/g)].map((m) => m[1]);
+    expect(rows.length).toBeGreaterThan(0);
+
+    let checked = 0;
+    for (const row of rows) {
+      const self = byUrl.get(/<loc>([^<]+)<\/loc>/.exec(row)![1])!;
+      for (const [, locale, href] of row.matchAll(
+        /hreflang="([^"]+)" href="([^"]+)"/g,
+      )) {
+        const target = byUrl.get(href);
+        expect(target, `${href} is not a route this site emits`).toBeDefined();
+        expect(target!.kind, `${self.path} claims ${href} as its ${locale}`).toBe(self.kind);
+        expect(target!.id).toBe(self.id);
+        expect(target!.locale).toBe(locale);
+        checked += 1;
+      }
+    }
+    // A property test over zero alternates passes vacuously, which is exactly the
+    // shape of the bug it replaces.
+    expect(checked).toBe(rows.length * 2);
+  });
+
   it("lists every game in llms.txt", () => {
     const txt = llmsTxt(GAMES);
     for (const meta of GAMES) expect(txt).toContain(canonicalUrl(gamePath(meta.id, "en")));

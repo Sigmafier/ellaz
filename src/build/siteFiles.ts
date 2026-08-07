@@ -70,18 +70,27 @@ export function sitemapXml(): string {
   const rows = indexable.map((r) => {
     // Every page declares both languages, including itself. That self-reference
     // is required by the spec, not an oversight.
-    const alternates =
-      r.kind === "notFound"
-        ? []
-        : (["he", "en"] as const).map((locale) => {
-            const path =
-              r.kind === "game" && r.id
-                ? gamePath(r.id, locale)
-                : r.kind === "home"
-                  ? homePath(locale)
-                  : `${locale === "he" ? "" : "/en"}/world/`;
-            return `    <xhtml:link rel="alternate" hreflang="${locale}" href="${xml(canonicalUrl(path))}"/>`;
-          });
+    //
+    // The sibling is LOOKED UP in the route table, never re-derived from the
+    // kind. This was a ternary chain - game, then home, then a hand-written
+    // `/world/` literal as the ELSE - so when `boards` arrived it matched no
+    // branch and fell into the else, and both boards pages declared the ROOM as
+    // their Hebrew and English alternate. Live for as long as the boards have
+    // existed. The pages' own `<link rel="alternate">` tags were correct
+    // throughout, so the two artifacts simply disagreed and only the one nobody
+    // opens was wrong.
+    //
+    // A lookup cannot go stale when a page kind is added: an unmatched sibling
+    // emits no alternate at all, rather than a confidently wrong one.
+    const alternates = (["he", "en"] as const)
+      .map((locale) => {
+        const sibling = ROUTES.find(
+          (o) => o.kind === r.kind && o.id === r.id && o.locale === locale && o.indexable,
+        );
+        if (!sibling) return null;
+        return `    <xhtml:link rel="alternate" hreflang="${locale}" href="${xml(canonicalUrl(sibling.path))}"/>`;
+      })
+      .filter((line): line is string => line !== null);
     return [
       "  <url>",
       `    <loc>${xml(canonicalUrl(r.path))}</loc>`,
