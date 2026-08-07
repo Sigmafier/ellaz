@@ -8,7 +8,12 @@ import { boardsPage, homePage, notFoundPage, worldPage } from "./sitePages";
 import { homeGraph } from "./schema";
 import { jsonLd, toHtml } from "./html";
 import { llmsTxt, robotsTxt, sitemapXml } from "./siteFiles";
-import { DEV_HEAD_ASSETS, extractHeadAssets, type HeadAssets } from "./assets";
+import {
+  DEV_HEAD_ASSETS,
+  extractHeadAssets,
+  resolveLazyChunks,
+  type HeadAssets,
+} from "./assets";
 
 /**
  * The Vite plugin that turns the route table into real files.
@@ -165,7 +170,15 @@ export function pagesPlugin(base: string): Plugin {
             "Vite's html plugin - check that it is registered with enforce: \"post\".",
         );
       }
-      const headAssets = extractHeadAssets(String(index.source));
+      // The lazy half, from the same place and for the same reason. A game page
+      // knows which single game it is for, so it can say so in its head instead
+      // of discovering it two round trips later. `Object.keys(bundle)` is the
+      // only honest source for these names - they carry a content hash, and the
+      // one under `/ellaz/` is a different string from the one under `/`.
+      const headAssets: HeadAssets = {
+        ...extractHeadAssets(String(index.source)),
+        lazy: resolveLazyChunks(Object.keys(bundle), GAMES.map((m) => m.id)),
+      };
       const files = allEmittedFiles(base, headAssets);
 
       // A page count that silently drops to zero is the shape every gate in this

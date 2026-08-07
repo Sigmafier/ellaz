@@ -5,7 +5,7 @@ import { html, type RawHtml } from "./html";
 import { renderDocument } from "./layout";
 import { gamePath, homePath, href } from "./routes";
 import { gameGraph } from "./schema";
-import type { HeadAssets } from "./assets";
+import { lazyPreloadTags, type HeadAssets } from "./assets";
 
 /**
  * One game's page.
@@ -198,6 +198,10 @@ export function gamePage(opts: GamePageOptions): string {
     base,
     indexable: opts.indexable,
     headAssets: opts.headAssets,
+    // This page's own game, and only this page's own game. The id is the same
+    // one the runtime reads off `data-game`, so the preload and the fetch can
+    // never name different chunks.
+    preloads: lazyPreloadTags(opts.headAssets, base, meta.id),
     bodyData: { page: "game", game: meta.id, locale },
     headerSlot: html`<span id="wallet-slot"></span>`,
   });

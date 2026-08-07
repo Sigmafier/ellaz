@@ -199,6 +199,16 @@ export interface DocumentOptions {
    */
   headAssets?: HeadAssets;
   /**
+   * `<link rel="modulepreload">` for the chunks THIS page will go on to fetch
+   * by itself - the content-page runtime, and on a game page that one game.
+   *
+   * Kept separate from `headAssets.tags` on purpose: those are lifted verbatim
+   * off `index.html` and must stay byte-identical across every page, while
+   * these differ per page and are the whole point of the split. Built by
+   * `lazyPreloadTags` in `assets.ts`, empty when there is no bundle.
+   */
+  preloads?: string[];
+  /**
    * `data-*` on `<body>`. This is how the runtime learns what page it is on
    * without re-deriving the base from `location.pathname` at runtime.
    */
@@ -273,6 +283,7 @@ export function renderDocument(opts: DocumentOptions): string {
           ${jsonLd(opts.schema)}
         </script>`}
         ${(opts.headAssets?.tags ?? []).map((t) => raw(t))}
+        ${(opts.preloads ?? []).map((t) => raw(t))}
       </head>
       <body ${raw(bodyAttrs(opts.bodyData))}>
         <header class="top">

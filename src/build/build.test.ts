@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import { CONTENT } from "../content/index";
 import { SITE } from "../content/site";
@@ -8,6 +9,7 @@ import { ROUTES, canonicalUrl, gamePath, homePath, href } from "./routes";
 import { allEmittedFiles, indexHeadTags, pagesPlugin, renderRoute } from "./pages";
 import { headingFor, relatedTo } from "./gamePage";
 import { llmsTxt, robotsTxt, sitemapXml } from "./siteFiles";
+import { DEV_HEAD_ASSETS, chunkNameFor, resolveLazyChunks, type HeadAssets } from "./assets";
 
 /**
  * `src/build/**` is pure string functions with no filesystem and no Vite, which
@@ -198,6 +200,178 @@ describe("every page renders", () => {
   it("states the platform facts from one place, never from a content file", () => {
     const page = renderRoute(ROUTES.find((r) => r.kind === "game" && r.locale === "he")!, "/");
     for (const fact of SITE.he.facts) expect(page).toContain(escapeHtml(fact));
+  });
+});
+
+describe("the lazy chunks a page preloads", () => {
+  /**
+   * A game page used to load in three SERIAL stages: the entry, then `page-*`
+   * (a dynamic import the entry has to execute first), then `game-<id>-*` (a
+   * dynamic import fired from a React effect, so it waits for a mount too).
+   * Measured with 80 ms of latency per request, the game chunk could not begin
+   * before 216 ms; named up front, all three start together at 97 ms.
+   *
+   * What can go wrong is invisible in a browser that is fast enough: a preload
+   * for a chunk that does not exist is a 404 nobody watches, and a preload for
+   * the WRONG game is a silent download of code the page can never run, on all
+   * 42 game pages at once.
+   */
+
+  /**
+   * The id -> directory map, read from the loader the APP actually calls.
+   *
+   * `manualChunks` names a game chunk after its directory, and `src/games/n2048/`
+   * publishes as `/games/2048/`. Every other list in this repo is keyed by id,
+   * so this is the one place the two vocabularies meet - and a future game whose
+   * directory differs from its id would otherwise lose its preload in silence.
+   */
+  const CATALOG_SOURCE = readFileSync(new URL("../portal/catalog.ts", import.meta.url), "utf8");
+  const LOADER_DIRS = new Map<string, string>(
+    [
+      ...CATALOG_SOURCE.matchAll(
+        /"?([\w-]+)"?:\s*\(\)\s*=>\s*import\("\.\.\/games\/([\w-]+)\/index"\)/g,
+      ),
+    ].map((m) => [m[1], m[2]] as const),
+  );
+
+  const GAME_IDS = GAMES.map((m) => m.id);
+
+  /**
+   * A bundle shaped like a real one. The hashes carry `-` and `_` on purpose:
+   * Rollup's alphabet is base64url and `page-Ch10E-pb.js` and
+   * `game-sudoku-DICSW--A.js` are both real names, so anything that splits on
+   * the last dash is wrong on a real build and right on a tidy fixture.
+   */
+  const FAKE_BUNDLE = [
+    "index.html",
+    "assets/index-DM8yLdSi.js",
+    "assets/shell-SChm5E3U.js",
+    "assets/shell-B7-ykA1n.css",
+    "assets/vendor-react-Bt4lNSbZ.js",
+    "assets/page-Ch10E-pb.js",
+    ...[...LOADER_DIRS.values()].map((dir, i) => `assets/game-${dir}-B${i}q-Z_1.js`),
+  ];
+
+  /**
+   * The app's verbatim head tags carry the base already - they are lifted off
+   * an `index.html` Vite wrote for that host - so the fixture does too, or the
+   * "every href carries the base" property would be testing the fixture.
+   */
+  function bootAssets(base = "/", files: readonly string[] = FAKE_BUNDLE): HeadAssets {
+    const script = `<script type="module" crossorigin src="${base}assets/index-DM8yLdSi.js"></script>`;
+    return {
+      tags: [script, `<link rel="modulepreload" crossorigin href="${base}assets/vendor-react-Bt4lNSbZ.js">`],
+      scripts: [script],
+      lazy: resolveLazyChunks(files, GAME_IDS),
+    };
+  }
+
+  function preloadHrefs(html: string): string[] {
+    return [...html.matchAll(/<link rel="modulepreload"[^>]+href="([^"]+)"/g)].map((m) => m[1]);
+  }
+
+  const routeFor = new Map(ROUTES.map((r) => [r.file, r] as const));
+
+  it("names the directory the app's own loader imports, for every game", () => {
+    // A parse that matched nothing would make every assertion below vacuous.
+    expect(LOADER_DIRS.size).toBe(GAMES.length);
+    for (const meta of GAMES) {
+      const dir = LOADER_DIRS.get(meta.id);
+      expect(dir, `catalog.ts has no loader for ${meta.id}`).toBeDefined();
+      expect(chunkNameFor(meta.id), `chunk name for ${meta.id}`).toBe(`game-${dir}`);
+    }
+  });
+
+  it.each(BASES)("base %s: every game page preloads the runtime AND its own game", (base) => {
+    const assets = bootAssets(base);
+    let checked = 0;
+    for (const f of allEmittedFiles(base, assets).filter((x) => x.fileName.endsWith(".html"))) {
+      const route = routeFor.get(f.fileName)!;
+      if (route.kind !== "game") continue;
+      const hrefs = preloadHrefs(f.source);
+      expect(hrefs, f.fileName).toContain(`${base}${assets.lazy!.page}`);
+      expect(hrefs, f.fileName).toContain(`${base}${assets.lazy!.games[route.id!]}`);
+      checked += 1;
+    }
+    expect(checked).toBe(GAMES.length * 2);
+  });
+
+  it.each(BASES)("base %s: a game page carries no OTHER game's chunk", (base) => {
+    const assets = bootAssets(base);
+    for (const f of allEmittedFiles(base, assets).filter((x) => x.fileName.endsWith(".html"))) {
+      const route = routeFor.get(f.fileName)!;
+      if (route.kind !== "game") continue;
+      const games = preloadHrefs(f.source).filter((h) => h.includes("/game-"));
+      expect(games, f.fileName).toEqual([`${base}${assets.lazy!.games[route.id!]}`]);
+    }
+  });
+
+  it.each(BASES)("base %s: the room and the boards preload the runtime and no game", (base) => {
+    const assets = bootAssets(base);
+    let checked = 0;
+    for (const f of allEmittedFiles(base, assets).filter((x) => x.fileName.endsWith(".html"))) {
+      const route = routeFor.get(f.fileName)!;
+      if (route.kind !== "world" && route.kind !== "boards") continue;
+      const hrefs = preloadHrefs(f.source);
+      expect(hrefs, f.fileName).toContain(`${base}${assets.lazy!.page}`);
+      expect(hrefs.filter((h) => h.includes("/game-")), f.fileName).toEqual([]);
+      checked += 1;
+    }
+    expect(checked).toBe(4);
+  });
+
+  it.each(BASES)("base %s: every preload href carries the base", (base) => {
+    const assets = bootAssets(base);
+    let checked = 0;
+    for (const f of allEmittedFiles(base, assets).filter((x) => x.fileName.endsWith(".html"))) {
+      for (const href of preloadHrefs(f.source)) {
+        expect(href.startsWith(base), `${f.fileName}: ${href}`).toBe(true);
+        // A base-free href is a 404 on GitHub Pages only, which is the arm no
+        // local check ever looks at.
+        expect(href, f.fileName).toBe(`${base}${href.slice(base.length)}`);
+        checked += 1;
+      }
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+
+  it("gives the application's own head neither chunk", () => {
+    // `/` is the home screen. It mounts no game and no room, so both chunks
+    // would be bytes on a first visit and a payload-gate failure.
+    for (const base of BASES) {
+      const tags = indexHeadTags(base);
+      expect(tags).not.toContain("modulepreload");
+      expect(tags).not.toMatch(/assets\/(page|game)-/);
+    }
+  });
+
+  it("emits no preload in dev, where there is no bundle to hash", () => {
+    for (const base of BASES) {
+      for (const f of allEmittedFiles(base, DEV_HEAD_ASSETS).filter((x) =>
+        x.fileName.endsWith(".html"),
+      )) {
+        expect(preloadHrefs(f.source), f.fileName).toEqual([]);
+      }
+    }
+  });
+
+  it("refuses a bundle with no page chunk", () => {
+    const without = FAKE_BUNDLE.filter((f) => !f.startsWith("assets/page-"));
+    expect(() => resolveLazyChunks(without, GAME_IDS)).toThrow(/no `page-\*` chunk/);
+  });
+
+  it("refuses a bundle missing one game's chunk", () => {
+    // Not a soft skip: every game directory produces a chunk by construction,
+    // so a miss means the id -> directory derivation went stale and that game's
+    // page would stay three round trips slow behind a green build.
+    const without = FAKE_BUNDLE.filter((f) => !f.startsWith("assets/game-n2048-"));
+    expect(() => resolveLazyChunks(without, GAME_IDS)).toThrow(/no "game-n2048" chunk/);
+  });
+
+  it("refuses two chunks answering to one name", () => {
+    expect(() => resolveLazyChunks([...FAKE_BUNDLE, "assets/page-Other_1.js"], GAME_IDS)).toThrow(
+      /2 chunks answer to "page"/,
+    );
   });
 });
 

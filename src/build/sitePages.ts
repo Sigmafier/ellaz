@@ -6,7 +6,7 @@ import { renderDocument } from "./layout";
 import { gameCards, stage } from "./gamePage";
 import { boardsPath, homePath, href, worldPath } from "./routes";
 import { homeGraph, worldGraph } from "./schema";
-import type { HeadAssets } from "./assets";
+import { lazyPreloadTags, type HeadAssets } from "./assets";
 
 /**
  * The three pages that are not about one game: the home index, the room, and
@@ -86,6 +86,9 @@ export function worldPage(opts: SitePageOptions): string {
     base,
     indexable: opts.indexable,
     headAssets: opts.headAssets,
+    // The room is the content-page runtime and nothing else - no game chunk,
+    // because no game mounts here.
+    preloads: lazyPreloadTags(opts.headAssets, base),
     bodyData: { page: "world", locale },
     // No wallet slot here: the room screen shows its own chip, and two of them
     // in one viewport reads as a bug rather than as emphasis.
@@ -129,6 +132,9 @@ export function boardsPage(opts: SitePageOptions): string {
     base,
     indexable: opts.indexable,
     headAssets: opts.headAssets,
+    // Same as the room: the boards screen is part of the page runtime, and no
+    // game chunk belongs on it.
+    preloads: lazyPreloadTags(opts.headAssets, base),
     bodyData: { page: "boards", locale },
     // Same call as the room: the boards screen carries the wallet in its own
     // header, and two chips in one viewport reads as a bug.

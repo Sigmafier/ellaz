@@ -124,6 +124,8 @@ function main() {
   }
 
   const known = new Set(manifest.pages.map((p) => p.path));
+  /** game page -> the game chunk it preloads. Two games must never share one. */
+  const preloadedGame = new Map();
   let words = Infinity;
   let thinnest = "";
 
@@ -195,12 +197,34 @@ function main() {
     const boots = page.kind === "game" || page.kind === "world" || page.kind === "boards";
     const eager = eagerAssets(html).map(norm).sort();
     if (boots) {
-      if (JSON.stringify(eager) !== JSON.stringify(rootEager)) {
+      // A booting page must load everything index.html loads - the names carry a
+      // content hash, so a page whose set has DRIFTED is running different code.
+      // It may additionally name the lazy chunks it is about to fetch anyway:
+      // the content-page runtime, and on a game page that ONE game. Without
+      // those two preloads the page loads in three serial round trips.
+      const missing = rootEager.filter((a) => !eager.includes(a));
+      if (missing.length > 0) {
         fail(
-          `${where} loads a different asset set from index.html.\n` +
-            `    page: ${eager.join(", ") || "(none)"}\n    root: ${rootEager.join(", ")}`,
+          `${where} does not load what index.html loads.\n` +
+            `    missing: ${missing.join(", ")}\n    page: ${eager.join(", ") || "(none)"}`,
         );
       }
+      const extra = eager.filter((a) => !rootEager.includes(a));
+      const pageChunks = extra.filter((a) => /^assets\/page-[\w-]+\.js$/.test(a));
+      const gameChunks = extra.filter((a) => /^assets\/game-[\w-]+\.js$/.test(a));
+      const other = extra.filter((a) => !pageChunks.includes(a) && !gameChunks.includes(a));
+      if (pageChunks.length !== 1) {
+        fail(`${where} preloads ${pageChunks.length} page runtime chunks, expected exactly 1`);
+      }
+      const wantGames = page.kind === "game" ? 1 : 0;
+      if (gameChunks.length !== wantGames) {
+        fail(
+          `${where} preloads ${gameChunks.length} game chunk(s), expected ${wantGames}` +
+            (gameChunks.length ? `: ${gameChunks.join(", ")}` : ""),
+        );
+      }
+      if (other.length > 0) fail(`${where} eagerly fetches ${other.join(", ")}`);
+      if (page.kind === "game") preloadedGame.set(page.file, gameChunks[0]);
       if (localStylesheets(html).length === 0) {
         fail(`${where} boots the app with no app stylesheet — the game renders unstyled`);
       }
@@ -247,6 +271,20 @@ function main() {
       if (path === "/" || known.has(path)) continue;
       fail(`${where} links to ${link}, which is not a page this build emits`);
     }
+  }
+
+  // A page preloading a SIBLING's chunk downloads code it can never run, and
+  // it looks identical to the correct thing in every per-page check above. The
+  // two locales of one game share a chunk; two different games never do.
+  const byChunk = new Map();
+  for (const [file, chunk] of preloadedGame) {
+    const id = (/(^|\/)games\/([^/]+)\//.exec(file) ?? [])[2];
+    const seen = byChunk.get(chunk);
+    if (seen && seen !== id) fail(`games ${seen} and ${id} both preload ${chunk}`);
+    byChunk.set(chunk, id);
+  }
+  if (preloadedGame.size > 0 && byChunk.size * 2 !== preloadedGame.size) {
+    fail(`${byChunk.size} distinct game chunks across ${preloadedGame.size} game pages`);
   }
 
   // --- index.html: the app shell, head-enhanced in place --------------------
