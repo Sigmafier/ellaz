@@ -29,6 +29,29 @@ import { join } from "node:path";
 const DIST = process.env.DIST_DIR || "dist";
 
 /**
+ * The base this build was made for, read from the artifact rather than from the
+ * environment - the same `distBase()` as `assert-first-visit.mjs`, deliberately,
+ * because two gates reading the same `dist/` must not disagree about what it is.
+ *
+ * This gate shipped without it and failed the Pages build on its first run: under
+ * `/ellaz/` the document references `/ellaz/assets/shell-*.js` while the file on
+ * disk is `dist/assets/shell-*.js`, so stripping only the leading slash looked
+ * for `ellaz/assets/...` and found nothing. Loudly, which is the one good part -
+ * a gate that had quietly counted zero bytes would have passed.
+ */
+function distBase() {
+  try {
+    return JSON.parse(readFileSync(join(DIST, "pages.json"), "utf8")).base;
+  } catch {
+    return "/";
+  }
+}
+const BASE = distBase();
+
+/** A URL as it appears under `dist/`: no base, no leading slash. */
+const rel = (url) => (url.startsWith(BASE) ? url.slice(BASE.length) : url).replace(/^\//, "");
+
+/**
  * Bytes, gzipped, for a first visit.
  *
  * 82,000 as of 2026-08-07. History, so the next person raising it can see what
@@ -68,7 +91,7 @@ let total = gzBytes(indexPath);
 rows.push([total, "index.html"]);
 
 for (const ref of refs) {
-  const path = join(DIST, ref.replace(/^\//, ""));
+  const path = join(DIST, rel(ref));
   if (!existsSync(path)) {
     console.error(`assert-payload: index.html references ${ref}, which is not in ${DIST}.`);
     process.exit(1);
