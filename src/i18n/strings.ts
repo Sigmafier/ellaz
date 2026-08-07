@@ -79,6 +79,15 @@ export const STRINGS: Dict = {
   boardsTop: { he: "אתם בטופ", en: "You're in the top" },
   boardsYourBest: { he: "השיא שלכם:", en: "Your best:" },
   boardsPlayToJoin: { he: "שחקו כדי להצטרף לשיאים", en: "Play to join the board" },
+  // The screen opens on the player's own games rather than on a control panel,
+  // so these three label what used to be three identical unlabelled pill rows.
+  boardsYourGames: { he: "המשחקים שלכם", en: "Your games" },
+  boardsLevel: { he: "רמה", en: "Level" },
+  boardsWhen: { he: "מתי", en: "When" },
+  // The way back into playing. A record with no route to the game it came from
+  // is a dead end, which is what the boards were before this.
+  boardsPlay: { he: "שחקו", en: "Play" },
+  boardsNoRecord: { he: "עוד אין שיא", en: "No record yet" },
   shop: { he: "חנות", en: "Shop" },
   // The player's name. Nobody types one — it is picked from a word list, so the
   // button says "another one", not "edit".

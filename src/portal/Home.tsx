@@ -5,7 +5,7 @@ import { CATALOG, CATEGORY_ORDER, findEntry, type CatalogEntry } from "./catalog
 import { audioPort, speechPort, wallet, type Category, type ProfileV1 } from "@sdk/index";
 import { boardsHref, gameHref, worldHref } from "./paths";
 import { inkFor } from "@ui/ink";
-import { gameArt, hasArt } from "@ui/gameArt";
+import { GameArt, showsArt } from "@ui/gameArtView";
 import { useCardStyle } from "@ui/useCardStyle";
 import type { CardStyle } from "@ui/cardStyle";
 import { useTheme } from "@ui/useTheme";
@@ -33,69 +33,9 @@ type Filter = typeof ALL | Category;
 /** How many games the keep-playing row shows before it starts scrolling. */
 const RECENT_LIMIT = 4;
 
-/**
- * A game's key art, with the emoji as the fallback.
- *
- * `dangerouslySetInnerHTML` is the right tool and not a shortcut: the art is
- * authored in this repo as an SVG string so that `src/build` can emit the very
- * same markup into a page that has no React at all. Nothing here comes from a
- * user, a network response, or a game.
- *
- * The fallback is not decoration either. A game added tomorrow has no scene
- * yet, and it must still render - `gameArt()` returning "" would otherwise
- * leave a silent empty box on the home grid, which is the failure this whole
- * change exists to end.
- */
-/**
- * Does this card draw its scene right now?
- *
- * ONE predicate, because two callers need the answer and they need the SAME
- * answer: `GameArt` picks what to render, and `GameCard` decides whether to lay
- * the `.ellaz-tint` wash behind it. Let those drift and you get a card washing
- * a picture that already has its own ground - mud - or an emoji sitting on bare
- * card stock with nothing behind it.
- *
- * Two ways to reach the emoji and they are different facts: the player asked
- * for icons, or this game has no scene yet. Same render either way, which means
- * everyone who uses the toggle is exercising the missing-art fallback too.
- */
-function showsArt(id: string, style: CardStyle): boolean {
-  return style === "art" && hasArt(id);
-}
-
-function GameArt({
-  id,
-  emoji,
-  height,
-}: {
-  id: string;
-  emoji: string;
-  height: number | string;
-}) {
-  const [style] = useCardStyle();
-  if (!showsArt(id, style)) {
-    return (
-      <span
-        style={{
-          display: "grid",
-          placeItems: "center",
-          height,
-          fontSize: typeof height === "number" ? Math.round(height * 0.5) : 42,
-        }}
-        aria-hidden="true"
-      >
-        {emoji}
-      </span>
-    );
-  }
-  return (
-    <span
-      style={{ display: "block", height, overflow: "hidden" }}
-      aria-hidden="true"
-      dangerouslySetInnerHTML={{ __html: gameArt(id) }}
-    />
-  );
-}
+// `GameArt` and `showsArt` moved to `@ui/gameArtView` when the boards screen
+// started showing the same games: two copies would be two answers to "what does
+// this game look like".
 
 export function Home({
   locale,
