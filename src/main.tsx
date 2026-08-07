@@ -5,6 +5,7 @@ import { readPageContext } from "./portal/pageContext";
 import { unlockAudioOnFirstGesture } from "./portal/unlockAudio";
 import { redirectLegacyHash } from "./portal/legacyHash";
 import { themePort } from "@ui/theme";
+import { cardStylePort } from "@ui/cardStyle";
 import { registerSW } from "virtual:pwa-register";
 
 // One bundle, two shapes of page.
@@ -30,6 +31,10 @@ if (!redirectLegacyHash()) {
   // would give the same fact two owners. Both branches, because a content page
   // has a theme too.
   themePort.init();
+  // No boot script for this one and none is needed: a card style decides which
+  // ELEMENT React renders, so it cannot paint before React runs. There is no
+  // flash to prevent, unlike the theme, which paints in CSS.
+  cardStylePort.init();
   unlockAudioOnFirstGesture();
 
   if (page.kind === "app") {

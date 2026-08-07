@@ -55,6 +55,17 @@ const COLOUR_EXEMPT = new Map<string, string>([
       "they describe.",
   ],
   [
+    "ui/gameArt.ts",
+    "the 21 key-art scenes. Same reason as the room, one step further out: a " +
+      "thumbnail is an illustration with its own internal light, and swapping " +
+      "its paper and ink for theme tokens does not restyle it, it breaks it - " +
+      "a memory card drawn in night's --surface is a dark navy playing card. " +
+      "The saturated grounds are the game's identity, like meta.color. The " +
+      "theme reaches these through exactly one uniform veil rect, which " +
+      "game-art.test.ts asserts is present, last, and declared in both theme " +
+      "blocks.",
+  ],
+  [
     "juice/effects.ts",
     "the confetti fallback, used when getComputedStyle returns nothing (jsdom, or " +
       "before the stylesheet parses). Confetti with no colours is invisible confetti.",

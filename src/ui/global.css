@@ -67,6 +67,15 @@ body.app-shell {
    Night's recipe is arithmetically the 20%-alpha radial the cards already
    carried inline; market lays a flatter tint because a 20% radial is nearly
    invisible on cream. */
+/* A game's key art, inlined. `slice` on the viewBox already handles the crop;
+   this just makes the svg fill the block it was given instead of sitting at its
+   intrinsic 200x150. */
+.ellaz-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .ellaz-tint {
   background:
     radial-gradient(

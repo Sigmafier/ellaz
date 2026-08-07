@@ -5,6 +5,9 @@ import { CATALOG, CATEGORY_ORDER, findEntry, type CatalogEntry } from "./catalog
 import { audioPort, speechPort, wallet, type Category, type ProfileV1 } from "@sdk/index";
 import { boardsHref, gameHref, worldHref } from "./paths";
 import { inkFor } from "@ui/ink";
+import { gameArt, hasArt } from "@ui/gameArt";
+import { useCardStyle } from "@ui/useCardStyle";
+import type { CardStyle } from "@ui/cardStyle";
 import { useTheme } from "@ui/useTheme";
 import { themeById } from "@ui/themes";
 import { WalletChip } from "./WalletChip";
@@ -29,6 +32,70 @@ type Filter = typeof ALL | Category;
 
 /** How many games the keep-playing row shows before it starts scrolling. */
 const RECENT_LIMIT = 4;
+
+/**
+ * A game's key art, with the emoji as the fallback.
+ *
+ * `dangerouslySetInnerHTML` is the right tool and not a shortcut: the art is
+ * authored in this repo as an SVG string so that `src/build` can emit the very
+ * same markup into a page that has no React at all. Nothing here comes from a
+ * user, a network response, or a game.
+ *
+ * The fallback is not decoration either. A game added tomorrow has no scene
+ * yet, and it must still render - `gameArt()` returning "" would otherwise
+ * leave a silent empty box on the home grid, which is the failure this whole
+ * change exists to end.
+ */
+/**
+ * Does this card draw its scene right now?
+ *
+ * ONE predicate, because two callers need the answer and they need the SAME
+ * answer: `GameArt` picks what to render, and `GameCard` decides whether to lay
+ * the `.ellaz-tint` wash behind it. Let those drift and you get a card washing
+ * a picture that already has its own ground - mud - or an emoji sitting on bare
+ * card stock with nothing behind it.
+ *
+ * Two ways to reach the emoji and they are different facts: the player asked
+ * for icons, or this game has no scene yet. Same render either way, which means
+ * everyone who uses the toggle is exercising the missing-art fallback too.
+ */
+function showsArt(id: string, style: CardStyle): boolean {
+  return style === "art" && hasArt(id);
+}
+
+function GameArt({
+  id,
+  emoji,
+  height,
+}: {
+  id: string;
+  emoji: string;
+  height: number | string;
+}) {
+  const [style] = useCardStyle();
+  if (!showsArt(id, style)) {
+    return (
+      <span
+        style={{
+          display: "grid",
+          placeItems: "center",
+          height,
+          fontSize: typeof height === "number" ? Math.round(height * 0.5) : 42,
+        }}
+        aria-hidden="true"
+      >
+        {emoji}
+      </span>
+    );
+  }
+  return (
+    <span
+      style={{ display: "block", height, overflow: "hidden" }}
+      aria-hidden="true"
+      dangerouslySetInnerHTML={{ __html: gameArt(id) }}
+    />
+  );
+}
 
 export function Home({
   locale,
@@ -93,6 +160,7 @@ export function Home({
             <div style={{ color: "var(--text-dim)", fontSize: 14 }}>{t("tagline")}</div>
           </div>
           <WalletChip />
+          <CardStyleToggle locale={locale} onTap={tap} />
           <ThemeToggle locale={locale} onTap={tap} />
           <button
             aria-label={t("language")}
@@ -274,6 +342,49 @@ function ThemeToggle({ locale, onTap }: { locale: Locale; onTap: () => void }) {
   );
 }
 
+/**
+ * Drawn art, or the old emoji. Shows the style it will switch TO, same as the
+ * theme pill beside it - a toggle that shows its current state leaves you
+ * guessing what pressing it does.
+ */
+function CardStyleToggle({ locale, onTap }: { locale: Locale; onTap: () => void }) {
+  const [style, setStyle] = useCardStyle();
+  const next: CardStyle = style === "art" ? "emoji" : "art";
+  const label =
+    locale === "he"
+      ? next === "art"
+        ? "ציורים"
+        : "סמלים"
+      : next === "art"
+        ? "Pictures"
+        : "Icons";
+  return (
+    <button
+      aria-label={`${locale === "he" ? "כרטיסים" : "Cards"}: ${label}`}
+      onClick={() => {
+        onTap();
+        setStyle(next);
+      }}
+      style={{
+        minHeight: "var(--tap)",
+        minWidth: "var(--tap)",
+        padding: 0,
+        flexShrink: 0,
+        borderRadius: "var(--radius-pill)",
+        border: "none",
+        background: "var(--surface-2)",
+        color: "var(--text)",
+        fontSize: 18,
+        lineHeight: 1,
+      }}
+    >
+      {/* The glyph is the destination too: a palette means "switch to the
+          drawings", a smiley means "switch back to the icons". */}
+      <span aria-hidden="true">{next === "art" ? "🎨" : "🙂"}</span>
+    </button>
+  );
+}
+
 /** The world, showing the child's REAL room rather than a generic illustration. */
 function WorldHero({
   profile,
@@ -432,9 +543,7 @@ function RecentCard({
         textDecoration: "none",
       }}
     >
-      <span style={{ display: "block", fontSize: 46, padding: "14px 0 6px" }} aria-hidden="true">
-        {meta.emoji}
-      </span>
+      <GameArt id={meta.id} emoji={meta.emoji} height={92} />
       <span
         style={{
           // display:block matters: a button's children are inline by default, so
@@ -474,6 +583,7 @@ function GameCard({
   t: (k: string) => string;
 }) {
   const { meta } = entry;
+  const [cardStyle] = useCardStyle();
   const prefetch = () => void entry.load().catch(() => {});
   return (
     <a
@@ -533,25 +643,35 @@ function GameCard({
       >
         {stars > 0 ? `⭐${stars}` : "☆"}
       </span>
-      <span
-        className="ellaz-tint"
-        // `--game` is set HERE and the recipe lives in the theme (.ellaz-tint
-        // in global.css). It cannot be the other way round: a var() inside a
-        // custom property resolves where it is declared, and --game does not
-        // exist at :root.
-        style={
-          {
-            flex: 1,
-            display: "grid",
-            placeItems: "center",
-            fontSize: 42,
-            "--game": meta.color,
-          } as CSSProperties
-        }
-        aria-hidden="true"
-      >
-        {meta.emoji}
-      </span>
+      {/* The art carries its own ground, so the `.ellaz-tint` wash that used to
+          sit behind the emoji is gone here - two backgrounds fighting under one
+          picture is just mud. A game with no art still gets the wash, because
+          an emoji on bare card stock is what the tint existed to rescue. */}
+      {showsArt(meta.id, cardStyle) ? (
+        <span style={{ flex: 1, minHeight: 0, overflow: "hidden" }} aria-hidden="true">
+          <GameArt id={meta.id} emoji={meta.emoji} height="100%" />
+        </span>
+      ) : (
+        <span
+          className="ellaz-tint"
+          // `--game` is set HERE and the recipe lives in the theme (.ellaz-tint
+          // in global.css). It cannot be the other way round: a var() inside a
+          // custom property resolves where it is declared, and --game does not
+          // exist at :root.
+          style={
+            {
+              flex: 1,
+              display: "grid",
+              placeItems: "center",
+              fontSize: 42,
+              "--game": meta.color,
+            } as CSSProperties
+          }
+          aria-hidden="true"
+        >
+          {meta.emoji}
+        </span>
+      )}
       <span
         style={{
           padding: "7px 4px",

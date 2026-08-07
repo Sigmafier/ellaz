@@ -129,6 +129,15 @@
      for why this cannot live as a plain colour token. */
   --tint-strength: 0.2;
 
+  /* The one way the theme reaches inside a game's key art. The scenes are
+     drawn on their own light - swapping their paper and ink for tokens turns a
+     memory card into a dark navy playing card and breaks what the shapes mean.
+     A uniform veil instead: it deepens 21 bright tiles by the same amount so
+     they stop shouting off a dark page, and because it is uniform it cannot
+     disturb the property the palette was picked for, that any two adjacent
+     thumbnails stay distinguishable. See `gameArt()`. */
+  --art-veil: rgba(15, 18, 38, 0.28);
+
   /* Confetti. A custom property holds arbitrary text, so a comma list is a
      legal value and `juice/effects.ts` splits it - which is how the palette
      follows the theme without effects.ts importing React or a palette module.
@@ -200,6 +209,13 @@
   /* A 20% radial is nearly invisible on cream, so market lays a flatter,
      stronger tint instead. */
   --tint-strength: 0.14;
+
+  /* Daylight is the light the art was drawn in, so it gets none. Declared
+     rather than omitted: a key present in one theme block and missing from the
+     other silently inherits the default's value for that one property, which
+     is the shape of a theme bug nobody finds. `theme-tokens.test.ts` asserts
+     the two key sets match. */
+  --art-veil: transparent;
 
   --spark-colors: #ff4d8d, #12b5ad, #ffc730, #ef4a3f, #3cb46a;
   --confetti-colors: #ff4d8d, #ff8fb3, #12b5ad, #ffc730, #ef4a3f, #3cb46a, #ff6fa8, #4c9be8;
