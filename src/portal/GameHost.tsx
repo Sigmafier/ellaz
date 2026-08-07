@@ -121,7 +121,17 @@ export function GameHost({
         <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
           {!onPage && <WalletChip />}
         </div>
-        <IconButton ariaLabel="mute" active={!muted} onClick={() => audioPort.toggleMute()}>
+        {/* `active` marks MUTED, not sound-on. Two reasons, and both were wrong
+            the other way round. Visually, sound-on is the default state, and
+            painting the default in --brand made a secondary control the loudest
+            thing on a game page - on a content page it is the ONLY control in
+            this row (back and wallet are hidden there), so it read as a stray
+            pink block in the corner. Semantically, `active` drives
+            `aria-pressed`, and on a button labelled "mute" pressed has to mean
+            muting is engaged; it announced the exact opposite. The glyph already
+            carries the state either way, so the emphasis is free to go to the
+            unusual case. */}
+        <IconButton ariaLabel="mute" active={muted} onClick={() => audioPort.toggleMute()}>
           {muted ? "🔇" : "🔊"}
         </IconButton>
       </div>
@@ -133,7 +143,35 @@ export function GameHost({
           flex: 1,
           minHeight: 0, // flex child must allow shrink for overflow-y to scroll
           display: "flex",
-          alignItems: "flex-start",
+          // `safe center`, and the `safe` is the whole point.
+          //
+          // Games fall into two kinds and no CSS can tell them apart. A FLUID
+          // game (snake's Phaser canvas) sizes itself to whatever the stage
+          // offers, so it always fills. A CAPPED game (memory's board is
+          // min(92vw, 72vh, 460px)) stops at its cap and leaves the rest over -
+          // 159px of it on a 1280x900 desktop, all of it below the board,
+          // because this used to say `flex-start`.
+          //
+          // Shrinking the stage to hug the game would fix the capped ones and
+          // SHRINK the fluid ones: snake's canvas reads its parent's height, so
+          // a shorter stage means a smaller game. Centring costs a filling game
+          // nothing (it has nothing to centre) and turns a capped game's dead
+          // tail into symmetric framing.
+          //
+          // Plain `center` would be a bug: when the game is TALLER than the
+          // stage, centring overflows both ends and the top becomes unreachable
+          // by scroll. Measured in an isolated container - an 800px child in a
+          // 200px flex box lands at top -300 under `center` and at 0 under both
+          // `safe center` and `flex-start`, with and without overflow-y:auto.
+          // `safe` falls back to start in exactly that case. A browser that does
+          // not understand it drops the declaration and stretches, which is no
+          // worse than what this replaced.
+          //
+          // Measuring this INSIDE the mount does not work and it looks like it
+          // does: appending a tall probe child grows the mount (it is flex:1
+          // with min-height:0), so the overflow the probe meant to create never
+          // exists and `center` reports a harmless 0. Isolate the geometry.
+          alignItems: "safe center",
           justifyContent: "center",
         }}
       />

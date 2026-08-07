@@ -77,3 +77,59 @@ describe("a theme switch does not remount a game", () => {
     expect(block).not.toMatch(/^\s*(readonly\s+)?theme[?]?\s*:/m);
   });
 });
+
+/**
+ * The game mount centres with `safe center`, and the `safe` is load-bearing.
+ *
+ * Games are of two kinds and no CSS can tell them apart. A FLUID game (snake's
+ * Phaser canvas) sizes itself to the stage and always fills it. A CAPPED game
+ * (memory's board stops at `min(92vw, 72vh, 460px)`) leaves the remainder over -
+ * measured at 159px on a 1280x900 desktop, all of it below the board, back when
+ * this said `flex-start`.
+ *
+ * Shrinking the stage to hug the game was the obvious fix and it is the wrong
+ * one: snake's canvas reads its parent's height, so a shorter stage is a smaller
+ * game. Measured both ways before choosing.
+ *
+ * Plain `center` is the trap this pins. When a game is TALLER than the stage,
+ * centring overflows BOTH ends and the top rows become unreachable by scroll -
+ * so the fix for a game that was cut off at the bottom would cut a different one
+ * off at the top, and only on the viewports where content overflows. `safe`
+ * falls back to start in exactly that case.
+ */
+describe("the game mount centres safely", () => {
+  /** The `alignItems` value on the mount div (the one carrying `ref={mountRef}`). */
+  function mountAlignItems(source: string): string | null {
+    const at = source.indexOf("ref={mountRef}");
+    if (at === -1) return null;
+    const m = source.slice(at).match(/alignItems:\s*"([^"]+)"/);
+    return m ? m[1] : null;
+  }
+
+  it("reads the real component", () => {
+    expect(HOST).toContain("ref={mountRef}");
+    expect(HOST.length).toBeGreaterThan(1000);
+  });
+
+  it("centres, and does it safely", () => {
+    expect(mountAlignItems(HOST)).toBe("safe center");
+  });
+
+  it("fires on plain center, which strands the top of a tall game", () => {
+    const planted = 'ref={mountRef}\n  style={{ alignItems: "center" }}';
+    expect(mountAlignItems(planted)).toBe("center");
+    expect(mountAlignItems(planted)).not.toBe("safe center");
+  });
+
+  it("fires on a return to flex-start, which strands a capped game's tail", () => {
+    const planted = 'ref={mountRef}\n  style={{ alignItems: "flex-start" }}';
+    expect(mountAlignItems(planted)).toBe("flex-start");
+  });
+
+  it("does not read an alignItems from above the mount", () => {
+    // The control bar above it also sets alignItems; the matcher must not
+    // pick that one up, or it would pass while the mount said anything at all.
+    const decoy = 'alignItems: "center"\n<div ref={mountRef} style={{ alignItems: "safe center" }} />';
+    expect(mountAlignItems(decoy)).toBe("safe center");
+  });
+});
