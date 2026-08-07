@@ -1,18 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Locale } from "@i18n/index";
 import { makeT } from "@i18n/index";
 import {
   boardStanding,
   formatScore,
+  ownBest,
   parseRecordKey,
   readRecords,
+  recordKey,
   renderName,
   standingView,
+  youLine,
   wallet,
   type BoardStanding,
   type BoardWindow,
   type GameMeta,
   type ScoreUnit,
+  type YouLine,
 } from "@sdk/index";
 import { IconButton } from "@ui/components";
 import { DifficultySelector } from "@ui/DifficultySelector";
@@ -125,7 +129,12 @@ export function Boards({ locale, onExit }: { locale: Locale; onExit: () => void 
           <IconButton ariaLabel={t("back")} onClick={onExit}>
             {locale === "he" ? "→" : "←"}
           </IconButton>
-          <h1 style={{ flex: 1, fontSize: 26, lineHeight: 1 }}>{t("boards")}</h1>
+          {/* h2, not h1. The document this mounts into already carries an h1
+              naming the page; a second one appears only once JavaScript has
+              run, so it is invisible to every crawler and visible to exactly
+              the screen-reader user who is worst served by two of them. The
+              World header is the same shape and the same fix. */}
+          <h2 style={{ flex: 1, fontSize: 26, lineHeight: 1, margin: 0 }}>{t("boards")}</h2>
         </header>
 
         {games.length === 0 ? (
@@ -196,6 +205,19 @@ function Board({
 }) {
   const [load, setLoad] = useState<Load>({ kind: "loading" });
 
+  // This device's own record for exactly this board. It is what makes the `own`
+  // line reachable at all: the cloud copy is written on PUBLISH, so it is
+  // stale-or-equal by construction and absent entirely until one lands.
+  // See `ownBest` in the SDK.
+  //
+  // Keyed on the same pair the fetch is, so switching game or difficulty
+  // re-reads. Holding it in state instead would pin the first board's record
+  // and then show it under every other one.
+  const localBest = useMemo(() => {
+    const key = recordKey(gameId, board);
+    return key ? readRecords()[key] : undefined;
+  }, [gameId, board]);
+
   useEffect(() => {
     let alive = true;
     setLoad({ kind: "loading" });
@@ -215,8 +237,16 @@ function Board({
   if (load.kind === "offline") {
     // Explicitly NOT an empty board. An empty list would claim nobody is
     // playing, which is a different and sadder thing than "we could not ask".
+    //
+    // The player's own record still shows. It came off this device and owes the
+    // network nothing, so a failed board read is no reason to withhold it — and
+    // being offline is exactly when a child most needs the screen to say
+    // something true rather than nothing.
     return (
-      <p style={{ marginTop: 18, fontSize: 14, color: "var(--text-dim)" }}>{t("boardsOffline")}</p>
+      <div style={{ marginTop: 18 }}>
+        <p style={{ fontSize: 14, color: "var(--text-dim)" }}>{t("boardsOffline")}</p>
+        <You line={youLine({ kind: "own" }, ownBest(localBest, undefined))} unit={unit} t={t} />
+      </div>
     );
   }
 
@@ -256,7 +286,7 @@ function Board({
         </ol>
       )}
 
-      <You view={view} mine={mine} unit={unit} t={t} />
+      <You line={youLine(view, ownBest(localBest, mine))} unit={unit} t={t} />
     </div>
   );
 }
@@ -269,23 +299,21 @@ function Board({
  * nothing about anybody else, is the honest thing to show most players.
  */
 function You({
-  view,
-  mine,
+  line: shape,
   unit,
   t,
 }: {
-  view: ReturnType<typeof standingView>;
-  mine: number | undefined;
+  line: YouLine;
   unit: ScoreUnit;
   t: (key: string) => string;
 }) {
   const line =
-    view.kind === "rank"
-      ? `${t("boardsYouAre")} #${view.rank}`
-      : view.kind === "percentile"
-        ? `${t("boardsTop")} ${view.top}%`
-        : mine !== undefined
-          ? `${t("boardsYourBest")} ${formatScore(mine, unit)}`
+    shape.kind === "rank"
+      ? `${t("boardsYouAre")} #${shape.rank}`
+      : shape.kind === "percentile"
+        ? `${t("boardsTop")} ${shape.top}%`
+        : shape.kind === "best"
+          ? `${t("boardsYourBest")} ${formatScore(shape.value, unit)}`
           : t("boardsPlayToJoin");
 
   return (

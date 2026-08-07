@@ -81,6 +81,16 @@ export function headingFor(meta: GameMeta, locale: Locale): string {
 }
 
 /**
+ * Which kind of screen the stage is holding, because they do not want the same
+ * box. A GAME sizes its board against the viewport and needs the room; the ROOM
+ * is a scene with a fixed composition; the BOARDS are a short list of pickers
+ * and rows and look abandoned inside a full-height frame.
+ *
+ * Absent means a game — the default, and the only one that needs the tallest box.
+ */
+export type StageVariant = "room" | "boards";
+
+/**
  * The stage: a poster that paints immediately, and the empty box the game
  * mounts into.
  *
@@ -98,8 +108,8 @@ export function headingFor(meta: GameMeta, locale: Locale): string {
  * anyone with JavaScript off, and they are exactly the visitor who cannot be
  * told otherwise later.
  */
-export function stage(emoji: string, site: SiteCopy, room = false): RawHtml {
-  return html`<div class="stage${room ? " room" : ""}">
+export function stage(emoji: string, site: SiteCopy, variant?: StageVariant): RawHtml {
+  return html`<div class="stage${variant ? ` ${variant}` : ""}">
     <div class="box">
       <div id="game-frame"></div>
       <div

@@ -7,6 +7,7 @@ import {
   isRecordKey,
   parseRecordKey,
   readRecords,
+  recordKey,
   undoRecords,
   type RecordStore,
 } from "./records";
@@ -210,5 +211,31 @@ describe("undoing an adoption", () => {
     const store = fakeStore({ [RECORDS_UNDO_KEY]: "{oh no" });
     expect(canUndoRecords(store)).toBe(true);
     expect(() => undoRecords(store)).not.toThrow();
+  });
+});
+
+describe("building a record key", () => {
+  it("round-trips through the parser for every game and board in the catalog shape", () => {
+    for (const [game, board] of [
+      ["snake", "default"],
+      ["sudoku", "kids4"],
+      ["n2048", "hard"],
+      ["find-diff", "level_2"],
+    ] as const) {
+      const key = recordKey(game, board);
+      expect(key, `${game}/${board}`).not.toBeNull();
+      expect(parseRecordKey(key as string)).toEqual({ game, board });
+    }
+  });
+
+  it("refuses parts that would build a key the validator rejects", () => {
+    // A colon in either part is the dangerous one: it would let a caller reach
+    // `ellaz:profile:v1` or `ellaz:cloud:v1` by splitting the segments
+    // differently. Returning null means the lookup misses loudly instead of
+    // reading somewhere it should not.
+    expect(recordKey("snake:x", "hard")).toBeNull();
+    expect(recordKey("snake", "hard:y")).toBeNull();
+    expect(recordKey("", "hard")).toBeNull();
+    expect(recordKey("snake", "")).toBeNull();
   });
 });

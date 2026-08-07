@@ -69,3 +69,52 @@ export function standingView({ total, better }: Standing): StandingView {
 
   return OWN;
 }
+
+/** What the screen actually prints about the reader. One line, four shapes. */
+export type YouLine =
+  | { kind: "rank"; rank: number }
+  | { kind: "percentile"; top: number }
+  | { kind: "best"; value: number }
+  | { kind: "none" };
+
+function usable(n: number | undefined): number | undefined {
+  return typeof n === "number" && Number.isFinite(n) ? n : undefined;
+}
+
+/**
+ * Which record is the player's own best — LOCAL FIRST, and that order is the
+ * whole point.
+ *
+ * A record is written to this device on every personal best and pushed to the
+ * cloud on a debounce, so the cloud copy is stale-or-equal by construction and
+ * can never be fresher. Reading the cloud first shows a player an older number
+ * than the one they just earned; reading it ONLY, which is what shipped, shows
+ * them nothing at all until a publish lands.
+ *
+ * That was the defect: the `own` branch below — the branch this entire
+ * no-last-place rule exists to reach — was unreachable for anyone offline,
+ * anyone whose publish failed, and everyone before their first publish. The
+ * screen already had the local record in hand; it was reading it to build the
+ * board picker and then not using it here.
+ *
+ * The cloud value stays the fallback for a device with no record of its own: a
+ * restored player mid-adoption, or one whose storage was cleared.
+ */
+export function ownBest(local: number | undefined, cloud: number | undefined): number | undefined {
+  return usable(local) ?? usable(cloud);
+}
+
+/**
+ * The one line under the board, given what may be said about position and what
+ * the player has actually done.
+ *
+ * An earned position outranks a personal best — it is rarer, better, and
+ * `standingView` has already decided it is safe to say. `none` is reserved for
+ * a player with no record anywhere, which is the only honest reading of "play
+ * to join the board".
+ */
+export function youLine(view: StandingView, best: number | undefined): YouLine {
+  if (view.kind === "rank" || view.kind === "percentile") return view;
+  const value = usable(best);
+  return value === undefined ? { kind: "none" } : { kind: "best", value };
+}

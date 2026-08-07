@@ -98,7 +98,8 @@ export function World({ locale, onExit }: { locale: Locale; onExit: () => void }
           <IconButton ariaLabel={t("back")} onClick={onExit}>
             {locale === "he" ? "→" : "←"}
           </IconButton>
-          <h1 style={{ flex: 1, fontSize: 26, lineHeight: 1 }}>{t("world")}</h1>
+          {/* h2 — the emitted page already has the h1. See Boards.tsx. */}
+          <h2 style={{ flex: 1, fontSize: 26, lineHeight: 1, margin: 0 }}>{t("world")}</h2>
           <WalletChip />
         </header>
 

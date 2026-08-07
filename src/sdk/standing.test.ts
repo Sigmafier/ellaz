@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { RANK_CUTOFF, SHOW_PERCENTILE_UPTO, standingView } from "./standing";
+import { RANK_CUTOFF, SHOW_PERCENTILE_UPTO, ownBest, standingView, youLine } from "./standing";
 
 describe("no child is ever shown as last", () => {
   it("says nothing about position when they are in the bottom quarter", () => {
@@ -74,5 +74,56 @@ describe("junk in never produces a number out", () => {
     ]) {
       expect(standingView(s).kind, JSON.stringify(s)).toBe("own");
     }
+  });
+});
+
+describe("what the player is told about their own record", () => {
+  it("shows a local best when the cloud has never heard of them", () => {
+    // THE BUG THIS EXISTS FOR. A player holding a 3:04 sudoku record opened the
+    // boards and was told "play to join the board". Their record was right
+    // there on the device - the screen had already read it to build the board
+    // picker - but the only source consulted for "your best" was the Firestore
+    // document, which is written on PUBLISH. So the `own` branch, the one this
+    // whole rule is built around, could not fire for anyone offline, anyone
+    // whose publish failed, or anyone before their first publish landed.
+    expect(youLine({ kind: "own" }, ownBest(184300, undefined))).toEqual({
+      kind: "best",
+      value: 184300,
+    });
+  });
+
+  it("prefers the local record over the cloud one, because local cannot be stale", () => {
+    // A record is written locally on every personal best and pushed to the
+    // cloud on a debounce. So the cloud copy is stale-or-equal by construction,
+    // never fresher. A player who beat their best offline must be shown what
+    // they actually did, not the older number the network happens to hold.
+    expect(ownBest(170000, 184300)).toBe(170000);
+  });
+
+  it("falls back to the cloud when this device has no record of its own", () => {
+    // A restored player mid-adoption, or one whose storage was cleared. The
+    // cloud value is the only thing left and it is better than nothing.
+    expect(ownBest(undefined, 184300)).toBe(184300);
+  });
+
+  it("says play-to-join only when there is genuinely no record anywhere", () => {
+    expect(youLine({ kind: "own" }, ownBest(undefined, undefined))).toEqual({ kind: "none" });
+  });
+
+  it("never buries an earned position under a personal best", () => {
+    // A rank or a percentile outranks the own-best line: it is the rarer and
+    // better thing to say, and standingView already decided it was safe to say.
+    expect(youLine({ kind: "rank", rank: 3 }, 184300)).toEqual({ kind: "rank", rank: 3 });
+    expect(youLine({ kind: "percentile", top: 40 }, 184300)).toEqual({
+      kind: "percentile",
+      top: 40,
+    });
+  });
+
+  it("ignores a junk local value rather than printing it at a child", () => {
+    // readRecords already filters to finite numbers, but this is the last gate
+    // before the value reaches a screen, and NaN renders as "NaN".
+    expect(ownBest(Number.NaN, 184300)).toBe(184300);
+    expect(ownBest(Number.POSITIVE_INFINITY, undefined)).toBeUndefined();
   });
 });

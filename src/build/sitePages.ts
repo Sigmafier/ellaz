@@ -66,7 +66,7 @@ export function worldPage(opts: SitePageOptions): string {
 
   const body = html`
     <nav class="bc"><a href="${href(homePath(locale), base)}">${site.home}</a> › ${copy.h1}</nav>
-    ${stage("🏠", site, true)}
+    ${stage("🏠", site, "room")}
     <h1>${copy.h1}</h1>
     <p class="lede">${copy.lede}</p>
     ${copy.body.map((p) => html`<p>${p}</p>`)}
@@ -108,7 +108,7 @@ export function boardsPage(opts: SitePageOptions): string {
 
   const body = html`
     <nav class="bc"><a href="${href(homePath(locale), base)}">${site.home}</a> › ${copy.h1}</nav>
-    ${stage("🏆", site, true)}
+    ${stage("🏆", site, "boards")}
     <h1>${copy.h1}</h1>
     <p class="lede">${copy.lede}</p>
     ${copy.body.map((p) => html`<p>${p}</p>`)}

@@ -146,6 +146,17 @@ footer .in{max-width:44rem;margin-inline:auto;display:flex;flex-wrap:wrap;gap:14
 .stage .box{position:relative;border-radius:22px;overflow:hidden;
   background:var(--doc-stage);box-shadow:0 5px 0 var(--doc-line);
   min-height:clamp(420px,calc(100dvh - 145px),860px);display:flex;flex-direction:column}
+/* The room is a composed scene - a character, a wall, a floor, eight slots -
+   so it wants the height a game wants and then some. Its own rule, restored:
+   folding it into the line above was fine for the room and wrong for what
+   came next. */
+.stage.room .box{min-height:clamp(460px,calc(100dvh - 120px),880px)}
+/* The BOARDS are a short column: three pickers and a handful of rows. Given a
+   viewport-sized box they sit in the top third of a large empty rectangle,
+   with the page's own heading stranded far below it. Sized to content instead,
+   with a floor so a player holding one record still gets a real panel rather
+   than a strip. */
+.stage.boards .box{min-height:clamp(300px,46dvh,560px)}
 #game-frame{flex:1;min-height:0;display:flex;flex-direction:column}
 #game-poster{position:absolute;inset:0;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:18px;text-align:center;padding:24px;

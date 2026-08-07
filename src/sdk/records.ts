@@ -64,6 +64,22 @@ export function isRecordKey(key: string): boolean {
  * construction — it has exactly four segments and neither capture can hold a
  * colon.
  */
+/**
+ * The inverse: `("snake", "hard")` -> `ellaz:snake:score:hard`, or null.
+ *
+ * Exists so no caller hand-builds the format. The boards screen needs to look
+ * up one specific record, and a screen assembling `ellaz:${game}:score:${board}`
+ * itself is a second definition of a shape this file validates with a regex —
+ * they drift, and the drift reads as "this player has no record".
+ *
+ * Returns null rather than a malformed key when the parts would not survive
+ * `isRecordKey`, so a bad id can never produce a lookup that silently misses.
+ */
+export function recordKey(game: string, board: string): string | null {
+  const key = `ellaz:${game}:score:${board}`;
+  return isRecordKey(key) ? key : null;
+}
+
 export function parseRecordKey(key: string): { game: string; board: string } | null {
   if (!isRecordKey(key)) return null;
   const [, game, , board] = key.split(":");

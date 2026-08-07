@@ -84,7 +84,16 @@ export {
 export { boardId, windowsFor, isSafeId, type BoardWindows } from "./board";
 export type { CloudIdentity, DeviceState, BoardStanding, BoardWindow, BoardRow } from "./cloud";
 // The no-last-place rule, and the only place it is decided.
-export { standingView, RANK_CUTOFF, SHOW_PERCENTILE_UPTO, type StandingView, type Standing } from "./standing";
+export {
+  standingView,
+  ownBest,
+  youLine,
+  RANK_CUTOFF,
+  SHOW_PERCENTILE_UPTO,
+  type StandingView,
+  type YouLine,
+  type Standing,
+} from "./standing";
 // Personal bests are the half of a transfer that does NOT live in the profile.
 export {
   readRecords,
@@ -92,5 +101,6 @@ export {
   canUndoRecords,
   undoRecords,
   parseRecordKey,
+  recordKey,
   type Records,
 } from "./records";
