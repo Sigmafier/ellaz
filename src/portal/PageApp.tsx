@@ -2,6 +2,7 @@ import { createRoot, type Root } from "react-dom/client";
 import type { Locale } from "@i18n/index";
 import { analytics, startCloudSync } from "@sdk/index";
 import { Boards } from "./Boards";
+import { fitStage } from "./fitStage";
 import { GameHost } from "./GameHost";
 import { World } from "./world/World";
 import { WalletChip } from "./WalletChip";
@@ -87,6 +88,15 @@ export function bootContentPage(ctx: PageContext): void {
 
   const start = () => {
     poster?.setAttribute("hidden", "");
+
+    // The game and the room get the whole first screen, which means a fixed
+    // 100dvh box with overflow hidden - so a game taller than the window would
+    // be CLIPPED rather than scrolled. fitStage scales it to what it was given.
+    // The boards are a short column that never fills a screen and never needs
+    // this, and their stage carries no full-height rule to fight with.
+    const box = frame.closest<HTMLElement>(".stage .box");
+    if (box && ctx.kind !== "boards") fitStage(frame, box);
+
     const root = createRoot(frame);
     root.render(
       ctx.kind === "world" ? (

@@ -10,6 +10,7 @@ import { allEmittedFiles, indexHeadTags, pagesPlugin, renderRoute } from "./page
 import { headingFor, relatedTo } from "./gamePage";
 import { llmsTxt, robotsTxt, sitemapXml } from "./siteFiles";
 import { DEV_HEAD_ASSETS, chunkNameFor, resolveLazyChunks, type HeadAssets } from "./assets";
+import { DOCUMENT_CSS } from "./layout";
 
 /**
  * `src/build/**` is pure string functions with no filesystem and no Vite, which
@@ -534,4 +535,61 @@ describe("the structured data parses", () => {
       for (const b of blocks) expect(() => JSON.parse(b[1])).not.toThrow();
     },
   );
+});
+
+describe("the game gets the whole first screen", () => {
+  /**
+   * Declarations only. Both mentions of the forbidden unit below live in a
+   * comment explaining why it is forbidden, and a check that cannot tell those
+   * apart either fails on its own documentation or passes on the real thing.
+   */
+  const declarations = DOCUMENT_CSS.replace(/\/\*[\s\S]*?\*\//g, "");
+
+  it("never bleeds with 100vw, which scrolls the page sideways", () => {
+    // 100vw counts the vertical scrollbar (1536px) while the container does
+    // not (1521px), so a 100vw bleed overhangs by half the scrollbar and the
+    // page really does scroll sideways by 8px. Measured on the live artifact
+    // 2026-08-07, and invisible unless you go looking for it.
+    expect(declarations).not.toContain("100vw");
+  });
+
+  it("hands main's width limit to each prose child so the stage is full-bleed", () => {
+    for (const page of ["game", "world"]) {
+      expect(declarations).toContain(`body[data-page="${page}"] main`);
+    }
+    expect(declarations).toMatch(/main>:not\(\.stage\)/);
+  });
+
+  it("floats the header and breadcrumb over the stage instead of above it", () => {
+    // This is what buys the game back the 127px they used to cost, and it is
+    // the difference between fitting at 92% and fitting at 74%.
+    expect(declarations).toMatch(/body\[data-page="game"\] \.top[^{]*\{[^}]*position:absolute/);
+    expect(declarations).toMatch(/body\[data-page="game"\] \.bc[^{]*\{[^}]*position:absolute/);
+  });
+
+  it("gives the stage the full screen height on a game and on the room", () => {
+    const box = /body\[data-page="game"\] \.stage \.box,body\[data-page="world"\] \.stage \.box\{([^}]*)\}/.exec(
+      declarations,
+    );
+    expect(box, "the full-screen box rule is missing").not.toBeNull();
+    expect(box![1]).toContain("height:100dvh");
+    expect(box![1]).toContain("border-radius:0");
+    expect(box![1]).toContain("min-height:0");
+  });
+
+  it("leaves the boards, the home index and the 404 as ordinary documents", () => {
+    // The boards are a short column of records. Given a screen-sized box they
+    // sit in the top third of a large empty rectangle with the page's own
+    // heading stranded below, which is the bug the boards rule already fixes.
+    expect(declarations).not.toContain('body[data-page="boards"]');
+    expect(declarations).toContain(".stage.boards .box{min-height:clamp(");
+  });
+
+  it("keeps the frame content-sized so its natural height can be measured", () => {
+    // A frame that stretches to fill the box reports the box's height back,
+    // and fitStage's scale comes out as 1 every time.
+    expect(declarations).toMatch(
+      /body\[data-page="game"\] #game-frame,body\[data-page="world"\] #game-frame\{flex:0 0 auto\}/,
+    );
+  });
 });

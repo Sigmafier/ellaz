@@ -48,8 +48,10 @@ export const DOCUMENT_CSS = `
 
    NO BACKTICKS IN THIS COMMENT. It lives inside a JS template literal, and a
    backtick closes the string - the file then fails to parse somewhere far
-   below with an error naming a CSS word as an undefined variable. Third time
-   in this repo.
+   below with an error naming a CSS word as an undefined variable. FOURTH time
+   in this repo, most recently in the full-screen block at the bottom of this
+   same stylesheet, so the warning applies to every comment in here and not
+   just this one.
 
    Before this, a game page was a white article with a navy rectangle punched
    into it: the app was dark, the document was light, and they were two
@@ -168,6 +170,57 @@ footer .in{max-width:44rem;margin-inline:auto;display:flex;flex-wrap:wrap;gap:14
   background:var(--badge-fill,rgba(0,0,0,.55));color:var(--on-brand,#fff);font-size:.85rem;text-align:center}
 @media (max-width:719px){.stage .box{border-radius:0;box-shadow:none;
   border-block:1px solid var(--doc-line)}}
+
+/* --- the game gets the whole first screen --------------------------------
+
+   Measured on a 1536x638 window: 2048's own content wants 680px and the
+   header plus breadcrumb cost another 127px above it, so 169px of the game
+   sat below the fold. The game is TALLER THAN THE WINDOW on its own, so no
+   amount of tightening the page around it can make it fit - the only two
+   levers are giving it the 127px back and scaling what is left.
+
+   This does both. The header and breadcrumb float OVER the stage instead of
+   sitting above it, and fitStage scales the mounted game to whatever is
+   left. The measured effect on that window: 2048 goes from 169px past the
+   fold to none, at 92% of its natural size instead of the 74% it would need
+   if the header still cost its 127px.
+
+   NOT 100vw. That unit includes the vertical scrollbar (1536) while the
+   container excludes it (1521), so a 100vw bleed overhangs by half the
+   scrollbar and the page really does scroll sideways by 8px - measured, and
+   invisible unless you look for it. Instead main drops its own width limit
+   on these pages and hands it to each prose child, which makes the stage
+   full-bleed by construction with no viewport unit anywhere.
+
+   Scoped to the two pages that hold a playable screen. The boards are a short
+   column and the home index and 404 have no stage at all; all three keep the
+   ordinary document layout, which is why every rule here is behind a
+   [data-page] attribute rather than applied to .stage. */
+body[data-page="game"] main,body[data-page="world"] main{max-width:none;padding-inline:0}
+body[data-page="game"] main>:not(.stage),
+body[data-page="world"] main>:not(.stage){max-width:44rem;margin-inline:auto;
+  padding-inline:20px}
+body[data-page="game"] .top,body[data-page="world"] .top{position:absolute;
+  inset-inline:0;top:0;z-index:6;background:transparent;border-block-end:0;
+  pointer-events:none}
+/* The bar itself stops catching clicks so the game beneath stays playable to
+   its full width; the row inside it takes them back, because the mute button
+   and the wallet chip both live there. */
+body[data-page="game"] .top .in,body[data-page="world"] .top .in{pointer-events:auto}
+body[data-page="game"] .bc,body[data-page="world"] .bc{position:absolute;z-index:7;
+  top:72px;inset-inline-start:20px;margin:0;padding:5px 14px;border-radius:999px;
+  background:var(--badge-fill,rgba(0,0,0,.55))}
+body[data-page="game"] .bc,body[data-page="game"] .bc a,
+body[data-page="world"] .bc,body[data-page="world"] .bc a{color:var(--on-brand,#fff)}
+body[data-page="game"] .stage,body[data-page="world"] .stage{margin-block:0;
+  margin-inline:0}
+body[data-page="game"] .stage .box,body[data-page="world"] .stage .box{
+  height:100dvh;min-height:0;border-radius:0;box-shadow:none;border:0;
+  justify-content:center}
+/* Content-sized rather than flex:1, so fitStage can read the game's NATURAL
+   height. A frame that stretches to fill the box reports the box's height back
+   and the scale factor comes out as 1 every time. */
+body[data-page="game"] #game-frame,body[data-page="world"] #game-frame{flex:0 0 auto}
 @media (max-width:480px){body{font-size:16px}h1{font-size:1.6rem}.play{width:100%}
   .stage .box{min-height:clamp(420px,calc(100dvh - 120px),860px)}
   .tagline{display:none}}
