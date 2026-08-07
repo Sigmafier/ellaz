@@ -286,15 +286,78 @@ Two things that only a live probe could have caught:
   first probe used unmasked ones. Those were driven against live Firestore
   separately before being trusted.
 
+## Wave D — the boards (2026-08-04 → 2026-08-07)
+
+Shipped in four steps: the write side dark, the read side plus the
+no-last-place rule, a real URL and screen, then the layout the operator
+actually chose. The first three are recorded in the plan's checkpoint log; what
+follows is the part with numbers worth keeping.
+
+**The rule the code enforces.** `sdk/standing.ts` decides what may be said about
+a player's position, and `own` — the child's own best, nothing about anybody
+else — is the COMMON case, not a consolation prize. A rank is earned: it must be
+both a low number and a top tenth, because 10th of 12 is the bottom of the board
+wearing a rosette. Impossible counts resolve to "say nothing" rather than a
+guess.
+
+**The screen was wrong in a way no test could see.** It laid all twenty games
+out in one non-wrapping flex row: **1,410px of buttons inside a 390px phone**,
+clipped by `#game-frame`'s own `overflow: hidden`. Not scrolled off — clipped,
+with nothing to scroll. **Fifteen of twenty games were unreachable.** The page
+itself never overflowed, so a document-level check reported clean, and an empty
+profile hides it completely. Three identically-styled pill rows sat above it,
+none saying what it picked.
+
+Measured before touching anything, on the live site with a seeded player:
+
+```
+frame 390px · row 1410px · reachable 5 of 20 · pageOverflowX false
+```
+
+**What replaced it**, after the operator picked from an interactive mock: the
+boards open on the player's own games as cards, each already carrying their
+best, and a tap opens that game's board with the difficulty and time rows
+labelled and a button straight into playing it. The grid earns the first screen
+— a control panel tells a player nothing until they operate it, while twenty
+cards with their own records on them are already an answer. And a record finally
+has a route back to the game it came from, which is what a leaderboard is for.
+
+Verified on the built artifact and then on ellaz.fun itself, not on the green
+tick: 20 cards, **0 elements wider than the frame**, no page overflow, at 390px
+and 664px and in English, with the play link resolving to `/games/<id>/` and
+`/en/games/<id>/`.
+
+**Traps this cost:**
+
+- **A test that could not fail.** The guard meant to stop the card and the board
+  quoting different records compared `cardBest(g, recs)` to a re-derivation that
+  also called `firstBoard` — both sides route through the same helper, so it was
+  satisfied by definition. Replaced with concrete values plus a source-scan that
+  forbids the inline `game.boards[0]`, mutation-proven by planting exactly that.
+- **A case-insensitive filesystem.** `GameArt.tsx` beside `gameArt.ts` is the
+  same path on `/mnt/c`; the import resolved silently to the SVG module. The
+  component is `gameArtView.tsx`.
+- **Formatter churn.** `npx prettier --write` reformatted 164 lines of
+  `Home.tsx` that had nothing to do with the change — this repo has no prettier
+  config and never did. Reverted.
+
+**First visit 80,345 B gz of an 82,000 ceiling (98%).** The redesign adds 302 B;
+a clean baseline built at the parent commit read 80,043. The headroom problem
+predates this work and is the next thing to look at.
+
 ## Still open
 
 - **Wave C step 2b** — live two-way sync. Needs the profile to carry per-device
   earned/spent counters before a merge can be correct; until then the cloud is a
   backup and a transfer, and the UI says so.
-- **Wave D** — the boards, percentile-first: a child is never told they came
-  last. Firestore's free daily quota is the design constraint, and it is
-  fail-closed (reads refused until reset, never a charge), which is why the
-  board design is percentile-first rather than "top 100".
+- **The first-visit budget** — 80,345 B gz of 82,000 (98%). The next feature
+  hits the ceiling. Un-isolated: worth twenty minutes with `git bisect` and the
+  gz sum.
+- **Nobody has published a real score yet**, so every board renders empty and
+  the own-best line carries the screen. Firestore's free daily quota stays the
+  design constraint, and it is fail-closed (reads refused until reset, never a
+  charge), which is why the board design is percentile-first rather than
+  "top 100".
 - **A2** — snake off Phaser. Parked, not cancelled.
 - **`VITE_POSTHOG_KEY`** — not set. Safe to add at any time; `build:check` fails
   the deploy if the PostHog chunk would land in the precache rather than

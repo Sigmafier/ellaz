@@ -369,7 +369,7 @@ so `npm run build` cannot skip them and neither deploy workflow can forget.
 | `/games/<id>/` · `/en/games/<id>/` | 21 games x 2 languages, ~900 words each |
 | `/en/` | the English home index, with 21 real links |
 | `/world/` · `/en/world/` | the room |
-| `/boards/` · `/en/boards/` | the leaderboards |
+| `/boards/` · `/en/boards/` | the leaderboards (two screens - see below) |
 | `/404.html` | bilingual, `noindex`, and `ErrorDocument`-wired on Hostinger |
 | `robots.txt` · `sitemap.xml` · `llms.txt` | emitted, not in `public/` (see below) |
 
@@ -441,6 +441,24 @@ and each workflow only ever sees one arm.
 **The service-worker trap that would have broken all of it**, for returning
 visitors and nobody else:
 [`.claude/rules/sw-navigation-fallback-hijacks-real-pages.md`](.claude/rules/sw-navigation-fallback-hijacks-real-pages.md).
+
+**The leaderboards are two screens, and the split is load-bearing.** They open on the
+player's own games as cards, each already carrying their best, and a tap opens that
+game's board with the difficulty and time rows labelled and a button straight into
+playing it. The single page this replaced laid all twenty games out in one
+non-wrapping flex row - 1,410px inside a 390px phone, clipped by the frame's own
+`overflow: hidden` - so **fifteen of twenty games were unreachable**, not merely
+awkward. See [`.claude/rules/a-row-that-grows-with-the-catalog-must-wrap.md`](.claude/rules/a-row-that-grows-with-the-catalog-must-wrap.md);
+`DifficultySelector` is the specific trap, correct for three pills and wrong when
+handed the catalog.
+
+`src/portal/boardsView.ts` holds the pure half so the screen can be checked without a
+browser, and **`firstBoard()` is one function on purpose**: the card quotes the board
+the detail view opens. A `game.boards[0]` written inline in the component would be
+correct today and would silently stop agreeing the moment `firstBoard` learns anything,
+so a guard in `boardsView.test.ts` forbids it - mutation-proven by planting exactly
+that line. The card art comes from `@ui/gameArtView`, shared with the home grid, so
+there is one answer to what a game looks like rather than two that drift.
 
 **Still authored by hand, not derived**: the difficulty tiers and what each game's
 record measures. Both live inside renderers that import React, so a build-time
@@ -546,6 +564,12 @@ the sounds stop reading as synthetic, and the traps it cost:
   nested root during the portal's own unmount throws `removeChild: node is not a
   child`. Don't also clear the mount node in `GameHost` (double-free).
 - **SW serves stale bundle** during QA (see Commands). This is intended `prompt` behavior.
+- **Never name a file as a case-variant of a neighbour.** This repo sits on `/mnt/c`,
+  which is case-INSENSITIVE, so `@ui/GameArt` and `@ui/gameArt` are the same path here
+  and different paths in CI. A new `GameArt.tsx` beside the existing `gameArt.ts`
+  resolved silently to the SVG module; `tsc` caught it in seconds ("has no exported
+  member named 'GameArt'. Did you mean 'gameArt'?"), but only because the export names
+  differed. The component is `gameArtView.tsx`.
 - **No backend by design, so clearing browser storage erases the child's coins,
   stars and room.** Everything lives in `localStorage` (`ellaz:profile:v1` plus the
   per-game save keys), which also means a phone and a tablet are two separate

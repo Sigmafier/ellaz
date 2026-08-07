@@ -41,10 +41,10 @@ the `@sdk` / `@ui` / `@juice` / `@i18n` / `@shared` aliases, never deep paths):
 | `src/sdk/economy.ts` | The **only** place a reward amount is decided |
 | `src/sdk/score.ts` | The **only** place a ranking direction is decided |
 | `src/shared` | Neutral game helpers — seeded rng, pentatonic notes, `winMoment()` (the canonical win) |
-| `src/ui` | Design tokens + RTL-aware components + `DifficultySelector` |
+| `src/ui` | Design tokens + RTL-aware components + `DifficultySelector` + `gameArtView` (a game's key art with the emoji fallback, shared by the home grid and the boards so there is one answer to what a game looks like) |
 | `src/juice` | Game-feel kit — haptics, shake, particle burst, confetti, `flyTo`, tween |
 | `src/i18n` | he (RTL) + en (LTR) strings + direction |
-| `src/portal` | Shell: `App` (hash router), `Home` (grid), `GameHost` (mount bridge), `catalog` (registry + lazy loaders), `world/` (room + shop) |
+| `src/portal` | Shell: `App` (the home screen at `/`), `Home` (grid), `PageApp` (boots a game or a room/boards screen on its own page), `GameHost` (mount bridge), `catalog` (registry + lazy loaders), `Boards` + `boardsView` (the leaderboards and their pure half), `world/` (room + shop). **The hash router is retired** — every route is a real URL |
 | `src/games/<id>` | `logic.ts` (pure, TDD) + `logic.test.ts` + a DOM (React) or canvas (Phaser) renderer |
 
 ## The SDK contract
