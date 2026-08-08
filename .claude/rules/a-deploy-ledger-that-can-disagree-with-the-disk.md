@@ -145,6 +145,42 @@ otherwise succeeded.
 load - not by fetching URLs. Every URL-level check available, including this one,
 reported health. That is worth remembering the next time a sweep comes back clean.
 
+## What finally closed it: bytes, and a control that forces the other reading
+
+Two questions survived every fix above, and they are the ones a status code cannot
+reach: **does the served file arrive INTACT**, and **does it execute for someone
+visiting for the first time**?
+
+A transfer that stops at 80% is 200 with a plausible length, and a JS chunk missing
+its tail is a syntax error at import time - which shows the same error card as a 404
+while every check passes. So the gate compares the **SHA-256 of the served bytes
+against the built file**, not its length. Controls: an 80% truncation fails, and so
+does a single flipped byte at identical length.
+
+That also bridges to the second question. Driving the live site in a browser proves
+the code executes, but a browser that has visited before serves those bytes from its
+own HTTP cache - and **unregistering the service worker does not clear that cache.**
+Measured here: after a full unregister-and-delete, 8 of 8 resources still came from
+cache and 0 from the network. If the network serves exactly what was built, then "the
+cached bytes execute" and "the network bytes execute" are the same claim.
+
+The direct proof came from a **fresh browser context per game** - no storage, no
+registration, no shared cache partition - across 5 games: every `/assets/` resource
+had `transferSize > 0`, and all five mounted.
+
+**And the method lesson, which is the most reusable thing here.** That cold probe was
+first built around `navigator.serviceWorker.controller === null`, which reported
+`sw=none` on all five and looked exactly like success. It was an artifact of WHEN it
+sampled - at `domcontentloaded`, before the worker installs and claims the page. A
+positive control that forced the opposite state (same context, visit twice) returned
+`sw=CONTROLLING` on the *first* visit and exposed it. The load-bearing assertion moved
+to `transferSize`, which is measured per resource and cannot be fooled by sampling
+time, with the warm arm proving the detector fires at all.
+
+> When an assertion depends on WHEN you sample, the control has to produce the
+> OPPOSITE reading - not merely a passing one. Re-reading the probe will not find
+> this; a stable, confident, wrong value looks identical to a correct one.
+
 ## The lesson that was already written down
 
 `verify-the-deploy-target-not-just-the-run.md` has said "verify the artifact, not the

@@ -29,6 +29,7 @@
    packages before it can tell you the site is down fails for its own reasons. */
 
 import { readFileSync, existsSync, readdirSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { join, relative, sep } from "node:path";
 
 /* SITE_URL is an ORIGIN, and BASE_PATH is separate from it, because the two
@@ -67,6 +68,7 @@ const SETTLE_MS = Number(process.env.LIVE_SETTLE_MS || 15000);
 const ROUTES = ["/", "/games/snake/", "/world/", "/boards/"];
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const sha256 = (buf) => createHash("sha256").update(buf).digest("hex");
 
 /** dist path for a route. "/games/snake/" -> dist/games/snake/index.html */
 function localFile(route) {
@@ -202,12 +204,35 @@ async function runChecks() {
      above and by assert-crawlable.mjs, which fetches all 48 as Googlebot.
      Dotfiles must NOT be fetchable - `.htaccess` is configuration, and a 200
      on it would be a finding in the opposite direction. */
+  /* Compared by CONTENT HASH, not by "is it 200 and non-empty".
+
+     A truncated transfer that stops at 80% is 200 with a plausible length, and
+     a JS chunk missing its tail is a syntax error at import time - which leaves
+     the game showing the same error card as a 404 while every status-code check
+     passes. Length alone cannot see it; only the bytes can.
+
+     It also closes a question no URL check could otherwise answer. Driving the
+     live site in a browser proves the code EXECUTES, but a browser that has
+     visited before serves those bytes from its own HTTP cache, so it cannot
+     prove a FIRST visitor gets working code - and clearing the service worker
+     does not clear that cache (measured 2026-08-08: 8 of 8 resources still came
+     from cache after a full unregister-and-delete). Byte equality is the bridge:
+     if the network serves exactly what was built, then "the cached bytes
+     execute" and "the network bytes execute" are the same claim. */
   for (const file of distArtifacts()) {
     const res = await get(`${SITE}${BASE}${file}`, { asText: false });
     if (res.status !== 200) {
       failures.push(`${file}  HTTP ${res.status || "transport"} - built and NOT SERVED`);
-    } else if (res.body.length === 0) {
-      failures.push(`${file}  200 but zero bytes - a truncated transfer`);
+      continue;
+    }
+    const want = sha256(readFileSync(join(DIST, file)));
+    const got = sha256(res.body);
+    if (want !== got) {
+      failures.push(
+        `${file}  200 but the bytes differ from the build` +
+          `  (built ${want.slice(0, 12)} ${readFileSync(join(DIST, file)).length}B,` +
+          ` served ${got.slice(0, 12)} ${res.body.length}B)`,
+      );
     }
   }
 
