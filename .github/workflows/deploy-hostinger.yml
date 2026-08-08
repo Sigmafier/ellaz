@@ -145,22 +145,59 @@ jobs:
             # Retire the previous action's ledger. It currently asserts that
             # files which are not on the server are on the server, so leaving it
             # would re-arm the exact outage the moment anyone reverts this step.
-            echo 'glob -a rm -f .ftp-deploy-sync-state.json'
+            # Before fail-exit, because a missing file here is a success.
+            echo 'rm -f .ftp-deploy-sync-state.json'
+            echo 'set cmd:fail-exit true'
 
-            # PASS 1 - everything that is REFERENCED. No --delete: an orphaned
-            # old hash costs a few KB and keeps stale HTML working.
-            echo 'mirror -R --parallel=4 --no-perms -X "*.html" -X "sw.js" -X ".git*" -X "node_modules/" dist/ .'
+            # Remote directories first, so a `put` never lands nowhere.
+            (cd dist && find . -type f -not -path './assets/*' -printf '%h\n') |
+              sort -u | while read -r d; do
+                [ "$d" = "." ] || echo "mkdir -pf \"${d#./}\""
+              done
 
-            # PASS 2 - everything that REFERENCES. Serial, so the last write is
-            # a single small file rather than a batch.
-            echo 'mirror -R --parallel=1 --no-perms -I "*.html" -I "sw.js" dist/ .'
+            # PASS 1 - the hashed assets, by mirror. Mirror is EXACT here and
+            # only here: every name under assets/ contains a content hash, so a
+            # changed file is a NEW file and "does the remote have this name"
+            # is the whole question.
+            echo 'mirror -R --parallel=4 --no-perms dist/assets assets'
 
-            # .htaccess by name. It is a dotfile and it is the file that wires
-            # ErrorDocument and the no-cache headers the PWA autoUpdate path
-            # depends on, so it does not ride on mirror's dotfile behaviour.
-            echo 'put -O . dist/.htaccess'
+            # PASS 2 - everything else that is REFERENCED, forced.
+            # PASS 3 - the files that NAME the hashes, forced, last.
+            #
+            # `put`, not `mirror`, and the reason is a bug this gate caught in
+            # the commit that introduced it. `mirror` decides by comparing SIZE
+            # and TIME, and an index.html that differs from the remote one only
+            # in a content hash is BYTE-IDENTICAL IN LENGTH - so mirror skipped
+            # all 49 pages while happily uploading the new assets. The result
+            # was the outage's exact signature from the opposite direction: new
+            # chunks present on the server, old HTML still pointing at the old
+            # ones. That is the ledger defect again, wearing mirror's heuristic
+            # instead of a JSON file, and it is why the correctness-critical
+            # files are transferred unconditionally rather than diffed.
+            #
+            # No --delete anywhere: an orphaned old hash costs a few KB and is
+            # what keeps stale HTML working if a run dies between the passes.
+            for pass in other html; do
+              if [ "$pass" = other ]; then
+                find dist -type f -not -path 'dist/assets/*' \
+                     -not -name '*.html' -not -name 'sw.js' | sort
+              else
+                find dist -type f \( -name '*.html' -o -name 'sw.js' \) | sort
+              fi |
+                while read -r f; do
+                  rel="${f#dist/}"; d="$(dirname "$rel")"
+                  echo "put -O \"$d\" \"$f\""
+                done
+            done
             echo 'bye'
           } > "$SCRIPT"
+
+          # A generator that silently produces nothing would upload nothing and
+          # still exit 0. Assert the shape before handing it to lftp: 49 pages
+          # plus sw.js is the floor, and it is checked here rather than trusted.
+          PUTS=$(grep -c '^put ' "$SCRIPT")
+          echo "lftp script: $PUTS forced transfers + 1 mirror"
+          [ "$PUTS" -ge 50 ] || { echo "::error::only $PUTS put commands - the file walk is broken"; exit 1; }
 
           lftp -f "$SCRIPT"
           rm -f "$SCRIPT"

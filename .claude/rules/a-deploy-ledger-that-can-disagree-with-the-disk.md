@@ -81,6 +81,37 @@ one is fetchable. **Both halves are load-bearing and neither is sufficient:**
 Only the conjunction distinguishes *the site works* from *my build is live*, and a
 deploy gate that cannot tell those apart is not a deploy gate.
 
+## It happened again inside the fix, and the gate caught it
+
+The first version of the replacement used `lftp mirror` for both passes. `mirror`
+decides what to send by comparing **size and time** - and an `index.html` differing
+from the remote one only in a content hash is **byte-identical in length**. So it
+uploaded all the new chunks and skipped all 49 pages, leaving the server with new
+assets and old HTML still naming the old ones: the outage's exact signature, from
+the opposite direction.
+
+**That is the same defect, wearing a heuristic instead of a JSON file.** Deleting
+the ledger was not enough, because the property that mattered was never "is there a
+state file" - it was **"can the thing deciding what to send be wrong about what is
+already there".** A size comparison can. A timestamp over FTP can.
+
+So the rule is narrower and more useful than "no ledgers":
+
+- **`mirror` is used for `assets/` and nowhere else**, because every name there
+  contains a content hash. A changed file is a *new file*, so "does the remote have
+  this name" is the entire question and cannot be wrong.
+- **Everything else is transferred unconditionally** with `put`. 106 files, ordered
+  so the 50 that name hashes go last. A forced transfer cannot be skipped by a
+  wrong guess.
+- The generator asserts its own output shape (`>= 50` put commands) before lftp
+  sees it, because a file walk that silently produces nothing uploads nothing and
+  exits 0.
+
+This was found **by the gate, on the very commit that added the gate** - the deploy
+went red naming the four stale chunks. Without it the run would have been green, the
+site would have been broken in a new way, and the commit message would have claimed
+the outage was fixed.
+
 ## The lesson that was already written down
 
 `verify-the-deploy-target-not-just-the-run.md` has said "verify the artifact, not the
