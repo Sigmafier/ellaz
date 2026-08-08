@@ -75,55 +75,126 @@ jobs:
         if: steps.creds.outputs.ready == 'true'
         run: cp deploy/hostinger.htaccess dist/.htaccess
 
+      # ── Upload ────────────────────────────────────────────────────────────
+      #
+      # `lftp mirror`, not SamKirkland/FTP-Deploy-Action, and the reason is a
+      # real outage rather than a preference.
+      #
+      # That action keeps a `.ftp-deploy-sync-state.json` ON THE SERVER and
+      # transfers only what the state says has changed. On 2026-08-08 a transfer
+      # died mid-sync; the state had already been written; and from then on
+      # every subsequent run compared against a state file that CLAIMED the
+      # missing chunks were present, so it skipped them. ellaz.fun served
+      # index.html referencing `index-DD5Sx_ZF.js` and `shell-BXwWnAdL.js`,
+      # both 404 - a blank page - and a re-deploy reported success in 90
+      # seconds while changing nothing. An incremental sync whose ledger can
+      # disagree with the disk cannot self-heal, and the failure mode is
+      # "everything is green and the site is blank".
+      #
+      # lftp holds no state. It compares against what is ACTUALLY on the server
+      # every time, so a partial transfer is repaired by the next run rather
+      # than remembered as done.
+      #
+      # THE ORDER IS THE OTHER HALF, and it matters more. Hashed assets go
+      # first, HTML and sw.js second, because those two are the only files that
+      # REFERENCE the hashes. A run that dies between the passes leaves the old
+      # HTML pointing at assets that are all still present - the site is stale,
+      # which is recoverable and invisible to a child - instead of new HTML
+      # pointing at chunks that never arrived, which is blank. Nothing is
+      # deleted, so an old hash stays fetchable for exactly this reason.
       - name: Upload to Hostinger
         if: steps.creds.outputs.ready == 'true'
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          # FTPS is what Hostinger offers on port 21. Set the repo variable
-          # FTP_PROTOCOL to "ftp" only if the handshake fails.
-          protocol: ${{ vars.FTP_PROTOCOL || 'ftps' }}
-          # Hostinger presents a wildcard cert for *.hstgr.io, which matches
-          # neither the FTP IP nor ftp.ellaz.fun — strict verification fails the
-          # handshake outright. Verified 2026-08-02 by reading the served cert.
-          security: loose
-          # 120s, not the 30s default. Both failures on 2026-08-08 read
-          # "Error: Timeout (control socket)" at 30.2s and 30.3s - the default
-          # to the millisecond, i.e. Hostinger's FTP being slow to answer, not
-          # a credential or protocol problem.
-          #
-          # This matters more than a red run: FTP-Deploy-Action syncs file by
-          # file, so a mid-transfer timeout leaves the site PARTIALLY updated -
-          # observed live, with the new share cards present beside the old
-          # sitemap. A partial deploy is worse than a failed one, because every
-          # individual file looks correct.
-          timeout: 120000
-          local-dir: ./dist/
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
           # "./", NOT "public_html/". The FTP account is chrooted to
           # /home/<id>/domains/ellaz.fun/public_html, so its root already IS the
           # docroot — verified by listing it. Uploading to public_html/ would
           # nest the whole site one level down, where nothing serves it, and the
           # deploy would go green while ellaz.fun stayed frozen.
-          server-dir: ${{ vars.FTP_SERVER_DIR || './' }}
-          # The action keeps a .ftp-deploy-sync-state.json on the server and only
-          # transfers what changed. These stay untouched so a stray panel file or
-          # a mail directory is never swept up by the sync.
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            default.php
-            .well-known/**
+          FTP_SERVER_DIR: ${{ vars.FTP_SERVER_DIR || './' }}
+        run: |
+          set -euo pipefail
+          command -v lftp >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq lftp; }
+
+          # The script goes in a 0600 file rather than on the command line: an
+          # argv carrying the password is readable from `ps` by anything else on
+          # the runner, and GitHub's log masking does not reach that far.
+          umask 077
+          SCRIPT="$(mktemp)"
+          {
+            # Hostinger presents a wildcard cert for *.hstgr.io, which matches
+            # neither the FTP IP nor ftp.ellaz.fun — strict verification fails
+            # the handshake outright. Verified 2026-08-02 by reading the served
+            # cert. The control channel and the data channel are both still
+            # encrypted; only the name check is off.
+            echo 'set ssl:verify-certificate no'
+            echo 'set ftp:ssl-force true'
+            echo 'set ftp:ssl-protect-data true'
+            echo 'set ftp:passive-mode true'
+            # Hostinger's FTP was answering in ~30s under load on 2026-08-08,
+            # which is what tripped the previous action's default timeout.
+            echo 'set net:timeout 60'
+            echo 'set net:max-retries 4'
+            echo 'set net:reconnect-interval-base 5'
+            echo 'set cmd:fail-exit true'
+            echo "open -u \"$FTP_USERNAME\",\"$FTP_PASSWORD\" \"$FTP_SERVER\""
+            echo "cd \"$FTP_SERVER_DIR\""
+
+            # Retire the previous action's ledger. It currently asserts that
+            # files which are not on the server are on the server, so leaving it
+            # would re-arm the exact outage the moment anyone reverts this step.
+            echo 'glob -a rm -f .ftp-deploy-sync-state.json'
+
+            # PASS 1 - everything that is REFERENCED. No --delete: an orphaned
+            # old hash costs a few KB and keeps stale HTML working.
+            echo 'mirror -R --parallel=4 --no-perms -X "*.html" -X "sw.js" -X ".git*" -X "node_modules/" dist/ .'
+
+            # PASS 2 - everything that REFERENCES. Serial, so the last write is
+            # a single small file rather than a batch.
+            echo 'mirror -R --parallel=1 --no-perms -I "*.html" -I "sw.js" dist/ .'
+
+            # .htaccess by name. It is a dotfile and it is the file that wires
+            # ErrorDocument and the no-cache headers the PWA autoUpdate path
+            # depends on, so it does not ride on mirror's dotfile behaviour.
+            echo 'put -O . dist/.htaccess'
+            echo 'bye'
+          } > "$SCRIPT"
+
+          lftp -f "$SCRIPT"
+          rm -f "$SCRIPT"
+
+      # ── The gate this repo did not have ───────────────────────────────────
+      #
+      # A green upload is not a changed website - that is the whole lesson of
+      # 2026-08-08, and it had already been written down in
+      # .claude/rules/verify-the-deploy-target-not-just-the-run.md before it
+      # took the site down anyway, because nothing MECHANISED it.
+      #
+      # This asserts the live html references the same hashed assets as the
+      # dist/ we just built, and that every one of them is fetchable. Both
+      # halves are needed: "all assets 200" passes on a completely stale site,
+      # and "the html matches" passes on a site whose chunks never arrived.
+      - name: Verify the live site is serving this build
+        if: steps.creds.outputs.ready == 'true'
+        run: |
+          # Hostinger's FTP write and its web tier are not instantaneous with
+          # each other. A few seconds here is cheaper than a flaky gate that
+          # gets ignored, and assert-live.mjs retries transport errors once.
+          sleep 15
+          node scripts/assert-live.mjs
 
       # Tell Bing what changed. ChatGPT Search and Copilot lean on Bing's
       # index, so this is the cheapest route into the answer engines - and it
       # submits only URLs whose <lastmod> moved, rather than all 48 every time.
       #
+      # It runs AFTER verification on purpose: announcing a release that did not
+      # land is worse than announcing it late.
+      #
       # continue-on-error because a search-engine ping is not worth failing a
-      # good release over: the site is already live by this point, and a red X
-      # here would read as "the deploy broke".
+      # good release over: the site is already live and verified by this point,
+      # and a red X here would read as "the deploy broke".
       - name: Ping IndexNow
         if: steps.creds.outputs.ready == 'true'
         continue-on-error: true
