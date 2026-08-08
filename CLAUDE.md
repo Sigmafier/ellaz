@@ -439,6 +439,25 @@ files. They are two implementations on purpose, because the app may never import
 `src/build` (it reads `src/content`); `paths.test.ts` asserts they agree on every
 game, so the copy cannot drift into a card that links to a page nobody wrote.
 
+**`<lastmod>` comes from git, or it does not come at all.** `src/build/lastmod.ts`
+derives each page's date from the last commit that touched its own sources — the
+game's directory and its content file, never a build timestamp, which would say
+"every page changed" on every deploy and teach Google to discount the field
+permanently. **The trap is CI**: `actions/checkout` clones at depth 1, so `git log`
+returns one identical date for all 48 — the same bug wearing a disguise, on the only
+machine that publishes. Both deploy workflows set `fetch-depth: 0`, the emitter omits
+the field on a shallow clone or a uniform result rather than lying, and
+`assert-pages.mjs` fails the build on 48 identical dates. **An absent `<lastmod>` is
+valid and is what this site shipped for months; a uniform one is a lie.**
+
+**IndexNow pings Bing after a successful upload**, because ChatGPT Search and Copilot
+lean on Bing's index. Ownership is a key file the build publishes at `/<key>.txt`
+(primary host only — the Pages copy is noindex). `scripts/indexnow.mjs` submits **only
+URLs whose `<lastmod>` moved**, and falls back to the whole set only when the sitemap
+carries no dates, saying so. It is `continue-on-error`: a search-engine ping must
+never fail a good release. The index-coverage benefit is documented; a causal lift in
+AI citations is not, and this should not be read as claiming one.
+
 **Canonical never carries the base.** `https://ellaz.fun/games/snake/` on both
 hosts; the GitHub Pages copy adds `noindex` to every page and a `Disallow: /`
 robots.txt, and emits no sitemap. `robots.txt` is emitted rather than dropped in

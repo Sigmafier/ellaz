@@ -447,6 +447,43 @@ The 404's *absence* of a card is asserted rather than skipped. Mutation-proven t
 ways against a real `dist/`: deleted card, truncated card, stripped tag. 13/13
 negative controls fire.
 
+## Telling crawlers what CHANGED (2026-08-08)
+
+Two surfaces, one idea: say what moved, and never claim everything moved.
+
+**`<lastmod>`, derived from git.** 48 rows where there were none, resolving to **4
+distinct dates** off real commit history. The obvious implementation is the wrong
+one — stamping build time on all 48 says "every page changed" on every deploy, which
+is false for 47 of them and teaches Google the field is noise. It is discounted, and
+it does not come back.
+
+**And the obvious implementation fails silently in CI.** `actions/checkout` clones at
+depth 1, so `git log` sees one commit and returns the SAME timestamp for every path —
+the build-time bug in a disguise, on the one machine that publishes. Both deploy
+workflows now set `fetch-depth: 0`; `lastmod.ts` detects a shallow clone and **omits
+the field** rather than lying; and it omits it again if all games resolve to one date,
+which is the backstop for the day someone removes the setting. `assert-pages.mjs`
+fails the build on 48 identical dates.
+
+Every failure path here omits rather than guesses. A sitemap without `<lastmod>` is
+valid and is what this site shipped for months. One where all 48 agree is a lie.
+
+**IndexNow.** ChatGPT Search and Copilot lean on Bing's index, so absence from Bing is
+absence from the answer engines however well Google is doing. One POST after a
+successful upload, no account needed — ownership is proved by a key file the build
+publishes at `/<key>.txt` (primary host only; the Pages duplicate is noindex and would
+be claiming a site it does not represent). Gated: exactly one key file, containing
+exactly its own key.
+
+It submits **only what moved** — 8 of 48 on the current build — filtered by the
+sitemap's own `<lastmod>`. Resubmitting all 48 every deploy is the same "everything
+changed today" noise, one layer out. With no `<lastmod>` it falls back to the whole
+set and *says so* rather than doing it quietly. `continue-on-error`, because a
+search-engine ping is not worth failing a good release over.
+
+Honest about the evidence: Bing's index-coverage and freshness benefit is documented;
+a causal lift in AI citations is **not** — that link is correlational.
+
 ## Still open
 
 - **Wave C step 2b** — live two-way sync. Needs the profile to carry per-device
@@ -470,9 +507,6 @@ negative controls fire.
   `assert:crawlable` is green, but only Search Console can prove Google's own IPs
   are through. Watch the Sitemaps panel; "could not be read" can linger for days
   after the underlying fix.
-- **Bing Webmaster Tools + IndexNow** — not set up. ChatGPT Search and Copilot lean on
-  Bing's index, and the site is Google-only. IndexNow is a key file plus one POST in
-  the deploy workflow.
-- **No `<lastmod>` in the sitemap**, 0 of 48. Google uses it for crawl scheduling when
-  it is accurate — which means deriving it from the last commit that touched each
-  game, never stamping build time on all 48.
+- **Bing Webmaster Tools is not claimed.** IndexNow submits fine without it, but the
+  coverage reports need the site added at <https://www.bing.com/webmasters> — an
+  operator action, not a code one.
