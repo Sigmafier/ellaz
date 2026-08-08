@@ -501,6 +501,119 @@ build ever produced. Every file looked right; only comparing two revealed it. Ti
 raised to 120s. A "0 upload lines" grep over the run log also misled this session into
 concluding nothing had transferred; it had, and the artifact settled it.
 
+## The deploy went green over a blank site (2026-08-08)
+
+ellaz.fun served a **blank page for about an hour** while every deploy reported
+success in 90 seconds. Documents returned 200; the JS they referenced returned
+404. One defect, found four times, each time by the gate the previous one forced
+into existence.
+
+**1. A ledger on the server.** `SamKirkland/FTP-Deploy-Action` kept
+`.ftp-deploy-sync-state.json` in the docroot and uploaded only the diff against
+it. A transfer died mid-sync *after* the ledger was written, so from then on
+every run compared against a file claiming the missing chunks were present and
+skipped them. It could not self-heal by retrying, which is the one thing everyone
+tries. The ledger was not uniformly wrong — it was right about `index.html` and
+wrong about one asset, so anything that sampled the document agreed with it. (It
+was also world-readable, publishing the whole file tree.)
+
+**2. A size comparison.** Replacing it with `lftp mirror` moved the defect rather
+than removing it. Mirror decides by comparing size and time, and Vite hashes are
+**fixed length** — an `index.html` differing only in a hash is byte-identical in
+size. It uploaded every new chunk and skipped all 49 pages: the outage signature
+from the opposite direction.
+
+**3. A hidden temp file.** lftp uploads to a temp name and renames on completion.
+Its default is `.in.*`, a dotfile, and Hostinger refuses to rename hidden files
+(`550`). That silently dropped `game-bubbles` and `game-coloring` out of an
+otherwise successful pass — two games serving the error card.
+
+**4. A gate one hop short.** The new live gate walked HTML → assets, and a game
+chunk is never named in a document; it is named inside the shell chunk's own
+dependency map. So 6 documents and all 26 assets those documents named were 200,
+while 2 of 25 lazy chunks were 404, and the gate was **green over two dead
+games**.
+
+### What the fix actually is
+
+The invariant is narrower and more useful than "no ledgers":
+
+> The thing deciding what to send must not be able to be wrong about what is
+> already there.
+
+- `mirror` runs on **`assets/` and nowhere else**, because every name there
+  carries a content hash — a changed file is a *new file*, so "does the remote
+  have this name" is the whole question and cannot be wrong.
+- The other **108 files are forced** with `put`, ordered so the 50 that name
+  hashes go last. Die between the passes and the site is *stale* (old HTML, old
+  assets, all present) rather than *blank*. Nothing is deleted, for that reason.
+- The generator asserts its own shape (`>= 50` puts) before lftp sees it. A file
+  walk that silently produces nothing uploads nothing and exits 0 — which it did,
+  once, during testing.
+
+**`scripts/assert-live.mjs`** is the gate the repo did not have, and it fails the
+run. It asserts the live HTML references the same hashed assets as the `dist/`
+just built, that **every artifact in `dist/` is fetchable**, and that each one is
+**byte-identical by SHA-256** to what was built. Three things, each needed:
+
+| Check | What passes without it |
+|---|---|
+| HTML matches the build | a site whose chunks never landed |
+| every dist artifact fetchable | a dead game one hop past the HTML |
+| bytes match by hash | an 80% truncation — 200, plausible length, syntax error on import |
+
+It asserts every artifact rather than following the dependency map, because
+following the map closes those two hops and leaves the next one. It cannot miss a
+hop because it does not count hops.
+
+Both hosts now carry it. The Pages job re-uses the published artifact rather than
+rebuilding — the question is what was *published*, and a second build could verify
+a site nobody deployed — and reads its URL from the deploy step rather than
+hardcoding one, because that address already moved when the repo changed org.
+
+### The measurement lessons, which cost more than the code
+
+**A 200 document whose JS returns 404 is a blank page.** A status-code sweep over
+`/`, `/games/snake/`, `/world/` and `/boards/` reported a perfectly healthy site
+throughout the outage. It was run, it was believed, and it was wrong. Checking a
+document proves the document arrived and says nothing about what it depends on.
+
+**Two dead games were found by driving the live site in a browser**, not by
+fetching URLs — asserting the *mount* (children of `#game-frame`, a real canvas
+inside it) rather than a 200, because a chunk that fetches and fails to execute
+leaves the identical error card.
+
+**Unregistering the service worker does not clear the HTTP cache.** After a full
+unregister-and-delete, 8 of 8 resources still came from cache and 0 from the
+network, so a "cold" browser pass was not cold. A fresh browser *context* per game
+is what actually produces a first visit; across 5 games every `/assets/` resource
+had `transferSize > 0` and all five mounted. Byte equality in the gate is the
+bridge for the rest: if the network serves exactly what was built, "the cached
+bytes execute" and "the network bytes execute" are one claim.
+
+**And the most reusable one.** That cold probe was first built around
+`navigator.serviceWorker.controller === null`. It reported `sw=none` on all five
+and looked exactly like success — an artifact of sampling at `domcontentloaded`,
+before the worker claims the page. A positive control forcing the opposite state
+returned `sw=CONTROLLING` on a *first* visit and exposed it:
+
+> When an assertion depends on **when** you sample, the control has to produce
+> the opposite reading — not merely a passing one. Re-reading the probe will not
+> find this; a stable, confident, wrong value looks identical to a correct one.
+
+### Two things that were not the cause, and were reported as if they were
+
+**GitHub Actions was disabled on the repository** (`{"enabled": false}`) — that is
+why runs sat queued with *zero jobs*. A blocked action fails at "Prepare all
+required actions"; it does not queue. Separately, an action allowlist refused
+`actions/deploy-pages@v4`, which broke Pages only. Three independent faults,
+reported as one, and the loudest was the least important.
+
+Verified after: 21/21 game chunks live and mounting, 25/25 lazy chunks reachable,
+48/48 URLs crawlable as Googlebot, both hosts green, ledger 404, 1,634 tests.
+
+Full rule: [`.claude/rules/a-deploy-ledger-that-can-disagree-with-the-disk.md`](../.claude/rules/a-deploy-ledger-that-can-disagree-with-the-disk.md).
+
 ## Still open
 
 - **Wave C step 2b** — live two-way sync. Needs the profile to carry per-device
@@ -524,6 +637,16 @@ concluding nothing had transferred; it had, and the artifact settled it.
   `assert:crawlable` is green, but only Search Console can prove Google's own IPs
   are through. Watch the Sitemaps panel; "could not be read" can linger for days
   after the underlying fix.
+- **First-visit EXECUTION is proven for 5 of 21 games**, not all of them. A fresh
+  browser context per game covers bubbles, coloring, snake, sudoku and memory; the
+  other 16 are verified mounting as a *returning* visitor plus byte-identical
+  delivery from the network, which is a strong argument and not a measurement.
+  Residual risk is low and it is not zero.
+- **First-visit EXECUTION is proven for 5 of 21 games**, not all of them. A fresh
+  browser context per game covers bubbles, coloring, snake, sudoku and memory; the
+  other 16 are verified mounting as a *returning* visitor plus byte-identical
+  delivery from the network, which is a strong argument and not a measurement.
+  Residual risk is low and it is not zero.
 - **Bing Webmaster Tools is not claimed.** IndexNow submits fine without it, but the
   coverage reports need the site added at <https://www.bing.com/webmasters> — an
   operator action, not a code one.

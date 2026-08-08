@@ -59,6 +59,19 @@ between the passes leaves old HTML pointing at assets that are all still present
 chunks that never arrived, which is a blank page. Nothing is deleted, which is
 also why an orphaned old hash is left on the server.
 
+**`mirror` is used for `assets/` and nowhere else.** Every name there carries a
+content hash, so a changed file is a *new file* and "does the remote have this
+name" cannot be wrong. Everything else is transferred **unconditionally**: mirror
+compares size and time, and Vite hashes are fixed length, so an `index.html`
+differing only in a hash is byte-identical in size - it skipped all 49 pages once,
+exactly that way.
+
+**Uploads do not go through a hidden temp file.** lftp's default `.in.*` is a
+dotfile and this host refuses to rename hidden files (`550`), which silently drops
+files out of an otherwise successful pass. `xfer:temp-file-name` is a visible
+pattern instead - not `xfer:use-temp-file false`, which would trade an intermittent
+failure for a torn file.
+
 **This used to be `SamKirkland/FTP-Deploy-Action@v4.4.0`, and it is not any more
 because it took the site down.** That action kept a `.ftp-deploy-sync-state.json`
 on the server and transferred only the diff against it. On 2026-08-08 a transfer

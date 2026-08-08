@@ -109,9 +109,18 @@ It exists because on 2026-08-08 ellaz.fun served a blank page for an hour while
 deploys reported success in 90 seconds. `SamKirkland/FTP-Deploy-Action` kept a
 sync ledger **on the server**; a transfer died after the ledger was written; and
 every run since diffed against a file claiming the missing chunks were present,
-so it skipped them forever. The upload is **`lftp mirror`** now - no ledger, and
-two passes with hashed assets before the HTML that names them, so a run that
-dies mid-transfer leaves a stale site rather than a blank one. A status sweep
+so it skipped them forever.
+
+The upload holds no ledger now. `mirror` runs on **`assets/` and nowhere else**,
+where every name carries a content hash so a changed file is a *new file*; the
+other 108 files are **forced**, ordered so the 50 that name hashes go last, and a
+run dying mid-transfer leaves a *stale* site rather than a blank one. The
+invariant is narrower than "no ledgers": **the thing deciding what to send must
+not be able to be wrong about what is already there.** A JSON ledger can be; so
+can a size comparison, which skipped all 49 pages once because Vite hashes are
+fixed length and an HTML file differing only in a hash is byte-identical in size.
+The gate also compares each artifact by **SHA-256**, because an 80%-truncated
+chunk is 200 with a plausible length and a syntax error on import. A status sweep
 over `/`, `/games/snake/`, `/world/` and `/boards/` reported **all 200
 throughout the outage**, because a 200 document whose JS 404s is a blank page.
 [`.claude/rules/a-deploy-ledger-that-can-disagree-with-the-disk.md`](.claude/rules/a-deploy-ledger-that-can-disagree-with-the-disk.md).
