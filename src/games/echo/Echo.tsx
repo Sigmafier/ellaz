@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { GameContext } from "@sdk/index";
-import { Button, Stat } from "@ui/components";
-import { DifficultySelector, type DifficultyOption } from "@ui/DifficultySelector";
+import { GameChrome } from "@ui/GameChrome";
+import { type DifficultyOption } from "@ui/DifficultySelector";
 import { haptic, shake } from "@juice/index";
 import { Prompt, winMoment } from "@shared/index";
 import { IDLE, beginInput, pressPad, startRound, type SeqState } from "@shared/sequence";
@@ -245,32 +245,46 @@ export function Echo({ ctx }: { ctx: GameContext }) {
   const lost = seq.phase === "lost";
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 14,
-        padding: 16,
-      }}
+    <GameChrome
+      ctx={ctx}
+      stats={[
+        { icon: "layers", label: he ? "שלב" : "Round", value: seq.round },
+        { icon: "trophy", label: ctx.t("best"), value: best },
+      ]}
+      levels={LEVEL_OPTIONS}
+      level={levelId}
+      onLevel={chooseLevel}
+      onRestart={startRun}
+      // Echo does not start itself - it waits, because a pattern that begins
+      // playing before the child is looking is a round they have already lost.
+      // So the start button is not decoration and it cannot move into the
+      // chrome's restart: "start" and "start again" read as different things to
+      // a five-year-old, and this one has to be the size of a thumb.
+      footer={
+        idle || lost ? (
+          <button
+            type="button"
+            onClick={startRun}
+            style={{
+              width: "100%",
+              minHeight: 68,
+              border: "none",
+              borderRadius: "var(--radius-2)",
+              background: "var(--brand)",
+              color: "#fff",
+              boxShadow: "var(--shadow-1)",
+              fontFamily: "Fredoka, inherit",
+              fontSize: 22,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            {lost ? `🙂 ${ctx.t("restart")}` : `▶ ${he ? "התחילו" : "Start"}`}
+          </button>
+        ) : undefined
+      }
     >
       <Prompt ctx={ctx} glyph="💡" text={promptFor(seq.phase, seq.round, he)} />
-
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center", maxWidth: "100%" }}>
-        <Stat label={he ? "שלב" : "Round"} value={seq.round} />
-        <Stat label={ctx.t("best")} value={best} />
-        <Button variant="ghost" kids ariaLabel={ctx.t("restart")} onClick={startRun}>
-          🔄
-        </Button>
-      </div>
-
-      <DifficultySelector
-        options={LEVEL_OPTIONS}
-        value={levelId}
-        onChange={chooseLevel}
-        locale={ctx.locale}
-        kids
-      />
 
       {/* dir="ltr": a spatial grid must not mirror in the Hebrew RTL app, or the
           pad the child watched is not the pad under their finger. */}
@@ -282,7 +296,7 @@ export function Echo({ ctx }: { ctx: GameContext }) {
           display: "grid",
           gridTemplateColumns: `repeat(${level.cols}, 1fr)`,
           gap: 14,
-          width: "min(88vw, 56vh, 420px)",
+          width: "min(88vw, 42vh, 420px)",
           touchAction: "none",
         }}
       >
@@ -333,15 +347,6 @@ export function Echo({ ctx }: { ctx: GameContext }) {
           );
         })}
       </div>
-
-      {(idle || lost) && (
-        <div style={{ textAlign: "center", display: "grid", gap: 8, justifyItems: "center" }}>
-          {lost && <div style={{ fontSize: 36 }}>🙂</div>}
-          <Button kids onClick={startRun}>
-            {idle ? "▶" : ctx.t("restart")}
-          </Button>
-        </div>
-      )}
-    </div>
+    </GameChrome>
   );
 }

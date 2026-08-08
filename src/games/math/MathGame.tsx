@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import type { GameContext } from "@sdk/index";
-import { Stat } from "@ui/components";
-import { DifficultySelector, type DifficultyOption } from "@ui/DifficultySelector";
+import { GameChrome } from "@ui/GameChrome";
+import { type DifficultyOption } from "@ui/DifficultySelector";
 import { burst, shake, haptic } from "@juice/index";
 import { winMoment } from "@shared/index";
 import { generateProblem, isCorrect, type MathLevel, type Problem } from "./logic";
@@ -11,13 +11,15 @@ import { generateProblem, isCorrect, type MathLevel, type Problem } from "./logi
 // counting pictures; the number row needs numerals. Both rows are the shared
 // <DifficultySelector> and both drive the same `level` state, so whichever row
 // does not hold the current level simply shows no highlighted button.
-const PRE_LEVEL_OPTIONS: DifficultyOption<MathLevel>[] = [
+// ONE ordered ramp: the three pre-number modes a child plays before they can
+// read a numeral, then the four arithmetic levels. This was two
+// <DifficultySelector> rows, seven pills, because seven do not fit a phone.
+// The chrome's toggle shows only the current one, so the split is gone - and
+// the order is now the actual teaching order rather than two unranked groups.
+const LEVEL_OPTIONS: DifficultyOption<MathLevel>[] = [
   { id: "count", label: { he: "ספירה", en: "Count" } },
   { id: "match", label: { he: "התאמה", en: "Match" } },
   { id: "visual", label: { he: "תמונות", en: "Pictures" } },
-];
-
-const LEVEL_OPTIONS: DifficultyOption<MathLevel>[] = [
   { id: "up5", label: { he: "עד 5", en: "Up to 5" } },
   { id: "up10", label: { he: "עד 10", en: "Up to 10" } },
   { id: "up20", label: { he: "עד 20", en: "Up to 20" } },
@@ -143,29 +145,38 @@ export function MathGame({ ctx }: { ctx: GameContext }) {
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 22, padding: 16 }}>
-      <div style={{ display: "flex", gap: 10 }}>
-        <Stat label={ctx.locale === "he" ? "נקודות" : "Score"} value={score} />
-        <Stat label={ctx.locale === "he" ? "רצף" : "Streak"} value={`${streak} 🔥`} />
-        <Stat label={ctx.t("best")} value={best} />
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-        <DifficultySelector
-          options={PRE_LEVEL_OPTIONS}
-          value={level}
-          onChange={chooseLevel}
-          locale={ctx.locale}
-          kids
-        />
-        <DifficultySelector
-          options={LEVEL_OPTIONS}
-          value={level}
-          onChange={chooseLevel}
-          locale={ctx.locale}
-        />
-      </div>
-
+    <GameChrome
+      ctx={ctx}
+      stats={[
+        { icon: "bolt", label: ctx.locale === "he" ? "נקודות" : "Score", value: score },
+        { icon: "check", label: ctx.locale === "he" ? "רצף" : "Streak", value: `${streak} 🔥` },
+        { icon: "trophy", label: ctx.t("best"), value: best },
+      ]}
+      levels={LEVEL_OPTIONS}
+      level={level}
+      onLevel={chooseLevel}
+      onRestart={() => chooseLevel(level)}
+      footer={
+        <div
+          style={{
+            background: "var(--surface)",
+            borderRadius: "var(--radius-2)",
+            boxShadow: "var(--shadow-1)",
+            padding: "13px 12px",
+            minHeight: 60,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+          }}
+        >
+          <b style={{ fontSize: 17, fontFamily: "Fredoka, inherit" }}>
+            {HINTS[problem.mode][ctx.locale]}{" "}
+            {problem.mode === "arith" ? (level === "mult" ? "✖️" : "➕➖") : problem.glyph}
+          </b>
+        </div>
+      }
+    >
       <div
         ref={cardRef}
         style={{
@@ -270,11 +281,6 @@ export function MathGame({ ctx }: { ctx: GameContext }) {
           );
         })}
       </div>
-
-      <div style={{ color: "var(--text-dim)", fontSize: 14 }}>
-        {HINTS[problem.mode][ctx.locale]}{" "}
-        {problem.mode === "arith" ? (level === "mult" ? "✖️" : "➕➖") : problem.glyph}
-      </div>
-    </div>
+    </GameChrome>
   );
 }

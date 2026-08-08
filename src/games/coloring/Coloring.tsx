@@ -1,9 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import type { GameContext } from "@sdk/index";
-import { Button } from "@ui/components";
+import { GameChrome } from "@ui/GameChrome";
+import { type DifficultyOption } from "@ui/DifficultySelector";
 import { haptic } from "@juice/index";
 import { winMoment } from "@shared/index";
 import { PICTURES, PALETTE } from "./pictures";
+
+// The picture chooser rides the chrome's level toggle, because it is exactly
+// that shape: one card showing the CURRENT picture, each tap advancing to the
+// next. Twelve pictures is past the dot threshold, so the toggle shows "3/12".
+const PICTURE_OPTIONS: DifficultyOption<string>[] = PICTURES.map((p) => ({
+  id: p.id,
+  label: p.name,
+}));
 
 // SVG region-fill coloring. Tap a color, tap a region — the region fills.
 // Live SVG (not canvas) because per-region fill IS the mechanic here.
@@ -46,8 +55,12 @@ export function Coloring({ ctx }: { ctx: GameContext }) {
     ctx.analytics.track("region_filled", { picture: pic.id, region: regionId });
   };
 
-  const nextPicture = () => {
-    const ni = (picIdx + 1) % PICTURES.length;
+  // Takes the picture to GO TO, rather than computing "the next one" itself.
+  // The toggle already decides what next means, and a second copy of that
+  // arithmetic here would be right today and wrong the first time either side
+  // learns to skip, shuffle, or remember where the child left off.
+  const goToPicture = (id: string) => {
+    const ni = Math.max(0, PICTURES.findIndex((p) => p.id === id));
     setPicIdx(ni);
     setFills({});
     ctx.analytics.levelStart(PICTURES[ni].id);
@@ -56,26 +69,60 @@ export function Coloring({ ctx }: { ctx: GameContext }) {
   const clearPage = () => setFills({});
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: 12 }}>
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center", maxWidth: "100%" }}>
-        <Button variant="ghost" kids ariaLabel="clear" onClick={clearPage}>
-          🧽
-        </Button>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", lineHeight: 1.1 }}>
-          <div style={{ fontWeight: 800, fontSize: 20 }}>{pic.name[ctx.locale]}</div>
-          <div style={{ color: "var(--text-dim)", fontSize: 12 }}>
-            {picIdx + 1}/{PICTURES.length}
-          </div>
+    <GameChrome
+      ctx={ctx}
+      // Coloring keeps NO record and never will - ranking a child's drawing is
+      // the opposite of this platform's premise (see score-contract-convention).
+      // So there is no stat row here at all, rather than an empty one.
+      stats={[]}
+      levels={PICTURE_OPTIONS}
+      level={pic.id}
+      onLevel={goToPicture}
+      // Restart = wipe this drawing, not skip to another picture. A child who
+      // wants a clean sheet of the SAME house would otherwise lose the house.
+      onRestart={clearPage}
+      footer={
+        /* auto-fit, NOT a hard `repeat(6, 1fr)`. Every swatch carries a 44px
+           minimum (the tap floor) and aspect-ratio 1, so six of them plus five
+           gaps need 314px - more than a 320px phone has left after the frame's
+           gutters. The old fixed six overflowed and pushed the first column off
+           the left edge, where the frame clipped it: two colours simply
+           unreachable, and only on the smallest screens. auto-fit drops to a
+           second row instead of shrinking below the tap floor. */
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(44px, 1fr))",
+            gap: 10,
+            width: "100%",
+          }}
+        >
+          {PALETTE.map((c) => (
+            <button
+              key={c}
+              aria-label={`color ${c}`}
+              aria-pressed={color === c}
+              onClick={() => {
+                setColor(c);
+                ctx.audio.play("tap");
+              }}
+              style={{
+                aspectRatio: "1",
+                minHeight: 44,
+                borderRadius: 12,
+                border: color === c ? "4px solid var(--text)" : "2px solid rgba(255,255,255,0.25)",
+                background: c,
+                boxShadow: "var(--shadow-1)",
+              }}
+            />
+          ))}
         </div>
-        <Button variant="ghost" kids ariaLabel="next picture" onClick={nextPicture}>
-          ➡
-        </Button>
-      </div>
-
+      }
+    >
       <div
         className="ellaz-play-surface"
         style={{
-          width: "min(88vw, 58vh, 380px)",
+          width: "min(88vw, 44vh, 380px)",
           aspectRatio: "1",
           background: "#fff",
           borderRadius: 18,
@@ -111,36 +158,6 @@ export function Coloring({ ctx }: { ctx: GameContext }) {
         </svg>
       </div>
 
-      {/* Color palette — big swatches, tap to select. */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(6, 1fr)",
-          gap: 10,
-          width: "min(88vw, 380px)",
-        }}
-      >
-        {PALETTE.map((c) => (
-          <button
-            key={c}
-            aria-label={`color ${c}`}
-            aria-pressed={color === c}
-            onClick={() => {
-              setColor(c);
-              ctx.audio.play("tap");
-            }}
-            style={{
-              aspectRatio: "1",
-              minHeight: 44,
-              borderRadius: 12,
-              border: color === c ? "4px solid var(--text)" : "2px solid rgba(255,255,255,0.25)",
-              background: c,
-              boxShadow: "var(--shadow-1)",
-            }}
-          />
-        ))}
-      </div>
-      <div style={{ color: "var(--text-dim)", fontSize: 13 }}>{ctx.t("pickColor")} 🎨</div>
-    </div>
+    </GameChrome>
   );
 }

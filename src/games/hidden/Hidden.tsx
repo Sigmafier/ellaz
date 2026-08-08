@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState, useEffect, type PointerEvent as ReactPointerEvent } from "react";
 import type { GameContext } from "@sdk/index";
-import { Button, Stat } from "@ui/components";
-import { DifficultySelector, type DifficultyOption } from "@ui/DifficultySelector";
+import { GameChrome } from "@ui/GameChrome";
+import { type DifficultyOption } from "@ui/DifficultySelector";
 import { burst, shake, haptic } from "@juice/index";
 import { shuffle, winMoment } from "@shared/index";
 import { newGame, tapObject, isWon, targetIcons, type HiddenState } from "./logic";
@@ -126,53 +126,64 @@ export function Hidden({ ctx }: { ctx: GameContext }) {
 
   const targets = targetIcons(state);
 
+  const foundCount = targets.filter((t) => t.found).length;
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: 12 }}>
-      {/* Level indicator + difficulty selector */}
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center", maxWidth: "100%" }}>
-        <Stat label={ctx.locale === "he" ? "שלב" : "Level"} value={round} />
-        <Stat label={ctx.t("best")} value={best ?? "-"} />
-        <DifficultySelector
-          options={DIFF_OPTIONS}
-          value={difficulty}
-          onChange={changeDifficulty}
-          locale={ctx.locale}
-          kids
-        />
-      </div>
-
-      {/* Target strip: the characters to find */}
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center", maxWidth: "100%" }}>
-        <span style={{ color: "var(--text-dim)", fontSize: 14 }}>
-          {ctx.locale === "he" ? "מצאו:" : "Find:"}
-        </span>
-        {targets.map((t) => (
-          <div
-            key={t.id}
-            style={{
-              width: 52,
-              height: 52,
-              display: "grid",
-              placeItems: "center",
-              fontSize: 30,
-              borderRadius: 12,
-              background: t.found ? "linear-gradient(180deg,#55efc4,#00cec9)" : "var(--surface)",
-              opacity: t.found ? 0.6 : 1,
-              boxShadow: "var(--shadow-1)",
-              position: "relative",
-            }}
-          >
-            {t.icon}
-            {t.found && (
-              <span style={{ position: "absolute", right: 2, top: 0, fontSize: 16 }}>✅</span>
-            )}
-          </div>
-        ))}
-        <Button variant="ghost" kids ariaLabel="new layout" onClick={reshuffle}>
-          🔄
-        </Button>
-      </div>
-
+    <GameChrome
+      ctx={ctx}
+      stats={[
+        { icon: "layers", label: ctx.locale === "he" ? "שלב" : "Level", value: round },
+        { icon: "check", label: ctx.locale === "he" ? "נמצאו" : "Found", value: `${foundCount}/${targets.length}`, ltr: true },
+        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+      ]}
+      levels={DIFF_OPTIONS}
+      level={difficulty}
+      onLevel={changeDifficulty}
+      onRestart={reshuffle}
+      // The target strip IS the question, and it has to stay readable while the
+      // child is scanning the crowd - so it sits under the scene rather than
+      // above it, where a thumb holding the tablet does not cover it.
+      footer={
+        <div
+          style={{
+            background: "var(--surface)",
+            borderRadius: "var(--radius-2)",
+            boxShadow: "var(--shadow-1)",
+            padding: "10px 12px",
+            minHeight: 76,
+            display: "flex",
+            gap: 10,
+            alignItems: "center",
+            justifyContent: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          <span style={{ color: "var(--text-dim)", fontSize: 13, fontWeight: 800 }}>
+            {ctx.locale === "he" ? "מצאו:" : "Find:"}
+          </span>
+          {targets.map((t) => (
+            <div
+              key={t.id}
+              style={{
+                width: 52,
+                height: 52,
+                display: "grid",
+                placeItems: "center",
+                fontSize: 30,
+                borderRadius: 12,
+                background: t.found ? "linear-gradient(180deg,#55efc4,#00cec9)" : "var(--surface-2)",
+                opacity: t.found ? 0.6 : 1,
+                position: "relative",
+              }}
+            >
+              {t.icon}
+              {t.found && (
+                <span style={{ position: "absolute", right: 2, top: 0, fontSize: 16 }}>✅</span>
+              )}
+            </div>
+          ))}
+        </div>
+      }
+    >
       {/* The crowd */}
       <div
         ref={sceneRef}
@@ -221,11 +232,7 @@ export function Hidden({ ctx }: { ctx: GameContext }) {
             {ctx.locale === "he" ? `שלב ${round} הושלם! ממשיכים…` : `Level ${round} done! Next up…`}
           </div>
         </div>
-      ) : (
-        <div style={{ color: "var(--text-dim)", fontSize: 13 }}>
-          {ctx.locale === "he" ? "איפה הם מתחבאים? 👀" : "Where are they hiding? 👀"}
-        </div>
-      )}
-    </div>
+      ) : null}
+    </GameChrome>
   );
 }

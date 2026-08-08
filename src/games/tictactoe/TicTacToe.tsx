@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { GameContext } from "@sdk/index";
-import { Button, Stat } from "@ui/components";
-import { DifficultySelector, type DifficultyOption } from "@ui/DifficultySelector";
+import { GameChrome } from "@ui/GameChrome";
+import { type DifficultyOption } from "@ui/DifficultySelector";
 import { burst, shake, haptic } from "@juice/index";
 import { winMoment } from "@shared/index";
 import { emptyBoard, winner, isDraw, place, chooseMove, type Board, type Difficulty } from "./logic";
@@ -149,32 +149,49 @@ export function TicTacToe({ ctx }: { ctx: GameContext }) {
         ? "התור שלך"
         : "Your turn";
 
+  const he = ctx.locale === "he";
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 18, padding: 16 }}>
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center", maxWidth: "100%" }}>
-        <Stat label={ctx.locale === "he" ? "מצב" : "Status"} value={status} />
-        <Button variant="ghost" onClick={reset}>
-          {ctx.t("restart")}
-        </Button>
-      </div>
-
-      <DifficultySelector
-        options={DIFF_OPTIONS}
-        value={difficulty}
-        onChange={changeDifficulty}
-        locale={ctx.locale}
-      />
-
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center", maxWidth: "100%" }}>
-        <Stat label={ctx.locale === "he" ? "ניצחונות" : "Wins"} value={score.wins} />
-        <Stat label={ctx.locale === "he" ? "הפסדים" : "Losses"} value={score.losses} />
-        <Stat label={ctx.locale === "he" ? "תיקו" : "Draws"} value={score.draws} />
-        <Stat label={ctx.t("best")} value={best ?? "-"} />
-      </div>
-
+    <GameChrome
+      ctx={ctx}
+      stats={[
+        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+        { icon: "star", label: he ? "ניצחונות" : "Wins", value: score.wins },
+        { icon: "draw", label: he ? "תיקו" : "Draws", value: score.draws },
+      ]}
+      levels={DIFF_OPTIONS}
+      level={difficulty}
+      onLevel={changeDifficulty}
+      onRestart={reset}
+      // The footer is this game's own area. tictactoe has no secondary controls
+      // to put there - so it says the one thing a player actually wants, at a
+      // size a five-year-old can read across a room. See GameChrome's note on
+      // why that region exists and why leaving it empty is the worse option.
+      footer={
+        <div
+          style={{
+            background: "var(--surface)",
+            borderRadius: "var(--radius-2)",
+            boxShadow: "var(--shadow-1)",
+            padding: "15px 12px",
+            minHeight: 98,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 5,
+            textAlign: "center",
+          }}
+        >
+          <b style={{ fontSize: 25, fontFamily: "Fredoka, inherit" }}>{status}</b>
+          <span style={{ fontSize: 13.5, color: "var(--text-dim)" }}>
+            {he ? "שלושה ברצף מנצחים" : "Three in a row wins"}
+          </span>
+        </div>
+      }
+    >
       <div
         ref={boardRef}
-        className="ellaz-play-surface"
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(3, 1fr)",
@@ -182,7 +199,7 @@ export function TicTacToe({ ctx }: { ctx: GameContext }) {
           // its row taller than the empty rows and the square board deforms
           gridTemplateRows: "repeat(3, 1fr)",
           gap: 10,
-          width: "min(84vw, 62vh, 360px)",
+          width: "min(88vw, 46vh, 420px)",
           aspectRatio: "1",
         }}
       >
@@ -217,13 +234,6 @@ export function TicTacToe({ ctx }: { ctx: GameContext }) {
           );
         })}
       </div>
-
-      {done && (
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 40 }}>{win?.player === "X" ? "🎉" : win ? "🤖" : "🤝"}</div>
-          <Button onClick={reset}>{ctx.t("restart")}</Button>
-        </div>
-      )}
-    </div>
+    </GameChrome>
   );
 }

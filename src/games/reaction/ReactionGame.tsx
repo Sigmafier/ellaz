@@ -9,7 +9,8 @@ import {
   type ReactElement,
 } from "react";
 import type { GameContext } from "@sdk/index";
-import { Button, DifficultySelector, Stat, type DifficultyOption } from "@ui/index";
+import { type DifficultyOption } from "@ui/index";
+import { GameChrome } from "@ui/GameChrome";
 import { burst, haptic, shake } from "@juice/index";
 import { Prompt, useGameTimer, winMoment } from "@shared/index";
 import {
@@ -84,7 +85,13 @@ const DIFF_OPTIONS: DifficultyOption<Difficulty>[] = [
  * is 192px across — the lit lamp alone clears the 64px minimum several times
  * over, and the whole housing is the tap target.
  */
-const LIGHT_W = "min(60vw, 30vh, 240px)";
+// Sized DOWN from min(60vw, 30vh, 240px) on 2026-08-08. This is the tallest
+// element in the tallest game: at 320x568 the old value made the page 726px
+// natural, `fitStage` scaled it to 0.76, and a 56px chrome button landed on the
+// glass at 42px - under the 44px WCAG floor. A scale multiplies straight
+// through every tap target on the screen, so height is an ACCESSIBILITY budget
+// here, not a taste one.
+const LIGHT_W = "min(56vw, 24vh, 230px)";
 
 /**
  * How long the result screen is protected from the tap that produced it. A child
@@ -411,8 +418,72 @@ export function ReactionGame({ ctx }: { ctx: GameContext }): ReactElement {
         : say("רמזור, לחצו כדי להתחיל", "traffic light, tap to start");
 
   return (
-    <div
-      style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: 12 }}
+    <GameChrome
+      ctx={ctx}
+      stats={[
+        // Numbers stay LTR inside the Hebrew app - "0.41" must not mirror.
+        { icon: "clock", label: say("זמן", "Time"), value: measured ? seconds(attempt.reactionMs) : "-", ltr: true },
+        { icon: "trophy", label: say("שיא", "Best"), value: best > 0 ? seconds(best) : "-", ltr: true },
+      ]}
+      levels={DIFF_OPTIONS}
+      level={difficulty}
+      onLevel={changeDifficulty}
+      onRestart={startAttempt}
+      // The caption is the whole conversation this game has with the player -
+      // "wait", "go!", "0.41 seconds". It belongs under the light, at a size
+      // that can be read while looking at the light rather than at the words.
+      footer={
+        <div
+          style={{
+            background: "var(--surface)",
+            borderRadius: "var(--radius-2)",
+            boxShadow: "var(--shadow-1)",
+            padding: "12px 14px",
+            minHeight: 76,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            textAlign: "center",
+          }}
+        >
+          <b style={{ fontSize: 19, fontFamily: "Fredoka, inherit" }}>{caption}</b>
+          {/* The start / play-again button lives HERE rather than under the
+              light. It used to be its own row, which cost ~76px of height on a
+              screen that is already the tallest in the roster - and that height
+              is what `fitStage` pays for by shrinking every tap target on the
+              page, including this button. */}
+          {done || attempt.phase === "ready" ? (
+            <button
+              type="button"
+              aria-label={done ? "play again" : "start"}
+              onClick={startAttempt}
+              style={{
+                minWidth: 160,
+                minHeight: 52,
+                border: "none",
+                borderRadius: "var(--radius-2)",
+                background: "var(--brand)",
+                color: "#fff",
+                fontFamily: "Fredoka, inherit",
+                fontSize: 20,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              {done ? say("שוב! 🔄", "Again! 🔄") : say("יאללה! ▶", "Go! ▶")}
+            </button>
+          ) : null}
+          {/* No tally and no count: a number next to "early" reads as a score,
+              and jumping the gun is explicitly not one. */}
+          {attempt.earlyTaps > 0 && attempt.phase !== "ready" ? (
+            <span style={{ fontSize: 13, opacity: 0.75 }} dir="auto">
+              {say("יצאתם קצת מוקדם, וזה לגמרי בסדר 🙂", "You went a little early, and that is fine 🙂")}
+            </span>
+          ) : null}
+        </div>
+      }
     >
       <Prompt
         ctx={ctx}
@@ -424,30 +495,6 @@ export function ReactionGame({ ctx }: { ctx: GameContext }): ReactElement {
             : "Wait for the green light. When it lights up, tap fast"
         }
       />
-
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          alignItems: "center",
-          flexWrap: "wrap",
-          justifyContent: "center",
-        }}
-      >
-        {/* Numbers stay LTR inside the Hebrew app — "0.41" must not mirror. */}
-        <Stat
-          label={say("זמן", "Time")}
-          value={<span dir="ltr">{measured ? seconds(attempt.reactionMs) : "-"}</span>}
-        />
-        <Stat label={say("שיא", "Best")} value={<span dir="ltr">{best > 0 ? seconds(best) : "-"}</span>} />
-        <DifficultySelector
-          options={DIFF_OPTIONS}
-          value={difficulty}
-          onChange={changeDifficulty}
-          locale={ctx.locale}
-          kids
-        />
-      </div>
 
       <div
         ref={lightRef}
@@ -477,25 +524,6 @@ export function ReactionGame({ ctx }: { ctx: GameContext }): ReactElement {
         <TrafficLight live={live} dim={attempt.phase === "ready" || attempt.phase === "result"} />
       </div>
 
-      <div
-        style={{ fontSize: 20, fontWeight: 800, textAlign: "center", minHeight: 30, maxWidth: "92vw" }}
-      >
-        {caption}
-      </div>
-
-      {done || attempt.phase === "ready" ? (
-        <Button kids ariaLabel={done ? "play again" : "start"} onClick={startAttempt}>
-          {done ? say("שוב! 🔄", "Again! 🔄") : say("יאללה! ▶", "Go! ▶")}
-        </Button>
-      ) : null}
-
-      {/* No tally and no count: a number next to "early" reads as a score, and
-          jumping the gun is explicitly not one. */}
-      {attempt.earlyTaps > 0 && attempt.phase !== "ready" ? (
-        <div style={{ fontSize: 14, opacity: 0.75 }} dir="auto">
-          {say("יצאתם קצת מוקדם, וזה לגמרי בסדר 🙂", "You went a little early, and that is fine 🙂")}
-        </div>
-      ) : null}
-    </div>
+    </GameChrome>
   );
 }

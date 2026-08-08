@@ -89,6 +89,17 @@ jobs:
           # neither the FTP IP nor ftp.ellaz.fun — strict verification fails the
           # handshake outright. Verified 2026-08-02 by reading the served cert.
           security: loose
+          # 120s, not the 30s default. Both failures on 2026-08-08 read
+          # "Error: Timeout (control socket)" at 30.2s and 30.3s - the default
+          # to the millisecond, i.e. Hostinger's FTP being slow to answer, not
+          # a credential or protocol problem.
+          #
+          # This matters more than a red run: FTP-Deploy-Action syncs file by
+          # file, so a mid-transfer timeout leaves the site PARTIALLY updated -
+          # observed live, with the new share cards present beside the old
+          # sitemap. A partial deploy is worse than a failed one, because every
+          # individual file looks correct.
+          timeout: 120000
           local-dir: ./dist/
           # "./", NOT "public_html/". The FTP account is chrooted to
           # /home/<id>/domains/ellaz.fun/public_html, so its root already IS the

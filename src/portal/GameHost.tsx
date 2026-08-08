@@ -101,9 +101,15 @@ export function GameHost({
   }, [gameId, locale, onExit]);
 
   const onPage = variant === "page";
+  // A game that renders its own <GameChrome> already offers back, restart and
+  // sound. Drawing the host bar as well puts two mute buttons in one viewport,
+  // which reads as a bug rather than as emphasis - and on the app variant it
+  // would also stack two ways home.
+  const ownsChrome = findEntry(gameId)?.meta.ownsChrome === true;
 
   return (
     <div style={{ position: "relative", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+      {!ownsChrome && (
       <div
         style={{
           display: "flex",
@@ -135,6 +141,7 @@ export function GameHost({
           {muted ? "🔇" : "🔊"}
         </IconButton>
       </div>
+      )}
 
       <div
         ref={mountRef}

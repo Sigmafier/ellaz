@@ -6,7 +6,8 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import type { GameContext } from "@sdk/index";
-import { Button, DifficultySelector, Stat, type DifficultyOption } from "@ui/index";
+import { type DifficultyOption } from "@ui/index";
+import { GameChrome } from "@ui/GameChrome";
 import { burst, haptic, shake } from "@juice/index";
 import {
   PLAY_SURFACE_STYLE,
@@ -308,8 +309,44 @@ export function BubblesGame({ ctx }: { ctx: GameContext }) {
   }
 
   return (
-    <div
-      style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: 12 }}
+    <GameChrome
+      ctx={ctx}
+      stats={[
+        { icon: "layers", label: he ? "שלב" : "Level", value: level },
+        { icon: "check", label: he ? "נתפסו" : "Caught", value: `${round.caught}/${round.needed}`, ltr: true },
+        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+      ]}
+      levels={DIFF_OPTIONS}
+      level={difficulty}
+      onLevel={changeDifficulty}
+      onRestart={() => startRound(difficulty, round.target)}
+      // The target letter used to be a fourth stat cell, at 30px, squeezed
+      // between three others. It is not a statistic - it is THE QUESTION, and a
+      // four-cell row on a 320px phone gives each cell 68px to hold an icon, a
+      // label and a value. In the footer it gets the whole width and can be as
+      // large as a child needs it to be.
+      footer={
+        <div
+          style={{
+            background: "var(--surface)",
+            borderRadius: "var(--radius-2)",
+            boxShadow: "var(--shadow-1)",
+            padding: "10px 14px",
+            minHeight: 76,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 14,
+          }}
+        >
+          <span style={{ fontSize: 12, fontWeight: 800, color: "var(--text-dim)" }}>
+            {he ? "תפסו" : "Catch"}
+          </span>
+          <span style={{ fontSize: 46, lineHeight: 1, fontFamily: "Fredoka, inherit", fontWeight: 700 }}>
+            {round.target}
+          </span>
+        </div>
+      }
     >
       <BubbleDefs />
 
@@ -324,59 +361,6 @@ export function BubblesGame({ ctx }: { ctx: GameContext }) {
         text={he ? `תפסו את ${round.target}` : `Catch the ${round.target}`}
         speak={round.target}
       />
-
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          alignItems: "center",
-          flexWrap: "wrap",
-          justifyContent: "center",
-        }}
-      >
-        <Stat
-          label={he ? "תפסו" : "Catch"}
-          value={<span style={{ fontSize: 30, lineHeight: 1 }}>{round.target}</span>}
-        />
-        <Stat label={he ? "שלב" : "Level"} value={level} />
-        <Stat label={ctx.t("best")} value={best ?? "-"} />
-        <Stat
-          label={he ? "נתפסו" : "Caught"}
-          // dir="ltr": a count reads left-to-right in both languages.
-          value={
-            <span dir="ltr">
-              {round.caught}/{round.needed}
-            </span>
-          }
-        />
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          alignItems: "center",
-          flexWrap: "wrap",
-          justifyContent: "center",
-        }}
-      >
-        <DifficultySelector
-          options={DIFF_OPTIONS}
-          value={difficulty}
-          onChange={changeDifficulty}
-          locale={ctx.locale}
-          kids
-        />
-        {/* Instant restart, no reading required. */}
-        <Button
-          variant="ghost"
-          kids
-          ariaLabel={he ? "אות חדשה" : "new target"}
-          onClick={() => startRound(difficulty, round.target)}
-        >
-          🔄
-        </Button>
-      </div>
 
       {/* dir="ltr" because this surface is SPATIAL: lanes are placed by `left`,
           and the app is Hebrew-RTL by default. Pinning it keeps lane 0 on the
@@ -448,10 +432,6 @@ export function BubblesGame({ ctx }: { ctx: GameContext }) {
           </button>
         ))}
       </div>
-
-      <div style={{ color: "var(--text-dim)", fontSize: 13, textAlign: "center" }}>
-        {he ? "טעות? הבועה רק מתנדנדת. אין מה להפסיד 🫧" : "Wrong one? It just wobbles. Nothing to lose 🫧"}
-      </div>
-    </div>
+    </GameChrome>
   );
 }

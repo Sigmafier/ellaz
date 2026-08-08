@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState, useEffect, type PointerEvent as ReactPointerEvent } from "react";
 import type { GameContext, RewardTier } from "@sdk/index";
-import { Button, Stat } from "@ui/components";
+import { GameChrome } from "@ui/GameChrome";
 import { burst, shake, haptic } from "@juice/index";
 import { winMoment } from "@shared/index";
 import { newGame, tapAt, isWon, remaining, type FindState } from "./logic";
@@ -110,18 +110,67 @@ export function FindDiff({ ctx }: { ctx: GameContext }) {
   const rightSvg = scene.base + scene.diffs.map((d) => d.right).join("") + markers;
 
   return (
-    <div ref={wrapRef} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: 12 }}>
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center", maxWidth: "100%" }}>
-        <Stat label={ctx.locale === "he" ? "שלב" : "Level"} value={level} />
-        <Stat label={ctx.locale === "he" ? "נותרו" : "Left"} value={remaining(state)} />
-        <Stat label={ctx.t("best")} value={best ?? "-"} />
-        <div style={{ fontWeight: 800 }}>{scene.name[ctx.locale]}</div>
-        <Button variant="ghost" kids ariaLabel="restart" onClick={() => reset()}>
-          🔄
-        </Button>
-      </div>
-
+    <GameChrome
+      ctx={ctx}
+      stats={[
+        { icon: "layers", label: ctx.locale === "he" ? "שלב" : "Level", value: level },
+        { icon: "check", label: ctx.locale === "he" ? "נותרו" : "Left", value: remaining(state) },
+        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+      ]}
+      // finddiff has no difficulty - it is one endless ladder of scenes, so the
+      // toggle is simply absent rather than showing a single dead option.
+      onRestart={() => reset()}
+      footer={
+        won ? (
+          <button
+            type="button"
+            onClick={advance}
+            style={{
+              width: "100%",
+              minHeight: 68,
+              border: "none",
+              borderRadius: "var(--radius-2)",
+              background: "var(--brand)",
+              color: "#fff",
+              boxShadow: "var(--shadow-1)",
+              fontFamily: "Fredoka, inherit",
+              fontSize: 22,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            🎉 {ctx.locale === "he" ? "הבא" : "Next"} ▶
+          </button>
+        ) : (
+          <div
+            style={{
+              background: "var(--surface)",
+              borderRadius: "var(--radius-2)",
+              boxShadow: "var(--shadow-1)",
+              padding: "13px 12px",
+              minHeight: 60,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 2,
+              textAlign: "center",
+            }}
+          >
+            <b style={{ fontSize: 17, fontFamily: "Fredoka, inherit" }}>{scene.name[ctx.locale]}</b>
+            <span style={{ color: "var(--text-dim)", fontSize: 13 }}>
+              {ctx.locale === "he" ? "מצאו את ההבדלים 🔍" : "Find the differences 🔍"}
+            </span>
+          </div>
+        )
+      }
+    >
+      {/* wrapRef lives HERE, on the picture pair, because that is what shakes on
+          a wrong tap. It used to sit on the outer wrapper this component no
+          longer owns - and an unattached ref shakes nothing while the guard
+          around it (`if (wrapRef.current)`) keeps every test green. */}
       <div
+        ref={wrapRef}
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
@@ -148,19 +197,6 @@ export function FindDiff({ ctx }: { ctx: GameContext }) {
           />
         ))}
       </div>
-
-      {won ? (
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 40 }}>🎉</div>
-          <Button kids onClick={advance}>
-            ▶
-          </Button>
-        </div>
-      ) : (
-        <div style={{ color: "var(--text-dim)", fontSize: 13 }}>
-          {ctx.locale === "he" ? "מצאו את ההבדלים 🔍" : "Find the differences 🔍"}
-        </div>
-      )}
-    </div>
+    </GameChrome>
   );
 }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { GameContext } from "@sdk/index";
-import { Button, Stat } from "@ui/components";
-import { DifficultySelector, type DifficultyOption } from "@ui/DifficultySelector";
+import { GameChrome } from "@ui/GameChrome";
+import { type DifficultyOption } from "@ui/DifficultySelector";
 import { burst, haptic } from "@juice/index";
 import { winMoment } from "@shared/index";
 import { newGame, flip, resolveMismatch, isWon, type MemoryState } from "./logic";
@@ -112,28 +112,55 @@ export function Memory({ ctx }: { ctx: GameContext }) {
   );
 
   const cols = LEVELS[levelIdx].cols;
+  const he = ctx.locale === "he";
+  const nextSet = (setIdx + 1) % FACE_SETS.length;
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: 16 }}>
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center", maxWidth: "100%" }}>
-        <Stat label={ctx.t("pairs")} value={`${state.matchedPairs}/${state.totalPairs}`} />
-        <Stat label={ctx.t("moves")} value={state.moves} />
-        <Stat label={ctx.t("best")} value={best ?? "-"} />
-        <Button variant="ghost" kids onClick={() => reset()}>
-          🔄
-        </Button>
-        <Button variant="ghost" kids ariaLabel="next set" onClick={() => reset({ set: (setIdx + 1) % FACE_SETS.length })}>
-          🎨
-        </Button>
-      </div>
-
-      <DifficultySelector
-        options={LEVEL_OPTIONS}
-        value={LEVELS[levelIdx].id}
-        onChange={(id) => reset({ level: LEVEL_OPTIONS.findIndex((o) => o.id === id) })}
-        locale={ctx.locale}
-        kids
-      />
-
+    <GameChrome
+      ctx={ctx}
+      stats={[
+        { icon: "cards", label: ctx.t("pairs"), value: `${state.matchedPairs}/${state.totalPairs}`, ltr: true },
+        { icon: "moves", label: ctx.t("moves"), value: state.moves },
+        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+      ]}
+      levels={LEVEL_OPTIONS}
+      level={LEVELS[levelIdx].id}
+      onLevel={(id) => reset({ level: LEVEL_OPTIONS.findIndex((o) => o.id === id) })}
+      onRestart={() => reset()}
+      // The theme switcher, which used to be a bare 🎨 in the stat row where
+      // nothing said what it did. It shows the faces it is about to deal, so a
+      // child who cannot read still knows what the button gives them.
+      footer={
+        <button
+          type="button"
+          aria-label="next set"
+          onClick={() => reset({ set: nextSet })}
+          style={{
+            width: "100%",
+            border: "none",
+            borderRadius: "var(--radius-2)",
+            background: "var(--surface)",
+            boxShadow: "var(--shadow-1)",
+            color: "var(--text)",
+            fontFamily: "inherit",
+            padding: "12px 14px",
+            minHeight: 68,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 12,
+            cursor: "pointer",
+          }}
+        >
+          <span style={{ fontSize: 15, fontWeight: 800 }}>
+            {won ? `${ctx.t("youWon")} · ` : ""}
+            {he ? "ערכה חדשה" : "New set"}
+          </span>
+          <span style={{ fontSize: 26, letterSpacing: 2, lineHeight: 1 }}>
+            {FACE_SETS[nextSet].slice(0, 3).join("")}
+          </span>
+        </button>
+      }
+    >
       <div
         ref={gridRef}
         style={{
@@ -141,7 +168,7 @@ export function Memory({ ctx }: { ctx: GameContext }) {
           gridTemplateColumns: `repeat(${cols}, 1fr)`,
           gap: 12,
           // cap by height too so the grid fits landscape without scrolling
-          width: "min(92vw, 72vh, 460px)",
+          width: "min(92vw, 56vh, 460px)",
         }}
       >
         {state.cards.map((card, i) => {
@@ -177,16 +204,6 @@ export function Memory({ ctx }: { ctx: GameContext }) {
           );
         })}
       </div>
-
-      {won && (
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 44 }}>🎉</div>
-          <h2>{ctx.t("youWon")}</h2>
-          <Button kids onClick={() => reset({ set: (setIdx + 1) % FACE_SETS.length })}>
-            ▶
-          </Button>
-        </div>
-      )}
-    </div>
+    </GameChrome>
   );
 }

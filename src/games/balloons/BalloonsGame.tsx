@@ -9,7 +9,8 @@ import {
   type ReactElement,
 } from "react";
 import type { GameContext } from "@sdk/index";
-import { Button, DifficultySelector, Stat, type DifficultyOption } from "@ui/index";
+import { type DifficultyOption } from "@ui/index";
+import { GameChrome } from "@ui/GameChrome";
 import { burst, haptic, shake } from "@juice/index";
 import {
   PLAY_SURFACE_STYLE,
@@ -470,8 +471,42 @@ export function BalloonsGame({ ctx }: { ctx: GameContext }): ReactElement {
   const ask = he ? `פוצצו בלונים ${target.he}` : `Pop the ${target.en} balloons`;
 
   return (
-    <div
-      style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: 12 }}
+    <GameChrome
+      ctx={ctx}
+      stats={[
+        { icon: "layers", label: he ? "שלב" : "Level", value: level },
+        { icon: "check", label: he ? "פוצצתם" : "Popped", value: `${popped}/${round.goal}`, ltr: true },
+        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+      ]}
+      levels={DIFF_OPTIONS}
+      level={difficulty}
+      onLevel={changeDifficulty}
+      onRestart={() => startRound(difficulty, targetRef.current)}
+      footer={
+        <div
+          style={{
+            background: "var(--surface)",
+            borderRadius: "var(--radius-2)",
+            boxShadow: "var(--shadow-1)",
+            padding: "13px 12px",
+            minHeight: 60,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+          }}
+        >
+          <b style={{ fontSize: 17, fontFamily: "Fredoka, inherit" }}>
+            {phase === "cheer"
+              ? he
+                ? `🎉 כל הכבוד! ממשיכים לשלב ${level + 1}…`
+                : `🎉 Great! On to level ${level + 1}…`
+              : he
+                ? "טעות? הבלון רק יתנדנד 🎈"
+                : "Wrong one? It just wobbles 🎈"}
+          </b>
+        </div>
+      }
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         {/* The target, drawn full-size beside the words: the colour-blind and
@@ -480,35 +515,6 @@ export function BalloonsGame({ ctx }: { ctx: GameContext }): ReactElement {
           <BalloonArt color={target} />
         </div>
         <Prompt ctx={ctx} text={ask} />
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          alignItems: "center",
-          flexWrap: "wrap",
-          justifyContent: "center",
-        }}
-      >
-        <Stat label={he ? "שלב" : "Level"} value={level} />
-        <Stat label={ctx.t("best")} value={best ?? "-"} />
-        <Stat label={he ? "פוצצתם" : "Popped"} value={`${popped}/${round.goal}`} />
-        <DifficultySelector
-          options={DIFF_OPTIONS}
-          value={difficulty}
-          onChange={changeDifficulty}
-          locale={ctx.locale}
-          kids
-        />
-        <Button
-          variant="ghost"
-          kids
-          ariaLabel="new round"
-          onClick={() => startRound(difficulty, targetRef.current)}
-        >
-          🔄
-        </Button>
       </div>
 
       {/* `dir="ltr"`: the lanes are SPATIAL, and the app is Hebrew-RTL by
@@ -592,16 +598,6 @@ export function BalloonsGame({ ctx }: { ctx: GameContext }): ReactElement {
           </button>
         ))}
       </div>
-
-      <div style={{ color: "var(--text-dim)", fontSize: 13, textAlign: "center" }}>
-        {phase === "cheer"
-          ? he
-            ? `כל הכבוד! ממשיכים לשלב ${level + 1}…`
-            : `Great! On to level ${level + 1}…`
-          : he
-            ? "טעות? הבלון רק יתנדנד 🎈"
-            : "Wrong one? It just wobbles 🎈"}
-      </div>
-    </div>
+    </GameChrome>
   );
 }

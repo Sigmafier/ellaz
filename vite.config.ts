@@ -272,6 +272,15 @@ export default defineConfig({
           // correct, and buying nothing. `assert-first-visit.mjs` caught it.
           if (path.includes("/src/portal/")) return "shell";
 
+          // The game chrome and its icon set. They live under `src/ui/`, so the
+          // catch-all below would claim them for the shell - and they are used
+          // by all 21 games and by NOTHING on the home screen, so every child
+          // would download the game header before choosing a game. Same trap as
+          // `Boards.tsx` above, one directory over. The game chunks that import
+          // them are only ever loaded on a page that has already fetched
+          // `page-*`, so this costs no extra request.
+          if (/\/src\/ui\/(GameChrome|icons)\.tsx$/.test(path)) return "page";
+
           // Shared app code, imported by BOTH the shell and the games. Pin it to
           // the shell side explicitly: left unassigned, Rollup folds it into
           // whichever game chunk claims it first (measured — it chose game-memory,

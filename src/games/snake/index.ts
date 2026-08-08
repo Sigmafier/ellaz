@@ -1,38 +1,14 @@
-import Phaser from "phaser";
-import type { GameContext, GameModule } from "@sdk/index";
+import { createElement } from "react";
+import { reactGame } from "../reactHost";
 import { meta } from "./meta";
-import { SnakeScene } from "./SnakeScene";
+import { SnakeGame } from "./SnakeGame";
 
-// Phaser-backed GameModule. Boots a Phaser.Game into ctx.mount and tears it down
-// on unmount. Phaser lives in a shared vendor chunk (see vite.config manualChunks)
-// so it is downloaded once and cached across every Phaser game.
-
-let game: Phaser.Game | null = null;
-
-const module: GameModule = {
-  meta,
-  async mount(ctx: GameContext) {
-    ctx.lifecycle.loadingStart();
-    const size = Math.min(ctx.mount.clientWidth || 360, 460);
-    game = new Phaser.Game({
-      type: Phaser.AUTO,
-      parent: ctx.mount,
-      width: size,
-      height: size,
-      backgroundColor: "#0f1226",
-      scale: {
-        mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH,
-      },
-      scene: SnakeScene,
-    });
-    game.scene.start("snake", { ctx });
-    ctx.lifecycle.loadingFinished();
-  },
-  unmount() {
-    game?.destroy(true);
-    game = null;
-  },
-};
-
-export default module;
+// Snake is a React game that HOSTS a Phaser canvas, rather than a bare Phaser
+// GameModule. That is what lets it wear the same <GameChrome> as the other
+// twenty - back, restart, sound, the stat row and the speed toggle - instead of
+// drawing its own score in a canvas corner and hiding its speed picker on the
+// ready screen.
+//
+// Phaser itself is still lazy: SnakeGame imports it inside an effect, so the
+// engine is downloaded when this game mounts and never on a first visit.
+export default reactGame(meta, (ctx) => createElement(SnakeGame, { ctx }));

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { GameContext, RewardTier } from "@sdk/index";
 import type { Locale } from "@i18n/index";
-import { Button, Stat } from "@ui/components";
-import { DifficultySelector, type DifficultyOption } from "@ui/DifficultySelector";
+import { Button } from "@ui/components";
+import { GameChrome } from "@ui/GameChrome";
+import { type DifficultyOption } from "@ui/DifficultySelector";
 import { shake, haptic } from "@juice/index";
 import { winMoment } from "@shared/index";
 import {
@@ -225,31 +226,56 @@ export function Game2048({ ctx, skin }: { ctx: GameContext; skin?: TileSkin }) {
     };
   }, [doMove]);
 
+  // The furthest a run has got. With a skin it is the CREATURE, not the number
+  // behind it - evolve's whole premise is that the player is climbing a ladder
+  // of animals, and "512" is the implementation detail under that.
+  const topTile = Math.max(...grid.flat());
+  const topPaint = topTile > 0 && skin ? skin.tile(topTile) : null;
+  const he = ctx.locale === "he";
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: 16 }}>
-      <DifficultySelector
-        options={LEVEL_OPTIONS}
-        value={level}
-        onChange={resetLevel}
-        locale={ctx.locale}
-        kids={skin?.kids}
-      />
-
-      <div style={{ display: "flex", gap: 10 }}>
-        <Stat label={ctx.t("score")} value={score} />
-        <Stat label={ctx.t("best")} value={best} />
-        <Button variant="ghost" onClick={reset}>
-          {ctx.t("restart")}
-        </Button>
-      </div>
-
+    <GameChrome
+      ctx={ctx}
+      stats={[
+        { icon: "bolt", label: ctx.t("score"), value: score },
+        {
+          icon: "layers",
+          label: he ? "הכי גבוה" : "Highest",
+          value: topPaint ? topPaint.glyph : topTile,
+          ltr: true,
+        },
+        { icon: "trophy", label: ctx.t("best"), value: best },
+      ]}
+      levels={LEVEL_OPTIONS}
+      level={level}
+      onLevel={resetLevel}
+      onRestart={reset}
+      footer={
+        <div
+          style={{
+            background: "var(--surface)",
+            borderRadius: "var(--radius-2)",
+            boxShadow: "var(--shadow-1)",
+            padding: "14px 12px",
+            minHeight: 62,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+          }}
+        >
+          <b style={{ fontSize: 17, fontFamily: "Fredoka, inherit" }}>
+            {won ? ctx.t("youWon") : over ? ctx.t("gameOver") : he ? "החליקו או חצים" : "Swipe or arrow keys"}
+          </b>
+        </div>
+      }
+    >
       <div
         ref={boardRef}
         className="ellaz-play-surface"
         dir="ltr"
         style={{
           position: "relative",
-          width: "min(88vw, 62vh, 420px)",
+          width: "min(88vw, 48vh, 420px)",
           aspectRatio: "1",
           background: skin ? skin.boardBg : "#bbada0",
           borderRadius: 14,
@@ -317,9 +343,6 @@ export function Game2048({ ctx, skin }: { ctx: GameContext; skin?: TileSkin }) {
           </div>
         )}
       </div>
-      <div style={{ color: "var(--text-dim)", fontSize: 13 }}>
-        {ctx.dir === "rtl" ? "החליקו או חצים" : "Swipe or arrow keys"}
-      </div>
-    </div>
+    </GameChrome>
   );
 }

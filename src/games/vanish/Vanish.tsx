@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
 import type { GameContext } from "@sdk/index";
-import { Button, DifficultySelector, Stat, type DifficultyOption } from "@ui/index";
+import { type DifficultyOption } from "@ui/index";
+import { GameChrome } from "@ui/GameChrome";
 import { haptic, shake } from "@juice/index";
 import { Prompt, useGameTimer, winMoment } from "@shared/index";
 import {
@@ -190,35 +191,48 @@ export function Vanish({ ctx }: { ctx: GameContext }) {
     phase === "study" ? "👀" : phase === "cover" ? "🫣" : solved ? "🎉" : "🫥";
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 12,
-        padding: 16,
-      }}
+    <GameChrome
+      ctx={ctx}
+      stats={[
+        { icon: "layers", label: t.round, value: roundNo },
+        // The middle cell CHANGES with the beat: a countdown while the child is
+        // memorising, then how many they have found. Two facts, one slot, and
+        // only ever one of them is true at a time.
+        {
+          icon: phase === "study" ? "clock" : "check",
+          label: phase === "study" ? t.time : t.found,
+          value: phase === "study" ? secondsLeft : foundCount,
+        },
+        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+      ]}
+      levels={LEVEL_OPTIONS}
+      level={level}
+      onLevel={(d) => startRound(d, { fresh: true })}
+      onRestart={() => startRound(level, { fresh: true })}
+      footer={
+        solved ? (
+          <button
+            type="button"
+            onClick={() => startRound(level)}
+            style={{
+              width: "100%",
+              minHeight: 68,
+              border: "none",
+              borderRadius: "var(--radius-2)",
+              background: "var(--brand)",
+              color: "#fff",
+              boxShadow: "var(--shadow-1)",
+              fontFamily: "Fredoka, inherit",
+              fontSize: 22,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            {t.next} ▶
+          </button>
+        ) : undefined
+      }
     >
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center", maxWidth: "100%" }}>
-        <Stat label={t.round} value={roundNo} />
-        <Stat
-          label={phase === "study" ? t.time : t.found}
-          value={phase === "study" ? secondsLeft : foundCount}
-        />
-        <Stat label={ctx.t("best")} value={best ?? "-"} />
-        <Button variant="ghost" kids ariaLabel={t.again} onClick={() => startRound(level, { fresh: true })}>
-          🔄
-        </Button>
-      </div>
-
-      <DifficultySelector
-        options={LEVEL_OPTIONS}
-        value={level}
-        onChange={(d) => startRound(d, { fresh: true })}
-        locale={ctx.locale}
-        kids
-      />
-
       <Prompt ctx={ctx} glyph={promptGlyph} text={promptText} />
 
       {/* Spatial board: pinned LTR so the slots do not mirror in the Hebrew app,
@@ -316,12 +330,6 @@ export function Vanish({ ctx }: { ctx: GameContext }) {
           })}
         </div>
       )}
-
-      {solved && (
-        <Button kids onClick={() => startRound(level)}>
-          {t.next} ▶
-        </Button>
-      )}
-    </div>
+    </GameChrome>
   );
 }

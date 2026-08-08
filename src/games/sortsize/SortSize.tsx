@@ -6,7 +6,8 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import type { GameContext } from "@sdk/index";
-import { Button, DifficultySelector, Stat, type DifficultyOption } from "@ui/index";
+import { type DifficultyOption } from "@ui/index";
+import { GameChrome } from "@ui/GameChrome";
 import { burst, haptic, shake } from "@juice/index";
 import { Prompt, winMoment } from "@shared/index";
 import {
@@ -199,38 +200,42 @@ export function SortSize({ ctx }: { ctx: GameContext }) {
   const inBin = (bin: Bin) => round.items.filter((i) => state.placed[i.id] === bin);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 12,
-        padding: 12,
-      }}
+    <GameChrome
+      ctx={ctx}
+      stats={[
+        { icon: "layers", label: he ? "שלב" : "Level", value: level },
+        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+      ]}
+      levels={DIFF_OPTIONS}
+      level={difficulty}
+      onLevel={changeDifficulty}
+      onRestart={reroll}
+      footer={
+        <div
+          style={{
+            background: "var(--surface)",
+            borderRadius: "var(--radius-2)",
+            boxShadow: "var(--shadow-1)",
+            padding: "13px 12px",
+            minHeight: 60,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+          }}
+        >
+          <b style={{ fontSize: 17, fontFamily: "Fredoka, inherit" }}>
+            {justWon
+              ? he
+                ? "🎉 כל הכבוד! ממשיכים…"
+                : "🎉 Nice! Next one…"
+              : he
+                ? "תסתכלו טוב על הגדלים 👀"
+                : "Look closely at the sizes 👀"}
+          </b>
+        </div>
+      }
     >
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          alignItems: "center",
-          flexWrap: "wrap",
-          justifyContent: "center",
-        }}
-      >
-        <Stat label={he ? "שלב" : "Level"} value={level} />
-        <Stat label={ctx.t("best")} value={best ?? "-"} />
-        <DifficultySelector
-          options={DIFF_OPTIONS}
-          value={difficulty}
-          onChange={changeDifficulty}
-          locale={ctx.locale}
-          kids
-        />
-        <Button variant="ghost" kids ariaLabel="new round" onClick={reroll}>
-          🔄
-        </Button>
-      </div>
-
       <Prompt ctx={ctx} glyph={round.items[0].emoji} text={prompt} />
 
       {/*
@@ -328,8 +333,18 @@ export function SortSize({ ctx }: { ctx: GameContext }) {
         })}
       </div>
 
+      {/* The baskets WRAP and GROW rather than sitting at a fixed 140px. Two
+          140px baskets plus a gap is 292px of unshrinkable content, and a 320px
+          phone gives this row less than that once the frame's gutters are paid -
+          so each basket was shrunk below its own label and clipped the word
+          inside it, while the row reported a perfectly normal width. See
+          a-row-that-grows-with-the-catalog-must-wrap: the item COUNT is fixed
+          here, but the available WIDTH is not, which fails the same way. */}
       {round.kind === "bucket" ? (
-        <div dir="ltr" style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+        <div
+          dir="ltr"
+          style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", width: "100%" }}
+        >
           {(["small", "big"] as const).map((bin) => {
             const held = inBin(bin);
             return (
@@ -338,7 +353,9 @@ export function SortSize({ ctx }: { ctx: GameContext }) {
                 aria-label={bin === "big" ? (he ? "סל גדולים" : "big basket") : he ? "סל קטנים" : "small basket"}
                 onPointerDown={(e) => onBin(bin, e)}
                 style={{
-                  minWidth: 140,
+                  flex: "1 1 130px",
+                  minWidth: 0,
+                  maxWidth: 220,
                   minHeight: 96,
                   padding: "8px 12px",
                   display: "flex",
@@ -368,19 +385,6 @@ export function SortSize({ ctx }: { ctx: GameContext }) {
           })}
         </div>
       ) : null}
-
-      {justWon ? (
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 40 }}>🎉</div>
-          <div style={{ color: "var(--text-dim)", fontSize: 13 }}>
-            {he ? `כל הכבוד! ממשיכים…` : `Nice! Next one…`}
-          </div>
-        </div>
-      ) : (
-        <div style={{ color: "var(--text-dim)", fontSize: 13 }}>
-          {he ? "תסתכלו טוב על הגדלים 👀" : "Look closely at the sizes 👀"}
-        </div>
-      )}
-    </div>
+    </GameChrome>
   );
 }

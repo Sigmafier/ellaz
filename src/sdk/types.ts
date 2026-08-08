@@ -227,6 +227,17 @@ export type Category = "kids" | "learn" | "think" | "speed" | "create" | "classi
 
 export interface GameMeta {
   id: string;
+  /**
+   * The game renders its own `<GameChrome>` - back, restart, sound, the stats
+   * and the difficulty toggle - so the host must NOT draw its bar as well.
+   *
+   * This lives on the DOM-free meta rather than being detected at runtime
+   * because the host builds its chrome BEFORE the game module is loaded, and
+   * two mute buttons in one viewport reads as a bug, not as emphasis.
+   *
+   * Absent means the old shape: the host owns the bar.
+   */
+  ownsChrome?: boolean;
   title: Record<Locale, string>;
   emoji: string; // simple icon for the home grid (icon-first, kid-friendly)
   color: string; // card accent

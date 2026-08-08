@@ -8,7 +8,8 @@ import {
   type ReactElement,
 } from "react";
 import type { GameContext } from "@sdk/index";
-import { Button, DifficultySelector, Stat, type DifficultyOption } from "@ui/index";
+import { type DifficultyOption } from "@ui/index";
+import { GameChrome } from "@ui/GameChrome";
 import { burst, haptic } from "@juice/index";
 import {
   PLAY_SURFACE_STYLE,
@@ -377,8 +378,42 @@ export function FrogGame({ ctx }: { ctx: GameContext }): ReactElement {
   );
 
   return (
-    <div
-      style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: 12 }}
+    <GameChrome
+      ctx={ctx}
+      stats={[
+        { icon: "layers", label: he ? "שלב" : "Level", value: level },
+        { icon: "check", label: he ? "תפסתם" : "Caught", value: `${caught}/${ROUND_GOAL[difficulty]}`, ltr: true },
+        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+      ]}
+      levels={DIFF_OPTIONS}
+      level={difficulty}
+      onLevel={changeDifficulty}
+      onRestart={() => startRound()}
+      footer={
+        <div
+          style={{
+            background: "var(--surface)",
+            borderRadius: "var(--radius-2)",
+            boxShadow: "var(--shadow-1)",
+            padding: "13px 12px",
+            minHeight: 60,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+          }}
+        >
+          <b style={{ fontSize: 17, fontFamily: "Fredoka, inherit" }}>
+            {phase === "cheer"
+              ? he
+                ? `🎉 יופי! ממשיכים לשלב ${level + 1}…`
+                : `🎉 Nice! On to level ${level + 1}…`
+              : he
+                ? "היא קפצה? פשוט תפסו אותה בעלה הבא 🐸"
+                : "Hopped away? Just catch her on the next pad 🐸"}
+          </b>
+        </div>
+      }
     >
       <Prompt
         ctx={ctx}
@@ -390,30 +425,6 @@ export function FrogGame({ ctx }: { ctx: GameContext }): ReactElement {
             : "Catch the frog. If she hops away, just catch her on the next pad"
         }
       />
-
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          alignItems: "center",
-          flexWrap: "wrap",
-          justifyContent: "center",
-        }}
-      >
-        <Stat label={he ? "שלב" : "Level"} value={level} />
-        <Stat label={ctx.t("best")} value={best ?? "-"} />
-        <Stat label={he ? "תפסתם" : "Caught"} value={`${caught}/${ROUND_GOAL[difficulty]}`} />
-        <DifficultySelector
-          options={DIFF_OPTIONS}
-          value={difficulty}
-          onChange={changeDifficulty}
-          locale={ctx.locale}
-          kids
-        />
-        <Button variant="ghost" kids ariaLabel="new round" onClick={() => startRound()}>
-          🔄
-        </Button>
-      </div>
 
       {/* `dir="ltr"`: the pads are SPATIAL, and the app is Hebrew-RTL by default,
           which would mirror them away from the positions the hop's pixel maths
@@ -495,16 +506,6 @@ export function FrogGame({ ctx }: { ctx: GameContext }): ReactElement {
           );
         })}
       </div>
-
-      <div style={{ color: "var(--text-dim)", fontSize: 13, textAlign: "center" }}>
-        {phase === "cheer"
-          ? he
-            ? `יופי! ממשיכים לשלב ${level + 1}…`
-            : `Nice! On to level ${level + 1}…`
-          : he
-            ? "היא קפצה? פשוט תפסו אותה בעלה הבא 🐸"
-            : "Hopped away? Just catch her on the next pad 🐸"}
-      </div>
-    </div>
+    </GameChrome>
   );
 }

@@ -7,7 +7,7 @@ const COLS = 17;
 const ROWS = 17;
 
 // Base tick rates (ms/step) the player picks on the ready screen.
-type SpeedKey = "slow" | "normal" | "fast";
+export type SpeedKey = "slow" | "normal" | "fast";
 const SPEEDS: Record<SpeedKey, number> = { slow: 170, normal: 130, fast: 90 };
 
 // Progressive difficulty: every FOOD_PER_LEVEL food eaten bumps the level; each
@@ -17,6 +17,19 @@ const STEP_DECAY_MS = 8;
 const STEP_FLOOR = 60;
 
 type Phase = "ready" | "playing" | "over";
+
+/**
+ * What the scene tells the React chrome around it. Read-only - the chrome never
+ * reaches into the scene's fields, it calls `setSpeed` / `restartFromChrome`
+ * and waits to be told what happened. Two owners of one number is how the
+ * canvas and the header end up disagreeing about the score.
+ */
+export type SnakeStatus = {
+  score: number;
+  level: number;
+  speed: SpeedKey;
+  phase: Phase;
+};
 
 // Phaser scene: draws the pure SnakeState and feeds it input. The snake does not
 // move until the player's first input (ready → playing), so it never dies before
@@ -31,16 +44,61 @@ export class SnakeScene extends Phaser.Scene {
   private selectedSpeed: SpeedKey = "normal";
   private baseStepMs = SPEEDS.normal;
   private gfx!: Phaser.GameObjects.Graphics;
-  private scoreText!: Phaser.GameObjects.Text;
   private overText!: Phaser.GameObjects.Text;
-  private speedButtons: Phaser.GameObjects.Text[] = [];
+  /** Told to the chrome on every change. Set from `init`. */
+  private onStatus?: (s: SnakeStatus) => void;
+  /**
+   * Handed to the chrome once this scene exists, so the chrome's buttons have
+   * something to call.
+   *
+   * The chrome CANNOT get here by asking Phaser: `scene.start()` only QUEUES a
+   * start, so a `game.scene.getScene("snake")` on the next line returns null and
+   * the reference stays null forever. Measured - the toggle and the restart
+   * button both silently did nothing, because `ref?.setSpeed()` on a null ref is
+   * a no-op that throws no error and logs nothing, while status kept flowing the
+   * other way and made the bridge look alive.
+   */
+  private onReady?: (scene: SnakeScene) => void;
 
   constructor() {
     super("snake");
   }
 
-  init(data: { ctx: GameContext }) {
+  init(data: {
+    ctx: GameContext;
+    onStatus?: (s: SnakeStatus) => void;
+    onReady?: (scene: SnakeScene) => void;
+  }) {
     this.ctx = data.ctx;
+    this.onStatus = data.onStatus;
+    this.onReady = data.onReady;
+  }
+
+  /** Push the current status out. Called from `draw`, so it cannot go stale. */
+  private publish() {
+    this.onStatus?.({
+      score: this.state.score,
+      level: this.level(),
+      speed: this.selectedSpeed,
+      phase: this.phase,
+    });
+  }
+
+  /**
+   * The chrome's difficulty toggle. Unlike the old in-canvas picker this does
+   * NOT start the game: the toggle is reachable mid-run, and a speed change
+   * must never also be a "go". Changing speed mid-run is deliberate and takes
+   * effect on the next tick.
+   */
+  setSpeed(key: SpeedKey) {
+    this.selectedSpeed = key;
+    this.baseStepMs = SPEEDS[key];
+    this.draw();
+  }
+
+  /** The chrome's restart button. */
+  restartFromChrome() {
+    this.restart();
   }
 
   create() {
@@ -48,9 +106,9 @@ export class SnakeScene extends Phaser.Scene {
     this.phase = "ready";
     this.computeCell();
     this.gfx = this.add.graphics();
-    this.scoreText = this.add
-      .text(8, 6, "0", { fontFamily: "Heebo, sans-serif", fontSize: "20px", color: "#ffffff" })
-      .setDepth(10);
+    // The score and level used to be drawn here, at 20px in the canvas corner.
+    // They live in the chrome's stat row now - one place per number, and a
+    // number a five-year-old can actually read.
     this.overText = this.add
       .text(this.scale.width / 2, this.scale.height / 2, "", {
         fontFamily: "Fredoka, sans-serif",
@@ -109,12 +167,10 @@ export class SnakeScene extends Phaser.Scene {
       }
     });
 
-    this.scale.on("resize", () => {
-      this.computeCell();
-      if (this.phase === "ready") this.showSpeedButtons(); // reposition at new size
-    });
+    this.scale.on("resize", () => this.computeCell());
     this.draw();
-    this.showSpeedButtons();
+    // LAST in create, so the chrome only ever gets a scene that is fully built.
+    this.onReady?.(this);
   }
 
   private computeCell() {
@@ -158,56 +214,11 @@ export class SnakeScene extends Phaser.Scene {
     return Math.max(STEP_FLOOR, this.baseStepMs - (this.level() - 1) * STEP_DECAY_MS);
   }
 
-  // Single entry for every ready → playing transition; hides the speed picker.
+  // Single entry for every ready → playing transition.
   private startPlaying() {
     if (this.phase !== "ready") return;
     this.phase = "playing";
-    this.hideSpeedButtons();
-  }
-
-  // Lock in a base speed and start. Selection persists for later restarts.
-  private selectSpeed(key: SpeedKey) {
-    this.selectedSpeed = key;
-    this.baseStepMs = SPEEDS[key];
-    this.startPlaying();
-  }
-
-  private showSpeedButtons() {
-    this.hideSpeedButtons();
-    const he = this.ctx.locale === "he";
-    const opts: { key: SpeedKey; label: string }[] = [
-      { key: "slow", label: he ? "🐢 איטי" : "🐢 Slow" },
-      { key: "normal", label: he ? "🙂 רגיל" : "🙂 Normal" },
-      { key: "fast", label: he ? "🐇 מהיר" : "🐇 Fast" },
-    ];
-    const cx = this.scale.width / 2;
-    const startY = this.scale.height * 0.46;
-    const gap = Math.max(40, this.scale.height * 0.12);
-    opts.forEach((o, i) => {
-      const selected = o.key === this.selectedSpeed;
-      const btn = this.add
-        .text(cx, startY + i * gap, o.label, {
-          fontFamily: "Fredoka, sans-serif",
-          fontSize: "20px",
-          color: selected ? "#0f1226" : "#ffffff",
-          backgroundColor: selected ? "#55efc4" : "#2a2f58",
-          padding: { x: 16, y: 8 },
-        })
-        .setOrigin(0.5)
-        .setDepth(20)
-        .setInteractive({ useHandCursor: true });
-      btn.on("pointerdown", () => {
-        this.ctx.audio.unlock();
-        this.ctx.speech.unlock();
-        this.selectSpeed(o.key);
-      });
-      this.speedButtons.push(btn);
-    });
-  }
-
-  private hideSpeedButtons() {
-    this.speedButtons.forEach((b) => b.destroy());
-    this.speedButtons = [];
+    this.draw();
   }
 
   private restart() {
@@ -217,7 +228,6 @@ export class SnakeScene extends Phaser.Scene {
     // NB: baseStepMs / selectedSpeed intentionally kept — speed persists across restarts.
     this.ctx.analytics.levelStart("classic");
     this.draw();
-    this.showSpeedButtons();
   }
 
   update(_time: number, delta: number) {
@@ -289,10 +299,6 @@ export class SnakeScene extends Phaser.Scene {
       g.fillStyle(color, 1).fillRoundedRect(ox + p.x * c + 1, oy + p.y * c + 1, c - 2, c - 2, 5);
     });
     const he = this.ctx.locale === "he";
-    const levelLabel = he ? "רמה" : "Level";
-    this.scoreText.setText(
-      `${this.ctx.t("score")}: ${this.state.score}   ${levelLabel} ${this.level()}`,
-    );
     // Keep the overlay off the snake's spawn row.
     this.overText.setPosition(this.scale.width / 2, this.scale.height * 0.28);
     if (this.phase === "ready") {
@@ -306,5 +312,8 @@ export class SnakeScene extends Phaser.Scene {
     } else {
       this.overText.setText("");
     }
+    // LAST in draw, so every published status reflects a frame that has already
+    // been rendered - the chrome can never show a score the canvas has not.
+    this.publish();
   }
 }

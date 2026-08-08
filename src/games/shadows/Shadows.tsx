@@ -6,7 +6,8 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import type { GameContext } from "@sdk/index";
-import { Button, DifficultySelector, Stat, type DifficultyOption } from "@ui/index";
+import { type DifficultyOption } from "@ui/index";
+import { GameChrome } from "@ui/GameChrome";
 import { burst, haptic, shake } from "@juice/index";
 import { Prompt, winMoment } from "@shared/index";
 import { isCorrect, newRound, type Difficulty, type ShadowChoice, type ShadowRound } from "./logic";
@@ -138,43 +139,50 @@ export function Shadows({ ctx }: { ctx: GameContext }) {
   );
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 12,
-        padding: 12,
-      }}
+    <GameChrome
+      ctx={ctx}
+      stats={[
+        { icon: "layers", label: ctx.locale === "he" ? "שלב" : "Level", value: level },
+        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+      ]}
+      levels={DIFF_OPTIONS}
+      level={difficulty}
+      onLevel={changeDifficulty}
+      // "New round" IS restart here - the game is endless, so there is nothing
+      // else a restart could mean, and two buttons that deal a fresh round would
+      // be two names for one action.
+      onRestart={reshuffle}
+      footer={
+        <div
+          style={{
+            background: "var(--surface)",
+            borderRadius: "var(--radius-2)",
+            boxShadow: "var(--shadow-1)",
+            padding: "13px 12px",
+            minHeight: 60,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+          }}
+        >
+          <b style={{ fontSize: 17, fontFamily: "Fredoka, inherit" }}>
+            {solved
+              ? ctx.locale === "he"
+                ? `🎉 יפה! ממשיכים לשלב ${level + 1}…`
+                : `🎉 Nice! On to level ${level + 1}…`
+              : ctx.locale === "he"
+                ? "מי מסתתר בצל? 🕵️"
+                : "Who is hiding in the shadow? 🕵️"}
+          </b>
+        </div>
+      }
     >
       <Prompt
         ctx={ctx}
         glyph="🌑"
         text={ctx.locale === "he" ? "איזו תמונה מתאימה לצל?" : "Which picture matches the shadow?"}
       />
-
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          alignItems: "center",
-          flexWrap: "wrap",
-          justifyContent: "center",
-        }}
-      >
-        <Stat label={ctx.locale === "he" ? "שלב" : "Level"} value={level} />
-        <Stat label={ctx.t("best")} value={best ?? "-"} />
-        <DifficultySelector
-          options={DIFF_OPTIONS}
-          value={difficulty}
-          onChange={changeDifficulty}
-          locale={ctx.locale}
-          kids
-        />
-        <Button variant="ghost" kids ariaLabel="new round" onClick={reshuffle}>
-          🔄
-        </Button>
-      </div>
 
       {/* The shadow, on its light plate. */}
       <div
@@ -245,19 +253,6 @@ export function Shadows({ ctx }: { ctx: GameContext }) {
           );
         })}
       </div>
-
-      {solved ? (
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 40 }}>🎉</div>
-          <div style={{ color: "var(--text-dim)", fontSize: 13 }}>
-            {ctx.locale === "he" ? `יפה! ממשיכים לשלב ${level + 1}…` : `Nice! On to level ${level + 1}…`}
-          </div>
-        </div>
-      ) : (
-        <div style={{ color: "var(--text-dim)", fontSize: 13 }}>
-          {ctx.locale === "he" ? "מי מסתתר בצל? 🕵️" : "Who is hiding in the shadow? 🕵️"}
-        </div>
-      )}
-    </div>
+    </GameChrome>
   );
 }

@@ -7,7 +7,8 @@ import {
   type ReactElement,
 } from "react";
 import type { GameContext } from "@sdk/index";
-import { Stat, DifficultySelector, type DifficultyOption } from "@ui/index";
+import { type DifficultyOption } from "@ui/index";
+import { GameChrome } from "@ui/GameChrome";
 import { burst, haptic, shake } from "@juice/index";
 import { Prompt, shapePath, winMoment } from "@shared/index";
 import { colorHex, isCorrect, itemKey, newRound, type Difficulty, type Round, type SeqItem } from "./logic";
@@ -171,20 +172,46 @@ export function Sequence({ ctx }: { ctx: GameContext }): ReactElement {
   const promptText = ctx.locale === "he" ? "מה בא אחר כך?" : "What comes next?";
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: 12 }}>
+    <GameChrome
+      ctx={ctx}
+      stats={[
+        { icon: "layers", label: ctx.locale === "he" ? "שלב" : "Level", value: level },
+        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+      ]}
+      levels={DIFF_OPTIONS}
+      level={difficulty}
+      onLevel={changeDifficulty}
+      // A fresh pattern at the CURRENT level - not a jump back to level 1.
+      // `changeDifficulty` returns early on the level you are already on, so it
+      // cannot serve as restart; `dealRound` is the honest one.
+      onRestart={() => dealRound(difficulty)}
+      footer={
+        <div
+          style={{
+            background: "var(--surface)",
+            borderRadius: "var(--radius-2)",
+            boxShadow: "var(--shadow-1)",
+            padding: "13px 12px",
+            minHeight: 60,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+          }}
+        >
+          <b style={{ fontSize: 17, fontFamily: "Fredoka, inherit" }}>
+            {solved
+              ? ctx.locale === "he"
+                ? "🎉 כל הכבוד! ממשיכים…"
+                : "🎉 Nice! Next one…"
+              : ctx.locale === "he"
+                ? "מה חסר במשבצת? 🤔"
+                : "What fills the blank? 🤔"}
+          </b>
+        </div>
+      }
+    >
       <Prompt ctx={ctx} glyph="🔗" text={promptText} />
-
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center", maxWidth: "100%" }}>
-        <Stat label={ctx.locale === "he" ? "שלב" : "Level"} value={level} />
-        <Stat label={ctx.t("best")} value={best ?? "-"} />
-        <DifficultySelector
-          options={DIFF_OPTIONS}
-          value={difficulty}
-          onChange={changeDifficulty}
-          locale={ctx.locale}
-          kids
-        />
-      </div>
 
       {/* The pattern row is SPATIAL, so it is pinned LTR: in the Hebrew RTL app a
           plain flex row would mirror and put the blank slot at the far left, which
@@ -273,19 +300,6 @@ export function Sequence({ ctx }: { ctx: GameContext }): ReactElement {
           </button>
         ))}
       </div>
-
-      {solved ? (
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 40 }}>🎉</div>
-          <div style={{ color: "var(--text-dim)", fontSize: 13 }}>
-            {ctx.locale === "he" ? `כל הכבוד! ממשיכים…` : `Nice! Next one…`}
-          </div>
-        </div>
-      ) : (
-        <div style={{ color: "var(--text-dim)", fontSize: 13 }}>
-          {ctx.locale === "he" ? "מה חסר במשבצת? 🤔" : "What fills the blank? 🤔"}
-        </div>
-      )}
-    </div>
+    </GameChrome>
   );
 }

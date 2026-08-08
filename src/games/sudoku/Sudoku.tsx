@@ -1,21 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatScore, type GameContext, type RewardTier } from "@sdk/index";
-import { Button, Stat } from "@ui/components";
-import { DifficultySelector, type DifficultyOption } from "@ui/DifficultySelector";
+import { GameChrome } from "@ui/GameChrome";
+import { type DifficultyOption } from "@ui/DifficultySelector";
 import { burst } from "@juice/index";
 import { useGameTimer, winMoment } from "@shared/index";
 import { generate, setCell, conflicts, isSolved, type SudokuState, type Level } from "./logic";
 
-// Two rows, both the shared <DifficultySelector>: the animal boards a young
-// child can finish, and the classic digit boards. Splitting them keeps six
-// options off one non-wrapping row (it overflows a phone) and reads as what it
-// is — pick animals, or pick numbers.
-const KIDS_OPTIONS: DifficultyOption<Level>[] = [
+// ONE ordered ramp, animals first: a child starts at 4×4 animals, and expert
+// wraps back round to it. This used to be two <DifficultySelector> rows,
+// because six pills on one row overflowed a phone. The chrome's toggle shows
+// only the CURRENT level, so the width problem is gone and the split with it -
+// and a single ramp is also the honest shape, since these are six rungs of one
+// ladder rather than two kinds of puzzle.
+const LEVEL_OPTIONS: DifficultyOption<Level>[] = [
   { id: "kids4", label: { he: "חיות 4×4", en: "Animals 4×4" } },
   { id: "kids6", label: { he: "חיות 6×6", en: "Animals 6×6" } },
-];
-
-const DIGIT_OPTIONS: DifficultyOption<Level>[] = [
   { id: "easy", label: { he: "קל", en: "Easy" } },
   { id: "medium", label: { he: "בינוני", en: "Med" } },
   { id: "hard", label: { he: "קשה", en: "Hard" } },
@@ -138,36 +137,81 @@ export function Sudoku({ ctx }: { ctx: GameContext }) {
 
   const padCols = kids ? 4 : 5;
 
+  const he = ctx.locale === "he";
+  const cells = n * n;
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: 12 }}>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
-        <DifficultySelector
-          options={KIDS_OPTIONS}
-          value={level}
-          onChange={(lv) => reset(lv)}
-          locale={ctx.locale}
-          kids
-        />
-        <DifficultySelector
-          options={DIGIT_OPTIONS}
-          value={level}
-          onChange={(lv) => reset(lv)}
-          locale={ctx.locale}
-        />
-        <Button variant="ghost" onClick={() => reset()}>
-          {ctx.t("restart")}
-        </Button>
-        {/* Numbers stay LTR inside the Hebrew app — "1:30" must not mirror. */}
-        <Stat
-          label={ctx.t("time")}
-          value={<span dir="ltr">{formatScore(timer.elapsedMs, "ms")}</span>}
-        />
-        <Stat
-          label={ctx.t("best")}
-          value={<span dir="ltr">{best === undefined ? "-" : formatScore(best, "ms")}</span>}
-        />
-      </div>
-
+    <GameChrome
+      ctx={ctx}
+      stats={[
+        { icon: "clock", label: ctx.t("time"), value: formatScore(timer.elapsedMs, "ms"), ltr: true },
+        { icon: "check", label: he ? "מולאו" : "Filled", value: `${cells - empties}/${cells}`, ltr: true },
+        { icon: "trophy", label: ctx.t("best"), value: best === undefined ? "-" : formatScore(best, "ms"), ltr: true },
+      ]}
+      levels={LEVEL_OPTIONS}
+      level={level}
+      onLevel={(lv) => reset(lv)}
+      onRestart={() => reset()}
+      footer={
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ color: "var(--text-dim)", fontSize: 13, textAlign: "center", minHeight: 18 }}>
+            {won
+              ? ctx.t("youWon") + " 🎉"
+              : bad.size > 0
+                ? he
+                  ? `${bad.size} שגיאות`
+                  : `${bad.size} errors`
+                : he
+                  ? kids
+                    ? "בחרו תא והקישו חיה"
+                    : "בחרו תא והקישו מספר"
+                  : kids
+                    ? "Pick a cell, tap an animal"
+                    : "Pick a cell, tap a number"}
+          </div>
+          {/* Keypad — the same glyphs the board shows. Kids sizes get ≥64px
+              targets. This is exactly what the footer region exists for. */}
+          <div
+            dir="ltr"
+            style={{ display: "grid", gridTemplateColumns: `repeat(${padCols}, 1fr)`, gap: 8, width: "100%" }}
+          >
+            {Array.from({ length: n }, (_, i) => i + 1).map((v) => (
+              <button
+                key={v}
+                aria-label={kids ? `enter ${ANIMAL_NAMES[v - 1]}` : `enter ${v}`}
+                onClick={() => enter(v)}
+                style={{
+                  minHeight: kids ? 64 : 48,
+                  border: "none",
+                  borderRadius: 10,
+                  background: "var(--surface)",
+                  boxShadow: "var(--shadow-1)",
+                  color: "var(--text)",
+                  fontSize: kids ? 34 : 22,
+                  fontWeight: 800,
+                  lineHeight: 1,
+                }}
+              >
+                {glyph(v)}
+              </button>
+            ))}
+            <button
+              aria-label="erase"
+              onClick={() => enter(0)}
+              style={{
+                minHeight: kids ? 64 : 48,
+                border: "none",
+                borderRadius: 10,
+                background: "var(--surface-2)",
+                color: "var(--text)",
+                fontSize: kids ? 28 : 20,
+              }}
+            >
+              ⌫
+            </button>
+          </div>
+        </div>
+      }
+    >
       {/* dir="ltr" — a spatial grid must not mirror in the Hebrew RTL app, so
           logical column 0 stays on the visual left and the box rules line up. */}
       <div
@@ -177,7 +221,7 @@ export function Sudoku({ ctx }: { ctx: GameContext }) {
         style={{
           display: "grid",
           gridTemplateColumns: `repeat(${n}, 1fr)`,
-          width: "min(94vw, 60vh, 440px)",
+          width: "min(94vw, 44vh, 440px)",
           aspectRatio: "1",
           background: "#20244a",
           border: "3px solid #6c5ce7",
@@ -221,71 +265,6 @@ export function Sudoku({ ctx }: { ctx: GameContext }) {
           }),
         )}
       </div>
-
-      {/* Keypad — the same glyphs the board shows. Kids sizes get ≥64px targets. */}
-      <div
-        dir="ltr"
-        style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(${padCols}, 1fr)`,
-          gap: 8,
-          width: "min(94vw, 440px)",
-        }}
-      >
-        {Array.from({ length: n }, (_, i) => i + 1).map((v) => (
-          <button
-            key={v}
-            aria-label={kids ? `enter ${ANIMAL_NAMES[v - 1]}` : `enter ${v}`}
-            onClick={() => enter(v)}
-            style={{
-              minHeight: kids ? 64 : 48,
-              border: "none",
-              borderRadius: 10,
-              background: "var(--surface-2)",
-              color: "var(--text)",
-              fontSize: kids ? 34 : 22,
-              fontWeight: 800,
-              lineHeight: 1,
-            }}
-          >
-            {glyph(v)}
-          </button>
-        ))}
-        <button
-          aria-label="erase"
-          onClick={() => enter(0)}
-          style={{
-            minHeight: kids ? 64 : 48,
-            border: "none",
-            borderRadius: 10,
-            background: "var(--surface-2)",
-            color: "var(--text)",
-            fontSize: kids ? 28 : 20,
-          }}
-        >
-          ⌫
-        </button>
-      </div>
-
-      <div style={{ color: "var(--text-dim)", fontSize: 13, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "center", maxWidth: "100%" }}>
-        <span>
-          {won
-            ? ctx.t("youWon") + " 🎉"
-            : ctx.locale === "he"
-              ? kids
-                ? "בחרו תא והקישו חיה"
-                : "בחרו תא והקישו מספר"
-              : kids
-                ? "Pick a cell, tap an animal"
-                : "Pick a cell, tap a number"}
-        </span>
-        {!won && (
-          <span style={{ opacity: 0.7 }}>
-            {ctx.locale === "he" ? `נותרו ${empties}` : `${empties} left`}
-            {bad.size > 0 ? (ctx.locale === "he" ? ` · ${bad.size} שגיאות` : ` · ${bad.size} errors`) : ""}
-          </span>
-        )}
-      </div>
-    </div>
+    </GameChrome>
   );
 }

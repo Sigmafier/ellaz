@@ -8,7 +8,8 @@ import {
   type ReactElement,
 } from "react";
 import type { GameContext } from "@sdk/index";
-import { Button, DifficultySelector, Stat, type DifficultyOption } from "@ui/index";
+import { Button, type DifficultyOption } from "@ui/index";
+import { GameChrome } from "@ui/GameChrome";
 import { burst, haptic } from "@juice/index";
 import {
   PLAY_SURFACE_STYLE,
@@ -440,8 +441,20 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
   }[praise];
 
   return (
-    <div
-      style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: 12 }}
+    <GameChrome
+      ctx={ctx}
+      stats={[
+        { icon: "clock", label: he ? "זמן" : "Time", value: secs, ltr: true },
+        { icon: "check", label: he ? "דבורים" : "Bees", value: score.caught },
+        { icon: "trophy", label: he ? "שיא" : "Best", value: best },
+      ]}
+      levels={DIFF_OPTIONS}
+      level={difficulty}
+      onLevel={changeDifficulty}
+      // A fresh round at this difficulty. The start / play-again buttons stay
+      // on the sky overlay where the child is already looking - this is the
+      // "I want out of this run" escape, which is a different intent.
+      onRestart={again}
     >
       <Prompt
         ctx={ctx}
@@ -449,27 +462,6 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
         text={he ? "תפסו רק את הדבורים!" : "Tap only the bees!"}
         speak={he ? "תפסו רק את הדבורים. תנו לפרפרים לעוף" : "Tap only the bees. Let the butterflies fly"}
       />
-
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          alignItems: "center",
-          flexWrap: "wrap",
-          justifyContent: "center",
-        }}
-      >
-        <Stat label={he ? "זמן" : "Time"} value={secs} />
-        <Stat label={he ? "דבורים" : "Bees"} value={score.caught} />
-        <Stat label={he ? "שיא" : "Best"} value={best} />
-        <DifficultySelector
-          options={DIFF_OPTIONS}
-          value={difficulty}
-          onChange={changeDifficulty}
-          locale={ctx.locale}
-          kids
-        />
-      </div>
 
       {/* The sky. `dir="ltr"` because this surface is SPATIAL — the app is
           Hebrew-RTL by default, and a mirrored surface would send every flight
@@ -583,6 +575,6 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
           </div>
         ) : null}
       </div>
-    </div>
+    </GameChrome>
   );
 }

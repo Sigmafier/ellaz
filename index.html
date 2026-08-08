@@ -3,10 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"
-    />
+    <!-- NO `user-scalable=no`. Blocking pinch-zoom fails WCAG 1.4.4 (resize to
+         200%), and the 48 emitted content pages have always allowed zoom - so
+         the app shell was the only surface in the project that refused it,
+         which is what marked it as an oversight rather than a decision.
+         The real use case is a parent zooming a Hebrew label for a child. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <!-- The default theme's browser chrome. Pinned to themes.ts by
          src/ui/theme-sync.test.ts, because this is a literal that cannot
          import anything and drifted silently for exactly that reason. -->
