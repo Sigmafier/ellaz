@@ -109,6 +109,25 @@ secret rotation, the CDN edge-cache caveat, and how to move to Pages later).
 The discipline that found those three settings:
 [`.claude/rules/verify-the-deploy-target-not-just-the-run.md`](.claude/rules/verify-the-deploy-target-not-just-the-run.md).
 
+**The Hostinger CDN is OFF (2026-08-08), and that is load-bearing for SEO.** Its
+`I'm Under Attack!` mode had been on, serving every crawler a JavaScript
+proof-of-work it cannot solve: HTTP 403 with an HTML body where the sitemap
+belonged, while the site loaded perfectly in a browser. Google reported "Sitemap
+could not be read", 0 discovered pages. Nothing in this repo could see it - every
+gate here asserts against `dist/`, and none against what a crawler receives over
+the network. If the CDN is ever re-enabled, set Security Level to **Essentially
+off** in the same visit; the Medium default is enough to re-block a 48-URL crawl.
+Verify by `curl`ing as Googlebot, never in a browser:
+[`.claude/rules/a-bot-challenge-at-the-edge-is-invisible-from-your-browser.md`](.claude/rules/a-bot-challenge-at-the-edge-is-invisible-from-your-browser.md).
+
+**`npm run assert:crawlable` is the only gate here that reads the NETWORK** rather
+than `dist/`, which is precisely why it exists — a 403 to every crawler passed every
+other check in this repo. It fetches robots.txt and the sitemap as Googlebot and then
+walks all 48 URLs; that walk IS the burst test, since the challenge arms on a run of
+requests rather than the first one. It checks the BODY as well as the status, because
+a challenge can be served with 200. `.github/workflows/crawlable.yml` runs it daily
+and a red run emails the owner. Node built-ins only, so it needs no `npm ci`.
+
 **The repo moved to the `Sigmafier` org** (2026-08-02). `ytrofr/ellaz` still
 redirects on push, so a stale remote works and hides the move — but the LIVE URL
 changed with it, and `ytrofr.github.io/ellaz` is not it. Verify with
@@ -491,6 +510,31 @@ cause: nine games laid their stat row out as a non-wrapping flex under
 `alignItems: "center"`, which sizes to max-content and overflows any narrow
 screen - 439px of row on a 390px phone. Two games already carried
 `flexWrap: "wrap"`; the rest now do.
+
+## The picture a shared link grows
+
+Every page carries an `og:image`: **48 cards, 1200x630**, emitted by `src/build/ogCard.ts`
+(pure, the layout) plus `ogImages.ts` (async, the rasteriser) from the same `gameArt` SVG
+the home grid uses. They cost nothing on a first visit — PNG is not in the precache glob
+and no shell asset fetches them.
+
+**Text never reaches the rasteriser as text, and that is the whole design.** Neither
+`resvg` nor `satori` implements the Unicode bidi algorithm: both lay `<text>` out in
+LOGICAL order, so "נחש" rasterises as "שחנ" — a clean PNG of nonsense — and
+`direction: "rtl"` fixes neither. `bidi-js` computes the visual order first, and satori
+then emits PATHS. **Naive reversal would be wrong** for "2048" (must not become "8402")
+and for "מה בא אחר כך?" (the "?" belongs on the left); both are pinned in tests.
+
+Two more traps, both of which render a plausible wrong picture rather than an error:
+`gameArt` is an HTML fragment, so it needs an injected `xmlns` to be a document at all;
+and every scene ends with `fill:var(--art-veil,transparent)`, which a rasteriser cannot
+resolve and paints as **opaque black over the entire card**. `artSvgSized` resolves it
+and throws on any `var()` it cannot.
+
+`assert-pages.mjs` gates it: a card per page, absolute ellaz.fun URL, file present, and
+**between 4 KB and 600 KB** — the floor catches a flat-colour card, the ceiling is where
+WhatsApp silently drops the preview. Mutation-proven three ways. Full account:
+[`docs/build-log.md`](docs/build-log.md) § Share cards.
 
 ## The words on a game page
 

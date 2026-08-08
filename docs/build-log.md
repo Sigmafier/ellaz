@@ -345,6 +345,108 @@ and 664px and in English, with the play link resolving to `/games/<id>/` and
 a clean baseline built at the parent commit read 80,043. The headroom problem
 predates this work and is the next thing to look at.
 
+## The site was uncrawlable and looked perfect (2026-08-08)
+
+Google Search Console: **"Sitemap could not be read", 0 discovered pages.** The
+site loaded correctly in a browser, every gate was green, and the sitemap was
+valid.
+
+Hostinger's CDN had **"I'm Under Attack!"** mode enabled. That mode answers every
+request with a SHA-256 proof-of-work in JavaScript. A browser solves it in a few
+seconds and the visitor never notices; a crawler cannot solve it and gets HTTP
+403 with an HTML body where the XML belongs. Both were true of the same URL at the
+same instant.
+
+**Nothing in this repo could have caught it.** Every gate here asserts against
+`dist/` — `build:check`, `assert-pages.mjs`, `assert-first-visit.mjs`,
+`build.test.ts`. None asserts against what a crawler receives over the network,
+and that gap is exactly the size of this bug.
+
+### What found it
+
+- **The first request.** `curl` returned `403 content-type: text/html` where XML
+  belonged. No browser could ever have produced that.
+- **`HEAD` 200 vs `GET` 403**, six each — which proves origin and file are healthy
+  before knowing anything about the vendor.
+- **The block page's own `<title>`**, byte-identical to Hostinger's documented
+  Under Attack interstitial. That turned "some bot protection" into a named toggle
+  with a known location.
+
+### What it cost
+
+- **A wrong conclusion from single samples.** A 7-cell matrix showed 403 with
+  `Accept-Encoding` and 200 without, and read as content negotiation. Ten
+  repetitions per cell showed 403 everywhere: the IP had crossed the challenge
+  threshold mid-matrix and the cell order made the flip look like a variable.
+- **The probe was the trigger.** ~40 requests in two minutes from an ordinary home
+  IP flagged it permanently. That is the mechanism, not an aside — **a crawler
+  reading a sitemap and then its 48 URLs makes exactly that shape**, which is why
+  a sitemap is the first casualty, and why the Medium default ("challenges
+  moderately threatening visitors") suffices to cause this.
+- **A poisoned instrument.** Once flagged, every later measurement from that IP
+  reported the flag rather than the site. Confirmation needed a vantage point that
+  had not been probing.
+
+### After
+
+CDN off entirely — `server: LiteSpeed`, not `hcdn`. Measured on the previously
+blocked IP: **50/50 `200`** on a Googlebot burst, **48/48 `200`** across every
+sitemap URL, `content-type: application/xml`, XML well-formed with no BOM and
+self-referential hreflang on all 48. The `.htaccess` headers now apply directly
+and survived: `/`, `/sw.js`, `/manifest.webmanifest` and a game page all still
+`no-cache, must-revalidate`, so PWA autoUpdate is intact.
+
+Recovery is Google's own crawl cadence, not instant — GSC retries a failed sitemap
+for days, and resubmitting queues a re-read rather than forcing one.
+
+Written down: [`.claude/rules/a-bot-challenge-at-the-edge-is-invisible-from-your-browser.md`](../.claude/rules/a-bot-challenge-at-the-edge-is-invisible-from-your-browser.md).
+
+## Share cards (2026-08-08)
+
+Until today no page carried an `og:image`, so every link shared to WhatsApp — the way
+an Israeli parent actually passes a game to another parent — previewed as a bare line
+of text. **48 cards now, one per page**, 1200x630, built from the same `gameArt` SVG
+the home grid uses. Largest is 39 KB against WhatsApp's 600 KB ceiling; total 1.2 MB
+in `dist/`, and **zero effect on the first visit** — PNG is not in the precache glob
+(`html,css,js,svg,woff2`) and nothing on the shell fetches them. `twitter:card` moved
+to `summary_large_image`.
+
+### Neither renderer does bidi, and both fail silently
+
+The whole shape of `ogCard.ts` comes from this. **`resvg` lays `<text>` out in LOGICAL
+order** — "נחש" rasterises as "שחנ", a perfectly clean PNG of nonsense — and
+`direction="rtl"` does not fix it. **satori gets it wrong the same way**, and its
+`direction: "rtl"` style does not fix it either.
+
+So the visual order is computed by `bidi-js` (UAX#9) before either renderer sees a
+character. **Naive reversal is not a substitute and two shipping titles prove it**:
+"2048" must not become "8402", and "מה בא אחר כך?" must put its question mark on the
+LEFT. Both are pinned in `ogCard.test.ts`.
+
+### What it cost
+
+- **An eyeball check PASSED the bidi bug.** Reading Hebrew glyph order off a rendered
+  PNG is not something to trust. It was settled mechanically instead: render each
+  glyph alone, match its outline inside the merged path of the full word, sort by x.
+- **`gameArt` is a fragment, not a document.** No `xmlns` (implied in HTML, fatal
+  standalone — resvg: "the document does not have a root node").
+- **An unresolved CSS var rasterises as opaque BLACK.** Every scene ends with
+  `fill:var(--art-veil,transparent)`, invisible in a browser because the fallback
+  wins. A rasteriser has no custom properties, falls back to the SVG *initial* fill,
+  and paints a black rectangle over the whole card. `artSvgSized` resolves the
+  fallback and **throws** on any `var()` it cannot.
+- **resvg silently drops an SVG nested in satori's `<image>`** — flat colour, no
+  warning. The art is rasterised to PNG first.
+
+### Gated
+
+`assert-pages.mjs` checks every page has a card, that it is an absolute ellaz.fun URL,
+that the file exists, and that it is **over 4 KB and under 600 KB** — the floor is
+what catches a flat-colour card, which is exactly how the black-rect bug looked.
+The 404's *absence* of a card is asserted rather than skipped. Mutation-proven three
+ways against a real `dist/`: deleted card, truncated card, stripped tag. 13/13
+negative controls fire.
+
 ## Still open
 
 - **Wave C step 2b** — live two-way sync. Needs the profile to carry per-device
@@ -364,3 +466,13 @@ predates this work and is the next thing to look at.
   shipping it behind a green checkmark.
 - **Nobody has played Wave 2** on a real device, and Hebrew TTS has never run
   with `he-IL` on real hardware.
+- **Recovery from the crawl block is unconfirmed.** The server side is clean and
+  `assert:crawlable` is green, but only Search Console can prove Google's own IPs
+  are through. Watch the Sitemaps panel; "could not be read" can linger for days
+  after the underlying fix.
+- **Bing Webmaster Tools + IndexNow** — not set up. ChatGPT Search and Copilot lean on
+  Bing's index, and the site is Google-only. IndexNow is a key file plus one POST in
+  the deploy workflow.
+- **No `<lastmod>` in the sitemap**, 0 of 48. Google uses it for crawl scheduling when
+  it is accurate — which means deriving it from the last commit that touched each
+  game, never stamping build time on all 48.
