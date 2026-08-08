@@ -6,6 +6,9 @@ import { renderDocument } from "./layout";
 import { gamePath, homePath, href } from "./routes";
 import { gameGraph } from "./schema";
 import { lazyPreloadTags, type HeadAssets } from "./assets";
+// Build-time only, and the same module the share cards read. `src/build` may
+// read `src/ui`; nothing in the app may read `src/build`.
+import { artGround } from "../ui/gameArt";
 
 /**
  * One game's page.
@@ -204,5 +207,17 @@ export function gamePage(opts: GamePageOptions): string {
     preloads: lazyPreloadTags(opts.headAssets, base, meta.id),
     bodyData: { page: "game", game: meta.id, locale },
     headerSlot: html`<span id="wallet-slot"></span>`,
+    // The header's own chrome. `ground` is the same colour the key art paints
+    // behind this game, so the bar is a deep tone of what the page already
+    // shows rather than of the brand colour - which is a real distinction:
+    // reading the brand instead produced a dusty rose bar over a yellow page,
+    // correct CSS pointed at the wrong variable, and nothing could flag it.
+    headerChrome: {
+      ground: artGround(meta.id),
+      title: meta.title[locale],
+      cat: site.categories[meta.category],
+      backLabel: site.chrome.back,
+      fullLabel: site.chrome.fullScreen,
+    },
   });
 }

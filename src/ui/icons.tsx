@@ -33,7 +33,9 @@ export type IconName =
   | "bolt"
   | "check"
   | "heart"
-  | "coin";
+  | "coin"
+  | "back"
+  | "expand";
 
 const PATHS: Record<IconName, string> = {
   home:
@@ -94,6 +96,20 @@ const PATHS: Record<IconName, string> = {
     "M19 7.6a7 2.8 0 1 1-14 0 7 2.8 0 0 1 14 0" +
     "M5 7.6v3.4c0 1.55 3.13 2.8 7 2.8s7-1.25 7-2.8V7.6" +
     "M5 11v3.4c0 1.55 3.13 2.8 7 2.8s7-1.25 7-2.8V11",
+
+  // The game-page header's two glyphs, drawn rather than typed for the same
+  // reason the coin above is: a character is a different picture on every
+  // device, and the fullscreen one is missing from plenty of fonts outright.
+  //
+  // A back affordance, NOT a directional one. An arrow is never bidi-mirrored
+  // by the renderer - U+2190 draws pointing left whatever the direction is -
+  // so in Hebrew the CALLER flips it, rather than the glyph being left to
+  // point the wrong way.
+  back: "M19.4 12H5.6M11.4 6.2 5.6 12l5.8 5.8",
+  // Four corners pushing outward. Absolute M on every subpath: a relative one
+  // is measured from the previous corner's end point and throws the shape off
+  // the grid entirely.
+  expand: "M4.6 9.4V4.6h4.8M19.4 9.4V4.6h-4.8M4.6 14.6v4.8h4.8M19.4 14.6v4.8h-4.8",
 };
 
 const SVG_NS = "http://www.w3.org/2000/svg";

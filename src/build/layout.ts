@@ -7,6 +7,9 @@ import { OG_HEIGHT, OG_WIDTH, ogImagePath } from "./ogCard";
 // themes.ts imports nothing, which is what lets both the Vite config and this
 // build-time renderer read the same theme list. See src/ui/themes.ts.
 import { DEFAULT_THEME, themeBootScript, themeById } from "../ui/themes";
+// The geometry only - never the React component. This file must stay DOM-free
+// and React-free, and the icon set exports its paths for exactly this caller.
+import { ICON_PATHS, ICON_STROKE } from "../ui/icons";
 
 /**
  * The document shell every emitted page shares: head, header, footer.
@@ -201,27 +204,147 @@ body[data-page="game"] main,body[data-page="world"] main{max-width:none;padding-
 body[data-page="game"] main>:not(.stage),
 body[data-page="world"] main>:not(.stage){max-width:44rem;margin-inline:auto;
   padding-inline:20px}
-body[data-page="game"] .top,body[data-page="world"] .top{position:absolute;
+/* The ROOM still floats its header over the stage. The GAME page no longer
+   does - see the header section below, which puts the bar back in flow and
+   takes var(--hh) off the stage in exchange. The two pages are deliberately
+   split here rather than sharing one rule: the room is a composed scene with
+   its own margins and nothing in it reaches the top edge, while a game that
+   fitStage has scaled to fill its box reaches it every time, which is what
+   put the chrome on top of the board in the first place. */
+body[data-page="world"] .top{position:absolute;
   inset-inline:0;top:0;z-index:6;background:transparent;border-block-end:0;
   pointer-events:none}
-/* The bar itself stops catching clicks so the game beneath stays playable to
-   its full width; the row inside it takes them back, because the mute button
-   and the wallet chip both live there. */
-body[data-page="game"] .top .in,body[data-page="world"] .top .in{pointer-events:auto}
+/* The bar itself stops catching clicks so the room beneath stays reachable to
+   its full width; the row inside it takes them back, because the wallet chip
+   lives there. */
+body[data-page="world"] .top .in{pointer-events:auto}
 body[data-page="game"] .bc,body[data-page="world"] .bc{position:absolute;z-index:7;
   top:72px;inset-inline-start:20px;margin:0;padding:5px 14px;border-radius:999px;
   background:var(--badge-fill,rgba(0,0,0,.55))}
+/* Measured from the viewport, so on a game page it has to clear the bar the
+   header now actually occupies. Written against --hh rather than as a literal
+   so a density change cannot leave the crumb sitting on the wordmark. */
+body[data-page="game"] .bc{top:calc(var(--hh) + 12px)}
 body[data-page="game"] .bc,body[data-page="game"] .bc a,
 body[data-page="world"] .bc,body[data-page="world"] .bc a{color:var(--on-brand,#fff)}
 body[data-page="game"] .stage,body[data-page="world"] .stage{margin-block:0;
   margin-inline:0}
-body[data-page="game"] .stage .box,body[data-page="world"] .stage .box{
+body[data-page="world"] .stage .box{
   height:100dvh;min-height:0;border-radius:0;box-shadow:none;border:0;
   justify-content:center}
+/* The game's box is the screen MINUS the bar, because the bar is a real
+   element again. fitStage reads this height and scales the mounted game to
+   it, so a game is never clipped and never falls below the fold - it is
+   simply drawn at the size that fits underneath the chrome instead of behind
+   it. The cost is var(--hh) of scale, and it buys back the guarantee that
+   nothing overlaps the board. */
+body[data-page="game"] .stage .box{
+  height:calc(100dvh - var(--hh));min-height:0;border-radius:0;box-shadow:none;
+  border:0;justify-content:center}
 /* Content-sized rather than flex:1, so fitStage can read the game's NATURAL
    height. A frame that stretches to fill the box reports the box's height back
    and the scale factor comes out as 1 every time. */
 body[data-page="game"] #game-frame,body[data-page="world"] #game-frame{flex:0 0 auto}
+
+/* --- the game-page header -------------------------------------------------
+
+   Decided brick by brick against real production builds, one axis per round,
+   with everything else frozen. What each round settled, and the trap in it:
+
+   1 DRAWING - every control is a filled pill. The round ranked the pills LAST
+     on my own metric and the operator picked them anyway, which was the
+     finding: the previous header was already these same lozenges, so the
+     pills were never what looked wrong. The bar was.
+
+   2 SURFACE - a deep tone of THIS GAME's own ground. The old bar was
+     rgba(0,0,0,.55), and black alpha over a saturated colour drops lightness
+     and chroma TOGETHER: over 2048's rgb(255,199,48) it composites to
+     rgb(115,90,22), olive, and a different mud on every game. Two ways out -
+     raise lightness (white/glass) or drop it in a space that keeps the
+     chroma. This is the second.
+
+     PINNING lightness rather than mixing is the whole trick, and it is why
+     this is safe across a catalogue nobody has finished writing: contrast is
+     satisfied by CONSTRUCTION, not by luck, measured 7.84 to 10.68 over all
+     21 grounds with none below AA. Mixing toward a near-black instead DRAGS
+     THE HUE toward that black's cast - it turned snake's emerald navy,
+     because #0C0812 is a purple-black. The color-mix line is only the
+     fallback for a browser without relative colour syntax.
+
+   3 CONTENTS - wordmark + back | game name | wallet + full screen. The link
+     down to the article is gone: a page scrolls, and the words start directly
+     under the game. The coin and star are DRAWN, not typed - an emoji is a
+     different picture on every device, is monochrome on some, and cannot take
+     the header's ink. That fix lives in WalletChip now.
+
+   4 DENSITY - 60px bar, 44px controls. The only non-aesthetic axis in the
+     four: 44 is Apple's stated minimum and 36 (what shipped) is about 9.5mm,
+     under it. Android asks 48dp, which this still does not meet.
+
+   --g IS NOT AMBIENT. It is emitted per page from artGround(), because
+   nothing in the app or the document defines it. Without that, every rule
+   here resolves to the same fallback indigo and all 21 bars come out
+   identical - a plausible picture, one flat colour, no error anywhere. */
+body[data-page="game"]{--hh:60px;--tap:44px;--hgap:12px;--hpad:20px;
+  --hbrand:22px;--hfont:14.5px;--hdr-ink:#FFF6E9}
+@media (max-width:719px){body[data-page="game"]{--hh:58px;--hbrand:20px}}
+
+body[data-page="game"] .top{position:relative;z-index:6;height:var(--hh);
+  display:flex;align-items:center;padding:0;border-block-end:0;
+  color:var(--hdr-ink);
+  background:color-mix(in oklch, var(--g,#4F5BD5) 46%, #0C0812);
+  background:oklch(from var(--g,#4F5BD5) .30 calc(c * 1.05) h)}
+/* Full width, and the three groups pushed apart. space-between is direction
+   agnostic, so this is correct in Hebrew with no second rule. */
+body[data-page="game"] .top .in{max-width:none;margin:0;width:100%;
+  padding:0 var(--hpad);gap:var(--hgap);justify-content:space-between}
+body[data-page="game"] .brand{color:var(--hdr-ink);font-size:var(--hbrand)}
+body[data-page="game"] .tagline{display:none}
+
+.hgrp{display:flex;align-items:center;gap:var(--hgap);min-width:0}
+.hgrp-c{flex:1 1 auto;flex-direction:column;gap:2px;align-items:center;
+  text-align:center;min-width:0}
+.hgrp-c b{font:600 calc(var(--hfont) * 1.08)/1.15 Fredoka,system-ui,sans-serif;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.hgrp-c .cat{font-size:calc(var(--hfont) * .8);color:rgba(255,246,233,.78)}
+
+/* One height variable for the buttons AND the wallet. They used to be 36 and
+   48, which is why they never sat on a line together. */
+.hbtn{display:inline-flex;align-items:center;gap:8px;height:var(--tap);
+  border:0;margin:0;cursor:pointer;text-decoration:none;flex:0 0 auto;
+  border-radius:99px;padding:0 calc(var(--tap) * .39);white-space:nowrap;
+  font:600 var(--hfont)/1 inherit;
+  background:rgba(255,255,255,.12);color:var(--hdr-ink)}
+.hbtn:hover{background:rgba(255,255,255,.2)}
+.hbtn.pri{background:#FFF6E9;color:#241C2B}
+.hbtn.pri:hover{background:#fff}
+.hbtn[hidden]{display:none}
+.hbtn .gl{display:flex;flex:0 0 auto}
+.hbtn .gl svg{width:calc(var(--hfont) * 1.2);height:calc(var(--hfont) * 1.2);
+  display:block;fill:none;stroke:currentColor;stroke-width:2.2;
+  stroke-linecap:round;stroke-linejoin:round}
+/* An arrow is not bidi-mirrored by the renderer - U+2190 draws pointing left
+   whatever the direction is - so a back affordance in Hebrew has to be
+   flipped deliberately. Drawn rather than typed for the same reason the coin
+   is: a glyph is a different picture per device, and ⛶ in particular is
+   missing from plenty of fonts. */
+[dir="rtl"] .hbtn .gl .arw{transform:scaleX(-1);transform-origin:center}
+
+.wallet-wrap{display:inline-flex;align-items:center;height:var(--tap);
+  border-radius:99px;padding:0 calc(var(--tap) * .39);
+  background:rgba(255,255,255,.12)}
+body[data-page="game"] #wallet-slot>*{background:none;box-shadow:none;border:0;
+  padding:0;color:var(--hdr-ink);height:var(--tap);gap:12px}
+
+/* On a phone the labels go and the glyphs stay, and the game's name goes with
+   them - the middle of a two-ended row only stays centred while the two ends
+   are about equal, and once the labels drop they are not. */
+@media (max-width:719px){
+  .hbtn .tx{display:none}
+  .hgrp-c{display:none}
+  body[data-page="game"] .top .in{padding:0 calc(var(--hpad) * .75)}
+}
+
 @media (max-width:480px){body{font-size:16px}h1{font-size:1.6rem}.play{width:100%}
   .stage .box{min-height:clamp(420px,calc(100dvh - 120px),860px)}
   .tagline{display:none}}
@@ -272,6 +395,31 @@ export interface DocumentOptions {
    * point on pages that boot the app.
    */
   headerSlot?: RawHtml;
+  /**
+   * The game-page chrome. Present ONLY on a game page, and its absence is what
+   * keeps the other 27 emitted documents byte-identical to what they were -
+   * the home index, the room, the boards and the 404 all still render the
+   * plain wordmark-and-tagline row.
+   */
+  headerChrome?: HeaderChrome;
+}
+
+/** What the game-page header needs that the document itself does not know. */
+export interface HeaderChrome {
+  /**
+   * The game's own ground colour, from `artGround`. Emitted as `--g` on the
+   * header, because nothing else on the page defines it and the tint rule
+   * reads it - without the attribute every game's bar falls back to one
+   * indigo, which is a perfectly plausible header that happens to be
+   * identical on all 21 games.
+   */
+  ground: string;
+  /** The game's title, already in this page's language. */
+  title: string;
+  /** Its category, already localised. Optional: not every page has one. */
+  cat?: string;
+  backLabel: string;
+  fullLabel: string;
 }
 
 /** `data-page="game" data-game="2048"`, escaped, or nothing at all. */
@@ -284,6 +432,62 @@ function bodyAttrs(data: Record<string, string> | undefined): string {
 
 function escapeAttribute(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+}
+
+/**
+ * `--g` on the header, and nowhere else.
+ *
+ * The tint rule reads this. Nothing in the app or in the emitted document
+ * defines it - it only ever existed on the tournament's own scaffold - so
+ * without this attribute every game's bar falls back to one indigo, which is
+ * a perfectly plausible header that happens to be the same on all 21 games.
+ */
+function groundStyle(chrome: HeaderChrome | undefined): string {
+  return chrome ? ` style="--g:${escapeAttribute(chrome.ground)}"` : "";
+}
+
+/**
+ * One glyph from the app's icon set, drawn rather than typed.
+ *
+ * The emitted header is built at BUILD time as a string, so it cannot call
+ * the React `Icon` - but it must not draw its own arrow either, or the set
+ * stops being one set. Both come from `ICON_PATHS`, so a glyph redrawn in the
+ * app is redrawn here with no second edit.
+ */
+function icon(name: "back" | "expand", cls = ""): RawHtml {
+  return raw(
+    `<span class="gl"><svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true" ` +
+      `fill="none" stroke="currentColor" stroke-width="${ICON_STROKE}" ` +
+      `stroke-linecap="round" stroke-linejoin="round">` +
+      `<path d="${ICON_PATHS[name]}"/></svg></span>`,
+  );
+}
+
+/**
+ * The game page's header row: wordmark + back | game name | wallet + full screen.
+ *
+ * The full-screen control is emitted `hidden` and revealed by the runtime only
+ * once it has confirmed the API exists. A button that silently does nothing is
+ * worse than no button, and this page is served to browsers that have no
+ * fullscreen at all.
+ */
+function gameChrome(chrome: HeaderChrome, homeHref: string, brand: string, slot: RawHtml | undefined): RawHtml {
+  return html`
+    <div class="hgrp">
+      <a class="brand" href="${homeHref}">${brand}</a>
+      <a class="hbtn" href="${homeHref}">${icon("back", "arw")}<span class="tx">${chrome.backLabel}</span></a>
+    </div>
+    <div class="hgrp hgrp-c">
+      <b>${chrome.title}</b>
+      ${chrome.cat ? html`<span class="cat">${chrome.cat}</span>` : raw("")}
+    </div>
+    <div class="hgrp">
+      <div class="wallet-wrap">${slot ?? raw("")}</div>
+      <button type="button" class="hbtn pri" data-fullscreen hidden>
+        ${icon("expand")}<span class="tx">${chrome.fullLabel}</span>
+      </button>
+    </div>
+  `;
 }
 
 export function renderDocument(opts: DocumentOptions): string {
@@ -360,11 +564,13 @@ export function renderDocument(opts: DocumentOptions): string {
         ${(opts.preloads ?? []).map((t) => raw(t))}
       </head>
       <body ${raw(bodyAttrs(opts.bodyData))}>
-        <header class="top">
+        <header class="top" ${raw(groundStyle(opts.headerChrome))}>
           <div class="in">
-            <a class="brand" href="${href(homePath(locale), base)}">${site.brand}</a>
-            <span class="tagline">${site.tagline}</span>
-            ${opts.headerSlot}
+            ${opts.headerChrome
+              ? gameChrome(opts.headerChrome, href(homePath(locale), base), site.brand, opts.headerSlot)
+              : html`<a class="brand" href="${href(homePath(locale), base)}">${site.brand}</a>
+                  <span class="tagline">${site.tagline}</span>
+                  ${opts.headerSlot}`}
           </div>
         </header>
         <main>${opts.body}</main>
