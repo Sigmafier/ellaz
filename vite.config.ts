@@ -261,14 +261,24 @@ export default defineConfig({
           // correct, and buying nothing. `assert-first-visit.mjs` caught it.
           if (path.includes("/src/portal/")) return "shell";
 
-          // The game chrome and its icon set. They live under `src/ui/`, so the
-          // catch-all below would claim them for the shell - and they are used
-          // by all 21 games and by NOTHING on the home screen, so every child
-          // would download the game header before choosing a game. Same trap as
-          // `Boards.tsx` above, one directory over. The game chunks that import
-          // them are only ever loaded on a page that has already fetched
-          // `page-*`, so this costs no extra request.
-          if (/\/src\/ui\/(GameChrome|icons)\.tsx$/.test(path)) return "page";
+          // The game chrome. It lives under `src/ui/`, so the catch-all below
+          // would claim it for the shell - and it is used by all 21 games and
+          // by NOTHING on the home screen, so every child would download the
+          // game header before choosing a game. Same trap as `Boards.tsx`
+          // above, one directory over. The game chunks that import it are only
+          // ever loaded on a page that has already fetched `page-*`, so this
+          // costs no extra request.
+          //
+          // `icons.tsx` USED TO BE PINNED HERE BESIDE IT, on the premise that
+          // nothing on the home screen drew an icon. That premise died the day
+          // the wallet chip stopped drawing its coin and star as emoji: Home,
+          // WalletChip and winMoment all read the icon set now, so leaving it
+          // on `page` made the SHELL import from the page chunk and Vite wrote
+          // a modulepreload for the whole content-page runtime into index.html.
+          // `assert-first-visit.mjs` failed the build by name - the third time
+          // it has caught exactly this, and the reason the premise is written
+          // down rather than assumed.
+          if (/\/src\/ui\/GameChrome\.tsx$/.test(path)) return "page";
 
           // Shared app code, imported by BOTH the shell and the games. Pin it to
           // the shell side explicitly: left unassigned, Rollup folds it into

@@ -32,7 +32,8 @@ export type IconName =
   | "layers"
   | "bolt"
   | "check"
-  | "heart";
+  | "heart"
+  | "coin";
 
 const PATHS: Record<IconName, string> = {
   home:
@@ -74,22 +75,58 @@ const PATHS: Record<IconName, string> = {
   bolt: "M13.4 3.6 5.6 13.2h5.4L9.6 20.4 17.4 10.8H12z",
   check: "M4.8 12.6 9.6 17.4 19.2 6.9",
   heart: "M12 20.2C12 20.2 3.8 15.4 3.8 9.8A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 8.2 2.4c0 5.6-8.2 10.4-8.2 10.4z",
+  // The currency: a stack of three coins seen at an angle.
+  //
+  // It took six candidates rendered at the wallet chip's REAL 17px to get here,
+  // and the two obvious ones both failed there while looking fine at 24:
+  //   - two concentric circles reads as a BULLSEYE - the inner circle collapses
+  //     to a dot inside a ring - and it is the `clock` glyph with a filling,
+  //     which is the neighbour it most has to stay distinct from;
+  //   - one coin on its side reads as a DATABASE CYLINDER, which is the same
+  //     shape with different proportions and no way to tell from the source.
+  // A filled disc is legible and says nothing; a single coin with a currency
+  // mark degrades into a smudge. Three stacked discs still read as money at
+  // 17px, which is the only size that matters here.
+  //
+  // Judge a glyph by rendering it at the size it ships at. Reading the path,
+  // or looking at it at 24px, tells you nothing about any of the above.
+  coin:
+    "M19 7.6a7 2.8 0 1 1-14 0 7 2.8 0 0 1 14 0" +
+    "M5 7.6v3.4c0 1.55 3.13 2.8 7 2.8s7-1.25 7-2.8V7.6" +
+    "M5 11v3.4c0 1.55 3.13 2.8 7 2.8s7-1.25 7-2.8V11",
 };
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+const STROKE = 2.1;
 
 /**
  * `label` gives the icon an accessible name. Omit it when the icon sits inside a
  * button that already has an `aria-label` - a name on both makes a screen reader
  * announce the control twice.
+ *
+ * `filled` paints the same path solid at the same stroke weight. It is a STATE,
+ * not a style: the home grid marks an earned star solid and an unearned one
+ * hollow, which is the distinction the emoji pair used to carry. It is not a
+ * licence to fill icons for looks - a set with some glyphs solid and some
+ * hollow for no reason is the exact defect this set replaced.
  */
-export function Icon({ name, label }: { name: IconName; label?: string }): ReactElement {
+export function Icon({
+  name,
+  label,
+  filled = false,
+}: {
+  name: IconName;
+  label?: string;
+  filled?: boolean;
+}): ReactElement {
   return (
     <svg
       viewBox="0 0 24 24"
       width="1em"
       height="1em"
-      fill="none"
+      fill={filled ? "currentColor" : "none"}
       stroke="currentColor"
-      strokeWidth={2.1}
+      strokeWidth={STROKE}
       strokeLinecap="round"
       strokeLinejoin="round"
       style={{ display: "block", flexShrink: 0 }}
@@ -101,3 +138,37 @@ export function Icon({ name, label }: { name: IconName; label?: string }): React
     </svg>
   );
 }
+
+/**
+ * The same glyph as a detached DOM node, for imperative animation code that has
+ * no React tree to render into - today, the coins that fly to the wallet.
+ *
+ * It exists so the flying coin and the coin in the wallet are ONE drawing. They
+ * were two before this: an emoji in flight and an emoji in the chip, which
+ * happened to match only because both were the same character, and would have
+ * silently stopped matching the moment either side changed. `icons.test.ts`
+ * pins the two renderers to the same path and the same weight.
+ *
+ * Sized in `em` exactly like `<Icon>`, so the caller's font-size drives it -
+ * which is how `flyTo` gives each coin in the flock a slightly different size.
+ */
+export function iconNode(name: IconName, filled = false): SVGSVGElement {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("width", "1em");
+  svg.setAttribute("height", "1em");
+  svg.setAttribute("fill", filled ? "currentColor" : "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", String(STROKE));
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS(SVG_NS, "path");
+  path.setAttribute("d", PATHS[name]);
+  svg.appendChild(path);
+  return svg;
+}
+
+/** The geometry, for tests that must prove the two renderers agree. */
+export const ICON_PATHS: Readonly<Record<IconName, string>> = PATHS;
+export const ICON_STROKE = STROKE;

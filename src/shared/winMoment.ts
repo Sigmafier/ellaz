@@ -13,6 +13,21 @@ import { celebrate, flyTo, haptic } from "@juice/index";
 // Relative on purpose: portal has no alias, and this is the ONLY portal
 // reference here — a module-level ref lookup, not portal state.
 import { getWalletAnchor } from "../portal/WalletChip";
+import { iconNode } from "@ui/icons";
+
+/**
+ * What flies to the wallet. The SAME drawing the chip shows, from the same
+ * path - not a lookalike. `flyTo` lives in `@juice`, which must not import
+ * `@ui`, so the glyph is injected from here.
+ *
+ * A fresh node per call: `flyTo` sends a flock, and one node cannot be in five
+ * places.
+ */
+function coinParticle(): SVGSVGElement {
+  const el = iconNode("coin");
+  el.style.color = "var(--orange-ink)";
+  return el;
+}
 
 export interface WinMomentOptions extends RewardGrant {
   /** Viewport point the coins fly FROM. Defaults to the middle of the screen. */
@@ -83,7 +98,10 @@ export function winMoment(ctx: GameContext, o: WinMomentOptions): WinMomentResul
     // 4. Show WHERE the coins went. Skipped when the cap paid out nothing —
     //    flying zero coins would be a lie about what just happened.
     if (result.coins > 0) {
-      flyTo(o.at ?? screenCentre(), getWalletAnchor(), { count: result.coins });
+      flyTo(o.at ?? screenCentre(), getWalletAnchor(), {
+        count: result.coins,
+        particle: coinParticle,
+      });
     }
 
     // 5. The two currencies get their own voices, staggered behind the win

@@ -5,6 +5,7 @@ import { CATALOG, CATEGORY_ORDER, findEntry, type CatalogEntry } from "./catalog
 import { audioPort, speechPort, wallet, type Category, type ProfileV1 } from "@sdk/index";
 import { boardsHref, gameHref, worldHref } from "./paths";
 import { inkFor } from "@ui/ink";
+import { Icon } from "@ui/icons";
 import { GameArt, showsArt } from "@ui/gameArtView";
 import { useCardStyle } from "@ui/useCardStyle";
 import type { CardStyle } from "@ui/cardStyle";
@@ -580,7 +581,11 @@ function GameCard({
         aria-hidden="true"
         dir="ltr"
       >
-        {stars > 0 ? `⭐${stars}` : "☆"}
+        {/* Solid when earned, hollow when not - the same distinction the
+            emoji pair carried, now in one drawing that renders identically on
+            every device instead of two characters the OS picks for itself. */}
+        <Icon name="star" filled={stars > 0} />
+        {stars > 0 ? stars : null}
       </span>
       {/* The art carries its own ground, so the `.ellaz-tint` wash that used to
           sit behind the emoji is gone here - two backgrounds fighting under one

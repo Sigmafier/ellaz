@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Locale } from "@i18n/index";
 import { makeT } from "@i18n/index";
 import { audioPort, nameEmoji, renderName, wallet, type ProfileV1 } from "@sdk/index";
 import { IconButton } from "@ui/components";
+import { Icon } from "@ui/icons";
 import { burst, popEl, shake } from "@juice/index";
 import { WalletChip } from "../WalletChip";
 import { Scene } from "./Scene";
@@ -286,13 +287,24 @@ function ItemCard({
   // on the card is exactly the picture the tap produces.
   const preview = { ...profile.equipped, [item.category]: item.id };
 
-  const badge = owned
-    ? equipped
-      ? "✓"
-      : t("owned")
-    : starLocked
-      ? `⭐ ${item.requiresStars}`
-      : `🪙 ${item.price}`;
+  // A price is the SAME currency the wallet chip shows, so it is the same
+  // drawing - an emoji here beside an SVG in the chip is one coin rendered two
+  // ways on one screen, which reads as two different things to a child.
+  const badge: ReactNode = owned ? (
+    equipped ? (
+      "✓"
+    ) : (
+      t("owned")
+    )
+  ) : starLocked ? (
+    <>
+      <Icon name="star" filled /> {item.requiresStars}
+    </>
+  ) : (
+    <>
+      <Icon name="coin" /> {item.price}
+    </>
+  );
 
   // Spoken separately from the badge: a screen reader should hear words, not
   // "star 10".
@@ -331,6 +343,11 @@ function ItemCard({
           fontSize: 14,
           fontWeight: 800,
           color: owned ? "var(--green)" : starLocked ? "var(--yellow)" : "var(--text-dim)",
+          // The glyph is an SVG block now, so the row has to be a flex line or
+          // the icon and the number sit on different baselines.
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 4,
         }}
       >
         {badge}

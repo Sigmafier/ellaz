@@ -130,8 +130,20 @@ export function celebrate(opts: { count?: number; colors?: string[] } = {}): voi
 }
 
 export interface FlyToOptions {
-  /** What flies. Coins by default; a game could send ⭐ or a heart. */
-  emoji?: string;
+  /**
+   * Builds ONE flying particle; called `count` times, so it must return a fresh
+   * node each time.
+   *
+   * REQUIRED, and it used to be an optional emoji string defaulting to a coin.
+   * A default here is what let the flying coin and the coin in the wallet drift
+   * into two separate drawings - they agreed only because both happened to be
+   * the same character, with nothing checking. `@juice` must not import `@ui`,
+   * so the caller injects the glyph, exactly as it injects the tap sound.
+   *
+   * Size yourself in `em`: the wrapper's font-size varies per particle, which
+   * is what gives the flock its spread.
+   */
+  particle: () => Node;
   count?: number;
   ms?: number;
 }
@@ -163,9 +175,8 @@ export function prefersReducedMotion(): boolean {
 export function flyTo(
   from: { x: number; y: number },
   target: HTMLElement | null,
-  opts: FlyToOptions = {},
+  opts: FlyToOptions,
 ): void {
-  const emoji = opts.emoji ?? "🪙";
   const count = Math.max(1, Math.min(12, Math.round(opts.count ?? 5)));
   const ms = opts.ms ?? 620;
 
@@ -189,7 +200,7 @@ export function flyTo(
 
   for (let i = 0; i < count; i++) {
     const p = document.createElement("div");
-    p.textContent = emoji;
+    p.appendChild(opts.particle());
     // Reduced motion: no travel at all — the coins simply appear at the wallet
     // and fade, so the reward still registers without anything flying across.
     const startX = reduced ? from.x + dx : from.x;

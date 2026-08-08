@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { wallet } from "@sdk/index";
 import { popEl, tween } from "@juice/index";
+import { Icon } from "@ui/icons";
 
 // The wallet readout, and the target the reward coins fly to.
 //
@@ -104,8 +105,22 @@ export function WalletChip() {
         whiteSpace: "nowrap",
       }}
     >
-      <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}>
-        <span aria-hidden="true">🪙</span>
+      {/* Both glyphs are SVG on purpose. As emoji they were a DIFFERENT PICTURE
+          on every device - gold on one phone, brown on another, flat on a third
+          - so the currency this whole economy is denominated in had no fixed
+          appearance at all. They also cannot take a theme colour, and they
+          carry no accessible name (the chip's aria-label above does that job).
+          The coin is `--orange-ink` and the star `--yellow`, which is where the
+          emoji's own colours land once a theme can reach them. */}
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "var(--space-1)",
+          color: "var(--orange-ink)",
+        }}
+      >
+        <Icon name="coin" />
         {coins}
       </span>
       <span
@@ -116,7 +131,7 @@ export function WalletChip() {
           color: "var(--yellow)",
         }}
       >
-        <span aria-hidden="true">⭐</span>
+        <Icon name="star" filled />
         {stars}
       </span>
     </div>
