@@ -1,0 +1,73 @@
+name: Is the live site crawlable?
+
+# The only check in this repo that reads the NETWORK rather than dist/.
+#
+# It runs on a SCHEDULE and not on push, because the failure it exists to catch
+# has no commit to hang off: on 2026-08-08 Hostinger's CDN was answering every
+# crawler with a 403 JavaScript challenge while the site loaded perfectly in a
+# browser. Google reported "Sitemap could not be read", 0 discovered pages, and
+# every gate here stayed green - they all assert against the build artifact,
+# which was flawless. Nobody was serving it.
+#
+# The toggle lives in a vendor control panel, so git can never see it move.
+# See .claude/rules/a-bot-challenge-at-the-edge-is-invisible-from-your-browser.md
+
+on:
+  schedule:
+    # Daily, 06:40 UTC. Deliberately not hourly: a vendor toggle flip is a rare
+    # event, daily detection is soon enough, and ~50 requests a day stays well
+    # under the traffic that arms a bot challenge in the first place. An
+    # off-the-hour minute avoids the crowd every cron job lands in.
+    - cron: "40 6 * * *"
+  workflow_dispatch:
+    inputs:
+      origin:
+        description: "Origin to check (defaults to https://ellaz.fun)"
+        required: false
+        default: "https://ellaz.fun"
+
+# A failure here is not urgent enough to interrupt a deploy, and two of these
+# racing would double the request rate for no extra signal.
+concurrency:
+  group: crawlable
+  cancel-in-progress: false
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # No `npm ci`. The script uses only node built-ins, on purpose - a check
+      # that has to install 400 packages before it can tell you the site is
+      # down is a check that fails for its own reasons.
+      - name: Fetch every sitemap URL as Googlebot
+        env:
+          CRAWL_ORIGIN: ${{ inputs.origin || 'https://ellaz.fun' }}
+        run: node scripts/assert-crawlable.mjs
+
+      # A red run is the alarm: GitHub emails the repo owner on a failed
+      # scheduled workflow, which is the whole notification mechanism and costs
+      # nothing. This step only adds the instruction to the run summary, where
+      # whoever opens it will actually be looking.
+      - name: What to do about it
+        if: failure()
+        run: |
+          {
+            echo "## The live site is not fully crawlable"
+            echo
+            echo "Check **hPanel → Websites → ellaz.fun → Performance → CDN → Manage → Security**"
+            echo "BEFORE touching any code. A 403 or a \"Checking your browser\" interstitial is"
+            echo "almost always the CDN's bot protection, not this repo."
+            echo
+            echo "- \`I'm Under Attack!\` must be OFF"
+            echo "- Security Level should be **Essentially off** (nothing here needs a WAF:"
+            echo "  no login, no forms, no backend, no database)"
+            echo
+            echo "Full account: \`.claude/rules/a-bot-challenge-at-the-edge-is-invisible-from-your-browser.md\`"
+            echo
+            echo "Reproduce locally: \`npm run assert:crawlable\`"
+          } >> "$GITHUB_STEP_SUMMARY"
