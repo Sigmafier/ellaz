@@ -28,8 +28,8 @@
    Node built-ins only, like assert-crawlable.mjs: a check that must install 400
    packages before it can tell you the site is down fails for its own reasons. */
 
-import { readFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
+import { join, relative, sep } from "node:path";
 
 /* SITE_URL is an ORIGIN, and BASE_PATH is separate from it, because the two
    hosts differ in exactly that way: ellaz.fun serves from `/`, the Pages copy
@@ -185,7 +185,48 @@ async function runChecks() {
     }
   }
 
+  /* ── The hop the HTML walk cannot make ───────────────────────────────────
+     Everything above follows HTML -> assets, and that stops EXACTLY ONE HOP
+     SHORT OF THE GAMES. A game chunk is never named in a document; it is named
+     inside the shell chunk's own dependency map, so `game-bubbles-*.js` can be
+     404 while every page and every asset a page names is 200. On 2026-08-08
+     that was briefly true of two games - a child tapping bubbles or coloring
+     got the error card - and this gate was green over it. Same shape as the
+     outage it was written for, moved one level down.
+
+     Following the dep map would fix those two hops and leave the next one, so
+     this asserts the whole build instead: every artifact in dist/ must be
+     fetchable. It cannot miss a hop because it does not count hops.
+
+     Two deliberate exclusions. Documents are covered by the reference walk
+     above and by assert-crawlable.mjs, which fetches all 48 as Googlebot.
+     Dotfiles must NOT be fetchable - `.htaccess` is configuration, and a 200
+     on it would be a finding in the opposite direction. */
+  for (const file of distArtifacts()) {
+    const res = await get(`${SITE}${BASE}${file}`, { asText: false });
+    if (res.status !== 200) {
+      failures.push(`${file}  HTTP ${res.status || "transport"} - built and NOT SERVED`);
+    } else if (res.body.length === 0) {
+      failures.push(`${file}  200 but zero bytes - a truncated transfer`);
+    }
+  }
+
   return { failures, notes, count: wanted.size };
+}
+
+/** Every built artifact that the host is expected to serve, dist-relative. */
+function distArtifacts() {
+  const out = [];
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (e.name.startsWith(".")) continue; // config, not content
+      const p = join(dir, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (!e.name.endsWith(".html")) out.push(relative(DIST, p).split(sep).join("/"));
+    }
+  };
+  walk(DIST);
+  return out.sort();
 }
 
 async function main() {

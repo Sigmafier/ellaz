@@ -112,6 +112,39 @@ went red naming the four stale chunks. Without it the run would have been green,
 site would have been broken in a new way, and the commit message would have claimed
 the outage was fixed.
 
+## And a third time, one hop further out
+
+The gate walked HTML to assets, and **that stops exactly one hop short of the
+games.** A game chunk is never named in a document - it is named inside the shell
+chunk's own dependency map. So `game-bubbles-*.js` and `game-coloring-*.js` were
+404 while every page, and every asset any page named, was 200:
+
+| Checked | Result |
+|---|---|
+| 6 documents | 200 |
+| 26 assets those documents name | **all 200** |
+| 25 lazy chunks the shell names | **2 were 404** |
+| A child tapping bubbles or coloring | the error card |
+
+`assert-live.mjs` was green over it. Same shape as the outage it was written for,
+moved one level down: everything you check is 200, and it is broken for the
+population you did not check.
+
+**The fix is not to follow the dependency map.** That closes those two hops and
+leaves the next one. The gate now asserts **every artifact in `dist/` is
+fetchable** - it cannot miss a hop because it does not count hops. Documents are
+excluded (the reference walk and `assert-crawlable.mjs` already fetch all 48) and
+so are dotfiles, because `.htaccess` returning 200 would be a finding in the
+opposite direction.
+
+The cause was the `550 Rename of hidden file` above: lftp's default temp name is a
+dotfile, Hostinger refused the rename, and two chunks were dropped from a pass that
+otherwise succeeded.
+
+**It was found by driving the live site in a browser** and watching a game fail to
+load - not by fetching URLs. Every URL-level check available, including this one,
+reported health. That is worth remembering the next time a sweep comes back clean.
+
 ## The lesson that was already written down
 
 `verify-the-deploy-target-not-just-the-run.md` has said "verify the artifact, not the
