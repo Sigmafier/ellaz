@@ -7,9 +7,10 @@ import { gamePage } from "./gamePage";
 import { boardsPage, homePage, notFoundPage, worldPage } from "./sitePages";
 import { homeGraph } from "./schema";
 import { jsonLd, toHtml } from "./html";
+import { lastmodByPath } from "./lastmod";
 import { OG_HEIGHT, OG_WIDTH, ogImagePath } from "./ogCard";
 import { renderOgImages } from "./ogImages";
-import { llmsTxt, robotsTxt, sitemapXml } from "./siteFiles";
+import { indexNowKeyFile, INDEXNOW_KEY, llmsTxt, robotsTxt, sitemapXml } from "./siteFiles";
 import {
   DEV_HEAD_ASSETS,
   extractHeadAssets,
@@ -118,7 +119,11 @@ export interface EmittedFile {
 }
 
 /** Everything this plugin writes, as data. Pure, so the gate's tests can read it. */
-export function allEmittedFiles(base: string, headAssets?: HeadAssets): EmittedFile[] {
+export function allEmittedFiles(
+  base: string,
+  headAssets?: HeadAssets,
+  lastmods?: ReadonlyMap<string, string>,
+): EmittedFile[] {
   const files: EmittedFile[] = ROUTES.filter((r) => r.emit).map((r) => ({
     fileName: r.file,
     source: renderRoute(r, base, headAssets),
@@ -129,7 +134,10 @@ export function allEmittedFiles(base: string, headAssets?: HeadAssets): EmittedF
   // The sitemap advertises ellaz.fun URLs, so it belongs only to the host that
   // serves them. Emitting it from the Pages duplicate would invite a crawler to
   // index the primary site from a copy that says noindex.
-  if (isPrimaryHost(base)) files.push({ fileName: "sitemap.xml", source: sitemapXml() });
+  if (isPrimaryHost(base)) {
+    files.push({ fileName: "sitemap.xml", source: sitemapXml(lastmods) });
+    files.push({ fileName: `${INDEXNOW_KEY}.txt`, source: indexNowKeyFile() });
+  }
 
   // The route table's own manifest, written on every build. "Which pages exist"
   // is then a question answered from the artifact rather than by inference.
@@ -191,7 +199,10 @@ export function pagesPlugin(base: string): Plugin {
         ...extractHeadAssets(String(index.source)),
         lazy: resolveLazyChunks(Object.keys(bundle), GAMES.map((m) => m.id)),
       };
-      const files = allEmittedFiles(base, headAssets);
+      // Git is consulted once per build, here, rather than inside the pure
+      // `allEmittedFiles` - which the gate's tests call, and which must stay
+      // free of side effects and of a dependency on repository history.
+      const files = allEmittedFiles(base, headAssets, lastmodByPath());
 
       // A page count that silently drops to zero is the shape every gate in this
       // repo exists to catch, so the emitter refuses to produce one.

@@ -21,6 +21,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history, not the default depth-1 clone. `src/build/lastmod.ts`
+          # derives each page's <lastmod> from the last commit that touched its
+          # sources; with a shallow clone git can only report the single commit
+          # it has, so all 48 pages would carry one identical date. That is the
+          # "everything changed today" signal Google learns to discount, and it
+          # would arrive looking perfectly plausible. The emitter detects a
+          # shallow clone and omits the field rather than lying, so removing
+          # this degrades the sitemap quietly instead of breaking the build.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22

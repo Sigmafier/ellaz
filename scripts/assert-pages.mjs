@@ -24,7 +24,7 @@
 // Every check below is followed by a negative control at the bottom of the file
 // that plants the exact defect and requires the check to fire. A check nobody
 // has watched fail is not a check.
-import { readFileSync, existsSync, statSync } from "node:fs";
+import { readFileSync, existsSync, statSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 const DIST = process.env.DIST_DIR ?? "dist";
@@ -395,6 +395,40 @@ function main() {
     }
     if (!existsSync(join(DIST, "robots.txt"))) fail("no robots.txt");
     const robots = readFileSync(join(DIST, "robots.txt"), "utf8");
+    // --- lastmod is honest, or absent -------------------------------------
+    // Absent is fine and is what this site shipped for months. What is NOT
+    // fine is 48 identical dates: that is a shallow clone (or a build-time
+    // stamp) claiming every page changed at once, which reads as plausible
+    // and teaches Google to discount the field permanently.
+    const mods = [...sitemap.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].map((m) => m[1]);
+    if (mods.length > 0) {
+      if (mods.length !== locs.length) {
+        fail(`sitemap has ${mods.length} <lastmod> for ${locs.length} URLs - partial dates order nothing`);
+      }
+      if (new Set(mods).size === 1) {
+        fail(
+          `every sitemap <lastmod> is ${mods[0]} - a shallow clone or a build-time stamp. ` +
+            "Set fetch-depth: 0 on actions/checkout, or omit the field.",
+        );
+      }
+      for (const m of mods) {
+        if (!Number.isFinite(Date.parse(m))) fail(`sitemap <lastmod> "${m}" is not a parseable date`);
+      }
+    }
+
+    // --- the IndexNow ownership file --------------------------------------
+    // Emitted on the primary host only. Without it every submission is
+    // rejected, and the rejection is invisible from here.
+    const keyFiles = readdirSync(DIST).filter((f) => /^[0-9a-f]{16,128}\.txt$/.test(f));
+    if (keyFiles.length !== 1) {
+      fail(`expected exactly one IndexNow key file in dist/, found ${keyFiles.length}`);
+    } else {
+      const key = keyFiles[0].replace(/\.txt$/, "");
+      if (readFileSync(join(DIST, keyFiles[0]), "utf8").trim() !== key) {
+        fail(`${keyFiles[0]} must contain exactly its own key, or IndexNow rejects every submission`);
+      }
+    }
+
     if (!robots.includes("Sitemap: https://ellaz.fun/sitemap.xml")) {
       fail("robots.txt does not point at the sitemap");
     }

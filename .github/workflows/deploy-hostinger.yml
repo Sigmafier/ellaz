@@ -16,6 +16,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history, not the default depth-1 clone. `src/build/lastmod.ts`
+          # derives each page's <lastmod> from the last commit that touched its
+          # sources; with a shallow clone git can only report the single commit
+          # it has, so all 48 pages would carry one identical date. That is the
+          # "everything changed today" signal Google learns to discount, and it
+          # would arrive looking perfectly plausible. The emitter detects a
+          # shallow clone and omits the field rather than lying, so removing
+          # this degrades the sitemap quietly instead of breaking the build.
+          fetch-depth: 0
 
       # Fail SOFT while the FTP secrets are missing. A red X on every push would
       # train us to ignore this workflow; a skipped run with a warning does not.
@@ -95,3 +105,15 @@ jobs:
             **/node_modules/**
             default.php
             .well-known/**
+
+      # Tell Bing what changed. ChatGPT Search and Copilot lean on Bing's
+      # index, so this is the cheapest route into the answer engines - and it
+      # submits only URLs whose <lastmod> moved, rather than all 48 every time.
+      #
+      # continue-on-error because a search-engine ping is not worth failing a
+      # good release over: the site is already live by this point, and a red X
+      # here would read as "the deploy broke".
+      - name: Ping IndexNow
+        if: steps.creds.outputs.ready == 'true'
+        continue-on-error: true
+        run: node scripts/indexnow.mjs

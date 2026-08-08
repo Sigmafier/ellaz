@@ -12,3 +12,21 @@ declare module "bidi-js" {
   }
   export default function bidiFactory(): Bidi;
 }
+
+// `scripts/indexnow.mjs` is plain Node ESM - it runs in CI with no build step,
+// so it cannot be TypeScript. Its two pure functions are unit-tested from
+// `src/build/lastmod.test.ts`, which is why they need types here rather than a
+// second copy of the logic living under `src/`.
+declare module "*/scripts/indexnow.mjs" {
+  export interface SitemapEntry {
+    loc: string;
+    lastmod: string;
+  }
+  export const INDEXNOW_KEY: string;
+  export function parseSitemap(xml: string): SitemapEntry[];
+  export function urlsToSubmit(
+    entries: SitemapEntry[],
+    sinceHours: number,
+    now: number,
+  ): { urls: string[]; reason: string };
+}

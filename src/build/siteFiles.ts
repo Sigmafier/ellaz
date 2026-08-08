@@ -65,7 +65,7 @@ function xml(value: string): string {
   return escapeHtml(value);
 }
 
-export function sitemapXml(): string {
+export function sitemapXml(lastmods?: ReadonlyMap<string, string>): string {
   const indexable = ROUTES.filter((r) => r.indexable);
   const rows = indexable.map((r) => {
     // Every page declares both languages, including itself. That self-reference
@@ -91,9 +91,14 @@ export function sitemapXml(): string {
         return `    <xhtml:link rel="alternate" hreflang="${locale}" href="${xml(canonicalUrl(sibling.path))}"/>`;
       })
       .filter((line): line is string => line !== null);
+    // Present only when git could answer honestly. `lastmod.ts` returns an
+    // empty map rather than a guess, and an absent field is valid; a field
+    // that says every page changed today is a lie Google stops trusting.
+    const lastmod = lastmods?.get(r.path);
     return [
       "  <url>",
       `    <loc>${xml(canonicalUrl(r.path))}</loc>`,
+      ...(lastmod ? [`    <lastmod>${xml(lastmod)}</lastmod>`] : []),
       ...alternates,
       "  </url>",
     ].join("\n");
@@ -134,4 +139,19 @@ export function llmsTxt(games: ReadonlyArray<GameMeta>): string {
     `- [Home, English](${canonicalUrl(homePath("en"))})`,
     "",
   ].join("\n");
+}
+
+/**
+ * The IndexNow ownership file.
+ *
+ * IndexNow verifies write access to the docroot by fetching
+ * `https://<host>/<key>.txt` and checking it contains the key. It is public by
+ * design - a proof of control, not a secret - so it is emitted like robots.txt
+ * rather than hidden. Primary host only: the Pages duplicate is noindex and
+ * submits nothing, so a key file there would claim ownership of a site it does
+ * not represent.
+ */
+export const INDEXNOW_KEY = "92410e02f1e99deb9f7c751db9e59068";
+export function indexNowKeyFile(): string {
+  return `${INDEXNOW_KEY}\n`;
 }
