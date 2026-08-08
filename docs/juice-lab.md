@@ -1,14 +1,17 @@
 # The Juice Lab — judging how the app FEELS
 
-A dev-only tournament at `#/lab` for choosing sounds and effects by ear and by
-eye, instead of by argument. Nothing in it ships to a player.
-
-```bash
-npm run dev        # then open http://localhost:5180/#/lab
-```
-
-It opens in **guided mode**: one task on screen at a time, with a sentence
-saying what to press and what to decide.
+> **THE LAB IS GONE — this is a past-tense record.** It was a dev-only
+> tournament at `#/lab` for choosing sounds and effects by ear rather than by
+> argument, and it always carried a kill date: the winners land, `src/juice/lab/`
+> is deleted in the same commit. That happened on **2026-08-08** in `ae4df64`.
+> `npm run dev` no longer has a `#/lab`; the hash now parses to the home grid
+> like any other unrecognised one.
+>
+> Kept because the *methodology* is reusable — the blind protocols, the ethical
+> line it declined to cross, and the damping law that made the sounds stop
+> reading as synthetic — and because a verdict is worthless if the record of how
+> it was reached disappears with the harness. **What shipped and what it cost:**
+> [`build-log.md`](build-log.md) § The six voices.
 
 ---
 
@@ -167,39 +170,67 @@ Reduced motion is honoured throughout. Hit-stop is skipped *entirely* rather
 than shortened — a freeze is not "motion you can turn down", it is a
 discontinuity, and for a motion-sensitive player that is the worst kind.
 
-## Verdict so far (2026-08-02)
+## Verdict (2026-08-02), as corrected on 2026-08-08
 
-| Event | Winner |
-|---|---|
-| tap | Shutter (`tap-shutter`) |
-| correct | Harp gliss (`ok-harp`) |
-| win | Sweep and land (`win-rise`) |
-| coin | **Control** — two triangles up a fifth |
-| wrong | **Control** — soft falling thud |
-| star | Crystal sparkle (`star-crystal`) |
+| Event | Winner | Spec |
+|---|---|---|
+| tap | Shutter | `tap-shutter` |
+| correct | Harp gliss | `ok-harp` |
+| win | Sweep and land | `win-rise` |
+| coin | two triangles up a fifth | `LEAN.coin` |
+| wrong | soft falling thud | `LEAN.wrong` |
+| star | Crystal sparkle | `star-crystal` |
 
-**Coin and wrong were won, blind, by the sounds already shipped in
-`src/sdk/audio.ts`** — against four and five new challengers respectively. Do
-not "improve" those two without a fresh blind test. They were already right, and
-the harness proved it rather than assuming it.
+**This table said "**Control**" for coin and wrong, and that was ambiguous
+enough to be false.** The paragraph under it read: *"coin and wrong were won,
+blind, by the sounds already shipped in `src/sdk/audio.ts` — do not improve
+those two without a fresh blind test."* Landing the winners on that basis would
+have wired a **320 Hz square** for coin and left a **180 Hz sawtooth** for wrong,
+because `brackets.ts` says outright — *"the palette deliberately reuses the LEAN
+specs as its control characters"*. Every `*-current` character referenced
+`LEAN.*`; none referenced `CONTROL.*`. `coin-current`'s blurb, "what the lab
+plays right now", meant the **lab**, not the app. So the control arm was the
+lab's own Arm A, a design that had never shipped, and **all six winners are new
+voices**. Two of them, coin and star, had no `SfxName` member at all and made no
+sound in the app.
+
+**The transferable lesson, and why this table now carries a Spec column: a
+verdict recorded as "the control won" is ambiguous unless the record also says
+WHAT THE CONTROL WAS.** Record the spec identifier, never the word "control".
+`src/sdk/voice.test.ts` pins the correction — `FAIL.freq === 196` with no
+sawtooth, `COIN` two triangles a fifth apart with no square — so a future reader
+cannot restore the old sounds on a note's authority.
 
 Tap changed from Keyboard click to Shutter on a second listen, in context on the
 real Home screen rather than in isolation. Shutter has the strongest personality
 in the tap list, so it is the one most likely to wear out by the three hundredth
-press — it needs sustained use before it is final.
+press. The operator was asked and chose to **ship it and judge it live** rather
+than soften it pre-emptively; that judgement is still outstanding.
 
-The six ranking rounds are **not yet judged**.
+The six ranking rounds were **never judged** — including the one that would have
+decided the coin-flight behaviour, which is why `winMoment` plays one coin per
+win rather than one per coin.
 
-## Still to do — and it is one pass, not three
+## Done, in one pass, on 2026-08-08 (`ae4df64`)
 
-1. Fold the winning voices into `src/sdk/audio.ts`.
-2. Attach the Tier 1 shell juice in the portal for real. `shell.ts` works, but
-   it is attached by the *lab pane*, so the shipped Home is still silent.
-3. **Delete `src/juice/lab/` in that same commit.**
+1. ~~Fold the winning voices into `src/sdk/audio.ts`.~~ Done — as
+   `src/sdk/voice.ts` (pure data, unit-testable in node) plus
+   `voiceEngine.ts` (the only file touching audio nodes). `audio.ts` keeps its
+   interface, so all 41 `play()` call sites were untouched.
+2. ~~Attach the Tier 1 shell juice in the portal for real.~~ Done — `src/juice/shell.ts`,
+   attached to the real `Home`, deliberately **without** `playTap` (Home already
+   plays tap through its own handler; passing both fires on `pointerdown` and
+   again on `click`).
+3. ~~**Delete `src/juice/lab/` in that same commit.**~~ Done — 14 files, same commit.
 
-Step 3 is not optional tidying. Two systems doing one job is how fixes start
-drifting between them, and this lab is scaffolding with a kill date. See
-`no-half-migrated-duplicate-systems`.
+Step 3 was not optional tidying. Two systems doing one job is how fixes start
+drifting between them. See `no-half-migrated-duplicate-systems`.
+
+Two things landed that were not on this list, because the lab's own source
+disagreed with the verdict note: **coin and star were wired for the first time**
+(no `SfxName` member existed for either), and the level-matching moved out of the
+tournament and into the shipped engine — the operator judged every character AT
+matched loudness, so shipping them raw would have been a balance nobody heard.
 
 Proposed and not built: **Tier 2** (a beat of anticipation before the win; the
 combo ladder, whose maths is already written and unit-tested in `specs.ts` and
@@ -235,10 +266,12 @@ src/juice/lab/
 ├─ specs.test.ts   40 tests, incl. structural guards: every character has a
 │                  room, no partial outlives its fundamental
 ├─ engines.ts      the two competing engines + level matching + shared reverb
-├─ voices.ts       control transcriptions of today's shipped sounds
+├─ voices.ts       transcriptions of the LEAN engine's voices. Read as
+│                  "today's shipped sounds" for months; they were not.
 ├─ palette/        45 characters across six events (builders, tap, feedback,
 │                  reward)
-├─ brackets.ts     six blind rounds, arm 0 always the control
+├─ brackets.ts     six blind rounds, arm 0 always the control - and it says
+│                  outright that the control characters ARE the LEAN specs
 ├─ visuals.ts      squash, hit-stop, ripple, tiered celebration, rich coin flight
 ├─ shell.ts        Tier 1 - the portal effects, attached by delegation
 ├─ ShellLab.tsx    renders the REAL Home with the effects on/off

@@ -116,9 +116,12 @@ describe("old hash links keep working", () => {
     expect(loc.calls).toEqual(["/boards/"]);
   });
 
-  it("leaves the dev lab alone", () => {
-    // The Juice Lab has no page of its own, on purpose: it is scaffolding with
-    // a kill date. Redirecting #/lab would send it to the home grid.
+  it("does not redirect the retired lab hash", () => {
+    // `#/lab` was the Juice Lab, deleted 2026-08-08. `legacyHash` still declines
+    // to redirect it - not because the lab is special, but because it has no
+    // page to redirect TO. `parseHash` then treats it like any other
+    // unrecognised hash and the app renders the home grid, which is the right
+    // landing for a bookmark from the tournament.
     const loc = { ...spy(), hash: "#/lab" };
     expect(redirectLegacyHash(loc)).toBe(false);
     expect(loc.calls).toEqual([]);

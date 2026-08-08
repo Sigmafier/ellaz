@@ -614,6 +614,82 @@ Verified after: 21/21 game chunks live and mounting, 25/25 lazy chunks reachable
 
 Full rule: [`.claude/rules/a-deploy-ledger-that-can-disagree-with-the-disk.md`](../.claude/rules/a-deploy-ledger-that-can-disagree-with-the-disk.md).
 
+## The six voices, and one drawing for the currency (2026-08-09)
+
+Two commits, `ae4df64` and `5c355b4`. The Juice Lab picked six sounds by blind
+tournament on 2026-08-02 and then nothing was done with them: the winners lived in
+dev-only scaffolding while the app kept playing single oscillators — `tap` was one
+440 Hz sine, `wrong` a 180 Hz sawtooth. **coin and star made no sound at all**;
+neither had an `SfxName` member, so the coin flight was silent and a star was
+nothing.
+
+**The recorded verdict was wrong, and following it would have shipped the worst
+outcome available.** The note said coin and wrong "were won by the sounds already
+shipped in `src/sdk/audio.ts`", with a warning not to change them. `brackets.ts`
+says the opposite outright — *"the palette deliberately reuses the LEAN specs as
+its control characters"* — and every `*-current` character referenced `LEAN.*`,
+none `CONTROL.*`. The control arm was the lab's own unshipped Arm A;
+`coin-current`'s blurb "what the lab plays right now" meant the **lab**. All six
+winners are new. The transferable half: **a verdict recorded as "the control won"
+is ambiguous unless the record says WHAT THE CONTROL WAS** — record the spec
+identifier, never the word "control". `voice.test.ts` pins it now.
+
+**Level-matching moved out of the tournament and into the shipped engine**,
+because the operator judged every character at matched loudness; raw, a reverbed
+star against a 60 ms tap is roughly a 4× peak difference — a balance nobody had
+heard. Measured on the live artifact: every voice within **6%** of target.
+
+**The currency was four emoji, not one.** The wallet chip, the coins that fly to
+it, every shop price and the star badge on all 21 home cards. They agreed only
+because all four happened to use the same character, with nothing that could
+notice if one changed. `flyTo`'s `emoji` was an *optional* parameter nobody ever
+passed — the flying coin and the chip coin were two independent decisions wearing
+one face. It is a required injected `particle` now, and `icons.test.ts` pins both
+renderers to one path table.
+
+**The coin glyph took six candidates rendered at 17px.** Two concentric circles is
+the obvious coin, correct at 24px, and at the chip's real size it reads as a
+**bullseye** — the inner circle collapses to a dot, and it is the `clock` glyph
+with a filling. One coin on its side reads as a database cylinder. A filled disc
+is legible and says nothing. Three stacked discs still read as money small.
+**Judge a glyph at the size it ships at**; neither failure is visible from the
+path data or a 24px preview.
+
+Numbers: **first visit 84,786 B gz of 86,000** — only 1,214 spare, because
+`icons.tsx` had to move from the `page` chunk to `shell`. It had been pinned to
+`page` on the premise that nothing on the home screen draws an icon, and the
+wallet chip is what made that false; leaving it there made the shell import from
+the page chunk and Vite wrote a modulepreload for the whole content-page runtime
+into `index.html`. `assert-first-visit.mjs` failed the build by name — the third
+time it has caught exactly that. 1,551 tests, 67 files.
+
+**Three probe defects, each of which looked exactly like a product bug**, worth
+recording because two were caught only by a control run:
+
+- A cross-renderer check reported 98 disagreeing coins. The selector matched every
+  path in the app, all 21 game-art scenes included. Correct answer: 5, identical.
+- The audio meter reported every muted sound at exactly 0.3000 — a *closed*
+  AudioContext's analyser keeps returning its last frame forever, so the positive
+  control's own level became the floor under every later reading. It read as
+  "muted still makes sound".
+- `wrong` measured 39% **above** target. Reasoning that under-sampling can only
+  make a peak *lower*, I called it real. The principle is true and the conclusion
+  was wrong: a second artifact was present — plays were spaced 320 ms apart while
+  that voice runs past 700 ms with its tail, so consecutive plays overlapped and
+  summed. **A second artifact can invert the sign of the first.**
+
+A hypothesis the data killed on the way: jitter does not drive the peak variance.
+`coin` carries the most jitter and shows the least spread.
+
+Still open from this: `play()` throws on a name it does not know, contradicting
+its own docstring ("no-ops if … asset missing, best-effort"). Zero of 44 call
+sites can reach it and the `Record<SfxName, …>` type makes the table complete by
+construction, so it is latent rather than live — a one-line guard in `play()`.
+And the first tap of a session plays ~5 dB quiet, because the gesture that
+unlocks audio is the same gesture that plays the sound.
+
+Full account: [`juice-lab.md`](juice-lab.md), now a past-tense record.
+
 ## Still open
 
 - **Wave C step 2b** — live two-way sync. Needs the profile to carry per-device

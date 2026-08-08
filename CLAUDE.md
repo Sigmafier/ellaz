@@ -464,8 +464,10 @@ not.
 **The hash router is retired.** `/#/game/snake` and `/#/world` redirect once at
 boot (`legacyHash.ts`, `location.replace` so Back does not bounce), the home
 cards are real `<a href>`, and Back, shareable game URLs and middle-click all
-work without a line of code. `#/lab` is deliberately left alone - it is dev-only
-scaffolding with a kill date and has no page of its own.
+work without a line of code. `#/lab` used to be left alone as dev-only
+scaffolding; the lab was deleted on 2026-08-08, so that hash now parses to the
+home grid like any other unrecognised one - which is the right landing for a
+bookmark from the tournament.
 
 `src/portal/paths.ts` generates those links and `src/build/routes.ts` writes the
 files. They are two implementations on purpose, because the app may never import
@@ -630,35 +632,67 @@ word of all 21 pages into the precached shell a child downloads before choosing 
 
 Full rule: [`.claude/rules/game-content-template.md`](.claude/rules/game-content-template.md).
 
-## How the app FEELS — the Juice Lab
+## How the app FEELS — the sounds, and the lab that chose them
 
-`#/lab` is a **dev-only** tournament for choosing sounds and effects by ear
-rather than by argument: 45 physics-synthesised sound characters (0 KB, offline,
-no trade dress), six blind ranking rounds, and a Tier 1 shell-juice demo running
-on the **real** Home component. It opens in guided mode, one task at a time.
+**The Juice Lab is gone.** It was a dev-only `#/lab` tournament — 45
+physics-synthesised sound characters, six blind ranking rounds — and it always
+carried a kill date: the winners land, `src/juice/lab/` is deleted in that same
+commit. That happened on 2026-08-08 in `ae4df64`. Do not look for it.
 
-Keeping it off a child's device needs **four** things, and the fourth is the one
-that was missed and shipped: the route branch is behind `import.meta.env.DEV`,
-the chunk is carved out as `lab-*`, `lab-*.js` is in the PWA `globIgnores` —
-and the `lazy(() => import(...))` **at module scope in `App.tsx` is itself
-behind `import.meta.env.DEV`**. Without that last one the first three are all
-true and Vite still writes a `<link rel="modulepreload">` into `index.html`, so
-every child eagerly downloads the chunk on first paint. It was live on ellaz.fun
-until 2026-08-03. Verify with `npm run build:check`, never by reading the code —
-the greps that missed it were each individually correct.
+**`src/sdk/voice.ts` holds the eight voices it chose**, as pure data (no
+WebAudio, so it unit-tests in node), and `voiceEngine.ts` is the only place that
+touches audio nodes. `sdk/audio.ts` is unchanged as an interface — all 41
+`play()` call sites were untouched by the swap.
 
-Two results worth not re-litigating: the **coin and wrong sounds already shipped
-won their own blind rounds** against 4-5 new challengers each (do not "improve"
-them without a fresh blind test), and **`Home.tsx` had zero juice and zero
-sound** — every game was full of feel while the screen every session starts on
-was inert.
+**All eight are NEW. The recorded verdict said otherwise and it was wrong.** A
+memory note claimed coin and wrong "were won by the sounds already shipped", with
+a warning not to change them. `brackets.ts` said the opposite outright — *"the
+palette deliberately reuses the LEAN specs as its control characters"* — every
+`*-current` character referenced `LEAN.*` and none referenced `CONTROL.*`, so the
+control arm was the lab's own unshipped design and `coin-current`'s blurb "what
+the lab plays right now" meant the **lab**. Following the note would have wired a
+320 Hz square for coin and left a sawtooth buzz for wrong. `voice.test.ts` pins
+the correction so nobody restores the old sounds on a note's authority.
 
-This is scaffolding with a kill date: when the winners land in `sdk/audio.ts`
-and the portal, `src/juice/lab/` gets **deleted in that same commit**.
+The transferable half: **a verdict recorded as "the control won" is ambiguous
+unless the record also says WHAT THE CONTROL WAS.** Record the spec identifier,
+never the word "control".
 
-Full runbook, the ethical line it declines to cross, the damping law that made
-the sounds stop reading as synthetic, and the traps it cost:
-[`docs/juice-lab.md`](docs/juice-lab.md).
+**coin and star had no wiring at all** before this — no `SfxName` member, a
+silent coin flight, nothing on a star. Both now fire from `winMoment` staggered
+behind the win chord (450 ms / 620 ms) so a level completion is a short phrase
+rather than three sounds in a pile. **That sequencing is not a tournament
+result**: the guided round that would have chosen the coin-flight behaviour was
+never ranked, so one coin plays per win — the conservative reading of a question
+nobody answered.
+
+**Level-matching ships with the engine.** Each voice is rendered offline once and
+trimmed to a common peak, because the operator judged all six AT matched
+loudness; untrimmed, a reverbed star against a 60 ms tap is roughly a 4× peak
+difference. Measured on the live artifact: every voice lands within 6% of target.
+**Except the first tap of a session**, which plays ~5 dB quiet — the gesture that
+unlocks audio is the same gesture that plays the sound, so the trim does not
+exist yet. Once per session, quieter not louder.
+
+**`Home.tsx` had zero juice and zero sound** when the lab was built; it now
+attaches `attachShellJuice` for press depth, a ripple and a haptic —
+deliberately **without** `playTap`, because Home already plays tap through its
+own handler and passing both fires on `pointerdown` and again on `click`.
+
+**The modulepreload trap the lab cost us is still live for any lazy chunk**, and
+it is the reason `build:check` exists in this shape. Keeping a dev-only chunk off
+a child's device needs **four** things: the route branch behind
+`import.meta.env.DEV`, the chunk carved out with a named `manualChunks` prefix,
+that prefix in the PWA `globIgnores` — and the `lazy(() => import(...))` **at
+module scope itself behind `import.meta.env.DEV`**. Without the fourth, the first
+three are all true and Vite still writes a `<link rel="modulepreload">` into
+`index.html`, so every child eagerly downloads it on first paint. It was live on
+ellaz.fun until 2026-08-03. Verify with `npm run build:check`, never by reading
+the code — the greps that missed it were each individually correct.
+
+The blind protocols, the ethical line the lab declined to cross, the damping law
+that made the sounds stop reading as synthetic, and what the tournament cost:
+[`docs/juice-lab.md`](docs/juice-lab.md), now a past-tense record.
 
 ## Known traps (learned here)
 
