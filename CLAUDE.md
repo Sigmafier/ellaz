@@ -572,6 +572,43 @@ cause: nine games laid their stat row out as a non-wrapping flex under
 screen - 439px of row on a 390px phone. Two games already carried
 `flexWrap: "wrap"`; the rest now do.
 
+**The game page has its own header, and the game panel is capped on desktop.**
+Two separate pieces of chrome, decided one axis at a time against rendered
+production builds.
+
+The **header** (`src/build/layout.ts`) is a real bar in flow on a game page -
+60px, 44px controls, wordmark + back | game name | wallet + full screen - and
+its colour is `oklch(from var(--g) .30 calc(c * 1.05) h)`, a deep tone of that
+game's own ground. Pinning lightness rather than mixing is the whole trick:
+contrast holds by CONSTRUCTION across a catalogue nobody has finished writing
+(7.84-10.68 over all 21 grounds, none below AA), where mixing toward a
+near-black drags the hue and turned snake's emerald navy. **`--g` is not
+ambient** - it is emitted per page from `artGround()`, and without that
+attribute all 21 bars resolve to one fallback indigo, which is a plausible
+picture with no error anywhere. The room still floats its header; the game's
+float is exactly what put chrome on top of the board.
+
+The **panel cap** is one rule: `.ellaz-game-panel { max-width: 700px }` above
+900px of viewport, in `global.css` rather than inline because an inline style
+cannot carry a media query. Every row inside `GameChrome` is `flex: 1 1 0` with
+no ceiling - correct at 390px, and at 1440 it made the difficulty toggle
+**1193px wide** to say "Level: Classic" and three stat cards 456px each to hold
+one digit. Capping the panel fixes every row at once.
+
+**700 and not 640**, because the widest board any game asks for is 640 (bees,
+finddiff) and a tighter cap makes those two grow a scrollbar *inside* the panel
+instead - silently, since the play surface is `overflow: auto`.
+`game-panel-clears-widest-board.test.ts` reads the game TREE and fails the build
+if a new game ever asks for more than the cap leaves.
+
+**The board does NOT grow to meet the panel, and that is deliberate.** Boards
+size against the viewport, so on a desktop the px cap or the `vh` term binds and
+the space they are given never enters the arithmetic. Making them desktop-aware
+is not "raise 20 caps" - it is 39 heterogeneous expressions across 20 files, of
+which several are not boards at all (`min(19vw, 11vh, 96px)` is one balloon;
+sequence has eight; minesweeper's is computed from column count). That belongs
+in one sizing module, not in 39 edits.
+
 ## The picture a shared link grows
 
 Every page carries an `og:image`: **48 cards, 1200x630**, emitted by `src/build/ogCard.ts`
