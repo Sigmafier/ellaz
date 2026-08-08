@@ -138,6 +138,18 @@ jobs:
             echo 'set net:timeout 60'
             echo 'set net:max-retries 4'
             echo 'set net:reconnect-interval-base 5'
+
+            # lftp uploads to a temp name and renames on completion, so a dead
+            # transfer never leaves a half-written file under the real name.
+            # Keep that - but NOT under lftp's default `.in.*`, which is a
+            # DOTFILE. Hostinger refused the rename on 2026-08-08:
+            #   550 /assets/game-shadows-DHQKHaBb.js: Rename of hidden file
+            #   /assets/.in.game-shadows-DHQKHaBb.js failed
+            # and that killed a whole pass. Shared hosting commonly restricts
+            # dotfiles; a visible temp name keeps the atomicity and drops the
+            # restriction. Do NOT "fix" this by setting xfer:use-temp-file
+            # false - that trades an intermittent failure for a torn file.
+            echo 'set xfer:temp-file-name "lftp-tmp-*"'
             echo 'set cmd:fail-exit true'
             echo "open -u \"$FTP_USERNAME\",\"$FTP_PASSWORD\" \"$FTP_SERVER\""
             echo "cd \"$FTP_SERVER_DIR\""
@@ -159,7 +171,7 @@ jobs:
             # only here: every name under assets/ contains a content hash, so a
             # changed file is a NEW file and "does the remote have this name"
             # is the whole question.
-            echo 'mirror -R --parallel=4 --no-perms dist/assets assets'
+            echo 'mirror -R --parallel=4 --no-perms --verbose=1 dist/assets assets'
 
             # PASS 2 - everything else that is REFERENCED, forced.
             # PASS 3 - the files that NAME the hashes, forced, last.
