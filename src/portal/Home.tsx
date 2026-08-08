@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { Locale } from "@i18n/index";
 import { makeT } from "@i18n/index";
 import { CATALOG, CATEGORY_ORDER, findEntry, type CatalogEntry } from "./catalog";
@@ -10,6 +10,7 @@ import { useCardStyle } from "@ui/useCardStyle";
 import type { CardStyle } from "@ui/cardStyle";
 import { useTheme } from "@ui/useTheme";
 import { themeById } from "@ui/themes";
+import { attachShellJuice } from "@juice/index";
 import { WalletChip } from "./WalletChip";
 import { Scene } from "./world/Scene";
 
@@ -69,6 +70,8 @@ export function Home({
     .filter((e): e is CatalogEntry => Boolean(e))
     .slice(0, RECENT_LIMIT);
 
+  const juiceRef = useRef<HTMLDivElement>(null);
+
   // Every card is a real <a> now, so opening a game is a navigation and this
   // only has to make the tap FEEL like something. The audio unlock that used to
   // live here moved to a first-gesture listener in `PageApp.tsx`, because a
@@ -80,8 +83,28 @@ export function Home({
     audioPort.play("tap");
   };
 
+  // The shell answers a touch: press depth, a ripple at the finger, a haptic.
+  // Home had the SOUND already (`tap` above) and none of the feel - the World
+  // shakes and bursts, every game is full of it, and the one screen every
+  // session starts on was visually inert.
+  //
+  // NO `playTap` HERE, deliberately. `attachShellJuice` can own the tap sound,
+  // and in a shell that did not already have one it should. This one does:
+  // `tap` is threaded to every card and toggle as `onTap`. Passing `playTap`
+  // as well would fire on pointerdown AND on click - two shutter clicks per
+  // press, which reads as a stutter rather than as a doubled sound. Collapsing
+  // the threaded props into the delegated listener is the right end state and
+  // is a separate change; doing it here would mean the first tap of a session
+  // plays before `audioPort.unlock()` has run, because pointerdown precedes
+  // click and the context is still suspended.
+  useEffect(() => {
+    const root = juiceRef.current;
+    if (!root) return;
+    return attachShellJuice(root);
+  }, []);
+
   return (
-    <div className="ellaz-scroll" style={{ flex: 1 }}>
+    <div className="ellaz-scroll" style={{ flex: 1 }} ref={juiceRef}>
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "8px 16px 32px" }}>
         <header
           // gap 8, not 12. The header carries five things on a 430px phone -
@@ -118,30 +141,6 @@ export function Home({
           >
             {locale === "he" ? "EN" : "עב"}
           </button>
-          {/* Dev-only door to the Juice Lab. `import.meta.env.DEV` is statically
-              false in a production build, so Rollup drops this whole block and
-              no player ever sees it - the same dev-bypass idiom the PWA config
-              uses. It exists because a route you can only reach by typing the
-              hash has no way to tell you when it failed to load. */}
-          {import.meta.env.DEV ? (
-            <a
-              href="#/lab"
-              style={{
-                minHeight: "var(--tap)",
-                display: "inline-flex",
-                alignItems: "center",
-                padding: "0 16px",
-                borderRadius: "var(--radius-pill)",
-                background: "var(--surface-2)",
-                color: "var(--text)",
-                fontWeight: 800,
-                fontSize: 15,
-                textDecoration: "none",
-              }}
-            >
-              🎛
-            </a>
-          ) : null}
         </header>
 
         <WorldHero profile={profile} locale={locale} onTap={tap} />

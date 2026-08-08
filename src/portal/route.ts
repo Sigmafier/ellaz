@@ -3,8 +3,8 @@
 // Every route is a real URL now (`/games/snake/`, `/world/`), so nothing in the
 // app writes a hash any more. What survives is the parser, because the old
 // fragments are in bookmarks and in messages people already sent:
-// `legacyHash.ts` reads one here and redirects it once, at boot. `#/lab` is the
-// last live hash, and it is dev-only scaffolding with a kill date.
+// `legacyHash.ts` reads one here and redirects it once, at boot. Every hash the
+// parser still recognises now has a real URL behind it.
 //
 // `hashFor` is kept as the parser's inverse - it is what makes every
 // parseHash/hashFor round-trip in `route.test.ts` a real assertion rather than
@@ -19,11 +19,7 @@ export type Route =
   | { kind: "game"; id: string }
   | { kind: "world" }
   // The leaderboards. Reachable from Home, and safe to link to directly.
-  | { kind: "boards" }
-  // The Juice Lab: a dev-only tournament surface. Deliberately unreachable from
-  // the UI - nothing links to it and it is not in the catalog - so it is only
-  // ever found by typing the hash. Lazily loaded, so it costs the shell nothing.
-  | { kind: "lab" };
+  | { kind: "boards" };
 
 const GAME_PREFIX = "game/";
 
@@ -46,7 +42,6 @@ export function parseHash(hash: string): Route {
 
   if (path === "world") return { kind: "world" };
   if (path === "boards") return { kind: "boards" };
-  if (path === "lab") return { kind: "lab" };
   if (path.startsWith(GAME_PREFIX)) {
     const id = decodeSafe(path.slice(GAME_PREFIX.length));
     // "#/game/" carries no game, so it is not a game route.
@@ -66,8 +61,6 @@ export function hashFor(route: Route): string {
       return "#/world";
     case "boards":
       return "#/boards";
-    case "lab":
-      return "#/lab";
     default:
       return "#/";
   }

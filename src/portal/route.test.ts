@@ -16,10 +16,6 @@ describe("parseHash", () => {
     expect(parseHash("#/world")).toEqual({ kind: "world" });
   });
 
-  it("reads the juice-lab route", () => {
-    expect(parseHash("#/lab")).toEqual({ kind: "lab" });
-  });
-
   it("reads a game route with its id", () => {
     expect(parseHash("#/game/memory")).toEqual({ kind: "game", id: "memory" });
   });
@@ -29,6 +25,9 @@ describe("parseHash", () => {
       "#garbage",
       "#/garbage",
       "#/world/extra",
+      // The Juice Lab's hash, retired with the lab itself. A bookmark from the
+      // tournament now lands on the game grid rather than on a dead route.
+      "#/lab",
       "#/lab/extra",
       "#/labs",
       "#/games/memory",
@@ -63,7 +62,6 @@ describe("round trip", () => {
   const routes: Route[] = [
     { kind: "home" },
     { kind: "world" },
-    { kind: "lab" },
     { kind: "game", id: "memory" },
     { kind: "game", id: "n2048" },
     // ids the encoder has to defend: separators, unicode, spaces, and the

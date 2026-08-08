@@ -60,7 +60,14 @@ export interface AudioPort {
   unlock(): void;
 }
 
-export type SfxName = "tap" | "success" | "win" | "fail" | "flip" | "pop";
+/**
+ * `coin` and `star` were added after the sound tournament: the coin flight was
+ * silent and nothing played when a star was granted, so neither had a member
+ * here to name. Both are fired by `winMoment`, not by games directly - a game
+ * reports what happened and the economy decides what that is worth, so it is
+ * the economy's moment that gets to make the noise.
+ */
+export type SfxName = "tap" | "success" | "win" | "fail" | "flip" | "pop" | "coin" | "star";
 
 export interface SpeakOptions {
   /** Which language to speak in. Default "he" (the app's default locale). */

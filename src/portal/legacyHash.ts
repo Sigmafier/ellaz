@@ -13,9 +13,6 @@ import type { Locale } from "@i18n/index";
  * makes the browser Back button bounce between the old URL and the new one
  * forever, which is worse than the broken link it replaced.
  *
- * `#/lab` is deliberately NOT redirected. The Juice Lab is dev-only scaffolding
- * reached by typing a hash, it has no page of its own, and it is deleted with
- * the rest of `src/juice/lab/` when the winners land.
  *
  * Returns true when it redirected, so the caller can stop booting - the document
  * about to be replaced does not need a React tree.
@@ -39,7 +36,7 @@ export function redirectLegacyHash(
     loc.replace(boardsHref(locale));
     return true;
   }
-  // "home" (which is also what an unrecognised hash parses to) and "lab" both
-  // stay where they are.
+  // "home" - which is also what an unrecognised hash parses to, including the
+  // retired `#/lab` - stays where it is.
   return false;
 }

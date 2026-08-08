@@ -120,9 +120,6 @@ export default defineConfig({
         // a runtime rule matching `game-` against Rollup's default `index-<hash>`
         // names is dead code that silently never fires.
         globPatterns: ["**/*.{html,css,js,svg,woff2}"],
-        // `lab-*.js` is the Juice Lab, a dev-only surface nothing links to.
-        // Without this line the glob above would sweep it into the precache and
-        // every child would download the tournament on their first visit.
         // `vendor-analytics-*.js` is PostHog, deferred past first paint. Without
         // this entry the glob above precaches it anyway and the whole lazy-load
         // buys nothing — green build, unmoved payload. `npm run build:check`
@@ -138,7 +135,6 @@ export default defineConfig({
         globIgnores: [
           "**/game-*.js",
           "**/vendor-phaser-*.js",
-          "**/lab-*.js",
           "**/vendor-analytics-*.js",
           "**/cloud-*.js",
           "**/page-*.js",
@@ -227,13 +223,6 @@ export default defineConfig({
           // cacheable files instead of one wall of `index-<hash>.js`.
           const game = /\/src\/games\/([^/]+)\//.exec(path);
           if (game) return `game-${game[1]}`;
-
-          // The Juice Lab is dev-only tournament scaffolding reached by typing
-          // #/lab. It must be carved out BEFORE the shared-code rule below, which
-          // would otherwise pin it to the shell (it lives under src/juice/) and
-          // ship the whole tournament to every player on first paint. The `lab-`
-          // prefix is a contract with the PWA globIgnores above, same as `game-`.
-          if (path.includes("/src/juice/lab/")) return "lab";
 
           // The cloud backup client, same arrangement and same reason. It must
           // be carved out BEFORE the shared-code rule below, which would

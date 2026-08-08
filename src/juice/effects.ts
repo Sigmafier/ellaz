@@ -137,7 +137,7 @@ export interface FlyToOptions {
 }
 
 /** Honour the reduced-motion preference the same way global.css does. */
-function prefersReducedMotion(): boolean {
+export function prefersReducedMotion(): boolean {
   try {
     return (
       typeof window !== "undefined" &&

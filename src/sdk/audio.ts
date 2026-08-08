@@ -1,26 +1,29 @@
 import type { AudioPort, SfxName, ToneOptions } from "./types";
+import { COIN, FAIL, FLIP, POP, STAR, SUCCESS, TAP, WIN, type VoiceSpec } from "./voice";
+import { playVoice, warmVoices } from "./voiceEngine";
 
-// Wave-1 audio: a tiny WebAudio synth for crisp, offline, zero-asset SFX.
-// (Howler + audio sprites is the documented upgrade for sampled sound.)
-// The AudioContext starts suspended on iOS and is resumed on the first user
-// gesture via unlock().
-type Tone = { freq: number; dur: number; type: OscillatorType; gain?: number };
+// Zero-asset, offline, synthesised SFX. The AudioContext starts suspended on
+// iOS and is resumed on the first user gesture via unlock().
+//
+// Each name maps to a layered VoiceSpec that won a blind round of the Juice Lab
+// tournament (see voice.ts). Before that this table held single oscillators -
+// one sine for a tap, one sawtooth for a failure - and the whole difference
+// between a beep and a designed sound is what the specs now carry: per-partial
+// damping, a room, and restraint at the top end.
 
-const VOICES: Record<SfxName, Tone[]> = {
-  tap: [{ freq: 440, dur: 0.06, type: "sine" }],
-  flip: [{ freq: 600, dur: 0.07, type: "triangle" }],
-  pop: [{ freq: 320, dur: 0.09, type: "square", gain: 0.15 }],
-  success: [
-    { freq: 660, dur: 0.09, type: "sine" },
-    { freq: 880, dur: 0.11, type: "sine" },
-  ],
-  win: [
-    { freq: 523, dur: 0.12, type: "sine" },
-    { freq: 659, dur: 0.12, type: "sine" },
-    { freq: 784, dur: 0.18, type: "sine" },
-  ],
-  fail: [{ freq: 180, dur: 0.18, type: "sawtooth", gain: 0.12 }],
+const VOICES: Record<SfxName, VoiceSpec> = {
+  tap: TAP,
+  success: SUCCESS,
+  win: WIN,
+  fail: FAIL,
+  coin: COIN,
+  star: STAR,
+  flip: FLIP,
+  pop: POP,
 };
+
+/** Every voice, for the one-time level-match. */
+const ALL_VOICES = Object.values(VOICES);
 
 const MUTE_KEY = "ellaz:muted";
 
@@ -34,6 +37,7 @@ class WebAudioPort implements AudioPort {
   private ctx: AudioContext | null = null;
   private _muted: boolean;
   private listeners = new Set<(m: boolean) => void>();
+  private warmed = false;
 
   constructor() {
     let saved = false;
@@ -65,7 +69,17 @@ class WebAudioPort implements AudioPort {
 
   unlock(): void {
     const ctx = this.ensureCtx();
-    if (ctx && ctx.state === "suspended") void ctx.resume();
+    if (!ctx) return;
+    if (ctx.state === "suspended") void ctx.resume();
+    // Level-match the palette, once, off the back of the gesture that unlocked
+    // audio. Fire-and-forget on purpose: awaiting it would delay the very tap
+    // that triggered it, and an unwarmed voice plays at trim 1 rather than not
+    // at all. `warmVoices` is idempotent, so calling unlock() repeatedly (every
+    // game does, on every pointerdown) costs one Map lookup per voice.
+    if (!this.warmed) {
+      this.warmed = true;
+      void warmVoices(ctx, ALL_VOICES);
+    }
   }
 
   toggleMute(): void {
@@ -120,13 +134,11 @@ class WebAudioPort implements AudioPort {
     if (this._muted) return;
     const ctx = this.ensureCtx();
     if (!ctx) return;
-    // Schedule the voice's tones against one absolute start so the arpeggio
-    // timing is identical whether or not the clock ticks between iterations.
-    let when = ctx.currentTime;
-    for (const t of VOICES[name]) {
-      this.tone({ freq: t.freq, ms: t.dur * 1000, type: t.type, gain: t.gain, at: when });
-      when += t.dur * 0.85; // 15% overlap — the tail of one note rings into the next
-    }
+    // Every layer's timing lives inside the spec as a `delay`, so the whole
+    // voice is scheduled against one absolute start. That is what makes a
+    // five-note gliss land identically whether or not the clock ticks between
+    // layers - the old table stepped `when` forward per note and could drift.
+    playVoice(ctx, VOICES[name]);
   }
 }
 

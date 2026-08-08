@@ -32,6 +32,17 @@ export interface WinMomentOptions extends RewardGrant {
   score?: ScoreReport;
 }
 
+/**
+ * When the star flourish and the coin land, relative to the win chord.
+ *
+ * COIN_LAND_MS tracks `flyTo`'s own flight time (620ms) so the sound arrives
+ * with the coins rather than near them. If that duration changes, this follows
+ * it - a coin that lands silently and chimes a quarter second later reads as a
+ * bug in the animation, not in the sound.
+ */
+const STAR_DELAY_MS = 450;
+const COIN_LAND_MS = 620;
+
 function screenCentre(): { x: number; y: number } {
   if (typeof window === "undefined") return { x: 0, y: 0 };
   return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
@@ -74,6 +85,22 @@ export function winMoment(ctx: GameContext, o: WinMomentOptions): WinMomentResul
     if (result.coins > 0) {
       flyTo(o.at ?? screenCentre(), getWalletAnchor(), { count: result.coins });
     }
+
+    // 5. The two currencies get their own voices, staggered behind the win
+    //    chord so a level completion is a short phrase rather than three
+    //    sounds in a pile. Before this both were SILENT: there was no coin
+    //    voice and no star voice in the app at all.
+    //
+    //    THE SEQUENCING IS NOT A TOURNAMENT RESULT. The palette rounds chose
+    //    the two VOICES blind; the guided round that would have chosen the
+    //    coin-flight BEHAVIOUR (silent arrival / a sound per landing coin /
+    //    that plus the wallet chip bouncing) was never ranked - 0 of 6 guided
+    //    brackets were. So this plays ONE coin rather than one per coin, which
+    //    is the conservative reading: a per-coin variant at up to 12 coins is
+    //    a machine-gun nobody has judged. Changing it is a blind round, not an
+    //    edit.
+    if (result.stars > 0) window.setTimeout(() => ctx.audio.play("star"), STAR_DELAY_MS);
+    if (result.coins > 0) window.setTimeout(() => ctx.audio.play("coin"), COIN_LAND_MS);
   } catch (e) {
     // Cosmetics are best-effort; the grant above already stuck.
     console.error("[ellaz] win moment effects failed", e);
