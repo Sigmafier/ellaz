@@ -450,6 +450,13 @@ the field on a shallow clone or a uniform result rather than lying, and
 `assert-pages.mjs` fails the build on 48 identical dates. **An absent `<lastmod>` is
 valid and is what this site shipped for months; a uniform one is a lie.**
 
+**It is currently DORMANT, correctly.** A commit on 2026-08-08 touched all 21 game
+directories, so every game page resolves to one timestamp and the emitter omits the
+field. That is the design working, not a bug: `<lastmod>` exists to say WHICH pages
+changed, and 48 identical dates answer "all of them" — as useful as saying nothing.
+It returns on its own as the games diverge again. Do not make it emit uniform dates
+to make the number reappear; the gate rejects those, and the two would contradict.
+
 **IndexNow pings Bing after a successful upload**, because ChatGPT Search and Copilot
 lean on Bing's index. Ownership is a key file the build publishes at `/<key>.txt`
 (primary host only — the Pages copy is noindex). `scripts/indexnow.mjs` submits **only

@@ -114,6 +114,19 @@ export function lastmodByPath(): Map<string, string> {
   // Every game resolving to one date means the per-game lookup did not
   // actually discriminate - a shallow clone that lied about not being one, or
   // a directory map that came back empty.
+  //
+  // It also fires on a legitimate state, and that is FINE rather than a bug to
+  // fix: a repo-wide refactor genuinely touches every game in one commit, so
+  // every page really did last change at the same instant. `<lastmod>` exists
+  // to tell a crawler WHICH pages changed; 48 identical dates answer "all of
+  // them", which is exactly as useful as saying nothing. Omitting is the
+  // honest response either way, and the field returns on its own as the games
+  // diverge again.
+  //
+  // So do not "fix" this by emitting uniform dates to make the number appear -
+  // `assert-pages.mjs` rejects 48 identical dates for the same reason, and the
+  // two would then contradict each other.
+  // (Seen live 2026-08-08: one commit touched all 21 game directories.)
   const gameDates = ROUTES.filter((r) => r.kind === "game" && r.indexable)
     .map((r) => out.get(r.path))
     .filter((d): d is string => Boolean(d));

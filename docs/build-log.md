@@ -484,6 +484,23 @@ search-engine ping is not worth failing a good release over.
 Honest about the evidence: Bing's index-coverage and freshness benefit is documented;
 a causal lift in AI citations is **not** — that link is correlational.
 
+### Two things that went wrong shipping it
+
+**A peer's staged work rode out in my commit.** `git add <one file>` then `git commit`
+publishes the whole INDEX, and another session had a 49-file `GameChrome` refactor
+staged. It reached `main` and production under a commit message about an FTP timeout.
+Six earlier commits were scope-checked with `git show --stat` and were clean; the
+seventh was skipped because it looked like one obvious file. Nothing broke — 1,634
+tests green, every route 200 — but it was published without its author's say-so. The
+lesson is `git commit -- <paths>`, and reading `git diff --cached --name-only` before
+every commit. Written up in the machine-level multi-agent-safety rule.
+
+**Hostinger's FTP timed out twice at exactly 30s**, the action's default, leaving the
+site PARTIALLY updated — new share cards serving beside the old sitemap, a state no
+build ever produced. Every file looked right; only comparing two revealed it. Timeout
+raised to 120s. A "0 upload lines" grep over the run log also misled this session into
+concluding nothing had transferred; it had, and the artifact settled it.
+
 ## Still open
 
 - **Wave C step 2b** — live two-way sync. Needs the profile to carry per-device
