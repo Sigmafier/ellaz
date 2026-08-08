@@ -222,6 +222,34 @@ body.app-shell h3,
   animation: ellaz-correct 0.4s var(--ease);
 }
 
+/* The game panel on a big screen.
+ *
+ * Every row inside GameChrome is `flex: 1 1 0` with no ceiling, which is right
+ * on the 390px phone the component was judged at and absurd at 1440px: the
+ * difficulty toggle absorbs the row's leftover width, so it rendered 1193px
+ * wide to say "Level: Classic", and three stat cards came out 456px each to
+ * hold one digit. Capping the PANEL fixes every row at once, because they were
+ * all only ever as wide as what contains them.
+ *
+ * WHY 700 AND NOT LESS. The widest board any game asks for is 640px (bees and
+ * finddiff both cap there). The panel's own padding is 8 each side, so a 700px
+ * panel gives the play surface 684 - clear of 640 with room. A tighter cap
+ * would look better around 2048's 420px board and would make those two games
+ * overflow a scroll container instead, which is the failure this repo keeps
+ * meeting. `game-panel-clears-widest-board.test.ts` reads the game tree and
+ * fails the build if a new game ever asks for more than this leaves.
+ *
+ * The board itself does NOT grow to meet the panel, and that is not an
+ * oversight: boards size against the VIEWPORT (`min(<n>vw, <n>vh, <cap>px)`),
+ * so on a desktop the px cap or the vh term binds and the space they are given
+ * never enters the arithmetic. Changing that is a sizing-policy decision that
+ * belongs in one place, not in 39 hand-rolled expressions across 20 files. */
+@media (min-width: 900px) {
+  .ellaz-game-panel {
+    max-width: 700px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.001ms !important;

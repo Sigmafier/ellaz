@@ -117,6 +117,14 @@ export function GameChrome<T extends string>({
 
   return (
     <div
+      // The desktop cap lives in global.css as `.ellaz-game-panel`, NOT in the
+      // inline style below, because it is a media query and an inline style
+      // cannot carry one. Everything in this component is `flex: 1 1 0` with no
+      // ceiling - exactly right on the 390px phone it was judged at, and on a
+      // 1440px desktop the same rule produced a 1193px button reading "Level:
+      // Classic", three 456px cards each holding one digit, and a 420px board
+      // adrift in 1409px. Measured on the built artifact, all three.
+      className="ellaz-game-panel"
       style={{
         display: "flex",
         flexDirection: "column",
