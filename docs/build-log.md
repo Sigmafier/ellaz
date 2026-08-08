@@ -642,11 +642,6 @@ Full rule: [`.claude/rules/a-deploy-ledger-that-can-disagree-with-the-disk.md`](
   other 16 are verified mounting as a *returning* visitor plus byte-identical
   delivery from the network, which is a strong argument and not a measurement.
   Residual risk is low and it is not zero.
-- **First-visit EXECUTION is proven for 5 of 21 games**, not all of them. A fresh
-  browser context per game covers bubbles, coloring, snake, sudoku and memory; the
-  other 16 are verified mounting as a *returning* visitor plus byte-identical
-  delivery from the network, which is a strong argument and not a measurement.
-  Residual risk is low and it is not zero.
 - **Bing Webmaster Tools is not claimed.** IndexNow submits fine without it, but the
   coverage reports need the site added at <https://www.bing.com/webmasters> — an
   operator action, not a code one.
