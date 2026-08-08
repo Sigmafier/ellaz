@@ -57,11 +57,40 @@ function connectionIsStingy(): boolean {
  * bytes.
  */
 
-function mountWallet(slot: HTMLElement | undefined): Root | null {
+function mountWallet(slot: HTMLElement | undefined, bare: boolean): Root | null {
   if (!slot) return null;
   const root = createRoot(slot);
-  root.render(<WalletChip />);
+  root.render(<WalletChip bare={bare} />);
   return root;
+}
+
+/**
+ * Reveal and wire the header's full-screen control.
+ *
+ * The build emits it `hidden`, and it stays hidden unless this runs AND the
+ * browser can actually do it. Two populations get nothing rather than a dead
+ * button: a visitor with no JavaScript, and an iPhone - iOS Safari has no
+ * Fullscreen API for an arbitrary element, only for a `<video>`. A control
+ * that does nothing when tapped is worse than one that was never offered,
+ * and on a platform whose audience is five-year-olds it is worse still,
+ * because they will tap it repeatedly rather than conclude it is broken.
+ *
+ * Plain DOM on an element the emitter owns and React never reconciles - the
+ * same arrangement as the poster, for the same reason.
+ */
+function wireFullScreen(): void {
+  const button = document.querySelector<HTMLButtonElement>("[data-fullscreen]");
+  const target = document.querySelector<HTMLElement>(".stage .box");
+  if (!button || !target || typeof target.requestFullscreen !== "function") return;
+
+  button.hidden = false;
+  button.addEventListener("click", () => {
+    // Fullscreen rejects for reasons outside our control (a permissions
+    // policy, an iframe without allowfullscreen). Nothing here is worth
+    // breaking the page over, so a refusal just leaves the game where it is.
+    if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+    else void target.requestFullscreen().catch(() => {});
+  });
 }
 
 /** Where the in-game back control goes. Real history first, the home page as a floor. */
@@ -80,7 +109,10 @@ export function bootContentPage(ctx: PageContext): void {
   analytics.init();
   analytics.track("session_start", { locale });
   startCloudSync();
-  mountWallet(ctx.walletSlot);
+  // Only the game page draws its own pill around the wallet; the room and the
+  // boards still float the chip over the scene, where it needs its own.
+  mountWallet(ctx.walletSlot, ctx.kind === "game");
+  wireFullScreen();
 
   const poster = document.getElementById("game-poster");
   const message = document.getElementById("game-msg");

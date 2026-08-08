@@ -33,6 +33,8 @@ export interface SiteCopy {
   loading: string;
   /** Shown instead, when the visitor has data saver on and we wait for a tap. */
   dataSaver: string;
+  /** The two controls in a game page's header. */
+  chrome: { back: string; fullScreen: string };
   /** Section headings on a game page, in render order. */
   headings: {
     howToPlay: string;
@@ -65,6 +67,7 @@ const he: SiteCopy = {
   noScript: "המשחק דורש JavaScript. שאר העמוד לא.",
   loading: "המשחק נטען מעצמו. אין מה ללחוץ.",
   dataSaver: "חיסכון בנתונים פעיל, אז אנחנו מחכים לאישור ולא מורידים לבד.",
+  chrome: { back: "כל המשחקים", fullScreen: "מסך מלא" },
   headings: {
     howToPlay: "איך משחקים?",
     about: "על המשחק",
@@ -139,6 +142,7 @@ const en: SiteCopy = {
   noScript: "The game needs JavaScript. The rest of this page does not.",
   loading: "The game loads by itself. Nothing to tap.",
   dataSaver: "Data saver is on, so we wait for your tap instead of downloading on our own.",
+  chrome: { back: "All games", fullScreen: "Full screen" },
   headings: {
     howToPlay: "How do you play?",
     about: "About this game",

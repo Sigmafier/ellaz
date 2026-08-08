@@ -560,21 +560,49 @@ describe("the game gets the whole first screen", () => {
     expect(declarations).toMatch(/main>:not\(\.stage\)/);
   });
 
-  it("floats the header and breadcrumb over the stage instead of above it", () => {
-    // This is what buys the game back the 127px they used to cost, and it is
-    // the difference between fitting at 92% and fitting at 74%.
-    expect(declarations).toMatch(/body\[data-page="game"\] \.top[^{]*\{[^}]*position:absolute/);
+  it("floats the room's header over the stage, and the game's no longer", () => {
+    // The room still floats: it is a composed scene with its own margins and
+    // nothing in it reaches the top edge.
+    expect(declarations).toMatch(/body\[data-page="world"\] \.top[^{]*\{[^}]*position:absolute/);
+
+    // The game does NOT, and this is the deliberate reversal. A game that
+    // fitStage has scaled to fill its box reaches the top edge every time, so
+    // a floating bar sits on the board - which is the complaint the header
+    // tournament started from. In flow, overlap is impossible by construction
+    // rather than avoided by arithmetic.
+    const top = /body\[data-page="game"\] \.top\{([^}]*)\}/.exec(declarations);
+    expect(top, "the game's own header rule is missing").not.toBeNull();
+    expect(top![1]).toContain("position:relative");
+    expect(top![1]).toContain("height:var(--hh)");
+
+    // The breadcrumb still floats over the stage on both, because it is a
+    // small badge that costs nothing and would otherwise push the game down.
     expect(declarations).toMatch(/body\[data-page="game"\] \.bc[^{]*\{[^}]*position:absolute/);
   });
 
-  it("gives the stage the full screen height on a game and on the room", () => {
-    const box = /body\[data-page="game"\] \.stage \.box,body\[data-page="world"\] \.stage \.box\{([^}]*)\}/.exec(
-      declarations,
-    );
-    expect(box, "the full-screen box rule is missing").not.toBeNull();
-    expect(box![1]).toContain("height:100dvh");
-    expect(box![1]).toContain("border-radius:0");
-    expect(box![1]).toContain("min-height:0");
+  it("gives the room the whole screen and the game the screen minus its bar", () => {
+    const room = /body\[data-page="world"\] \.stage \.box\{([^}]*)\}/.exec(declarations);
+    expect(room, "the room's full-screen box rule is missing").not.toBeNull();
+    expect(room![1]).toContain("height:100dvh");
+
+    const game = /body\[data-page="game"\] \.stage \.box\{([^}]*)\}/.exec(declarations);
+    expect(game, "the game's box rule is missing").not.toBeNull();
+    expect(game![1]).toContain("height:calc(100dvh - var(--hh))");
+    for (const box of [room![1], game![1]]) {
+      expect(box).toContain("border-radius:0");
+      expect(box).toContain("min-height:0");
+    }
+  });
+
+  it("measures the bar, the box and the breadcrumb from ONE variable", () => {
+    // The three have to agree or the chrome sits on the board again, and they
+    // are in three separate rules. Written against --hh in all three, so a
+    // density change moves them together instead of moving one and leaving a
+    // gap nobody looks for. --hh is declared exactly once per breakpoint.
+    const decl = declarations.match(/--hh:\s*\d+px/g) ?? [];
+    expect(decl.length, "--hh should be declared for the base and one breakpoint").toBe(2);
+    expect(declarations).toMatch(/body\[data-page="game"\] \.bc\{top:calc\(var\(--hh\)/);
+    expect(declarations).toContain("height:calc(100dvh - var(--hh))");
   });
 
   it("leaves the boards, the home index and the 404 as ordinary documents", () => {

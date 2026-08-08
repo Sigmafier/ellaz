@@ -24,7 +24,22 @@ export function getWalletAnchor(): HTMLElement | null {
 /** How long the counter takes to roll up to a new balance. */
 const COUNT_MS = 520;
 
-export function WalletChip() {
+export interface WalletChipProps {
+  /**
+   * Draw the numbers only, with no pill of its own.
+   *
+   * A game page's header already draws the pill - one shared `--tap` height
+   * for the wallet and both buttons, which is what finally put them on a line
+   * after shipping at 48 beside 36. Passing this rather than fighting the
+   * component from the stylesheet is deliberate: these styles are INLINE, so a
+   * rule in the emitted CSS could only win with `!important`, and an
+   * `!important` that exists to undo a prop is a bug waiting for someone to
+   * add a third caller.
+   */
+  bare?: boolean;
+}
+
+export function WalletChip({ bare = false }: WalletChipProps = {}) {
   const ref = useRef<HTMLDivElement>(null);
   const [coins, setCoins] = useState(() => wallet.coins);
   const [stars, setStars] = useState(() => wallet.stars);
@@ -94,15 +109,19 @@ export function WalletChip() {
         display: "inline-flex",
         alignItems: "center",
         gap: "var(--space-3)",
-        minHeight: "var(--tap)",
-        padding: "0 var(--space-4)",
-        borderRadius: "var(--radius-pill)",
-        background: "var(--surface-2)",
-        color: "var(--text)",
         fontWeight: 800,
-        fontSize: 17,
-        boxShadow: "var(--shadow-1)",
         whiteSpace: "nowrap",
+        ...(bare
+          ? { color: "inherit", fontSize: "inherit" }
+          : {
+              minHeight: "var(--tap)",
+              padding: "0 var(--space-4)",
+              borderRadius: "var(--radius-pill)",
+              background: "var(--surface-2)",
+              color: "var(--text)",
+              fontSize: 17,
+              boxShadow: "var(--shadow-1)",
+            }),
       }}
     >
       {/* Both glyphs are SVG on purpose. As emoji they were a DIFFERENT PICTURE
@@ -111,13 +130,19 @@ export function WalletChip() {
           appearance at all. They also cannot take a theme colour, and they
           carry no accessible name (the chip's aria-label above does that job).
           The coin is `--orange-ink` and the star `--yellow`, which is where the
-          emoji's own colours land once a theme can reach them. */}
+          emoji's own colours land once a theme can reach them.
+
+          On the game header (`bare`) both take the bar's ink instead. That bar
+          is already a deep tone of the game's own ground, so an orange coin
+          and a yellow star on top of it are two more accents competing with
+          the one colour the bar exists to show - and `--orange-ink` is tuned
+          for the cream shell, not for a saturated dark surface. */}
       <span
         style={{
           display: "inline-flex",
           alignItems: "center",
           gap: "var(--space-1)",
-          color: "var(--orange-ink)",
+          color: bare ? "inherit" : "var(--orange-ink)",
         }}
       >
         <Icon name="coin" />
@@ -128,7 +153,7 @@ export function WalletChip() {
           display: "inline-flex",
           alignItems: "center",
           gap: "var(--space-1)",
-          color: "var(--yellow)",
+          color: bare ? "inherit" : "var(--yellow)",
         }}
       >
         <Icon name="star" filled />
