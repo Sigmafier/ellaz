@@ -7,6 +7,8 @@ import { gamePage } from "./gamePage";
 import { boardsPage, homePage, notFoundPage, worldPage } from "./sitePages";
 import { homeGraph } from "./schema";
 import { jsonLd, toHtml } from "./html";
+import { OG_HEIGHT, OG_WIDTH, ogImagePath } from "./ogCard";
+import { renderOgImages } from "./ogImages";
 import { llmsTxt, robotsTxt, sitemapXml } from "./siteFiles";
 import {
   DEV_HEAD_ASSETS,
@@ -72,6 +74,8 @@ export function renderRoute(route: Route, base: string, headAssets?: HeadAssets)
  * a crawler that lands on `/` discovers the game pages, since the home grid's
  * cards are still buttons until Phase 5 turns them into links.
  */
+const HOME_HE = ROUTES.find((r) => r.kind === "home" && r.locale === "he")!;
+
 export function indexHeadTags(base: string): string {
   const copy = SITE.he.homePage;
   const indexable = isPrimaryHost(base);
@@ -87,7 +91,15 @@ export function indexHeadTags(base: string): string {
     `<meta property="og:title" content="${escapeAttr(copy.title)}" />`,
     `<meta property="og:description" content="${escapeAttr(copy.description)}" />`,
     `<meta property="og:url" content="${canonicalUrl(homePath("he"))}" />`,
-    `<meta name="twitter:card" content="summary" />`,
+    // `/` is the app shell, so it never goes through `renderDocument` and has
+    // to repeat the share-card tags here. The card itself is the same file the
+    // route table names, so the two cannot drift apart.
+    `<meta property="og:image" content="${canonicalUrl(ogImagePath(HOME_HE))}" />`,
+    `<meta property="og:image:width" content="${OG_WIDTH}" />`,
+    `<meta property="og:image:height" content="${OG_HEIGHT}" />`,
+    `<meta property="og:image:alt" content="${escapeAttr(copy.title)}" />`,
+    `<meta name="twitter:image" content="${canonicalUrl(ogImagePath(HOME_HE))}" />`,
+    `<meta name="twitter:card" content="summary_large_image" />`,
   ];
   if (!indexable) tags.push(`<meta name="robots" content="noindex, follow" />`);
   tags.push(
@@ -157,7 +169,7 @@ export function pagesPlugin(base: string): Plugin {
       return html.replace("</head>", `  ${indexHeadTags(base)}\n  </head>`);
     },
 
-    generateBundle(_options, bundle) {
+    async generateBundle(_options, bundle) {
       // The app's head tags, lifted off the index.html Vite just wrote. Reading
       // them from the bundle rather than reconstructing them is what stops the
       // pages and the app ever loading different code: the names carry a
@@ -193,6 +205,14 @@ export function pagesPlugin(base: string): Plugin {
 
       for (const f of files) {
         this.emitFile({ type: "asset", fileName: f.fileName, source: f.source });
+      }
+
+      // The share cards. Emitted here rather than from `allEmittedFiles`
+      // because they are BINARY and ASYNC, and that function is neither - it
+      // is pure, synchronous and string-only so the gate's tests can read it
+      // without a rasteriser. Splitting them keeps that property.
+      for (const { fileName, png } of await renderOgImages()) {
+        this.emitFile({ type: "asset", fileName, source: png });
       }
     },
 

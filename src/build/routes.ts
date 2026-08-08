@@ -148,3 +148,13 @@ export function canonicalUrl(path: string): string {
 export function href(path: string, base: string): string {
   return `${base}${path.slice(1)}`;
 }
+
+/**
+ * The pages that get a share card.
+ *
+ * `ROUTES` minus the 404: a "not found" page is never deliberately shared, and
+ * a card for it would be a picture promising content that does not exist. The
+ * Hebrew home page IS included even though it does not `emit` - it is the app
+ * shell, and it is the single most-shared URL on the site.
+ */
+export const OG_ROUTES: Route[] = ROUTES.filter((r) => r.kind !== "notFound");

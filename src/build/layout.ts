@@ -2,7 +2,8 @@ import type { Locale } from "../content/types";
 import { SITE } from "../content/site";
 import { html, raw, jsonLd, toHtml, type RawHtml } from "./html";
 import type { HeadAssets } from "./assets";
-import { canonicalUrl, homePath, href } from "./routes";
+import { canonicalUrl, homePath, href, OG_ROUTES } from "./routes";
+import { OG_HEIGHT, OG_WIDTH, ogImagePath } from "./ogCard";
 // themes.ts imports nothing, which is what lets both the Vite config and this
 // build-time renderer read the same theme list. See src/ui/themes.ts.
 import { DEFAULT_THEME, themeBootScript, themeById } from "../ui/themes";
@@ -290,6 +291,20 @@ export function renderDocument(opts: DocumentOptions): string {
   const site = SITE[locale];
   const dir = locale === "he" ? "rtl" : "ltr";
   const canonical = canonicalUrl(opts.path);
+  // The share card, found by PATH rather than passed down. Every caller
+  // already knows its own path and the route table already knows every card,
+  // so threading an extra argument through five page builders would be a
+  // second place for the two to disagree.
+  //
+  // ABSOLUTE, and pointing at ellaz.fun on both hosts - the same rule the
+  // canonical follows. A scraper is handed a URL with no page context, so a
+  // base-relative one is unusable, and the Pages duplicate is noindex anyway.
+  // OG_ROUTES, not ROUTES: the 404 deliberately has no card, because a
+  // "not found" page is never deliberately shared and a picture for it
+  // would promise content that does not exist. Looking it up in the full
+  // route table instead advertises a file the build never writes.
+  const ogRoute = OG_ROUTES.find((r) => r.path === opts.path);
+  const ogImage = ogRoute ? canonicalUrl(ogImagePath(ogRoute)) : "";
   const alternates = opts.alternates ?? [];
 
   return (
@@ -324,7 +339,13 @@ export function renderDocument(opts: DocumentOptions): string {
         <meta property="og:title" content="${opts.title}" />
         <meta property="og:description" content="${opts.description}" />
         <meta property="og:url" content="${canonical}" />
-        <meta name="twitter:card" content="summary" />
+        ${ogImage &&
+        html`<meta property="og:image" content="${ogImage}" />
+          <meta property="og:image:width" content="${String(OG_WIDTH)}" />
+          <meta property="og:image:height" content="${String(OG_HEIGHT)}" />
+          <meta property="og:image:alt" content="${opts.title}" />
+          <meta name="twitter:image" content="${ogImage}" />`}
+        <meta name="twitter:card" content="${ogImage ? "summary_large_image" : "summary"}" />
         <link rel="icon" type="image/svg+xml" href="${base}favicon.svg" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link rel="stylesheet" href="${FONTS}" />

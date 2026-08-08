@@ -110,6 +110,59 @@ function readManifest() {
   return JSON.parse(readFileSync(path, "utf8"));
 }
 
+
+/**
+ * The share card a page advertises, as a dist-relative file.
+ *
+ * `og:image` is always absolute and always points at ellaz.fun, on BOTH hosts,
+ * exactly like the canonical - a scraper gets the URL with no page context, so
+ * a relative one is unusable. That means the path maps straight to a file.
+ */
+function ogImageOf(html) {
+  const m = html.match(/<meta property="og:image" content="([^"]+)"/);
+  return m ? m[1] : "";
+}
+
+const OG_CEILING = 600 * 1024;
+
+/** Every card the pages point at: exists, non-trivial, and under WhatsApp's cap. */
+function checkOgCard(html, where, kind) {
+  const url = ogImageOf(html);
+  // The 404 has no card ON PURPOSE. Asserted rather than skipped, so the
+  // exemption stays a decision instead of becoming a hole the day a card
+  // silently stops being written for some other page kind too.
+  if (kind === "notFound") {
+    if (url) fail(`${where} advertises a share card; a 404 is never deliberately shared`);
+    return;
+  }
+  if (!url) {
+    fail(`${where} has no og:image - every link shared to WhatsApp previews with no picture`);
+    return;
+  }
+  if (!url.startsWith("https://ellaz.fun/og/")) {
+    fail(`${where} og:image is "${url}" - must be an absolute ellaz.fun URL, like the canonical`);
+    return;
+  }
+  if (!/<meta name="twitter:card" content="summary_large_image"/.test(html)) {
+    fail(`${where} has an og:image but still asks for a small twitter card`);
+  }
+  const file = join(DIST, url.replace("https://ellaz.fun/", ""));
+  if (!existsSync(file)) {
+    fail(`${where} points at ${url}, which was never written`);
+    return;
+  }
+  const bytes = statSync(file).size;
+  // A card that renders as a flat colour - art missing, or an unresolved CSS
+  // var painting the whole thing black - compresses to almost nothing. The
+  // floor catches that; the ceiling catches WhatsApp silently dropping it.
+  if (bytes < 4096) {
+    fail(`${where} card is only ${bytes} B - a flat colour, so the art did not render`);
+  }
+  if (bytes > OG_CEILING) {
+    fail(`${where} card is ${bytes} B, over WhatsApp's ${OG_CEILING} B limit - it will be dropped`);
+  }
+}
+
 function main() {
   const manifest = readManifest();
   const base = manifest.base;
@@ -173,6 +226,9 @@ function main() {
     if (!primary && canonical && canonical.includes(base)) {
       fail(`${where} canonical carries the base: ${canonical} — that URL exists on neither host`);
     }
+
+    // --- the share card ---------------------------------------------------
+    checkOgCard(html, where, page.kind);
 
     // --- indexability -----------------------------------------------------
     const noindex = /<meta name="robots" content="noindex/i.test(html);
@@ -423,6 +479,17 @@ function runControls() {
     [
       "a page stripped of its prose",
       () => proseWords("<html><body><h1>Hi</h1></body></html>") < MIN_WORDS,
+    ],
+    [
+      "a page with no og:image",
+      () => ogImageOf('<html><head><title>x</title></head></html>') === "",
+    ],
+    [
+      "an og:image that is not an absolute ellaz.fun URL",
+      () =>
+        !ogImageOf('<meta property="og:image" content="/og/x.png" />').startsWith(
+          "https://ellaz.fun/og/",
+        ),
     ],
     [
       "prose is counted, not markup",
