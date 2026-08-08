@@ -102,11 +102,28 @@ and any intermediary.
 
 ### The edge-cache caveat
 
-Hostinger fronts the site with its own CDN (`x-hcdn-cache-status`). An object
-cached *before* a header change keeps the old header until its TTL expires — so
-right after a fix you can see the stale value on a `HIT` and the correct one on a
-cache-buster `MISS`. That is the fix working, not failing. To clear it now:
-hPanel → Performance → Purge cache.
+**The Hostinger CDN is OFF since 2026-08-08** - responses now carry
+`server: LiteSpeed` rather than `server: hcdn`, and the caveat below does not
+currently apply. It is kept because the CDN can be re-enabled in one click, and
+because the fix it describes is not obvious.
+
+Confirm which state you are in before trusting either:
+
+```bash
+curl -sI https://ellaz.fun/ | grep -i '^server'
+# LiteSpeed = CDN off, headers apply directly, no edge cache
+# hcdn      = CDN on, everything below applies
+```
+
+With the CDN on, an object cached *before* a header change keeps the old header
+until its TTL expires - so right after a fix you can see the stale value on a
+`HIT` and the correct one on a cache-buster `MISS`. That is the fix working, not
+failing. To clear it now: hPanel → Performance → Purge cache.
+
+**If you re-enable the CDN, set Security Level to "Essentially off" in the same
+visit.** Leaving it at the Medium default is what made the site uncrawlable for
+Google, and nothing in this repo can detect that state. See
+[`.claude/rules/a-bot-challenge-at-the-edge-is-invisible-from-your-browser.md`](../.claude/rules/a-bot-challenge-at-the-edge-is-invisible-from-your-browser.md).
 
 ## Verifying a deploy
 
@@ -196,6 +213,8 @@ with the service worker in control.
 | Old header on a file you just fixed | Edge cache `HIT`; retry with a cache-buster, then purge |
 | Both deploys red | `tsc --noEmit` — `npm run build` type-checks before bundling |
 | Stale bundle while eyeballing | Service worker; see `.claude/rules/pwa-stale-bundle-qa.md` |
+| GSC "sitemap could not be read" / 403, but the site loads fine for you | CDN bot challenge. `curl` it as Googlebot — a browser cannot see this. See `.claude/rules/a-bot-challenge-at-the-edge-is-invisible-from-your-browser.md` |
+| Indexed pages falling with no deploy to explain it | Same — check `Performance → CDN → Manage → Security` before touching any code |
 
 ## Rotating the FTP password
 
