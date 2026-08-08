@@ -68,6 +68,49 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    # Exposed so `verify` checks the URL Pages ACTUALLY published to, rather
+    # than one hardcoded here. That address has already moved once - the repo
+    # changed org on 2026-08-02 and `ytrofr.github.io/ellaz` stopped being it,
+    # while every stale reference kept on looking plausible.
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # A Pages deploy is atomic - the whole artifact is swapped or none of it is -
+  # so it cannot produce the half-uploaded site that took ellaz.fun down on
+  # 2026-08-08. This is here for the failure it CAN produce: a run that goes
+  # green while the published site is something else, which is what a stale base
+  # path, a wrong artifact or a silently skipped deploy all look like.
+  #
+  # It re-uses the artifact rather than rebuilding, because the question is what
+  # was PUBLISHED - a second build could differ from the first and would then
+  # verify a site nobody deployed.
+  verify:
+    needs: [build, deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: github-pages
+          path: /tmp/pages-artifact
+      - name: Unpack the artifact that was actually published
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          tar -xf /tmp/pages-artifact/artifact.tar -C dist
+          test -f dist/index.html
+      - name: Verify the live Pages site is serving this build
+        env:
+          PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          # The script wants an ORIGIN and a BASE separately: the html already
+          # carries base-prefixed asset paths, so folding the base into the
+          # origin would double it.
+          export SITE_URL="$(node -e 'console.log(new URL(process.argv[1]).origin)' "$PAGE_URL")"
+          export BASE_PATH="$(node -e 'console.log(new URL(process.argv[1]).pathname)' "$PAGE_URL")"
+          echo "verifying $SITE_URL$BASE_PATH"
+          node scripts/assert-live.mjs

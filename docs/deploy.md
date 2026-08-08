@@ -48,10 +48,30 @@ someone last dragged `dist/` into hPanel.
 2. `npm ci`, then `npm run build` with **no `BASE_PATH`**, so `base` is `/`.
    This is also the type-check gate (`tsc --noEmit` runs first).
 3. `cp deploy/hostinger.htaccess dist/.htaccess`.
-4. `SamKirkland/FTP-Deploy-Action@v4.4.0` syncs `dist/` over FTPS.
+4. **`lftp mirror`** uploads `dist/` over FTPS, in **two passes**.
+5. **`node scripts/assert-live.mjs`** fetches the live site and fails the run
+   unless it is serving this build.
 
-The action keeps a `.ftp-deploy-sync-state.json` on the server and transfers only
-what changed, so a normal deploy moves a handful of files.
+**The two passes are ordered by who references whom**: hashed assets first, then
+HTML and `sw.js`, which are the only files naming those hashes. A run that dies
+between the passes leaves old HTML pointing at assets that are all still present
+- stale, recoverable, invisible to a child - instead of new HTML pointing at
+chunks that never arrived, which is a blank page. Nothing is deleted, which is
+also why an orphaned old hash is left on the server.
+
+**This used to be `SamKirkland/FTP-Deploy-Action@v4.4.0`, and it is not any more
+because it took the site down.** That action kept a `.ftp-deploy-sync-state.json`
+on the server and transferred only the diff against it. On 2026-08-08 a transfer
+died mid-sync *after* the ledger was written, so from then on every run compared
+against a file claiming the missing chunks were present and skipped them.
+ellaz.fun served `index.html` referencing two 404 chunks - a blank page - while
+re-deploys reported success in 90 seconds and changed nothing. An incremental
+sync whose ledger can disagree with the disk **cannot self-heal by retrying**,
+which is the one thing everybody tries. `lftp` holds no state, so it compares
+against what is actually on the server and the next run repairs a partial
+transfer. The old ledger is deleted on every deploy - it was world-readable and
+published the whole file tree - so reverting this step cannot quietly re-arm it.
+Full account: `.claude/rules/a-deploy-ledger-that-can-disagree-with-the-disk.md`.
 
 ### Three facts about this FTP account
 
@@ -137,17 +157,30 @@ gh run view <run-id> --json jobs \
 # "Upload to Hostinger" must say success, not skipped.
 ```
 
-Then check the artifact the user actually gets:
+**The deploy now checks this itself** - `assert-live.mjs` runs in the same job and
+reds the run - so the manual sweep below is for diagnosing, not for gating:
 
 ```bash
+npm run build            # or BASE_PATH=/ellaz/ for the Pages copy
+npm run assert:live      # SITE_URL / BASE_PATH override the defaults
+```
+
+**Never conclude health from a document's status code.** A 200 document whose JS
+returns 404 is a blank page, and a status sweep over `/`, `/games/snake/`,
+`/world/` and `/boards/` reported a perfectly healthy site on 2026-08-08 while
+ellaz.fun was blank. Fetch what the document *references*:
+
+```bash
+curl -s https://ellaz.fun/ | grep -oE 'assets/[A-Za-z0-9_.-]+\.(js|css)' | sort -u |
+  while read -r a; do printf '%s %s\n' \
+    "$(curl -s -o /dev/null -w '%{http_code}' "https://ellaz.fun/$a")" "$a"; done
+# every line must start 200
+
 curl -sI https://ellaz.fun/ | grep -i cache-control
 # expect: no-cache, must-revalidate
 
 curl -sI "https://ellaz.fun/sw.js?cb=$(date +%s)" | grep -i cache-control
 # expect: no-cache, must-revalidate   (cache-buster dodges the edge)
-
-curl -s https://ellaz.fun/ | grep -oE 'assets/index-[A-Za-z0-9_-]+\.js'
-# compare against the hash in your local dist/index.html
 ```
 
 ### The content pages (since 2026-08-04)
@@ -208,6 +241,9 @@ with the service worker in control.
 | Symptom | Cause to check first |
 |---|---|
 | Run green, site unchanged | `Upload to Hostinger` was **skipped** (missing secrets), or `server-dir` is wrong |
+| Run green, site **blank** | Documents 200, their JS 404. `npm run assert:live` names the missing chunks. Suspect a stateful sync before credentials or paths |
+| Runs sit **queued** with zero jobs | Actions is **disabled on the repo**: `gh api repos/Sigmafier/ellaz/actions/permissions`. A *blocked action* fails at "Prepare all required actions"; it does not queue |
+| `not allowed in Sigmafier/ellaz because all actions must be...` | Org/repo action allowlist. `gh api -X PUT repos/Sigmafier/ellaz/actions/permissions -f allowed_actions=all -F enabled=true` (needs repo admin) |
 | `530 Access denied` | Username — use `u210394724.ellaz` |
 | TLS handshake failure | `security: loose` was removed; cert is `*.hstgr.io` |
 | Old header on a file you just fixed | Edge cache `HIT`; retry with a cache-buster, then purge |
@@ -233,6 +269,10 @@ npm run build
 cp deploy/hostinger.htaccess dist/.htaccess
 # upload dist/ to public_html via hPanel's File Manager
 ```
+
+Upload the **whole** `dist/`, never a few files: `index.html` and its hashed
+assets must come from one build or they cannot agree, and a mismatch is exactly
+the blank page described above.
 
 A hand-upload is how the two hosts drift apart, so treat it as an emergency
 measure and push afterwards to resync.

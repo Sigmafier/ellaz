@@ -178,12 +178,15 @@ jobs:
       # and "the html matches" passes on a site whose chunks never arrived.
       - name: Verify the live site is serving this build
         if: steps.creds.outputs.ready == 'true'
-        run: |
-          # Hostinger's FTP write and its web tier are not instantaneous with
-          # each other. A few seconds here is cheaper than a flaky gate that
-          # gets ignored, and assert-live.mjs retries transport errors once.
-          sleep 15
-          node scripts/assert-live.mjs
+        env:
+          SITE_URL: https://ellaz.fun
+          BASE_PATH: /
+        # Hostinger's FTP write and its web tier are not in lockstep, so the
+        # script retries the whole check before failing rather than sleeping a
+        # fixed guess. A gate that reds on propagation gets ignored within a
+        # week, and an ignored gate is the same as no gate - which is the exact
+        # hole this step was added to close.
+        run: node scripts/assert-live.mjs
 
       # Tell Bing what changed. ChatGPT Search and Copilot lean on Bing's
       # index, so this is the cheapest route into the answer engines - and it

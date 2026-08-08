@@ -97,6 +97,30 @@ chrooted so `server-dir` is `./` (not `public_html/`), the username is
 `u210394724.ellaz` (not `…ellaz.fun`), and the cert is `CN=*.hstgr.io` so
 `security: loose` is required.
 
+**The deploy now proves it landed, instead of asking you to.**
+`scripts/assert-live.mjs` runs in the same job and reds the run unless the live
+HTML references the same hashed assets as the `dist/` just built AND every one
+of them is fetchable. Both halves are load-bearing: "all assets 200" passes on a
+fully stale site, and "the HTML matches the build" passes on a site whose chunks
+never landed. Only the conjunction separates *the site works* from *my build is
+live*.
+
+It exists because on 2026-08-08 ellaz.fun served a blank page for an hour while
+deploys reported success in 90 seconds. `SamKirkland/FTP-Deploy-Action` kept a
+sync ledger **on the server**; a transfer died after the ledger was written; and
+every run since diffed against a file claiming the missing chunks were present,
+so it skipped them forever. The upload is **`lftp mirror`** now - no ledger, and
+two passes with hashed assets before the HTML that names them, so a run that
+dies mid-transfer leaves a stale site rather than a blank one. A status sweep
+over `/`, `/games/snake/`, `/world/` and `/boards/` reported **all 200
+throughout the outage**, because a 200 document whose JS 404s is a blank page.
+[`.claude/rules/a-deploy-ledger-that-can-disagree-with-the-disk.md`](.claude/rules/a-deploy-ledger-that-can-disagree-with-the-disk.md).
+
+**Runs sitting QUEUED with zero jobs means Actions is disabled on the
+repository** - `gh api repos/Sigmafier/ellaz/actions/permissions`. A *blocked*
+action fails at "Prepare all required actions"; it does not queue. Two different
+faults, mistaken for one on 2026-08-08.
+
 Cache headers live in `deploy/hostinger.htaccess`, copied to `dist/.htaccess` by
 the workflow and shipped to Hostinger only (Pages runs nginx). The SPA catch-all
 that used to live there is gone: every route is a real document now, so the only

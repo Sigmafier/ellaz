@@ -31,8 +31,22 @@
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
+/* SITE_URL is an ORIGIN, and BASE_PATH is separate from it, because the two
+   hosts differ in exactly that way: ellaz.fun serves from `/`, the Pages copy
+   from `/ellaz/`. Folding the base into the origin would double it - the html
+   already contains base-prefixed asset paths, so `${origin}/${asset}` is
+   correct only when the origin carries no path of its own. */
 const SITE = (process.env.SITE_URL || "https://ellaz.fun").replace(/\/+$/, "");
+const BASE = `/${(process.env.BASE_PATH || "/").replace(/^\/+|\/+$/g, "")}/`.replace(/^\/\/$/, "/");
 const DIST = process.env.DIST_DIR || "dist";
+
+/* Neither host is instantaneous. Hostinger's FTP write and its web tier are not
+   in lockstep, and GitHub Pages can take a minute to propagate an artifact. A
+   gate that reds on propagation gets ignored within a week, and an ignored gate
+   is the same as no gate - which is what this whole file exists to fix. So the
+   checks are retried before failing, and only the LAST attempt is reported. */
+const ATTEMPTS = Number(process.env.LIVE_ATTEMPTS || 5);
+const SETTLE_MS = Number(process.env.LIVE_SETTLE_MS || 15000);
 
 /* The routes worth checking are the ones that BOOT THE APP, and they are worth
    checking because they mount DIFFERENT chunks: `/` is the shell, a game page
@@ -52,8 +66,7 @@ const DIST = process.env.DIST_DIR || "dist";
    a trap. This is a sample, not an enumeration - it needs one of each KIND. */
 const ROUTES = ["/", "/games/snake/", "/world/", "/boards/"];
 
-const failures = [];
-const notes = [];
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** dist path for a route. "/games/snake/" -> dist/games/snake/index.html */
 function localFile(route) {
@@ -97,12 +110,9 @@ async function get(url, { asText = true } = {}) {
    edge cache can hold stale, so those get the buster. */
 const bust = () => `_cb=${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 
-async function main() {
-  if (!existsSync(DIST)) {
-    console.error(`FAIL  no ${DIST}/ - build before verifying, or set DIST_DIR`);
-    process.exit(1);
-  }
-
+async function runChecks() {
+  const failures = [];
+  const notes = [];
   const wanted = new Set();
 
   for (const route of ROUTES) {
@@ -119,7 +129,7 @@ async function main() {
       continue;
     }
 
-    const url = `${SITE}${route}${route.includes("?") ? "&" : "?"}${bust()}`;
+    const url = `${SITE}${BASE}${route.replace(/^\//, "")}?${bust()}`;
     const res = await get(url);
     if (res.status !== 200) {
       failures.push(`${route}  HTTP ${res.status || "transport"} ${res.error || ""}`.trim());
@@ -159,28 +169,53 @@ async function main() {
   /* Two files that are not assets and would each be their own silent outage:
      the service worker (a 404 leaves returning visitors on a stale cache
      forever) and the sitemap (the thing this whole week was about). */
-  const sw = await get(`${SITE}/sw.js`);
+  const sw = await get(`${SITE}${BASE}sw.js`);
   if (sw.status !== 200) failures.push(`sw.js  HTTP ${sw.status || "transport"}`);
   else if (!/precache|workbox|self\./i.test(sw.body)) failures.push("sw.js  200 but does not look like a service worker");
 
-  const sm = await get(`${SITE}/sitemap.xml`);
-  if (sm.status !== 200) failures.push(`sitemap.xml  HTTP ${sm.status || "transport"}`);
-  else if (!sm.body.trimStart().startsWith("<?xml")) {
-    failures.push(`sitemap.xml  200 but the body is not XML - starts "${sm.body.trimStart().slice(0, 40)}"`);
+  /* Only the primary host emits a sitemap - the Pages copy deliberately ships
+     none, and a Disallow: / robots.txt, so that the two hosts do not compete
+     for the same canonical. Asserting one there would fail correctly-built
+     output. */
+  if (existsSync(join(DIST, "sitemap.xml"))) {
+    const sm = await get(`${SITE}${BASE}sitemap.xml`);
+    if (sm.status !== 200) failures.push(`sitemap.xml  HTTP ${sm.status || "transport"}`);
+    else if (!sm.body.trimStart().startsWith("<?xml")) {
+      failures.push(`sitemap.xml  200 but the body is not XML - starts "${sm.body.trimStart().slice(0, 40)}"`);
+    }
   }
 
-  for (const n of notes) console.log(`ok    ${n}`);
-  if (failures.length) {
-    console.error(`\nFAIL  ${SITE} is not serving ${DIST}/\n`);
-    for (const f of failures) console.error(`      ${f}`);
+  return { failures, notes, count: wanted.size };
+}
+
+async function main() {
+  if (!existsSync(DIST)) {
+    console.error(`FAIL  no ${DIST}/ - build before verifying, or set DIST_DIR`);
+    process.exit(1);
+  }
+
+  let result;
+  for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+    result = await runChecks();
+    if (result.failures.length === 0) break;
+    if (attempt < ATTEMPTS) {
+      console.log(`...  attempt ${attempt}/${ATTEMPTS} found ${result.failures.length} problem(s) - waiting ${SETTLE_MS / 1000}s for propagation`);
+      await sleep(SETTLE_MS);
+    }
+  }
+
+  for (const n of result.notes) console.log(`ok    ${n}`);
+  if (result.failures.length) {
+    console.error(`\nFAIL  ${SITE}${BASE} is not serving ${DIST}/  (after ${ATTEMPTS} attempts)\n`);
+    for (const f of result.failures) console.error(`      ${f}`);
     console.error(
       "\n      A green deploy is not a changed website. If the upload reported success,\n" +
-        "      suspect an incremental sync trusting a stale server-side state file.\n" +
-        "      See .claude/rules/verify-the-deploy-target-not-just-the-run.md\n",
+        "      suspect an incremental sync trusting a stale server-side ledger.\n" +
+        "      See .claude/rules/a-deploy-ledger-that-can-disagree-with-the-disk.md\n",
     );
     process.exit(1);
   }
-  console.log(`\nOK    ${SITE} serves this build - ${wanted.size} assets verified across ${ROUTES.length} routes`);
+  console.log(`\nOK    ${SITE}${BASE} serves this build - ${result.count} assets verified across ${ROUTES.length} routes`);
 }
 
 main().catch((err) => {
