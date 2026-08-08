@@ -105,12 +105,25 @@ async function walk(urls) {
     for (;;) {
       const url = queue.shift();
       if (!url) return;
+      // ONE retry, and only for a transport error - never for a 403 or a
+      // challenge, which are answers rather than failures and would say the
+      // same thing twice.
+      //
+      // This exists because the alternative is a daily job that reds on a
+      // single flaky socket. Measured on the first live run: 1 of 48 URLs came
+      // back "fetch failed", and both immediate re-runs were clean 48/48. A
+      // gate that cries wolf gets ignored, and an ignored gate is the exact
+      // outcome this script was written to prevent.
       let res;
       try {
         res = await get(url);
-      } catch (err) {
-        fail(`${url} — request failed: ${err.message}`);
-        continue;
+      } catch {
+        try {
+          res = await get(url);
+        } catch (err) {
+          fail(`${url} — request failed twice: ${err.message}`);
+          continue;
+        }
       }
       done++;
       // Challenge FIRST, then status. The two overlap - the outage that
@@ -129,20 +142,39 @@ async function walk(urls) {
   return done;
 }
 
+/**
+ * Fetch, or report and stop.
+ *
+ * The two opening requests used to be bare `await get(...)`, so an unreachable
+ * host threw an unhandled rejection and the whole check died in a Node stack
+ * trace - technically red, but the reader gets a module-loader backtrace where
+ * they needed the words "the site did not answer". Found by a negative control
+ * that reported 0 failures against a dead port, which is the wrong number for
+ * a site that is completely down.
+ */
+async function getOrFail(url, what) {
+  try {
+    return await get(url);
+  } catch (err) {
+    fail(`${what} — ${ORIGIN} did not answer: ${err.message}`);
+    return null;
+  }
+}
+
 async function main() {
   console.log(`crawling ${ORIGIN} as Googlebot\n`);
 
   // --- robots.txt -----------------------------------------------------------
-  const robots = await get(`${ORIGIN}/robots.txt`);
-  if (robots.status !== 200) fail(`robots.txt — HTTP ${robots.status}`);
+  const robots = (await getOrFail(`${ORIGIN}/robots.txt`, "robots.txt")) ?? { status: 0, body: "" };
+  if (robots.status !== 200 && robots.status !== 0) fail(`robots.txt — HTTP ${robots.status}`);
   else if (looksLikeChallenge(robots.body)) fail("robots.txt — served a bot challenge");
   else if (robotsBlocksEverything(robots.body)) {
     fail("robots.txt disallows / for every crawler — the site is closed to search");
   }
 
   // --- the sitemap ----------------------------------------------------------
-  const sm = await get(`${ORIGIN}/sitemap.xml`);
-  if (sm.status !== 200) fail(`sitemap.xml — HTTP ${sm.status}`);
+  const sm = (await getOrFail(`${ORIGIN}/sitemap.xml`, "sitemap.xml")) ?? { status: 0, body: "" };
+  if (sm.status !== 200 && sm.status !== 0) fail(`sitemap.xml — HTTP ${sm.status}`);
   if (looksLikeChallenge(sm.body)) {
     fail("sitemap.xml — served a bot challenge, so Google reads no sitemap at all");
   } else if (!looksLikeXml(sm.body)) {
