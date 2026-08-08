@@ -211,7 +211,27 @@ jobs:
           echo "lftp script: $PUTS forced transfers + 1 mirror"
           [ "$PUTS" -ge 50 ] || { echo "::error::only $PUTS put commands - the file walk is broken"; exit 1; }
 
-          lftp -f "$SCRIPT"
+          # RETRY THE WHOLE UPLOAD. Hostinger's FTP is intermittently slow to
+          # answer - it is what tripped the old 30s default, and on 2026-08-08 a
+          # run died at `cd` with "max-retries exceeded" before transferring a
+          # single byte. A deploy that reds on a flaky socket trains everyone to
+          # ignore red, and an ignored gate is the same as no gate.
+          #
+          # Retrying is safe HERE, and only because of how the upload is built:
+          # every transfer is FORCED or keyed on a content hash, so running it
+          # twice puts the same bytes in the same places. That is the payoff of
+          # having no ledger - a partial attempt leaves nothing for the next one
+          # to be wrong about. Do NOT add a retry to a stateful sync: there it
+          # would compound the original bug instead of absorbing it.
+          for attempt in 1 2 3; do
+            if lftp -f "$SCRIPT"; then break; fi
+            if [ "$attempt" = 3 ]; then
+              echo "::error::upload failed after 3 attempts - this is the host, not the build"
+              rm -f "$SCRIPT"; exit 1
+            fi
+            echo "::warning::upload attempt $attempt failed, retrying in $((attempt * 20))s"
+            sleep $((attempt * 20))
+          done
           rm -f "$SCRIPT"
 
       # ── The gate this repo did not have ───────────────────────────────────
