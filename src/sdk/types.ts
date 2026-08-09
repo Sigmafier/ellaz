@@ -5,8 +5,10 @@
 import type { Locale } from "@i18n/index";
 import type { RewardReason, RewardTier } from "./economy";
 import type { ScoreUnit } from "./score";
+import type { SessionPort } from "./session";
 
 export type { RewardReason, RewardTier };
+export type { SessionPort, SessionSpec } from "./session";
 export type { ScoreDirection, ScoreUnit } from "./score";
 
 export interface SaveStore {
@@ -215,6 +217,21 @@ export interface GameContext {
    * simply never touches it.
    */
   score?: ScorePort;
+  /**
+   * Where the player left off. `load` returns undefined for a snapshot this
+   * build cannot trust — wrong version, too old, failed the game's own shape
+   * check — which is the same answer as "never played", so a game needs one
+   * code path for both.
+   *
+   * Unlike `score`, this is NOT optional: every game can be walked out of, and
+   * a game with nothing worth restoring simply never calls it. Reaction times
+   * and echo rounds have no position to return to; a half-finished sudoku does.
+   *
+   * Device-local by construction. The key cannot match the anchored record
+   * pattern a cloud restore writes through, so a backup code moves a child's
+   * coins and records between devices and never a board mid-play.
+   */
+  session: SessionPort;
   /** Portal asks the game to exit back to the home grid. */
   onRequestExit(cb: () => void): void;
   requestExit(): void;

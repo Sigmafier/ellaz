@@ -2,6 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import type { GameContext } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
 import { type DifficultyOption } from "@ui/DifficultySelector";
+// The MODULE, not the `@shared/index` barrel — sanctioned by that barrel's own
+// header, and deliberate here. Snake is the only game importing none of
+// `@shared`, and pulling the barrel in for one hook would drag `spawn`,
+// `Prompt` and the rest of it along for the ride.
+import { useRememberedLevel } from "@shared/useRememberedLevel";
 // TYPE-ONLY, and that is load-bearing. Importing one VALUE from this module
 // (it was `SPEED_KEYS`, for a decorative exhaustiveness check) makes the static
 // import real, and Rollup then refuses to move the module behind the dynamic
@@ -45,10 +50,21 @@ export function SnakeGame({ ctx }: { ctx: GameContext }) {
     setSpeed: (k: SpeedKey) => void;
     restartFromChrome: () => void;
   } | null>(null);
+  // Snake is the one game whose level lives inside the engine rather than in
+  // React: the scene owns `selectedSpeed` and publishes it back out. So the
+  // memory sits here and is pushed INTO the scene once it boots, rather than
+  // the scene being taught to persist anything.
+  const [speed, setSpeed] = useRememberedLevel(
+    ctx,
+    SPEED_OPTIONS.map((o) => o.id),
+    "normal",
+  );
+  const speedRef = useRef(speed);
+  speedRef.current = speed;
   const [status, setStatus] = useState<SnakeStatus>({
     score: 0,
     level: 1,
-    speed: "normal",
+    speed,
     phase: "ready",
   });
   const [best] = useState(() => ctx.score?.best() ?? 0);
@@ -89,7 +105,17 @@ export function SnakeGame({ ctx }: { ctx: GameContext }) {
         // here does not work: `scene.start` queues, so `getScene` on the next
         // line is null. See the comment on `onReady` in SnakeScene.
         onReady: (scene: typeof sceneRef.current) => {
-          if (!cancelled) sceneRef.current = scene;
+          if (cancelled) return;
+          sceneRef.current = scene;
+          // The remembered speed, applied the moment the scene exists. Read
+          // through a REF, not the state value: this effect's dependency list
+          // is `[ctx]` on purpose, and closing over `speed` directly would
+          // either go stale or — once added as a dependency — tear down and
+          // reboot the whole Phaser game on every speed change.
+          //
+          // `setSpeed` republishes the status, so the chrome's toggle catches
+          // up on its own rather than needing to be told twice.
+          scene?.setSpeed(speedRef.current);
         },
       });
       ctx.lifecycle.loadingFinished();
@@ -115,7 +141,10 @@ export function SnakeGame({ ctx }: { ctx: GameContext }) {
       level={status.speed}
       // Reachable MID-RUN, which the in-canvas picker never was. The scene
       // applies it on the next tick and does not treat it as a "go".
-      onLevel={(k) => sceneRef.current?.setSpeed(k)}
+      onLevel={(k) => {
+        setSpeed(k);
+        sceneRef.current?.setSpeed(k);
+      }}
       onRestart={() => sceneRef.current?.restartFromChrome()}
       footer={
         <div

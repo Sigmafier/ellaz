@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState, useCallback } from "react";
-import type { GameContext, RewardTier } from "@sdk/index";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import type { GameContext, RewardTier, SessionSpec } from "@sdk/index";
 import type { Locale } from "@i18n/index";
 import { Button } from "@ui/components";
 import { GameChrome } from "@ui/GameChrome";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { shake, haptic } from "@juice/index";
-import { winMoment } from "@shared/index";
+import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
 import {
   newGame,
   move,
@@ -76,13 +76,72 @@ export interface TileSkin {
   tile(value: number): SkinTile | null;
 }
 
+/**
+ * A run in progress. 2048 is endless, so this is the shape where "the position"
+ * is least obviously just the board.
+ *
+ * `won` and `bestFired` are the fields that make it correct rather than merely
+ * plausible. Both are records of a reward this run has ALREADY been paid, and
+ * both gate a `winMoment` further down. Drop either from the snapshot and
+ * leaving the game becomes a way to be paid twice — reach 2048, walk out, come
+ * back, and the next merge grants the win again. That is not a rounding error
+ * in a kid's coin balance; it is an economy with a repeatable exploit, and it
+ * would look exactly like the game working.
+ *
+ * `over` is deliberately NOT here. A dead board is not a position worth
+ * returning to, so the run is cleared instead of stored — see `live` below.
+ *
+ * Evolve reuses this renderer under its OWN game id, so it gets its own
+ * `ellaz:evolve:session` for free and the two never collide.
+ */
+interface Game2048Session {
+  level: LevelKey;
+  grid: Grid;
+  score: number;
+  won: boolean;
+  bestFired: boolean;
+}
+
+const SESSION: SessionSpec<Game2048Session> = {
+  version: 1,
+  validate: (value): value is Game2048Session => {
+    const s = value as Partial<Game2048Session> | null;
+    if (typeof s !== "object" || s === null) return false;
+    if (typeof s.level !== "string" || !(s.level in LEVELS)) return false;
+    if (typeof s.score !== "number" || !Number.isFinite(s.score) || s.score < 0) return false;
+    if (typeof s.won !== "boolean" || typeof s.bestFired !== "boolean") return false;
+    // Square, matching the level's own size, and numeric throughout. `move()`
+    // reads every cell arithmetically, so a string in the grid propagates as
+    // "22" instead of 4 and corrupts the run rather than throwing.
+    const g = s.grid;
+    const n = LEVELS[s.level].size;
+    return (
+      Array.isArray(g) &&
+      g.length === n &&
+      g.every(
+        (row) =>
+          Array.isArray(row) &&
+          row.length === n &&
+          row.every((v) => typeof v === "number" && Number.isFinite(v) && v >= 0),
+      )
+    );
+  },
+};
+
 export function Game2048({ ctx, skin }: { ctx: GameContext; skin?: TileSkin }) {
-  const [level, setLevel] = useState<LevelKey>("classic");
+  const [level, setLevel] = useRememberedLevel(ctx, LEVEL_OPTIONS.map((o) => o.id), "classic");
   const { size, target } = LEVELS[level];
-  const [grid, setGrid] = useState<Grid>(() => newGame(size));
-  const [score, setScore] = useState(0);
+  const restored = useMemo(() => ctx.session.load(SESSION), [ctx]);
+  // Only a run at this level, still with moves in it. Both halves matter: a
+  // 5x5 grid restored under a 4x4 level renders as a broken board, and a dead
+  // one restores a game that cannot be played.
+  const resume =
+    restored && restored.level === level && restored.grid.length === size ? restored : undefined;
+
+  const [grid, setGrid] = useState<Grid>(() => resume?.grid ?? newGame(size));
+  const [score, setScore] = useState(() => resume?.score ?? 0);
   const [best, setBest] = useState(() => ctx.score?.best() ?? 0);
-  const [won, setWon] = useState(false);
+  const [won, setWon] = useState(() => resume?.won ?? false);
   const [over, setOver] = useState(false);
   const [mergedIdx, setMergedIdx] = useState<Set<number>>(() => new Set());
   const boardRef = useRef<HTMLDivElement>(null);
@@ -90,7 +149,14 @@ export function Game2048({ ctx, skin }: { ctx: GameContext; skin?: TileSkin }) {
   // A once-per-run latch over the score port's verdict: every merge past the
   // old record is technically "a new best", so without the latch one good run
   // would mint a personal-best reward on every move.
-  const bestFiredRef = useRef(false);
+  //
+  // It is RESTORED rather than reset, because a resumed run is the same run.
+  // Reset, a player who walks away above their old record collects the
+  // personal-best reward again on their very next merge, once per resume,
+  // forever. Same reasoning as `won` above: both are "this run already paid
+  // for that", and a snapshot that drops them turns leaving the game into a
+  // way to be paid twice.
+  const bestFiredRef = useRef(resume?.bestFired ?? false);
 
   // Reset the game to a given level (board size + win target).
   const resetLevel = useCallback(
@@ -107,6 +173,15 @@ export function Game2048({ ctx, skin }: { ctx: GameContext; skin?: TileSkin }) {
   );
 
   const reset = useCallback(() => resetLevel(level), [resetLevel, level]);
+
+  // `live: !over` — a board with no moves left is cleared, so the next open
+  // deals a fresh one rather than reopening a game that is already lost.
+  useGameSession(
+    ctx,
+    SESSION,
+    () => ({ level, grid, score, won, bestFired: bestFiredRef.current }),
+    { live: !over },
+  );
 
   useEffect(() => {
     if (!startedRef.current) {

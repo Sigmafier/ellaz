@@ -3,7 +3,7 @@ import type { GameContext } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { burst, shake, haptic } from "@juice/index";
-import { shuffle, winMoment } from "@shared/index";
+import { shuffle, winMoment, useRememberedLevel } from "@shared/index";
 import { newGame, tapObject, isWon, targetIcons, type HiddenState } from "./logic";
 
 // A big cast of original characters (>=34 distinct so "hard" has a full crowd);
@@ -37,14 +37,18 @@ function makeRound(difficulty: Difficulty): HiddenState {
 }
 
 export function Hidden({ ctx }: { ctx: GameContext }) {
-  const [difficulty, setDifficulty] = useState<Difficulty>("easy");
+  const [difficulty, setDifficulty] = useRememberedLevel(
+    ctx,
+    DIFF_OPTIONS.map((o) => o.id),
+    "easy",
+  );
   const [round, setRound] = useState(1);
-  const [state, setState] = useState<HiddenState>(() => makeRound("easy"));
+  const [state, setState] = useState<HiddenState>(() => makeRound(difficulty));
   const [justWon, setJustWon] = useState(false);
   // Furthest round reached, per DIFFICULTY — the round counter resets to 1 on a
   // difficulty change, so a shared record would let an easy streak stand as the
   // record on hard, where a crowd is twice the size.
-  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best("easy"));
+  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best(difficulty));
   const sceneRef = useRef<HTMLDivElement>(null);
   const started = useRef(false);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);

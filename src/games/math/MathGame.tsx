@@ -3,7 +3,7 @@ import type { GameContext } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { burst, shake, haptic } from "@juice/index";
-import { winMoment } from "@shared/index";
+import { winMoment, useRememberedLevel } from "@shared/index";
 import { generateProblem, isCorrect, type MathLevel, type Problem } from "./logic";
 
 // Two rows, because the seven levels are two different games for two different
@@ -63,8 +63,8 @@ function GlyphGroup({ n, glyph, size }: { n: number; glyph?: string; size: strin
 }
 
 export function MathGame({ ctx }: { ctx: GameContext }) {
-  const [level, setLevel] = useState<MathLevel>("up10");
-  const [problem, setProblem] = useState<Problem>(() => generateProblem("up10"));
+  const [level, setLevel] = useRememberedLevel(ctx, LEVEL_OPTIONS.map((o) => o.id), "up10");
+  const [problem, setProblem] = useState<Problem>(() => generateProblem(level));
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
   const [best, setBest] = useState(() => ctx.score?.best() ?? 0);

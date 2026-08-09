@@ -24,6 +24,8 @@ export type {
   ScoreResult,
   ScoreUnit,
   ScoreDirection,
+  SessionPort,
+  SessionSpec,
 } from "./types";
 export { createSaveStore } from "./storage";
 export { createAnalyticsPort, analytics } from "./analytics";
@@ -40,6 +42,15 @@ export { TIER_COINS, SESSION_COIN_CAP, coinsFor, starsFor } from "./economy";
 // Games only ever see ctx.score, which cannot say which direction it ranks.
 export { UNIT_DIRECTION, bestOf, directionFor, formatScore, isBetter, isRankable } from "./score";
 export { SCORE_KEY_PREFIX, createScorePort } from "./scoreboard";
+// "Carry on where you left off". One file owns every rule for when a stored
+// position is still safe to load, so 22 games cannot each answer it differently
+// — and a wrong answer here renders a plausible board, not an error.
+export {
+  SESSION_KEY,
+  SESSION_MAX_AGE_MS,
+  SESSION_MAX_BYTES,
+  createSessionPort,
+} from "./session";
 // The name pool — the player's display name, held as word ids so it renders in
 // whichever language the app is in. No child ever types a name.
 export {

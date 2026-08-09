@@ -16,6 +16,7 @@ import {
   Prompt,
   judgeTap,
   useGameTimer,
+  useRememberedLevel,
   useSpawner,
   winMoment,
   type Prop,
@@ -179,7 +180,11 @@ function focusIsOn(propId: number): boolean {
 type Phase = "ready" | "playing" | "done";
 
 export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
-  const [difficulty, setDifficulty] = useState<Difficulty>("easy");
+  const [difficulty, setDifficulty] = useRememberedLevel(
+    ctx,
+    DIFF_OPTIONS.map((o) => o.id),
+    "easy",
+  );
   const [phase, setPhase] = useState<Phase>("ready");
   const [score, setScore] = useState<RoundScore>(emptyScore);
   const [best, setBest] = useState<number>(() => ctx.score?.best() ?? 0);

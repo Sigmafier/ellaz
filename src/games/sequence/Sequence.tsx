@@ -10,7 +10,7 @@ import type { GameContext } from "@sdk/index";
 import { type DifficultyOption } from "@ui/index";
 import { GameChrome } from "@ui/GameChrome";
 import { burst, haptic, shake } from "@juice/index";
-import { Prompt, shapePath, winMoment } from "@shared/index";
+import { Prompt, shapePath, winMoment, useRememberedLevel } from "@shared/index";
 import { colorHex, isCorrect, itemKey, newRound, type Difficulty, type Round, type SeqItem } from "./logic";
 
 const DIFF_OPTIONS: DifficultyOption<Difficulty>[] = [
@@ -73,14 +73,18 @@ function ItemView({ item, variant }: { item: SeqItem; variant: "row" | "choice" 
 }
 
 export function Sequence({ ctx }: { ctx: GameContext }): ReactElement {
-  const [difficulty, setDifficulty] = useState<Difficulty>("easy");
+  const [difficulty, setDifficulty] = useRememberedLevel(
+    ctx,
+    DIFF_OPTIONS.map((o) => o.id),
+    "easy",
+  );
   const [level, setLevel] = useState(1);
-  const [round, setRound] = useState<Round>(() => newRound("easy"));
+  const [round, setRound] = useState<Round>(() => newRound(difficulty));
   const [solved, setSolved] = useState(false);
   // Furthest level reached, per DIFFICULTY — the level counter resets to 1 on a
   // difficulty change, so a shared record would let an easy streak stand as the
   // record on hard, where the patterns are longer.
-  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best("easy"));
+  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best(difficulty));
   // The latch is a REF, not the `solved` state: two fast taps land in the same
   // React batch, so a state read would still be false on the second one and the
   // win would be granted twice.

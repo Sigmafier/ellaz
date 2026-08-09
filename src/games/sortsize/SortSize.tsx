@@ -9,7 +9,7 @@ import type { GameContext } from "@sdk/index";
 import { type DifficultyOption } from "@ui/index";
 import { GameChrome } from "@ui/GameChrome";
 import { burst, haptic, shake } from "@juice/index";
-import { Prompt, winMoment } from "@shared/index";
+import { Prompt, winMoment, useRememberedLevel } from "@shared/index";
 import {
   LEVELS,
   newGame,
@@ -43,14 +43,18 @@ function hitSize(item: SizedItem): number {
 }
 
 export function SortSize({ ctx }: { ctx: GameContext }) {
-  const [difficulty, setDifficulty] = useState<Difficulty>("easy");
+  const [difficulty, setDifficulty] = useRememberedLevel(
+    ctx,
+    DIFF_OPTIONS.map((o) => o.id),
+    "easy",
+  );
   const [level, setLevel] = useState(1);
-  const [state, setState] = useState<RoundState>(() => newGame("easy"));
+  const [state, setState] = useState<RoundState>(() => newGame(difficulty));
   const [justWon, setJustWon] = useState(false);
   // Furthest level reached, per DIFFICULTY — the level counter resets to 1 on a
   // difficulty change, so a shared record would let an easy streak stand as the
   // record on hard, where the sizes are far closer together.
-  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best("easy"));
+  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best(difficulty));
   const surfaceRef = useRef<HTMLDivElement>(null);
   const started = useRef(false);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);

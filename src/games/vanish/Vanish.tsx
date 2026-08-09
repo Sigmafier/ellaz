@@ -3,7 +3,7 @@ import type { GameContext } from "@sdk/index";
 import { type DifficultyOption } from "@ui/index";
 import { GameChrome } from "@ui/GameChrome";
 import { haptic, shake } from "@juice/index";
-import { Prompt, useGameTimer, winMoment } from "@shared/index";
+import { Prompt, useGameTimer, useRememberedLevel, winMoment } from "@shared/index";
 import {
   COVER_MS,
   DIFFICULTIES,
@@ -64,17 +64,14 @@ const T = {
 
 const TILE_MIN = 72; // kids target floor is 64px; the extra 8 is breathing room
 
-function isDifficulty(v: string): v is Difficulty {
-  return (DIFFICULTIES as readonly string[]).includes(v);
-}
-
 export function Vanish({ ctx }: { ctx: GameContext }) {
   const t = T[ctx.locale];
 
-  const [level, setLevel] = useState<Difficulty>(() => {
-    const saved = ctx.storage.get<string>("level", "easy");
-    return isDifficulty(saved) ? saved : "easy";
-  });
+  // vanish shipped this by hand — read, validate against the known ids, fall
+  // back — before every other game had it. `useRememberedLevel` is that exact
+  // code, under the same `level` key with the same values, so this game's
+  // players keep the difficulty they last chose.
+  const [level, setLevel] = useRememberedLevel(ctx, DIFFICULTIES, "easy");
   // Furthest round reached, per DIFFICULTY — `roundNo` resets to 1 on a fresh run
   // at a new difficulty, so a shared record would let an easy streak stand as the
   // record on hard. Seeded from the RESTORED difficulty, not "easy": the level is
@@ -118,8 +115,9 @@ export function Vanish({ ctx }: { ctx: GameContext }) {
 
   const startRound = useCallback(
     (d: Difficulty, opts?: { fresh?: boolean }) => {
+      // `setLevel` persists — see useRememberedLevel. The hand-written
+      // `storage.set` that used to sit here is now the hook's job.
       setLevel(d);
-      ctx.storage.set("level", d);
       // The record is scoped to the difficulty, so switching boards must show the
       // record for the board actually being played.
       setBest(ctx.score?.best(d));

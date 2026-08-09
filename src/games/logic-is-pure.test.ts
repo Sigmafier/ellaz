@@ -33,6 +33,8 @@ const IMPURE_SHARED = new Set([
   "winMoment.ts", // reaches @juice and the wallet anchor by design
   "useGameTimer.ts", // a React hook
   "spawn.ts", // the WAAPI/React glue half of the spawner
+  "useGameSession.ts", // a React hook — the WHEN of persisting a position
+  "useRememberedLevel.ts", // a React hook
 ]);
 
 // Each entry is [pattern, why it is banned] so a failure explains itself

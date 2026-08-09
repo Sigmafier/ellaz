@@ -21,6 +21,11 @@ export {
 } from "./sequence";
 // Pause-aware game clock (React hook).
 export { useGameTimer, type GameTimer, type GameTimerOptions } from "./useGameTimer";
+// "Carry on where you left off", the two React halves of it. The rules for when
+// a stored position is safe to load are NOT here — they live in `sdk/session.ts`
+// so every game gets the same answer. These only decide WHEN to read and write.
+export { useGameSession, type GameSessionOptions } from "./useGameSession";
+export { LEVEL_KEY, useRememberedLevel } from "./useRememberedLevel";
 // Spawn/expire/tap rules for the games where things appear, move and get
 // tapped. PURE half — safe to import from a logic.ts (via `@shared/spawn.pure`).
 export {

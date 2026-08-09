@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { formatScore, type GameContext, type RewardTier } from "@sdk/index";
+import { formatScore, type GameContext, type RewardTier, type SessionSpec } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { burst } from "@juice/index";
-import { useGameTimer, winMoment } from "@shared/index";
+import { useGameSession, useGameTimer, useRememberedLevel, winMoment } from "@shared/index";
 import { generate, setCell, conflicts, isSolved, type SudokuState, type Level } from "./logic";
 
 // ONE ordered ramp, animals first: a child starts at 4×4 animals, and expert
@@ -40,29 +40,84 @@ const LEVEL_TIER: Record<Level, RewardTier> = {
 const ANIMALS = ["🐘", "🦁", "🐸", "🐧", "🦉", "🐢"] as const;
 const ANIMAL_NAMES = ["elephant", "lion", "frog", "penguin", "owl", "turtle"] as const;
 
+/**
+ * The half-filled puzzle, and the clock that belongs to it.
+ *
+ * Sudoku's record is a solve TIME, which makes `elapsedMs` the field this whole
+ * snapshot turns on: restoring the grid alone would hand back a puzzle eight
+ * cells from done with the clock at zero, and every abandoned board would
+ * become a personal best nobody earned. The clock is part of the position.
+ *
+ * The whole `SudokuState` travels, `solution` included. Regenerating from the
+ * level instead would produce a DIFFERENT puzzle, and re-solving the stored one
+ * means shipping a solver to reconstruct something we already had.
+ */
+interface SudokuSession {
+  level: Level;
+  state: SudokuState;
+  elapsedMs: number;
+}
+
+const SESSION: SessionSpec<SudokuSession> = {
+  version: 1,
+  validate: (value): value is SudokuSession => {
+    const s = value as Partial<SudokuSession> | null;
+    if (typeof s !== "object" || s === null) return false;
+    if (typeof s.level !== "string" || !LEVEL_OPTIONS.some((o) => o.id === s.level)) return false;
+    if (typeof s.elapsedMs !== "number" || !Number.isFinite(s.elapsedMs) || s.elapsedMs < 0) return false;
+    const g = s.state;
+    if (typeof g !== "object" || g === null) return false;
+    // Everything this renderer sizes itself from reads off `spec`, so a spec
+    // that disagrees with the grids it describes is the one corruption that
+    // renders — as a board with missing rows, or one that throws on the first
+    // tap into a row that is not there.
+    const n = g.spec?.n;
+    if (typeof n !== "number" || n < 1) return false;
+    const square = (grid: unknown) =>
+      Array.isArray(grid) &&
+      grid.length === n &&
+      grid.every((row) => Array.isArray(row) && row.length === n);
+    return square(g.puzzle) && square(g.given) && square(g.solution);
+  },
+};
+
 export function Sudoku({ ctx }: { ctx: GameContext }) {
-  const [level, setLevel] = useState<Level>("easy");
-  const [state, setState] = useState<SudokuState>(() => generate("easy"));
+  const [level, setLevel] = useRememberedLevel(ctx, LEVEL_OPTIONS.map((o) => o.id), "easy");
+  const restored = useMemo(() => ctx.session.load(SESSION), [ctx]);
+  // Adopted only when it belongs to the level this mount opened on, and never
+  // when it is already solved — a finished grid has nothing left to tap, and
+  // returning to one reads as the game having failed to deal a puzzle.
+  const resume =
+    restored && restored.level === level && !isSolved(restored.state) ? restored : undefined;
+
+  const [state, setState] = useState<SudokuState>(() => resume?.state ?? generate(level));
   const [sel, setSel] = useState<[number, number] | null>(null);
   const [won, setWon] = useState(false);
   // Fastest solve, per LEVEL. A 4×4 animal board and an expert 9×9 are not the
   // same puzzle, so they are not the same record.
-  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best("easy"));
+  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best(level));
   const boardRef = useRef<HTMLDivElement>(null);
   const started = useRef(false);
 
   // The clock stops the moment the board is solved, and useGameTimer already
   // stops it on pause — a child who puts the tablet down mid-puzzle must not
-  // come back to a ruined time.
-  const timer = useGameTimer(ctx, { running: !won });
+  // come back to a ruined time. `initialMs` is the same promise one step
+  // further out: walking away entirely, and coming back tomorrow, costs the
+  // clock nothing either.
+  const timer = useGameTimer(ctx, { running: !won, initialMs: resume?.elapsedMs });
+
+  // Cleared the moment the puzzle is solved, so the next open deals a new one.
+  useGameSession(ctx, SESSION, () => ({ level, state, elapsedMs: timer.elapsedMs }), {
+    live: !won,
+  });
 
   useEffect(() => {
     if (!started.current) {
       started.current = true;
       ctx.lifecycle.gameplayStart();
-      ctx.analytics.levelStart("easy");
+      ctx.analytics.levelStart(level);
     }
-  }, [ctx]);
+  }, [ctx, level]);
 
   const bad = useMemo(() => conflicts(state), [state]);
 
@@ -79,6 +134,7 @@ export function Sudoku({ ctx }: { ctx: GameContext }) {
       setSel(null);
       setWon(false);
       setBest(ctx.score?.best(lv));
+      // Zero, never the abandoned run's minutes — see `initialMs`.
       timer.reset();
       ctx.analytics.levelStart(lv);
     },
