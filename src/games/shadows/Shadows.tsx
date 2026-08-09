@@ -9,7 +9,7 @@ import type { GameContext } from "@sdk/index";
 import { type DifficultyOption } from "@ui/index";
 import { GameChrome } from "@ui/GameChrome";
 import { burst, haptic, shake } from "@juice/index";
-import { Prompt, winMoment } from "@shared/index";
+import { Prompt, winMoment, useRememberedLevel } from "@shared/index";
 import { isCorrect, newRound, type Difficulty, type ShadowChoice, type ShadowRound } from "./logic";
 
 // THE SILHOUETTE IS A `filter`, NOT AN ASSET. An emoji is a COLOUR glyph, so
@@ -37,14 +37,18 @@ const PLATE = "max(150px, min(66vw, 32vh, 300px))";
 const PLATE_GLYPH = "max(96px, min(42vw, 20vh, 190px))";
 
 export function Shadows({ ctx }: { ctx: GameContext }) {
-  const [difficulty, setDifficulty] = useState<Difficulty>("easy");
+  const [difficulty, setDifficulty] = useRememberedLevel(
+    ctx,
+    DIFF_OPTIONS.map((o) => o.id),
+    "easy",
+  );
   const [level, setLevel] = useState(1);
-  const [round, setRound] = useState<ShadowRound>(() => newRound("easy"));
+  const [round, setRound] = useState<ShadowRound>(() => newRound(difficulty));
   const [solved, setSolved] = useState(false);
   // Furthest level reached, per DIFFICULTY — the level counter resets to 1 on a
   // difficulty change, so a shared record would let an easy streak stand as the
   // record on hard, where the choices are a harder read.
-  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best("easy"));
+  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best(difficulty));
 
   // The double-grant guard. `solved` is state and therefore stale inside a
   // handler that fires twice in one tick; a ref is read at call time, so two

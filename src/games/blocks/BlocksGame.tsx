@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
-import type { GameContext, RewardTier } from "@sdk/index";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import type { GameContext, RewardTier, SessionSpec } from "@sdk/index";
 import { Button } from "@ui/components";
 import { GameChrome, type ChromeLevel } from "@ui/GameChrome";
 import { burst, haptic, shake } from "@juice/index";
-import { winMoment } from "@shared/index";
+import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
 import {
   LEVELS,
   filled,
@@ -80,10 +80,76 @@ function cellSize(cols: number, rows: number): string {
   return `min(${(88 / cols).toFixed(2)}vw, ${(52 / rows).toFixed(2)}vh, 30px)`;
 }
 
+/**
+ * A run in progress: the whole board, the falling piece, the next one, and the
+ * bag it is being drawn from.
+ *
+ * The BAG is why the whole `BlocksState` travels rather than a summary. It is
+ * the shuffled draw pile that stops real droughts, and a run resumed with a
+ * fresh bag would quietly re-roll the next seven pieces — invisible, and
+ * exactly the "the game is cheating" feeling the bag exists to prevent.
+ *
+ * `milestone` rides along for the same reason `bestFired` does in 2048: it
+ * records a coin this run has already been paid.
+ */
+interface BlocksSession {
+  state: BlocksState;
+  milestone: number;
+}
+
+const SESSION: SessionSpec<BlocksSession> = {
+  version: 1,
+  validate: (value): value is BlocksSession => {
+    const s = value as Partial<BlocksSession> | null;
+    if (typeof s !== "object" || s === null) return false;
+    if (typeof s.milestone !== "number" || !Number.isFinite(s.milestone) || s.milestone < 0) return false;
+    const g = s.state;
+    if (typeof g !== "object" || g === null) return false;
+    if (typeof g.level !== "string" || !(g.level in LEVELS)) return false;
+    // The board must match the dimensions the level declares, not merely the
+    // ones the snapshot claims: `cellSize` and the CSS grid are both computed
+    // from the LEVEL, so a board of some other size renders as a grid whose
+    // cells and columns disagree.
+    const { cols, rows } = LEVELS[g.level];
+    if (g.cols !== cols || g.rows !== rows) return false;
+    if (
+      !Array.isArray(g.board) ||
+      g.board.length !== rows ||
+      !g.board.every(
+        (row) => Array.isArray(row) && row.length === cols && row.every((c) => typeof c === "number"),
+      )
+    ) {
+      return false;
+    }
+    // `piece.cells` is indexed directly by every draw and collision check, so a
+    // missing matrix is a throw on the first frame rather than a wrong picture.
+    const squareMatrix = (p: unknown) => {
+      const cellsOf = (p as { cells?: unknown })?.cells;
+      return Array.isArray(cellsOf) && cellsOf.every((row) => Array.isArray(row));
+    };
+    if (!squareMatrix(g.piece) || !squareMatrix(g.next)) return false;
+    if (!Array.isArray(g.bag) || !g.bag.every((id) => typeof id === "string")) return false;
+    return (
+      typeof g.pr === "number" &&
+      typeof g.pc === "number" &&
+      typeof g.score === "number" &&
+      typeof g.lines === "number" &&
+      typeof g.over === "boolean"
+    );
+  },
+};
+
 export function BlocksGame({ ctx }: { ctx: GameContext }) {
-  const [level, setLevel] = useState<LevelKey>("normal");
-  const [state, setState] = useState<BlocksState>(() => newGame("normal"));
-  const [best, setBest] = useState(() => ctx.score?.best("normal") ?? 0);
+  const [level, setLevel] = useRememberedLevel(ctx, LEVEL_OPTIONS.map((o) => o.id), "normal");
+  const restored = useMemo(() => ctx.session.load(SESSION), [ctx]);
+  // A stacked-out run is never resumed — `live` clears it — so a stored `over`
+  // board can only come from a build that wrote one, and it is refused here
+  // rather than handed back as a game with no legal move.
+  const resume =
+    restored && restored.state.level === level && !restored.state.over ? restored : undefined;
+
+  const [state, setState] = useState<BlocksState>(() => resume?.state ?? newGame(level));
+  const [best, setBest] = useState(() => ctx.score?.best(level) ?? 0);
   const boardRef = useRef<HTMLDivElement>(null);
 
   /**
@@ -95,8 +161,15 @@ export function BlocksGame({ ctx }: { ctx: GameContext }) {
   const gameRef = useRef(state);
   const pausedRef = useRef(false);
   const lastStepRef = useRef(0);
-  /** Rows at the last milestone, so one ping fires per five rows, not per row. */
-  const milestoneRef = useRef(0);
+  /**
+   * Rows at the last milestone, so one ping fires per five rows, not per row.
+   *
+   * RESTORED with the run, because a resumed run is the same run. Starting it
+   * back at 0 over a board already at 20 rows makes the very next clear satisfy
+   * `step > 0` and pay a milestone coin that was paid the first time round —
+   * once per resume, indefinitely. See the same reasoning in `Game2048.tsx`.
+   */
+  const milestoneRef = useRef(resume?.milestone ?? 0);
   /** A run reports its score exactly once, at the end. */
   const scoredRef = useRef(false);
 
@@ -125,9 +198,19 @@ export function BlocksGame({ ctx }: { ctx: GameContext }) {
 
   const restart = useCallback(() => start(gameRef.current.level), [start]);
 
+  // Reads `gameRef`, not `state`: that ref is this game's authoritative copy
+  // (the gravity timer writes through it), so a flush landing between a step
+  // and its repaint stores the board the game is actually on.
+  useGameSession(
+    ctx,
+    SESSION,
+    () => ({ state: gameRef.current, milestone: milestoneRef.current }),
+    { live: !state.over },
+  );
+
   useEffect(() => {
     ctx.lifecycle.gameplayStart();
-    ctx.analytics.levelStart("normal");
+    ctx.analytics.levelStart(level);
   }, [ctx]);
 
   /**

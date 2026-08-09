@@ -7,6 +7,7 @@ import { audioPort } from "./audio";
 import { speechPort } from "./speech";
 import { createRewardsPort } from "./wallet";
 import { createScorePort } from "./scoreboard";
+import { createSessionPort } from "./session";
 import { publishScore } from "./cloudSync";
 
 // Assembles the GameContext the portal hands to a game on mount. Owns the
@@ -65,6 +66,13 @@ export function createHostControls(gameId: string, locale: Locale, mount: HTMLEl
         void publishScore(gameId, board, value, unit);
       },
     }),
+    // Where the player left off. Same store again, so a game's saves, its
+    // records and its position share one namespace and one failure mode — a
+    // device that refuses writes loses all three together rather than leaving a
+    // resumable board beside a record that never landed.
+    //
+    // No per-mount state here either: a snapshot is a position, not a budget.
+    session: createSessionPort(storage),
     lifecycle: {
       loadingStart: () => context.analytics.track("game_loading_start"),
       loadingFinished: () => context.analytics.track("game_loading_finished"),

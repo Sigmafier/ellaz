@@ -1,10 +1,39 @@
-import { useEffect, useRef, useState } from "react";
-import type { GameContext } from "@sdk/index";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { GameContext, SessionSpec } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { haptic } from "@juice/index";
-import { winMoment } from "@shared/index";
+import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
 import { PICTURES, PALETTE } from "./pictures";
+
+/**
+ * The drawing itself — the one thing in this catalogue a child would actually
+ * mourn. Every other game's snapshot is a position in a puzzle that can simply
+ * be played again; this is a picture they made.
+ *
+ * And unlike every other game here, it is never cleared on completion. A
+ * finished drawing is not a solved puzzle sitting there with nothing left to
+ * do; it is the point. Reopening coloring to find it wiped would read as the
+ * app having thrown their work away.
+ */
+interface ColoringSession {
+  picId: string;
+  fills: Record<string, string>;
+}
+
+const SESSION: SessionSpec<ColoringSession> = {
+  version: 1,
+  validate: (value): value is ColoringSession => {
+    const s = value as Partial<ColoringSession> | null;
+    if (typeof s !== "object" || s === null) return false;
+    if (typeof s.picId !== "string" || !PICTURES.some((p) => p.id === s.picId)) return false;
+    if (typeof s.fills !== "object" || s.fills === null || Array.isArray(s.fills)) return false;
+    // Every fill must be a plain colour string. A non-string reaching an SVG
+    // `fill` renders that region as nothing at all, which reads as a hole in
+    // the drawing rather than as corrupt data.
+    return Object.values(s.fills).every((v) => typeof v === "string");
+  },
+};
 
 // The picture chooser rides the chrome's level toggle, because it is exactly
 // that shape: one card showing the CURRENT picture, each tap advancing to the
@@ -17,11 +46,29 @@ const PICTURE_OPTIONS: DifficultyOption<string>[] = PICTURES.map((p) => ({
 // SVG region-fill coloring. Tap a color, tap a region — the region fills.
 // Live SVG (not canvas) because per-region fill IS the mechanic here.
 export function Coloring({ ctx }: { ctx: GameContext }) {
-  const [picIdx, setPicIdx] = useState(0);
+  // The picture rides the same level memory every other game uses, by ID
+  // rather than by index: an index means "whichever picture is third", so
+  // adding a drawing to `PICTURES` would silently hand every returning child a
+  // different page than the one they were colouring.
+  const [picId, setPicId] = useRememberedLevel(
+    ctx,
+    PICTURES.map((p) => p.id),
+    PICTURES[0].id,
+  );
+  const pic = PICTURES[Math.max(0, PICTURES.findIndex((p) => p.id === picId))];
+
+  const restored = useMemo(() => ctx.session.load(SESSION), [ctx]);
   const [color, setColor] = useState(PALETTE[0]);
-  const [fills, setFills] = useState<Record<string, string>>({});
+  const [fills, setFills] = useState<Record<string, string>>(() =>
+    // The guard is the whole safety of a restore: the fills are keyed by region
+    // id, and region ids are only unique WITHIN a picture. Painting the boat's
+    // fills onto the house would put colour in plausible places and be
+    // indistinguishable from a drawing the child did not make.
+    restored && restored.picId === pic.id ? restored.fills : {},
+  );
   const started = useRef(false);
-  const pic = PICTURES[picIdx];
+
+  useGameSession(ctx, SESSION, () => ({ picId: pic.id, fills }), { live: true });
 
   useEffect(() => {
     if (!started.current) {
@@ -60,10 +107,9 @@ export function Coloring({ ctx }: { ctx: GameContext }) {
   // arithmetic here would be right today and wrong the first time either side
   // learns to skip, shuffle, or remember where the child left off.
   const goToPicture = (id: string) => {
-    const ni = Math.max(0, PICTURES.findIndex((p) => p.id === id));
-    setPicIdx(ni);
+    setPicId(id);
     setFills({});
-    ctx.analytics.levelStart(PICTURES[ni].id);
+    ctx.analytics.levelStart(id);
   };
 
   const clearPage = () => setFills({});

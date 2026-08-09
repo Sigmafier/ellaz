@@ -14,6 +14,7 @@ import { burst, haptic } from "@juice/index";
 import {
   PLAY_SURFACE_STYLE,
   Prompt,
+  useRememberedLevel,
   useSpawner,
   winMoment,
   type Prop,
@@ -167,7 +168,11 @@ function Frog(): ReactElement {
 }
 
 export function FrogGame({ ctx }: { ctx: GameContext }): ReactElement {
-  const [difficulty, setDifficulty] = useState<Difficulty>("easy");
+  const [difficulty, setDifficulty] = useRememberedLevel(
+    ctx,
+    DIFF_OPTIONS.map((o) => o.id),
+    "easy",
+  );
   const [level, setLevel] = useState(1);
   const [caught, setCaught] = useState(0);
   const [hops, setHops] = useState(0);
@@ -176,7 +181,7 @@ export function FrogGame({ ctx }: { ctx: GameContext }): ReactElement {
   // Furthest level reached, per DIFFICULTY — the level counter resets to 1 on a
   // difficulty change, so a shared record would let an easy streak stand as the
   // record on hard, where the frog hops sooner and the round asks for more.
-  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best("easy"));
+  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best(difficulty));
 
   const he = ctx.locale === "he";
   const pads = useMemo(() => padsFor(difficulty), [difficulty]);

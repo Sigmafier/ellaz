@@ -12,7 +12,7 @@ import type { GameContext } from "@sdk/index";
 import { type DifficultyOption } from "@ui/index";
 import { GameChrome } from "@ui/GameChrome";
 import { burst, haptic, shake } from "@juice/index";
-import { Prompt, useGameTimer, winMoment } from "@shared/index";
+import { Prompt, useGameTimer, winMoment, useRememberedLevel } from "@shared/index";
 import {
   NO_BEST,
   READY,
@@ -159,7 +159,11 @@ function TrafficLight({ live, dim }: { live: boolean; dim: boolean }): ReactElem
 }
 
 export function ReactionGame({ ctx }: { ctx: GameContext }): ReactElement {
-  const [difficulty, setDifficulty] = useState<Difficulty>("easy");
+  const [difficulty, setDifficulty] = useRememberedLevel(
+    ctx,
+    DIFF_OPTIONS.map((o) => o.id),
+    "easy",
+  );
   const [attempt, setAttempt] = useState<Attempt>(READY);
   // NO_BEST (0) means "no record yet" here, and the port says the same thing
   // with `undefined` — lower is better, so a stored zero could never be beaten.

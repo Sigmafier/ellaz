@@ -86,6 +86,31 @@ export function resolveMismatch(state: MemoryState, a: number, b: number): Memor
   return { ...state, cards, lock: false };
 }
 
+/**
+ * The same board, with nothing left pending — every unmatched card face-down,
+ * no lock, no half-made pick.
+ *
+ * A mismatch is the one state in this game that only a TIMER can leave: `flip`
+ * sets `lock: true` and the renderer clears it 850ms later. That is fine while
+ * the game is on screen and fatal the moment a position is stored, because a
+ * snapshot taken inside those 850ms is restored with no timer behind it — and
+ * `flip` refuses every card while `lock` is true. The board would come back
+ * looking perfectly normal and be permanently unplayable.
+ *
+ * So a position is settled before it is stored rather than after it is loaded.
+ * Settling at save time means the SNAPSHOT can never hold an impossible state;
+ * settling at load time would leave the impossible state on disk, one build
+ * away from being read by something that forgets to settle it.
+ *
+ * It costs the player the two cards they had just turned over, which they were
+ * about to lose to the timer anyway.
+ */
+export function settle(state: MemoryState): MemoryState {
+  if (!state.lock && state.firstPick === null) return state;
+  const cards = state.cards.map((c) => (c.matched ? c : { ...c, flipped: false }));
+  return { ...state, cards, lock: false, firstPick: null };
+}
+
 export function isWon(state: MemoryState): boolean {
   return state.matchedPairs === state.totalPairs;
 }

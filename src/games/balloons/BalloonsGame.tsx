@@ -16,6 +16,7 @@ import {
   PLAY_SURFACE_STYLE,
   Prompt,
   judgeTap,
+  useRememberedLevel,
   useSpawner,
   winMoment,
   type Prop,
@@ -206,16 +207,20 @@ function BalloonArt({ color }: { color: BalloonColor }): ReactElement {
 }
 
 export function BalloonsGame({ ctx }: { ctx: GameContext }): ReactElement {
-  const [difficulty, setDifficulty] = useState<Difficulty>("easy");
+  const [difficulty, setDifficulty] = useRememberedLevel(
+    ctx,
+    DIFF_OPTIONS.map((o) => o.id),
+    "easy",
+  );
   const [level, setLevel] = useState(1);
-  const [round, setRound] = useState(() => newRound("easy"));
+  const [round, setRound] = useState(() => newRound(difficulty));
   const [popped, setPopped] = useState(0);
   // "cheer" freezes the board (no spawning, no expiry) while the win plays out.
   const [phase, setPhase] = useState<"play" | "cheer">("play");
   // Furthest level reached, per DIFFICULTY — the level counter resets to 1 on a
   // difficulty change, so a shared record would let an easy streak stand as the
   // record on hard, where the goal is bigger and the balloons rise faster.
-  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best("easy"));
+  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best(difficulty));
 
   const palette = useMemo(() => paletteFor(difficulty), [difficulty]);
   const target = colorOf(round.target);

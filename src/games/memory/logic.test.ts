@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { newGame, flip, resolveMismatch, isWon, shuffle } from "./logic";
+import { newGame, flip, resolveMismatch, isWon, settle, shuffle } from "./logic";
 
 const FACES = ["🐶", "🐱", "🦊"]; // 3 pairs = 6 cards
 
@@ -102,5 +102,72 @@ describe("memory logic", () => {
     expect(isWon(s)).toBe(true);
     expect(s.matchedPairs).toBe(10);
     expect(s.moves).toBe(10);
+  });
+});
+
+// `settle` exists for exactly one reason: a saved position must never contain a
+// state that only a TIMER could get out of. See its doc comment.
+describe("settle — a position safe to store and reopen", () => {
+  /** Two cards up, mismatched, lock held: the state a setTimeout would clear. */
+  function midMismatch() {
+    const s = newGame(FACES, () => 0);
+    const a = 0;
+    const b = s.cards.findIndex((c, i) => i !== a && c.face !== s.cards[a].face);
+    const out = flip(flip(s, a).state, b);
+    expect(out.outcome.kind).toBe("mismatch");
+    return out.state;
+  }
+
+  it("releases the lock a stored mismatch would otherwise keep forever", () => {
+    const stuck = midMismatch();
+    expect(stuck.lock).toBe(true);
+    // The bug this prevents, stated as a test: without settling, every card is
+    // refused after a reload and the board is dead while looking perfectly fine.
+    expect(flip(stuck, 4).outcome.kind).toBe("ignored");
+
+    const safe = settle(stuck);
+    expect(safe.lock).toBe(false);
+    expect(flip(safe, 4).outcome.kind).not.toBe("ignored");
+  });
+
+  it("turns the mismatched pair back down, and leaves matched pairs up", () => {
+    let s = newGame(FACES, () => 0);
+    const a = 0;
+    const b = s.cards.findIndex((c, i) => i !== a && c.face === s.cards[a].face);
+    s = flip(flip(s, a).state, b).state; // a real match — stays face-up
+    const c = s.cards.findIndex((card) => !card.matched);
+    const d = s.cards.findIndex((card, i) => i !== c && !card.matched && card.face !== s.cards[c].face);
+    s = flip(flip(s, c).state, d).state; // then a mismatch
+
+    const safe = settle(s);
+    expect(safe.cards.filter((card) => card.matched).every((card) => card.flipped)).toBe(true);
+    expect(safe.cards.filter((card) => !card.matched).every((card) => !card.flipped)).toBe(true);
+  });
+
+  it("clears a half-made pick, which is the other way a stored board misleads", () => {
+    // One card turned over and nothing chosen yet. Restored as-is it shows a
+    // face-up card that the player did not turn over this sitting.
+    const s = flip(newGame(FACES, () => 0), 0).state;
+    expect(s.firstPick).toBe(0);
+    const safe = settle(s);
+    expect(safe.firstPick).toBeNull();
+    expect(safe.cards[0].flipped).toBe(false);
+  });
+
+  it("leaves a settled board exactly as it is", () => {
+    const s = newGame(FACES, () => 0);
+    expect(settle(s)).toBe(s);
+    // And agrees with resolveMismatch, the timer's own path, on the same state.
+    const stuck = midMismatch();
+    const viaTimer = resolveMismatch(stuck, 0, stuck.cards.findIndex((c, i) => i > 0 && c.flipped));
+    expect(settle(stuck).cards.map((c) => c.flipped)).toEqual(viaTimer.cards.map((c) => c.flipped));
+  });
+
+  it("preserves the score — settling is not a restart", () => {
+    const stuck = midMismatch();
+    const safe = settle(stuck);
+    expect(safe.moves).toBe(stuck.moves);
+    expect(safe.matchedPairs).toBe(stuck.matchedPairs);
+    expect(safe.cards.map((c) => c.face)).toEqual(stuck.cards.map((c) => c.face));
   });
 });

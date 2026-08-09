@@ -29,6 +29,19 @@ export interface GameTimerOptions {
   tickMs?: number;
   /** False stops accumulating (round over, menu open). Pause is separate. */
   running: boolean;
+  /**
+   * Time already banked before this mount — the clock a resumed run continues.
+   *
+   * Read ONCE, at mount, and only then. It seeds the accumulator rather than
+   * offsetting reads, so everything downstream (the tick, `onTick`, the value a
+   * win reports as its score) sees one honest elapsed time and no code path has
+   * to remember to add it back.
+   *
+   * `reset()` still returns to zero, never to this. Restart means a new run,
+   * and a restart that silently reinstated the abandoned run's minutes would
+   * hand a child a puzzle they cannot record a good time on.
+   */
+  initialMs?: number;
 }
 
 export interface GameTimer {
@@ -46,11 +59,23 @@ function now(): number {
     : Date.now();
 }
 
-export function useGameTimer(ctx: GameContext, opts: GameTimerOptions): GameTimer {
-  const { onTick, tickMs = DEFAULT_TICK_MS, running } = opts;
-  const [elapsedMs, setElapsedMs] = useState(0);
+/**
+ * A resumed clock arrives off a disk, so it is sanitised rather than trusted.
+ * A NaN reaching `banked` poisons every later read — `NaN + (now - start)` is
+ * NaN forever — and the symptom is a clock that renders as "NaN" or as nothing
+ * at all, long after the snapshot that caused it is gone.
+ */
+function bankable(ms: number | undefined): number {
+  return typeof ms === "number" && Number.isFinite(ms) && ms > 0 ? ms : 0;
+}
 
-  const bankedRef = useRef(0);
+export function useGameTimer(ctx: GameContext, opts: GameTimerOptions): GameTimer {
+  const { onTick, tickMs = DEFAULT_TICK_MS, running, initialMs } = opts;
+  // Both seeded from the same sanitised value: `useRef`/`useState` initialisers
+  // run on the first render only, which IS "read once, at mount".
+  const [elapsedMs, setElapsedMs] = useState(() => bankable(initialMs));
+
+  const bankedRef = useRef(bankable(initialMs));
   const spanStartRef = useRef<number | null>(null);
   const pausedRef = useRef(false);
   const runningRef = useRef(running);

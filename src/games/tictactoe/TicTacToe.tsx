@@ -3,7 +3,7 @@ import type { GameContext } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { burst, shake, haptic } from "@juice/index";
-import { winMoment } from "@shared/index";
+import { winMoment, useRememberedLevel } from "@shared/index";
 import { emptyBoard, winner, isDraw, place, chooseMove, type Board, type Difficulty } from "./logic";
 
 type Score = { wins: number; losses: number; draws: number };
@@ -19,14 +19,18 @@ const DIFF_OPTIONS: DifficultyOption<Difficulty>[] = [
 export function TicTacToe({ ctx }: { ctx: GameContext }) {
   const [board, setBoard] = useState<Board>(() => emptyBoard());
   const [busy, setBusy] = useState(false);
-  const [difficulty, setDifficulty] = useState<Difficulty>("medium");
+  const [difficulty, setDifficulty] = useRememberedLevel(
+    ctx,
+    DIFF_OPTIONS.map((o) => o.id),
+    "medium",
+  );
   const [score, setScore] = useState<Score>({ wins: 0, losses: 0, draws: 0 });
   // The record is the LONGEST RUN OF WINS in a row, per DIFFICULTY — the three
   // AIs are different opponents (easy is random, hard is unbeatable minimax), and
   // the tally already zeroes on a difficulty change. Hard's record may honestly
   // stay empty: a perfect minimax opponent can be drawn but never beaten.
   // Seeded from "medium" because that is this game's opening difficulty.
-  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best("medium"));
+  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best(difficulty));
   // Held in a ref, not state: `finish` runs both from the click handler and from
   // a setTimeout, where a state read would be stale — and this count must be exact.
   const streakRef = useRef(0);

@@ -3,7 +3,7 @@ import type { GameContext } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { haptic, shake } from "@juice/index";
-import { Prompt, winMoment } from "@shared/index";
+import { Prompt, winMoment, useRememberedLevel } from "@shared/index";
 import { IDLE, beginInput, pressPad, startRound, type SeqState } from "@shared/sequence";
 import {
   LEVELS,
@@ -64,7 +64,7 @@ function promptFor(phase: SeqState["phase"], round: number, he: boolean): string
 
 export function Echo({ ctx }: { ctx: GameContext }) {
   const he = ctx.locale === "he";
-  const [levelId, setLevelId] = useState<LevelId>("easy");
+  const [levelId, setLevelId] = useRememberedLevel(ctx, LEVEL_OPTIONS.map((o) => o.id), "easy");
   const level = levelById(levelId);
   const [seq, setSeq] = useState<SeqState>(IDLE);
   /** Which pad is lit right now. The ONLY channel the game truly needs. */

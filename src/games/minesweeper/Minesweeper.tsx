@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { formatScore, type GameContext } from "@sdk/index";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { formatScore, type GameContext, type SessionSpec } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { burst, shake, haptic } from "@juice/index";
-import { useGameTimer, winMoment } from "@shared/index";
+import { useGameSession, useGameTimer, useRememberedLevel, winMoment } from "@shared/index";
 import { newGame, reveal, toggleFlag, DIFFICULTIES, type MineState, type Difficulty } from "./logic";
 
 const NUM_COLORS = ["", "#4d7cff", "#2e9e5b", "#e0533d", "#7a44c9", "#c9962e", "#2aa7b8", "#c94f9e", "#666"];
@@ -23,36 +23,109 @@ function levelName(d: Difficulty): DiffKey {
   return "easy";
 }
 
+/**
+ * The board mid-clear, and the clock that goes with it.
+ *
+ * `elapsedMs` is the load-bearing field. Minesweeper's record is a TIME, so
+ * restoring the grid without the clock would hand a returning player a board
+ * that is three-quarters cleared and a timer reading zero — a personal best
+ * they did not earn, on every board they ever walk away from. The clock is part
+ * of the position, not decoration around it.
+ *
+ * `level` is stored and checked on the way back in. It cannot disagree with the
+ * remembered difficulty in practice, since both are written together; storing
+ * it makes the case where they somehow do a discarded snapshot rather than a
+ * 14x14 grid rendered under a chrome that says "Easy".
+ */
+interface MinesSession {
+  level: DiffKey;
+  state: MineState;
+  elapsedMs: number;
+}
+
+const SESSION: SessionSpec<MinesSession> = {
+  version: 1,
+  validate: (value): value is MinesSession => {
+    const s = value as Partial<MinesSession> | null;
+    if (typeof s !== "object" || s === null) return false;
+    if (typeof s.level !== "string" || !(s.level in DIFFICULTIES)) return false;
+    if (typeof s.elapsedMs !== "number" || !Number.isFinite(s.elapsedMs) || s.elapsedMs < 0) return false;
+    const g = s.state;
+    if (typeof g !== "object" || g === null) return false;
+    // The grid must match the dimensions it claims AND the difficulty it says
+    // it belongs to. Either one alone lets a truncated write through as a board
+    // that renders and then indexes out of bounds on the first tap.
+    const spec = DIFFICULTIES[s.level];
+    if (g.rows !== spec.rows || g.cols !== spec.cols) return false;
+    return (
+      Array.isArray(g.grid) &&
+      g.grid.length === g.rows &&
+      g.grid.every((row) => Array.isArray(row) && row.length === g.cols)
+    );
+  },
+};
+
 export function Minesweeper({ ctx }: { ctx: GameContext }) {
-  const [diff, setDiff] = useState<Difficulty>(DIFFICULTIES.easy);
-  const [state, setState] = useState<MineState>(() => newGame(DIFFICULTIES.easy));
+  const [levelId, setLevelId] = useRememberedLevel(
+    ctx,
+    DIFF_OPTIONS.map((o) => o.id),
+    "easy",
+  );
+  const restored = useMemo(() => ctx.session.load(SESSION), [ctx]);
+  // Only adopted when it belongs to the difficulty this mount opened on, and
+  // never when the run it describes is already over — a cleared or exploded
+  // board has nothing left to do, and returning to one would look like the game
+  // failed to start.
+  const resume =
+    restored && restored.level === levelId && !restored.state.won && !restored.state.dead
+      ? restored
+      : undefined;
+
+  const [diff, setDiff] = useState<Difficulty>(DIFFICULTIES[levelId]);
+  const [state, setState] = useState<MineState>(() => resume?.state ?? newGame(DIFFICULTIES[levelId]));
   const [flagMode, setFlagMode] = useState(false);
   // Fastest clear, per DIFFICULTY. Nine mines and forty are different games.
-  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best("easy"));
+  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best(levelId));
   const boardRef = useRef<HTMLDivElement>(null);
   const started = useRef(false);
 
   // Stops on a win AND on a death — a board you lost has no time worth showing.
   // useGameTimer also stops on pause, so putting the tablet down costs nothing.
-  const timer = useGameTimer(ctx, { running: !state.won && !state.dead });
+  // `initialMs` continues a resumed clear rather than restarting its clock.
+  const timer = useGameTimer(ctx, {
+    running: !state.won && !state.dead,
+    initialMs: resume?.elapsedMs,
+  });
+
+  // A board is worth returning to only while it is still in play. `live` going
+  // false on a win or a death CLEARS the snapshot, so the next open deals a
+  // fresh grid.
+  useGameSession(
+    ctx,
+    SESSION,
+    () => ({ level: levelName(diff), state, elapsedMs: timer.elapsedMs }),
+    { live: !state.won && !state.dead },
+  );
 
   useEffect(() => {
     if (!started.current) {
       started.current = true;
       ctx.lifecycle.gameplayStart();
-      ctx.analytics.levelStart("easy");
+      ctx.analytics.levelStart(levelId);
     }
-  }, [ctx]);
+  }, [ctx, levelId]);
 
   const reset = useCallback(
     (d = diff) => {
       setDiff(d);
+      setLevelId(levelName(d));
       setState(newGame(d));
       setBest(ctx.score?.best(levelName(d)));
+      // Back to zero, never to the abandoned run's minutes — see `initialMs`.
       timer.reset();
       ctx.analytics.levelStart(levelName(d));
     },
-    [ctx, diff, timer],
+    [ctx, diff, timer, setLevelId],
   );
 
   const act = useCallback(

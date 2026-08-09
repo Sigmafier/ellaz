@@ -13,6 +13,7 @@ import {
   PLAY_SURFACE_STYLE,
   Prompt,
   judgeTap,
+  useRememberedLevel,
   useSpawner,
   winMoment,
   type Prop,
@@ -139,13 +140,17 @@ function Bubble({ char }: { char: string }) {
 
 export function BubblesGame({ ctx }: { ctx: GameContext }) {
   const he = ctx.locale === "he";
-  const [difficulty, setDifficulty] = useState<Difficulty>("easy");
-  const [round, setRound] = useState<Round>(() => newRound("easy", ctx.locale));
+  const [difficulty, setDifficulty] = useRememberedLevel(
+    ctx,
+    DIFF_OPTIONS.map((o) => o.id),
+    "easy",
+  );
+  const [round, setRound] = useState<Round>(() => newRound(difficulty, ctx.locale));
   const [level, setLevel] = useState(1);
   // Furthest level reached, per DIFFICULTY — the level counter resets to 1 on a
   // difficulty change, so a shared record would let an easy streak stand as the
   // record on hard, where a round asks for more.
-  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best("easy"));
+  const [best, setBest] = useState<number | undefined>(() => ctx.score?.best(difficulty));
 
   // The handler's source of truth. State is stale inside a handler that fires
   // twice in one tick; a ref is read at call time, so two fast taps cannot bank
