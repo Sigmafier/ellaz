@@ -1,5 +1,6 @@
 import type { GameContent, Locale } from "./types";
 import { balloons } from "./games/balloons";
+import { blocks } from "./games/blocks";
 import { bees } from "./games/bees";
 import { bubbles } from "./games/bubbles";
 import { frog } from "./games/frog";
@@ -42,6 +43,7 @@ export const CONTENT: Record<string, GameContent> = {
   [memory.id]: memory,
   [sudoku.id]: sudoku,
   [snake.id]: snake,
+  [blocks.id]: blocks,
   [minesweeper.id]: minesweeper,
   [n2048.id]: n2048,
   [tictactoe.id]: tictactoe,

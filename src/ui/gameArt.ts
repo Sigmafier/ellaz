@@ -310,6 +310,29 @@ const ART: Record<string, Scene> = {
     <circle cx="158" cy="92" r="20" fill="${PAL.raspberry}"/>
     <path d="M158 72v-9" stroke="${PAL.jade}" stroke-width="5" stroke-linecap="round"/>
     <path d="M158 66c6-8 15-7 15-7s0 10-15 7z" fill="${PAL.jade}"/>` },
+
+  /* one piece still falling, over a stack with a gap exactly its shape - the
+     decision the game is made of, drawn rather than described */
+  blocks: { a: "#6D4BD6", b: "#8A6CE4", d: "band", s: `
+    <g stroke="${I}" stroke-width="3">
+      <rect x="70" y="16" width="26" height="26" rx="5" fill="${PAL.sunflower}"/>
+      <rect x="96" y="16" width="26" height="26" rx="5" fill="${PAL.sunflower}"/>
+      <rect x="96" y="42" width="26" height="26" rx="5" fill="${PAL.sunflower}"/>
+    </g>
+    <path d="M108 76v16M100 86l8 8 8-8" stroke="${PAL.paper}" stroke-width="5"
+          stroke-linecap="round" stroke-linejoin="round" fill="none" opacity=".8"/>
+    <g stroke="${I}" stroke-width="3">
+      <rect x="18" y="98" width="26" height="26" rx="5" fill="${PAL.lagoon}"/>
+      <rect x="44" y="98" width="26" height="26" rx="5" fill="${PAL.jade}"/>
+      <rect x="18" y="124" width="26" height="26" rx="5" fill="${PAL.raspberry}"/>
+      <rect x="44" y="124" width="26" height="26" rx="5" fill="${PAL.tangerine}"/>
+      <rect x="70" y="124" width="26" height="26" rx="5" fill="${PAL.lime}"/>
+      <rect x="122" y="98" width="26" height="26" rx="5" fill="${PAL.clay}"/>
+      <rect x="148" y="98" width="26" height="26" rx="5" fill="${PAL.orchid}"/>
+      <rect x="122" y="124" width="26" height="26" rx="5" fill="${PAL.lagoon}"/>
+      <rect x="148" y="124" width="26" height="26" rx="5" fill="${PAL.sunflower}"/>
+      <rect x="174" y="124" width="26" height="26" rx="5" fill="${PAL.jade}"/>
+    </g>` },
 };
 
 /**

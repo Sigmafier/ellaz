@@ -92,7 +92,7 @@ export const sudoku: GameContent = {
       },
       {
         q: "הסודוקו חינמי?",
-        a: "כן. אין תשלום ואין רכישות בתוך המשחק. כל 21 המשחקים באתר פתוחים מהרגע הראשון.",
+        a: "כן. אין תשלום ואין רכישות בתוך המשחק. כל 22 המשחקים באתר פתוחים מהרגע הראשון.",
       },
       {
         q: "כמה רמזים יש בכל רמה?",
@@ -207,7 +207,7 @@ export const sudoku: GameContent = {
       },
       {
         q: "Is the sudoku free?",
-        a: "Yes. No payment and no in-game purchases. All 21 games on the site are open from the first second.",
+        a: "Yes. No payment and no in-game purchases. All 22 games on the site are open from the first second.",
       },
       {
         q: "How many clues does each level give you?",

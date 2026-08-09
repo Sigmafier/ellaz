@@ -46,6 +46,7 @@ const LOADERS: Record<string, () => Promise<{ default: GameModule }>> = {
   minesweeper: () => import("../games/minesweeper/index"),
   sudoku: () => import("../games/sudoku/index"),
   snake: () => import("../games/snake/index"),
+  blocks: () => import("../games/blocks/index"),
   sortsize: () => import("../games/sortsize/index"),
   sequence: () => import("../games/sequence/index"),
   vanish: () => import("../games/vanish/index"),

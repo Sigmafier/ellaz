@@ -97,7 +97,7 @@ export const memory: GameContent = {
     faq: [
       {
         q: "האם משחק הזיכרון חינמי?",
-        a: "כן, לגמרי. אין תשלום ואין רכישות בתוך המשחק. אין גם גרסה מורחבת בכסף, כי אין גרסה אחרת. כל 21 המשחקים באתר פתוחים מהרגע הראשון.",
+        a: "כן, לגמרי. אין תשלום ואין רכישות בתוך המשחק. אין גם גרסה מורחבת בכסף, כי אין גרסה אחרת. כל 22 המשחקים באתר פתוחים מהרגע הראשון.",
       },
       {
         q: "צריך להוריד או להירשם?",
@@ -215,7 +215,7 @@ export const memory: GameContent = {
     faq: [
       {
         q: "Is the memory game free?",
-        a: "Completely. There is no payment and there are no in-game purchases. There is no paid version either, because there is no other version. All 21 games on the site are open from the first second.",
+        a: "Completely. There is no payment and there are no in-game purchases. There is no paid version either, because there is no other version. All 22 games on the site are open from the first second.",
       },
       {
         q: "Do I need to download or sign up?",

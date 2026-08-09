@@ -24,6 +24,7 @@ import { meta as bubbles } from "../games/bubbles/meta";
 import { meta as bees } from "../games/bees/meta";
 import { meta as frog } from "../games/frog/meta";
 import { meta as reaction } from "../games/reaction/meta";
+import { meta as blocks } from "../games/blocks/meta";
 
 /**
  * The roster, in the order the home grid renders it.
@@ -51,6 +52,7 @@ export const GAMES: ReadonlyArray<GameMeta> = [
   minesweeper,
   sudoku,
   snake,
+  blocks,
 
   // Wave 1 - the pre-reading kids catalog. `sortsize` sits under `learn`
   // (pre-numeric ordering); the rest under `think`.

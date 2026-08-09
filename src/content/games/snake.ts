@@ -88,7 +88,7 @@ export const snake: GameContent = {
     faq: [
       {
         q: "משחק הנחש חינמי?",
-        a: "כן. אין תשלום ואין רכישות בתוך המשחק. כל 21 המשחקים באתר פתוחים מהרגע הראשון.",
+        a: "כן. אין תשלום ואין רכישות בתוך המשחק. כל 22 המשחקים באתר פתוחים מהרגע הראשון.",
       },
       {
         q: "איך משחקים בטלפון?",
@@ -203,7 +203,7 @@ export const snake: GameContent = {
     faq: [
       {
         q: "Is the snake game free?",
-        a: "Yes. No payment and no in-game purchases. All 21 games on the site are open from the first second.",
+        a: "Yes. No payment and no in-game purchases. All 22 games on the site are open from the first second.",
       },
       {
         q: "How do I play it on a phone?",
