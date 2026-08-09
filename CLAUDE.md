@@ -54,7 +54,7 @@ src/
 │            (mount/unmount bridge), WalletChip, games (the ordered roster),
 │            catalog (roster + lazy loaders), paths/pageContext/legacyHash,
 │            world/ (the room + shop)
-├─ build/    BUILD-TIME ONLY - the 46 emitted pages. Pure strings, no DOM, no
+├─ build/    BUILD-TIME ONLY - the 50 emitted pages. Pure strings, no DOM, no
 │            React. Nothing in the app may import it (it reads src/content)
 └─ games/<id>/
    ├─ meta.ts         DOM-free GameMeta - catalog.ts imports it statically
@@ -63,14 +63,17 @@ src/
    └─ <Renderer>      React component (DOM) or Phaser scene (canvas)
 ```
 
-**Games (21)** — 16 `ageBand: "kids"` (balloons, bees, bubbles, coloring, echo,
+**Games (22)** — 16 `ageBand: "kids"` (balloons, bees, bubbles, coloring, echo,
 evolve, finddiff, frog, hidden, math, memory, reaction, sequence, shadows,
-sortsize, vanish) and 5 `"all"` (minesweeper, n2048, snake, sudoku, tictactoe).
+sortsize, vanish) and 6 `"all"` (blocks, minesweeper, n2048, snake, sudoku,
+tictactoe).
 Counts here go stale fast — `src/portal/catalog.ts` is the source of truth and
 `catalog.test.ts` ratchets the count. Every game offers a **difficulty selector**
-and/or endless levels: 17 render the shared `<DifficultySelector>` from `@ui`,
-coloring, finddiff and hidden advance through endless levels instead, and snake
-picks speed from in-canvas Phaser buttons. Wins go through **`winMoment()`** from
+and/or endless levels: 20 declare their `levels` to `<GameChrome>`, which owns
+the level toggle (the two exceptions are finddiff, which is endless, and evolve,
+which gets its levels from the n2048 renderer it borrows). Only **math and
+sudoku still render `<DifficultySelector>` directly** — the other eight files
+that name it import its `DifficultyOption` type and nothing else. Wins go through **`winMoment()`** from
 `@shared`, which owns the confetti (there are zero `celebrate()` calls left in
 `src/games/`).
 
@@ -156,7 +159,7 @@ Verify by `curl`ing as Googlebot, never in a browser:
 **`npm run assert:crawlable` is the only gate here that reads the NETWORK** rather
 than `dist/`, which is precisely why it exists — a 403 to every crawler passed every
 other check in this repo. It fetches robots.txt and the sitemap as Googlebot and then
-walks all 48 URLs; that walk IS the burst test, since the challenge arms on a run of
+walks all 50 URLs; that walk IS the burst test, since the challenge arms on a run of
 requests rather than the first one. It checks the BODY as well as the status, because
 a challenge can be served with 200. `.github/workflows/crawlable.yml` runs it daily
 and a red run emails the owner. Node built-ins only, so it needs no `npm ci`.
@@ -201,7 +204,7 @@ and a unit** (`points`/`ms`/`moves`) and `src/sdk/economy.ts`'s sibling
 could report `ms` as "higher is better" and order its own leaderboard backwards.
 The record rides the existing win as `winMoment(ctx, { …, score: { value, unit,
 board } })`; `ctx.score` is add-only, with no `clear()`, exactly like
-`ctx.rewards`. **20 of the 21 games have one**, and **coloring gets none, ever**
+`ctx.rewards`. **21 of the 22 games have one**, and **coloring gets none, ever**
 — ranking a child's drawing is the opposite of this platform's premise. That is
 the whole roster: every other game keeps a record, so a missing one is a bug
 rather than a gap. (evolve carries one without a line of its own — it renders
@@ -411,15 +414,15 @@ the moment step 5 lands. Missing step 6 is a red build, not a thin page.
 
 ## Every game has a real web address
 
-The site used to be one document. It is now 49: `dist/index.html` (still the app,
-unchanged) plus **48 emitted pages** built by `src/build/**` inside a Vite plugin,
+The site used to be one document. It is now 51: `dist/index.html` (still the app,
+unchanged) plus **50 emitted pages** built by `src/build/**` inside a Vite plugin,
 so `npm run build` cannot skip them and neither deploy workflow can forget.
 
 | URL | What it is |
 |---|---|
 | `/` | the application. The emitter only adds head tags here, never overwrites it |
-| `/games/<id>/` · `/en/games/<id>/` | 21 games x 2 languages, ~900 words each |
-| `/en/` | the English home index, with 21 real links |
+| `/games/<id>/` · `/en/games/<id>/` | 22 games x 2 languages, ~900 words each |
+| `/en/` | the English home index, with 22 real links |
 | `/world/` · `/en/world/` | the room |
 | `/boards/` · `/en/boards/` | the leaderboards (two screens - see below) |
 | `/404.html` | bilingual, `noindex`, and `ErrorDocument`-wired on Hostinger |
@@ -479,16 +482,16 @@ derives each page's date from the last commit that touched its own sources — t
 game's directory and its content file, never a build timestamp, which would say
 "every page changed" on every deploy and teach Google to discount the field
 permanently. **The trap is CI**: `actions/checkout` clones at depth 1, so `git log`
-returns one identical date for all 48 — the same bug wearing a disguise, on the only
+returns one identical date for all 50 — the same bug wearing a disguise, on the only
 machine that publishes. Both deploy workflows set `fetch-depth: 0`, the emitter omits
 the field on a shallow clone or a uniform result rather than lying, and
-`assert-pages.mjs` fails the build on 48 identical dates. **An absent `<lastmod>` is
+`assert-pages.mjs` fails the build on 50 identical dates. **An absent `<lastmod>` is
 valid and is what this site shipped for months; a uniform one is a lie.**
 
 **It is currently DORMANT, correctly.** A commit on 2026-08-08 touched all 21 game
 directories, so every game page resolves to one timestamp and the emitter omits the
 field. That is the design working, not a bug: `<lastmod>` exists to say WHICH pages
-changed, and 48 identical dates answer "all of them" — as useful as saying nothing.
+changed, and 50 identical dates answer "all of them" — as useful as saying nothing.
 It returns on its own as the games diverge again. Do not make it emit uniform dates
 to make the number reappear; the gate rejects those, and the two would contradict.
 
@@ -611,7 +614,7 @@ in one sizing module, not in 39 edits.
 
 ## The picture a shared link grows
 
-Every page carries an `og:image`: **48 cards, 1200x630**, emitted by `src/build/ogCard.ts`
+Every page carries an `og:image`: **50 cards, 1200x630**, emitted by `src/build/ogCard.ts`
 (pure, the layout) plus `ogImages.ts` (async, the rasteriser) from the same `gameArt` SVG
 the home grid uses. They cost nothing on a first visit — PNG is not in the precache glob
 and no shell asset fetches them.
@@ -859,5 +862,11 @@ has never had data to tune against.
 
 Setting the secret is safe at any time: `build:check` fails the deploy if the
 PostHog chunk would land in the precache, rather than shipping it behind a green
-checkmark. **First visit is 69,624 B gz** (measured on the live artifact
-2026-08-02, down from 143,234).
+checkmark. **First visit is 85,226 B gz of the 86,000 ceiling** in
+`scripts/assert-payload.mjs` — 774 B spare, measured on the artifact 2026-08-09.
+(It was 69,624 on 2026-08-02, down from 143,234; the ceiling has moved since.)
+**Adding a game costs the SHELL about 300 B gz** even though its code is lazy:
+its `meta.ts` is in the statically-imported roster and its `gameArt` scene is in
+the grid. Falling Blocks cost 306 B, measured against a clean `main` build. At
+774 B spare that is roughly two more games before the ceiling binds, so the next
+one either raises it deliberately or pays for itself somewhere.

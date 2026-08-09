@@ -85,10 +85,11 @@ Details: [`rewards-economy-convention.md`](../.claude/rules/rewards-economy-conv
 
 ## Rendering split
 
-- **React DOM** — 20 of 21 games. Free accessibility, text, responsive layout,
+- **React DOM** — 21 of 22 games. Free accessibility, text, responsive layout,
   trivial input.
 - **Phaser 4** — snake, and only snake. `grep -rln 'from "phaser"' src/` returns
-  two files, both under `games/snake/`. Its 379 KB is a lazy, precache-excluded
+  one file, `games/snake/SnakeScene.ts` (re-verified 2026-08-09, when `blocks`
+  shipped as DOM rather than canvas). Its 379 KB is a lazy, precache-excluded
   chunk, so it costs a first-time visitor nothing — but the older claim that it
   is "paid once and shared across all canvas games" was never true.
 

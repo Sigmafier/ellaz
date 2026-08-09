@@ -690,6 +690,77 @@ unlocks audio is the same gesture that plays the sound.
 
 Full account: [`juice-lab.md`](juice-lab.md), now a past-tense record.
 
+## A falling-block game, and a piece set that is ours (2026-08-09)
+
+Commit `24981bf`. Game 22, `blocks` / קוביות נופלות / Falling Blocks, DOM
+renderer, live on both hosts the same evening.
+
+**It is not called Tetris and it does not use the famous seven pieces**, because
+CLAUDE.md § Legal forbids trademarked names and trade dress by name. The
+falling-block mechanic is old and free; the seven four-cell shapes in their
+famous colours are the dress. So the pool is **eleven shapes of three to five
+cells** in the platform's own palette.
+
+**The constraint produced the design.** The piece POOL is the difficulty, not the
+clock: Calm stocks four gentle shapes on 8x14, Normal nine on 10x18, Fast adds a
+plus and a cup that cannot lie flat on anything.
+
+**The number that says so.** `scripts/sim/blocks-rows.mjs` plays the real engine
+with two throwaway policies, 300 games per level. A "tidy" bot - tries every
+column and rotation, keeps whichever leaves the fewest buried holes - **survived
+the full 1000-piece cap in 100% of Calm runs and 99.3% of Normal, and died in
+every one of 300 Fast runs after a median of 78 rows.** A bot dropping into
+random columns is dead after ~20 pieces having cleared nothing. **A bot places
+instantly, so the drop speed never entered that result.** Two pieces did.
+
+**The first version of that statistic was a cap artifact and would have shipped
+as a fact.** With a 4000-piece cap the run printed "1509 rows" for Normal, which
+is not the game's ceiling - it is where the script stopped. The fix was not a
+bigger cap: it is `survivedPct` printed beside every median, and a header saying
+that where survival is high the median beside it is meaningless. **A ceiling you
+imposed reads exactly like a ceiling you measured.**
+
+### The traps
+
+- **Two hand-drawn test fixtures were wrong in opposite directions**, and both
+  looked right. A board with a two-wide shaft at the far left is not "a stack
+  with no clear available" - the landing COMPLETES those rows, because the other
+  six columns were already full. The game-over test needed a three-wide shaft
+  filled by a two-wide piece. Neither error was in the code.
+- **Fixed pixels do not survive a viewport-derived cell.** A 5px corner radius is
+  a rounded square on the 30px desktop cell and a **circle** on the 11px
+  landscape-phone cell, which is what the first build shipped. Every cell detail
+  is now a fraction of a `--cell` custom property: radius, seam, dashed ghost,
+  and the jelly highlight.
+- **The game-over overlay inherited `--text`**, which is near-black on the light
+  theme, over an overlay that is dark in BOTH. Legible in exactly one theme.
+  `n2048` still has this.
+- **The content gate fired before the game could be opened in dev**: no
+  `src/content/games/blocks.ts` meant a 500 on `/games/blocks/`, not a thin page.
+  Working as designed, and the reason step 6 of the recipe is not optional.
+
+### Measured
+
+- **First visit 85,226 B gz of 86,000** - 774 spare. Adding the game cost the
+  shell **306 B gz**, measured against a clean `main` build in a worktree: its
+  `meta.ts` rides the statically-imported roster and its scene rides `gameArt`.
+  The game itself is a lazy `game-blocks-*.js` at **4.32 KB gz**.
+- 28 logic tests; suite 1,604 across 69 files. Pages 48 -> 50, sitemap 50 URLs,
+  og cards 50.
+- **Verified on the running app, not only in tests**: a full run persisted
+  `coins 5, stars 1` and `ellaz:blocks:score:normal`, which exercises the whole
+  `winMoment` -> economy -> profile path plus the per-level score board.
+- **Live-verified over the network by CI, not by hand.** `assert-live` byte-
+  compares every non-HTML artifact by SHA-256, so the lazy game chunk - which no
+  document names, the exact hop that shipped two broken games on 2026-08-08 - was
+  covered. Documents are excluded there, so `crawlable.yml` was dispatched on
+  demand: 50/50 sitemap URLs served a real page to Googlebot, negative control
+  8/8.
+
+**One thing this cost elsewhere:** the three pilot pages hardcoded "21 games" in
+their FAQ, so a 22nd made them wrong. Updated to 22. A count in prose is a
+maintenance debt the voice gate cannot see.
+
 ## Still open
 
 - **Wave C step 2b** — live two-way sync. Needs the profile to carry per-device
@@ -713,11 +784,12 @@ Full account: [`juice-lab.md`](juice-lab.md), now a past-tense record.
   `assert:crawlable` is green, but only Search Console can prove Google's own IPs
   are through. Watch the Sitemaps panel; "could not be read" can linger for days
   after the underlying fix.
-- **First-visit EXECUTION is proven for 5 of 21 games**, not all of them. A fresh
+- **First-visit EXECUTION is proven for 5 of 22 games**, not all of them. A fresh
   browser context per game covers bubbles, coloring, snake, sudoku and memory; the
-  other 16 are verified mounting as a *returning* visitor plus byte-identical
+  other 17 are verified mounting as a *returning* visitor plus byte-identical
   delivery from the network, which is a strong argument and not a measurement.
-  Residual risk is low and it is not zero.
+  Residual risk is low and it is not zero. `blocks` (2026-08-09) is one of the 17:
+  it was driven end to end in dev, and live only by byte equality.
 - **Bing Webmaster Tools is not claimed.** IndexNow submits fine without it, but the
   coverage reports need the site added at <https://www.bing.com/webmasters> — an
   operator action, not a code one.
