@@ -21,6 +21,7 @@ import { reaction } from "./games/reaction";
 import { snake } from "./games/snake";
 import { sudoku } from "./games/sudoku";
 import { tictactoe } from "./games/tictactoe";
+import { wordguess } from "./games/wordguess";
 
 export type { GameContent, GameCopy, FaqItem, Titled, Provenance, Locale } from "./types";
 
@@ -62,6 +63,7 @@ export const CONTENT: Record<string, GameContent> = {
   [finddiff.id]: finddiff,
   [hidden.id]: hidden,
   [math.id]: math,
+  [wordguess.id]: wordguess,
 };
 
 /** The ids that have prose today. */

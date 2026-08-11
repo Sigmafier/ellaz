@@ -333,6 +333,25 @@ const ART: Record<string, Scene> = {
       <rect x="148" y="124" width="26" height="26" rx="5" fill="${PAL.sunflower}"/>
       <rect x="174" y="124" width="26" height="26" rx="5" fill="${PAL.jade}"/>
     </g>` },
+
+  /* A guessed row and a blank one under it. The two SOLVED tiles are jade and
+     orchid — the same pair the board uses, so the card teaches the colour
+     language before the game is even opened. No letters: a glyph at 36px on a
+     thumbnail is mush, and drawing Hebrew here would make the card wrong in
+     English. The bars inside stand in for writing in either direction. */
+  wordguess: { a: "#A855C9", b: "#C077DE", d: "arc", s: `
+    <g stroke="${I}" stroke-width="3">
+      <rect x="19" y="38" width="36" height="36" rx="8" fill="${PAL.jade}"/>
+      <rect x="61" y="38" width="36" height="36" rx="8" fill="${PAL.orchid}"/>
+      <rect x="103" y="38" width="36" height="36" rx="8" fill="${PAL.paper}"/>
+      <rect x="145" y="38" width="36" height="36" rx="8" fill="${PAL.jade}"/>
+      <rect x="19" y="84" width="36" height="36" rx="8" fill="${PAL.paper}"/>
+      <rect x="61" y="84" width="36" height="36" rx="8" fill="${PAL.paper}"/>
+      <rect x="103" y="84" width="36" height="36" rx="8" fill="${PAL.paper}"/>
+      <rect x="145" y="84" width="36" height="36" rx="8" fill="${PAL.paper}"/>
+    </g>
+    <path d="M29 50v12M45 50v12M71 50v12M87 56v6M155 56v6M171 50v12"
+          stroke="${PAL.paper}" stroke-width="4" stroke-linecap="round"/>` },
 };
 
 /**

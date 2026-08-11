@@ -54,13 +54,44 @@ const rel = (url) => (url.startsWith(BASE) ? url.slice(BASE.length) : url).repla
 /**
  * Bytes, gzipped, for a first visit.
  *
- * 86,000 as of 2026-08-07 (was 82,000). History, so the next person raising it
- * can see what they are joining:
+ * 90,000 as of 2026-08-11 (was 86,000, was 82,000). History, so the next person
+ * raising it can see what they are joining:
  *   69,624  2026-08-02  live baseline after the payload work
  *   72,984  2026-08-04  the app moved onto real URLs (page-* runtime)
  *   74,290  2026-08-06  the theme layer, carrying a second complete value set
  *   79,489  2026-08-07  21 drawn game scenes (~3.5 KB) + the boards work
  *   80,345  2026-08-07  the boards redesign (+302)
+ *   85,770  2026-08-09  session persistence (+546)
+ *   86,004  2026-08-11  Word Guess, game 23 (+234)
+ *
+ * THE 2026-08-11 RAISE TO 90,000, and why it is a raise rather than a shave.
+ *
+ * The previous ceiling had 230 B spare and CLAUDE.md already said in as many
+ * words that the next game would not fit. Word Guess needs 234, so it missed by
+ * FOUR BYTES. Four bytes is inside the noise of how one SVG path is written,
+ * and it was: trimming decoration off the new game's own home-grid card had
+ * already moved it from 34 over to 4 over. Another pass would have cleared the
+ * line by making a card worse, and a budget you meet by degrading the product
+ * in 30-byte increments has stopped measuring anything.
+ *
+ * So the number moves, deliberately, in this commit, which is exactly the
+ * mechanism the note below describes.
+ *
+ * What the 234 B buys: a game whose logic, renderer, both word lists and
+ * keyboard total 4.57 KB gz and are ALL lazy. The shell pays only for the
+ * DOM-free `meta.ts` in the static roster and one art scene in the grid. That
+ * is the per-game floor for this architecture, not this game being expensive -
+ * Falling Blocks cost 306 B on the same measurement.
+ *
+ * Why 4,000 again and not 1,000: the same reasoning as the last raise, which
+ * still holds. Six measured deltas ran 179 to 4,624 B, so 4,000 is four
+ * median-sized features or one art-sized one. Landing the ceiling just above
+ * the current reading would mean the raise after this one arrives with the
+ * next commit, and a ceiling that moves every commit is a formality.
+ *
+ * Still safe in absolute terms: the researched initial-shell budget for this
+ * class of app is 130-170 KB gz on low-end Android over 4G. At ~86 KB the site
+ * sits at roughly half, unchanged in substance from the note below.
  *
  * THE ARGUMENT FOR THE 4 KB, because the line above this one asks for one.
  *
@@ -98,11 +129,20 @@ const rel = (url) => (url.startsWith(BASE) ? url.slice(BASE.length) : url).repla
  * `gzip -9` measure 79,812, and what the server negotiates is its own business.
  * Compare like with like - never a number from here against one from elsewhere.
  *
- * The tightness above was deliberate and it stays deliberate: 5,655 B of
+ * The tightness above was deliberate and it stays deliberate: 3,996 B of
  * headroom is one art-sized feature, and the next one still has to be argued
  * for here.
+ *
+ * THE WAY OUT OF THIS RATCHET IS STILL UNSHIPPED, and it is worth doing before
+ * the raise after this one. `useGameSession` and `useRememberedLevel` are in
+ * the shell only because they reach games through the `@shared` barrel, which
+ * is pinned there - and nothing on the home screen imports either. Carving them
+ * into the `page` chunk, the way `GameChrome` already is, needs the ~20 games
+ * that use them importing the direct module path first (snake already does).
+ * It is its own change, with `build:check` watching, and it would buy back
+ * several games' worth of ceiling instead of another 4 KB.
  */
-const CEILING = 86_000;
+const CEILING = 90_000;
 
 function gzBytes(path) {
   return gzipSync(readFileSync(path)).length;
