@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { PAGE_LOCALES } from "@i18n/locales";
 import {
   ADJECTIVES,
   NOUNS,
@@ -190,5 +191,46 @@ describe("picking a name", () => {
 
   it("defaults to Math.random when handed no rng", () => {
     expect(resolveName(pickName())).toBeDefined();
+  });
+});
+
+describe("promoting a language must not silently leave names in English", () => {
+  // `cast.ts` is `Record<PageLocale, string>`, so promoting Spanish reds all 58
+  // of its entries at COMPILE time. This file cannot take that shape: an
+  // adjective carries `he: { m, f }` and an English `string`, so the per-locale
+  // value is heterogeneous, and a `Noun` already has an `id` field - which is
+  // also Indonesian's locale code, the collision that made `GameContent` nest
+  // its languages under `copy` (see `src/content/types.ts`).
+  //
+  // So the gate is a TEST rather than a type. It is not a lesser gate for being
+  // one - it names the file and fails the build the same way - and it
+  // deliberately does NOT decide the morphology question it would otherwise
+  // pre-empt: nine languages need gender agreement (Russian has three genders,
+  // German declines, the Romance languages put the adjective after the noun
+  // like Hebrew does), and `{ m, f }` models Hebrew alone. Whether names get
+  // that machinery or stay `he | en` on purpose is a design decision, not a
+  // translation task. Until it is taken, this test makes the gap LOUD.
+  it("has every page locale's form for every adjective and noun", () => {
+    for (const locale of PAGE_LOCALES) {
+      for (const a of ADJECTIVES) {
+        const form = (a as unknown as Record<string, unknown>)[locale];
+        expect(form, `adjective "${a.id}" has no ${locale} form`).toBeDefined();
+      }
+      for (const n of NOUNS) {
+        const form = (n as unknown as Record<string, unknown>)[locale];
+        expect(form, `noun "${n.id}" has no ${locale} form`).toBeDefined();
+      }
+    }
+  });
+
+  it("renders a name in every page locale, never undefined", () => {
+    // The positive control: without this, the check above is satisfied by a
+    // pool nobody can actually render from.
+    const name = { adj: ADJECTIVES[0].id, noun: NOUNS[0].id };
+    for (const locale of PAGE_LOCALES) {
+      const rendered = renderName(name, locale);
+      expect(rendered, `renderName in ${locale}`).toBeTruthy();
+      expect(rendered).not.toContain("undefined");
+    }
   });
 });

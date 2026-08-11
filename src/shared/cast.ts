@@ -13,16 +13,39 @@
 //
 // The `rng` parameter goes LAST and defaults to `Math.random`, matching `rng.ts`
 // and every game signature in the repo.
+// TYPE-ONLY, and from the LEAF `locales.ts` rather than the `strings.ts`
+// resolver: it erases at build time, so this costs nothing at runtime and
+// cannot pull the i18n resolver into the shared module graph. Same sanctioned
+// arrow as `@ui` -> `@i18n` (see CLAUDE.md); `locales.ts` imports nothing, so
+// it can never become a cycle.
+import type { PageLocale } from "@i18n/locales";
 import { shuffle } from "./rng";
 
-export interface CastItem {
+/**
+ * A themed character: the glyph, plus its name in every language a HUMAN HAS
+ * WRITTEN one for.
+ *
+ * `Record<PageLocale, string>` rather than two literal `he` / `en` fields, and that
+ * is a gate rather than a tidy-up. `Locale` is `PageLocale`, so the day a
+ * language is promoted — Spanish is next — the compiler demands a Spanish name
+ * for all 58 of these. Written as `he: string; en: string` it would simply
+ * COMPILE, and `Shadows.tsx` and `SortSize.tsx` would go on handing Spanish
+ * players English aria-labels with no error anywhere: the exact silent-skip
+ * this project's two-locale-set rule exists to make impossible, hiding one
+ * layer below where that rule was applied.
+ *
+ * Call sites are unchanged — `item.he` and `item.en` still resolve, because the
+ * record's keys ARE those names.
+ *
+ * The intersection is safe here specifically because a `CastItem` has no `id`
+ * field. Indonesian's locale code is `id`, which is why `GameContent` nests its
+ * languages under `copy` instead of intersecting them (see
+ * `src/content/types.ts`); nothing here collides.
+ */
+export type CastItem = Record<PageLocale, string> & {
   /** The glyph a game draws. */
   emoji: string;
-  /** Hebrew name — the primary string. */
-  he: string;
-  /** English name. */
-  en: string;
-}
+};
 
 /**
  * Theme ids in a stable order. `CastTheme` is DERIVED from this, so adding a
