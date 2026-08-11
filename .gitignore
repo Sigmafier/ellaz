@@ -3,6 +3,7 @@ dist
 dist-ssr
 # second-base build arm, produced by scripts/check-both-bases.sh
 dist-ellaz
+dist-standalone
 *.local
 .env
 .env.local
