@@ -761,14 +761,100 @@ imposed reads exactly like a ceiling you measured.**
 their FAQ, so a 22nd made them wrong. Updated to 22. A count in prose is a
 maintenance debt the voice gate cannot see.
 
+## Carry on where you left off (2026-08-09)
+
+Commit `894423a`. Every game reopened as a stranger: a child who played hard
+sudoku re-picked hard on every single open, and a half-finished board was gone
+the moment they tapped home. Nothing in the catalogue persisted a position —
+only `vanish` remembered its difficulty, by hand.
+
+Two layers, separated because they have different lifetimes. **The level**, in
+all 20 games with a toggle, survives a win, a restart and the board snapshot
+itself. **The board**, in the six games with a position worth returning to —
+sudoku, minesweeper, 2048, blocks, memory, coloring — is cleared the moment the
+run ends. evolve inherits the second free, through 2048's renderer under its own
+game id. Resume is silent, which was the operator's call: no dialog, no reading
+required, and `GameChrome`'s restart button is already the way to a fresh board.
+
+`ctx.session` is the third policy port after `economy.ts` and `score.ts`, and it
+exists for the same reason both of those do — **a wrong answer does not throw,
+it renders a plausible board the rules can no longer explain.**
+
+### The two bugs that were live and did not crash
+
+**A resumed run could be paid twice.** 2048's `won` gates the `level_complete`
+grant and play continues past it, so a snapshot carrying the grid and not `won`
+restores a board one merge away from granting the 2048 win **again** — once per
+resume, indefinitely. `bestFired` does the same for `personal_best`, and blocks'
+milestone step for its drip coin. All three are now in the snapshot. This is the
+whole reason the rule says a saved position is *not a receipt*: the question to
+ask is not "what does the board look like", it is "what has this run already
+been paid for".
+
+**Memory could resume permanently dead.** `flip()` sets `lock: true` on a
+mismatch and the RENDERER clears it 850 ms later with a `setTimeout`. A snapshot
+caught inside that window restores with no timer behind it, and `flip()` then
+returns `ignored` for every card. The board looks completely normal and accepts
+no input. `settle()` in the pure `logic.ts` fixes it **at save time, not load
+time** — settling on load would leave the impossible state on disk, one build
+away from a reader that forgets to settle it. Six tests pin it, including the
+dead board stated directly as `expect(flip(stuck, 4).outcome.kind).toBe("ignored")`.
+
+Neither was found by reading. The first came from asking what gates each
+`winMoment`; the second from reading `logic.ts` before writing the snapshot type.
+
+### The measurement lessons, again
+
+**The obvious control is undone by the feature.** Clear `localStorage`, reload,
+expect a different board — except navigating away fires `visibilitychange`,
+`useGameSession` flushes on pause, and the snapshot is written straight back
+between the clear and the reload. The control reported "identical board" for a
+reason that had nothing to do with resume. A separate browser context — storage
+the first player never touched — is the honest control.
+
+**`networkidle` is 13 s late in dev.** Vite serves hundreds of unbundled modules,
+so the game has been mounted and its clock running the whole time; every timing
+assertion read 13 s on a clock that genuinely started at zero. Waiting for the
+board instead moved a fresh clock to 0.3 s and a resumed one to 3.7 → 4.0 s.
+
+Same shape as the deploy gate's cold-load probe: **when an assertion depends on
+WHEN you sample, the control has to produce the OPPOSITE reading.**
+
+**And one report that was wrong.** The Hostinger upload was called abnormally
+slow — 8× baseline, possibly retrying — on the strength of repeated `in_progress`
+readings from the GitHub API. The API was serving stale job state. The upload
+took **2m41s** against a 2m43s baseline, and the job had finished about seven
+minutes before it was described as still running.
+
+### Measured
+
+- **First visit 85,770 B gz of 86,000 — 230 spare, down from 774.** The feature
+  cost the shell **546 B gz**: `sdk/session.ts` plus both `@shared` hooks land
+  there under the existing `src/{sdk,…,shared}` pinning rule. **The ceiling now
+  binds — the next game does not fit.** The identified way to pay for it is in
+  CLAUDE.md § Firebase and it is unshipped: carve the two hooks into the `page`
+  chunk the way `GameChrome` already is, which first needs 20 games importing the
+  direct module path instead of the `@shared` barrel.
+- Suite **1,633 across 70 files** (from 1,604/69). `session.test.ts` adds 24;
+  `memory/logic.test.ts` adds 6. Three mutations — version check, byte cap,
+  validator — each planted and each failed loudly before being reverted.
+- **Verified in a browser across all six games: 26 checks, every one with a
+  control that fires.** sudoku's puzzle, entry and clock; 2048, minesweeper,
+  coloring and blocks by position fingerprint; memory by a real match plus the
+  mid-mismatch trap; evolve proving it keeps its own namespace and not 2048's.
+- `logic-is-pure.test.ts` caught both new hooks the moment they existed and had
+  to be told they are React on purpose — the gate working exactly as its
+  guarded-by-exclusion design intends.
+
 ## Still open
 
 - **Wave C step 2b** — live two-way sync. Needs the profile to carry per-device
   earned/spent counters before a merge can be correct; until then the cloud is a
   backup and a transfer, and the UI says so.
-- **The first-visit budget** — 80,345 B gz of 82,000 (98%). The next feature
-  hits the ceiling. Un-isolated: worth twenty minutes with `git bisect` and the
-  gz sum.
+- **The first-visit budget** — **85,770 B gz of 86,000, 230 spare.** No longer a
+  warning: the ceiling BINDS. A new game costs the shell ~300 B, so the next one
+  does not fit without either raising the ceiling deliberately or landing the
+  hook carve-out described in the session-persistence entry above.
 - **Nobody has published a real score yet**, so every board renders empty and
   the own-best line carries the screen. Firestore's free daily quota stays the
   design constraint, and it is fail-closed (reads refused until reset, never a
