@@ -7,7 +7,9 @@ import {
   MIN_SHORT_SENTENCES,
   MAX_RULE_OF_THREE,
   MIN_DIGIT_FACTS,
+  VOICE,
 } from "./voice";
+import { PAGE_LOCALES } from "../i18n/locales";
 import type { GameCopy } from "./types";
 
 // Every matcher in voice.ts is proven twice here: once against the real shape it
@@ -236,5 +238,51 @@ describe("the thresholds are the ones the report argues for", () => {
     expect(MIN_SHORT_SENTENCES).toBe(3);
     expect(MAX_RULE_OF_THREE).toBe(1);
     expect(MIN_DIGIT_FACTS).toBe(4);
+  });
+});
+
+describe("every language with pages has its own voice rules", () => {
+  // GATE 6. The strong half of this is a TYPE - `VOICE` is
+  // `Record<PageLocale, VoiceRules>`, so promoting a language before somebody
+  // has written its tell vocabulary does not compile. These tests pin the part
+  // a type cannot see: that the entries are real rather than placeholders
+  // copied from the language next door.
+  it("covers exactly the locales that have pages, no more and no fewer", () => {
+    expect(Object.keys(VOICE).sort()).toEqual([...PAGE_LOCALES].sort());
+  });
+
+  it("gives every language a non-trivial banned list", () => {
+    for (const locale of PAGE_LOCALES) {
+      expect(VOICE[locale].banned.length, `${locale} has no banned phrases`).toBeGreaterThan(5);
+    }
+  });
+
+  it("gives every language its OWN list, not a copy of the one next door", () => {
+    // The realistic way a third language ships broken: `es: VOICE.en`. It
+    // type-checks, it runs, and it measures Spanish prose against English tells
+    // - so it passes everything and reports clean. The lists must be disjoint,
+    // because a tell is a fact about one language's vocabulary.
+    const locales = [...PAGE_LOCALES];
+    for (let i = 0; i < locales.length; i += 1) {
+      for (let j = i + 1; j < locales.length; j += 1) {
+        const a = new Set(VOICE[locales[i]].banned);
+        const shared = VOICE[locales[j]].banned.filter((p) => a.has(p));
+        expect(shared, `${locales[i]} and ${locales[j]} share banned phrases`).toEqual([]);
+      }
+    }
+  });
+
+  it("actually catches its own language's tells, and only its own", () => {
+    // The positive control. Without it, every assertion above is satisfied by
+    // two lists of plausible strings that match nothing.
+    const he = analyse(copy({ lede: "חשוב לציין שהמשחק קל." }), "he");
+    const en = analyse(copy({ lede: "This game is a testament to simplicity." }), "en");
+    expect(he.bannedPhrases).toContain("חשוב לציין");
+    expect(en.bannedPhrases).toContain("testament to");
+    // And the negative control: each language's tell is invisible to the other.
+    expect(analyse(copy({ lede: "חשוב לציין שהמשחק קל." }), "en").bannedPhrases).toEqual([]);
+    expect(
+      analyse(copy({ lede: "This game is a testament to simplicity." }), "he").bannedPhrases,
+    ).toEqual([]);
   });
 });

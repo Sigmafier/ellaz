@@ -18,7 +18,7 @@
  * build time.
  */
 
-import type { GameCopy, Locale } from "./types";
+import type { GameCopy, Locale, PageLocale } from "./types";
 
 /* ------------------------------------------------------------------ limits */
 
@@ -126,6 +126,34 @@ const RULE_OF_THREE_EN = /\bno\s+\S+,\s*no\s+\S+,?\s+(and|or)\s+no\b/gi;
 const CONTRAST_HE = /נשמע כמו[^.]{0,40}אבל|זה לא רק \S+ אלא|הצד השני של אותו מטבע/g;
 const CONTRAST_EN = /\b(it'?s|this is)\s+not\s+just\s+[^,.]{1,40},?\s+(it'?s|it is)\b/gi;
 
+/**
+ * Everything this file knows about ONE language, in one place.
+ *
+ * Keyed by `PageLocale`, which is the same guarantee the content files carry:
+ * promoting a language before somebody has written its tell vocabulary is a RED
+ * BUILD, not a silently weaker check. That distinction is the whole point. The
+ * shape this replaced was four `locale === "he" ? … : …` ternaries inside
+ * `analyse`, and a third language would have joined the ELSE arm of all four -
+ * so Spanish prose would have been measured against the ENGLISH banned list,
+ * passed, and reported as clean. A gate that answers confidently for a language
+ * it has never heard of is worse than no gate, because somebody trusts it.
+ *
+ * Every banned phrase is authored in LOWERCASE and matched against a lowercased
+ * page. (A future Turkish list needs care here and only here: `İ`.toLowerCase()
+ * is `i` plus a combining dot in JavaScript, so a phrase authored with a capital
+ * would stop matching itself.)
+ */
+export interface VoiceRules {
+  banned: readonly string[];
+  ruleOfThree: RegExp;
+  contrast: RegExp;
+}
+
+export const VOICE: Record<PageLocale, VoiceRules> = {
+  he: { banned: BANNED_HE, ruleOfThree: RULE_OF_THREE_HE, contrast: CONTRAST_HE },
+  en: { banned: BANNED_EN, ruleOfThree: RULE_OF_THREE_EN, contrast: CONTRAST_EN },
+};
+
 /* --------------------------------------------------------------- analysers */
 
 const words = (t: string): number => (t.trim() ? t.trim().split(/\s+/).length : 0);
@@ -174,8 +202,10 @@ export function analyse(copy: GameCopy, locale: Locale): VoiceReport {
     paragraphWords.reduce((a, b) => a + (b - mean) ** 2, 0) / (paragraphWords.length || 1);
   const spread = mean ? Math.sqrt(variance) / mean : 0;
 
-  const banned = locale === "he" ? BANNED_HE : BANNED_EN;
-  const haystack = locale === "he" ? prose : prose.toLowerCase();
+  // No `locale === "he"` anywhere below. A language arrives with its own rules
+  // or the build refuses it - see VOICE.
+  const rules = VOICE[locale];
+  const haystack = prose.toLowerCase();
 
   return {
     words: words(prose),
@@ -184,10 +214,10 @@ export function analyse(copy: GameCopy, locale: Locale): VoiceReport {
     shortSentences: copy.body
       .flatMap(sentences)
       .filter((s) => words(s) < SHORT_SENTENCE_WORDS).length,
-    bannedPhrases: banned.filter((p) => haystack.includes(locale === "he" ? p : p.toLowerCase())),
+    bannedPhrases: rules.banned.filter((p) => haystack.includes(p.toLowerCase())),
     dashes: (prose.match(DASHES) ?? []).length,
-    ruleOfThree: (prose.match(locale === "he" ? RULE_OF_THREE_HE : RULE_OF_THREE_EN) ?? []).length,
-    contrastFormula: (prose.match(locale === "he" ? CONTRAST_HE : CONTRAST_EN) ?? []).length,
+    ruleOfThree: (prose.match(rules.ruleOfThree) ?? []).length,
+    contrastFormula: (prose.match(rules.contrast) ?? []).length,
     // A digit run, not a lone numeral, so "9.2" and "20,000" each count once.
     digitFacts: (prose.match(/\d[\d.,]*/g) ?? []).length,
   };

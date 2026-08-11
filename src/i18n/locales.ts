@@ -101,6 +101,41 @@ export function dirOf(locale: string): "rtl" | "ltr" {
 }
 
 /**
+ * The writing system each language's prose is in.
+ *
+ * This exists so a gate can catch the one mistake that is invisible in every
+ * other check: a page emitted under the wrong locale's route. `/es/games/snake/`
+ * carrying the English body is a valid document with a correct canonical, a
+ * correct hreflang cluster and 900 words of prose - and it is the named
+ * duplicate-content anti-pattern. Comparing the SCRIPT of what was emitted
+ * against the script the locale is written in is the cheapest signal that
+ * separates "translated" from "copied", and it needs no threshold at all for
+ * the cross-script pairs.
+ *
+ * It cannot see es-vs-pt or en-vs-de, which share the Latin alphabet. That is
+ * what the cross-locale body-difference gate is for; the two are complementary
+ * and neither is sufficient.
+ *
+ * Turkish and Indonesian are `latin` despite their diacritics - the check is
+ * about which BLOCK the letters come from, and `ı`, `ş`, `ğ` are all Latin.
+ */
+export type Script = "hebrew" | "arabic" | "cyrillic" | "latin";
+
+export const SCRIPT: Record<AppLocale, Script> = {
+  he: "hebrew",
+  ar: "arabic",
+  ru: "cyrillic",
+  en: "latin",
+  es: "latin",
+  pt: "latin",
+  fr: "latin",
+  de: "latin",
+  it: "latin",
+  tr: "latin",
+  id: "latin",
+};
+
+/**
  * `og:locale`, which wants a full language_TERRITORY tag rather than a bare
  * language code.
  *

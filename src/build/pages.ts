@@ -2,7 +2,15 @@ import type { Plugin } from "vite";
 import { CONTENT } from "../content/index";
 import { homeCopy } from "../content/site";
 import { GAMES, metaFor } from "../portal/games";
-import { CANONICAL_LOCALE, DEFAULT_LOCALE, OG_LOCALE } from "../i18n/locales";
+import {
+  APP_LOCALES,
+  CANONICAL_LOCALE,
+  DEFAULT_LOCALE,
+  OG_LOCALE,
+  PAGE_LOCALES,
+  SCRIPT,
+  dirOf,
+} from "../i18n/locales";
 import { LOCALES, ROUTES, canonicalUrl, gamePath, homePath, type Route } from "./routes";
 import { gamePage } from "./gamePage";
 import { boardsPage, homePage, homeShellBody, notFoundPage, worldPage } from "./sitePages";
@@ -151,6 +159,14 @@ export function allEmittedFiles(
 
   // The route table's own manifest, written on every build. "Which pages exist"
   // is then a question answered from the artifact rather than by inference.
+  //
+  // It also carries the two locale lists, and that is not padding. The gates in
+  // `scripts/` are .mjs and cannot import a .ts module, so without this they
+  // would each need their OWN copy of "which languages have pages" - a second
+  // list, in a second language, that drifts from this one silently and reports
+  // green while it drifts. Publishing the lists into the artifact keeps one
+  // source of truth and lets the gate read it the same way it reads everything
+  // else here: off the thing that was actually built.
   files.push({
     fileName: "pages.json",
     source:
@@ -158,6 +174,14 @@ export function allEmittedFiles(
         {
           base,
           count: files.filter((f) => f.fileName.endsWith(".html")).length,
+          locales: {
+            app: APP_LOCALES,
+            page: PAGE_LOCALES,
+            canonical: CANONICAL_LOCALE,
+            xDefault: DEFAULT_LOCALE,
+            dir: Object.fromEntries(APP_LOCALES.map((l) => [l, dirOf(l)])),
+            script: SCRIPT,
+          },
           pages: ROUTES.map((r) => ({
             path: r.path,
             file: r.file,

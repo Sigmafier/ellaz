@@ -55,7 +55,7 @@ src/
 │            (mount/unmount bridge), WalletChip, games (the ordered roster),
 │            catalog (roster + lazy loaders), paths/pageContext/legacyHash,
 │            world/ (the room + shop)
-├─ build/    BUILD-TIME ONLY - the 50 emitted pages. Pure strings, no DOM, no
+├─ build/    BUILD-TIME ONLY - the 52 emitted pages. Pure strings, no DOM, no
 │            React. Nothing in the app may import it (it reads src/content)
 └─ games/<id>/
    ├─ meta.ts         DOM-free GameMeta - catalog.ts imports it statically
@@ -64,10 +64,10 @@ src/
    └─ <Renderer>      React component (DOM) or Phaser scene (canvas)
 ```
 
-**Games (22)** — 16 `ageBand: "kids"` (balloons, bees, bubbles, coloring, echo,
+**Games (23)** — 16 `ageBand: "kids"` (balloons, bees, bubbles, coloring, echo,
 evolve, finddiff, frog, hidden, math, memory, reaction, sequence, shadows,
-sortsize, vanish) and 6 `"all"` (blocks, minesweeper, n2048, snake, sudoku,
-tictactoe).
+sortsize, vanish) and 7 `"all"` (blocks, minesweeper, n2048, snake, sudoku,
+tictactoe, wordguess).
 Counts here go stale fast — `src/portal/catalog.ts` is the source of truth and
 `catalog.test.ts` ratchets the count. Every game offers a **difficulty selector**
 and/or endless levels: 20 declare their `levels` to `<GameChrome>`, which owns
@@ -160,7 +160,7 @@ Verify by `curl`ing as Googlebot, never in a browser:
 **`npm run assert:crawlable` is the only gate here that reads the NETWORK** rather
 than `dist/`, which is precisely why it exists — a 403 to every crawler passed every
 other check in this repo. It fetches robots.txt and the sitemap as Googlebot and then
-walks all 50 URLs; that walk IS the burst test, since the challenge arms on a run of
+walks all 52 URLs; that walk IS the burst test, since the challenge arms on a run of
 requests rather than the first one. It checks the BODY as well as the status, because
 a challenge can be served with 200. `.github/workflows/crawlable.yml` runs it daily
 and a red run emails the owner. Node built-ins only, so it needs no `npm ci`.
@@ -235,7 +235,7 @@ and a unit** (`points`/`ms`/`moves`) and `src/sdk/economy.ts`'s sibling
 could report `ms` as "higher is better" and order its own leaderboard backwards.
 The record rides the existing win as `winMoment(ctx, { …, score: { value, unit,
 board } })`; `ctx.score` is add-only, with no `clear()`, exactly like
-`ctx.rewards`. **21 of the 22 games have one**, and **coloring gets none, ever**
+`ctx.rewards`. **22 of the 23 games have one**, and **coloring gets none, ever**
 — ranking a child's drawing is the opposite of this platform's premise. That is
 the whole roster: every other game keeps a record, so a missing one is a bug
 rather than a gap. (evolve carries one without a line of its own — it renders
@@ -502,14 +502,14 @@ the moment step 5 lands. Missing step 6 is a red build, not a thin page.
 
 ## Every game has a real web address
 
-The site used to be one document. It is now 51: `dist/index.html` (still the app,
-unchanged) plus **50 emitted pages** built by `src/build/**` inside a Vite plugin,
+The site used to be one document. It is now 53: `dist/index.html` (still the app,
+unchanged) plus **52 emitted pages** built by `src/build/**` inside a Vite plugin,
 so `npm run build` cannot skip them and neither deploy workflow can forget.
 
 | URL | What it is |
 |---|---|
 | `/` | the application, and now also a document. The emitter adds head tags AND the Hebrew home body; it never overwrites the file |
-| `/games/<id>/` · `/en/games/<id>/` | 22 games x 2 languages, ~900 words each |
+| `/games/<id>/` · `/en/games/<id>/` | 23 games x 2 languages, ~900 words each |
 | `/en/` | the English home index, with 22 real links |
 | `/world/` · `/en/world/` | the room |
 | `/boards/` · `/en/boards/` | the leaderboards (two screens - see below) |
@@ -569,7 +569,7 @@ the button stays and waits for their tap.
 **`body { overflow: hidden }` is now scoped to `body.app-shell`.** Unscoped it is
 correct for an application that manages its own scroll regions and catastrophic
 for a document - every word below the fold unreachable by scroll while a crawler
-reads the page perfectly. `index.html` carries the class; the 46 content pages do
+reads the page perfectly. `index.html` carries the class; the 48 content pages do
 not.
 
 **The hash router is retired.** `/#/game/snake` and `/#/world` redirect once at
@@ -590,7 +590,7 @@ derives each page's date from the last commit that touched its own sources — t
 game's directory and its content file, never a build timestamp, which would say
 "every page changed" on every deploy and teach Google to discount the field
 permanently. **The trap is CI**: `actions/checkout` clones at depth 1, so `git log`
-returns one identical date for all 50 — the same bug wearing a disguise, on the only
+returns one identical date for all 52 — the same bug wearing a disguise, on the only
 machine that publishes. Both deploy workflows set `fetch-depth: 0`, the emitter omits
 the field on a shallow clone or a uniform result rather than lying, and
 `assert-pages.mjs` fails the build on 50 identical dates. **An absent `<lastmod>` is
@@ -767,6 +767,44 @@ be wrong about whether a key exists. Promotion is always two commits: **prose
 first, then the list.** The other order fails to compile, which is the gate
 working.
 
+**Measured 2026-08-11: adding `"es"` with no Spanish prose reds 30 files** — 23
+content files, `site.ts`, `voice.ts`, plus `gamePage.ts`, `schema.ts`,
+`ogCard.ts`, `pageContext.ts` and `build.test.ts`, since `GameMeta.title` is
+`Record<Locale, string>` too. A game cannot even have a *name* in a language
+nobody has written for.
+
+`src/content/voice.ts` is on that wall on purpose. It used to be four
+`locale === "he" ? … : …` ternaries, so a third language would have joined the
+ELSE arm of all four and **Spanish prose would have been measured against the
+English banned list, passed, and reported clean**. It is now
+`VOICE: Record<PageLocale, VoiceRules>`. A gate that answers confidently for a
+language it has never heard of is worse than no gate, because somebody trusts it.
+
+**Four more gates live in `assert-pages.mjs`, and they read the locale lists off
+`dist/pages.json` rather than keeping their own copy** — the scripts are `.mjs`
+and cannot import a `.ts` module, so the manifest publishes `locales.{app, page,
+canonical, xDefault, dir, script}` and there is still exactly one list.
+
+| Gate | Catches |
+|---|---|
+| stray locale directory | `dist/de/` for a language with no prose - and, the other way, a missing `dist/en/`, so a broken emitter cannot pass by vacuum |
+| cross-locale body difference | the realistic mistake: a content file copied to start a language and never rewritten. Sentences of 5+ words, since a game's name and a nav label are identical across languages by design |
+| script sanity | a page emitted under the wrong locale's route. **URLs are stripped first** - six Hebrew letters beside one 34-char URL reads as 85% Latin |
+| hreflang reciprocity | A lists B while B never lists A. Google discards a one-directional cluster, and nothing asserted this before |
+
+The script check is a **comparison, not a threshold** — the expected script must
+simply be dominant — so there is no constant to go stale. Measured: a Hebrew page
+is 97% Hebrew, an English page 100% Latin, and a he/en twin pair shares **0%** of
+its long sentences against a 20% ceiling.
+
+**`/` had to be seeded into those gates by hand**, because it is `emitted: false`
+in the manifest — the app shell, head-enhanced in place. That is the same blind
+spot that let `/` serve a 29-byte body to every AI crawler for months, and it
+reproduced itself here on the first run: the reciprocity check reported that
+`/en/` pointed at a canonical "no emitted page has", when `/` carried a perfect
+cluster the gate simply could not see. **A blind spot that reports as a defect on
+the neighbouring page is the worst shape available.**
+
 `x-default` is **English, not Hebrew** — it answers "we have no page in your
 language", and Hebrew is the wrong answer to that for everyone except Hebrew
 speakers, who are matched by their own `hreflang` long before `x-default` is
@@ -802,7 +840,7 @@ the measurable half is mostly **uniformity**: our first draft's five paragraphs 
 tell vocabulary per language, the em dash, more than one rule-of-three, and the
 "it's not just X, it's Y" crutch. It cannot see whether the admission is true, whether
 a statistic was derived, or whether it sounds like us - which is why three pilots ship
-before the other eighteen.
+before the other twenty.
 
 **`src/content/` is build-time only.** `no-app-imports.test.ts` forbids portal, ui,
 sdk, games, juice, shared and i18n from importing it; one stray import would put every

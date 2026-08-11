@@ -48,6 +48,90 @@ Promotion is therefore always two commits, in this order:
 The other order fails to compile. That is the gate working, and it is worth
 planting once so somebody has actually watched it happen.
 
+## A gate that has never heard of a language must not answer for it
+
+`src/content/voice.ts` was four `locale === "he" ? … : …` ternaries — banned
+list, rule-of-three regex, contrast regex, case handling. Every one of them had
+an ELSE arm, and a third language would have joined all four of them.
+
+So Spanish prose would have been measured against the **English** tell
+vocabulary. It would have found nothing, reported clean, and the page would have
+shipped with none of the voice discipline the whole file exists to enforce. The
+failure is not that the check is weak; it is that the check answers
+**confidently** for a language nobody taught it, and a confident wrong answer is
+worse than no answer because somebody stops looking.
+
+It is now `VOICE: Record<PageLocale, VoiceRules>` — one entry per language,
+holding everything this file knows about it. A language arrives with its own
+rules or the build refuses it, which is the same guarantee the content files
+carry and for the same reason.
+
+The test beside it pins what a type cannot see: that two languages' banned lists
+are **disjoint**. `es: VOICE.en` type-checks, runs, and is exactly the shape this
+rule is about.
+
+## The four gates that read `dist/`
+
+The type gate proves the prose was *written*. It cannot prove the emitter then
+put it in the right place, and it cannot see the artifact at all. Four checks in
+`scripts/assert-pages.mjs` cover that, all reading `dist/pages.json`'s published
+`locales` block rather than a second copy of the list:
+
+| Gate | Catches | Mutation that proves it |
+|---|---|---|
+| stray locale directory | `dist/de/` for a language with no prose | `mkdir dist/de` → names the directory to delete |
+| — its positive control | a *missing* `dist/en/`, so a broken emitter cannot pass by vacuum | `rm -rf dist/en` |
+| cross-locale body difference | a content file copied to start a language and never rewritten | copy the en body onto the he page → `100%` shared |
+| script sanity | a page emitted under the wrong locale's route | the same copy → `lang="he" but its prose is mostly latin` |
+| hreflang reciprocity | A lists B while B never lists A | repoint one alternate → `does not link back` |
+
+All seven mutations killed on 2026-08-11, against a real build, each cell
+asserting its own mutation landed before running anything.
+
+**Strip URLs before counting letters.** Six Hebrew letters beside one
+34-character `https://ellaz.fun/games/snake/` reads as 85% Latin — the exact
+shape that would misclassify a short Hebrew page as English.
+
+**Count sentences, not words, and only sentences of five words or more.** A
+game's name, a number and a nav label are identical across languages by design
+and prove nothing in either direction.
+
+**The script check is a comparison, not a threshold** — the expected script must
+simply be the dominant one — so there is no tuned constant here to go stale
+([`a-threshold-tuned-against-todays-tree-goes-stale.md`](a-threshold-tuned-against-todays-tree-goes-stale.md)).
+The one number that does exist, the 20% shared-sentence ceiling, sits between a
+measured 0% (a real translation) and 100% (a copy).
+
+**Known limit, stated rather than discovered later:** with only `he` and `en`
+live, any in-family duplication trips the script gate too, so the body-difference
+gate has not yet been proven to catch something *no other gate* catches. Its unit
+controls prove the mechanism; its independent value arrives with Spanish, which
+is the first same-script pair.
+
+## `/` is not in the population, and the gate said so out loud
+
+`/` is `emitted: false` in the manifest — it is the app shell, head-enhanced in
+place, not written from the route table. So the per-page loop never sees it, and
+that is the identical blind spot that let `/` serve a 29-byte body to every AI
+crawler for months
+([`a-spa-shell-is-invisible-to-ai-crawlers.md`](a-spa-shell-is-invisible-to-ai-crawlers.md)).
+
+It reproduced itself on the first run of the new reciprocity check, which
+reported:
+
+```
+https://ellaz.fun/en/ lists https://ellaz.fun/ as an alternate,
+but no emitted page has that canonical
+```
+
+`/` carried a complete, correct, reciprocal cluster the whole time. The gate
+could not see it, and blamed the neighbour. **A blind spot that reports as a
+defect on an adjacent page is the worst shape available** — it sends the reader
+to fix something that was never broken.
+
+When adding any gate here, ask which pages are *excluded* from its population
+before asking whether its logic is right.
+
 ## Why this one had to be a type and not a script
 
 Every other guard in this repo is a script reading `dist/` — `assert-pages`,
