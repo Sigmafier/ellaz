@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { APP_LOCALES, PAGE_LOCALES, dirOf } from "./locales";
 import { AVAILABLE, DIR, loadDict, isLoaded, makeT, textFor } from "./strings";
 import { he } from "./dict/he";
@@ -144,5 +144,41 @@ describe("authored text in an app language nobody authored it in", () => {
     for (const locale of PAGE_LOCALES) {
       expect(textFor({ he: "א", en: "b" }, locale)).toBe(locale === "he" ? "א" : "b");
     }
+  });
+});
+
+describe("loadDict says whether the language actually arrived", () => {
+  // This boolean is load-bearing, not a convenience. While `loadDict` returned
+  // `Promise<void>` its caller could not tell "Arabic is ready" from "Arabic
+  // will never arrive", so it set `lang="ar"`, flipped the document to RTL, and
+  // persisted that - over text that was still English. Measured on the live
+  // site 2026-08-11: a mirrored English page that survived a reload, no error
+  // anywhere. See `App.tsx` pickLocale.
+
+  it("is true for a language already in the shell", async () => {
+    expect(await loadDict("en")).toBe(true);
+    expect(await loadDict("he")).toBe(true);
+  });
+
+  it("is true for a lazy language that loads", async () => {
+    expect(await loadDict("it")).toBe(true);
+    expect(isLoaded("it")).toBe(true);
+  });
+
+  it("is FALSE when the chunk cannot be fetched, and the app stays readable", async () => {
+    // The realistic cause is an open tab meeting a new deploy: the hashed chunk
+    // name this bundle asks for no longer exists on the server. Reproduced by
+    // making the module itself refuse to load.
+    vi.resetModules();
+    vi.doMock("./dict/ru", () => {
+      throw new Error("Failed to fetch dynamically imported module");
+    });
+    const fresh = await import("./strings");
+    expect(await fresh.loadDict("ru")).toBe(false);
+    expect(fresh.isLoaded("ru")).toBe(false);
+    // ...and English, not blank and not the raw key.
+    expect(fresh.makeT("ru")("play")).toBe(en.play);
+    vi.doUnmock("./dict/ru");
+    vi.resetModules();
   });
 });

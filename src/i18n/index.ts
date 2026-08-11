@@ -6,6 +6,7 @@ export {
   textFor,
   loadDict,
   isLoaded,
+  DEFAULT_LOCALE,
   type Locale,
   type AppLocale,
   type StringKey,

@@ -124,16 +124,26 @@ export const AVAILABLE: readonly AppLocale[] = APP_LOCALES.filter(
  * common cause — leaves the language resolving through English, which is a
  * readable app rather than an error screen. Same discipline as analytics: a
  * best-effort enrichment must not be able to break the thing it enriches.
+ *
+ * RETURNS WHETHER THE LANGUAGE IS ACTUALLY AVAILABLE NOW, and that boolean is
+ * load-bearing rather than a convenience. This function swallowing its own
+ * failure into a `Promise<void>` meant the caller could not tell "Arabic is
+ * ready" from "Arabic will never arrive" — so it set `lang="ar"` and flipped
+ * the document to RTL over text that was still English, and persisted that.
+ * Measured on the live site 2026-08-11: a mirrored English page that survived a
+ * reload, with no error anywhere. A caller that changes what the DOCUMENT
+ * claims must know whether the strings behind that claim exist.
  */
-export async function loadDict(locale: AppLocale): Promise<void> {
-  if (loaded.has(locale)) return;
+export async function loadDict(locale: AppLocale): Promise<boolean> {
+  if (loaded.has(locale)) return true;
   const get = LAZY[locale];
-  if (!get) return;
+  if (!get) return false;
   try {
     const mod = await get();
     loaded.set(locale, mod.default);
+    return true;
   } catch {
-    /* stays on English */
+    return false; // stays on English
   }
 }
 
