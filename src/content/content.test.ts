@@ -10,7 +10,7 @@ import type { GameCopy, Locale } from "./types";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const LOCALES: Locale[] = ["he", "en"];
-const PAGES = CONTENT_IDS.flatMap((id) => LOCALES.map((l) => [id, l, CONTENT[id][l]] as const));
+const PAGES = CONTENT_IDS.flatMap((id) => LOCALES.map((l) => [id, l, CONTENT[id].copy[l]] as const));
 
 describe("the content roster lines up with the catalog", () => {
   it("every page has a game", () => {
@@ -69,7 +69,7 @@ describe("the gate can actually fail - positive control", () => {
   it("rejects the draft that started all this", () => {
     const filler = (n: number) => Array(n).fill("מילה").join(" ");
     const oldDraft: GameCopy = {
-      ...CONTENT.memory.he,
+      ...CONTENT.memory.copy.he,
       body: [57, 53, 50, 56, 54].map(filler),
       accessibility:
         "אין הבהובים מהירים, אין שעון שלוחץ ואין צליל שהמשחק תלוי בו. " +
@@ -77,7 +77,7 @@ describe("the gate can actually fail - positive control", () => {
       faq: [
         { q: "חינם?", a: "אין תשלום, אין רכישות ואין גרסה מורחבת." },
         { q: "פרסומות?", a: "לא באנרים, לא סרטונים ולא פרסומות בין שלבים." },
-        ...CONTENT.memory.he.faq.slice(2),
+        ...CONTENT.memory.copy.he.faq.slice(2),
       ],
     };
 
@@ -94,16 +94,16 @@ describe("the gate can actually fail - positive control", () => {
     // which is the control working on itself.
     const strip = (s: string) => s.replace(/\d[\d.,]*/g, "כמה");
     const spelledOut: GameCopy = {
-      ...CONTENT.memory.he,
-      lede: strip(CONTENT.memory.he.lede),
-      body: CONTENT.memory.he.body.map(strip),
-      howToPlay: CONTENT.memory.he.howToPlay.map((s) => ({ ...s, body: strip(s.body) })),
-      tips: CONTENT.memory.he.tips.map((s) => ({ ...s, body: strip(s.body) })),
-      teaches: CONTENT.memory.he.teaches.map((s) => ({ ...s, body: strip(s.body) })),
-      ages: CONTENT.memory.he.ages.map((s) => ({ ...s, body: strip(s.body) })),
-      accessibility: strip(CONTENT.memory.he.accessibility),
-      together: CONTENT.memory.he.together.map((s) => ({ ...s, body: strip(s.body) })),
-      faq: CONTENT.memory.he.faq.map((f) => ({ q: strip(f.q), a: strip(f.a) })),
+      ...CONTENT.memory.copy.he,
+      lede: strip(CONTENT.memory.copy.he.lede),
+      body: CONTENT.memory.copy.he.body.map(strip),
+      howToPlay: CONTENT.memory.copy.he.howToPlay.map((s) => ({ ...s, body: strip(s.body) })),
+      tips: CONTENT.memory.copy.he.tips.map((s) => ({ ...s, body: strip(s.body) })),
+      teaches: CONTENT.memory.copy.he.teaches.map((s) => ({ ...s, body: strip(s.body) })),
+      ages: CONTENT.memory.copy.he.ages.map((s) => ({ ...s, body: strip(s.body) })),
+      accessibility: strip(CONTENT.memory.copy.he.accessibility),
+      together: CONTENT.memory.copy.he.together.map((s) => ({ ...s, body: strip(s.body) })),
+      faq: CONTENT.memory.copy.he.faq.map((f) => ({ q: strip(f.q), a: strip(f.a) })),
     };
 
     const report = analyse(spelledOut, "he");
@@ -215,8 +215,8 @@ describe("no two pages in a language are the same page", () => {
     const tooSimilar: string[] = [];
     for (let i = 0; i < ids.length; i++) {
       for (let j = i + 1; j < ids.length; j++) {
-        const a = shingles(proseOf(CONTENT[ids[i]][locale]).join(" "));
-        const b = shingles(proseOf(CONTENT[ids[j]][locale]).join(" "));
+        const a = shingles(proseOf(CONTENT[ids[i]].copy[locale]).join(" "));
+        const b = shingles(proseOf(CONTENT[ids[j]].copy[locale]).join(" "));
         const score = jaccard(a, b);
         if (score > MAX_SHINGLE_OVERLAP)
           tooSimilar.push(`${ids[i]} vs ${ids[j]} = ${score.toFixed(2)}`);
@@ -321,8 +321,8 @@ describe("the two languages are written, not translated", () => {
   // A real symptom check, not a real translation detector - the operator's read
   // is still the thing that decides.
   it.each(CONTENT_IDS)("%s does not mirror its other language paragraph for paragraph", (id) => {
-    const he = CONTENT[id].he.body.map((p) => p.trim().split(/\s+/).length);
-    const en = CONTENT[id].en.body.map((p) => p.trim().split(/\s+/).length);
+    const he = CONTENT[id].copy.he.body.map((p) => p.trim().split(/\s+/).length);
+    const en = CONTENT[id].copy.en.body.map((p) => p.trim().split(/\s+/).length);
     const identicalShape =
       he.length === en.length && he.every((n, i) => Math.abs(n - en[i]) <= 1);
     expect(

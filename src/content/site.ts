@@ -1,4 +1,4 @@
-import type { Locale } from "./types";
+import type { Locale, PageLocale } from "./types";
 
 /**
  * The words that are the same on every page: section headings, the platform
@@ -209,7 +209,14 @@ const en: SiteCopy = {
     "Ellaz - free games in Hebrew and English. No ads, no accounts, and nothing collected about a child.",
 };
 
-export const SITE: Record<Locale, SiteCopy> = { he, en };
+/**
+ * Keyed by `PageLocale` for the same reason `GameContent.copy` is: promoting a
+ * language before its shared copy exists must be a red build here too. The
+ * per-game prose and the words wrapped around it are one deliverable, and a
+ * language that has 23 articles but no section headings is still a page whose
+ * body is partly untranslated.
+ */
+export const SITE: Record<PageLocale, SiteCopy> = { he, en };
 
 /**
  * The home copy with its facts filled in.

@@ -189,7 +189,7 @@ describe("every page renders", () => {
     const meta = GAMES.find((m) => m.id === "memory")!;
     const route = ROUTES.find((r) => r.kind === "game" && r.id === "memory" && r.locale === "he")!;
     const page = renderRoute(route, "/");
-    const copy = CONTENT.memory.he;
+    const copy = CONTENT.memory.copy.he;
     for (const paragraph of copy.body) {
       expect(page).toContain(escapeHtml(paragraph));
     }

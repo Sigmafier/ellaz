@@ -23,7 +23,7 @@ import { sudoku } from "./games/sudoku";
 import { tictactoe } from "./games/tictactoe";
 import { wordguess } from "./games/wordguess";
 
-export type { GameContent, GameCopy, FaqItem, Titled, Provenance, Locale } from "./types";
+export type { GameContent, GameCopy, FaqItem, Titled, Provenance, Locale, PageLocale } from "./types";
 
 /**
  * Every game page's prose, keyed by the game id in `portal/catalog.ts`.
@@ -70,5 +70,5 @@ export const CONTENT: Record<string, GameContent> = {
 export const CONTENT_IDS = Object.keys(CONTENT);
 
 export function contentFor(id: string, locale: Locale) {
-  return CONTENT[id]?.[locale];
+  return CONTENT[id]?.copy[locale];
 }

@@ -8,12 +8,25 @@
  * `sdk/score.ts` at render time, so a writer cannot claim something the game
  * does not do. See `.claude/rules/game-content-template.md`.
  *
- * This module imports nothing. It is data, not code, and
- * `no-app-imports.test.ts` keeps the app from importing it back - which is what
- * keeps ~200 KB of prose out of the precached shell.
+ * This module imports one thing, and only one: the list of languages that have
+ * prose. `no-app-imports.test.ts` keeps the app from importing this module
+ * back - which is what keeps ~200 KB of prose out of the precached shell. The
+ * arrow the other way is safe and deliberate: `src/i18n/locales.ts` is a leaf
+ * with zero imports of its own, so reading it here cannot pull anything into
+ * the build-time graph, and it means the compiler enforces one answer to
+ * "which languages have pages" instead of two lists that can disagree.
  */
 
-export type Locale = "he" | "en";
+import type { PageLocale } from "../i18n/locales";
+
+export type { PageLocale };
+
+/**
+ * The old name for `PageLocale`, kept while the build-time modules still say
+ * `Locale`. It is an ALIAS, not a second type: promoting a language widens
+ * both at once, so a stale name cannot become a stale definition.
+ */
+export type Locale = PageLocale;
 
 /** A question phrased the way somebody would actually type it into a search box. */
 export interface FaqItem {
@@ -79,14 +92,32 @@ export interface GameCopy {
 export interface GameContent {
   /** Must match a `meta.id` in the catalog. */
   id: string;
-  /** Hebrew is canonical and is written first. */
-  he: GameCopy;
   /**
-   * English, written NATIVELY rather than translated. A translation carries the
-   * source language's rhythm, and that rhythm is exactly what reads as machine
-   * made - so the two pages may use different examples and a different joke.
+   * One `GameCopy` per language that HAS PAGES - and the `Record` is the whole
+   * anti-penalty guarantee, not a formatting choice.
+   *
+   * Google counts a locale page whose body is not translated as a DUPLICATE:
+   * "Localized versions of a page are only considered duplicates if the main
+   * content of the page remains untranslated." So a language must arrive with
+   * its prose or not arrive at all. Keyed this way, adding one to
+   * `PAGE_LOCALES` before somebody has written it is a red build in all 23
+   * content files - not a lint warning, not a convention a reviewer can miss,
+   * and not a script that can be wrong about what it scanned.
+   *
+   * Hebrew is canonical and is written first. Everything after it is written
+   * NATIVELY rather than translated: a translation carries the source
+   * language's rhythm, and that rhythm is exactly what reads as machine-made,
+   * so the versions may use different examples and a different joke.
+   *
+   * NESTED under `copy` rather than sitting at the top level beside `id`,
+   * which looks like ceremony and is not. Intersecting the metadata with
+   * `Record<PageLocale, GameCopy>` would give the same guarantee today and
+   * detonate the day somebody promotes INDONESIAN - its locale code is `id`,
+   * which collides with the `id` field above and reds all 23 files with an
+   * error about `string & GameCopy` that names neither language nor locale.
+   * A namespace cannot collide with a locale code, so it never has to.
    */
-  en: GameCopy;
+  copy: Record<PageLocale, GameCopy>;
   /** Every statistic the prose quotes, and the script that derives it. */
   provenance: Provenance[];
 }

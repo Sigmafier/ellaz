@@ -56,7 +56,7 @@ export function renderRoute(route: Route, base: string, headAssets?: HeadAssets)
 
   const meta = metaFor(route.id!);
   if (!meta) throw new Error(`page emitter: no game named "${route.id}" in portal/games.ts`);
-  const copy = CONTENT[meta.id]?.[route.locale];
+  const copy = CONTENT[meta.id]?.copy[route.locale];
   if (!copy) {
     throw new Error(
       `page emitter: no ${route.locale} content for "${meta.id}". ` +
