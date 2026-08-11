@@ -101,8 +101,33 @@ const rel = (url) => (url.startsWith(BASE) ? url.slice(BASE.length) : url).repla
  * The tightness above was deliberate and it stays deliberate: 5,655 B of
  * headroom is one art-sized feature, and the next one still has to be argued
  * for here.
+ *
+ * 2026-08-11: 86,000 -> 88,000. The argument, since this file demands one.
+ *
+ * `/` used to ship a 29-byte body - `<div id="root"></div>` and nothing else.
+ * Googlebot renders JavaScript so it eventually saw the grid, but no answer
+ * engine does: Vercel's analysis of 500M+ GPTBot fetches found zero JavaScript
+ * execution, ClaudeBot and PerplexityBot behave the same, and Anthropic's own
+ * docs say their fetch tool does not support JS-rendered sites. So the site's
+ * canonical entry, the x-default target and the most-linked page on the site
+ * was a blank page to ChatGPT, Claude, Perplexity and Copilot, while `/en/` -
+ * an emitted document - was fine. Months, invisible, on the Hebrew-first half.
+ *
+ * The fix emits the real Hebrew home ahead of #root. Measured cost of the whole
+ * change: 84,883 -> 86,653, so 1,770 B gz for 130 words, an h1 and 22 crawlable
+ * links on the one page that had none. That is the single best byte-for-reach
+ * trade this project has made; the art map cost 3,880 B to make the grid pretty.
+ *
+ * 88,000 restores ~1.3 KB of headroom, which is deliberately still tight - it is
+ * one median feature (915 B), not an art-sized one. The next one still has to be
+ * argued for here, exactly as before.
+ *
+ * Not spent on: `DOCUMENT_CSS`. The emitted home is plain semantic markup styled
+ * by a dozen lines already in the shell stylesheet, because inlining the ~300
+ * document CSS lines onto the one page that IS the first visit would have cost
+ * several times what the content did.
  */
-const CEILING = 86_000;
+const CEILING = 88_000;
 
 function gzBytes(path) {
   return gzipSync(readFileSync(path)).length;

@@ -39,7 +39,21 @@ if (!redirectLegacyHash()) {
 
   if (page.kind === "app") {
     const rootEl = document.getElementById("root");
-    if (rootEl) createRoot(rootEl).render(<App />);
+    if (rootEl) {
+      createRoot(rootEl).render(<App />);
+      // `/` ships the Hebrew home as real markup ahead of #root, because no AI
+      // crawler runs JavaScript and this page is the site's canonical entry.
+      // Once the app is up it is the home screen, so the document comes out.
+      //
+      // REMOVED, not hidden: it is a faithful mirror of what the grid renders,
+      // and leaving a duplicate copy of every game link in the DOM is how a
+      // mirror turns into two sources of truth. A no-JavaScript visitor never
+      // reaches this line and keeps the document, which is the whole point.
+      //
+      // On the next frame rather than immediately, so the hand-off is a swap
+      // rather than a blank gap if React has not committed yet.
+      requestAnimationFrame(() => document.getElementById("home-doc")?.remove());
+    }
   } else {
     // Lazily, and the laziness is the point. The room and the game host are
     // only ever needed on a content page, so a child landing on `/` should not

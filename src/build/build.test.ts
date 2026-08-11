@@ -524,6 +524,85 @@ describe("the head injected into the application's own index.html", () => {
   });
 });
 
+describe("the Hebrew home is a document, not an empty shell", () => {
+  // 2026-08-11. `/` served `<div id="root"></div>` and nothing else: 29 bytes,
+  // zero words, zero headings, zero links. Googlebot renders JavaScript so it
+  // saw the grid eventually; GPTBot, ClaudeBot and PerplexityBot do not render,
+  // so the site's canonical entry and x-default target was a blank page to every
+  // answer engine. `/en/`, an emitted document, was fine the whole time - which
+  // is why nothing caught it.
+
+  /** The app shell as Vite hands it over: a mount point and nothing else. */
+  const SHELL = `<!doctype html><html lang="he" dir="rtl"><head></head>
+    <body class="app-shell"><div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script></body></html>`;
+
+  // The plugin declares `transformIndexHtml` as a plain function; Vite's type
+  // also allows the object form, which is why this narrows before calling.
+  const runTransform = (base: string, html: string): string => {
+    const hook = pagesPlugin(base).transformIndexHtml;
+    const fn =
+      typeof hook === "function"
+        ? hook
+        : hook && "handler" in hook
+          ? hook.handler
+          : hook?.transform;
+    if (typeof fn !== "function") throw new Error("transformIndexHtml is not a function");
+    return String(fn.call(null as never, html, { path: "/index.html", filename: "index.html" }));
+  };
+
+  const transform = (base: string): string => runTransform(base, SHELL);
+
+  it("carries an h1 and every game as a real link", () => {
+    const out = transform("/");
+    expect(out.match(/<h1/g) ?? []).toHaveLength(1);
+    const linked = new Set([...out.matchAll(/href="(\/games\/[^"]+)"/g)].map((m) => m[1]));
+    expect(linked.size).toBe(GAMES.length);
+  });
+
+  it("says something - a link list alone is not a page", () => {
+    const text = transform("/")
+      .replace(/<script[\s\S]*?<\/script>/g, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    expect(text.split(" ").length).toBeGreaterThan(120);
+  });
+
+  it("puts the document BEFORE #root and never inside it", () => {
+    // The invariant that matters. A node React does not know about, inside the
+    // container it reconciles, is the nested-root teardown crash in a different
+    // costume - `#game-poster` sits beside `#game-frame` for exactly this reason.
+    const out = transform("/");
+    // Present FIRST. Without this line `indexOf` returns -1 when the document is
+    // missing entirely, -1 is less than any real index, and the assertion below
+    // reports green over the exact absence this block exists to catch. Caught by
+    // planting the pre-fix emitter: three siblings went red and this one did not.
+    expect(out).toContain('id="home-doc"');
+    expect(out.indexOf('id="home-doc"')).toBeLessThan(out.indexOf('id="root"'));
+    expect(out).not.toMatch(/<div id="root"[^>]*>\s*<div id="home-doc"/);
+    // ...and #root is still an empty mount point when React arrives.
+    expect(out).toContain('<div id="root"></div>');
+  });
+
+  it("links to the base it was built for, on both hosts", () => {
+    // Half the failures in this repo are base-dependent and each workflow only
+    // ever sees one arm, so both are asserted here rather than in one CI job.
+    expect(transform("/")).toContain('href="/games/snake/"');
+    expect(transform("/ellaz/")).toContain('href="/ellaz/games/snake/"');
+    expect(transform("/ellaz/")).not.toContain('href="/games/snake/"');
+  });
+
+  it("refuses to emit silently if the mount point moves", () => {
+    // Without this the marker could stop matching and the home document would
+    // vanish from `/` with a green build - which is the exact failure this whole
+    // block exists to prevent, arriving by a different door.
+    expect(() =>
+      runTransform("/", `<html><head></head><body><div id="app"></div></body></html>`),
+    ).toThrow(/mount point/i);
+  });
+});
+
 describe("the structured data parses", () => {
   it.each(ROUTES.filter((r) => r.emit).map((r) => [r.file, r] as const))(
     "%s has valid JSON-LD",

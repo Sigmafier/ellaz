@@ -90,6 +90,47 @@ html:has(body.app-shell) {
   height: 100%;
 }
 
+/* THE EMITTED HEBREW HOME, while it is still on the page.
+   `/` is an application shell that also has to be a document, because every AI
+   crawler reads raw HTML and none of them runs JavaScript. So `index.html`
+   carries the real home page ahead of #root and the runtime removes it on mount.
+
+   These three rules exist because the shell's own defaults are exactly wrong for
+   a document, and the comment above `overflow: hidden` already says why: on a
+   document it makes every word below the fold unreachable by scroll while a
+   crawler reads the page perfectly. A visitor with no JavaScript never gets the
+   removal, so for them this IS the page - it has to scroll.
+
+   Scoped with :has() rather than a class the runtime has to remember to strip,
+   so the override disappears the instant the node does. Nothing to keep in sync. */
+html:has(#home-doc),
+body.app-shell:has(#home-doc) {
+  height: auto;
+  overflow: auto;
+}
+
+/* #root is `height: 100dvh`, which would hang a full empty screen under the
+   document for anyone who never boots. `:empty` stops applying the moment React
+   renders into it, so this needs no teardown either. */
+body.app-shell:has(#home-doc) #root:empty {
+  display: none;
+}
+
+#home-doc {
+  max-width: 44rem;
+  margin-inline: auto;
+  padding: 24px 20px 48px;
+  line-height: 1.7;
+}
+
+#home-doc ul {
+  padding-inline-start: 1.2em;
+}
+
+#home-doc a {
+  color: var(--brand-ink, inherit);
+}
+
 #root {
   /* dynamic viewport height so mobile browser chrome doesn't clip the layout,
      plus safe-area insets for notched devices */

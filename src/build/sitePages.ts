@@ -1,10 +1,10 @@
 import type { GameMeta } from "../sdk/types";
 import type { Locale } from "../content/types";
-import { SITE } from "../content/site";
-import { html } from "./html";
+import { SITE, homeCopy } from "../content/site";
+import { html, toHtml } from "./html";
 import { renderDocument } from "./layout";
 import { gameCards, stage } from "./gamePage";
-import { boardsPath, homePath, href, worldPath } from "./routes";
+import { boardsPath, gamePath, homePath, href, worldPath } from "./routes";
 import { homeGraph, worldGraph } from "./schema";
 import { lazyPreloadTags, type HeadAssets } from "./assets";
 
@@ -29,7 +29,10 @@ export interface SitePageOptions {
 export function homePage(opts: SitePageOptions): string {
   const { locale, base } = opts;
   const site = SITE[locale];
-  const copy = site.homePage;
+  // Not `site.homePage` - that still carries the `{games}` token. The count is
+  // filled from the roster we were handed, so the copy cannot contradict the
+  // `ItemList` built from the same array a few lines below.
+  const copy = homeCopy(locale, opts.games.length);
 
   const body = html`
     <h1>${copy.h1}</h1>
@@ -57,6 +60,63 @@ export function homePage(opts: SitePageOptions): string {
     base,
     indexable: opts.indexable,
   });
+}
+
+/**
+ * The Hebrew home, as a DOCUMENT, for the one page that is also the application.
+ *
+ * WHY THIS EXISTS
+ * `/` is `index.html`, and until 2026-08-11 it shipped a 29-byte body:
+ * `<div id="root"></div>`. Googlebot renders JavaScript so it eventually saw the
+ * React grid - but no AI crawler does. GPTBot, ClaudeBot and PerplexityBot fetch
+ * raw HTML, take what is there, and move on; Anthropic's own docs say the fetch
+ * tool does not support JavaScript-rendered sites. So the canonical entry of a
+ * Hebrew-first site, and the `x-default` target, was a blank page to every
+ * answer engine, while `/en/` - a real emitted document - was not.
+ *
+ * It is the same shape as the other outages written up in this repo: correct
+ * everywhere you look, wrong for a population you are not in.
+ *
+ * WHY IT IS NOT `homePage()`
+ * That builds a full document whose card markup is styled by `DOCUMENT_CSS`,
+ * which `/` does not carry and must not start carrying - it is ~300 lines of
+ * CSS on the one page that IS the first visit. This emits the same CONTENT as
+ * plain semantic markup instead: same copy, same games, same links, same order.
+ *
+ * Two implementations of one page is a real risk, so `sitePages.test.ts` pins
+ * them - the two must link to exactly the same set of game URLs. That is the
+ * same arrangement `paths.ts` and `routes.ts` already live under.
+ *
+ * NOT CLOAKING. Everything here is what the app renders once it boots, in the
+ * same language and the same order. It is progressive enhancement, which is
+ * what Google's JavaScript SEO guidance asks for - and it is why the runtime
+ * REMOVES this block rather than hiding it behind CSS.
+ */
+export function homeShellBody(games: ReadonlyArray<GameMeta>, base: string): string {
+  const site = SITE.he;
+  const copy = homeCopy("he", games.length);
+
+  return toHtml(html`
+    <div id="home-doc">
+      <h1>${copy.h1}</h1>
+      <p>${copy.lede}</p>
+      <ul>
+        ${site.facts.map((f) => html`<li>${f}</li>`)}
+      </ul>
+      <ul>
+        ${games.map(
+          (m) =>
+            html`<li>
+              <a href="${href(gamePath(m.id, "he"), base)}">${m.title.he}</a>
+            </li>`,
+        )}
+      </ul>
+      ${copy.body.map((p) => html`<p>${p}</p>`)}
+      <p><a href="${href(worldPath("he"), base)}">${site.worldPage.h1}</a></p>
+      <p><a href="${href(boardsPath("he"), base)}">${site.boardsPage.h1}</a></p>
+      <p><a href="${href(homePath("en"), base)}">English</a></p>
+    </div>
+  `);
 }
 
 export function worldPage(opts: SitePageOptions): string {

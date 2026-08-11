@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CONTENT, CONTENT_IDS } from "./index";
+import { SITE, homeCopy } from "./site";
 import { analyse, violations, proseOf } from "./voice";
 import { CATALOG } from "../portal/catalog";
 import type { GameCopy, Locale } from "./types";
@@ -222,6 +223,94 @@ describe("no two pages in a language are the same page", () => {
       }
     }
     expect(tooSimilar, `these ${locale} pages are mostly the same page`).toEqual([]);
+  });
+});
+
+describe("code supplies the game count, an author never types it", () => {
+  // 2026-08-11. The Hebrew home said "עשרים ואחד משחקים" and the English said
+  // "Twenty-one free games" while the roster held 22 - and the live `ItemList`
+  // said `numberOfItems: 22` on the very same page. Nothing failed, because a
+  // number written as a word is just prose to every gate in this repo.
+  //
+  // Ironically site.ts's own header comment warns about exactly this drift.
+  //
+  // So the count is now a FACT the emitter fills, per the standing rule that
+  // authors write prose and code supplies facts. This test is the class fix:
+  // it does not check that one string says 22, it forbids ANY authored site
+  // copy from stating a roster count at all.
+
+  // The digit branch is bounded to 1-3 digits with no comma or digit on either
+  // side, because an unbounded `\d+` matches the "000" in "we ran 20,000 games"
+  // - a simulation count, not a roster count. The control below plants exactly
+  // that string, and it is what caught this: the first version of this regex
+  // flagged it, which would have made the whole check un-shippable.
+  /** A number - as digits, an English word, or a Hebrew word - right before "games". */
+  const COUNT_CLAIM = new RegExp(
+    "(?:(?<![\\d,.])\\d{1,3}(?![\\d,.])|" +
+      "(?:twenty|thirty|forty)(?:[- ](?:one|two|three|four|five|six|seven|eight|nine))?|" +
+      "(?:ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen)|" +
+      "(?:עשרים|שלושים|ארבעים)(?: ו?(?:אחד|שניים|שלושה|ארבעה|חמישה|שישה|שבעה|שמונה|תשעה))?|" +
+      "(?:עשרה|אחת עשרה|שתים עשרה)" +
+      ")\\s+(?:free\\s+)?(?:games|משחקים)",
+    "i",
+  );
+
+  /** Every authored string in SITE, both locales, with a path for the failure message. */
+  const siteStrings = (): Array<readonly [string, string]> => {
+    const out: Array<readonly [string, string]> = [];
+    const walk = (node: unknown, path: string): void => {
+      if (typeof node === "string") out.push([path, node] as const);
+      else if (Array.isArray(node)) node.forEach((v, i) => walk(v, `${path}[${i}]`));
+      else if (node && typeof node === "object")
+        for (const [k, v] of Object.entries(node)) walk(v, `${path}.${k}`);
+    };
+    for (const locale of LOCALES) walk(SITE[locale], locale);
+    return out;
+  };
+
+  it("scanned something", () => {
+    // Same reason as above: a zero-string walk satisfies every assertion below.
+    expect(siteStrings().length).toBeGreaterThan(20);
+  });
+
+  it("the walker can actually see a planted claim", () => {
+    // The positive control. Without this the regex could be broken and every
+    // assertion under it would pass over an empty match set forever.
+    expect(COUNT_CLAIM.test("Twenty-one free games that run in the browser")).toBe(true);
+    expect(COUNT_CLAIM.test("עשרים ואחד משחקים חינמיים בעברית")).toBe(true);
+    expect(COUNT_CLAIM.test("22 games")).toBe(true);
+    // ...and does not fire on the things that are not roster counts.
+    expect(COUNT_CLAIM.test("There are memory games, thinking games and speed games")).toBe(false);
+    expect(COUNT_CLAIM.test("we ran 20,000 games on our own boards")).toBe(false);
+  });
+
+  it("no authored site copy states how many games there are", () => {
+    const claims = siteStrings()
+      .filter(([, text]) => COUNT_CLAIM.test(text))
+      .map(([path, text]) => `${path}: "${text.slice(0, 70)}…"`);
+    expect(
+      claims,
+      "these strings hardcode the roster size. Use the {games} token instead - " +
+        "homeCopy() fills it from the catalog, so it cannot go stale.",
+    ).toEqual([]);
+  });
+
+  it("homeCopy fills {games} with the real catalog length", () => {
+    for (const locale of LOCALES) {
+      const filled = homeCopy(locale, CATALOG.length);
+      expect(filled.description).toContain(String(CATALOG.length));
+      expect(filled.description).not.toContain("{games}");
+      expect(filled.title).not.toContain("{games}");
+    }
+  });
+
+  it("leaves no unfilled token anywhere it is used", () => {
+    // A token nobody consumes ships "{games} free games" to a search result.
+    const leftover = siteStrings()
+      .filter(([, text]) => text.includes("{"))
+      .filter(([path]) => !path.includes("homePage"))
+      .map(([path]) => path);
+    expect(leftover, "tokens outside homePage have no filler and would ship raw").toEqual([]);
   });
 });
 

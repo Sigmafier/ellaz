@@ -1,10 +1,10 @@
 import type { Plugin } from "vite";
 import { CONTENT } from "../content/index";
-import { SITE } from "../content/site";
+import { homeCopy } from "../content/site";
 import { GAMES, metaFor } from "../portal/games";
 import { ROUTES, canonicalUrl, gamePath, homePath, type Route } from "./routes";
 import { gamePage } from "./gamePage";
-import { boardsPage, homePage, notFoundPage, worldPage } from "./sitePages";
+import { boardsPage, homePage, homeShellBody, notFoundPage, worldPage } from "./sitePages";
 import { homeGraph } from "./schema";
 import { jsonLd, toHtml } from "./html";
 import { lastmodByPath } from "./lastmod";
@@ -78,7 +78,7 @@ export function renderRoute(route: Route, base: string, headAssets?: HeadAssets)
 const HOME_HE = ROUTES.find((r) => r.kind === "home" && r.locale === "he")!;
 
 export function indexHeadTags(base: string): string {
-  const copy = SITE.he.homePage;
+  const copy = homeCopy("he", GAMES.length);
   const indexable = isPrimaryHost(base);
   const tags = [
     `<meta name="description" content="${escapeAttr(copy.description)}" />`,
@@ -174,7 +174,25 @@ export function pagesPlugin(base: string): Plugin {
     apply: () => true,
 
     transformIndexHtml(html) {
-      return html.replace("</head>", `  ${indexHeadTags(base)}\n  </head>`);
+      const withHead = html.replace("</head>", `  ${indexHeadTags(base)}\n  </head>`);
+      // The Hebrew home, as a document, ahead of the app's mount point.
+      //
+      // SIBLING, never a child. A node React does not know about, inside a tree
+      // it reconciles, is the nested-root teardown crash in a different costume -
+      // and `#game-poster` has been sitting beside `#game-frame` for exactly
+      // this reason on 44 pages. `build.test.ts` pins the arrangement.
+      //
+      // The runtime REMOVES it once the app mounts, so this is what a crawler
+      // and a no-JavaScript visitor get, not a second permanent copy of the
+      // home screen.
+      const marker = '<div id="root"></div>';
+      if (!withHead.includes(marker)) {
+        throw new Error(
+          `page emitter: index.html has no ${marker} to place the home document before. ` +
+            "The app's mount point moved - update this marker and build.test.ts together.",
+        );
+      }
+      return withHead.replace(marker, `${homeShellBody(GAMES, base)}\n    ${marker}`);
     },
 
     async generateBundle(_options, bundle) {

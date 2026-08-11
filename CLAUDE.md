@@ -420,13 +420,32 @@ so `npm run build` cannot skip them and neither deploy workflow can forget.
 
 | URL | What it is |
 |---|---|
-| `/` | the application. The emitter only adds head tags here, never overwrites it |
+| `/` | the application, and now also a document. The emitter adds head tags AND the Hebrew home body; it never overwrites the file |
 | `/games/<id>/` · `/en/games/<id>/` | 22 games x 2 languages, ~900 words each |
 | `/en/` | the English home index, with 22 real links |
 | `/world/` · `/en/world/` | the room |
 | `/boards/` · `/en/boards/` | the leaderboards (two screens - see below) |
 | `/404.html` | bilingual, `noindex`, and `ErrorDocument`-wired on Hostinger |
 | `robots.txt` · `sitemap.xml` · `llms.txt` | emitted, not in `public/` (see below) |
+
+**`/` carries the Hebrew home as real markup, because no answer engine runs
+JavaScript.** It used to ship a 29-byte body - `<div id="root"></div>` and
+nothing else. Googlebot renders JS so it saw the grid eventually, but GPTBot,
+ClaudeBot and PerplexityBot fetch raw HTML and move on, so the site's canonical
+entry and `x-default` target was a blank page to ChatGPT, Claude and Perplexity
+for months, while `/en/` - an emitted document - was fine. Nothing caught it:
+every gate here reads `dist/`, and `assert-pages.mjs` deliberately excludes `/`
+because it is the app rather than an emitted page. The one page with no content
+was the one page the content gate could not see.
+
+`transformIndexHtml` now injects `homeShellBody()` as a **sibling before
+`#root`** and `main.tsx` removes it on mount - the `#game-poster` arrangement,
+for the same reason. It is a faithful mirror of what the grid renders, so it is
+progressive enhancement rather than cloaking, and it is removed rather than
+hidden so there is never a second permanent copy of every game link. Measured:
+0 words -> 130 words, 0 links -> 22, at 1,770 B gz, which bought the payload
+ceiling a deliberate raise to 88,000.
+[`.claude/rules/a-spa-shell-is-invisible-to-ai-crawlers.md`](.claude/rules/a-spa-shell-is-invisible-to-ai-crawlers.md).
 
 **Adding a page kind means finding every list that says which pages boot the app.**
 There were three, and they do not live together: `build.test.ts`'s `boots`

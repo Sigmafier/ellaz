@@ -16,11 +16,46 @@ import { canonicalUrl, gamePath, homePath } from "./routes";
  * questions were written as real queries either way.
  */
 
-const PUBLISHER = {
+/**
+ * The one node that says WHO published this, and the only one with a stable id.
+ *
+ * Until 2026-08-11 the publisher was a bare `{name, url}` stub inlined twice per
+ * page, with no `@id`, no `logo` and no `sameAs`. That is enough for a human and
+ * not enough for a machine: an answer engine deciding whether two pages come
+ * from the same publisher, or whether this publisher is the same entity as a
+ * GitHub org, has nothing to join on. `@id` is that join, and `sameAs` is what
+ * points it at an identity that already exists elsewhere.
+ *
+ * `logo` is `icon.svg` - the PWA icon, already published and already crawlable.
+ * Google's logo guidance asks for a crawlable image of at least 112x112 that
+ * reads correctly on a white background, in a format Google Images supports;
+ * that list is "BMP, GIF, JPEG, PNG, WebP, SVG, and AVIF", so the SVG qualifies
+ * and we do not have to invent a raster nobody else needs.
+ *
+ * There is deliberately no `aggregateRating` here and there must never be one.
+ * We collect nothing about a player, so we have no ratings - and inventing them
+ * is both fabrication and a structured-data policy violation.
+ */
+const ORG_ID = `${ORIGIN}/#org`;
+
+const ORGANIZATION = {
   "@type": "Organization",
+  "@id": ORG_ID,
   name: "Ellaz",
   url: `${ORIGIN}/`,
+  logo: `${ORIGIN}/icon.svg`,
+  description: SITE.en.tagline,
+  sameAs: ["https://github.com/Sigmafier/ellaz"],
 };
+
+/**
+ * What every `publisher` field carries: a reference, not a second copy.
+ *
+ * Restating the organisation inline is how two descriptions of one entity drift
+ * apart - the same reason this file derives everything else instead of letting
+ * an author type it. The full node ships once per graph, next to this reference.
+ */
+const PUBLISHER = { "@id": ORG_ID };
 
 /** Schema genre terms per category. Derived from `meta.category`, never authored. */
 const GENRE: Record<string, string[]> = {
@@ -100,6 +135,11 @@ export function gameGraph(meta: GameMeta, copy: GameCopy, locale: Locale) {
         acceptedAnswer: { "@type": "Answer", text: f.a },
       })),
     },
+    // Last, so the game stays the first node in the graph - but present, because
+    // a `publisher: {"@id": ...}` pointing at a node no parser can find in the
+    // same document is a dangling reference, which is worse than the inline stub
+    // it replaced.
+    ORGANIZATION,
   ];
   return { "@context": "https://schema.org", "@graph": graph };
 }
@@ -140,6 +180,7 @@ export function homeGraph(
         name: copy.title,
         inLanguage: locale,
       },
+      ORGANIZATION,
     ],
   };
 }
@@ -154,7 +195,13 @@ export function worldGraph(locale: Locale, copy: { title: string; description: s
         description: copy.description,
         inLanguage: locale,
         isPartOf: { "@id": `${ORIGIN}/#website` },
+        publisher: PUBLISHER,
       },
+      // `isPartOf` above stays a deliberate cross-document reference - the
+      // `WebSite` node lives on the two home pages and there is no reason to
+      // restate it here. The organisation is different: it is what an answer
+      // engine attributes a quote to, so every page carries it in full.
+      ORGANIZATION,
     ],
   };
 }

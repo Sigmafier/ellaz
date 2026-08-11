@@ -7,7 +7,7 @@ import type { Locale } from "./types";
  * These are AUTHORED, like the per-game copy, but they are authored once. The
  * per-game files must never restate a platform fact ("free", "no ads", "works
  * offline") in a field of their own - a writer who types it can get it wrong,
- * and twenty-one copies of a claim is twenty-one chances to drift. The page
+ * and one copy of a claim per game is one chance per game to drift. The page
  * renderer reads it from here instead.
  *
  * Build-time only, like everything under `src/content/`.
@@ -91,7 +91,7 @@ const he: SiteCopy = {
   homePage: {
     title: "Ellaz - משחקים חינם בעברית לילדים ולמבוגרים",
     description:
-      "עשרים ואחד משחקים חינמיים בעברית, ישר בדפדפן. בלי הורדה, בלי הרשמה ובלי פרסומות. עובדים על טלפון, טאבלט ומחשב.",
+      "{games} משחקים חינמיים בעברית, ישר בדפדפן. בלי הורדה, בלי הרשמה ובלי פרסומות. עובדים על טלפון, טאבלט ומחשב.",
     h1: "משחקים חינם בעברית",
     lede: "כל המשחקים כאן פתוחים מהרגע הראשון, רצים בדפדפן ועובדים גם בלי אינטרנט אחרי ביקור אחד.",
     body: [
@@ -166,7 +166,7 @@ const en: SiteCopy = {
   homePage: {
     title: "Ellaz - free browser games for kids and grown-ups",
     description:
-      "Twenty-one free games that run in the browser. No download, no account, no ads. They work on a phone, a tablet and a computer, and offline after one visit.",
+      "{games} free games that run in the browser. No download, no account, no ads. They work on a phone, a tablet and a computer, and offline after one visit.",
     h1: "Free games in your browser",
     lede: "Every game here is open from the first second, runs in the browser, and keeps working with no connection once you have loaded it.",
     body: [
@@ -210,3 +210,34 @@ const en: SiteCopy = {
 };
 
 export const SITE: Record<Locale, SiteCopy> = { he, en };
+
+/**
+ * The home copy with its facts filled in.
+ *
+ * `homePage.description` carries a `{games}` token rather than a number, because
+ * the roster size is a FACT and an author must never type one - the same rule
+ * that keeps difficulty tiers and record units out of the per-game files.
+ *
+ * It was a word ("Twenty-one", "עשרים ואחד") until 2026-08-11, when the roster
+ * reached 22 and the page shipped a meta description contradicting its own
+ * `ItemList` on the same document. A word reads as prose to every gate here, so
+ * nothing caught it; a token cannot go stale because nobody maintains it.
+ *
+ * Digits, not words, on purpose: "22 free games" is what a search result and an
+ * answer engine can quote.
+ *
+ * Callers pass the count rather than importing the roster, so `src/content`
+ * keeps its one-way dependency and stays importable by the build alone.
+ */
+export function homeCopy(locale: Locale, games: number): SiteCopy["homePage"] {
+  const fill = (text: string): string => text.replaceAll("{games}", String(games));
+  const copy = SITE[locale].homePage;
+  return {
+    ...copy,
+    title: fill(copy.title),
+    description: fill(copy.description),
+    h1: fill(copy.h1),
+    lede: fill(copy.lede),
+    body: copy.body.map(fill),
+  };
+}
