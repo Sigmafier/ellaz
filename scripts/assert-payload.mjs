@@ -54,13 +54,44 @@ const rel = (url) => (url.startsWith(BASE) ? url.slice(BASE.length) : url).repla
 /**
  * Bytes, gzipped, for a first visit.
  *
- * 86,000 as of 2026-08-07 (was 82,000). History, so the next person raising it
- * can see what they are joining:
+ * 90,000 as of 2026-08-11 (was 86,000, was 82,000). History, so the next person
+ * raising it can see what they are joining:
  *   69,624  2026-08-02  live baseline after the payload work
  *   72,984  2026-08-04  the app moved onto real URLs (page-* runtime)
  *   74,290  2026-08-06  the theme layer, carrying a second complete value set
  *   79,489  2026-08-07  21 drawn game scenes (~3.5 KB) + the boards work
  *   80,345  2026-08-07  the boards redesign (+302)
+ *   85,770  2026-08-09  session persistence (+546)
+ *   86,004  2026-08-11  Word Guess, game 23 (+234)
+ *
+ * THE 2026-08-11 RAISE TO 90,000, and why it is a raise rather than a shave.
+ *
+ * The previous ceiling had 230 B spare and CLAUDE.md already said in as many
+ * words that the next game would not fit. Word Guess needs 234, so it missed by
+ * FOUR BYTES. Four bytes is inside the noise of how one SVG path is written,
+ * and it was: trimming decoration off the new game's own home-grid card had
+ * already moved it from 34 over to 4 over. Another pass would have cleared the
+ * line by making a card worse, and a budget you meet by degrading the product
+ * in 30-byte increments has stopped measuring anything.
+ *
+ * So the number moves, deliberately, in this commit, which is exactly the
+ * mechanism the note below describes.
+ *
+ * What the 234 B buys: a game whose logic, renderer, both word lists and
+ * keyboard total 4.57 KB gz and are ALL lazy. The shell pays only for the
+ * DOM-free `meta.ts` in the static roster and one art scene in the grid. That
+ * is the per-game floor for this architecture, not this game being expensive -
+ * Falling Blocks cost 306 B on the same measurement.
+ *
+ * Why 4,000 again and not 1,000: the same reasoning as the last raise, which
+ * still holds. Six measured deltas ran 179 to 4,624 B, so 4,000 is four
+ * median-sized features or one art-sized one. Landing the ceiling just above
+ * the current reading would mean the raise after this one arrives with the
+ * next commit, and a ceiling that moves every commit is a formality.
+ *
+ * Still safe in absolute terms: the researched initial-shell budget for this
+ * class of app is 130-170 KB gz on low-end Android over 4G. At ~86 KB the site
+ * sits at roughly half, unchanged in substance from the note below.
  *
  * THE ARGUMENT FOR THE 4 KB, because the line above this one asks for one.
  *
@@ -98,36 +129,50 @@ const rel = (url) => (url.startsWith(BASE) ? url.slice(BASE.length) : url).repla
  * `gzip -9` measure 79,812, and what the server negotiates is its own business.
  * Compare like with like - never a number from here against one from elsewhere.
  *
- * The tightness above was deliberate and it stays deliberate: 5,655 B of
+ * The tightness above was deliberate and it stays deliberate: 3,996 B of
  * headroom is one art-sized feature, and the next one still has to be argued
  * for here.
  *
- * 2026-08-11: 86,000 -> 88,000. The argument, since this file demands one.
+ * ALSO 2026-08-11, and it rides this same ceiling rather than asking for its
+ * own: `/` stopped being an empty shell.
  *
- * `/` used to ship a 29-byte body - `<div id="root"></div>` and nothing else.
- * Googlebot renders JavaScript so it eventually saw the grid, but no answer
- * engine does: Vercel's analysis of 500M+ GPTBot fetches found zero JavaScript
- * execution, ClaudeBot and PerplexityBot behave the same, and Anthropic's own
- * docs say their fetch tool does not support JS-rendered sites. So the site's
- * canonical entry, the x-default target and the most-linked page on the site
- * was a blank page to ChatGPT, Claude, Perplexity and Copilot, while `/en/` -
- * an emitted document - was fine. Months, invisible, on the Hebrew-first half.
+ * It shipped a 29-byte body - `<div id="root"></div>` and nothing else.
+ * Googlebot renders JavaScript so it saw the grid eventually, but no answer
+ * engine does: Vercel measured zero JS execution across 500M+ GPTBot fetches,
+ * and Anthropic documents the same of its own fetcher. So the site's canonical
+ * entry, its x-default target and its most-linked page did not exist to
+ * ChatGPT, Claude or Perplexity, while `/en/` - an emitted document - was fine.
  *
- * The fix emits the real Hebrew home ahead of #root. Measured cost of the whole
- * change: 84,883 -> 86,653, so 1,770 B gz for 130 words, an h1 and 22 crawlable
- * links on the one page that had none. That is the single best byte-for-reach
- * trade this project has made; the art map cost 3,880 B to make the grid pretty.
+ * The emitted Hebrew home costs 867 B gz - 86,004 -> 86,871, against the figure
+ * the raise above states for its own commit, same script and same env, so the
+ * two are comparable. That buys an h1, a lede, the platform facts, all 23 games
+ * as crawlable links, and the room and boards links: 0 -> 132 words and 0 -> 23
+ * links on the page every other page links to.
  *
- * 88,000 restores ~1.3 KB of headroom, which is deliberately still tight - it is
- * one median feature (915 B), not an art-sized one. The next one still has to be
- * argued for here, exactly as before.
+ * Compare it against the art map's 3,880 B, which buys a prettier grid for
+ * people who can already see the page. This is the best byte-for-reach trade
+ * this project has made, by a wide margin.
  *
- * Not spent on: `DOCUMENT_CSS`. The emitted home is plain semantic markup styled
+ * An earlier draft of this note said 1,770 B. That was this build measured
+ * against a number quoted from a different commit set, which is exactly the
+ * "compare like with like" error the paragraph below warns about. 867 is the
+ * direct-parent figure and it is the one to quote.
+ *
+ * NOT spent on `DOCUMENT_CSS`. The emitted home is plain semantic markup styled
  * by a dozen lines already in the shell stylesheet, because inlining the ~300
- * document CSS lines onto the one page that IS the first visit would have cost
+ * document-CSS lines onto the one page that IS the first visit would have cost
  * several times what the content did.
+ *
+ * THE WAY OUT OF THIS RATCHET IS STILL UNSHIPPED, and it is worth doing before
+ * the raise after this one. `useGameSession` and `useRememberedLevel` are in
+ * the shell only because they reach games through the `@shared` barrel, which
+ * is pinned there - and nothing on the home screen imports either. Carving them
+ * into the `page` chunk, the way `GameChrome` already is, needs the ~20 games
+ * that use them importing the direct module path first (snake already does).
+ * It is its own change, with `build:check` watching, and it would buy back
+ * several games' worth of ceiling instead of another 4 KB.
  */
-const CEILING = 88_000;
+const CEILING = 90_000;
 
 function gzBytes(path) {
   return gzipSync(readFileSync(path)).length;

@@ -25,6 +25,7 @@ import { meta as bees } from "../games/bees/meta";
 import { meta as frog } from "../games/frog/meta";
 import { meta as reaction } from "../games/reaction/meta";
 import { meta as blocks } from "../games/blocks/meta";
+import { meta as wordguess } from "../games/wordguess/meta";
 
 /**
  * The roster, in the order the home grid renders it.
@@ -53,6 +54,11 @@ export const GAMES: ReadonlyArray<GameMeta> = [
   sudoku,
   snake,
   blocks,
+
+  // The first game here that a player has to be able to READ. It sits under
+  // `learn` beside `sortsize` rather than in the kids block above, and its
+  // `ageBand` is "all" for the same reason - a five-year-old cannot play it.
+  wordguess,
 
   // Wave 1 - the pre-reading kids catalog. `sortsize` sits under `learn`
   // (pre-numeric ordering); the rest under `think`.

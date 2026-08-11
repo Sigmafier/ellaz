@@ -37,10 +37,11 @@ the `@sdk` / `@ui` / `@juice` / `@i18n` / `@shared` aliases, never deep paths):
 
 | Module | Responsibility |
 |--------|----------------|
-| `src/sdk` | The neutral **GameModule / GameContext** contract: `SaveStore`, analytics, audio, speech, lifecycle, ads stubs, plus the two policy modules below |
+| `src/sdk` | The neutral **GameModule / GameContext** contract: `SaveStore`, analytics, audio, speech, lifecycle, ads stubs, plus the three policy modules below |
 | `src/sdk/economy.ts` | The **only** place a reward amount is decided |
 | `src/sdk/score.ts` | The **only** place a ranking direction is decided |
-| `src/shared` | Neutral game helpers — seeded rng, pentatonic notes, `winMoment()` (the canonical win) |
+| `src/sdk/session.ts` | The **only** place it is decided whether a stored position is still safe to load |
+| `src/shared` | Neutral game helpers — seeded rng, pentatonic notes, `winMoment()` (the canonical win), `useGameTimer`, and the two persistence hooks (`useRememberedLevel`, `useGameSession`) |
 | `src/ui` | Design tokens + RTL-aware components + `DifficultySelector` + `gameArtView` (a game's key art with the emoji fallback, shared by the home grid and the boards so there is one answer to what a game looks like) |
 | `src/juice` | Game-feel kit — haptics, shake, particle burst, confetti, `flyTo`, tween |
 | `src/i18n` | he (RTL) + en (LTR) strings + direction |
@@ -62,6 +63,8 @@ interface GameContext {
   speech: SpeechPort;                 // Web Speech TTS; ALWAYS supplementary
   rewards: RewardsPort;               // grant() only — no spend()
   score: ScorePort;                   // report()/best() only — no clear()
+  session: SessionPort;               // where they left off; load() answers
+                                      // undefined for anything untrustworthy
   lifecycle: { loadingStart/Finished; gameplayStart/Stop };
   ads: { interstitial(); rewarded() };// no-op stubs in v1
   onRequestExit; onPause; onResume; onResize;
@@ -82,6 +85,30 @@ leaderboard sorts. Tuning either is a one-file change.
 
 Details: [`rewards-economy-convention.md`](../.claude/rules/rewards-economy-convention.md)
 · [`score-contract-convention.md`](../.claude/rules/score-contract-convention.md).
+
+### The third policy port: where the player left off
+
+`SessionPort` is the same shape one step further out. A game reports **where it
+is**; `session.ts` alone decides whether a stored position is still usable —
+version, age, byte cap, and the game's own shape check, every one of them
+failing to `undefined`, which is the same answer as "never played". So a game
+needs one code path for a corrupt snapshot and a first-ever visit.
+
+It exists as a port for the reason the other two do: a wrong answer here does
+not throw. It renders a plausible board that the game's own rules can no longer
+explain.
+
+Two things a snapshot carries that are not the board, and both are load-bearing:
+every **latch recording a reward the run already collected** (2048's `won` and
+`bestFired`, blocks' milestone step) — without them, leaving a game is a way to
+be paid twice — and, for a timed game, the **clock**, or every abandoned board
+becomes a personal best nobody earned.
+
+Sessions are device-local by construction: `ellaz:<gameId>:session` cannot match
+the anchored `ellaz:<game>:score:<board>` pattern `records.ts` validates, so a
+cloud restore moves coins and records and never a board mid-play.
+
+Details: [`session-snapshot-convention.md`](../.claude/rules/session-snapshot-convention.md).
 
 ## Rendering split
 
