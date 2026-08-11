@@ -47,6 +47,20 @@ jobs:
       - name: Fetch every sitemap URL as Googlebot
         env:
           CRAWL_ORIGIN: ${{ inputs.origin || 'https://ellaz.fun' }}
+          # ARMS the content floor: a sitemap URL under 60 words / 3 links / 1 h1
+          # now FAILS the run instead of printing an advisory line.
+          #
+          # It shipped advisory on purpose, because a known offender was live -
+          # `/` served a 29-byte body and was invisible to every answer engine,
+          # which do not run JavaScript. A gate that reds on day one for
+          # something nobody can fix that day teaches its reader to ignore the
+          # daily email, which is the exact failure this whole file guards.
+          #
+          # Armed 2026-08-11, in the same change that verified the last offender
+          # passes: all 52 URLs carry a real body, and `/` went 0 -> 132 words,
+          # 0 -> 26 links, measured on the LIVE site as Googlebot rather than
+          # against dist/.
+          CRAWL_CONTENT_FLOOR: "1"
         run: node scripts/assert-crawlable.mjs
 
       # A red run is the alarm: GitHub emails the repo owner on a failed
