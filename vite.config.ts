@@ -4,6 +4,10 @@ import { VitePWA } from "vite-plugin-pwa";
 import { fileURLToPath, URL } from "node:url";
 import { pagesPlugin } from "./src/build/pages";
 import { DEFAULT_THEME, needsThemeBoot, themeBootScript, themeById } from "./src/ui/themes";
+// Safe to import HERE for the same reason `themes.ts` is: `locales.ts` is a
+// leaf that imports nothing. Never reach for a game module at config time -
+// a stray `import("./src/games/snake")` would load Phaser inside this file.
+import { CANONICAL_LOCALE, PAGE_LOCALES } from "./src/i18n/locales";
 
 // The default theme, read from the one file that declares it. `themes.ts`
 // imports nothing precisely so it can be imported HERE - Vite's resolve.alias
@@ -138,11 +142,27 @@ export default defineConfig({
           "**/vendor-analytics-*.js",
           "**/cloud-*.js",
           "**/page-*.js",
+          // A dictionary is a whole language of chrome. Precaching eleven of
+          // them puts ten languages nobody asked for on a child's first visit,
+          // which is the entire reason they are separate chunks at all.
+          "**/locale-*.js",
           "games/**",
-          "en/**",
           "world/**",
           "boards/**",
           "404.html",
+          // DERIVED, and it used to be the literal string "en/**".
+          //
+          // That literal was correct and about to become a live defect: the day
+          // Spanish pages ship, `es/**` is a directory of 25 real documents that
+          // NOTHING excludes, so all of them land in the precache and a child in
+          // Tel Aviv downloads the Spanish site before choosing a game. Nothing
+          // would have failed - the build stays green and the payload gate reads
+          // index.html, not the manifest. Same class as the chunk-prefix trap in
+          // .claude/rules/precache-glob-sweeps-new-chunks.md, on a new axis.
+          //
+          // The canonical locale has no directory of its own; its pages are at
+          // the root and are covered by the entries above.
+          ...PAGE_LOCALES.filter((l) => l !== CANONICAL_LOCALE).map((l) => `${l}/**`),
         ],
         runtimeCaching: [
           {
@@ -218,6 +238,17 @@ export default defineConfig({
           // can render without any game code. It must never land in a lazy game
           // chunk — that would make the shell pull all 32 games in on first paint.
           if (/\/src\/games\/[^/]+\/meta\.tsx?$/.test(path)) return "shell";
+
+          // One dictionary per language, so a visitor fetches the one language
+          // they picked instead of all eleven. NAMING it is half of what makes
+          // the deferral real: an unnamed chunk is emitted as `module-<hash>.js`,
+          // which no globIgnores entry can match, so it lands straight back in
+          // the precache and the whole split buys nothing.
+          //
+          // `he` and `en` are deliberately NOT here - they fall through to the
+          // shell rule below, which is where they have always been.
+          const dict = /\/src\/i18n\/dict\/([a-z]{2})\.ts$/.exec(path);
+          if (dict && dict[1] !== "he" && dict[1] !== "en") return `locale-${dict[1]}`;
 
           // One chunk per game directory, so 32 games are 32 independently
           // cacheable files instead of one wall of `index-<hash>.js`.

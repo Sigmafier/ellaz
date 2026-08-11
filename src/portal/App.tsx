@@ -1,15 +1,19 @@
 import { useEffect, useState } from "react";
-import type { Locale } from "@i18n/index";
-import { DIR } from "@i18n/index";
+import type { AppLocale } from "@i18n/locales";
+import { APP_LOCALES } from "@i18n/locales";
+import { DIR, isLoaded, loadDict } from "@i18n/index";
 import { analytics, startCloudSync } from "@sdk/index";
 import { Home } from "./Home";
 
 const LOCALE_KEY = "ellaz:locale";
 
-function initialLocale(): Locale {
+function initialLocale(): AppLocale {
   try {
     const saved = localStorage.getItem(LOCALE_KEY);
-    if (saved === "he" || saved === "en") return saved;
+    // Validated against the list rather than trusted. A stored locale this
+    // build no longer speaks - a language removed, or a hand-edited value -
+    // must fall back to Hebrew, not render a screen of raw key names.
+    if (saved && (APP_LOCALES as readonly string[]).includes(saved)) return saved as AppLocale;
   } catch {
     /* ignore */
   }
@@ -29,7 +33,27 @@ function initialLocale(): Locale {
 // shareable, middle-click opens a game in a new tab, and a crawler that lands
 // here finds twenty-one links instead of twenty-one buttons.
 export function App() {
-  const [locale, setLocale] = useState<Locale>(initialLocale);
+  const [locale, setLocale] = useState<AppLocale>(initialLocale);
+  // Bumped when a lazy dictionary arrives, purely to re-render. `loaded` lives
+  // in the i18n module rather than in React state because it is shared by every
+  // screen and must survive a remount; this is the one line that tells React
+  // something it cannot see changed.
+  const [, setDictTick] = useState(0);
+
+  // The stored language may be one of the nine that live in their own chunk, so
+  // the very first render of a returning Spanish visitor happens before their
+  // strings exist. That render is ENGLISH, not blank and not Hebrew - see the
+  // fallback order in `makeT`.
+  useEffect(() => {
+    if (isLoaded(locale)) return;
+    let live = true;
+    void loadDict(locale).then(() => {
+      if (live) setDictTick((n) => n + 1);
+    });
+    return () => {
+      live = false;
+    };
+  }, [locale]);
 
   useEffect(() => {
     analytics.init();
@@ -46,15 +70,19 @@ export function App() {
     document.documentElement.dir = DIR[locale];
   }, [locale]);
 
-  const toggleLocale = () => {
-    const next: Locale = locale === "he" ? "en" : "he";
-    setLocale(next);
-    try {
-      localStorage.setItem(LOCALE_KEY, next);
-    } catch {
-      /* ignore */
-    }
+  const pickLocale = (next: AppLocale) => {
+    // Fetch FIRST, then switch. Switching first would flash English for the
+    // length of a network round trip on a screen the player is looking at,
+    // which reads as the app breaking rather than as the app loading.
+    void loadDict(next).then(() => {
+      setLocale(next);
+      try {
+        localStorage.setItem(LOCALE_KEY, next);
+      } catch {
+        /* ignore */
+      }
+    });
   };
 
-  return <Home locale={locale} onToggleLocale={toggleLocale} />;
+  return <Home locale={locale} onPickLocale={pickLocale} />;
 }

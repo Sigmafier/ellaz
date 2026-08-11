@@ -93,6 +93,28 @@ export type PageLocale = (typeof PAGE_LOCALES)[number];
 const _pageLocalesAreAppLocales: readonly AppLocale[] = PAGE_LOCALES;
 void _pageLocalesAreAppLocales;
 
+/**
+ * Which page a visitor reading the app in `locale` should be sent to.
+ *
+ * The app speaks eleven languages; pages exist in two. So a Spanish-speaking
+ * player tapping a game card goes to the ENGLISH page, because the Spanish one
+ * does not exist and will not until somebody writes it.
+ *
+ * That is not a compromise, it is the same answer `x-default` gives a crawler,
+ * and making it a function rather than an inline `?:` is what stops it drifting:
+ * the day Spanish is promoted to a PAGE locale this returns `"es"` on its own,
+ * with no call site to find.
+ *
+ * The alternative - emitting a Spanish route because the app has a Spanish
+ * dictionary - is the exact duplicate-content anti-pattern the two locale sets
+ * exist to prevent. A translated BUTTON is not a translated ARTICLE.
+ */
+export function pageLocaleFor(locale: string): PageLocale {
+  return (PAGE_LOCALES as readonly string[]).includes(locale)
+    ? (locale as PageLocale)
+    : DEFAULT_LOCALE;
+}
+
 /** Whether a language reads right-to-left. Arabic joins Hebrew; nothing else does. */
 export const RTL: ReadonlySet<string> = new Set<AppLocale>(["he", "ar"]);
 

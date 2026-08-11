@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { LOCALES } from "@i18n/index";
+// PAGE_LOCALES, not LOCALES. A shop item's name is AUTHORED text, so it has
+// the two languages somebody wrote it in - not the eleven the interface
+// speaks. Iterating the app list here would demand a Turkish name for every
+// rug, which is the payload mistake this whole split exists to avoid.
+import { PAGE_LOCALES } from "@i18n/locales";
 import { ALL_ITEMS, CATEGORIES, defaultFor, artFor, itemById } from "./items";
 
 // The catalogue is persisted data: an id here ends up in a player's
@@ -37,7 +41,7 @@ describe("catalogue integrity", () => {
 
   it("names every item in both locales", () => {
     for (const item of ALL_ITEMS) {
-      for (const locale of LOCALES) {
+      for (const locale of PAGE_LOCALES) {
         expect(item.name[locale], `${item.id}.name.${locale}`).toBeTruthy();
         expect(item.name[locale].trim().length, `${item.id}.name.${locale}`).toBeGreaterThan(0);
       }

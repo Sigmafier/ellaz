@@ -813,6 +813,55 @@ consulted. `/` is still the Hebrew home and still ranks as Hebrew.
 Full rule, including why the picker carries autonyms and never flags:
 [`.claude/rules/a-locale-page-without-a-translated-body-is-a-duplicate.md`](.claude/rules/a-locale-page-without-a-translated-body-is-a-duplicate.md).
 
+**The interface speaks all eleven, and each language is its own lazy chunk.**
+`src/i18n/dict/<locale>.ts` holds one language of chrome (89 strings). `he` and
+`en` are STATIC — they are the two the shell has always carried, so the split
+cost the first visit nothing — and the other nine are `locale-<xx>` chunks
+fetched only by somebody who picked them, ~1.3 KB gz each, excluded from the
+precache. Until a chunk lands, strings resolve through **English, not Hebrew**:
+a Turkish visitor seeing English for 200 ms is reading a language they may know;
+Hebrew is an alphabet they cannot.
+
+**There are now two locale TYPES and they mean different things.** `AppLocale`
+is what the interface is speaking (11). `Locale` is still `he | en` and means
+*a human wrote this string* — a game title, a difficulty label, the name of an
+animal a game reads aloud. Widening `Locale` was tried first and the compiler
+answered with **200+ errors demanding a Spanish name for every balloon**, which
+is the right answer to the wrong question. It would also have been a payload
+disaster: `meta.ts` is statically imported by the roster, so eleven titles per
+game is 23 × 9 extra strings **in the shell**. Authored text is read through
+**`textFor(authored, locale)`**, which falls back to English rather than
+rendering `undefined` into a blank game card, and page links go through
+**`pageLocaleFor(locale)`** — the app can speak Spanish while its *pages* exist
+in two languages, which is the same answer `x-default` gives a crawler.
+
+**`globIgnores` no longer hardcodes `en/**`.** It is derived from
+`PAGE_LOCALES`, because the literal was correct and one commit from being a live
+defect: the day Spanish pages ship, `es/**` is 25 real documents that nothing
+excludes, so a child in Tel Aviv precaches the Spanish site. Nothing would have
+failed — green build, and the payload gate reads `index.html`, not the manifest.
+
+**The trap this cost, and the gate that now catches it: nine correctly-named,
+correctly-excluded, EMPTY chunks look exactly like success.** The dictionaries
+landed before the picker that fetches them, so nothing called `loadDict`, Rollup
+tree-shook them away, and the build emitted nine 0-byte files sharing one content
+hash. `assert-first-visit.mjs` now fails on an empty locale chunk, on two
+sharing a hash (two languages are never byte-identical), and on none existing at
+all. Mutation-proven 4 ways.
+
+Measured on the artifact, driven in a real browser at 390 px with a fresh
+context per language: the picker holds **11 languages over 6 rows** with no
+clipped label, each dictionary arrives **over the network**, Arabic flips
+`dir="rtl"`, and a game card falls back to `Memory` rather than blank. First
+visit **88,188 B gz of 90,000 — 1,812 spare**, up 1,261 B for the picker and the
+loader.
+
+**Still English-only behind the chrome**, stated rather than left to be
+discovered: `shared/cast.ts` (58 animal names), `portal/world/items.ts` (24 shop
+items), `sdk/names.ts` (the name pool) and the per-game strings are all still
+`he | en`. They live behind lazy chunks and fall back to English, so nothing
+breaks — a Spanish child gets Spanish chrome and English animal names.
+
 ## The words on a game page
 
 Each game gets ~750 words per language at `src/content/games/<id>.ts`. Three rules,

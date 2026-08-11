@@ -37,7 +37,7 @@
 // running the same extractor over a planted manifest and requiring it to find
 // the forbidden entries. If the control does not fire, the script exits
 // non-zero even when the real assertion "passed".
-import { readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const DIST = process.env.DIST_DIR ?? "dist";
@@ -89,6 +89,10 @@ const KNOWN_BAD = [
   {
     prefix: "page-",
     why: "the content-page runtime (game host + room) — only a game page or /world/ needs it, so `/` must not fetch it",
+  },
+  {
+    prefix: "locale-",
+    why: "one language's UI strings — only the visitor who picked that language fetches it; eleven in the shell is ten languages nobody asked for",
   },
   {
     prefix: "module-",
@@ -209,6 +213,56 @@ function main() {
       why: known ? known.why : "not a known shell asset — precache is an allowlist",
     });
   }
+
+  // ---- the lazy chunks exist AND are not hollow -------------------------
+  //
+  // A lazy chunk is only real while something still calls the loader that
+  // imports it. Drop the last caller and Rollup tree-shakes the module away,
+  // then emits the chunk ANYWAY - correctly named, correctly excluded from the
+  // precache, and empty. Every check in this file passes, the payload gate
+  // passes because the shell genuinely did shrink, and the feature is simply
+  // gone.
+  //
+  // That is not hypothetical: it is exactly what this build did on 2026-08-11,
+  // when the dictionaries landed before the picker that fetches them. Nine
+  // chunks, one shared hash, 0 bytes each.
+  //
+  // The identical-hash test is the sharp half. Two dictionaries with the same
+  // content hash are the same file, and two different languages never are.
+  const lazyDir = join(DIST, "assets");
+  const locales = existsSync(lazyDir)
+    ? readdirSync(lazyDir).filter((f) => /^locale-[a-z]{2}-.*\.js$/.test(f))
+    : [];
+  if (locales.length === 0) {
+    console.error("FAIL  no locale-*.js chunks — the per-language split is not building at all.");
+    process.exit(1);
+  }
+  const hollow = locales.filter((f) => statSync(join(lazyDir, f)).size < 500);
+  if (hollow.length > 0) {
+    console.error(
+      `FAIL  ${hollow.length} locale chunk(s) are empty: ${hollow.join(", ")}\n` +
+        "      Nothing calls loadDict(), so the dictionaries were tree-shaken away.\n" +
+        "      The chunks are still emitted, still named and still excluded — and hollow.",
+    );
+    process.exit(1);
+  }
+  const byHash = new Map();
+  for (const f of locales) {
+    const hash = /^locale-[a-z]{2}-(.+)\.js$/.exec(f)[1];
+    if (byHash.has(hash)) {
+      console.error(
+        `FAIL  ${byHash.get(hash)} and ${f} share a content hash — they are the same file.\n` +
+          "      Two different languages are never byte-identical.",
+      );
+      process.exit(1);
+    }
+    byHash.set(hash, f);
+  }
+  const lazyBytes = locales.reduce((n, f) => n + statSync(join(lazyDir, f)).size, 0);
+  console.log(
+    `lazy languages: ${locales.length} chunks, ${(lazyBytes / 1024).toFixed(1)} KiB total, ` +
+      `none precached, none empty, all distinct`,
+  );
 
   const total = urls.reduce((n, u) => n + sizeOf(u), 0);
   const kib = (total / 1024).toFixed(2);

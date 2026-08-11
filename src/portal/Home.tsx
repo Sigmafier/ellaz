@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import type { Locale } from "@i18n/index";
-import { makeT } from "@i18n/index";
+import type { AppLocale } from "@i18n/locales";
+import { makeT, textFor, pageLocaleFor } from "@i18n/index";
 import { CATALOG, CATEGORY_ORDER, findEntry, type CatalogEntry } from "./catalog";
 import { audioPort, speechPort, wallet, type Category, type ProfileV1 } from "@sdk/index";
 import { boardsHref, gameHref, worldHref } from "./paths";
@@ -12,6 +12,7 @@ import type { CardStyle } from "@ui/cardStyle";
 import { useTheme } from "@ui/useTheme";
 import { themeById } from "@ui/themes";
 import { attachShellJuice } from "@juice/index";
+import { LanguagePicker } from "@ui/LanguagePicker";
 import { WalletChip } from "./WalletChip";
 import { Scene } from "./world/Scene";
 
@@ -41,10 +42,10 @@ const RECENT_LIMIT = 4;
 
 export function Home({
   locale,
-  onToggleLocale,
+  onPickLocale,
 }: {
-  locale: Locale;
-  onToggleLocale: () => void;
+  locale: AppLocale;
+  onPickLocale: (next: AppLocale) => void;
 }) {
   const t = makeT(locale);
   const [profile, setProfile] = useState<ProfileV1>(() => wallet.snapshot());
@@ -126,22 +127,7 @@ export function Home({
           <WalletChip />
           <CardStyleToggle locale={locale} onTap={tap} />
           <ThemeToggle locale={locale} onTap={tap} />
-          <button
-            aria-label={t("language")}
-            onClick={onToggleLocale}
-            style={{
-              minHeight: "var(--tap)",
-              padding: "0 16px",
-              borderRadius: "var(--radius-pill)",
-              border: "none",
-              background: "var(--surface-2)",
-              color: "var(--text)",
-              fontWeight: 800,
-              fontSize: 15,
-            }}
-          >
-            {locale === "he" ? "EN" : "עב"}
-          </button>
+          <LanguagePicker locale={locale} onPick={onPickLocale} onTap={tap} />
         </header>
 
         <WorldHero profile={profile} locale={locale} onTap={tap} />
@@ -156,7 +142,7 @@ export function Home({
             mid-DOM, which would take the room card apart. */}
         {recent.length > 0 && (
           <a
-            href={boardsHref(locale)}
+            href={boardsHref(pageLocaleFor(locale))}
             onClick={tap}
             style={{
               display: "block",
@@ -252,12 +238,12 @@ export function Home({
  * glyph is a button label rather than a status readout. Its `aria-label` says
  * so in words, since a sun on its own is ambiguous either way.
  */
-function ThemeToggle({ locale, onTap }: { locale: Locale; onTap: () => void }) {
+function ThemeToggle({ locale, onTap }: { locale: AppLocale; onTap: () => void }) {
   const [theme, setTheme] = useTheme();
   const next = themeById(theme === "night" ? "market" : "night");
   return (
     <button
-      aria-label={`${locale === "he" ? "ערכת נושא" : "Theme"}: ${next.label[locale]}`}
+      aria-label={`${textFor({ he: "ערכת נושא", en: "Theme" }, locale)}: ${textFor(next.label, locale)}`}
       onClick={() => {
         onTap();
         setTheme(next.id);
@@ -287,7 +273,7 @@ function ThemeToggle({ locale, onTap }: { locale: Locale; onTap: () => void }) {
  * theme pill beside it - a toggle that shows its current state leaves you
  * guessing what pressing it does.
  */
-function CardStyleToggle({ locale, onTap }: { locale: Locale; onTap: () => void }) {
+function CardStyleToggle({ locale, onTap }: { locale: AppLocale; onTap: () => void }) {
   const [style, setStyle] = useCardStyle();
   const next: CardStyle = style === "art" ? "emoji" : "art";
   const label =
@@ -332,13 +318,13 @@ function WorldHero({
   onTap,
 }: {
   profile: ProfileV1;
-  locale: Locale;
+  locale: AppLocale;
   onTap: () => void;
 }) {
   const t = makeT(locale);
   return (
     <a
-      href={worldHref(locale)}
+      href={worldHref(pageLocaleFor(locale))}
       onClick={onTap}
       aria-label={t("world")}
       style={{
@@ -398,7 +384,7 @@ function CategoryRail({
   chips: typeof CATEGORY_ORDER;
   value: Filter;
   onChange: (f: Filter) => void;
-  locale: Locale;
+  locale: AppLocale;
   allLabel: string;
 }) {
   const t = makeT(locale);
@@ -459,13 +445,13 @@ function RecentCard({
   onTap,
 }: {
   entry: CatalogEntry;
-  locale: Locale;
+  locale: AppLocale;
   onTap: () => void;
 }) {
   const { meta } = entry;
   return (
     <a
-      href={gameHref(meta.id, locale)}
+      href={gameHref(meta.id, pageLocaleFor(locale))}
       onPointerEnter={() => void entry.load().catch(() => {})}
       onClick={onTap}
       style={{
@@ -503,7 +489,7 @@ function RecentCard({
           textOverflow: "ellipsis",
         }}
       >
-        {meta.title[locale]}
+        {textFor(meta.title, locale)}
       </span>
     </a>
   );
@@ -517,7 +503,7 @@ function GameCard({
   t,
 }: {
   entry: CatalogEntry;
-  locale: Locale;
+  locale: AppLocale;
   stars: number;
   onTap: () => void;
   t: (k: string) => string;
@@ -527,7 +513,7 @@ function GameCard({
   const prefetch = () => void entry.load().catch(() => {});
   return (
     <a
-      href={gameHref(meta.id, locale)}
+      href={gameHref(meta.id, pageLocaleFor(locale))}
       onPointerEnter={prefetch}
       onTouchStart={prefetch}
       onClick={onTap}
@@ -535,8 +521,8 @@ function GameCard({
       // reader announcing only the game name would lose the progress entirely.
       aria-label={
         stars > 0
-          ? `${meta.title[locale]}, ${stars} ${t(stars === 1 ? "starEarnedOne" : "starsEarned")}`
-          : `${meta.title[locale]}, ${t("noStarsYet")}`
+          ? `${textFor(meta.title, locale)}, ${stars} ${t(stars === 1 ? "starEarnedOne" : "starsEarned")}`
+          : `${textFor(meta.title, locale)}, ${t("noStarsYet")}`
       }
       style={{
         border: "none",
@@ -628,7 +614,7 @@ function GameCard({
           textOverflow: "ellipsis",
         }}
       >
-        {meta.title[locale]}
+        {textFor(meta.title, locale)}
       </span>
     </a>
   );

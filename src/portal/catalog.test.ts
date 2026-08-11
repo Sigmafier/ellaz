@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { CATALOG, CATEGORY_ORDER, findEntry } from "./catalog";
-import { STRINGS } from "@i18n/index";
+// The two static dictionaries, read directly. They used to be reached through a
+// `STRINGS` Proxy on the old key-first table, which was kept alive purely for
+// this test and shipped its whole implementation to every child on first load.
+import { he } from "@i18n/dict/he";
+import { en } from "@i18n/dict/en";
 
 // Property-based on purpose: assertions describe what EVERY entry must satisfy,
 // so adding a game passes without touching this file. The count is a ratchet
@@ -52,8 +56,8 @@ describe("catalog", () => {
     for (const e of CATALOG) {
       expect(rendered.has(e.meta.category)).toBe(true);
       const key = CATEGORY_ORDER.find((c) => c.category === e.meta.category)!.titleKey;
-      expect(STRINGS[key]?.he).toBeTruthy();
-      expect(STRINGS[key]?.en).toBeTruthy();
+      expect(he[key as keyof typeof he]).toBeTruthy();
+      expect(en[key as keyof typeof he]).toBeTruthy();
     }
   });
 });
