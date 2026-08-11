@@ -1,91 +1,94 @@
-# Ellaz — Cross-Device Games Platform
+# Ellaz
 
-One website where kids and adults play our games on **phone, tablet, and PC**. Games
-are installable (PWA), work offline, and speak **Hebrew + English (RTL-aware)**.
+**Free browser games for kids, in Hebrew and English.** No ads, no account, no
+downloads, and it works offline. One site that plays the same on a phone, a tablet
+and a PC.
 
-Wave 1 ships four games proving both rendering paths and both audiences:
+### ▶ **[ellaz.fun](https://ellaz.fun/)**
 
-| Game | Audience | Renderer |
-|------|----------|----------|
-| 🧠 Memory | kids (age 5) | React DOM |
-| 🎨 Coloring | kids | React DOM + SVG |
-| 🔢 2048 | everyone | React DOM |
-| 🐍 Snake | everyone | Phaser 4 (canvas) |
+[![Ellaz](https://ellaz.fun/og/home-en.png)](https://ellaz.fun/)
+
+Hebrew is the default and the whole interface is RTL-aware; English is a click away.
+Nothing is stored on a server — progress lives on the device, so there is nobody to
+sign up to and nothing to review.
+
+## What is in it
+
+Twenty-three games, sixteen of them made for young children and the rest for anyone:
+memory, colouring, spot-the-difference, hidden-object, mental arithmetic, 2048,
+tic-tac-toe, minesweeper, sudoku, snake, falling blocks, word guess, and a dozen more.
+Every game has difficulty levels or an endless ladder, keeps a personal best, and pays
+out coins and stars into a room the player decorates.
+
+`src/portal/catalog.ts` is the source of truth for that list, and a test ratchets the
+count, so this paragraph is the thing that goes stale — not the site.
+
+## Why it might interest you as code
+
+- **No backend, by design.** Saves, coins, records and the room are all `localStorage`.
+  Cloud backup talks to Firestore over plain HTTP rather than pulling in the ~150 KB
+  Firebase SDK to do three REST calls.
+- **A first visit is budget-gated.** `scripts/assert-payload.mjs` fails the build if the
+  shell a child downloads before choosing a game crosses its ceiling. Every game, and
+  Phaser itself, is a lazy chunk excluded from the precache.
+- **Every game is a pure `logic.ts` plus a renderer.** The rules import no DOM and no
+  Phaser, take an injectable rng, and are unit-tested on their own. Renderers are React
+  DOM or a Phaser 4 scene.
+- **Every game has a real web address, in both languages.** The site is a few dozen
+  emitted documents rather than one, each carrying its content in the HTML — because AI
+  crawlers do not run JavaScript. Gates assert the pages, the payload, the crawlability
+  over the network, and that the live site serves the build that was just made.
+- **Policy lives in one file each.** Games report *what happened* — a reason, a score
+  and a unit — and `src/sdk/{economy,score,session}.ts` alone decide what that is worth,
+  how it ranks, and whether a saved position is still usable.
 
 ## Run it
 
 ```bash
 npm install
-npm run dev        # http://localhost:5180
-npm test           # 26 pure-logic + catalog tests
-npm run build      # type-check + production PWA build → dist/
-npm run preview    # serve the production build
+npm run dev          # http://localhost:5180  (no service worker - use this for QA)
+npm test             # pure-logic, catalog, content and build tests
+npm run build        # type-check + production PWA build -> dist/
+npm run build:check  # build + payload, first-visit and page gates
 ```
 
-Optional analytics: copy `.env.example` → `.env` and add a PostHog **public** project
-key. Without a key, events log to the console in dev and are silent in prod.
-
-## Architecture
-
-A single Vite app with strict internal module boundaries that mirror the planned
-extractable packages 1:1:
+## Layout
 
 ```
 src/
-├─ sdk/      Game SDK — the neutral contract every game implements
-│            (GameModule/GameContext, save store, analytics, audio, lifecycle, ads)
-├─ ui/       Design tokens + RTL-aware components (Hebrew-first fonts, big targets)
-├─ juice/    Game-feel kit — haptics, screen shake, particle burst, tween
-├─ i18n/     he/en strings + direction
-├─ portal/   Shell — home grid, hash router, lazy game loader (GameHost)
+├─ sdk/      the contract every game implements: save, analytics, audio, speech,
+│            lifecycle, ads, and the rewards / score / session policy ports
+├─ shared/   neutral helpers - rng, the canonical win moment, the level+session hooks
+├─ ui/       design tokens and RTL-aware components, Hebrew-first
+├─ juice/    haptics, shake, particles, confetti, the coin flight
+├─ i18n/     the languages the interface speaks, and the ones that have prose
+├─ portal/   the shell: home grid, routing, game host, the room and the shop
+├─ build/    BUILD-TIME ONLY - the emitted pages, sitemap, schema and share cards
 └─ games/<id>/
-   ├─ logic.ts        PURE game logic — no DOM/Phaser, unit-tested (TDD)
+   ├─ meta.ts      DOM-free metadata the catalog imports statically
+   ├─ logic.ts     pure rules, no DOM, no Phaser, injectable rng
    ├─ logic.test.ts
-   └─ <Renderer>      React component (DOM) or Phaser scene (canvas)
+   └─ renderer     a React component, or a Phaser scene
 ```
 
-**Rules that keep it fast + modular**
-
-- `logic.ts` imports nothing from DOM/Phaser → trivially testable + reusable.
-- Every game is lazy-loaded via `import()`; Phaser sits in one shared vendor chunk,
-  downloaded once and cached across all canvas games.
-- Games talk only to the SDK `GameContext` (save, analytics, audio, lifecycle, ads) —
-  never to portal internals. The lifecycle/ads shape matches the **Poki + CrazyGames**
-  union, so games can list on those portals later with zero rewrites.
-- Analytics is anonymous, kid-safe (COPPA internal-operations): no `identify()`, no
-  PII, no session replay, no behavioral ads.
-
-## Add a new game in ~30 minutes
-
-1. `src/games/<id>/logic.ts` — pure rules + `logic.test.ts` (write tests first).
-2. Renderer:
-   - **DOM game**: `<Game>.tsx` React component taking `{ ctx }`, then
-     `index.ts` = `reactGame(meta, ctx => createElement(Game, { ctx }))`.
-   - **Canvas game**: a `Phaser.Scene` + `index.ts` exporting a `GameModule` that
-     boots `new Phaser.Game({ parent: ctx.mount, ... })` (see `games/snake`).
-3. Register it in `src/portal/catalog.ts` (metadata + `load: () => import(...)`).
-
-That's the whole factory. The SDK, UI, juice, i18n, PWA, and analytics come for free.
+Contributor and architecture notes, including the traps this codebase has already paid
+for, are in [`CLAUDE.md`](CLAUDE.md), [`docs/architecture.md`](docs/architecture.md) and
+[`docs/build-log.md`](docs/build-log.md).
 
 ## Deploy
 
-**Push to `main`.** Two workflows publish to two hosts automatically:
+Push to `main`. Two workflows publish to two hosts by themselves:
 
 | URL | Host | Workflow |
 |---|---|---|
-| **<https://ellaz.fun/>** — the live site | Hostinger (FTPS) | `deploy-hostinger.yml` |
-| <https://sigmafier.github.io/ellaz/> | GitHub Pages | `deploy-pages.yml` |
+| **<https://ellaz.fun/>** — the live site | Hostinger, over FTPS | `deploy-hostinger.yml` |
+| <https://sigmafier.github.io/ellaz/> | GitHub Pages (a `noindex` mirror) | `deploy-pages.yml` |
 
-Nothing needs to be built or uploaded by hand, and a green run is not proof a
-deploy happened — check the upload step, not the checkmark. Full runbook,
-verified host settings, cache-header design and troubleshooting:
-**[`docs/deploy.md`](docs/deploy.md)**.
+A green run is not proof a deploy happened — `scripts/assert-live.mjs` runs in the same
+job and fails the run unless the live site is serving the assets that were just built.
+The full runbook is [`docs/deploy.md`](docs/deploy.md).
 
-The Firebase config (`firebase.json`) is still in the repo but is not part of any
-pipeline and does not serve ellaz.fun.
+## Licence
 
-## Roadmap
-
-Wave 2+ (data-driven, each its own plan): find-the-difference, hidden-object,
-tic-tac-toe, sudoku, minesweeper, word-guess (he/en), block-fall, bubble shooter,
-solitaire, checkers, arcade games. Then Capacitor store wrap + accounts/leaderboards.
+[MIT](LICENSE). The code is yours to use. The game art, names and written content are
+original work — please make your own rather than shipping ours under a new name.
