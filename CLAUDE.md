@@ -268,6 +268,55 @@ inside a user gesture for iOS; it follows the global mute; and nothing it does
 ever throws or rejects. It is ALWAYS supplementary, never the question itself:
 see the hard rule at the top of `src/sdk/speech.ts`.
 
+## Carrying on where you left off
+
+**Two layers, deliberately separate, because they have different lifetimes.**
+
+**The level, in all 20 games with a level toggle.** `useRememberedLevel` from
+`@shared` returns a `useState`-shaped pair whose setter persists, and it
+VALIDATES the stored id against the game's own option list rather than trusting
+it — `GameChrome` finds the current level with `findIndex`, so an id no longer in
+the list resolves to `-1` and **the toggle disappears**, leaving a game that
+plays perfectly with no way to change difficulty. vanish shipped this by hand
+first; it now uses the hook, under the same key with the same values.
+
+**The board, in the six games with a position worth returning to** — sudoku,
+minesweeper, 2048, blocks, memory, coloring. evolve inherits it through 2048's
+renderer under its own game id, so it gets its own namespace free. The reflex and
+endless games get level memory only: resuming a reaction test is meaningless.
+**Resume is silent** — no dialog, no reading required — and the restart button
+already in `GameChrome` is the way to a fresh board.
+
+**`ctx.session` is the third policy port**, after economy and score. A game
+reports WHERE IT IS; `src/sdk/session.ts` alone decides whether a stored position
+is still usable — version, age, a 64 KB cap and the game's own shape check, all
+failing to `undefined`, the same answer as "never played", so a game needs one
+code path for both. A wrong answer here does not throw: it renders a plausible
+board the rules can no longer explain.
+
+**A snapshot carries more than the board, and both extras are load-bearing.**
+Every **latch recording a reward the run already collected** — 2048's `won` and
+`bestFired`, blocks' milestone step — because without them leaving the game is a
+way to be **paid twice**: reach 2048, walk out, come back, and the next merge
+grants the win again, once per resume, forever. And for a timed game, the
+**clock** (`useGameTimer({ initialMs })`), or every abandoned board becomes a
+personal best nobody earned. `reset()` still goes to zero; a restart is a new run.
+
+**A state only a TIMER can leave must never reach the disk.** Memory's mismatch
+sets `lock: true` and the renderer clears it 850 ms later; a snapshot caught in
+that window restores with no timer behind it and `flip()` then refuses every
+card — a board that looks completely normal and is permanently unplayable.
+`settle()` in `memory/logic.ts` runs at SAVE time, not load time, so the disk can
+never hold that state.
+
+**Sessions are device-local by construction.** `ellaz:<gameId>:session` cannot
+match the anchored `ellaz:<game>:score:<board>` pattern `records.ts` validates,
+so a backup code moves coins and records and never a board mid-play.
+
+Full rule, including why the level is stored as an ID and never an index, and why
+the obvious verification control is undone by the feature itself:
+[`.claude/rules/session-snapshot-convention.md`](.claude/rules/session-snapshot-convention.md).
+
 ## Engine choice — settled, but read the caveat before quoting a number
 
 **Phaser 4 stays.** Three tournaments compared it head-to-head against real
@@ -393,7 +442,15 @@ separate three.js / Babylon / PlayCanvas bake-off.
      (see `games/snake`).
 4. On a win, call `winMoment(ctx, { reason, tier, level, at })` from `@shared` -
    from the event handler, never inside a `setState` updater. Render the level row
-   with `<DifficultySelector>` from `@ui`.
+   with `<DifficultySelector>` from `@ui`, and hold the level in
+   **`useRememberedLevel(ctx, ids, fallback)`** rather than `useState` so the game
+   reopens on the level last chosen - it is the same `[value, set]` shape, and the
+   setter persists. Everything a hardcoded first-level literal then feeds
+   (`useState(() => newRound("easy"))`, `ctx.score?.best("easy")`,
+   `levelStart("easy")`) must read the restored level instead, or the chrome says
+   "Hard" over an easy board. If the game has a position worth returning to, add
+   `ctx.session` + `useGameSession` as well - see § Carrying on where you left off,
+   and read the rule first, because the snapshot has to carry every reward latch.
 5. Register in **two** places, which are deliberately different lists:
    `src/portal/games.ts` holds the ordered roster (`import { meta as <id> }` plus a
    row in `GAMES`), and `src/portal/catalog.ts` holds the lazy loader
@@ -862,11 +919,26 @@ has never had data to tune against.
 
 Setting the secret is safe at any time: `build:check` fails the deploy if the
 PostHog chunk would land in the precache, rather than shipping it behind a green
-checkmark. **First visit is 85,226 B gz of the 86,000 ceiling** in
-`scripts/assert-payload.mjs` — 774 B spare, measured on the artifact 2026-08-09.
-(It was 69,624 on 2026-08-02, down from 143,234; the ceiling has moved since.)
-**Adding a game costs the SHELL about 300 B gz** even though its code is lazy:
-its `meta.ts` is in the statically-imported roster and its `gameArt` scene is in
-the grid. Falling Blocks cost 306 B, measured against a clean `main` build. At
-774 B spare that is roughly two more games before the ceiling binds, so the next
-one either raises it deliberately or pays for itself somewhere.
+checkmark. **First visit is 85,770 B gz of the 86,000 ceiling** in
+`scripts/assert-payload.mjs` — **230 B spare**, measured on the artifact
+2026-08-09. (It was 69,624 on 2026-08-02, down from 143,234; the ceiling has
+moved since.) **Adding a game costs the SHELL about 300 B gz** even though its
+code is lazy: its `meta.ts` is in the statically-imported roster and its
+`gameArt` scene is in the grid. Falling Blocks cost 306 B, measured against a
+clean `main` build.
+
+**At 230 B spare the ceiling now binds: the NEXT GAME does not fit.** It went
+from 774 B when blocks shipped to 230 B when session persistence did — that
+feature cost the shell **546 B gz**, because `src/sdk/session.ts` and both
+`@shared` hooks land there under the existing `src/{sdk,ui,juice,i18n,shared}`
+pinning rule in `vite.config.ts`. So the next change either raises the ceiling
+deliberately or pays for itself.
+
+**There is one identified way to pay for it**, unshipped and written down here so
+it is not re-derived: carve `useGameSession` and `useRememberedLevel` into the
+`page` chunk, the way `GameChrome` already is and for the same reason — every
+game imports them and NOTHING on the home screen does. The obstacle is that they
+reach games through the `@shared` barrel, which is pinned to the shell, so the
+carve needs those 20 games importing the direct module path (`@shared/useGameSession`)
+first — snake already does. Do it as its own change with `build:check` watching,
+because an unassigned shared module is not neutral, it picks a side.
