@@ -48,7 +48,8 @@ src/
 │            + DifficultySelector (the shared level row)
 ├─ juice/    Game-feel kit - haptics, screen shake, particle burst, full-screen
 │            confetti, flyTo (coins arc to the wallet chip), tween
-├─ i18n/     he (default, RTL) + en (LTR) strings + direction
+├─ i18n/     he (default, RTL) + en (LTR) strings + direction, and `locales.ts` -
+│            the TWO locale sets (see below). A leaf module importing nothing
 ├─ portal/   Shell - App (the home screen at `/`), Home (grid of real links),
 │            PageApp (boots a game or the room on its own page), GameHost
 │            (mount/unmount bridge), WalletChip, games (the ordered roster),
@@ -163,6 +164,36 @@ walks all 50 URLs; that walk IS the burst test, since the challenge arms on a ru
 requests rather than the first one. It checks the BODY as well as the status, because
 a challenge can be served with 200. `.github/workflows/crawlable.yml` runs it daily
 and a red run emails the owner. Node built-ins only, so it needs no `npm ci`.
+
+**It also reads HOW MUCH BODY, because a 200 carrying the whole correct document
+and no content is the third shape of this failure and the one a status check can
+never see.** `bodyStats()` counts words, links and headings in the raw body and
+`CONTENT_FLOOR` is 60/3/1. Three exclusions, and the surprising one is BODY-ONLY:
+`/` scored **96 words** with tags stripped across the whole document on a body of
+29 bytes, all 96 being an HTML comment in the head about pinch-zoom — so a floor
+under 96 would have passed an empty shell forever while showing a reassuring
+non-zero number. Comment-stripping is narrower than it looks: the generic tag
+strip already eats a comment with no `>` inside, and that line earns its place
+only on comments holding one.
+
+**The floor is ADVISORY until `CRAWL_CONTENT_FLOOR=1`.** It reports the count every
+run and fails only when armed, because it was written while a known offender was
+live and a gate that reds on day one for something nobody can fix that day teaches
+its reader to ignore the daily email. Arming is one line in `crawlable.yml`, in the
+same change that makes the last offender pass.
+
+**60 and not 120**, and that number moved for a reason worth keeping: the emitted
+Hebrew home is deliberately compact at 130 words, so at 120 it cleared the floor by
+ten words and one trimmed sentence would have reded a correct page. See
+[`.claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md`](.claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md).
+
+The body scan uses `indexOf`/`lastIndexOf` rather than a regex, and that is a fix
+rather than a style choice — `/<body[^>]*>([\s\S]*)<\/body>/i` is quadratic on input
+with many `<body` and no `</body>` (117 KB took 8.8 s; it now takes 10 ms). No live
+page can reach it, but this is the one gate whose job is to notice when the server
+serves something we did not build, so malformed input must not be what stalls it.
+`scripts/repro/repro-bodystats-quadratic.mjs` asserts the growth RATE and exits 1 if
+it comes back.
 
 **The repo moved to the `Sigmafier` org** (2026-08-02). `ytrofr/ellaz` still
 redirects on push, so a stale remote works and hides the move — but the LIVE URL
@@ -713,6 +744,36 @@ and throws on any `var()` it cannot.
 **between 4 KB and 600 KB** — the floor catches a flat-colour card, the ceiling is where
 WhatsApp silently drops the preview. Mutation-proven three ways. Full account:
 [`docs/build-log.md`](docs/build-log.md) § Share cards.
+
+## Two locale sets, and the narrow one is a type
+
+`src/i18n/locales.ts` holds both, and the difference between them is the whole
+point. **`APP_LOCALES`** is what the interface speaks — currently 11: he, en, es,
+pt, fr, de, ar, it, ru, tr, id. **`PAGE_LOCALES`** is what has written prose —
+currently 2, he and en. `ROUTES` derives from `PAGE_LOCALES`, so **adding a
+language to the app emits exactly zero documents** and cannot cost anything.
+
+That split exists because of one line of Google's documentation: *"Localized
+versions of a page are only considered duplicates if the main content of the page
+remains untranslated."* A German header over an English article is not a smaller
+German page — it is the named anti-pattern, once per game.
+
+`GameContent.copy` is `Record<PageLocale, GameCopy>` and `SITE` is
+`Record<PageLocale, SiteCopy>`, so **promoting a locale before its prose exists is
+a red build**, not a lint warning and not a script that can be wrong about what it
+scanned. Every other guard in this repo reads `dist/`, and the lesson of
+2026-08-08 is that such a script can be confidently wrong; a `Record<K,V>` cannot
+be wrong about whether a key exists. Promotion is always two commits: **prose
+first, then the list.** The other order fails to compile, which is the gate
+working.
+
+`x-default` is **English, not Hebrew** — it answers "we have no page in your
+language", and Hebrew is the wrong answer to that for everyone except Hebrew
+speakers, who are matched by their own `hreflang` long before `x-default` is
+consulted. `/` is still the Hebrew home and still ranks as Hebrew.
+
+Full rule, including why the picker carries autonyms and never flags:
+[`.claude/rules/a-locale-page-without-a-translated-body-is-a-duplicate.md`](.claude/rules/a-locale-page-without-a-translated-body-is-a-duplicate.md).
 
 ## The words on a game page
 

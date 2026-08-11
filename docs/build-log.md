@@ -846,15 +846,129 @@ minutes before it was described as still running.
   to be told they are React on purpose — the gate working exactly as its
   guarded-by-exclusion design intends.
 
+## Eleven languages, and a gate that reads how much body (2026-08-11)
+
+**Commits**: `28db1d9`, `7d8b77f`, `9c7a5d3`, `6febd98`. Ran beside two other
+sessions all afternoon, which is half of what this entry is about.
+
+### The two locale sets
+
+`src/i18n/locales.ts` splits **what the interface speaks** (`APP_LOCALES`, now 11:
+he en es pt fr de ar it ru tr id) from **what has written prose** (`PAGE_LOCALES`,
+still just he and en). `ROUTES` derives from the narrow one, so adding a language
+to the app emits **zero** documents.
+
+The split is not tidiness. Google, verbatim: *"Localized versions of a page are
+only considered duplicates if the main content of the page remains untranslated."*
+A German header over an English article is the named anti-pattern, once per game,
+22 times over.
+
+`GameContent.copy` is `Record<PageLocale, GameCopy>`, so promoting a locale before
+its prose exists is a **red build in all 22 content files**. That is deliberately
+the strongest layer available: every other guard here reads `dist/`, and 2026-08-08
+proved a script can be confidently wrong about what it scanned. A `Record<K,V>`
+cannot be wrong about whether a key exists.
+
+`x-default` also moved from Hebrew to **English** — it answers "we have no page in
+your language", and Hebrew is the wrong answer to that for everyone except Hebrew
+speakers, who match their own `hreflang` first.
+
+27 tests. The sharp ones assert each autonym is really written in its own script
+(`he: /[֐-׿]/`, `ar: /[؀-ۿ]/`, `ru: /[Ѐ-ӿ]/`) and that no autonym contains a flag —
+a flag is a country, not a language, and an Israeli flag beside an Arabic one is a
+statement a children's game platform has no business making.
+
+### The gate now reads how much body
+
+`assert:crawlable` asserted every sitemap URL answers 200 and is not a challenge.
+Both true of a page serving nothing — which `/` was, and which is how the empty
+Hebrew home stood for months with every gate green.
+
+| measured live, as Googlebot | words | links | h1 |
+|---|---|---|---|
+| `https://ellaz.fun/` | **0** | 0 | 0 |
+| `https://ellaz.fun/en/` | 252 | 26 | 1 |
+| `https://ellaz.fun/games/snake/` | 3,230 | 10 | 1 |
+
+**The number that would have defeated a naive floor: 96.** That is what `/` scores
+with tags stripped across the whole *document*, on a body of 29 bytes — every one
+of those 96 words an HTML comment in the head about pinch-zoom. A floor set
+anywhere under 96 passes an empty shell forever while showing a reassuring
+non-zero number. Hence body-only.
+
+Advisory until `CRAWL_CONTENT_FLOOR=1`, because it was written while a known
+offender was live and a gate that reds on day one for something nobody can fix
+that day teaches its reader to ignore the daily email.
+
+### The trap it cost, and it cost it twice
+
+**Ten words of margin.** The floor shipped at 120, argued from "the thinnest page
+here runs ~750 words". That was true when measured and false three hours later:
+the parallel session's fix emitted a deliberately compact home of **130 words**.
+One trimmed sentence and the daily email reds on a correct page. Dropped to 60.
+
+The same afternoon, two lanes each raised the payload ceiling — 88,000 argued from
+a tree without Word Guess, 90,000 from a tree without the home fix. Neither
+described the merged tree. Both instances are one rule:
+[`a-threshold-tuned-against-todays-tree-goes-stale.md`](../.claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md).
+
+### `/deep-test`: a quadratic scan, and a fix nothing could guard
+
+97 cells over the shipped code with real captured pages, not fixtures. One defect:
+
+| input | before | after |
+|---|---|---|
+| 15 KB | 77 ms | 0.04 ms |
+| 117 KB | **8,785 ms** | **0.27 ms** |
+
+`/<body[^>]*>([\s\S]*)<\/body>/i` is quadratic on many `<body` with no `</body>` —
+the engine retries from every start, drives the greedy `[\s\S]*` to end-of-input,
+then backtracks a character at a time hunting a tag that is not there.
+`indexOf`/`lastIndexOf` cannot backtrack, so the shape is gone rather than tuned.
+
+**Magnitude: 0% of live volume** — all 52 URLs carry one balanced `<body>` pair and
+the largest page is 38 KB. Fixed anyway, because this is the one gate whose job is
+to notice when the server serves something we did not build. Malformed input is the
+case it exists *for*.
+
+**Then the more interesting finding.** The old regex was planted back verbatim and
+**all 16 controls passed**. They had to — it returns identical output, 900× slower,
+and no correctness control can express that. There is now one control that measures
+time (2,000 ms budget: 200× over the healthy 9.7 ms, 4× under the regression) and a
+runnable reproducer that asserts the growth *rate* rather than a duration, because a
+wall-clock budget on a shared machine is a flaky test.
+
+A third: a mutation taking the **first** `</body>` also survived, and the comment
+written minutes earlier claimed that behaviour was "pinned by a test" — it was
+pinned in a scratch harness, not the shipped file, which is the same as not pinned.
+
+Ended at 17 controls, 7 mutations, each killing exactly one. Report:
+`~/.claude/reports/deep-test-ellaz-crawl-gate-and-locales-2026-08-11.md`.
+
+### Learned and deliberately not changed
+
+Hidden text, `<noscript>` and `<template>` all clear the content floor — a crawler
+does read them, but it is the shape of a page gaming the gate. `walk()` follows
+redirects, so a redirecting sitemap URL is scored as its target. No input-size
+ceiling: `res.text()` is unbounded and 10 MB parses in ~4 s, linear so not a hang.
+CJK without spaces reads as one word — unreachable until `zh` or `ja` is added.
+
 ## Still open
 
 - **Wave C step 2b** — live two-way sync. Needs the profile to carry per-device
   earned/spent counters before a merge can be correct; until then the cloud is a
   backup and a transfer, and the UI says so.
-- **The first-visit budget** — **85,770 B gz of 86,000, 230 spare.** No longer a
-  warning: the ceiling BINDS. A new game costs the shell ~300 B, so the next one
-  does not fit without either raising the ceiling deliberately or landing the
-  hook carve-out described in the session-persistence entry above.
+- **The first-visit budget — the ceiling is now 90,000 and the figure under it is
+  UNMEASURED.** Two lanes raised it on 2026-08-11 within hours of each other:
+  88,000 argued from a measured 86,653 (a tree without Word Guess) and 90,000 from
+  a measured 86,004 (a tree without the emitted Hebrew home). The merge kept
+  90,000. **Neither number describes the merged tree, and adding the two deltas
+  does not either** — each was measured from a baseline that no longer exists. Run
+  `npm run build:check` on the merged tree before designing anything near the
+  edge, and add the row to the history block in `assert-payload.mjs`, which
+  currently records Word Guess (+234) and nothing for the home document (+1,770).
+  A new game still costs the shell ~300 B.
+  See [`a-threshold-tuned-against-todays-tree-goes-stale.md`](../.claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md).
 - **Nobody has published a real score yet**, so every board renders empty and
   the own-best line carries the screen. Firestore's free daily quota stays the
   design constraint, and it is fail-closed (reads refused until reset, never a
