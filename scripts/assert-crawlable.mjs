@@ -116,8 +116,28 @@ export function looksLikeXml(body) {
  * and this stays testable against planted input.
  */
 export function bodyStats(html) {
-  const m = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-  const body = m ? m[1] : "";
+  // Index arithmetic, NOT a regex, and that is a fix rather than a style choice.
+  //
+  // This was `/<body[^>]*>([\s\S]*)<\/body>/i`, which is QUADRATIC on input
+  // holding many `<body` and no `</body>`: the engine retries from every start,
+  // drives the greedy `[\s\S]*` to end-of-input, then backtracks one character
+  // at a time hunting a close tag that is not there. Measured, doubling the
+  // input roughly quadrupled the time - 15 KB took 77 ms and 117 KB took 8.8 s.
+  //
+  // No live page can reach it (every one carries exactly one balanced pair, and
+  // the largest is 38 KB), so this is a robustness fix and not an outage. It is
+  // still worth making, because this is the one gate here whose whole job is to
+  // notice when the server serves something we did not build - malformed input
+  // is the case it exists FOR, so it must not be the case that stalls it.
+  //
+  // indexOf/lastIndexOf cannot backtrack, so the shape is gone rather than
+  // tuned. `lastIndexOf` preserves the old greedy behaviour of taking the LAST
+  // `</body>`, which a test pins.
+  const lower = html.toLowerCase();
+  const open = lower.indexOf("<body");
+  const gt = open === -1 ? -1 : html.indexOf(">", open);
+  const close = lower.lastIndexOf("</body>");
+  const body = gt !== -1 && close > gt ? html.slice(gt + 1, close) : "";
   const markup = body
     .replace(/<!--[\s\S]*?-->/g, " ")
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -141,11 +161,26 @@ export function bodyStats(html) {
  * contradiction rather than an exception - and an allowlist is the thing that
  * would quietly grow to cover the next shell.
  *
- * Set far below any real page here (the thinnest content page runs ~750 words)
- * and far above a shell, so the gap is a chasm and a borderline reading means
- * something genuinely changed rather than prose being trimmed.
+ * 60 WORDS, and the number moved once already for a reason worth keeping.
+ *
+ * It was 120, set against "the thinnest content page runs ~750 words". That
+ * stopped being true the same afternoon: the fix for the empty home emits a
+ * deliberately compact document - 130 words, 22 links - so `/` became the
+ * thinnest page on the site and cleared the floor by TEN WORDS. A gate with 8%
+ * margin against real, correct content is not a gate, it is a tripwire under
+ * the copy: trim a sentence from the Hebrew home and the daily email reds on a
+ * page that is completely fine, which is how a daily email stops being read.
+ *
+ * And the margin was even thinner than it looked, because the 130 was measured
+ * by the emitter's author and 130 here means whatever THIS function counts.
+ * Two implementations of "how many words" agree until they do not.
+ *
+ * So: far enough below the thinnest legitimate page to survive an edit, and
+ * still nowhere near a shell, which scores 0 and always will. The distance to
+ * catch is 0-vs-a-real-page, and that gap is a chasm at any floor in this
+ * range - there was never any value in the extra 60.
  */
-const CONTENT_FLOOR = { words: 120, links: 3, h1: 1 };
+const CONTENT_FLOOR = { words: 60, links: 3, h1: 1 };
 
 /**
  * Is this page empty to a crawler? Its own function so a control can fire the
@@ -345,6 +380,38 @@ async function main() {
     // Reading the code would not have found either. Planting the defect did,
     // twice, and the second one also corrected what the doc comment above
     // claimed about which exclusion was carrying the weight.
+    // The only control here that measures TIME, and it exists because a planted
+    // mutation restoring the old quadratic regex survived all sixteen others.
+    // It had to: that regex is functionally CORRECT and merely slow, so no
+    // correctness control can see it, and the fix could be reverted in a
+    // refactor with no signal at all.
+    //
+    // The margin is the whole design. This input took 8,785 ms before the fix
+    // and 9.7 ms after - roughly 900x. A 2,000 ms budget is ~200x headroom over
+    // the healthy path, so a loaded CI runner cannot trip it, while the
+    // regression overshoots by 4x. A tight timing assertion would be a flaky
+    // control, and a flaky control teaches its reader to ignore the whole file.
+    [
+      "the body scan is linear, not quadratic (<2000ms on 117KB)",
+      () => {
+        const t0 = process.hrtime.bigint();
+        bodyStats("<body>".repeat(20_000));
+        return Number(process.hrtime.bigint() - t0) / 1e6 < 2000;
+      },
+    ],
+    // The body ends at the LAST `</body>`, not the first. A `</body>` can appear
+    // earlier inside an attribute value or a script string, and stopping there
+    // truncates the body and under-counts a page that is fine - a FALSE RED on
+    // the daily email, which is the failure mode this whole script guards.
+    //
+    // This control exists because a planted mutation swapping lastIndexOf for
+    // indexOf SURVIVED the other fourteen. The comment on bodyStats had claimed
+    // the behaviour was pinned by a test; it was pinned in a scratch harness and
+    // not here, which is the same thing as not pinned.
+    [
+      "the body ends at the LAST </body>, not the first",
+      () => bodyStats("<body><p>a</p></body><p>beta gamma delta</p></body>").words === 4,
+    ],
     [
       "a body comment containing '>' is not content",
       () =>
@@ -369,6 +436,30 @@ async function main() {
           `<body><script type="application/ld+json">{"name":"${"word ".repeat(300)}"}</script>` +
             `<div id="root"></div></body>`,
         ).words === 0,
+    ],
+    // The emitted Hebrew home, at its measured size. This control is the whole
+    // reason the floor is 60 and not 120: at 120 this case passed by ten words,
+    // and the next edit to that copy would have reded the daily email on a page
+    // that was correct. Pinning it here means a future floor raise has to walk
+    // past a control named after the page it would break.
+    [
+      "the compact emitted home clears the floor with room",
+      () => {
+        // 1 (h1) + 107 (paragraph) + 22 (link labels) = the 130 that was
+        // reported. Note the link labels COUNT: a first draft of this fixture
+        // put 129 words in the paragraph and measured 152, which is the same
+        // two-implementations-of-word-count problem this floor was lowered for,
+        // reproduced inside its own control. Worth leaving written down.
+        const s = bodyStats(
+          `<body><h1>משחקים</h1><p>${"מילה ".repeat(107)}</p>` +
+            Array.from({ length: 22 }, (_, i) => `<a href="/games/g${i}/">ג</a>`).join("") +
+            `</body>`,
+        );
+        // The `* 2` is the load-bearing half. Without it this passes at a floor
+        // of 120 - by ten words - and the control stops guarding the thing it
+        // is named after.
+        return s.words === 130 && s.links === 22 && !belowFloor(s) && s.words >= CONTENT_FLOOR.words * 2;
+      },
     ],
     [
       "a real emitted page clears the floor",
