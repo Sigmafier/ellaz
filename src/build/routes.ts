@@ -1,13 +1,21 @@
 import type { Locale } from "../content/types";
+import { PAGE_LOCALES, CANONICAL_LOCALE, localePrefix } from "../i18n/locales";
 import { ORIGIN } from "../content/site";
 import { GAMES } from "../portal/games";
 
 /**
  * The route table: every document this site emits, in one list.
  *
- * The table is DERIVED from the game roster, so a game added to
- * `portal/games.ts` gets its two URLs, its two sitemap rows and its two gate
- * assertions with no edit here. `routes.test.ts` pins the shape.
+ * The table is DERIVED from two lists and nothing else - the game roster in
+ * `portal/games.ts` and `PAGE_LOCALES` in `i18n/locales.ts`. A game added
+ * there gets its URLs, its sitemap rows and its gate assertions with no edit
+ * here, and a language added there gets a whole set of documents the same way.
+ * `routes.test.ts` pins the shape.
+ *
+ * Deriving from PAGE_LOCALES rather than APP_LOCALES is the anti-penalty
+ * guarantee stated structurally: teaching the interface a new language emits
+ * exactly zero documents, so it can never produce a page whose body is not
+ * translated. See `.claude/rules/a-locale-page-without-a-translated-body-is-a-duplicate.md`.
  */
 
 export type PageKind = "home" | "game" | "world" | "boards" | "notFound";
@@ -46,16 +54,12 @@ export function slugFor(gameId: string): string {
   return gameId;
 }
 
-function localePrefix(locale: Locale): string {
-  return locale === "he" ? "" : "/en";
-}
-
 export function gamePath(gameId: string, locale: Locale): string {
   return `${localePrefix(locale)}/games/${slugFor(gameId)}/`;
 }
 
 export function homePath(locale: Locale): string {
-  return locale === "he" ? "/" : "/en/";
+  return `${localePrefix(locale)}/`;
 }
 
 export function worldPath(locale: Locale): string {
@@ -71,7 +75,11 @@ function fileFor(path: string): string {
   return `${path.slice(1)}index.html`;
 }
 
-export const LOCALES: Locale[] = ["he", "en"];
+/**
+ * The languages that get documents. A copy of `PAGE_LOCALES`, not a second
+ * list: spread rather than re-typed, so the two cannot drift.
+ */
+export const LOCALES: Locale[] = [...PAGE_LOCALES];
 
 export const ROUTES: Route[] = [
   ...LOCALES.map(
@@ -79,8 +87,8 @@ export const ROUTES: Route[] = [
       kind: "home",
       locale,
       path: homePath(locale),
-      file: locale === "he" ? "index.html" : "en/index.html",
-      emit: locale !== "he",
+      file: fileFor(homePath(locale)),
+      emit: locale !== CANONICAL_LOCALE,
       indexable: true,
     }),
   ),
@@ -119,7 +127,7 @@ export const ROUTES: Route[] = [
   ),
   {
     kind: "notFound",
-    locale: "he",
+    locale: CANONICAL_LOCALE,
     path: "/404.html",
     file: "404.html",
     emit: true,

@@ -20,6 +20,15 @@ export interface SiteCopy {
   tagline: string;
   /** Breadcrumb root. */
   home: string;
+  /**
+   * The H1 on a game page, with `{title}` standing in for the game's name.
+   *
+   * A pattern rather than a hardcoded branch, because "what a game page is
+   * called" is a decision each language makes for itself. Hebrew says "משחק X"
+   * and English says just "X"; a third language may want a word in front, or
+   * after, or neither, and none of that should live in the renderer.
+   */
+  gameHeading: string;
   /** The label on the button that starts the game. */
   play: string;
   playNote: string;
@@ -62,6 +71,7 @@ const he: SiteCopy = {
   brand: "Ellaz",
   tagline: "משחקים חינם בעברית, ישר בדפדפן",
   home: "בית",
+  gameHeading: "משחק {title}",
   play: "לשחק",
   playNote: "נפתח במשחק עצמו. בלי הורדה ובלי הרשמה.",
   noScript: "המשחק דורש JavaScript. שאר העמוד לא.",
@@ -137,6 +147,7 @@ const en: SiteCopy = {
   brand: "Ellaz",
   tagline: "Free browser games, no download and no account",
   home: "Home",
+  gameHeading: "{title}",
   play: "Play",
   playNote: "Opens the game itself. Nothing to download, nothing to sign up for.",
   noScript: "The game needs JavaScript. The rest of this page does not.",

@@ -306,11 +306,21 @@ describe("code supplies the game count, an author never types it", () => {
 
   it("leaves no unfilled token anywhere it is used", () => {
     // A token nobody consumes ships "{games} free games" to a search result.
+    //
+    // The exemption is by FILLER, not by path, and each entry names the
+    // function that does the filling - so adding a token means finding
+    // something to fill it, rather than adding a word to a skip list. The
+    // fillers themselves are asserted where they live: `homeCopy` two tests
+    // above, `headingFor` in `src/build/build.test.ts`.
+    const FILLED: Array<[string, string]> = [
+      ["homePage", "homeCopy() in src/content/site.ts"],
+      ["gameHeading", "headingFor() in src/build/gamePage.ts"],
+    ];
     const leftover = siteStrings()
       .filter(([, text]) => text.includes("{"))
-      .filter(([path]) => !path.includes("homePage"))
+      .filter(([path]) => !FILLED.some(([key]) => path.includes(key)))
       .map(([path]) => path);
-    expect(leftover, "tokens outside homePage have no filler and would ship raw").toEqual([]);
+    expect(leftover, "these tokens have no filler and would ship raw").toEqual([]);
   });
 });
 

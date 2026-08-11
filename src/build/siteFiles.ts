@@ -1,6 +1,6 @@
 import type { GameMeta } from "../sdk/types";
 import { ORIGIN } from "../content/site";
-import { ROUTES, canonicalUrl, gamePath, homePath } from "./routes";
+import { LOCALES, ROUTES, canonicalUrl, gamePath, homePath } from "./routes";
 import { escapeHtml } from "./html";
 
 /**
@@ -82,7 +82,7 @@ export function sitemapXml(lastmods?: ReadonlyMap<string, string>): string {
     //
     // A lookup cannot go stale when a page kind is added: an unmatched sibling
     // emits no alternate at all, rather than a confidently wrong one.
-    const alternates = (["he", "en"] as const)
+    const alternates = LOCALES
       .map((locale) => {
         const sibling = ROUTES.find(
           (o) => o.kind === r.kind && o.id === r.id && o.locale === locale && o.indexable,

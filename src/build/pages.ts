@@ -2,7 +2,8 @@ import type { Plugin } from "vite";
 import { CONTENT } from "../content/index";
 import { homeCopy } from "../content/site";
 import { GAMES, metaFor } from "../portal/games";
-import { ROUTES, canonicalUrl, gamePath, homePath, type Route } from "./routes";
+import { CANONICAL_LOCALE, DEFAULT_LOCALE, OG_LOCALE } from "../i18n/locales";
+import { LOCALES, ROUTES, canonicalUrl, gamePath, homePath, type Route } from "./routes";
 import { gamePage } from "./gamePage";
 import { boardsPage, homePage, homeShellBody, notFoundPage, worldPage } from "./sitePages";
 import { homeGraph } from "./schema";
@@ -75,36 +76,45 @@ export function renderRoute(route: Route, base: string, headAssets?: HeadAssets)
  * a crawler that lands on `/` discovers the game pages, since the home grid's
  * cards are still buttons until Phase 5 turns them into links.
  */
-const HOME_HE = ROUTES.find((r) => r.kind === "home" && r.locale === "he")!;
+const HOME_CANONICAL = ROUTES.find((r) => r.kind === "home" && r.locale === CANONICAL_LOCALE)!;
 
 export function indexHeadTags(base: string): string {
-  const copy = homeCopy("he", GAMES.length);
+  const copy = homeCopy(CANONICAL_LOCALE, GAMES.length);
   const indexable = isPrimaryHost(base);
   const tags = [
     `<meta name="description" content="${escapeAttr(copy.description)}" />`,
-    `<link rel="canonical" href="${canonicalUrl(homePath("he"))}" />`,
-    `<link rel="alternate" hreflang="he" href="${canonicalUrl(homePath("he"))}" />`,
-    `<link rel="alternate" hreflang="en" href="${canonicalUrl(homePath("en"))}" />`,
-    `<link rel="alternate" hreflang="x-default" href="${canonicalUrl(homePath("he"))}" />`,
+    `<link rel="canonical" href="${canonicalUrl(homePath(CANONICAL_LOCALE))}" />`,
+    // Derived from LOCALES rather than written out, because `/` must advertise
+    // exactly the same sibling set every other page does. Two hand-written
+    // lists of languages is how one page ends up claiming a Spanish sibling
+    // that another page has never heard of.
+    ...LOCALES.map(
+      (l) => `<link rel="alternate" hreflang="${l}" href="${canonicalUrl(homePath(l))}" />`,
+    ),
+    // English, not Hebrew. x-default answers "we have no page in your
+    // language", and Hebrew is the wrong answer to that for everyone except
+    // Hebrew speakers - who are matched by hreflang="he" long before this line
+    // is consulted. `/` is still the Hebrew home and still ranks as Hebrew.
+    `<link rel="alternate" hreflang="x-default" href="${canonicalUrl(homePath(DEFAULT_LOCALE))}" />`,
     `<meta property="og:type" content="website" />`,
     `<meta property="og:site_name" content="Ellaz" />`,
-    `<meta property="og:locale" content="he_IL" />`,
+    `<meta property="og:locale" content="${OG_LOCALE[CANONICAL_LOCALE]}" />`,
     `<meta property="og:title" content="${escapeAttr(copy.title)}" />`,
     `<meta property="og:description" content="${escapeAttr(copy.description)}" />`,
-    `<meta property="og:url" content="${canonicalUrl(homePath("he"))}" />`,
+    `<meta property="og:url" content="${canonicalUrl(homePath(CANONICAL_LOCALE))}" />`,
     // `/` is the app shell, so it never goes through `renderDocument` and has
     // to repeat the share-card tags here. The card itself is the same file the
     // route table names, so the two cannot drift apart.
-    `<meta property="og:image" content="${canonicalUrl(ogImagePath(HOME_HE))}" />`,
+    `<meta property="og:image" content="${canonicalUrl(ogImagePath(HOME_CANONICAL))}" />`,
     `<meta property="og:image:width" content="${OG_WIDTH}" />`,
     `<meta property="og:image:height" content="${OG_HEIGHT}" />`,
     `<meta property="og:image:alt" content="${escapeAttr(copy.title)}" />`,
-    `<meta name="twitter:image" content="${canonicalUrl(ogImagePath(HOME_HE))}" />`,
+    `<meta name="twitter:image" content="${canonicalUrl(ogImagePath(HOME_CANONICAL))}" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
   ];
   if (!indexable) tags.push(`<meta name="robots" content="noindex, follow" />`);
   tags.push(
-    `<script type="application/ld+json">${toHtml(jsonLd(homeGraph("he", GAMES, copy)))}</script>`,
+    `<script type="application/ld+json">${toHtml(jsonLd(homeGraph(CANONICAL_LOCALE, GAMES, copy)))}</script>`,
   );
   return tags.join("\n    ");
 }

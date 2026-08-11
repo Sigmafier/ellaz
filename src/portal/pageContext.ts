@@ -1,4 +1,5 @@
 import type { Locale } from "@i18n/index";
+import { isPageLocale } from "@i18n/locales";
 
 /**
  * What page am I on, and what should React mount into?
@@ -32,8 +33,17 @@ export interface PageContext {
   walletSlot?: HTMLElement;
 }
 
+/**
+ * The `lang` on an emitted document, validated against the languages that
+ * actually HAVE documents.
+ *
+ * `isPageLocale` rather than `isAppLocale` on purpose: this reads an attribute
+ * off a page the emitter wrote, and the emitter only ever writes PAGE_LOCALES.
+ * A `lang="fr"` here would mean somebody hand-wrote a file, and answering
+ * `undefined` to that is the honest reading.
+ */
 function asLocale(value: string | undefined): Locale | undefined {
-  return value === "he" || value === "en" ? value : undefined;
+  return isPageLocale(value) ? value : undefined;
 }
 
 export function readPageContext(doc: Document = document): PageContext {

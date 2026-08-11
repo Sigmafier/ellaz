@@ -34,6 +34,7 @@
 import bidiFactory from "bidi-js";
 import type { GameMeta } from "@sdk/index";
 import type { Locale } from "../content/types";
+import { dirOf } from "../i18n/locales";
 import { SITE } from "../content/site";
 import { artGround, gameArt } from "../ui/gameArt";
 import type { Route } from "./routes";
@@ -48,7 +49,10 @@ const bidi = bidiFactory();
  * before the renderer sees a single character.
  */
 export function toVisualOrder(value: string, locale: Locale): string {
-  const base = locale === "he" ? "rtl" : "ltr";
+  // The base direction is a property of the SCRIPT, not of Hebrew specifically -
+  // `dirOf` already knows Arabic is RTL too, so promoting `ar` needs no edit
+  // here and cannot silently rasterise a card of reversed Arabic.
+  const base = dirOf(locale);
   return bidi.getReorderedString(value, bidi.getEmbeddingLevels(value, base));
 }
 
@@ -137,7 +141,7 @@ function text(value: string, style: Record<string, unknown>): CardNode {
  */
 export function ogCardTree(route: Route, meta?: GameMeta, artPngUri?: string): CardNode {
   const site = SITE[route.locale];
-  const rtl = route.locale === "he";
+  const rtl = dirOf(route.locale) === "rtl";
   const ground = meta ? artGround(meta.id) : "#241C3B";
   const title = toVisualOrder(meta ? meta.title[route.locale] : site.brand, route.locale);
   const sub = toVisualOrder(meta ? site.brand : site.tagline, route.locale);

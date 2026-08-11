@@ -4,7 +4,7 @@ import { SITE, homeCopy } from "../content/site";
 import { html, toHtml } from "./html";
 import { renderDocument } from "./layout";
 import { gameCards, stage } from "./gamePage";
-import { boardsPath, gamePath, homePath, href, worldPath } from "./routes";
+import { LOCALES, boardsPath, gamePath, homePath, href, worldPath } from "./routes";
 import { homeGraph, worldGraph } from "./schema";
 import { lazyPreloadTags, type HeadAssets } from "./assets";
 
@@ -51,10 +51,7 @@ export function homePage(opts: SitePageOptions): string {
     title: copy.title,
     description: copy.description,
     path: homePath(locale),
-    alternates: [
-      { locale: "he", path: homePath("he") },
-      { locale: "en", path: homePath("en") },
-    ],
+    alternates: LOCALES.map((l) => ({ locale: l, path: homePath(l) })),
     schema: homeGraph(locale, opts.games, copy),
     body,
     base,
@@ -137,10 +134,7 @@ export function worldPage(opts: SitePageOptions): string {
     title: copy.title,
     description: copy.description,
     path: worldPath(locale),
-    alternates: [
-      { locale: "he", path: worldPath("he") },
-      { locale: "en", path: worldPath("en") },
-    ],
+    alternates: LOCALES.map((l) => ({ locale: l, path: worldPath(l) })),
     schema: worldGraph(locale, copy),
     body,
     base,
@@ -183,10 +177,7 @@ export function boardsPage(opts: SitePageOptions): string {
     title: copy.title,
     description: copy.description,
     path: boardsPath(locale),
-    alternates: [
-      { locale: "he", path: boardsPath("he") },
-      { locale: "en", path: boardsPath("en") },
-    ],
+    alternates: LOCALES.map((l) => ({ locale: l, path: boardsPath(l) })),
     schema: worldGraph(locale, copy),
     body,
     base,

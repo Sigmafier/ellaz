@@ -3,7 +3,7 @@ import type { GameCopy, Locale, Titled } from "../content/types";
 import { SITE, type SiteCopy } from "../content/site";
 import { html, type RawHtml } from "./html";
 import { renderDocument } from "./layout";
-import { gamePath, homePath, href } from "./routes";
+import { LOCALES, gamePath, homePath, href } from "./routes";
 import { gameGraph } from "./schema";
 import { lazyPreloadTags, type HeadAssets } from "./assets";
 // Build-time only, and the same module the share cards read. `src/build` may
@@ -78,9 +78,15 @@ export function gameCards(
   </ul>`;
 }
 
-/** The H1. Derived, so no content file can disagree with the catalog. */
+/**
+ * The H1. Derived, so no content file can disagree with the catalog.
+ *
+ * The word around the title is COPY and lives in `SITE`, which is keyed by
+ * `PageLocale` - so a language arrives with its own answer or the build refuses
+ * it. The renderer no longer knows that Hebrew is the one with a word in front.
+ */
 export function headingFor(meta: GameMeta, locale: Locale): string {
-  return locale === "he" ? `משחק ${meta.title.he}` : meta.title.en;
+  return SITE[locale].gameHeading.replace("{title}", meta.title[locale]);
 }
 
 /**
@@ -192,10 +198,7 @@ export function gamePage(opts: GamePageOptions): string {
     title: copy.metaTitle,
     description: copy.metaDescription,
     path: gamePath(meta.id, locale),
-    alternates: [
-      { locale: "he", path: gamePath(meta.id, "he") },
-      { locale: "en", path: gamePath(meta.id, "en") },
-    ],
+    alternates: LOCALES.map((l) => ({ locale: l, path: gamePath(meta.id, l) })),
     schema: gameGraph(meta, copy, locale),
     body,
     base,

@@ -5,7 +5,7 @@ import { SITE } from "../content/site";
 import { GAMES } from "../portal/games";
 import { CATALOG } from "../portal/catalog";
 import { escapeHtml, html, jsonLd, raw, toHtml } from "./html";
-import { ROUTES, canonicalUrl, gamePath, homePath, href } from "./routes";
+import { LOCALES, ROUTES, canonicalUrl, gamePath, homePath, href } from "./routes";
 import { allEmittedFiles, indexHeadTags, pagesPlugin, renderRoute } from "./pages";
 import { headingFor, relatedTo } from "./gamePage";
 import { llmsTxt, robotsTxt, sitemapXml } from "./siteFiles";
@@ -196,6 +196,55 @@ describe("every page renders", () => {
     for (const f of copy.faq) expect(page).toContain(escapeHtml(f.q));
     expect(page).toContain(escapeHtml(copy.lede));
     expect(page).toContain(headingFor(meta, "he"));
+  });
+
+  // Every emitted document offers every OTHER language, and links to itself in
+  // that language rather than to that language's home page.
+  //
+  // This exists because the 404 lost its language link during the Phase 1.3
+  // generalisation and nothing noticed: 1802 tests green, `tsc` clean, the page
+  // rendering perfectly with an empty gap where the link had been. It was found
+  // by diffing two real builds, which is not something anyone does twice. The
+  // 404 is the interesting one - it is the only document with no per-language
+  // twin, so it is the only one that takes the fallback path.
+  it("every emitted document offers the other languages, pointing at itself", () => {
+    const others = LOCALES.length - 1;
+    const offenders: string[] = [];
+    for (const f of allEmittedFiles("/").filter((x) => x.fileName.endsWith(".html"))) {
+      const footer = f.source.match(/<footer>[\s\S]*?<\/footer>/)?.[0] ?? "";
+      const links = [...footer.matchAll(/<a href="([^"]+)"[^>]*hreflang="([^"]+)"/g)];
+      if (links.length !== others) {
+        offenders.push(`${f.fileName}: ${links.length} language links, want ${others}`);
+        continue;
+      }
+      const route = ROUTES.find((r) => r.file === f.fileName);
+      for (const [, target, lang] of links) {
+        if (lang === route?.locale) offenders.push(`${f.fileName}: links to its own language`);
+        // The 404 is the sanctioned exception: one document for the whole
+        // site, so the only honest target is that language's home.
+        const sibling = ROUTES.find(
+          (r) => r.kind === route?.kind && r.id === route?.id && r.locale === lang,
+        );
+        const want = sibling ? sibling.path : homePath(lang as (typeof LOCALES)[number]);
+        if (target !== want) offenders.push(`${f.fileName}: ${lang} -> ${target}, want ${want}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  // The positive control for the `gameHeading` exemption in content.test.ts.
+  // That test allows a `{title}` token in SITE because something fills it;
+  // this is the something. Without an assertion here, the exemption is a
+  // promise rather than a fact, and an H1 reading "משחק {title}" would ship
+  // green - it is the page's only H1 and its most quoted line.
+  it.each(LOCALES)("the %s H1 fills its token and names the game", (locale) => {
+    for (const meta of GAMES) {
+      const h1 = headingFor(meta, locale);
+      expect(h1, `${meta.id}: H1 still carries a raw token`).not.toMatch(/[{}]/);
+      expect(h1, `${meta.id}: H1 does not contain the game's own title`).toContain(
+        meta.title[locale],
+      );
+    }
   });
 
   it("states the platform facts from one place, never from a content file", () => {

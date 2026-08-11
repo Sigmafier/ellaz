@@ -1,8 +1,9 @@
 import type { Locale } from "../content/types";
+import { AUTONYM, DEFAULT_LOCALE, OG_LOCALE, dirOf } from "../i18n/locales";
 import { SITE } from "../content/site";
 import { html, raw, jsonLd, toHtml, type RawHtml } from "./html";
 import type { HeadAssets } from "./assets";
-import { canonicalUrl, homePath, href, OG_ROUTES } from "./routes";
+import { LOCALES, canonicalUrl, homePath, href, OG_ROUTES } from "./routes";
 import { OG_HEIGHT, OG_WIDTH, ogImagePath } from "./ogCard";
 // themes.ts imports nothing, which is what lets both the Vite config and this
 // build-time renderer read the same theme list. See src/ui/themes.ts.
@@ -493,7 +494,7 @@ function gameChrome(chrome: HeaderChrome, homeHref: string, brand: string, slot:
 export function renderDocument(opts: DocumentOptions): string {
   const { locale, base } = opts;
   const site = SITE[locale];
-  const dir = locale === "he" ? "rtl" : "ltr";
+  const dir = dirOf(locale);
   const canonical = canonicalUrl(opts.path);
   // The share card, found by PATH rather than passed down. Every caller
   // already knows its own path and the route table already knows every card,
@@ -510,6 +511,30 @@ export function renderDocument(opts: DocumentOptions): string {
   const ogRoute = OG_ROUTES.find((r) => r.path === opts.path);
   const ogImage = ogRoute ? canonicalUrl(ogImagePath(ogRoute)) : "";
   const alternates = opts.alternates ?? [];
+  /**
+   * `x-default` answers "we have no page in your language", so it points at
+   * THIS page in `DEFAULT_LOCALE` - English.
+   *
+   * Two things were wrong before and they compounded. It pointed at Hebrew,
+   * which is the wrong answer for everyone on earth except Hebrew speakers,
+   * and they are matched by `hreflang="he"` long before x-default is ever
+   * consulted. And it pointed at the HOME page from every document, so a
+   * Turkish reader who found the snake article was sent to a home page in a
+   * language they do not read, rather than to the snake article they wanted.
+   */
+  const xDefault = alternates.find((a) => a.locale === DEFAULT_LOCALE);
+  /**
+   * The other languages, for the footer.
+   *
+   * Falls back to each language's HOME when this page has no siblings, which
+   * is the 404 and only the 404 - there is one 404 document for the whole
+   * site, so it has no per-language twin to point at. Without the fallback it
+   * silently loses its language link: no error, no failing test, just a page
+   * that quietly stops offering English. Caught by diffing two real builds.
+   */
+  const siblings =
+    alternates.length > 0 ? alternates : LOCALES.map((l) => ({ locale: l, path: homePath(l) }));
+  const otherLocales = siblings.filter((a) => a.locale !== locale);
 
   return (
     "<!doctype html>\n" +
@@ -534,12 +559,12 @@ export function renderDocument(opts: DocumentOptions): string {
           (a) =>
             html`<link rel="alternate" hreflang="${a.locale}" href="${canonicalUrl(a.path)}" />`,
         )}
-        ${alternates.length > 0 &&
-        html`<link rel="alternate" hreflang="x-default" href="${canonicalUrl(homePath("he"))}" />`}
+        ${xDefault &&
+        html`<link rel="alternate" hreflang="x-default" href="${canonicalUrl(xDefault.path)}" />`}
         ${!opts.indexable && html`<meta name="robots" content="noindex, follow" />`}
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="${site.brand}" />
-        <meta property="og:locale" content="${locale === "he" ? "he_IL" : "en_US"}" />
+        <meta property="og:locale" content="${OG_LOCALE[locale]}" />
         <meta property="og:title" content="${opts.title}" />
         <meta property="og:description" content="${opts.description}" />
         <meta property="og:url" content="${canonical}" />
@@ -577,7 +602,22 @@ export function renderDocument(opts: DocumentOptions): string {
         <footer>
           <div class="in">
             <span>${site.footer}</span>
-            <a href="${href(homePath(locale === "he" ? "en" : "he"), base)}">${locale === "he" ? "English" : "עברית"}</a>
+            ${otherLocales.map(
+              (a) =>
+                // The autonym, never a flag: Spanish is not Spain, Arabic is
+                // twenty-odd countries, and a flag beside a language is a
+                // claim about nationality this site has no business making.
+                //
+                // It links to THIS page in that language rather than to that
+                // language's home, so a reader who wants the snake article in
+                // English gets the snake article. Only the languages that
+                // actually have this page appear, so a crawlable link can
+                // never promise a document nobody wrote.
+                // One line on purpose. A line break inside the tag is emitted
+                // verbatim into all 52 documents - `</a\n>` is legal HTML and
+                // still noise in every page on the site.
+                html`<a href="${href(a.path, base)}" hreflang="${a.locale}" lang="${a.locale}">${AUTONYM[a.locale]}</a>`,
+            )}
           </div>
         </footer>
       </body>
