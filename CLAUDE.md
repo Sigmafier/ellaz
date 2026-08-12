@@ -745,6 +745,32 @@ and throws on any `var()` it cannot.
 WhatsApp silently drops the preview. Mutation-proven three ways. Full account:
 [`docs/build-log.md`](docs/build-log.md) § Share cards.
 
+## One game, on a host we cannot watch
+
+`STANDALONE_GAME=sudoku npm run build:standalone` writes `dist-standalone/sudoku/` —
+one game, one page, `index.html` at the root, ready to zip for itch.io. It has its
+own config (`vite.standalone.config.ts`) and its own entry (`src/standalone.tsx`),
+and **neither may ever be folded into the main build**: a branch inside
+`vite.config.ts` puts both one typo apart, while a separate file means the site a
+child loads cannot regress from this work at all. It never writes `dist/`.
+
+Reusing `bootContentPage` is the tempting move and it is wrong — `PageApp.tsx`
+calls `analytics.init()`, `analytics.track()` and `startCloudSync()`
+**unconditionally**, and those are static imports, so no `manualChunks` branch and
+no `globIgnores` entry can remove them. Only a different entry can. Other games and
+`src/sdk/cloud.ts` are stubbed at **resolution**, each stub throwing if reached; a
+sudoku bundle went 2.1 MB → 224 KB once they were.
+
+`npm run assert:standalone` is the gate, written before the target and carrying 14
+planted controls. It found three defects on the first real bundle, and a browser
+found a fourth the gate could not see: a `fonts.googleapis.com` import, which is an
+external request from a game — the rule that lets this SDK be listed on a portal at
+all. **That fix is scoped to this build**; `src/ui/global.css:5` still fetches the
+same font on the live site, and changing that is a payload decision with a budget
+attached. Full rule, including the case-sensitivity trap that passes on `/mnt/c` and
+404s on their CDN:
+[`.claude/rules/a-second-published-artifact-needs-its-own-gate.md`](.claude/rules/a-second-published-artifact-needs-its-own-gate.md).
+
 ## Two locale sets, and the narrow one is a type
 
 `src/i18n/locales.ts` holds both, and the difference between them is the whole

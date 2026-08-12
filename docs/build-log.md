@@ -953,6 +953,98 @@ redirects, so a redirecting sitemap URL is scored as its target. No input-size
 ceiling: `res.text()` is unbounded and 10 MB parses in ~4 s, linear so not a hang.
 CJK without spaces reads as one word — unreachable until `zh` or `ja` is added.
 
+## One game, on somebody else's CDN (2026-08-11)
+
+The site publishes a second artifact now: a **standalone single-game bundle**, built by
+its own config, for hosts we do not control — itch.io first. `STANDALONE_GAME=sudoku npm
+run build:standalone` writes `dist-standalone/sudoku/`, and `npm run assert:standalone`
+decides whether it may leave the building.
+
+**A separate config file, not a branch in `vite.config.ts`.** The whole risk of this work
+is that a change made for a third-party host regresses the site a child actually loads. A
+branch puts both builds one typo apart; a separate file means the production build cannot
+regress from it at all, and rollback is deleting one file. The cost is duplicated
+`resolve.alias` and `build.target`, which fail loudly at build time.
+
+**The gate was written first, and it found three defects on the first real bundle**:
+no `index.html` at the zip root; a `cloud-*.js` chunk carrying `firestore.googleapis.com`,
+`identitytoolkit.googleapis.com` and `securetoken.googleapis.com` into an artifact
+labelled "Sudoku"; and every other game plus Phaser riding along — a sudoku bundle
+carrying `phaser.esm-*.js` at 1,685 kB. Stubbing the other games and the cloud client at
+*resolution* took it from 2.1 MB to **224 KB**.
+
+**The fourth defect no static check could see.** Loaded in a real browser, the page
+fetched `fonts.googleapis.com` — `src/ui/global.css:5` imports Heebo and Fredoka. Fine on
+our own site; on someone else's page it is an external request from a game, which is the
+one thing this artifact promises not to make, and it hands a child's IP to Google. Stripped
+in this build only: changing the main site is a payload-and-design decision with a budget
+attached, and it is logged as the operator's call with the privacy argument rather than
+the byte one.
+
+### The traps, and the one worth keeping
+
+**`resolveId` receives the RAW specifier.** `catalog.ts` writes
+`import("../games/snake/index")` — a string containing no `src/` at all — so a hook
+matching `/\/src\/games\//` on the specifier fires on nothing. The first version did
+exactly that and produced a **byte-identical bundle that looked like a working one**.
+Only the gate's output disagreed. Resolve first (`this.resolve(source, importer,
+{skipSelf: true})`), then match the resolved id.
+
+**`closeBundle` runs via `hookParallel`.** Two plugins mutating the same output directory
+race each other, and the failure surfaced as the *later* plugin complaining that
+`standalone.html` did not exist — the innocent bystander. Merged into one
+`finalizeBundle()` where the order is the order of the statements.
+
+**And the one that generalises past this repo: I wrote the pattern from the SOURCE, and
+the artifact is minified.** `@import url("https://…")` in `global.css` is
+`@import"https://…wght@500;600";` in the built CSS — no whitespace after `@import`, and
+semicolons *inside* the query string. A regex requiring the space and stopping at the
+first `;` matched nothing, three times, while the bytes sat in plain view. **The identical
+defect was in the gate**, whose narrowed `externalOrigins` pattern had gone quietly
+false-negative over the exact request it existed to catch.
+
+> A check that can silently not-run reports confidently about something it never
+> observed. Write the matcher against the artifact, and prove it fires on the real bytes.
+
+### Measured
+
+Three bundles: **2048 204 KB · sudoku 224 KB · snake 1.9 MB**. Snake is nine times the
+others because it is the only game importing Phaser. `grep -rl googleapis dist-standalone/`
+returns nothing. The gate ships **14 planted controls**, all firing, plus a positive
+control that must still pass.
+
+Served from a nested subdirectory standing in for itch's CDN and driven in a browser: the
+board plays, 42 of 81 cells filled, clock running, 95 interactive nodes, the no-JavaScript
+fallback removed, no service worker, **four network requests and every one local**, fonts
+resolving to `system-ui`, and the commit stamp present in the head. `dist/` untouched;
+`build:check` green.
+
+### What is published, and what is written down
+
+`docs/outreach/` now holds seven drafts — three Hebrew posts, a press pitch, itch,
+Newgrounds, Reddit and the Poki/CrazyGames enquiry. Nothing is sent; the operator posts
+and uploads all of it.
+
+**Three of the four destination checks came back blind, in the same shape.** Newgrounds
+returns 403 to any script including its own root. The Poki developer portal is a 200
+carrying **nine words** — a client-rendered shell. Every subreddit returned an identical
+8.4 KB shell, including one invented as a control, so that probe cannot tell a real
+destination from a fictional one. None of the three is claimed as verified, and each file
+names its blind instrument.
+
+Verification also caught a fabricated fact in our own copy: the itch page said sudoku had
+"four sizes" where the game has **six levels across three board sizes**. Read out of
+`LEVEL_OPTIONS`, not remembered. Two other numbers were deleted rather than softened — a
+time-to-gameplay figure nobody measured, and a page count that moves the day a language
+is promoted.
+
+The Poki draft leads with the decision it forces rather than the submission: those portals
+are advertising businesses, and "no ads" is on all 52 of our pages. The SDK shape was built
+to their union so the door stays open, which is not the same as walking through it.
+
+Full rule, including the case-sensitivity trap that passes on `/mnt/c` and 404s on their
+CDN: [`a-second-published-artifact-needs-its-own-gate.md`](../.claude/rules/a-second-published-artifact-needs-its-own-gate.md).
+
 ## Still open
 
 - **Wave C step 2b** — live two-way sync. Needs the profile to carry per-device
