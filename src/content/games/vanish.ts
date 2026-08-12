@@ -261,6 +261,129 @@ export const vanish: GameContent = {
 
       keywords: ["memory", "what disappeared", "visual memory", "concentration", "preschool", "attention"],
     },
+    es: {
+      metaTitle: "¿Qué falta? - memoria visual para niños | Ellaz",
+      metaDescription:
+        "Juego gratis de memoria visual para niños. Miras unas cosas, una manta las tapa y falta una. Tres niveles, sin registro.",
+
+      lede: "Un juego de memoria gratuito para niños. Aparecen unas cuantas cosas, una manta las tapa un momento, y vuelven con una menos. La única pregunta es cuál.",
+
+      body: [
+        "Unas cosas en pantalla. Cae la manta. Falta algo.",
+
+        "Aquí hay una regla de justicia que se puede medir, y merece explicación. La ventana para mirar crece con el tablero: siete segundos para tres cosas, ocho para cuatro, nueve para seis. El presupuesto por cosa baja, en cambio, de 2,33 segundos a 2 y a 1,5. Eso es lo contrario de lo que haría un juego de memoria perezoso, que sería dar a seis cosas los mismos siete segundos y llamarlo difícil. No se pueden guardar seis cosas en el tiempo que cuesta guardar tres, así que el total tiene que crecer. Lo que hace difícil al difícil es el presupuesto por cosa, y tiene un suelo de segundo y medio por debajo del cual no baja ningún nivel.",
+
+        "Ese suelo existe porque esto es una prueba de memoria y no de velocidad. Un niño de cinco años al que le dan menos de segundo y medio por cosa no ha fallado en recordar, ha fallado en terminar de mirar, y eso mide algo completamente distinto.",
+
+        "Los niveles cambian cuántas cosas hay: tres, cuatro o seis. Adivinar a ciegas vale un 33,3%, un 25% y un 16,7% respectivamente, así que incluso en difícil un niño que adivina acierta una de cada seis veces. Lo justo para que no se quede atascado.",
+
+        "El tablero va de izquierda a derecha incluso en hebreo. Aquí las posiciones forman parte de la pregunta, y un tablero reflejado cambiaría lo que el niño acababa de memorizar.",
+      ],
+
+      howToPlay: [
+        { title: "Elige un nivel", body: "Tres, cuatro o seis cosas. El tiempo total crece con el tablero." },
+        { title: "Mira", body: "De siete a nueve segundos mirando. Nada que correr y nada que pulsar." },
+        { title: "Espera la manta", body: "Tapa el tablero un momento y se levanta." },
+        { title: "Di qué se fue", body: "Toca la cosa que falta entre las opciones. Fallar no cuesta nada." },
+      ],
+
+      tips: [
+        {
+          title: "Di la lista en voz alta",
+          body: "Manzana, perro, pelota. Nombrarlas añade una memoria verbal encima de la visual, lo que más o menos dobla las probabilidades.",
+        },
+        {
+          title: "Recuerda por posición",
+          body: "No qué había sino dónde. A muchos niños les resulta más fácil notar una esquina vacía que un objeto que falta.",
+        },
+        {
+          title: "Usa todo el tiempo",
+          body: "No hay ninguna bonificación por mirar menos. Nueve segundos son nueve segundos, y la mayoría de los niños miran tres.",
+        },
+        {
+          title: "Empieza con tres",
+          body: "Tres cosas suenan a muy pocas y a los cuatro años son exactamente las que tocan. Seis es un salto grande.",
+        },
+      ],
+
+      teaches: [
+        { title: "Memoria visual a corto plazo", body: "Sostener una imagen entera en la cabeza unos segundos es la habilidad que se mide aquí, y la única." },
+        { title: "Mirar con método", body: "Un niño que mira en orden recuerda más que uno que va dando saltos. El juego lo enseña solo." },
+        { title: "Vocabulario", body: "Cada ronda enseña varios objetos o animales, y los niños los nombran en voz alta sin que nadie se lo pida." },
+        {
+          title: "Notar una ausencia",
+          body: "Ver lo que no está cuesta más que ver lo que sí, y es una costumbre mental de verdad útil.",
+        },
+      ],
+
+      ages: [
+        { title: "3 a 4", body: "Tres cosas, y a poder ser acompañados al principio. Dos aciertos son excelentes a esta edad." },
+        { title: "5 a 6", body: "Cuatro. Aquí es cuando empiezan a recitar la lista en voz alta sin que nadie se lo pida." },
+        { title: "7 en adelante", body: "Seis, a segundo y medio cada una. Eso también reta a un adulto." },
+        {
+          title: "Adultos",
+          body: "Seis cosas en nueve segundos es fácil hasta que lo probáis al final de un día largo. Entonces de repente no lo es.",
+        },
+      ],
+
+      accessibility:
+        "Un toque, sin arrastrar y sin mantener pulsado. Las cosas son grandes y están bien separadas, y ninguna tapa a otra. Se reconocen por la forma del objeto y no por el color, así que el daltonismo no influye. No hay reloj sobre la respuesta, solo sobre el rato de mirar, y ese tiene un suelo de segundo y medio por cosa que ningún nivel baja. La manta cae en un movimiento suave y no en un destello. El juego entero se juega en silencio.",
+
+      together: [
+        { title: "Recitad la lista", body: "Juntos, antes de que caiga la manta. De repente los dos recordáis más." },
+        {
+          title: "Jugadlo en la mesa",
+          body: "Poned cinco objetos de verdad, tapadlos con una toalla y quitad uno. Exactamente el mismo juego sin pantalla.",
+        },
+        { title: "Que elijan ellos", body: "Él elige qué desaparece y tú adivinas. El otro lado cuesta más de lo que parece." },
+        {
+          title: "Recordad en orden",
+          body: "Un reto extra: cuando caiga la manta, intentad nombrar todas las cosas en orden de izquierda a derecha.",
+        },
+      ],
+
+      faq: [
+        {
+          q: "¿El juego es gratis?",
+          a: "Del todo. Nada que pagar y ninguna compra dentro del juego. Todos los juegos de la web están abiertos desde el primer segundo.",
+        },
+        {
+          q: "¿Hay que descargar algo o registrarse?",
+          a: "Ni una cosa ni la otra. Funciona en el navegador sin descarga y sin cuenta, y no pedimos ningún correo.",
+        },
+        {
+          q: "¿Cuánto tiempo hay para mirar?",
+          a: "Siete segundos para tres cosas, ocho para cuatro y nueve para seis. El total crece con el tablero, porque no se pueden guardar seis cosas en el tiempo que cuesta guardar tres.",
+        },
+        {
+          q: "¿El nivel difícil se pone demasiado rápido?",
+          a: "Hay un suelo de segundo y medio por cosa que ningún nivel baja. Esto es una prueba de memoria y no de velocidad, y un niño que no terminó de mirar no ha fallado en recordar.",
+        },
+        { q: "¿Tiene anuncios?", a: "Ninguno. Ni banners ni vídeo entre nivel y nivel." },
+        {
+          q: "¿Funciona sin conexión?",
+          a: "Sí. Después de una visita el juego queda guardado en el aparato y funciona en un avión.",
+        },
+        {
+          q: "¿Qué pasa si la respuesta es incorrecta?",
+          a: "Nada. No baja ninguna puntuación y no hay vidas. Empieza la ronda siguiente y se sigue jugando.",
+        },
+        {
+          q: "¿Por qué el tablero no se refleja en hebreo?",
+          a: "Porque las posiciones forman parte de la pregunta. Un niño que recuerda que el perro estaba en la esquina izquierda necesita encontrarlo ahí cuando se levante la manta.",
+        },
+        {
+          q: "¿Para qué edad es?",
+          a: "Desde unos tres años con tres cosas. No se lee nada y lo único que hace falta es reconocer objetos conocidos.",
+        },
+        {
+          q: "¿Recoge datos sobre mi hijo?",
+          a: "No. No hay registro ni nombre. Nada graba la sesión y nada dirige publicidad según el comportamiento. Contamos cuántas veces se ha abierto un juego, sin nada al lado que identifique a quién lo abrió.",
+        },
+      ],
+
+      keywords: ["memoria", "qué falta", "memoria visual", "concentración", "infantil", "atención"],
+    },
   },
 
   provenance: [

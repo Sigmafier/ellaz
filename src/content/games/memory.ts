@@ -216,7 +216,7 @@ export const memory: GameContent = {
       faq: [
         {
           q: "Is the memory game free?",
-          a: "Completely. There is no payment and there are no in-game purchases. There is no paid version either, because there is no other version. All 22 games on the site are open from the first second.",
+          a: "Completely. There is no payment and there are no in-game purchases. There is no paid version either, because there is no other version. Every game on the site is open from the first second.",
         },
         {
           q: "Do I need to download or sign up?",
@@ -250,6 +250,123 @@ export const memory: GameContent = {
       ],
 
       keywords: ["memory", "matching game", "concentration", "cards", "preschool", "brain training"],
+    },
+    es: {
+      metaTitle: "Juego de memoria para niños - gratis | Ellaz",
+      metaDescription:
+        "Juego de memoria gratis en el navegador. Das la vuelta a dos cartas y buscas la pareja, en tres niveles. Sin descargas y sin registro.",
+
+      lede: "Un juego de memoria gratuito que funciona en el navegador. Levantas dos cartas, buscas la pareja y terminas en los menos movimientos que puedas. Tres niveles, sin reloj, y no hay forma de perder.",
+
+      body: [
+        "El tablero empieza boca abajo. Tocas una carta, tocas otra, y ves si coinciden. Eso es todo.",
+
+        "¿Y cuántos movimientos son un buen resultado? Nosotros tampoco lo sabíamos, así que lo medimos. Sobre 20.000 partidas simuladas en nuestros propios tableros, alguien que recuerda cada carta que ha visto termina el nivel fácil en 9,2 movimientos de media. El mínimo teórico, sin nada de suerte, es 6. Adivinando a ciegas salen 36. En difícil la distancia se abre del todo: 15,6 frente a 104,3. Esa distancia es la razón por la que contamos movimientos en lugar de segundos, porque un cronómetro no ve nada de eso.",
+
+        "Un reloj le enseña a un niño a correr. Un contador de movimientos le enseña a parar un segundo y pensar dónde vio antes esa carta. Son dos juegos distintos y elegimos el segundo. Quedarse mirando el tablero un minuto entero aquí no cuesta nada.",
+
+        "Tres niveles: 6 parejas, 8 y 10. Y aquí va la parte honesta, que os ahorra una tarde. El nivel difícil frustra a un niño de cuatro años. Diez parejas es más de lo que le cabe en la cabeza, así que adivina, falla y quiere dejarlo en un minuto. No empecéis ahí. Empezad por el fácil y dejad que pida el siguiente. Lo va a pedir.",
+
+        "Todo se guarda en el propio aparato. No hay cuenta ni contraseña. El precio es que un móvil y una tablet son dos jugadores distintos con dos récords distintos: nunca os pedimos nada que identifique a nadie, así que no tenemos forma de unirlos.",
+      ],
+
+      howToPlay: [
+        { title: "Elige un nivel", body: "6, 8 o 10 parejas. Puedes cambiar a mitad y el tablero vuelve a empezar." },
+        { title: "Toca una carta", body: "Se da la vuelta. Ya está." },
+        { title: "Recuerda lo que has visto", body: "Una carta que no era vale oro. Volverá a aparecer." },
+        { title: "Toca una segunda", body: "¿Iguales? Se quedan abiertas. ¿Distintas? Las dos se cierran y sigues." },
+        { title: "Termina el tablero", body: "Confeti, monedas a la cartera, y una estrella si has batido tu récord." },
+      ],
+
+      tips: [
+        {
+          title: "Barre por filas",
+          body: "En lugar de saltar de un lado a otro, levanta las cartas en orden. Así construyes un mapa en vez de juntar recuerdos sueltos.",
+        },
+        {
+          title: "La primera carta sale gratis",
+          body: "Solo sirve para recoger información. Piensa bien la segunda, porque es la que decide si el movimiento ha servido de algo.",
+        },
+        {
+          title: "Fallar también informa",
+          body: "Una pareja que no coincide acaba de enseñarte dos posiciones nuevas. En movimientos te ha costado uno. En conocimiento te ha dado dos.",
+        },
+        {
+          title: "Cuando quedan cuatro cartas",
+          body: "A estas alturas ya lo has visto casi todo. Para un segundo antes de tocar nada, porque aquí es donde se recortan los movimientos tirados.",
+        },
+      ],
+
+      teaches: [
+        {
+          title: "Memoria visual",
+          body: "Acordarse de qué había dónde es una habilidad que se entrena, y este juego entrena exactamente esa y ninguna otra.",
+        },
+        { title: "Atención sostenida", body: "Un tablero entero pide varios minutos seguidos de atención. Nadie mete prisa." },
+        { title: "Pensar antes de actuar", body: "Cuando se cuentan movimientos y no segundos, parar sale rentable. La regla se enseña sola." },
+        { title: "Equivocarse", body: "Una carta que no era se cierra y sigues jugando. No hay nada de lo que asustarse." },
+      ],
+
+      ages: [
+        { title: "3 a 4", body: "Nivel fácil, y la primera vez acompañados. A esta edad la gracia está en levantar la carta, no en encontrar la pareja." },
+        { title: "5 a 6", body: "Fácil solos, después medio. Es la edad en la que empiezan a recordar posiciones en vez de adivinar." },
+        { title: "7 en adelante", body: "Difícil. Desde aquí la carrera es contra su propio récord y no contra el tablero." },
+        {
+          title: "Adultos",
+          body: "Diez parejas en menos de 16 movimientos es una partida buena de verdad. Nuestra simulación, con memoria perfecta, se quedó en 15,6.",
+        },
+      ],
+
+      accessibility:
+        "Un toque y ya está. No hay que arrastrar ni mantener pulsado, así que funciona con dispositivos de entrada alternativos y con una mano pequeña que todavía no apunta bien. Las cartas son grandes a propósito: al menos 2 por 2 centímetros en cualquier pantalla. Las parejas se distinguen por forma y no solo por color, de modo que el daltonismo no cambia nada aquí. No hay destellos rápidos. Se puede jugar entero en silencio sin perderse ninguna información.",
+
+      together: [
+        { title: "Por turnos", body: "Cada jugador levanta dos. Si encuentra pareja, repite. Mismo tablero, otras reglas alrededor." },
+        {
+          title: "En voz alta",
+          body: "Antes de la segunda carta, preguntadle dónde cree que está la compañera. Convierte una memoria privada en una conversación, y de paso descubrís cuánto recuerda de verdad.",
+        },
+        { title: "Sin contar", body: "A veces ignorad el contador. No se va a ninguna parte." },
+        { title: "A ciegas", body: "Intentad decir qué hay debajo de una carta antes de darle la vuelta. Los fallos son la parte divertida." },
+      ],
+
+      faq: [
+        {
+          q: "¿El juego de memoria es gratis?",
+          a: "Del todo. No hay pagos ni compras dentro del juego. Tampoco existe una versión de pago, porque no hay otra versión. Todos los juegos de la web están abiertos desde el primer segundo.",
+        },
+        {
+          q: "¿Hay que descargar algo o registrarse?",
+          a: "No. Funciona en el navegador, sin descarga y sin cuenta. Tampoco pedimos un correo.",
+        },
+        {
+          q: "¿Cuántos movimientos son un buen resultado?",
+          a: "Simulamos 20.000 partidas para responder a eso. Con memoria perfecta el nivel fácil se resuelve en 9,2 movimientos de media y el difícil en 15,6. Adivinando a ciegas salen 36 y 104,3. Todo lo que hay en medio es una partida real.",
+        },
+        {
+          q: "¿Para qué edad es?",
+          a: "El fácil sirve a partir de los tres años. En el juego no se lee nada, así que un niño que todavía no lee juega solo. El difícil sigue entreteniendo a un adulto.",
+        },
+        { q: "¿Tiene anuncios?", a: "Ninguno. Ni banners ni nada que se ponga entre nivel y nivel." },
+        {
+          q: "¿Se puede jugar sin conexión?",
+          a: "Sí. Después de una visita el juego queda guardado en el aparato y funciona en un avión.",
+        },
+        {
+          q: "¿Dónde se guarda mi récord?",
+          a: "Solo en el aparato, nunca en un servidor. Si borras el historial del navegador desaparece, y un móvil y una tablet guardan dos récords separados.",
+        },
+        {
+          q: "¿Cómo se mide el récord?",
+          a: "En movimientos, donde menos es mejor, y por separado para cada nivel. Dos cartas levantadas cuentan como un movimiento.",
+        },
+        {
+          q: "¿El juego recoge información sobre mi hijo?",
+          a: "No. No hay registro ni nombre. Nada graba la pantalla y nada dirige publicidad según el comportamiento. Contamos cuántas veces se abre un juego, sin nada al lado que diga quién lo abrió.",
+        },
+      ],
+
+      keywords: ["memoria", "parejas", "concentración", "cartas", "infantil", "entrenar la mente"],
     },
   },
 

@@ -32,9 +32,9 @@ import type { SnakeStatus, SpeedKey } from "./SnakeScene";
 // that imports it at all, and it must stay that way.
 
 const SPEED_OPTIONS: DifficultyOption<SpeedKey>[] = [
-  { id: "slow", label: { he: "🐢 איטי", en: "🐢 Slow" } },
-  { id: "normal", label: { he: "🙂 רגיל", en: "🙂 Normal" } },
-  { id: "fast", label: { he: "🐇 מהיר", en: "🐇 Fast" } },
+  { id: "slow", label: { he: "🐢 איטי", en: "🐢 Slow", es: "🐢 Lento" } },
+  { id: "normal", label: { he: "🙂 רגיל", en: "🙂 Normal", es: "🙂 Normal" } },
+  { id: "fast", label: { he: "🐇 מהיר", en: "🐇 Fast", es: "🐇 Rápido" } },
 ];
 
 // A fixed LOGICAL size, scaled to the parent by Phaser.Scale.FIT. Booting at a
@@ -143,6 +143,11 @@ export function SnakeGame({ ctx }: { ctx: GameContext }) {
         over: "Game over - tap to play again",
         ready: "Tap to start",
         hint: "Swipe or arrow keys",
+      },
+      es: {
+        over: "Fin del juego - toca para jugar otra vez",
+        ready: "Toca para empezar",
+        hint: "Desliza o usa las flechas",
       },
     },
     ctx.locale,

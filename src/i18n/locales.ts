@@ -78,7 +78,7 @@ export type AppLocale = (typeof APP_LOCALES)[number];
  * Read the file header before adding to this list. The short version: prose
  * first, this list second, or the build goes red.
  */
-export const PAGE_LOCALES = ["he", "en"] as const;
+export const PAGE_LOCALES = ["he", "en", "es"] as const;
 
 export type PageLocale = (typeof PAGE_LOCALES)[number];
 

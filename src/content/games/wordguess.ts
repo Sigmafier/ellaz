@@ -283,6 +283,140 @@ export const wordguess: GameContent = {
         "word puzzle browser",
       ],
     },
+    es: {
+      metaTitle: "Adivina la palabra - juego de palabras gratis | Ellaz",
+      metaDescription:
+        "Juego de adivinar palabras gratis en el navegador. Seis intentos, palabras de 4, 5 o 6 letras, con teclado español y ñ. Sin descargas.",
+
+      lede: "Adivina la palabra oculta en seis intentos. Cada intento colorea sus letras: verde significa letra correcta en el sitio correcto, y morado significa que la letra está en la palabra pero en otro lugar.",
+
+      body: [
+        "Eliges un largo. Escribes una palabra. Lees los colores. Ese es el juego entero, y se aprende en unos diez segundos.",
+
+        "La pregunta interesante es con qué palabra abrir, así que la medimos en lugar de suponerla. Cada palabra de la lista se jugó como primer intento contra todas las respuestas posibles, y contamos cuántas candidatas sobreviven cuando vuelven los colores. Nuestra lista española de 4 letras tiene 65 palabras. Abrir con sapo las reduce a 4,82 de media, lo mejor que tenemos. Abrir con kiwi deja 44,29 en pie, o sea más de dos tercios de la lista entera. Y la diferencia no tiene nada que ver con lo comunes que sean: kiwi gasta cuatro casillas en tres letras, y dos de ellas casi no aparecen en español.",
+
+        "Las letras repetidas son el error caro. En seis letras, arroyo deja 4,43 palabras en pie donde minuto deja 1,43, porque arroyo pregunta en realidad por cuatro letras y no por seis. Nieve hace lo mismo en cinco y deja 12,13 de 55.",
+
+        "El teclado tiene 27 teclas, con la ñ en su sitio del abecedario. Las vocales con tilde quedan fuera, y esa es una decisión sobre el teclado más que sobre el idioma: si la respuesta llevara tilde, habría que acertar además dónde va el acento para que la casilla se pusiera verde, y una ronda que no se puede ganar escribiendo la palabra bien no es una ronda justa.",
+
+        "Y aquí el límite honesto, que os ahorra una pequeña decepción: las listas son cortas. Sesenta y cinco palabras de cuatro letras, 55 de cinco y 46 de seis. Jugad veinte minutos y una palabra volverá a salir. Lo elegimos así a propósito. Una lista más larga significa echar mano de palabras que un niño no ha visto nunca, y una palabra que no puedes leer es una palabra que no puedes adivinar.",
+      ],
+
+      howToPlay: [
+        { title: "Elige un largo", body: "Cuatro, cinco o seis letras. Puedes cambiar cuando quieras; la racha vuelve a empezar." },
+        { title: "Escribe un intento", body: "Se acepta cualquier palabra del largo correcto. No hay un diccionario secreto rechazándote." },
+        { title: "Lee las casillas", body: "Verde está en su sitio, morado está en la palabra en otro lugar, gris no está en la palabra." },
+        { title: "Ve cerrando", body: "Gasta el intento siguiente en letras que todavía no has probado, en vez de confirmar lo que ya sabes." },
+        { title: "Resuélvela", body: "Acertar suma uno a tu racha y reparte otra palabra. Seis fallos revelan la respuesta y dejan la racha a cero." },
+      ],
+
+      tips: [
+        {
+          title: "Nunca gastes una letra dos veces",
+          body: "Kiwi es nuestro peor arranque de cuatro letras justo por esto. Cuatro casillas, tres letras. Abre con una palabra cuyas letras sean todas distintas.",
+        },
+        {
+          title: "Las vocales salen baratas",
+          body: "Aparecen en casi todo, así que probarlas pronto cuesta un intento y descarta muchísimo. Sapo y ropa puntúan bien solo por eso.",
+        },
+        {
+          title: "El morado es un regalo",
+          body: "Te dice dos cosas con una casilla: la letra pertenece a la palabra, y la posición que probaste no es la suya. El gris solo te dice una.",
+        },
+        {
+          title: "El segundo intento decide la partida",
+          body: "Después de un buen arranque en cuatro letras te quedan unas 5 candidatas. Ahí se gana una ronda, y no en la última fila.",
+        },
+      ],
+
+      teaches: [
+        {
+          title: "Ortografía con presión",
+          body: "Hay que montar una palabra entera con letras, y después volver a hacerlo con mejor información. Ese es el ejercicio, y no parece uno.",
+        },
+        {
+          title: "Deducción",
+          body: "Cada fila es una prueba y la fila siguiente es lo que hiciste con ella. Juego de palabras por fuera, lógica por dentro.",
+        },
+        {
+          title: "Frecuencia de las letras",
+          body: "Juega un rato y empiezas a notar qué letras se ganan su sitio en un arranque. Esto no lo enseña nadie. Lo enseña el marcador.",
+        },
+        {
+          title: "Paciencia",
+          body: "Seis intentos son generosos. No hay reloj.",
+        },
+      ],
+
+      ages: [
+        {
+          title: "Siete en adelante",
+          body: "Leer y escribir palabras sencillas es el requisito de entrada, y por eso este no está entre nuestros juegos previos a la lectura.",
+        },
+        {
+          title: "Edad escolar",
+          body: "El nivel de cuatro letras está hecho para este grupo. Todas las respuestas son cosas concretas del día a día: comida, animales, tiempo, cosas de una habitación.",
+        },
+        {
+          title: "Adultos",
+          body: "Seis letras es un rompecabezas de verdad, sobre todo cuando estás protegiendo una racha larga.",
+        },
+      ],
+
+      accessibility:
+        "Cada tecla ocupa 44 píxeles, el juego acepta un teclado físico igual de bien que el de pantalla, y el verde y el morado se eligieron para diferenciarse en luminosidad además de en tono, así que siguen distinguiéndose para quien no separa colores. Una palabra resuelta también se lee en voz alta, como extra y no como requisito: la palabra está siempre en pantalla escrita en letras.",
+
+      together: [
+        {
+          title: "Intentos alternos",
+          body: "Un intento cada uno. El niño escribe y el adulto explica por qué esa palabra y no otra.",
+        },
+        {
+          title: "Dilo antes de pulsar",
+          body: "Anuncia qué está probando el intento antes de enviarlo. Convierte una corazonada en razonamiento, y el razonamiento es la parte que se queda.",
+        },
+        {
+          title: "Perseguid una racha",
+          body: "El récord se guarda por largo de palabra. Batid el de ayer sin bajar a un nivel más fácil.",
+        },
+      ],
+
+      faq: [
+        {
+          q: "¿Es gratis?",
+          a: "Sí. Sin pagos, sin anuncios y sin registro. Lo abres y juegas.",
+        },
+        {
+          q: "¿Hay que instalar algo?",
+          a: "No. Funciona en el navegador en móvil, tablet u ordenador, y sigue funcionando sin conexión después de la primera visita.",
+        },
+        {
+          q: "¿Está la ñ?",
+          a: "Sí. El teclado tiene las 27 teclas del abecedario con la ñ en su sitio. Las vocales con tilde quedan fuera, porque si la respuesta llevara tilde habría que acertar también dónde va el acento para poner la casilla verde.",
+        },
+        {
+          q: "¿Puedo probar una palabra que no esté en la lista?",
+          a: "Sí, y es a propósito. Cualquier palabra del largo correcto se marca. La lista decide cuál puede ser la respuesta, nunca lo que puedes intentar.",
+        },
+        {
+          q: "¿Qué se guarda?",
+          a: "La palabra a medias, tu racha actual y tu mejor racha por largo, todo en el aparato. No hay cuenta, así que un móvil y una tablet guardan récords separados.",
+        },
+        {
+          q: "¿Qué pasa cuando se acaban los intentos?",
+          a: "Se revela la palabra, la racha vuelve a cero y se reparte otra. Ese es el castigo entero.",
+        },
+      ],
+
+      keywords: [
+        "juego de adivinar palabras",
+        "juego de palabras gratis",
+        "juego de palabras online",
+        "adivina la palabra",
+        "juego de letras",
+        "palabras en el navegador",
+      ],
+    },
   },
 
   provenance: [
@@ -294,5 +428,10 @@ export const wordguess: GameContent = {
     { claim: "road cuts 53 English words to 4.81", source: "scripts/sim/wordguess-openers.mjs" },
     { claim: "plum leaves 20.36 English words standing", source: "scripts/sim/wordguess-openers.mjs" },
     { claim: "banana leaves 7 where planet leaves 1.27", source: "scripts/sim/wordguess-openers.mjs" },
+    { claim: "Spanish lists hold 65, 55 and 46 words", source: "scripts/sim/wordguess-openers.mjs" },
+    { claim: "sapo cuts 65 Spanish words to 4.82", source: "scripts/sim/wordguess-openers.mjs" },
+    { claim: "kiwi leaves 44.29 Spanish words standing", source: "scripts/sim/wordguess-openers.mjs" },
+    { claim: "arroyo leaves 4.43 where minuto leaves 1.43", source: "scripts/sim/wordguess-openers.mjs" },
+    { claim: "nieve leaves 12.13 of 55 Spanish five-letter words", source: "scripts/sim/wordguess-openers.mjs" },
   ],
 };

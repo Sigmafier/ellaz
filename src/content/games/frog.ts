@@ -255,6 +255,126 @@ export const frog: GameContent = {
 
       keywords: ["frog", "lily pads", "toddler game", "preschool", "tapping", "hand eye"],
     },
+    es: {
+      metaTitle: "Atrapa la rana - juego gratis para peques | Ellaz",
+      metaDescription:
+        "Juego gratis de ranas para niños pequeños. Una rana salta de nenúfar en nenúfar y hay que tocarla. Nada que perder, sin registro.",
+
+      lede: "Un juego gratuito en el que una rana está sentada en un nenúfar y salta a otro. La tocas y salta. La dejas en paz y salta igualmente, así que aquí no se puede fallar de verdad.",
+
+      body: [
+        "Una rana en un nenúfar. La tocas. Salta a otro sitio. Ese es el juego entero.",
+
+        "Lo que lo sostiene es que fallar no está disponible. Una rana que nadie ha tocado salta sola, así que lo que parece un fallo es sencillamente el siguiente salto. Un niño de tres años no vive aquí ni un momento de frustración, porque no existe ningún estado del juego en el que pase algo malo. Una ronda acaba tras seis a diez atrapadas según el nivel, y cada atrapada acerca el final.",
+
+        "Hay un número aquí que no conocíamos hasta que lo medimos. El tiempo que la rana pasa sentada se encoge con cada salto, hasta un suelo por debajo del cual nunca baja. En fácil tienes 2,94 segundos para apuntar en el primer salto y 2,49 en el último de la ronda, mientras que el suelo de 1,74 segundos solo llega después de catorce saltos. La ronda acaba a los seis. O sea que en fácil y en medio un niño no se encuentra ni una sola vez con la rana más rápida que ese nivel es capaz de producir. Solo el difícil llega, en el octavo salto de diez.",
+
+        "Ese suelo es un límite de seguridad y no de gusto. Una rana sentada menos tiempo del que un niño necesita para verla, decidir y posar un dedo no hace el juego difícil. Hace la ronda imposible de terminar, y deja a un niño pequeño dando toques a una pantalla sin salida.",
+
+        "Dos reglas pequeñas mantienen esto coherente. La rana nunca salta al nenúfar en el que ya está, porque un niño que ha visto pasar algo y no ha visto cambiar nada concluye que el juego está encallado. Y hay una rana. Siempre. Lo que cambian los niveles es cuántos nenúfares hay: cuatro, cinco o seis.",
+      ],
+
+      howToPlay: [
+        { title: "Elige un nivel", body: "Fácil, medio o difícil. Cambian el número de nenúfares y la velocidad del salto." },
+        { title: "Busca la rana", body: "Está sentada en uno de los nenúfares, esperando." },
+        { title: "Tócala", body: "Un toque. Salta a otro nenúfar, nunca al mismo." },
+        { title: "Termina la ronda", body: "De seis a diez atrapadas según el nivel, y después subes." },
+      ],
+
+      tips: [
+        {
+          title: "Mira los nenúfares vacíos",
+          body: "No va a volver al nenúfar en el que está, así que el siguiente salto es siempre uno de los otros. Eso reduce la búsqueda.",
+        },
+        {
+          title: "Deja la mano en el centro",
+          body: "Un dedo esperando en el medio llega a cualquier nenúfar más rápido que uno abandonado donde ocurrió la última atrapada.",
+        },
+        {
+          title: "No corras al principio",
+          body: "Los primeros saltos de una ronda son lentos a propósito. Aprovechadlos para aprenderos dónde están los nenúfares.",
+        },
+        {
+          title: "Solo el difícil llega al tope",
+          body: "Es el único nivel donde la rana alcanza su máximo dentro de una misma ronda, y eso pasa en el octavo salto.",
+        },
+      ],
+
+      teaches: [
+        { title: "Seguimiento visual", body: "El ojo tiene que encontrar un objetivo que se ha ido a otro sitio, que es justo el ejercicio." },
+        { title: "Precisión con el dedo", body: "Ver adónde ha ido no es lo mismo que llegar. Son dos habilidades distintas." },
+        {
+          title: "Insistir sin castigo",
+          body: "Cada salto es una oportunidad nueva, así que un niño sigue intentándolo sin que nadie tenga que animarlo.",
+        },
+        { title: "Anticipación", body: "Después de unos cuantos saltos empiezas a adivinar hacia dónde irá, y ahí empieza la estrategia." },
+      ],
+
+      ages: [
+        { title: "2 a 3", body: "Fácil. Cuatro nenúfares y casi tres segundos por salto, sin ninguna presión." },
+        { title: "4 a 5", body: "Fácil solos, y medio cuando eso empiece a parecerles lento." },
+        { title: "6 en adelante", body: "Difícil. Seis nenúfares y una rana que llega de verdad a su velocidad máxima." },
+        {
+          title: "Padres",
+          body: "Aquí no hay nada que se pueda perder, así que este es de los que podéis soltar y marcharos.",
+        },
+      ],
+
+      accessibility:
+        "Un toque, sin arrastrar y sin mantener pulsado. La rana mide más de 2 centímetros de lado en cualquier pantalla y los nenúfares están lo bastante separados como para que un toque poco preciso caiga igualmente en el correcto. La rana se distingue del nenúfar por la forma y no solo por el color. No hay reloj, ni cuenta atrás, ni nada que parpadee, e incluso el nivel más rápido deja más de un segundo para apuntar. El juego entero se juega en silencio sin perder ninguna información.",
+
+      together: [
+        { title: "Adivina el nenúfar", body: "Señalad dónde creéis que va a caer antes de tocar. Nadie acierta demasiado." },
+        { title: "Atrapad por turnos", body: "Una atrapada cada uno. Misma ronda, dos pares de ojos." },
+        {
+          title: "Contad los nenúfares",
+          body: "Con un niño pequeño, contad los nenúfares antes de empezar. Cuatro, cinco o seis según el nivel.",
+        },
+        { title: "Con un ojo cerrado", body: "Un reto tonto que cambia el juego por completo y hace reír a todo el mundo." },
+      ],
+
+      faq: [
+        {
+          q: "¿El juego de la rana es gratis?",
+          a: "Del todo. Nada que pagar y ninguna compra dentro del juego. Todos los juegos de la web están abiertos desde el primer segundo.",
+        },
+        {
+          q: "¿Hay que descargar algo o registrarse?",
+          a: "Ni una cosa ni la otra. Funciona en el navegador sin descarga y sin cuenta, y no pedimos ningún correo.",
+        },
+        {
+          q: "¿Qué pasa si mi hijo no llega a tiempo?",
+          a: "Salta sola y se sigue jugando. No baja ninguna puntuación y no hay vidas, así que un fallo es sencillamente el siguiente salto.",
+        },
+        {
+          q: "¿Se pone demasiado rápida para un niño pequeño?",
+          a: "Hay un suelo que la rana nunca sobrepasa, e incluso el nivel más rápido deja más de un segundo para apuntar. En fácil y en medio la ronda termina antes de que la rana llegue siquiera a su velocidad máxima.",
+        },
+        { q: "¿Tiene anuncios?", a: "Ninguno. Ni banners ni vídeo entre nivel y nivel." },
+        {
+          q: "¿Funciona sin conexión?",
+          a: "Sí. Después de una visita el juego queda guardado en el aparato y funciona en un avión.",
+        },
+        {
+          q: "¿Cuántas atrapadas terminan una ronda?",
+          a: "Seis en fácil, ocho en medio y diez en difícil. Después subes de nivel y la siguiente ronda empieza algo más rápida.",
+        },
+        {
+          q: "¿Puede saltar dos veces seguidas al mismo nenúfar?",
+          a: "Nunca. Un niño que ha visto un salto y no ha visto cambiar nada en pantalla concluye que el juego está encallado, así que esa regla está impuesta en el código y no dejada a la suerte.",
+        },
+        {
+          q: "¿Para qué edad es?",
+          a: "Desde unos dos años en fácil. No se lee nada y lo único que hace falta es tocar algo que se mueve.",
+        },
+        {
+          q: "¿Recoge datos sobre mi hijo?",
+          a: "No. No hay registro ni nombre. Nada graba la sesión y nada dirige publicidad según el comportamiento. Contamos cuántas veces se ha abierto un juego, sin nada al lado que identifique a quién lo abrió.",
+        },
+      ],
+
+      keywords: ["rana", "nenúfares", "juego para bebés", "infantil", "tocar", "coordinación"],
+    },
   },
 
   provenance: [

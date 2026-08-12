@@ -63,6 +63,26 @@ fraction of boards are solvable without a guess. Snake: the length at which the 
 becomes the enemy. It is the only part of the page that is genuinely ours, so it is
 also the most quotable.
 
+## A new game arrives in every language or it does not arrive
+
+Step 6 of the add-a-game recipe is one content file **per `PAGE_LOCALES`**, and
+nothing about that is a convention somebody has to remember. Proven by planting
+a game in the roster with a `he|en` title and no content file at all:
+
+```
+tsc                Property 'es' is missing in type '{ he: string; en: string; }'
+                   ... src/games/probegame/meta.ts(6,3)
+content.test.ts    games in the catalog with no page: probegame
+```
+
+Two gates, two shapes. The compiler catches a game whose *strings* are short a
+language and names the line; the test catches a game whose *page* is missing and
+names the game. Neither can be satisfied halfway, so there is no state where a
+game is live in two languages and pending in the third.
+
+**The cost of a new language, per game, is one `es:` arm** — everything else
+(routes, sitemap, hreflang, share card, chunk, the picker) derives.
+
 ## Never translate. Write it twice.
 
 `en` is not `he` in English. A translation carries the source language's rhythm, and

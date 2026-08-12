@@ -261,6 +261,129 @@ export const bubbles: GameContent = {
 
       keywords: ["bubbles", "letters", "numbers", "learn to read", "alphabet", "preschool"],
     },
+    es: {
+      metaTitle: "Atrapa las burbujas - letras y números | Ellaz",
+      metaDescription:
+        "Juego gratis de letras y números para niños. Se pide un carácter y hay que atrapar la burbuja que lo lleva. Sin descargas ni registro.",
+
+      lede: "Un juego gratuito en el que suben burbujas con letras y números. La pantalla pide uno y tu hijo atrapa las burbujas que lo llevan. Tres niveles, sin reloj, y no hay forma de perder.",
+
+      body: [
+        "Suben burbujas. Cada una lleva una letra o una cifra. Se pide una y la tocas.",
+
+        "Aquí los niveles están montados alrededor de los parecidos y no de la velocidad, y esa decisión merece explicación. La velocidad es la palanca fácil y la equivocada, porque una ronda lenta llena de caracteres que un niño todavía no sabe separar sigue siendo un examen de lectura. Así que en fácil ninguna burbuja de la ronda se puede confundir con la que se ha pedido. Eso es una regla y no una tendencia, comprobada en 120 rondas por idioma y saliendo exactamente a cero. En medio los parecidos aparecen cuando el sorteo los produce. En difícil se meten a propósito, y la ronda se convierte en el ejercicio de distinguir.",
+
+        "Qué caracteres salen también es una decisión. En español el conjunto son las 27 mayúsculas, con la Ñ dentro, porque la Ñ es una letra con su propio sitio en el abecedario y no una N adornada. Las vocales acentuadas quedan fuera: la tilde marca dónde va el acento y no cambia la letra, y enseñar una distinción que no existe es peor que no enseñar nada.",
+
+        "Junto a las letras hay diez cifras. Un juego, dos trabajos. La mayoría de los niños reconocen números antes que letras, lo que convierte una ronda que pide el 3 en una entrada más suave que una que pide la W.",
+
+        "¿Cuánto tiempo hay? El fácil deja una burbuja arriba 4,2 segundos y el difícil 2,4. Una ronda acaba tras cuatro a seis atrapadas correctas según el nivel, y los niveles siguen sin final.",
+      ],
+
+      howToPlay: [
+        { title: "Elige un nivel", body: "Fácil, medio o difícil. La diferencia es cuántos parecidos salen." },
+        { title: "Mira qué te piden", body: "La letra o la cifra que se pide está grande arriba del todo." },
+        { title: "Toca la burbuja correcta", body: "Un toque la revienta. Una burbuja equivocada no cuesta nada." },
+        { title: "Supera el nivel", body: "Suficientes aciertos y subes, y se pide otro carácter." },
+      ],
+
+      tips: [
+        {
+          title: "Lee antes de tocar",
+          body: "Casi todos los fallos son un dedo que llega antes que un ojo. Una fracción de segundo leyendo quita la mayoría.",
+        },
+        {
+          title: "Empieza por las cifras",
+          body: "Los números le suenan a casi cualquier niño antes que las letras, así que una ronda que pide el 3 es una entrada más fácil.",
+        },
+        {
+          title: "Atrápalas abajo",
+          body: "Una burbuja cerca de la parte baja se queda accesible más tiempo, y eso importa sobre todo en difícil.",
+        },
+        {
+          title: "Quedaos en fácil",
+          body: "Si tu hijo todavía confunde letras parecidas, el fácil garantiza que no se va a encontrar ninguna.",
+        },
+      ],
+
+      teaches: [
+        { title: "Reconocer letras", body: "La petición se repite y sale grande, así que la forma se queda sin necesidad de machacarla." },
+        { title: "Reconocer números", body: "Diez cifras están mezcladas en el mismo conjunto, así que un juego cubre las dos cosas." },
+        {
+          title: "Separar parecidos",
+          body: "La b y la d, la p y la q, la M y la N. El difícil existe para practicar eso, y el fácil existe para protegerse de ello.",
+        },
+        { title: "Mano y ojo a la vez", body: "Una burbuja que sube pide una mirada que la siga y una mano que llegue antes que ella." },
+      ],
+
+      ages: [
+        { title: "3 a 4", body: "Fácil, y a poder ser empezando por las cifras. Esto es emparejar formas y no leer." },
+        { title: "5 a 6", body: "Fácil solos y después medio. Aquí es cuando las letras empiezan a resultar familiares de verdad." },
+        { title: "7 en adelante", body: "Difícil, donde el parecido entre caracteres es el reto entero." },
+        {
+          title: "Padres",
+          body: "No hay nada que perder ni reloj, así que un niño que se atasca simplemente busca otro momento.",
+        },
+      ],
+
+      accessibility:
+        "Un toque, sin arrastrar y sin mantener pulsado. Las burbujas miden más de 2 centímetros de lado en cualquier pantalla y suben por columnas fijas, así que ninguna se esconde detrás de otra. La información la lleva el carácter y no el color de la burbuja, de modo que el daltonismo no influye. No hay reloj ni presión de tiempo, y nada parpadea. La petición se queda grande arriba durante toda la ronda, así que se puede volver a mirar en cualquier momento.",
+
+      together: [
+        { title: "Di la letra", body: "Pedidle que la diga en voz alta antes de tocar. Se oye si la ha reconocido." },
+        {
+          title: "Caza su inicial",
+          body: "Esperad a la primera letra de su nombre. El juego se vuelve personal de golpe.",
+        },
+        { title: "Tú lees, él toca", body: "Leed la petición en voz alta en lugar de que la lea él. Funciona muy bien antes de saber leer." },
+        {
+          title: "Contad las que suben",
+          body: "¿Cuántas burbujas han pasado esa ronda? Contar de verdad dentro de otro juego.",
+        },
+      ],
+
+      faq: [
+        {
+          q: "¿El juego es gratis?",
+          a: "Del todo. Nada que pagar y ninguna compra dentro del juego. Todos los juegos de la web están abiertos desde el primer segundo.",
+        },
+        {
+          q: "¿Hay que descargar algo o registrarse?",
+          a: "Ni una cosa ni la otra. Funciona en el navegador sin descarga y sin cuenta, y no pedimos ningún correo.",
+        },
+        {
+          q: "¿Qué diferencia exactamente a los niveles?",
+          a: "Cuántos caracteres parecidos aparecen. En fácil ninguna burbuja de la ronda se parece a la pedida, verificado en 120 rondas por idioma. En medio llegan al azar y en difícil se meten a propósito.",
+        },
+        {
+          q: "¿Qué pasa si mi hijo toca la burbuja equivocada?",
+          a: "Nada. No baja ninguna puntuación y no se acaban las vidas. La burbuja revienta y se sigue jugando.",
+        },
+        { q: "¿Tiene anuncios?", a: "Ninguno. Ni banners ni vídeo entre nivel y nivel." },
+        {
+          q: "¿Funciona sin conexión?",
+          a: "Sí. Después de una visita el juego queda guardado en el aparato y funciona en un avión.",
+        },
+        {
+          q: "¿Sale la Ñ?",
+          a: "Sí. El conjunto español son las 27 mayúsculas con la Ñ incluida, porque es una letra con su propio sitio en el abecedario. Las vocales con tilde quedan fuera a propósito: la tilde marca el acento y no cambia la letra.",
+        },
+        {
+          q: "¿Por qué solo mayúsculas?",
+          a: "Porque la A y la a no deberían ser la misma pregunta para un niño que está aprendiendo a leer. La minúscula es una segunda forma de la misma letra y va después de conocer la primera.",
+        },
+        {
+          q: "¿Para qué edad es?",
+          a: "Desde unos tres años en fácil. No hace falta leer, solo emparejar una forma con otra, y la petición se queda visible arriba todo el rato.",
+        },
+        {
+          q: "¿Recoge datos sobre mi hijo?",
+          a: "No. No hay registro ni nombre. Nada graba la sesión y nada dirige publicidad según el comportamiento. Contamos cuántas veces se ha abierto un juego, sin nada al lado que identifique a quién lo abrió.",
+        },
+      ],
+
+      keywords: ["burbujas", "letras", "números", "aprender a leer", "abecedario", "infantil"],
+    },
   },
 
   provenance: [

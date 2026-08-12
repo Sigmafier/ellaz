@@ -75,9 +75,9 @@ const BALLOON_H = `calc(${BALLOON_W} * 1.45)`;
 const RESTING_TOP = "42%";
 
 const DIFF_OPTIONS: DifficultyOption<Difficulty>[] = [
-  { id: "easy", label: { he: "קל", en: "Easy" } },
-  { id: "medium", label: { he: "בינוני", en: "Med" } },
-  { id: "hard", label: { he: "קשה", en: "Hard" } },
+  { id: "easy", label: { he: "קל", en: "Easy", es: "Fácil" } },
+  { id: "medium", label: { he: "בינוני", en: "Med", es: "Media" } },
+  { id: "hard", label: { he: "קשה", en: "Hard", es: "Difícil" } },
 ];
 
 /**
@@ -97,6 +97,19 @@ const HE_SINGULAR: Record<ColorId, string> = {
 };
 
 /**
+ * And the same table for Spanish, for the same reason: `globo rojo` beside
+ * `globos rojos`. English needs none - "red" is "red" either way, which is
+ * exactly why a two-language app never had to notice this.
+ */
+const ES_SINGULAR: Record<ColorId, string> = {
+  red: "rojo",
+  blue: "azul",
+  yellow: "amarillo",
+  green: "verde",
+  purple: "morado",
+};
+
+/**
  * What a screen reader says for ONE balloon.
  *
  * The COLOUR leads, because the colour is the entire question this game asks —
@@ -113,6 +126,7 @@ function balloonLabel(color: BalloonColor, lane: number, locale: Locale): string
     {
       he: () => `בלון ${HE_SINGULAR[color.id]}, מסלול ${lane + 1} מתוך ${LANES}`,
       en: () => `${color.en} balloon, lane ${lane + 1} of ${LANES}`,
+      es: () => `globo ${ES_SINGULAR[color.id]}, carril ${lane + 1} de ${LANES}`,
     },
     locale,
   )();
@@ -496,6 +510,12 @@ export function BalloonsGame({ ctx }: { ctx: GameContext }): ReactElement {
         ask: (c: string) => `Pop the ${c} balloons`,
         cheer: (n: number) => `🎉 Great! On to level ${n}…`,
         miss: "Wrong one? It just wobbles 🎈",
+      },
+      es: {
+        popped: "Reventados",
+        ask: (c: string) => `Revienta los globos ${c}`,
+        cheer: (n: number) => `🎉 ¡Muy bien! Vamos al nivel ${n}…`,
+        miss: "¿Era otro? Solo se mueve un poco 🎈",
       },
     },
     ctx.locale,

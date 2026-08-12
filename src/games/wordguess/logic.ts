@@ -2,7 +2,7 @@ import type { Locale } from "@i18n/index";
 // PURE game rules. No DOM, no React, no Phaser — driven by an injectable rng
 // so a round is reproducible in a test.
 import { pick } from "@shared/rng";
-import { EN, HE, type WordLength } from "./words";
+import { EN, ES, HE, type WordLength } from "./words";
 
 /** How a single tile came back. */
 export type Mark = "hit" | "near" | "miss";
@@ -71,6 +71,12 @@ export function finalize(letters: string[]): string[] {
 /** The alphabet the on-screen keyboard offers, in reading order. */
 export const HE_KEYS = [..."אבגדהוזחטיכלמנסעפצקרשת"];
 export const EN_KEYS = [..."abcdefghijklmnopqrstuvwxyz"];
+/**
+ * 27 keys: the Latin alphabet plus ñ, in its own alphabetical place between n
+ * and o. It is a letter of the Spanish alphabet, not a decorated n, so it sits
+ * where the alphabet puts it rather than tacked on the end.
+ */
+export const ES_KEYS = [..."abcdefghijklmnñopqrstuvwxyz"];
 
 /**
  * The keyboard and the word list are per-LANGUAGE data, not translations of
@@ -78,8 +84,8 @@ export const EN_KEYS = [..."abcdefghijklmnopqrstuvwxyz"];
  * neither can be derived from the English. Records, so promoting a language
  * reds here rather than dealing a child an English hand.
  */
-const KEYS: Record<Locale, string[]> = { he: HE_KEYS, en: EN_KEYS };
-const WORDS: Record<Locale, Record<WordLength, readonly string[]>> = { he: HE, en: EN };
+const KEYS: Record<Locale, string[]> = { he: HE_KEYS, en: EN_KEYS, es: ES_KEYS };
+const WORDS: Record<Locale, Record<WordLength, readonly string[]>> = { he: HE, en: EN, es: ES };
 
 export function keysFor(locale: Locale): string[] {
   return KEYS[locale];

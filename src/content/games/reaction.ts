@@ -268,6 +268,132 @@ export const reaction: GameContent = {
 
       keywords: ["reaction time", "green light", "reflexes", "speed", "kids game", "attention"],
     },
+    es: {
+      metaTitle: "Luz verde - test de reflejos gratis para niños | Ellaz",
+      metaDescription:
+        "Juego gratis de tiempo de reacción para niños. Espera al verde y toca rápido. Tocar antes nunca es perder. Sin descargas ni registro.",
+
+      lede: "Un juego de tiempo de reacción gratuito. Una luz roja se queda encendida durante un rato que no puedes predecir, se pone verde, y tocas lo más rápido que puedas. Tocar antes de tiempo simplemente reinicia la espera.",
+
+      body: [
+        "Luz roja. Esperas. Se pone verde y tocas.",
+
+        "La espera tiene que ser impredecible o el número que sale no es un tiempo de reacción, es una nota por adivinar bien. ¿Y cuánto vale adivinar exactamente? Lo medimos. Si un niño deja de mirar y toca en un momento fijo, el mejor momento fijo disponible es el centro de la banda, y va a fallarlo por 400 milisegundos de media en fácil, 675 en medio y 951 en difícil. Ese último es casi un segundo entero de error contra una reacción real de medio segundo. Adivinar no compensa.",
+
+        "Por eso los niveles se ensanchan en lugar de alargarse. La banda del fácil va de un segundo a 2,6, y la del difícil de 1,2 a cinco. La espera media solo crece 1,72 veces entre las dos mientras la anchura de la banda crece 2,38 veces. La habilidad que se entrena es aguantar quieto dentro de la incertidumbre, y no estar sentado más rato.",
+
+        "Tocar antes del verde no es perder. La luz dice todavía no y arranca una espera nueva, y en este juego no hay ningún estado de fracaso al que llegar. La espera nueva tampoco puede ser muy corta, así que un niño aporreando la pantalla no puede colar sin querer un toque que quede registrado como una reacción rápida.",
+
+        "Todos los resultados son elogios. Por debajo de 350 milisegundos es un rayo, por debajo de 550 es rápido, por debajo de 900 es bueno, y todo lo demás es constante. No hay ninguna categoría para demasiado lento, porque la reacción de un niño de cinco años no se parece al cuarto de segundo de un adulto y no hay motivo para decírselo.",
+      ],
+
+      howToPlay: [
+        { title: "Elige un nivel", body: "Fácil, medio o difícil. Lo que cambia es lo difícil que es predecir el momento." },
+        { title: "Empieza", body: "La luz se pone roja y arranca una espera impredecible." },
+        { title: "Espera", body: "No toques. Un toque temprano arranca otra espera y no cuesta nada." },
+        { title: "Toca en verde", body: "Lo más rápido que puedas. La pantalla enseña tu tiempo en milisegundos." },
+      ],
+
+      tips: [
+        {
+          title: "Mira, no cuentes",
+          body: "Contar mentalmente parece que es planificar y es justo lo que el juego neutraliza. La mejor conjetura posible falla por casi un segundo en difícil.",
+        },
+        {
+          title: "Ten el dedo cerca",
+          body: "La distancia que recorre tu mano forma parte del tiempo. Un dedo flotando encima de la pantalla ahorra decenas de milisegundos.",
+        },
+        {
+          title: "Relájate entre intentos",
+          body: "Un hombro tenso frena la reacción. Dos intentos tras un descanso corto valen más que seis seguidos.",
+        },
+        {
+          title: "Empieza en fácil",
+          body: "Una banda más estrecha le da menos margen a la atención para irse. Después de unos cuantos ahí, el difícil tiene sentido.",
+        },
+      ],
+
+      teaches: [
+        {
+          title: "Contener una respuesta",
+          body: "Casi todo este juego consiste en no moverse. Eso es autocontrol, y se entrena exactamente igual que la velocidad.",
+        },
+        { title: "Atención sostenida", body: "Cinco segundos mirando una pantalla que no cambia son mucho rato, y se estiran con la edad." },
+        { title: "Entender una medida", body: "El número es un tiempo real en milisegundos, y a los niños les gusta intentar mejorarlo." },
+        {
+          title: "Que los errores salen gratis",
+          body: "Un toque temprano no se castiga, así que un niño aprende a volver a intentarlo en vez de volverse excesivamente prudente.",
+        },
+      ],
+
+      ages: [
+        { title: "4 a 5", body: "Fácil. Cinco segundos esperando son muchos a esta edad, y la banda estrecha ayuda." },
+        { title: "6 a 8", body: "Medio. Aquí es donde mejorar el número se convierte en el objetivo." },
+        { title: "9 en adelante", body: "Difícil, con la banda más ancha." },
+        {
+          title: "Adultos",
+          body: "La reacción visual simple de un adulto ronda los 250 milisegundos. Bajar de 350 cuenta como un rayo también aquí.",
+        },
+      ],
+
+      accessibility:
+        "Un toque en cualquier punto de la pantalla, sin arrastrar y sin ningún objetivo pequeño al que acertar. La luz se distingue por forma y posición además de por tono, así que el daltonismo no afecta a saber cuándo responder. Nada parpadea deprisa, no hace falta ningún sonido, y el cambio a verde es una transición única y no un titileo. Un toque temprano no produce ningún sonido de error. No hay límite de tiempo sobre la respuesta en sí, y todos los resultados reciben una palabra amable.",
+
+      together: [
+        { title: "Por turnos", body: "Diez intentos cada uno y comparad medias. Una media es más justa que un mejor tiempo." },
+        {
+          title: "Niño contra adulto",
+          body: "El adulto gana casi siempre, así que jugad mejor a quién mejora más a lo largo de diez intentos.",
+        },
+        { title: "Sin mirarse la mano", body: "Los ojos solo en la luz. Descubrís cuánto estabais mirándoos el dedo." },
+        {
+          title: "Adivina la espera",
+          body: "Antes de cada intento, decid cuánto va a durar el rojo. Nadie se acerca, que es justo la gracia.",
+        },
+      ],
+
+      faq: [
+        {
+          q: "¿El juego es gratis?",
+          a: "Del todo. Nada que pagar y ninguna compra dentro del juego. Todos los juegos de la web están abiertos desde el primer segundo.",
+        },
+        {
+          q: "¿Hay que descargar algo o registrarse?",
+          a: "Ni una cosa ni la otra. Funciona en el navegador sin descarga y sin cuenta, y no pedimos ningún correo.",
+        },
+        {
+          q: "¿Qué pasa si mi hijo toca antes del verde?",
+          a: "La luz dice todavía no y arranca otra espera. No baja ninguna puntuación, y este juego no tiene ningún estado de fracaso.",
+        },
+        {
+          q: "¿Se puede predecir cuándo cambia la luz?",
+          a: "No de forma útil. Adivinar en el mejor momento posible sigue fallando por 400 milisegundos de media en fácil y 951 en difícil. Una reacción de verdad es más rápida que eso.",
+        },
+        { q: "¿Tiene anuncios?", a: "Ninguno. Ni banners ni vídeo entre nivel y nivel." },
+        {
+          q: "¿Funciona sin conexión?",
+          a: "Sí. Después de una visita el juego queda guardado en el aparato y funciona en un avión.",
+        },
+        {
+          q: "¿Cuál es un buen tiempo de reacción para un niño?",
+          a: "Un adulto llega a unos 250 milisegundos en una reacción visual simple y un niño de cinco años queda muy lejos de eso. Aquí todos los resultados se elogian, y bajar de 900 ya cuenta como bueno.",
+        },
+        {
+          q: "¿En qué se diferencian los niveles?",
+          a: "En la anchura de la banda de espera. El fácil va de un segundo a 2,6 y el difícil de 1,2 a cinco. La media solo crece 1,72 veces mientras la anchura crece 2,38, porque la habilidad es aguantar quieto dentro de la incertidumbre.",
+        },
+        {
+          q: "¿Para qué edad es?",
+          a: "Desde unos cuatro años en fácil. No se lee nada y lo único que hace falta es esperar y después tocar.",
+        },
+        {
+          q: "¿Recoge datos sobre mi hijo?",
+          a: "No. No hay registro ni nombre. Nada graba la sesión y nada dirige publicidad según el comportamiento. Contamos cuántas veces se ha abierto un juego, sin nada al lado que identifique a quién lo abrió.",
+        },
+      ],
+
+      keywords: ["tiempo de reacción", "luz verde", "reflejos", "velocidad", "juego para niños", "atención"],
+    },
   },
 
   provenance: [

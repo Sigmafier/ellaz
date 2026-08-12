@@ -49,11 +49,15 @@ describe("the escaper", () => {
 });
 
 describe("the route table", () => {
-  it("covers every game in both languages", () => {
+  it("covers every game in every language that has pages", () => {
+    // Counted off LOCALES rather than a literal 2. The literal was correct
+    // for he/en and is the same defect as every other two-language constant
+    // in this lane: promoting Spanish reds a test that is measuring nothing
+    // wrong. LOCALES derives from PAGE_LOCALES, so this cannot drift again.
     const games = ROUTES.filter((r) => r.kind === "game");
-    expect(games).toHaveLength(GAMES.length * 2);
+    expect(games).toHaveLength(GAMES.length * LOCALES.length);
     for (const meta of GAMES) {
-      for (const locale of ["he", "en"] as const) {
+      for (const locale of LOCALES) {
         expect(games.some((r) => r.id === meta.id && r.locale === locale)).toBe(true);
       }
     }
@@ -343,7 +347,7 @@ describe("the lazy chunks a page preloads", () => {
       expect(hrefs, f.fileName).toContain(`${base}${assets.lazy!.games[route.id!]}`);
       checked += 1;
     }
-    expect(checked).toBe(GAMES.length * 2);
+    expect(checked).toBe(GAMES.length * LOCALES.length);
   });
 
   it.each(BASES)("base %s: a game page carries no OTHER game's chunk", (base) => {
@@ -367,7 +371,8 @@ describe("the lazy chunks a page preloads", () => {
       expect(hrefs.filter((h) => h.includes("/game-")), f.fileName).toEqual([]);
       checked += 1;
     }
-    expect(checked).toBe(4);
+    // Two page kinds - the room and the boards - once per page language.
+    expect(checked).toBe(2 * LOCALES.length);
   });
 
   it.each(BASES)("base %s: every preload href carries the base", (base) => {
@@ -545,7 +550,7 @@ describe("robots, sitemap and llms", () => {
     }
     // A property test over zero alternates passes vacuously, which is exactly the
     // shape of the bug it replaces.
-    expect(checked).toBe(rows.length * 2);
+    expect(checked).toBe(rows.length * LOCALES.length);
   });
 
   it("lists every game in llms.txt", () => {

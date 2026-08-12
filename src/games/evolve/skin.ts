@@ -28,17 +28,17 @@ export interface Rung {
  * (`LEVELS` in `../n2048/logic.ts`; pinned by skin.test.ts).
  */
 export const LADDER: readonly Rung[] = [
-  { value: 2, glyph: "🥚", name: { he: "ביצה", en: "Egg" }, bg: "#f3efe2" },
-  { value: 4, glyph: "🐛", name: { he: "זחל", en: "Caterpillar" }, bg: "#e6f0cf" },
-  { value: 8, glyph: "🐝", name: { he: "דבורה", en: "Bee" }, bg: "#d8ecab" },
-  { value: 16, glyph: "🐸", name: { he: "צפרדע", en: "Frog" }, bg: "#b9e59d" },
-  { value: 32, glyph: "🐢", name: { he: "צב", en: "Turtle" }, bg: "#93dea1" },
-  { value: 64, glyph: "🦎", name: { he: "לטאה", en: "Lizard" }, bg: "#6dd5ad" },
-  { value: 128, glyph: "🐍", name: { he: "נחש", en: "Snake" }, bg: "#4ac9bf" },
-  { value: 256, glyph: "🐊", name: { he: "תנין", en: "Crocodile" }, bg: "#37b4ce" },
-  { value: 512, glyph: "🦕", name: { he: "דינוזאור", en: "Dinosaur" }, bg: "#3e9cd5" },
-  { value: 1024, glyph: "🦖", name: { he: "טי-רקס", en: "T-Rex" }, bg: "#5a7ed5" },
-  { value: 2048, glyph: "🐉", name: { he: "דרקון", en: "Dragon" }, bg: "#795ecf" },
+  { value: 2, glyph: "🥚", name: { he: "ביצה", en: "Egg", es: "Huevo" }, bg: "#f3efe2" },
+  { value: 4, glyph: "🐛", name: { he: "זחל", en: "Caterpillar", es: "Oruga" }, bg: "#e6f0cf" },
+  { value: 8, glyph: "🐝", name: { he: "דבורה", en: "Bee", es: "Abeja" }, bg: "#d8ecab" },
+  { value: 16, glyph: "🐸", name: { he: "צפרדע", en: "Frog", es: "Rana" }, bg: "#b9e59d" },
+  { value: 32, glyph: "🐢", name: { he: "צב", en: "Turtle", es: "Tortuga" }, bg: "#93dea1" },
+  { value: 64, glyph: "🦎", name: { he: "לטאה", en: "Lizard", es: "Lagartija" }, bg: "#6dd5ad" },
+  { value: 128, glyph: "🐍", name: { he: "נחש", en: "Snake", es: "Serpiente" }, bg: "#4ac9bf" },
+  { value: 256, glyph: "🐊", name: { he: "תנין", en: "Crocodile", es: "Cocodrilo" }, bg: "#37b4ce" },
+  { value: 512, glyph: "🦕", name: { he: "דינוזאור", en: "Dinosaur", es: "Dinosaurio" }, bg: "#3e9cd5" },
+  { value: 1024, glyph: "🦖", name: { he: "טי-רקס", en: "T-Rex", es: "T-Rex" }, bg: "#5a7ed5" },
+  { value: 2048, glyph: "🐉", name: { he: "דרקון", en: "Dragon", es: "Dragón" }, bg: "#795ecf" },
 ];
 
 /**

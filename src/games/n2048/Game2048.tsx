@@ -19,9 +19,9 @@ import {
 } from "./logic";
 
 const LEVEL_OPTIONS: DifficultyOption<LevelKey>[] = [
-  { id: "kids", label: { he: "ילדים", en: "Kids" } },
-  { id: "classic", label: { he: "קלאסי", en: "Classic" } },
-  { id: "hard", label: { he: "קשה", en: "Hard" } },
+  { id: "kids", label: { he: "ילדים", en: "Kids", es: "Peques" } },
+  { id: "classic", label: { he: "קלאסי", en: "Classic", es: "Clásico" } },
+  { id: "hard", label: { he: "קשה", en: "Hard", es: "Difícil" } },
 ];
 
 // The board sizes are the game's own vocabulary; the economy speaks in tiers.
@@ -313,6 +313,7 @@ export function Game2048({ ctx, skin }: { ctx: GameContext; skin?: TileSkin }) {
     {
       he: { highest: "הכי גבוה", hint: "החליקו או חצים" },
       en: { highest: "Highest", hint: "Swipe or arrow keys" },
+      es: { highest: "Más alto", hint: "Desliza o usa las flechas" },
     },
     ctx.locale,
   );

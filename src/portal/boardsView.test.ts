@@ -11,7 +11,7 @@ import { cardBest, firstBoard, myGames } from "./boardsView";
 function meta(id: string, scoreUnit?: GameMeta["scoreUnit"]): GameMeta {
   return {
     id,
-    title: { he: id, en: id },
+    title: { he: id, en: id, es: id },
     emoji: "🎮",
     color: "#000",
     ageBand: "all",

@@ -262,6 +262,129 @@ export const evolve: GameContent = {
 
       keywords: ["evolution", "merge", "creatures", "dinosaur", "doubling", "kids game"],
     },
+    es: {
+      metaTitle: "Evolución - une criaturas del huevo al T-Rex | Ellaz",
+      metaDescription:
+        "Juego gratis de unir para niños. Combina dos criaturas iguales para evolucionarlas, desde el huevo hasta el T-Rex. Sin registro.",
+
+      lede: "Un juego gratuito en el que dos criaturas iguales se funden en una más evolucionada. Empiezas en un huevo y subes una escalera de 10 criaturas hasta un T-Rex.",
+
+      body: [
+        "Un huevo más un huevo es una oruga. Oruga más oruga es una abeja. Y hacia arriba desde ahí.",
+
+        "Vamos a decirlo claro: por debajo esto es exactamente el motor del 2048. Mismo deslizamiento, misma unión, mismos tres tamaños de tablero. Lo que ha cambiado es lo que va impreso en la ficha, y las 10 criaturas de la escalera son huevo, oruga, abeja, rana, tortuga, lagartija, serpiente, cocodrilo, dinosaurio y T-Rex. No lo estamos escondiendo. Y sí creemos que importa: un niño de cinco años persiguiendo un 2048 persigue un número, y uno persiguiendo un T-Rex persigue un T-Rex.",
+
+        "Por eso es un juego aparte y no un botón dentro del 2048. El récord se guarda por separado, así que un niño subiendo la escalera de criaturas no compite contra una puntuación que alguien hizo en números, y su tablero es suyo.",
+
+        "Unir sigue siendo aritmética por debajo, y eso es un extra y no el objetivo. Cada peldaño vale exactamente el doble que el de abajo, así que un niño que sube del huevo al T-Rex ha pasado por el 2, el 4, el 8 y hasta el 1024 sin que nadie lo llamara práctica.",
+
+        "Aquí nada es realmente perder. Cuando ya no queda movimiento la partida se detiene y enseña hasta dónde subiste. Arranca otra al momento. También puedes seguir jugando pasada la cima.",
+      ],
+
+      howToPlay: [
+        { title: "Elige tablero", body: "3 tamaños, exactamente como en el 2048. El pequeño es el difícil." },
+        { title: "Desliza", body: "Un dedo en cualquier dirección o las flechas. El tablero entero se mueve junto." },
+        { title: "Une", body: "Dos criaturas iguales que se encuentran se convierten en una del peldaño siguiente." },
+        { title: "Sube", body: "10 peldaños del huevo al T-Rex. Puedes continuar después de llegar arriba." },
+      ],
+
+      tips: [
+        {
+          title: "Una esquina fija",
+          body: "Mantén tu criatura más grande en una esquina y desliza solo en las dos direcciones que la alimentan. Este es el consejo que dobla los resultados.",
+        },
+        {
+          title: "Canta la escalera",
+          body: "Huevo, oruga, abeja, rana. Los niños se aprenden el orden en una partida y a partir de ahí saben qué viene.",
+        },
+        {
+          title: "Sáltate las uniones baratas",
+          body: "Dos huevos en el extremo equivocado del tablero valen menos que el orden que destrozan.",
+        },
+        {
+          title: "Empezad en el tablero grande",
+          body: "El tablero ancho perdona, y un niño llega a una tortuga o a una lagartija en su primera partida.",
+        },
+      ],
+
+      teaches: [
+        { title: "Duplicar", body: "Cada peldaño vale el doble que el de abajo, así que la escalera misma es una serie de duplicaciones." },
+        { title: "Pensar por delante", body: "Cada movimiento desplaza el tablero entero, lo que enseña a mirar un movimiento hacia adelante." },
+        { title: "Orden y secuencia", body: "Las 10 criaturas salen siempre en el mismo orden, así que el juego también es práctica de secuenciar." },
+        {
+          title: "Aplazar la recompensa",
+          body: "La unión disponible ahora no siempre es la que deja un tablero manejable.",
+        },
+      ],
+
+      ages: [
+        { title: "4 a 6", body: "El tablero grande. Objetivo bajo y sitio para equivocarse, así que las criaturas avanzan incluso deslizando sin plan." },
+        { title: "7 a 9", body: "El tablero estándar, donde la esquina empieza a importar." },
+        { title: "10 en adelante", body: "El tablero pequeño, que es difícil de verdad." },
+        {
+          title: "Padres",
+          body: "Si conocéis el 2048, conocéis esto. La diferencia es que vuestro hijo os va a pedir jugar a este.",
+        },
+      ],
+
+      accessibility:
+        "Se juega deslizando o con las flechas, nunca arrastrando una ficha concreta con precisión. Se maneja con una mano. Cada criatura se distingue por su propia forma y no solo por el fondo, y cada ficha lleva una etiqueta hablada para lectores de pantalla, así que se juega sin distinguir tonos. El tablero se encoge para caber en cualquier pantalla y se mantiene cuadrado, y va de izquierda a derecha incluso en hebreo para que la dirección del deslizamiento coincida con lo que ves. Sin reloj, sin nada que parpadee, y sin ninguna parte contrarreloj.",
+
+      together: [
+        { title: "Deslizamientos alternos", body: "Un movimiento cada uno en el mismo tablero. Escalera compartida y culpa compartida." },
+        {
+          title: "Adivina la siguiente",
+          body: "Antes de unir, preguntad qué criatura va a salir. Los niños se aprenden la escalera sin memorizarla.",
+        },
+        { title: "Carrera hasta la rana", body: "Dos aparatos, el primero que llegue a una rana. Un objetivo lo bastante cercano para los pequeños." },
+        {
+          title: "Hablad del animal",
+          body: "Cuando salga un cocodrilo, preguntad qué come. La partida se convierte en una conversación sobre animales.",
+        },
+      ],
+
+      faq: [
+        {
+          q: "¿El juego es gratis?",
+          a: "Del todo. Nada que pagar y ninguna compra dentro del juego. Todos los juegos de la web están abiertos desde el primer segundo.",
+        },
+        {
+          q: "¿Hay que descargar algo o registrarse?",
+          a: "Ni una cosa ni la otra. Funciona en el navegador sin descarga y sin cuenta, y no pedimos ningún correo.",
+        },
+        {
+          q: "¿Esto es el 2048 y ya está?",
+          a: "Sí, exactamente el mismo motor. Lo que ha cambiado es que las fichas son 10 criaturas del huevo al T-Rex en lugar de números. Para un niño de cinco años esa es una diferencia grande, y por eso es un juego aparte con un récord aparte.",
+        },
+        {
+          q: "¿Cuál es el orden de las criaturas?",
+          a: "Huevo, oruga, abeja, rana, tortuga, lagartija, serpiente, cocodrilo, dinosaurio y T-Rex. 10 peldaños, cada uno del doble que el de abajo.",
+        },
+        { q: "¿Tiene anuncios?", a: "Ninguno. Ni banners ni vídeo entre nivel y nivel." },
+        {
+          q: "¿Funciona sin conexión?",
+          a: "Sí. Después de una visita el juego queda guardado en el aparato y funciona en un avión.",
+        },
+        {
+          q: "¿Puedo seguir jugando después de llegar arriba?",
+          a: "Sí. El objetivo hace una pausa para celebrarlo y después te devuelve el tablero, y desde ahí compites contra tu marcador.",
+        },
+        {
+          q: "¿El récord se comparte con el 2048?",
+          a: "No. Los récords están completamente separados, así que un niño subiendo la escalera de criaturas no compite con un número que alguien hizo en el otro juego.",
+        },
+        {
+          q: "¿Para qué edad es?",
+          a: "Desde unos cuatro años en el tablero grande. No se lee nada y lo único que hace falta es ver dos criaturas iguales.",
+        },
+        {
+          q: "¿Recoge datos sobre mi hijo?",
+          a: "No. No hay registro ni nombre. Nada graba la sesión y nada dirige publicidad según el comportamiento. Contamos cuántas veces se ha abierto un juego, sin nada al lado que identifique a quién lo abrió.",
+        },
+      ],
+
+      keywords: ["evolución", "unir", "criaturas", "dinosaurio", "duplicar", "juego para niños"],
+    },
   },
 
   provenance: [

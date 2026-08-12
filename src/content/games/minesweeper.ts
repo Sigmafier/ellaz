@@ -288,6 +288,141 @@ export const minesweeper: GameContent = {
 
       keywords: ["minesweeper", "logic game", "puzzle", "classic game", "deduction", "board game"],
     },
+    es: {
+      metaTitle: "Buscaminas gratis - jugar online sin descargas | Ellaz",
+      metaDescription:
+        "Juega al buscaminas gratis en el navegador, en tres niveles. El primer clic siempre es seguro. Sin descargas y sin registro.",
+
+      lede: "Buscaminas gratis en el navegador. Destapas casillas, lees los números y marcas las minas sin pisar ninguna. Tres niveles, y el primer clic siempre es seguro.",
+
+      body: [
+        "Un tablero tapado con minas debajo. Tu primer clic es seguro, siempre. A partir de ahí cada número que destapas te dice cuántas minas lo tocan, y esa es toda la información que vas a tener.",
+
+        "Y ahora la pregunta que nadie responde. ¿Cuántas veces has perdido un tablero que simplemente exigía adivinar, y has dado por hecho que se te había escapado algo? Lo medimos. Montamos un solucionador que solo hace movimientos que puede demostrar, se para en el instante en que se le acaba la demostración, y lo pasamos por 2.000 tableros de cada nivel. En fácil, el 79,8% de los tableros se despeja con pura lógica desde el primer clic hasta la última casilla. En medio baja al 44,4%. En difícil quedan el 12,3%, o sea que siete de cada ocho tableros van a pedirte antes o después que eches una moneda al aire. Eso no es que juegues mal. Son 40 minas repartidas en 196 casillas, y hacen lo mismo en todas las versiones de este juego que se han escrito.",
+
+        "Nuestro solucionador conoce dos reglas, las mismas dos que usa cualquier jugador sin ponerles nombre. Un número cuyas minas están todas localizadas, y el solapamiento entre dos números que revela qué hay en la diferencia. Un solucionador más listo resolvería unos cuantos tableros más, así que esos porcentajes son un suelo y no un techo. Es la dirección honesta en la que equivocarse.",
+
+        "El récord es un tiempo, y el reloj arranca con tu primer clic y no cuando carga la página. Las banderas no cuestan nada y se quitan, porque una bandera es una idea y no un compromiso. Cada nivel guarda su propio récord, ya que nueve minutos en un 9x9 y nueve minutos en un 14x14 no son el mismo logro en ningún sentido.",
+
+        "Tres niveles: 9x9 con 10 minas, 12x12 con 24, y 14x14 con 40. La densidad sube del 12,3% al 16,7% y al 20,4%, y no cambia nada más. Sin cronómetro escondido. Sin minas que se muevan. Los números nunca te mienten.",
+
+        "Todo se guarda en el aparato. No hay cuenta ni contraseña, lo que también significa que tu móvil y tu tablet guardan dos récords separados.",
+      ],
+
+      howToPlay: [
+        { title: "Elige un nivel", body: "Fácil, medio o difícil. Elegir reconstruye el tablero desde cero." },
+        { title: "Haz clic donde sea", body: "La primera casilla es segura y sus vecinas también. Abre cerca del centro para destapar más de golpe." },
+        { title: "Lee los números", body: "Un número cuenta las minas de las ocho casillas de alrededor, diagonales incluidas." },
+        { title: "Marca lo que sabes", body: "Pulsación larga, o el interruptor que hay al lado del tablero. Las banderas se quitan cuando quieras." },
+        { title: "Despeja el tablero", body: "Cuando todas las casillas seguras estén abiertas, el reloj se para y te enteras de lo del récord." },
+      ],
+
+      tips: [
+        {
+          title: "Abre por el centro",
+          body: "Una casilla de esquina toca tres vecinas. Una del centro toca ocho, así que abre varias veces más terreno con el mismo clic.",
+        },
+        {
+          title: "Trabaja la frontera",
+          body: "Casi toda deducción nueva vive en el borde entre lo abierto y lo tapado. Repasar ese borde encuentra jugadas que repasar el tablero entero se salta.",
+        },
+        {
+          title: "Apréndete el 1-2-1",
+          body: "Tres números seguidos en línea recta pegados a una pared se resuelven siempre igual: mina, seguro, mina. Reconócelo de vista y deja de calcularlo.",
+        },
+        {
+          title: "Cuando no hay nada demostrable",
+          body: "Adivina donde menos vecinas tapadas haya, normalmente una esquina. No estás bajando la probabilidad de fallar: estás bajando lo que se lleva por delante un fallo.",
+        },
+      ],
+
+      teaches: [
+        {
+          title: "Razonar con información parcial",
+          body: "Ningún número suelto basta nunca. La respuesta vive siempre en dos o tres de ellos cruzados entre sí.",
+        },
+        {
+          title: "Seguro frente a probable",
+          body: "El juego te pregunta todo el rato si esto lo sabes o solo te lo crees. Esa pregunta sirve muy lejos del tablero.",
+        },
+        { title: "Paciencia", body: "Un tablero difícil lleva minutos. Correr es lo que te mata, siempre." },
+        {
+          title: "Aceptar la suerte",
+          body: "A veces no existe ningún movimiento demostrable y toca elegir. Perder no siempre prueba que te equivocaras.",
+        },
+      ],
+
+      ages: [
+        { title: "7 a 9", body: "Fácil, y acompañados la primera vez. El salto está en entender que un número habla de sus vecinas." },
+        { title: "10 a 12", body: "Medio. Es la edad en la que los patrones sustituyen a recalcular cada casilla." },
+        { title: "13 en adelante", body: "Difícil. Desde aquí compites contra tu propio reloj." },
+        {
+          title: "Adultos",
+          body: "Bajar de tres minutos en difícil es un tiempo bueno de verdad. Conviene recordar que el 87,7% de los tableros de ese nivel os van a obligar a adivinar por lo menos una vez.",
+        },
+      ],
+
+      accessibility:
+        "Un toque para destapar, una pulsación larga o un interruptor específico para marcar, y no hay que arrastrar en ningún sitio. Las casillas siguen siendo del tamaño de un dedo incluso en el tablero difícil, que se encoge para caber en la pantalla en lugar de desbordarla. Los números se distinguen por su forma y no solo por el color, así que el daltonismo no afecta a leerlos. Nada parpadea y nada hace cuenta atrás desde un clic. Se puede jugar entero en silencio sin perder ninguna información, y el reloj corre sin hacer ruido.",
+
+      together: [
+        {
+          title: "Uno explica, otro pincha",
+          body: "Quien explica tiene que justificar cada jugada en voz alta antes de que ocurra. Es la forma más rápida que hay de enseñar este juego.",
+        },
+        {
+          title: "Cantar la adivinanza",
+          body: "Cuando lleguéis a una posición sin demostración, parad y decidlo. De repente se ve clarísimo que el juego tiene dos mitades distintas.",
+        },
+        { title: "Mismo nivel, dos relojes", body: "Turnaos en la misma dificultad y comparad tiempos. Otro tablero, idéntico reto." },
+        {
+          title: "Caza de patrones",
+          body: "Un premio pequeño para quien vea un 1-2-1 antes que el otro. Así todo el mundo empieza a mirar la frontera.",
+        },
+      ],
+
+      faq: [
+        {
+          q: "¿El buscaminas es gratis aquí?",
+          a: "Del todo. Nada que pagar, nada que comprar dentro del juego, y ninguna versión de pago con niveles extra porque no hay otra versión. Todos los juegos de la web están abiertos desde el primer segundo.",
+        },
+        {
+          q: "¿Hay que descargar algo o registrarse?",
+          a: "Ninguna de las dos cosas. Funciona en el navegador sin descarga y sin cuenta. Tampoco pedimos un correo.",
+        },
+        {
+          q: "¿El primer clic puede caer en una mina?",
+          a: "No. Las minas se colocan después de que pinches, y se excluyen la casilla que elegiste y todas sus vecinas. Por eso un clic de apertura siempre destapa terreno en lugar de terminar la partida.",
+        },
+        {
+          q: "¿Por qué hay tableros imposibles sin adivinar?",
+          a: "La densidad de minas crea posiciones donde dos posibilidades quedan exactamente empatadas, y ninguna cantidad de lógica las separa. Medimos cada cuánto pasa: el 79,8% de los tableros fáciles se resuelven con pura lógica frente al 12,3% de los difíciles. La simulación está en nuestro código abierto.",
+        },
+        { q: "¿Tiene anuncios?", a: "Ninguno. Ni banners ni vídeo entre nivel y nivel." },
+        {
+          q: "¿Funciona sin conexión?",
+          a: "Sí. Después de una visita el juego queda guardado en el aparato y funciona en un avión.",
+        },
+        {
+          q: "¿Cómo se marca una mina en el móvil?",
+          a: "Pulsación larga sobre la casilla, o el interruptor que hay junto al tablero y que cambia entre destapar y marcar. Una bandera mal puesta no cuesta nada y se quita al momento.",
+        },
+        {
+          q: "¿Cómo se mide el récord?",
+          a: "Como un tiempo, donde más rápido es mejor, guardado por separado en cada nivel. El reloj arranca con tu primer clic y no cuando carga la pantalla.",
+        },
+        {
+          q: "¿Para qué edad es?",
+          a: "Sobre los siete años, en fácil. Lo único que hay que explicar es que un número describe a sus vecinas. En el juego no se lee nada.",
+        },
+        {
+          q: "¿Recoge datos sobre mi hijo?",
+          a: "No. No hay registro ni nombre. Nada graba la sesión y nada dirige publicidad según el comportamiento. Contamos cuántas veces se ha abierto un juego, sin nada al lado que identifique a quién lo abrió.",
+        },
+      ],
+
+      keywords: ["buscaminas", "juego de lógica", "puzle", "juego clásico", "deducción", "tablero"],
+    },
   },
 
   provenance: [

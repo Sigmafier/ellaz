@@ -31,14 +31,14 @@ export type ShapeId = (typeof SHAPE_IDS)[number];
 
 /** Hebrew is the primary name; these are the words a 5-year-old already knows. */
 export const SHAPE_NAMES: Record<ShapeId, Record<Locale, string>> = {
-  circle: { he: "עיגול", en: "circle" },
-  square: { he: "ריבוע", en: "square" },
-  triangle: { he: "משולש", en: "triangle" },
-  star: { he: "כוכב", en: "star" },
-  heart: { he: "לב", en: "heart" },
-  hexagon: { he: "משושה", en: "hexagon" },
-  diamond: { he: "מעוין", en: "diamond" },
-  moon: { he: "ירח", en: "moon" },
+  circle: { he: "עיגול", en: "circle", es: "círculo" },
+  square: { he: "ריבוע", en: "square", es: "cuadrado" },
+  triangle: { he: "משולש", en: "triangle", es: "triángulo" },
+  star: { he: "כוכב", en: "star", es: "estrella" },
+  heart: { he: "לב", en: "heart", es: "corazón" },
+  hexagon: { he: "משושה", en: "hexagon", es: "hexágono" },
+  diamond: { he: "מעוין", en: "diamond", es: "rombo" },
+  moon: { he: "ירח", en: "moon", es: "luna" },
 };
 
 const DEFAULT_SIZE = 100;

@@ -204,7 +204,7 @@ export const snake: GameContent = {
       faq: [
         {
           q: "Is the snake game free?",
-          a: "Yes. No payment and no in-game purchases. All 22 games on the site are open from the first second.",
+          a: "Yes. No payment and no in-game purchases. Every game on the site is open from the first second.",
         },
         {
           q: "How do I play it on a phone?",
@@ -241,6 +241,120 @@ export const snake: GameContent = {
       ],
 
       keywords: ["snake", "arcade", "classic", "reflexes", "endless", "retro"],
+    },
+    es: {
+      metaTitle: "Juego de la serpiente gratis - jugar online | Ellaz",
+      metaDescription:
+        "El clásico juego de la serpiente, gratis en el navegador sobre un tablero de 17x17. Tres velocidades de salida, partida infinita y control por deslizamiento.",
+
+      lede: "El clásico juego de la serpiente, gratis en el navegador. Come, crece y no te toques a ti mismo. Un tablero de 17x17, tres velocidades de salida, y esto no se acaba.",
+
+      body: [
+        "Deslizas un dedo o pulsas una flecha. La serpiente gira. No se mueve hasta que la tocas, así que nunca se muere sin que estuvieses mirando.",
+
+        "El tablero mide 17 por 17, o sea 289 casillas, y la serpiente sale midiendo tres. De ahí sale el único número que de verdad pone techo a esto: 286 manzanas y ya no queda dónde crecer. Nadie llega. Da igual. Es un techo, no una meta.",
+
+        "La velocidad sube sola. Cada cinco manzanas la serpiente se quita ocho milisegundos de paso, hasta un suelo de 60. Y ahora lo que conviene saber antes de elegir: las tres velocidades acaban exactamente en el mismo suelo. En rápida eso pasa a las 20 manzanas, en normal a las 45 y en lenta a las 70. Cruzar el tablero cuesta 2,9 segundos al principio en lenta y 1,5 en rápida, y todas terminan en el mismo segundo plano. Lo que eliges no es cuánto corre el juego. Es cuánto tiempo tienes antes de que corra.",
+
+        "Pasado ese punto, nada del juego se pone más difícil. Solo tú. Tu propia serpiente es ya el mayor obstáculo del tablero, y crece con cada manzana.",
+
+        "Cada cinco manzanas caen monedas en la cartera, sin confeti y sin cortar la partida. El récord se comprueba una vez, en el momento en que mueres, porque una puntuación de serpiente solo sube y no tiene sentido preguntar treinta veces lo mismo.",
+      ],
+
+      howToPlay: [
+        { title: "Toca para empezar", body: "La serpiente te está esperando. Antes de eso no se mueve." },
+        { title: "Desliza en una dirección", body: "O usa las flechas del teclado. No puedes girar contra ti mismo." },
+        { title: "Cómete la manzana", body: "La serpiente crece uno y aparece otra manzana en un hueco libre." },
+        { title: "Esquiva la pared y a ti mismo", body: "Cualquiera de las dos termina la partida al instante." },
+        { title: "Vuelve a tocar", body: "Partida nueva, la misma velocidad que elegiste, tablero limpio." },
+      ],
+
+      tips: [
+        {
+          title: "Pégate a los bordes",
+          body: "Una serpiente que va por el centro se bloquea por dos lados. Una que recorre el perímetro deja todo el medio disponible.",
+        },
+        {
+          title: "No persigas la manzana",
+          body: "El camino más corto no siempre es el bueno. Pregúntate dónde vas a quedarte después y coge la ruta que te deje una salida.",
+        },
+        {
+          title: "La cola también se mueve",
+          body: "La casilla donde está tu cola se libera en el paso siguiente, así que un hueco que parece cerrado a veces se abre justo a tiempo. Ese truco es la diferencia entre 30 y 80.",
+        },
+        {
+          title: "Empieza en lenta",
+          body: "No porque sea más fácil, sino porque la lenta te da 70 manzanas antes de llegar al tope y la rápida te da 20. Más tiempo para aprenderte el tablero antes de que empiece a exigir.",
+        },
+      ],
+
+      teaches: [
+        { title: "Anticiparse", body: "Cada giro decide qué giros siguen estando disponibles. Pensar dos pasos por delante es toda la diferencia." },
+        { title: "Control fino", body: "Esto no pide dedos rápidos, pide medir el momento. Girar pronto cuesta lo mismo que girar tarde." },
+        { title: "Gestionar el espacio", body: "El tablero se acaba. Aprender a no encerrarse es la estrategia entera." },
+        { title: "Volver a empezar sin drama", body: "Un toque y el tablero está limpio. No hay pantalla de derrota ni nada que esperar." },
+      ],
+
+      ages: [
+        { title: "5 a 6", body: "Velocidad lenta, y sin esperar ninguna puntuación. A esta edad la gracia es que la serpiente obedece a un dedo." },
+        { title: "7 a 9", body: "Lenta o normal. Aquí planear un giro sustituye a reaccionar a uno." },
+        { title: "10 en adelante", body: "Normal y después rápida. Veinte manzanas en rápida y ya estás a tope de velocidad." },
+        { title: "Adultos", body: "Rápida. Vigilad cuándo se libera la cola y descubriréis que vuestro techo estaba en otro sitio." },
+      ],
+
+      accessibility:
+        "Se juega deslizando el dedo en una pantalla táctil o con las flechas del teclado, y las dos formas son equivalentes. No hay que mantener nada pulsado ni arrastrar con precisión: basta un deslizamiento corto en una dirección. La serpiente y la manzana se distinguen por forma y no solo por color. No hay destellos rápidos ni ningún sonido del que dependa el juego, así que se juega perfectamente en silencio. Nada se mueve hasta tu primer toque, de modo que no hay manera de empezar antes de estar listo.",
+
+      together: [
+        { title: "Cambio al morir", body: "Pasad el móvil cada vez que termine una partida. La puntuación más alta de la tarde se lo lleva." },
+        { title: "Uno conduce, otro navega", body: "Uno sujeta el móvil y el otro canta los giros. Mucho más difícil de lo que suena, que es justo la gracia." },
+        {
+          title: "Un objetivo en vez de un récord",
+          body: "Decid un número, por ejemplo 25, y jugad hasta que alguien llegue. Para un niño que acaba de empezar, un objetivo cercano vale más que un récord lejano.",
+        },
+        { title: "Sin comer nada", body: "Intentad sobrevivir un minuto entero sin tocar una sola manzana. Es otro juego completamente distinto en el mismo tablero." },
+      ],
+
+      faq: [
+        {
+          q: "¿El juego de la serpiente es gratis?",
+          a: "Sí. Sin pagos y sin compras dentro del juego. Todos los juegos de la web están abiertos desde el primer segundo.",
+        },
+        {
+          q: "¿Cómo se juega en el móvil?",
+          a: "Deslizas el dedo hacia donde quieras girar. Un toque empieza la partida y otro empieza una nueva cuando mueres.",
+        },
+        {
+          q: "¿Cuál es la puntuación máxima?",
+          a: "286. El tablero mide 17 por 17, o sea 289 casillas, y la serpiente sale midiendo tres, así que después de 286 manzanas no queda dónde crecer. Es un techo teórico y no un objetivo.",
+        },
+        {
+          q: "¿El juego acelera?",
+          a: "Sí, cada cinco manzanas, ocho milisegundos por paso, hasta un suelo de 60. La rápida llega al suelo a las 20 manzanas, la normal a las 45 y la lenta a las 70. A partir de ahí la velocidad ya no cambia.",
+        },
+        {
+          q: "¿Qué velocidad elijo?",
+          a: "Las tres terminan a la misma velocidad máxima, así que la única pregunta es cuánto tiempo tienes antes de llegar. La lenta te da 70 manzanas para aprenderte el tablero y la rápida te da 20.",
+        },
+        {
+          q: "¿Se puede jugar sin conexión?",
+          a: "Sí. Después de una visita el juego queda guardado en el aparato y funciona sin cobertura.",
+        },
+        {
+          q: "¿Cómo se mide el récord?",
+          a: "En manzanas, donde más es mejor. Se comprueba una sola vez al final de la partida, porque una puntuación de serpiente solo sube.",
+        },
+        {
+          q: "¿Tiene anuncios?",
+          a: "Ninguno. Ni banners ni nada que se ponga entre partida y partida.",
+        },
+        {
+          q: "¿Para qué edad es?",
+          a: "A partir de unos cinco años, en velocidad lenta. En el juego no se lee nada, así que un niño que todavía no lee juega solo.",
+        },
+      ],
+
+      keywords: ["serpiente", "arcade", "clásico", "reflejos", "infinito", "retro"],
     },
   },
 

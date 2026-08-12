@@ -53,12 +53,12 @@ export interface Pad {
  * every difficulty and a child who learns "top-left is the star" keeps that.
  */
 export const PADS: readonly Pad[] = [
-  { color: "#e17055", glyph: "★", name: { he: "כוכב", en: "star" } },
-  { color: "#0984e3", glyph: "●", name: { he: "עיגול", en: "circle" } },
-  { color: "#00b894", glyph: "▲", name: { he: "משולש", en: "triangle" } },
-  { color: "#fdcb6e", glyph: "■", name: { he: "ריבוע", en: "square" } },
-  { color: "#a29bfe", glyph: "◆", name: { he: "יהלום", en: "diamond" } },
-  { color: "#fd79a8", glyph: "♥", name: { he: "לב", en: "heart" } },
+  { color: "#e17055", glyph: "★", name: { he: "כוכב", en: "star", es: "estrella" } },
+  { color: "#0984e3", glyph: "●", name: { he: "עיגול", en: "circle", es: "círculo" } },
+  { color: "#00b894", glyph: "▲", name: { he: "משולש", en: "triangle", es: "triángulo" } },
+  { color: "#fdcb6e", glyph: "■", name: { he: "ריבוע", en: "square", es: "cuadrado" } },
+  { color: "#a29bfe", glyph: "◆", name: { he: "יהלום", en: "diamond", es: "rombo" } },
+  { color: "#fd79a8", glyph: "♥", name: { he: "לב", en: "heart", es: "corazón" } },
 ] as const;
 
 /**

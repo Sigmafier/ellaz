@@ -491,8 +491,23 @@ separate three.js / Babylon / PlayCanvas bake-off.
    time would load Phaser inside `vite.config.ts`. `catalog.test.ts` is
    property-based with a count ratchet, and `build.test.ts` asserts the two lists
    stay identical, so a well-formed entry needs no test edit.
-6. `src/content/games/<id>.ts` - the page's words, in Hebrew AND English, plus a
-   `provenance` row for every number the prose quotes. See the next section.
+6. `src/content/games/<id>.ts` - the page's words, **once per `PAGE_LOCALES`**
+   (Hebrew, English and Spanish today), plus a `provenance` row for every number
+   the prose quotes. See the next section.
+
+**A game cannot ship in fewer languages than the site has, and that is enforced
+rather than remembered.** Measured 2026-08-12 by planting a game with a `he|en`
+title and no content file at all: `tsc` said `Property 'es' is missing in type
+'{ he: string; en: string; }'`, naming the file and the line, and
+`content.test.ts` said `games in the catalog with no page: probegame`, naming
+the game. Two gates, two different failure shapes, neither of which a reviewer
+has to notice. The probe is restorable and sha256-verified; the tree carries
+none of it.
+
+So step 6 is not optional and there is no half-done state: a game with two
+languages of prose does not compile, and a game with none does not pass tests.
+That is the whole "every new game is multilingual by construction" guarantee,
+and it costs a new game exactly one more `es:` arm.
 
 The SDK, UI, juice, i18n, PWA, rewards, and analytics come for free. Phaser lives in
 a shared vendor chunk (`vite.config` `manualChunks`) cached across all canvas games.
@@ -776,8 +791,37 @@ attached. Full rule, including the case-sensitivity trap that passes on `/mnt/c`
 `src/i18n/locales.ts` holds both, and the difference between them is the whole
 point. **`APP_LOCALES`** is what the interface speaks — currently 11: he, en, es,
 pt, fr, de, ar, it, ru, tr, id. **`PAGE_LOCALES`** is what has written prose —
-currently 2, he and en. `ROUTES` derives from `PAGE_LOCALES`, so **adding a
-language to the app emits exactly zero documents** and cannot cost anything.
+currently 3, he, en and **es** (promoted 2026-08-12, ~27,400 words). `ROUTES`
+derives from `PAGE_LOCALES`, so **adding a language to the app emits exactly
+zero documents** and cannot cost anything.
+
+**Promoting Spanish cost no first-visit bytes and it very nearly cost 1,363.**
+Content is build-time only, so 23 more articles move nothing. The chrome
+dictionary is a different matter: the gate shipped with the previous brick
+demanded `PAGE_LOCALES ⊆ STATIC_LOCALES`, which measured **90,864 B gz of
+90,000 — 864 over**, and would have billed a Hebrew-speaking four-year-old for
+the Spanish dictionary to reach a game with no Spanish in it. The invariant
+moved to where the fetch is: `bootContentPage` awaits `loadDict` before
+`createRoot`, behind the poster, so there is no flash to trade. **89,449 B gz,
+551 spare, ceiling untouched.** See `STATIC_LOCALES` in `src/i18n/strings.ts`.
+
+**Six two-language constants had to die for Spanish to land, and they are the
+same defect wearing six costumes** — each one correct while exactly two
+languages existed, each one silent or loudly wrong at three:
+
+| Where | Was | Now |
+|---|---|---|
+| `content.test.ts` `LOCALES` | `["he","en"]` literal | `[...PAGE_LOCALES]` — it ran **zero** Spanish pages through the voice gate and reported a clean sweep |
+| the placeholder matcher | `/\b(TODO\|…)\b/i` | caps-sensitive — `/todo/i` matches the Spanish word **todo**, flagging 17 of 23 good pages |
+| the roster-count gate | walked `SITE` only | walks `CONTENT` too, and knows `juegos` — it could not see a Spanish roster claim at all |
+| `build.test.ts` × 4 | `GAMES.length * 2`, `toBe(4)`, `rows.length * 2` | `* LOCALES.length` |
+| `assert-pages.mjs` | `byChunk.size * 2` | `* L.page.length`, read off the manifest |
+
+The useful half is which way each failed. The literal `LOCALES` and the roster
+gate failed **silently** — green over unmeasured prose. The placeholder matcher
+and the count assertions failed **loudly**, which cost an afternoon and nothing
+else. When adding a language, hunt the silent ones: ask of every gate not "is
+its logic right" but "which pages are in its population".
 
 That split exists because of one line of Google's documentation: *"Localized
 versions of a page are only considered duplicates if the main content of the page

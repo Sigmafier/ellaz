@@ -267,6 +267,132 @@ export const balloons: GameContent = {
 
       keywords: ["balloons", "colours", "toddler game", "preschool", "tapping", "learn colours"],
     },
+    es: {
+      metaTitle: "Explota los globos - juego de colores gratis | Ellaz",
+      metaDescription:
+        "Juego gratis de explotar globos para niños pequeños. Se pide un color, los globos suben y hay que explotar los que coinciden. Sin registro.",
+
+      lede: "Un juego de globos gratuito para niños pequeños. La pantalla pide un color, suben globos de todos los colores, y tu hijo explota solo los que coinciden. Tocar el que no era no cuesta absolutamente nada.",
+
+      body: [
+        "Suben globos. Se pide un color. Los tocas y explotan.",
+
+        "Hay una promesa que sostiene este juego entero, y suena obvia hasta que piensas en una moneda justa. Una moneda justa saca tan tranquila ocho globos azules seguidos para un niño al que le habían pedido el rojo. Un niño de cuatro años mirando una pantalla en la que no hay nada que hacer no concluye que le toca tener paciencia: concluye que el juego está roto. Así que después de dos globos que no son el pedido, el siguiente lo es. No con mucha probabilidad. Con certeza. Lo que prometemos es que el hueco está acotado, y no la frecuencia.",
+
+        "Cada color lleva además una forma. Una estrella, puntos, rayas, un corazón y un zigzag, dibujados en el cuerpo del globo, uno por color. Aproximadamente uno de cada doce niños no distingue estos tonos con fiabilidad, y un juego cuya única pregunta es de qué color era eso sería injugable para él mientras a todo el que lo prueba le parece perfecto. Con la forma, simplemente juega.",
+
+        "Aquí no hay puntuación que baje ni corazón que se rompa. Ni un solo contador de este juego sabe bajar, y eso es estructura y no una política. Un niño que toca el globo equivocado lo ve explotar y sigue a lo suyo.",
+
+        "Los tres niveles cambian dos cosas: cuántos globos hacen falta para terminar una ronda, cinco, siete o nueve, y cuánto se queda cada globo en pantalla. Incluso en difícil hay 2,4 segundos para ver un globo, decidir y llegar hasta él, y en fácil hay 4,2. Las rondas siguen sin final, y lo que se guarda es hasta dónde llegaste.",
+      ],
+
+      howToPlay: [
+        { title: "Mira qué te piden", body: "El color que se pide está escrito y dibujado arriba." },
+        { title: "Toca un globo que coincida", body: "Un toque lo explota. Sin mantener pulsado y sin arrastrar." },
+        { title: "Usa la forma si prefieres", body: "Si los colores se confunden, la marca del globo dice lo mismo." },
+        { title: "Termina la ronda", body: "Explota suficientes del color correcto y la ronda acaba y empieza otra." },
+      ],
+
+      tips: [
+        {
+          title: "Espéralo",
+          body: "El color que te han pedido tiene que aparecer como mucho a los dos globos. Puedes mirar en lugar de perseguir lo que haya.",
+        },
+        {
+          title: "Lee la marca",
+          body: "La forma del globo se reconoce más rápido que el tono, incluso teniendo una vista de los colores perfecta.",
+        },
+        {
+          title: "Cógelos abajo",
+          body: "Un globo cerca de la parte baja de la pantalla se queda accesible más tiempo. Tocarlo enseguida te regala un segundo entero.",
+        },
+        {
+          title: "Empieza en fácil",
+          body: "El fácil deja un globo arriba 4,2 segundos frente a los 2,4 del difícil. Esa es la diferencia entre pensar y correr.",
+        },
+      ],
+
+      teaches: [
+        { title: "Los nombres de los colores", body: "La petición se repite cada ronda, así que la palabra y el tono se pegan el uno al otro solos." },
+        {
+          title: "Pararse antes de tocar",
+          body: "Hay globos que hay que dejar en paz, lo que convierte esto en un ejercicio de control y no de velocidad.",
+        },
+        { title: "Seguimiento visual", body: "Un globo que sube pide un ojo que lo siga y un dedo que llegue a donde va a estar." },
+        {
+          title: "Leer una segunda propiedad",
+          body: "La marca le enseña a un niño que una misma cosa se puede identificar de dos maneras, y eso resulta útil en todas partes.",
+        },
+      ],
+
+      ages: [
+        { title: "2 a 3", body: "Fácil, y normalmente en el regazo. A esta edad la gracia es que exploten." },
+        { title: "4 a 5", body: "Fácil solos. Aquí es donde los nombres de los colores se quedan de verdad." },
+        { title: "6 en adelante", body: "Medio o difícil, por el ritmo." },
+        {
+          title: "Padres",
+          body: "Aquí no se puede perder nada, así que podéis soltar la pantalla y no volver a encontraros con un disgusto.",
+        },
+      ],
+
+      accessibility:
+        "Un toque, sin arrastrar y sin mantener pulsado, así que funciona igual con un dispositivo de entrada alternativo o con una mano pequeña y poco precisa. Cada globo mide más de 2 centímetros de lado en cualquier pantalla. Cada color lleva su propia forma, de modo que el daltonismo no bloquea el juego en ningún nivel, que es justo para lo que existen las formas. Nada parpadea deprisa, no hay reloj y no hace falta ningún sonido. La petición aparece dibujada además de escrita, así que un niño que todavía no lee la entiende solo.",
+
+      together: [
+        { title: "Di el color", body: "Pedidle que diga el color en voz alta antes de tocar. Convierte un juego en una clase." },
+        {
+          title: "Tú explotas",
+          body: "Él lo canta y tú tocas. Se descubre enseguida si está reconociendo o adivinando.",
+        },
+        { title: "Contad juntos", body: "¿Cuántos rojos han salido en esa ronda? La respuesta importa menos que contar." },
+        {
+          title: "Caza la forma",
+          body: "Jugad una ronda buscando la estrella en lugar del rojo. Mismo juego, pregunta completamente distinta.",
+        },
+      ],
+
+      faq: [
+        {
+          q: "¿El juego de globos es gratis?",
+          a: "Del todo. Nada que pagar y ninguna compra dentro del juego. Todos los juegos de la web están abiertos desde el primer segundo.",
+        },
+        {
+          q: "¿Hay que descargar algo o registrarse?",
+          a: "Ni una cosa ni la otra. Funciona en el navegador sin descarga y sin cuenta, y no pedimos ningún correo.",
+        },
+        {
+          q: "¿Qué pasa si mi hijo explota el color equivocado?",
+          a: "Explota, y ya está. No baja ninguna puntuación, no se acaban las vidas y no hay sonido de error. Ni un contador de este juego sabe bajar.",
+        },
+        {
+          q: "A mi hijo le cuesta distinguir el rojo del verde. ¿Puede jugar?",
+          a: "Sí, y justo por eso cada globo lleva también una forma. Una estrella, puntos, rayas, un corazón o un zigzag, uno por color, y el juego entero se puede jugar solo por la marca.",
+        },
+        { q: "¿Tiene anuncios?", a: "Ninguno. Ni banners ni vídeo entre nivel y nivel." },
+        {
+          q: "¿Funciona sin conexión?",
+          a: "Sí. Después de una visita el juego queda guardado en el aparato y funciona en un avión.",
+        },
+        {
+          q: "¿Y si el color que nos han pedido no sale nunca?",
+          a: "Tiene que salir. Después de dos globos que no son, el siguiente lo es, garantizado y no solo probable.",
+        },
+        {
+          q: "¿Para qué edad es?",
+          a: "Desde unos dos años con un adulto, y desde los cuatro solos. No hace falta leer porque la petición está dibujada además de escrita.",
+        },
+        {
+          q: "¿Cómo se mide el récord?",
+          a: "Por cuántas rondas seguidas has superado, donde más es mejor, y por separado en cada nivel. Los niveles cambian los globos por ronda y el ritmo, así que no son comparables.",
+        },
+        {
+          q: "¿Recoge datos sobre mi hijo?",
+          a: "No. No hay registro ni nombre. Nada graba la sesión y nada dirige publicidad según el comportamiento. Contamos cuántas veces se ha abierto un juego, sin nada al lado que identifique a quién lo abrió.",
+        },
+      ],
+
+      keywords: ["globos", "colores", "juego para bebés", "infantil", "tocar", "aprender colores"],
+    },
   },
 
   provenance: [

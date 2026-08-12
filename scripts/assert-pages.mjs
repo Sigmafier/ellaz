@@ -618,8 +618,14 @@ function main() {
   }
 
   // A page preloading a SIBLING's chunk downloads code it can never run, and
-  // it looks identical to the correct thing in every per-page check above. The
-  // two locales of one game share a chunk; two different games never do.
+  // it looks identical to the correct thing in every per-page check above. All
+  // the locales of one game share a chunk; two different games never do.
+  //
+  // The multiplier is `L.page.length`, off the manifest, and it used to be a
+  // literal 2. That was right while exactly two languages had pages and became
+  // a false RED the moment Spanish landed - the shape this whole lane keeps
+  // meeting, caught here in the friendly direction: a gate that fails loudly on
+  // a correct build rather than passing quietly on a broken one.
   const byChunk = new Map();
   for (const [file, chunk] of preloadedGame) {
     const id = (/(^|\/)games\/([^/]+)\//.exec(file) ?? [])[2];
@@ -627,8 +633,11 @@ function main() {
     if (seen && seen !== id) fail(`games ${seen} and ${id} both preload ${chunk}`);
     byChunk.set(chunk, id);
   }
-  if (preloadedGame.size > 0 && byChunk.size * 2 !== preloadedGame.size) {
-    fail(`${byChunk.size} distinct game chunks across ${preloadedGame.size} game pages`);
+  if (preloadedGame.size > 0 && byChunk.size * L.page.length !== preloadedGame.size) {
+    fail(
+      `${byChunk.size} distinct game chunks across ${preloadedGame.size} game pages ` +
+        `(expected ${byChunk.size * L.page.length} for ${L.page.length} page languages)`,
+    );
   }
 
   // --- index.html: the app shell, head-enhanced in place --------------------

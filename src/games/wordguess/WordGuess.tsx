@@ -22,16 +22,16 @@ import {
 } from "./logic";
 
 const LEVELS = [
-  { id: "easy", length: 4, he: "4 אותיות", en: "4 letters" },
-  { id: "medium", length: 5, he: "5 אותיות", en: "5 letters" },
-  { id: "hard", length: 6, he: "6 אותיות", en: "6 letters" },
+  { id: "easy", length: 4, he: "4 אותיות", en: "4 letters", es: "4 letras" },
+  { id: "medium", length: 5, he: "5 אותיות", en: "5 letters", es: "5 letras" },
+  { id: "hard", length: 6, he: "6 אותיות", en: "6 letters", es: "6 letras" },
 ] as const;
 
 type LevelId = (typeof LEVELS)[number]["id"];
 
 const LEVEL_OPTIONS: DifficultyOption<LevelId>[] = LEVELS.map((lv) => ({
   id: lv.id,
-  label: { he: lv.he, en: lv.en },
+  label: { he: lv.he, en: lv.en, es: lv.es },
 }));
 
 /**
@@ -119,6 +119,7 @@ export function WordGuess({ ctx }: { ctx: GameContext }) {
     {
       he: { streak: "רצף", tries: "ניחושים", wasWord: "המילה הייתה", nextWord: "מילה הבאה" },
       en: { streak: "Streak", tries: "Tries", wasWord: "The word was", nextWord: "Next word" },
+      es: { streak: "Racha", tries: "Intentos", wasWord: "La palabra era", nextWord: "Siguiente palabra" },
     },
     ctx.locale,
   );
@@ -389,7 +390,11 @@ function Keyboard({
   onBack: () => void;
 }) {
   const K = textFor(
-    { he: { del: "מחיקה", check: "בדיקה" }, en: { del: "delete", check: "Check" } },
+    {
+      he: { del: "מחיקה", check: "בדיקה" },
+      en: { del: "delete", check: "Check" },
+      es: { del: "borrar", check: "Comprobar" },
+    },
     ctx.locale,
   );
   const keys = keysFor(ctx.locale);

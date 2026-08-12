@@ -9,7 +9,7 @@ import type { GameMeta } from "@sdk/index";
 // own palette and is called what it is. See CLAUDE.md § Legal.
 export const meta: GameMeta = {
   id: "blocks",
-  title: { he: "קוביות נופלות", en: "Falling Blocks" },
+  title: { he: "קוביות נופלות", en: "Falling Blocks", es: "Bloques que caen" },
   emoji: "🧱",
   color: "#6d4bd6",
   ageBand: "all",

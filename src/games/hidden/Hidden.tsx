@@ -25,9 +25,9 @@ const DIFFICULTIES: Record<Difficulty, { crowd: number; targets: number }> = {
 };
 
 const DIFF_OPTIONS: DifficultyOption<Difficulty>[] = [
-  { id: "easy", label: { he: "קל", en: "Easy" } },
-  { id: "medium", label: { he: "בינוני", en: "Med" } },
-  { id: "hard", label: { he: "קשה", en: "Hard" } },
+  { id: "easy", label: { he: "קל", en: "Easy", es: "Fácil" } },
+  { id: "medium", label: { he: "בינוני", en: "Med", es: "Media" } },
+  { id: "hard", label: { he: "קשה", en: "Hard", es: "Difícil" } },
 ];
 
 // Fresh random layout for a difficulty: a shuffled crowd slice + random targets.
@@ -45,6 +45,7 @@ export function Hidden({ ctx }: { ctx: GameContext }) {
     {
       he: { found: "נמצאו", find: "מצאו:", done: (n: number) => `שלב ${n} הושלם! ממשיכים…` },
       en: { found: "Found", find: "Find:", done: (n: number) => `Level ${n} done! Next up…` },
+      es: { found: "Encontrados", find: "Busca:", done: (n: number) => `¡Nivel ${n} completado! Vamos…` },
     },
     ctx.locale,
   );

@@ -4,7 +4,7 @@ import type { GameMeta } from "@sdk/index";
 // renders without pulling React/Phaser into the shell bundle.
 export const meta: GameMeta = {
   id: "sudoku",
-  title: { he: "סודוקו", en: "Sudoku" },
+  title: { he: "סודוקו", en: "Sudoku", es: "Sudoku" },
   emoji: "🔡",
   // Nudged from #0984e3 on 2026-08-04, the same blue two steps darker. It was
   // the one accent in the roster that no ink can sit on: 4.38:1 against the

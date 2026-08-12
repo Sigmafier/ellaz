@@ -111,6 +111,47 @@ export const BANNED_EN = [
 ] as const;
 
 /**
+ * Spanish: the tell vocabulary of Spanish machine prose, authored FOR Spanish.
+ *
+ * Not the English list translated. `delve` translates to `profundizar`, which
+ * is an ordinary Spanish verb no reader would blink at, while `sumérgete en` -
+ * the actual Spanish tell - has no English entry to have come from. A
+ * translated list would police words nobody writes and miss the ones everybody
+ * does, which is the failure this whole record exists to prevent.
+ *
+ * `sin duda` earns its place for a reason worth stating: it is perfectly good
+ * Spanish, and that is exactly the problem. It is the phrase a model reaches
+ * for when it has nothing to say, so it appears in machine prose at a rate no
+ * person writing about a memory game would produce.
+ */
+export const BANNED_ES = [
+  "sumérgete",
+  "sumergirse en",
+  "cabe destacar",
+  "es importante destacar",
+  "es importante señalar",
+  "en el mundo de hoy",
+  "en la era digital",
+  "hoy en día",
+  "sin duda",
+  "una experiencia inolvidable",
+  "la solución perfecta",
+  "una amplia variedad",
+  "al siguiente nivel",
+  "el mundo de",
+  "adéntrate",
+  "descubre el fascinante",
+  "no solo eso",
+  "en definitiva",
+  "en resumen",
+  "además de esto",
+  "por otro lado",
+  "herramienta esencial",
+  "potenciar",
+  "revolucionario",
+] as const;
+
+/**
  * The dash family. Every one of these reads as a machine tell to the operator,
  * and the plain hyphen reads identically, so there is no cost to the rule.
  * Written as escapes so this source file does not itself contain one - showing
@@ -121,10 +162,19 @@ const DASHES = /[—–―]/g;
 /** "no X, no Y and no Z" in Hebrew, and its English twin. */
 const RULE_OF_THREE_HE = /(אין|לא)\s+\S+,\s*(אין|לא)\s+\S+\s+ו?(אין|לא)/g;
 const RULE_OF_THREE_EN = /\bno\s+\S+,\s*no\s+\S+,?\s+(and|or)\s+no\b/gi;
+/**
+ * Spanish negates with `sin` before a noun, so its rule-of-three is
+ * `sin X, sin Y y sin Z` — a different word from the English `no` and a
+ * different word from the Hebrew `אין`. Translating either pattern would have
+ * produced a regex that never fires.
+ */
+const RULE_OF_THREE_ES = /\bsin\s+\S+,\s*sin\s+\S+,?\s+(y|ni|o)\s+sin\b/gi;
 
 /** "sounds like X but it isn't" / "it's not just X, it's Y" - the same crutch, twice. */
 const CONTRAST_HE = /נשמע כמו[^.]{0,40}אבל|זה לא רק \S+ אלא|הצד השני של אותו מטבע/g;
 const CONTRAST_EN = /\b(it'?s|this is)\s+not\s+just\s+[^,.]{1,40},?\s+(it'?s|it is)\b/gi;
+/** `no es solo X, es Y` / `no es (solo) un X sino Y` — the same crutch in Spanish. */
+const CONTRAST_ES = /\bno\s+es\s+(solo|sólo|únicamente)\s+[^,.]{1,40}[,]?\s+(es|sino)\b/gi;
 
 /**
  * Everything this file knows about ONE language, in one place.
@@ -152,6 +202,7 @@ export interface VoiceRules {
 export const VOICE: Record<PageLocale, VoiceRules> = {
   he: { banned: BANNED_HE, ruleOfThree: RULE_OF_THREE_HE, contrast: CONTRAST_HE },
   en: { banned: BANNED_EN, ruleOfThree: RULE_OF_THREE_EN, contrast: CONTRAST_EN },
+  es: { banned: BANNED_ES, ruleOfThree: RULE_OF_THREE_ES, contrast: CONTRAST_ES },
 };
 
 /* --------------------------------------------------------------- analysers */

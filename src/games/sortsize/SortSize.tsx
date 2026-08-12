@@ -23,9 +23,9 @@ import {
 } from "./logic";
 
 const DIFF_OPTIONS: DifficultyOption<Difficulty>[] = [
-  { id: "easy", label: { he: "קל", en: "Easy" } },
-  { id: "medium", label: { he: "בינוני", en: "Med" } },
-  { id: "hard", label: { he: "קשה", en: "Hard" } },
+  { id: "easy", label: { he: "קל", en: "Easy", es: "Fácil" } },
+  { id: "medium", label: { he: "בינוני", en: "Med", es: "Media" } },
+  { id: "hard", label: { he: "קשה", en: "Hard", es: "Difícil" } },
 ];
 
 /**
@@ -92,6 +92,20 @@ export function SortSize({ ctx }: { ctx: GameContext }) {
         binSmall: "small basket",
         big: "Big",
         small: "Small",
+      },
+      es: {
+        biggest: "Toca el más grande",
+        smallest: "Toca el más pequeño",
+        asc: "Tócalos en orden: del más pequeño al más grande",
+        desc: "Tócalos en orden: del más grande al más pequeño",
+        sort: "Elige uno y luego su cesta",
+        cheer: "🎉 ¡Bien! El siguiente…",
+        look: "Mira bien los tamaños 👀",
+        item: (name: string, i: number, n: number) => `${name} ${i} de ${n}, del más pequeño primero`,
+        binBig: "cesta grande",
+        binSmall: "cesta pequeña",
+        big: "Grande",
+        small: "Pequeño",
       },
     },
     ctx.locale,

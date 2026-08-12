@@ -270,6 +270,132 @@ export const bees: GameContent = {
 
       keywords: ["bees", "butterflies", "focus", "self control", "preschool", "attention game"],
     },
+    es: {
+      metaTitle: "Solo abejas - juego de atención gratis | Ellaz",
+      metaDescription:
+        "Juego gratis para niños: abejas y mariposas cruzan el cielo y hay que tocar solo las abejas. Nada que perder, sin registro.",
+
+      lede: "Un juego gratuito en el que abejas y mariposas cruzan el cielo durante cuarenta segundos y tu hijo toca solo las abejas. Tocar una mariposa no cuesta nada. Dejar escapar una abeja tampoco.",
+
+      body: [
+        "Un cielo con dos clases de bicho. Toca las abejas. Deja pasar las mariposas.",
+
+        "Aquí los niveles van al revés de lo que esperarías. Más difícil significa menos abejas, no abejas más rápidas. Este juego no mide velocidad, mide la capacidad de pararse a comprobar, y cuando casi todo el cielo es una abeja un niño entra en un ritmo de tocarlo todo en cuestión de segundos y deja de mirar. Esa es exactamente la costumbre que el juego existe para interrumpir. Así que la mezcla baja del 65% de abejas en fácil al 50% en difícil, y la mariposa deja de ser una molestia rara para ser media pantalla.",
+
+        "El número que pide el código no es el número que ve un niño, y a nosotros también nos sorprendió. Una regla prohíbe más de tres bichos iguales seguidos, y cada vez que se activa tira de la mezcla hacia el empate. Sobre 1.500 rondas por nivel, un 65% pedido sale como 59%, y un 60% sale como 56%. En difícil los dos números coinciden exactamente en el 50%, porque una mezcla ya equilibrada no tiene hacia dónde ser arrastrada.",
+
+        "Una ronda dura cuarenta segundos. Con eso basta. En fácil cruzan el cielo 28 bichos y unos 17 son abejas. En difícil cruzan 57 y unas 29 son abejas, así que el nivel difícil ofrece de hecho más abejas que cazar. Solo hay que saber separarlas.",
+
+        "Aquí no hay nada que perder. Ninguna puntuación que baje, ninguna vida, ningún sonido de error, y el único contador del juego cuenta abejas cazadas. La ronda siempre acaba terminada. Aunque tu hijo no haya tocado ni una.",
+      ],
+
+      howToPlay: [
+        { title: "Elige un nivel", body: "Fácil, medio o difícil. La diferencia es cuántas mariposas vuelan." },
+        { title: "Espera una abeja", body: "Los bichos cruzan la pantalla en las dos direcciones por carriles fijos." },
+        { title: "Toca solo abejas", body: "Un toque por cada una. La bonita nunca es el objetivo." },
+        { title: "Termina la ronda", body: "Tras cuarenta segundos ves la cuenta, y otra ronda está a un toque." },
+      ],
+
+      tips: [
+        {
+          title: "Mira las alas",
+          body: "La forma del ala las separa más rápido que el color, y se sigue viendo clara mientras el bicho se mueve.",
+        },
+        {
+          title: "No toques por reflejo",
+          body: "Casi todas las abejas que se escapan vienen de haber tocado una mariposa demasiado deprisa. Una fracción de segundo comprobando devuelve más de lo que cuesta.",
+        },
+        {
+          title: "Cázalas a media pantalla",
+          body: "Un bicho en el centro se queda accesible más tiempo. Esperar al borde tira un segundo a la basura.",
+        },
+        {
+          title: "Prueba el difícil igualmente",
+          body: "Menos abejas suena frustrante y en realidad es más tranquilo, porque hay tiempo de pensar entre una y otra.",
+        },
+      ],
+
+      teaches: [
+        {
+          title: "Pararse antes de actuar",
+          body: "El juego entero es un ejercicio de aguantarse la mano, y eso se entrena como cualquier otra cosa.",
+        },
+        { title: "Distinguir dos cosas parecidas", body: "Abejas y mariposas vuelan igual. La diferencia está en el detalle." },
+        { title: "Atención sostenida", body: "Cuarenta segundos de concentración seguida son muchos a los cuatro años, y se estiran." },
+        {
+          title: "Dejar pasar una",
+          body: "Una abeja que pasa sin que la toques no hace absolutamente nada. Aquí los niños aprenden que no hay que coger todas las oportunidades.",
+        },
+      ],
+
+      ages: [
+        { title: "3 a 4", body: "Fácil. Hay abejas de sobra, así que casi cada toque acierta, y con eso vale." },
+        { title: "5 a 6", body: "Medio. Aquí es donde empieza de verdad lo de comprobar antes de tocar." },
+        { title: "7 en adelante", body: "Difícil, con medio cielo prohibido." },
+        {
+          title: "Padres",
+          body: "Aquí no se puede perder nada, así que este va bien para los ratos en los que no podéis sentaros al lado.",
+        },
+      ],
+
+      accessibility:
+        "Un toque, sin arrastrar y sin mantener pulsado. Los bichos son grandes y vuelan por carriles fijos en lugar de dar saltos imprevisibles, así que un ojo que todavía está aprendiendo a seguir cosas puede seguirlos. Las abejas y las mariposas se distinguen por la forma del ala y no solo por el color, de modo que el daltonismo no molesta. El reloj se para cuando se deja el aparato, lo que significa que una interrupción a mitad de ronda no cuesta nada. Nada parpadea y el juego se juega entero en silencio.",
+
+      together: [
+        {
+          title: "Uno canta, otro toca",
+          body: "Quien canta dice abeja o mariposa en voz alta antes de que se mueva la mano. Se oye enseguida si hay distinción.",
+        },
+        { title: "Una ronda sin tocar", body: "Cuarenta segundos solo mirando y contando abejas. Práctica de atención sin dedos." },
+        { title: "Busca la mariposa", body: "Dad la vuelta al juego y cantad las mariposas. Misma distinción, otro lado." },
+        {
+          title: "Adivina antes",
+          body: "Decid qué bicho va a entrar en pantalla antes de que aparezca. Nadie acierta demasiado.",
+        },
+      ],
+
+      faq: [
+        {
+          q: "¿El juego es gratis?",
+          a: "Del todo. Nada que pagar y ninguna compra dentro del juego. Todos los juegos de la web están abiertos desde el primer segundo.",
+        },
+        {
+          q: "¿Hay que descargar algo o registrarse?",
+          a: "Ni una cosa ni la otra. Funciona en el navegador sin descarga y sin cuenta, y no pedimos ningún correo.",
+        },
+        {
+          q: "¿Qué pasa si mi hijo toca una mariposa?",
+          a: "Nada. Sigue volando, no baja ninguna puntuación y no hay sonido de error. El único contador del juego cuenta abejas cazadas.",
+        },
+        {
+          q: "¿Por qué el nivel difícil tiene menos abejas?",
+          a: "Porque aquí la habilidad es distinguir y no correr. Cuando casi todo es una abeja, un niño se acomoda en tocarlo todo y deja de mirar, que es la costumbre que este juego intenta interrumpir.",
+        },
+        { q: "¿Tiene anuncios?", a: "Ninguno. Ni banners ni vídeo entre nivel y nivel." },
+        {
+          q: "¿Funciona sin conexión?",
+          a: "Sí. Después de una visita el juego queda guardado en el aparato y funciona en un avión.",
+        },
+        {
+          q: "¿Cuánto dura una ronda?",
+          a: "Cuarenta segundos. El reloj se para cuando se deja el aparato, así que una interrupción no se come la ronda.",
+        },
+        {
+          q: "¿Cuántas abejas se pueden cazar en una ronda?",
+          a: "Depende del nivel. En fácil pasan 28 bichos con unas 17 abejas entre ellos, y en difícil pasan 57 con unas 29 abejas.",
+        },
+        {
+          q: "¿Para qué edad es?",
+          a: "Desde unos tres años en fácil. En el juego no se lee nada y lo único que hace falta es distinguir dos bichos.",
+        },
+        {
+          q: "¿Recoge datos sobre mi hijo?",
+          a: "No. No hay registro ni nombre. Nada graba la sesión y nada dirige publicidad según el comportamiento. Contamos cuántas veces se ha abierto un juego, sin nada al lado que identifique a quién lo abrió.",
+        },
+      ],
+
+      keywords: ["abejas", "mariposas", "atención", "autocontrol", "infantil", "concentración"],
+    },
   },
 
   provenance: [

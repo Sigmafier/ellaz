@@ -10,9 +10,9 @@ import { emptyBoard, winner, isDraw, place, chooseMove, type Board, type Difficu
 type Score = { wins: number; losses: number; draws: number };
 
 const DIFF_OPTIONS: DifficultyOption<Difficulty>[] = [
-  { id: "easy", label: { he: "קל", en: "Easy" } },
-  { id: "medium", label: { he: "בינוני", en: "Med" } },
-  { id: "hard", label: { he: "קשה", en: "Hard" } },
+  { id: "easy", label: { he: "קל", en: "Easy", es: "Fácil" } },
+  { id: "medium", label: { he: "בינוני", en: "Med", es: "Media" } },
+  { id: "hard", label: { he: "קשה", en: "Hard", es: "Difícil" } },
 ];
 
 // Human is X (goes first), AI is O. Tap a cell to play. Difficulty tunes the AI:
@@ -149,6 +149,7 @@ export function TicTacToe({ ctx }: { ctx: GameContext }) {
     {
       he: { draw: "תיקו", turn: "התור שלך", rule: "שלושה ברצף מנצחים", wins: "ניצחונות", draws: "תיקו" },
       en: { draw: "Draw", turn: "Your turn", rule: "Three in a row wins", wins: "Wins", draws: "Draws" },
+      es: { draw: "Empate", turn: "Te toca", rule: "Tres en raya gana", wins: "Victorias", draws: "Empates" },
     },
     ctx.locale,
   );

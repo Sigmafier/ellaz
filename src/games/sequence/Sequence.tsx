@@ -15,9 +15,9 @@ import { Prompt, shapePath, winMoment, useRememberedLevel } from "@shared/index"
 import { colorHex, isCorrect, itemKey, newRound, type Difficulty, type Round, type SeqItem } from "./logic";
 
 const DIFF_OPTIONS: DifficultyOption<Difficulty>[] = [
-  { id: "easy", label: { he: "קל", en: "Easy" } },
-  { id: "medium", label: { he: "בינוני", en: "Med" } },
-  { id: "hard", label: { he: "קשה", en: "Hard" } },
+  { id: "easy", label: { he: "קל", en: "Easy", es: "Fácil" } },
+  { id: "medium", label: { he: "בינוני", en: "Med", es: "Media" } },
+  { id: "hard", label: { he: "קשה", en: "Hard", es: "Difícil" } },
 ];
 
 // Every box is sized with min()/max() in CSS rather than a measured pixel value,
@@ -81,6 +81,7 @@ export function Sequence({ ctx }: { ctx: GameContext }): ReactElement {
     {
       he: { ask: "מה בא אחר כך?", cheer: "🎉 כל הכבוד! ממשיכים…", blank: "מה חסר במשבצת? 🤔", option: (n: number) => `אפשרות ${n}` },
       en: { ask: "What comes next?", cheer: "🎉 Nice! Next one…", blank: "What fills the blank? 🤔", option: (n: number) => `option ${n}` },
+      es: { ask: "¿Qué viene después?", cheer: "🎉 ¡Bien! El siguiente…", blank: "¿Qué falta en el hueco? 🤔", option: (n: number) => `opción ${n}` },
     },
     ctx.locale,
   );

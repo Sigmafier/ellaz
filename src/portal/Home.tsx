@@ -307,7 +307,7 @@ function ThemeToggle({ locale, onTap }: { locale: AppLocale; onTap: () => void }
   const next = themeById(theme === "night" ? "market" : "night");
   return (
     <button
-      aria-label={`${textFor({ he: "ערכת נושא", en: "Theme" }, locale)}: ${textFor(next.label, locale)}`}
+      aria-label={`${textFor({ he: "ערכת נושא", en: "Theme", es: "Tema" }, locale)}: ${textFor(next.label, locale)}`}
       onClick={() => {
         onTap();
         setTheme(next.id);

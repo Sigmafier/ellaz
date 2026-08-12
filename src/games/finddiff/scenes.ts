@@ -22,7 +22,7 @@ export interface Scene {
 export const SCENES: Scene[] = [
   {
     id: "garden",
-    name: { he: "גן", en: "Garden" },
+    name: { he: "גן", en: "Garden", es: "Jardín" },
     viewBox: "0 0 100 100",
     base: `
       <rect x="0" y="0" width="100" height="64" fill="#afe3ff"/>
@@ -76,7 +76,7 @@ export const SCENES: Scene[] = [
   },
   {
     id: "underwater",
-    name: { he: "מתחת למים", en: "Underwater" },
+    name: { he: "מתחת למים", en: "Underwater", es: "Bajo el agua" },
     viewBox: "0 0 100 100",
     base: `
       <rect x="0" y="0" width="100" height="82" fill="#4fc3f7"/>
@@ -129,7 +129,7 @@ export const SCENES: Scene[] = [
   },
   {
     id: "space",
-    name: { he: "חלל", en: "Space" },
+    name: { he: "חלל", en: "Space", es: "El espacio" },
     viewBox: "0 0 100 100",
     base: `
       <rect x="0" y="0" width="100" height="88" fill="#1a1a3d"/>
@@ -187,7 +187,7 @@ export const SCENES: Scene[] = [
   },
   {
     id: "park",
-    name: { he: "פארק", en: "Park" },
+    name: { he: "פארק", en: "Park", es: "Parque" },
     viewBox: "0 0 100 100",
     base: `
       <rect x="0" y="0" width="100" height="62" fill="#bbdefb"/>

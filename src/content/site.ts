@@ -221,13 +221,108 @@ const en: SiteCopy = {
 };
 
 /**
+ * Spanish, written rather than translated — see `game-content-template.md`.
+ *
+ * Two decisions worth stating because they are not obvious from the English.
+ * The imperative is TÚ throughout (`toca`, not `toque`): it is what a child is
+ * spoken to in across the whole Spanish-speaking world, and `usted` on a page
+ * about a four-year-old tapping balloons would read as a bank letter. And the
+ * vocabulary avoids the words that split Spain from Latin America wherever
+ * there is a neutral one — `computadora`/`ordenador` is dodged with
+ * `en el navegador`, `móvil`/`celular` with `teléfono`.
+ */
+const es: SiteCopy = {
+  brand: "Ellaz",
+  tagline: "Juegos gratis en el navegador, sin descargar nada",
+  home: "Inicio",
+  gameHeading: "{title}",
+  play: "Jugar",
+  playNote: "Abre el juego. No hay que descargar nada ni crear una cuenta.",
+  noScript: "El juego necesita JavaScript. El resto de la página, no.",
+  loading: "El juego se carga solo. No hay que tocar nada.",
+  dataSaver: "Tienes el ahorro de datos activado, así que esperamos a que toques tú.",
+  chrome: { back: "Todos los juegos", fullScreen: "Pantalla completa" },
+  headings: {
+    howToPlay: "¿Cómo se juega?",
+    about: "Sobre el juego",
+    teaches: "¿Qué enseña?",
+    tips: "Consejos",
+    ages: "¿Para qué edad es?",
+    accessibility: "Accesibilidad",
+    together: "Jugar juntos",
+    faq: "Preguntas frecuentes",
+    related: "Más juegos",
+  },
+  facts: [
+    "Gratis",
+    "Sin anuncios",
+    "Sin cuenta",
+    "Sin descargas",
+    "Funciona sin internet",
+    "Un jugador",
+  ],
+  categories: {
+    kids: "Para peques",
+    learn: "Aprender",
+    think: "Pensar",
+    speed: "Rapidez",
+    create: "Crear",
+    classics: "Clásicos",
+  },
+  homePage: {
+    title: "Ellaz - juegos gratis en el navegador para niños y mayores",
+    description:
+      "{games} juegos gratis que funcionan en el navegador. Sin descargas, sin cuenta y sin anuncios. Van en teléfono, tablet y ordenador, y sin conexión después de la primera visita.",
+    h1: "Juegos gratis en tu navegador",
+    lede: "Todos los juegos se abren desde el primer segundo, funcionan en el navegador y siguen funcionando sin conexión una vez que los has cargado.",
+    body: [
+      "El sitio entero está construido alrededor de una pregunta: qué puede abrir sola una niña de cuatro años. No hay que leer nada, no hay cuenta que rellenar y no hay ninguna pantalla que pida algo antes de dejarte jugar. Tocas un juego y empieza.",
+      "Hay juegos de memoria, de pensar, de rapidez y de dibujar, y al lado unos cuantos clásicos con los que un adulto pierde la tarde encantado. Cada juego guarda su récord en el aparato, y cada nivel guarda el suyo por separado.",
+    ],
+  },
+  worldPage: {
+    title: "Mi habitación - Ellaz",
+    description:
+      "La habitación del jugador en Ellaz. Las monedas que se ganan jugando compran muebles, mascotas y ropa, y todo se guarda en el aparato.",
+    h1: "Mi habitación",
+    lede: "Cada victoria deja monedas en el monedero, y esas monedas compran cosas para la habitación.",
+    body: [
+      "La habitación tiene ocho sitios que llenar: pared, suelo, alfombra, planta, póster, ropa, gorro y mascota. En cada categoría hay una cosa gratis desde el principio, así que la habitación está completa antes de ganar una sola moneda.",
+      "Comprar es un toque. Ni ventana de confirmación, ni datos que rellenar. Una cosa que todavía no puedes pagar tiembla un poco y no dice nada más, porque que te digan que no todavía no es un error.",
+      "Cada jugador se llama de alguna manera: un adjetivo y un animal, sacados de una lista cerrada, con un botón para volver a sortearlo. Ningún niño escribe un nombre, y por eso aquí no hay nada que nadie tenga que moderar.",
+    ],
+  },
+  boardsPage: {
+    title: "Récords - Ellaz",
+    description:
+      "Los récords de Ellaz. Cada juego guarda una marca por nivel, y puedes ver dónde queda la tuya frente a todo el mundo: hoy, esta semana, este mes o siempre.",
+    h1: "Récords",
+    lede: "Tu mejor marca en cada juego, y dónde queda entre las de todos los demás.",
+    body: [
+      "Cada juego guarda tu mejor resultado, uno por nivel. Unos cuentan puntos, otros cuentan segundos y otros cuentan movimientos, y cada uno tiene su propia tabla. En el sudoku gana quien termina antes. En el memory, quien da la vuelta a menos cartas.",
+      "La tabla no coloca a todo el mundo en una lista, y eso es a propósito. Cerca de la cabeza ves tu puesto exacto. Por debajo ves un percentil, mientras leerlo siga siendo agradable. Los demás ven su propia marca y nada sobre su posición. A ningún niño se le enseña que va el último.",
+      "Los nombres salen de una lista cerrada: un adjetivo y un animal. Nadie escribe el suyo, así que en la tabla no hay nada que identifique a un niño.",
+      "Lo que la tabla no hace: todo esto vive en el aparato, así que borrar los datos del navegador borra también los récords. En la habitación hay un código de copia, y merece la pena apuntarlo antes del día en que haga falta.",
+    ],
+  },
+  notFound: {
+    title: "Página no encontrada - Ellaz",
+    h1: "Aquí no hay nada",
+    body: "Esta dirección no existe. A lo mejor el juego se ha movido, o se ha perdido una letra al copiar el enlace.",
+    back: "Volver a todos los juegos",
+  },
+  footer:
+    "Ellaz - juegos gratis en hebreo, inglés y español. Sin anuncios, sin cuentas y sin recoger nada sobre ningún niño.",
+};
+
+/**
  * Keyed by `PageLocale` for the same reason `GameContent.copy` is: promoting a
  * language before its shared copy exists must be a red build here too. The
  * per-game prose and the words wrapped around it are one deliverable, and a
  * language that has 23 articles but no section headings is still a page whose
  * body is partly untranslated.
  */
-export const SITE: Record<PageLocale, SiteCopy> = { he, en };
+export const SITE: Record<PageLocale, SiteCopy> = { he, en, es };
 
 /**
  * The home copy with its facts filled in.

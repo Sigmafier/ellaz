@@ -1,4 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { APP_LOCALES, PAGE_LOCALES, dirOf } from "./locales";
 import {
   AVAILABLE,
@@ -11,6 +14,8 @@ import {
 } from "./strings";
 import { he } from "./dict/he";
 import { en } from "./dict/en";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
 
 /**
  * The dictionaries.
@@ -128,19 +133,22 @@ describe("a language that has not arrived yet", () => {
 
 describe("authored text in an app language nobody authored it in", () => {
   it("falls back to English rather than rendering undefined", () => {
-    // `meta.title` is `Record<PageLocale, string>` - two languages, because a
-    // person wrote them. The app speaks eleven. Without this resolver a
-    // Spanish-speaking visitor gets `undefined` where a game name belongs,
-    // which renders as a blank card rather than as an error.
-    const title = { he: "נחש", en: "Snake" };
+    // `meta.title` is `Record<PageLocale, string>` - the languages a person
+    // actually wrote. The app speaks eleven. Without this resolver a Turkish
+    // visitor gets `undefined` where a game name belongs, which renders as a
+    // blank card rather than as an error.
+    const title = { he: "נחש", en: "Snake", es: "Serpiente" };
     expect(textFor(title, "he")).toBe("נחש");
     expect(textFor(title, "en")).toBe("Snake");
-    expect(textFor(title, "es")).toBe("Snake");
+    // A page locale has its own words and must not be given English.
+    expect(textFor(title, "es")).toBe("Serpiente");
+    // An app-only locale has none, so English is the honest answer.
     expect(textFor(title, "ar")).toBe("Snake");
+    expect(textFor(title, "tr")).toBe("Snake");
   });
 
   it("covers every app locale, so no language can blank a card", () => {
-    const title = { he: "נחש", en: "Snake" };
+    const title = { he: "נחש", en: "Snake", es: "Serpiente" };
     for (const locale of APP_LOCALES) {
       expect(textFor(title, locale), `textFor(${locale})`).toBeTruthy();
     }
@@ -149,8 +157,9 @@ describe("authored text in an app language nobody authored it in", () => {
   it("still prefers a page locale's own words where they exist", () => {
     // The negative control: a resolver that ALWAYS returned English would pass
     // every assertion above.
+    const own: Record<(typeof PAGE_LOCALES)[number], string> = { he: "א", en: "b", es: "c" };
     for (const locale of PAGE_LOCALES) {
-      expect(textFor({ he: "א", en: "b" }, locale)).toBe(locale === "he" ? "א" : "b");
+      expect(textFor(own, locale), locale).toBe(own[locale]);
     }
   });
 });
@@ -191,31 +200,58 @@ describe("loadDict says whether the language actually arrived", () => {
   });
 });
 
-describe("a language with PAGES cannot have a lazy dictionary", () => {
+describe("a page locale's dictionary has to reach the page somehow", () => {
   /**
-   * The one invariant a type cannot express here, and the reason it matters:
-   * `PageApp` boots an emitted document and never calls `loadDict`. There is no
-   * picker on a game page and no reason for one, so its chrome resolves out of
-   * the STATIC map or it silently falls back to English.
+   * The real invariant, and it took a measurement to get it right.
    *
-   * A Spanish page whose dictionary is lazy therefore renders Spanish prose,
-   * Spanish difficulty pills and English buttons - permanently, with nothing
-   * thrown. The failure looks like a translation somebody forgot rather than a
-   * dictionary nobody fetched, which is what makes it expensive to find.
+   * `PageApp` boots an emitted document that has no picker, so if nothing
+   * fetches its dictionary the chrome resolves out of STATIC or falls back to
+   * English and stays there - Spanish prose, Spanish difficulty pills, English
+   * buttons, permanently, nothing thrown. That is the defect.
+   *
+   * The first version of this gate demanded `PAGE_LOCALES ⊆ STATIC_LOCALES`,
+   * which fixes it by putting every page language in the shell. Measured, that
+   * is **+1,363 B gz on the first visit for Spanish alone** against 1,657 B of
+   * headroom - so a Hebrew-speaking four-year-old downloads the Spanish
+   * dictionary to reach a game with no Spanish in it, and Portuguese would
+   * charge them again. The rule was right about the bug and wrong about the
+   * price.
+   *
+   * So the invariant moved to where the fetch is: `bootContentPage` awaits
+   * `loadDict` before it mounts anything. Both halves are asserted below,
+   * because either one alone is satisfiable by a broken arrangement - a page
+   * locale whose dictionary is unreachable, or an await of a map that has no
+   * entry for it.
    */
-  it("every PAGE_LOCALE ships its dictionary in the shell", () => {
-    const lazy = PAGE_LOCALES.filter((l) => !STATIC_LOCALES.includes(l));
-    expect(lazy, `page locales whose dictionary is a lazy chunk: ${lazy.join(", ")}`).toEqual(
+  it("every page locale is reachable - static or lazy, never neither", () => {
+    const unreachable = PAGE_LOCALES.filter((l) => !AVAILABLE.includes(l));
+    expect(unreachable, `page locales no code path can load: ${unreachable.join(", ")}`).toEqual(
       [],
     );
   });
 
-  it("and the check can fail - a locale outside STATIC is caught", () => {
-    // The control. Without it, a STATIC_LOCALES that accidentally listed all
-    // eleven would pass the test above forever.
-    const notStatic = APP_LOCALES.filter((l) => !STATIC_LOCALES.includes(l));
-    expect(notStatic.length).toBeGreaterThan(0);
-    const pretend = [...PAGE_LOCALES, notStatic[0]];
-    expect(pretend.filter((l) => !STATIC_LOCALES.includes(l))).not.toEqual([]);
+  it("and PageApp actually awaits it, which is the half a list cannot show", () => {
+    // Source-scanned rather than executed: driving `bootContentPage` needs a
+    // document, a frame, analytics and a cloud client, and the assertion would
+    // then rest on the mocks rather than on the code. What matters is one line.
+    const src = readFileSync(join(HERE, "..", "portal", "PageApp.tsx"), "utf8");
+    const body = src.slice(src.indexOf("export function bootContentPage"));
+    expect(body, "bootContentPage must await loadDict before it mounts").toMatch(
+      /await\s+loadDict\(/,
+    );
+    // Ordering is the whole point: awaiting AFTER createRoot renders the first
+    // frame in English and repaints, which is the flash this design avoids.
+    expect(body.indexOf("await loadDict(")).toBeLessThan(body.indexOf("createRoot(frame)"));
+  });
+
+  it("and the reachability check can fail", () => {
+    // The control. Without it, an AVAILABLE that listed all eleven would pass
+    // the first test forever.
+    const notAvailable = APP_LOCALES.filter((l) => !AVAILABLE.includes(l));
+    const pretend = [...PAGE_LOCALES, "zz" as (typeof APP_LOCALES)[number]];
+    expect(pretend.filter((l) => !AVAILABLE.includes(l))).not.toEqual([]);
+    // STATIC alone is NOT the bar any more, and this pins that on purpose: if
+    // somebody re-tightens it to STATIC, es goes back into the shell.
+    expect(notAvailable.length + STATIC_LOCALES.length).toBeGreaterThan(0);
   });
 });

@@ -19,7 +19,7 @@ export interface Picture {
 export const PICTURES: Picture[] = [
   {
     id: "house",
-    name: { he: "בית", en: "House" },
+    name: { he: "בית", en: "House", es: "Casa" },
     viewBox: "0 0 200 200",
     regions: [
       { id: "sky", d: "M0 0 H200 V120 H0 Z" },
@@ -33,7 +33,7 @@ export const PICTURES: Picture[] = [
   },
   {
     id: "fish",
-    name: { he: "דג", en: "Fish" },
+    name: { he: "דג", en: "Fish", es: "Pez" },
     viewBox: "0 0 200 200",
     regions: [
       { id: "water", d: "M0 0 H200 V200 H0 Z" },
@@ -45,7 +45,7 @@ export const PICTURES: Picture[] = [
   },
   {
     id: "flower",
-    name: { he: "פרח", en: "Flower" },
+    name: { he: "פרח", en: "Flower", es: "Flor" },
     viewBox: "0 0 200 200",
     regions: [
       { id: "sky", d: "M0 0 H200 V200 H0 Z" },
@@ -60,7 +60,7 @@ export const PICTURES: Picture[] = [
   },
   {
     id: "sun_clouds",
-    name: { he: "שמש ועננים", en: "Sun & Clouds" },
+    name: { he: "שמש ועננים", en: "Sun & Clouds", es: "Sol y nubes" },
     viewBox: "0 0 200 200",
     regions: [
       { id: "sky", d: "M0 0 H200 V200 H0 Z" },
@@ -72,7 +72,7 @@ export const PICTURES: Picture[] = [
   },
   {
     id: "balloons",
-    name: { he: "בלונים", en: "Balloons" },
+    name: { he: "בלונים", en: "Balloons", es: "Globos" },
     viewBox: "0 0 200 200",
     regions: [
       { id: "sky", d: "M0 0 H200 V200 H0 Z" },
@@ -86,7 +86,7 @@ export const PICTURES: Picture[] = [
   },
   {
     id: "rainbow",
-    name: { he: "קשת בענן", en: "Rainbow" },
+    name: { he: "קשת בענן", en: "Rainbow", es: "Arcoíris" },
     viewBox: "0 0 200 200",
     regions: [
       { id: "sky", d: "M0 0 H200 V200 H0 Z" },
@@ -100,7 +100,7 @@ export const PICTURES: Picture[] = [
   },
   {
     id: "tree",
-    name: { he: "עץ", en: "Tree" },
+    name: { he: "עץ", en: "Tree", es: "Árbol" },
     viewBox: "0 0 200 200",
     regions: [
       { id: "sky", d: "M0 0 H200 V130 H0 Z" },
@@ -115,7 +115,7 @@ export const PICTURES: Picture[] = [
   },
   {
     id: "car",
-    name: { he: "מכונית", en: "Car" },
+    name: { he: "מכונית", en: "Car", es: "Coche" },
     viewBox: "0 0 200 200",
     regions: [
       { id: "sky", d: "M0 0 H200 V150 H0 Z" },
@@ -130,7 +130,7 @@ export const PICTURES: Picture[] = [
   },
   {
     id: "sailboat",
-    name: { he: "סירת מפרש", en: "Sailboat" },
+    name: { he: "סירת מפרש", en: "Sailboat", es: "Velero" },
     viewBox: "0 0 200 200",
     regions: [
       { id: "sky", d: "M0 0 H200 V120 H0 Z" },
@@ -145,7 +145,7 @@ export const PICTURES: Picture[] = [
   },
   {
     id: "cat",
-    name: { he: "חתול", en: "Cat" },
+    name: { he: "חתול", en: "Cat", es: "Gato" },
     viewBox: "0 0 200 200",
     regions: [
       { id: "bg", d: "M0 0 H200 V200 H0 Z" },
@@ -165,7 +165,7 @@ export const PICTURES: Picture[] = [
   },
   {
     id: "butterfly",
-    name: { he: "פרפר", en: "Butterfly" },
+    name: { he: "פרפר", en: "Butterfly", es: "Mariposa" },
     viewBox: "0 0 200 200",
     regions: [
       { id: "sky", d: "M0 0 H200 V200 H0 Z" },
@@ -182,7 +182,7 @@ export const PICTURES: Picture[] = [
   },
   {
     id: "rocket",
-    name: { he: "חללית", en: "Rocket" },
+    name: { he: "חללית", en: "Rocket", es: "Cohete" },
     viewBox: "0 0 200 200",
     regions: [
       { id: "space", d: "M0 0 H200 V200 H0 Z" },

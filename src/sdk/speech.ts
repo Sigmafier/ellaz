@@ -71,6 +71,11 @@ const subtag =
 const CHAINS: Record<Locale, LangMatch[]> = {
   he: [exact("he-il"), subtag("he")],
   en: [exact("en-us"), exact("en-gb"), subtag("en")],
+  // Spanish has many regions and no single right answer, so the chain does
+  // not prefer one country over another - it asks for Latin American
+  // Spanish first only because more of the world's speakers are there,
+  // then falls through to any Spanish voice the platform has.
+  es: [exact("es-mx"), exact("es-us"), exact("es-es"), subtag("es")],
 };
 
 /**

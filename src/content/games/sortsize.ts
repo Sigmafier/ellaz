@@ -266,6 +266,132 @@ export const sortsize: GameContent = {
 
       keywords: ["big and small", "size", "sorting", "ordering", "preschool", "comparison"],
     },
+    es: {
+      metaTitle: "Grande y pequeño - juego de tamaños gratis | Ellaz",
+      metaDescription:
+        "Juego gratis de tamaños para niños pequeños. Elige el más grande, ordena cuatro, clasifica seis. Tres niveles, sin descargas ni registro.",
+
+      lede: "Un juego gratuito sobre el tamaño. El primer nivel pregunta cuál de tres es el más grande, el segundo pide ordenar cuatro, y el tercero pide clasificar seis. Tres niveles, tres tareas distintas.",
+
+      body: [
+        "Un elefante, un gato y una hormiga. ¿Cuál es el más grande?",
+
+        "El número que decide la dificultad aquí no es cuántas cosas hay, es lo cerca que llegan a estar. En fácil dos cosas cualesquiera se diferencian por lo menos 2,5 veces en tamaño, lo que un niño de dos años no puede fallar mirando. El medio estrecha la distancia a 1,6 veces y el difícil a 1,25, que es la distancia más pequeña que publicamos. Por debajo de eso la ronda deja de ser justa en la pantalla de un móvil, y esa decisión la tomó la física y no el gusto: dos cosas que se diferencian un 15% en una pantalla de seis pulgadas son un juego de adivinar y no una pregunta.",
+
+        "Cada nivel es además una tarea distinta y no la misma con más piezas. El fácil pide elegir una. El medio pide ordenar cuatro, que es un salto mayor de lo que suena, porque cuatro cosas tienen 24 ordenaciones posibles y solo una es la buena. El difícil pide clasificar seis en grupos, que vuelve a ser una tercera manera de pensar.",
+
+        "Sin reloj. Sin puntuación que baje. Siempre se puede volver a probar. Las cosas son animales y objetos conocidos, así que los niños los van nombrando en voz alta mientras juegan, que es un extra que no habíamos planeado.",
+
+        "Los tamaños cambian de una ronda a otra, así que el mismo animal no siempre es el más grande. Un niño que había aprendido que los elefantes ganan siempre descubre enseguida que el juego pregunta por lo que ves y no por lo que sabes.",
+      ],
+
+      howToPlay: [
+        { title: "Elige un nivel", body: "Elegir, ordenar o clasificar. Tres tareas distintas, no una tarea en tres tamaños." },
+        { title: "Mira los tamaños", body: "La diferencia es clara a propósito, incluso en difícil." },
+        { title: "Responde", body: "Un toque para elegir, y para ordenar vas tocando en orden. Sin arrastrar." },
+        { title: "Sube", body: "Un acierto trae una ronda nueva con otros tamaños." },
+      ],
+
+      tips: [
+        {
+          title: "Empieza por los extremos",
+          body: "Al ordenar, busca primero el más grande y el más pequeño. Lo que queda en medio resulta mucho más fácil.",
+        },
+        {
+          title: "Compara de dos en dos",
+          body: "No intentes ver las cuatro a la vez. De dos en dos, y comparar se vuelve sencillo.",
+        },
+        {
+          title: "Olvida lo que sabes",
+          body: "Aquí un gato puede ser más grande que un elefante. La pregunta es sobre lo que hay en la pantalla.",
+        },
+        {
+          title: "No hace falta correr",
+          body: "Aquí no hay ningún reloj. En difícil, donde la distancia es de solo 1,25 veces, un segundo más de mirada vale mucho.",
+        },
+      ],
+
+      teaches: [
+        { title: "Comparar tamaños", body: "Más grande y más pequeño son conceptos que necesitan práctica, y aquí se practican directamente." },
+        {
+          title: "Poner cosas en orden",
+          body: "Cuatro cosas tienen 24 ordenaciones y solo una es la buena. Es otra habilidad distinta de elegir la más grande.",
+        },
+        { title: "Clasificar en grupos", body: "El difícil pide repartirlo todo en vez de elegir una, que es una tercera forma de pensar." },
+        {
+          title: "Fiarse de los propios ojos",
+          body: "El juego pregunta por lo que se ve y no por lo que se sabe del mundo, y los niños aprenden aquí esa diferencia.",
+        },
+      ],
+
+      ages: [
+        { title: "2 a 3", body: "Fácil. Una distancia de 2,5 veces entre las cosas, así que no se puede fallar de un vistazo." },
+        { title: "4 a 5", body: "Medio, cuando ordenar cuatro empiece a ser posible." },
+        { title: "6 en adelante", body: "Difícil. Seis cosas que clasificar con una distancia de solo 1,25 veces." },
+        {
+          title: "Padres",
+          body: "Nada que perder y sin reloj, así que este se puede dejar abierto y volver luego.",
+        },
+      ],
+
+      accessibility:
+        "Solo hay que tocar. Ordenar se hace tocando en orden y no arrastrando, así que un niño pequeño o alguien que usa un dispositivo de entrada alternativo no se queda fuera. Las cosas miden más de 2 centímetros de lado en cualquier pantalla, incluida la más pequeña del difícil. La pregunta es sobre el tamaño y no sobre el color, de modo que aquí el daltonismo es irrelevante. Sin reloj y sin nada que parpadee, y cada ronda se entiende con los dibujos sin una palabra que leer.",
+
+      together: [
+        { title: "Decid más grande o más pequeño", body: "Pedidle que compare en voz alta antes de tocar. Una comparación dicha es más afilada." },
+        {
+          title: "Ordenad los juguetes",
+          body: "Poned cinco muñecos o vasos en fila y pedidle que los ordene por altura. Misma habilidad, en la mano.",
+        },
+        { title: "Qué es más grande en casa", body: "La silla o la mesa, la cuchara o el tenedor. El juego sigue después de cerrarlo." },
+        {
+          title: "Adivinad el orden",
+          body: "Antes de tocar, decid juntos el orden completo. Después comprobad cuánto os habéis acercado.",
+        },
+      ],
+
+      faq: [
+        {
+          q: "¿El juego es gratis?",
+          a: "Del todo. Nada que pagar y ninguna compra dentro del juego. Todos los juegos de la web están abiertos desde el primer segundo.",
+        },
+        {
+          q: "¿Hay que descargar algo o registrarse?",
+          a: "Ni una cosa ni la otra. Funciona en el navegador sin descarga y sin cuenta, y no pedimos ningún correo.",
+        },
+        {
+          q: "¿En qué se diferencian los niveles?",
+          a: "En la tarea misma. El fácil pide elegir una de tres, el medio ordenar cuatro y el difícil clasificar seis. La distancia entre tamaños también se estrecha de 2,5 veces a 1,6 y a 1,25.",
+        },
+        {
+          q: "¿El nivel difícil es demasiado para un niño?",
+          a: "1,25 veces es la distancia más pequeña que publicamos, y por debajo la ronda deja de ser justa en la pantalla de un móvil. Eso lo decidió el tamaño de la pantalla y no una impresión.",
+        },
+        { q: "¿Tiene anuncios?", a: "Ninguno. Ni banners ni vídeo entre nivel y nivel." },
+        {
+          q: "¿Funciona sin conexión?",
+          a: "Sí. Después de una visita el juego queda guardado en el aparato y funciona en un avión.",
+        },
+        {
+          q: "¿Mi hijo tiene que arrastrar cosas?",
+          a: "No. Ordenar se hace tocando en orden, porque un niño de cuatro años y alguien que usa un dispositivo de entrada alternativo no siempre pueden mantener un arrastre.",
+        },
+        {
+          q: "¿Qué pasa si la respuesta es incorrecta?",
+          a: "Nada. No baja ninguna puntuación y no hay vidas, y se puede volver a probar al momento.",
+        },
+        {
+          q: "¿Para qué edad es?",
+          a: "Desde unos dos años en fácil. No se lee nada, y la diferencia entre las cosas ahí es demasiado grande como para fallarla.",
+        },
+        {
+          q: "¿Recoge datos sobre mi hijo?",
+          a: "No. No hay registro ni nombre. Nada graba la sesión y nada dirige publicidad según el comportamiento. Contamos cuántas veces se ha abierto un juego, sin nada al lado que identifique a quién lo abrió.",
+        },
+      ],
+
+      keywords: ["grande y pequeño", "tamaño", "clasificar", "ordenar", "infantil", "comparar"],
+    },
   },
 
   provenance: [

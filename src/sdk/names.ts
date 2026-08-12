@@ -20,6 +20,16 @@
 // polish — it is the difference between the app's default language reading as
 // written by a person or by a machine.
 //
+// WHY THE GENDER COLUMN IS PER LANGUAGE
+// Because grammatical gender is a property of the WORD, not of the animal, and
+// the languages disagree. FIVE of the twenty nouns below flip between Hebrew
+// and Spanish — turtle, butterfly, squirrel, whale and panda. פרפר is
+// masculine and "mariposa" is feminine. One shared column would therefore
+// render "mariposa rápido": correct-looking data producing wrong Spanish in a
+// quarter of the pool, with nothing thrown and no test to notice. Adding a
+// third gendered language means adding its own key here, which reds all twenty
+// rows by name rather than quietly reusing somebody else's grammar.
+//
 // NEVER REMOVE OR RENAME A WORD ID.
 // Ids are persisted in `profile.name` forever, exactly like the shop item ids
 // in `portal/world/items.ts`. Removing one silently un-names every player who
@@ -34,21 +44,36 @@ import type { Locale } from "@i18n/index";
 // is a leaf with no imports of its own, so it cannot close a loop.
 import { randInt } from "@shared/rng";
 
-/** Hebrew grammatical gender. Drives which adjective form a noun takes. */
+/** Grammatical gender. Drives which adjective form a noun takes. */
 export type Gender = "m" | "f";
+
+/**
+ * The languages whose adjectives inflect for gender. English is not one, which
+ * is why it is a bare string below and absent from the gender map.
+ */
+export type GenderedLocale = "he" | "es";
 
 export interface Adjective {
   id: string;
   en: string;
   /** Both Hebrew forms. Which one is used depends on the NOUN, not the adjective. */
   he: { m: string; f: string };
+  /**
+   * Both Spanish forms — and they are allowed to be IDENTICAL. Spanish has a
+   * large class of genuinely invariant adjectives (`valiente`, `alegre`,
+   * `amable`), so the "the two forms must differ" check that guards the Hebrew
+   * column would demand wrong words here. Hebrew has no such class.
+   */
+  es: { m: string; f: string };
 }
 
 export interface Noun {
   id: string;
   en: string;
   he: string;
-  gender: Gender;
+  es: string;
+  /** Per language, because the languages disagree — see the file header. */
+  gender: Record<GenderedLocale, Gender>;
   /** The face this name wears — on the World character, and later on a board row. */
   emoji: string;
 }
@@ -59,46 +84,49 @@ export interface Noun {
  * prize that "Tiny Frog" missed out on.
  */
 export const ADJECTIVES: readonly Adjective[] = [
-  { id: "swift", en: "Swift", he: { m: "זריז", f: "זריזה" } },
-  { id: "brave", en: "Brave", he: { m: "אמיץ", f: "אמיצה" } },
-  { id: "happy", en: "Happy", he: { m: "שמח", f: "שמחה" } },
-  { id: "clever", en: "Clever", he: { m: "חכם", f: "חכמה" } },
-  { id: "gentle", en: "Gentle", he: { m: "עדין", f: "עדינה" } },
-  { id: "glowing", en: "Glowing", he: { m: "זוהר", f: "זוהרת" } },
-  { id: "tiny", en: "Tiny", he: { m: "קטן", f: "קטנה" } },
-  { id: "mighty", en: "Mighty", he: { m: "חזק", f: "חזקה" } },
-  { id: "curious", en: "Curious", he: { m: "סקרן", f: "סקרנית" } },
-  { id: "cheerful", en: "Cheerful", he: { m: "עליז", f: "עליזה" } },
-  { id: "golden", en: "Golden", he: { m: "זהוב", f: "זהובה" } },
-  { id: "quiet", en: "Quiet", he: { m: "שקט", f: "שקטה" } },
-  { id: "funny", en: "Funny", he: { m: "מצחיק", f: "מצחיקה" } },
-  { id: "kind", en: "Kind", he: { m: "נחמד", f: "נחמדה" } },
-  { id: "sparkly", en: "Sparkly", he: { m: "נוצץ", f: "נוצצת" } },
-  { id: "dancing", en: "Dancing", he: { m: "רוקד", f: "רוקדת" } },
+  { id: "swift", en: "Swift", he: { m: "זריז", f: "זריזה" }, es: { m: "rápido", f: "rápida" } },
+  { id: "brave", en: "Brave", he: { m: "אמיץ", f: "אמיצה" }, es: { m: "valiente", f: "valiente" } },
+  { id: "happy", en: "Happy", he: { m: "שמח", f: "שמחה" }, es: { m: "contento", f: "contenta" } },
+  { id: "clever", en: "Clever", he: { m: "חכם", f: "חכמה" }, es: { m: "listo", f: "lista" } },
+  { id: "gentle", en: "Gentle", he: { m: "עדין", f: "עדינה" }, es: { m: "gentil", f: "gentil" } },
+  { id: "glowing", en: "Glowing", he: { m: "זוהר", f: "זוהרת" }, es: { m: "radiante", f: "radiante" } },
+  { id: "tiny", en: "Tiny", he: { m: "קטן", f: "קטנה" }, es: { m: "pequeñito", f: "pequeñita" } },
+  { id: "mighty", en: "Mighty", he: { m: "חזק", f: "חזקה" }, es: { m: "fuerte", f: "fuerte" } },
+  { id: "curious", en: "Curious", he: { m: "סקרן", f: "סקרנית" }, es: { m: "curioso", f: "curiosa" } },
+  { id: "cheerful", en: "Cheerful", he: { m: "עליז", f: "עליזה" }, es: { m: "alegre", f: "alegre" } },
+  { id: "golden", en: "Golden", he: { m: "זהוב", f: "זהובה" }, es: { m: "dorado", f: "dorada" } },
+  { id: "quiet", en: "Quiet", he: { m: "שקט", f: "שקטה" }, es: { m: "tranquilo", f: "tranquila" } },
+  { id: "funny", en: "Funny", he: { m: "מצחיק", f: "מצחיקה" }, es: { m: "gracioso", f: "graciosa" } },
+  { id: "kind", en: "Kind", he: { m: "נחמד", f: "נחמדה" }, es: { m: "amable", f: "amable" } },
+  { id: "sparkly", en: "Sparkly", he: { m: "נוצץ", f: "נוצצת" }, es: { m: "brillante", f: "brillante" } },
+  { id: "dancing", en: "Dancing", he: { m: "רוקד", f: "רוקדת" }, es: { m: "bailarín", f: "bailarina" } },
 ];
 
 /** Animals only, and only ones a small child recognises on sight. */
 export const NOUNS: readonly Noun[] = [
-  { id: "tiger", en: "Tiger", he: "נמר", gender: "m", emoji: "🐯" },
-  { id: "lion", en: "Lion", he: "אריה", gender: "m", emoji: "🦁" },
-  { id: "fox", en: "Fox", he: "שועל", gender: "m", emoji: "🦊" },
-  { id: "bear", en: "Bear", he: "דוב", gender: "m", emoji: "🐻" },
-  { id: "rabbit", en: "Rabbit", he: "ארנב", gender: "m", emoji: "🐰" },
-  { id: "turtle", en: "Turtle", he: "צב", gender: "m", emoji: "🐢" },
-  { id: "dolphin", en: "Dolphin", he: "דולפין", gender: "m", emoji: "🐬" },
-  { id: "owl", en: "Owl", he: "ינשוף", gender: "m", emoji: "🦉" },
-  { id: "butterfly", en: "Butterfly", he: "פרפר", gender: "m", emoji: "🦋" },
-  { id: "hedgehog", en: "Hedgehog", he: "קיפוד", gender: "m", emoji: "🦔" },
-  { id: "penguin", en: "Penguin", he: "פינגווין", gender: "m", emoji: "🐧" },
-  { id: "squirrel", en: "Squirrel", he: "סנאי", gender: "m", emoji: "🐿️" },
-  { id: "whale", en: "Whale", he: "לווייתן", gender: "m", emoji: "🐳" },
-  { id: "monkey", en: "Monkey", he: "קוף", gender: "m", emoji: "🐵" },
-  { id: "bee", en: "Bee", he: "דבורה", gender: "f", emoji: "🐝" },
-  { id: "lizard", en: "Lizard", he: "לטאה", gender: "f", emoji: "🦎" },
-  { id: "giraffe", en: "Giraffe", he: "ג'ירפה", gender: "f", emoji: "🦒" },
-  { id: "panda", en: "Panda", he: "פנדה", gender: "f", emoji: "🐼" },
-  { id: "zebra", en: "Zebra", he: "זברה", gender: "f", emoji: "🦓" },
-  { id: "frog", en: "Frog", he: "צפרדע", gender: "f", emoji: "🐸" },
+  // The four rows whose two genders DISAGREE are turtle, butterfly, squirrel
+  // and whale — a fifth of the pool. That is the measured reason this column is
+  // a map and not a single value.
+  { id: "tiger", en: "Tiger", he: "נמר", es: "tigre", gender: { he: "m", es: "m" }, emoji: "🐯" },
+  { id: "lion", en: "Lion", he: "אריה", es: "león", gender: { he: "m", es: "m" }, emoji: "🦁" },
+  { id: "fox", en: "Fox", he: "שועל", es: "zorro", gender: { he: "m", es: "m" }, emoji: "🦊" },
+  { id: "bear", en: "Bear", he: "דוב", es: "oso", gender: { he: "m", es: "m" }, emoji: "🐻" },
+  { id: "rabbit", en: "Rabbit", he: "ארנב", es: "conejo", gender: { he: "m", es: "m" }, emoji: "🐰" },
+  { id: "turtle", en: "Turtle", he: "צב", es: "tortuga", gender: { he: "m", es: "f" }, emoji: "🐢" },
+  { id: "dolphin", en: "Dolphin", he: "דולפין", es: "delfín", gender: { he: "m", es: "m" }, emoji: "🐬" },
+  { id: "owl", en: "Owl", he: "ינשוף", es: "búho", gender: { he: "m", es: "m" }, emoji: "🦉" },
+  { id: "butterfly", en: "Butterfly", he: "פרפר", es: "mariposa", gender: { he: "m", es: "f" }, emoji: "🦋" },
+  { id: "hedgehog", en: "Hedgehog", he: "קיפוד", es: "erizo", gender: { he: "m", es: "m" }, emoji: "🦔" },
+  { id: "penguin", en: "Penguin", he: "פינגווין", es: "pingüino", gender: { he: "m", es: "m" }, emoji: "🐧" },
+  { id: "squirrel", en: "Squirrel", he: "סנאי", es: "ardilla", gender: { he: "m", es: "f" }, emoji: "🐿️" },
+  { id: "whale", en: "Whale", he: "לווייתן", es: "ballena", gender: { he: "m", es: "f" }, emoji: "🐳" },
+  { id: "monkey", en: "Monkey", he: "קוף", es: "mono", gender: { he: "m", es: "m" }, emoji: "🐵" },
+  { id: "bee", en: "Bee", he: "דבורה", es: "abeja", gender: { he: "f", es: "f" }, emoji: "🐝" },
+  { id: "lizard", en: "Lizard", he: "לטאה", es: "lagartija", gender: { he: "f", es: "f" }, emoji: "🦎" },
+  { id: "giraffe", en: "Giraffe", he: "ג'ירפה", es: "jirafa", gender: { he: "f", es: "f" }, emoji: "🦒" },
+  { id: "panda", en: "Panda", he: "פנדה", es: "panda", gender: { he: "f", es: "m" }, emoji: "🐼" },
+  { id: "zebra", en: "Zebra", he: "זברה", es: "cebra", gender: { he: "f", es: "f" }, emoji: "🦓" },
+  { id: "frog", en: "Frog", he: "צפרדע", es: "rana", gender: { he: "f", es: "f" }, emoji: "🐸" },
 ];
 
 /**
@@ -149,15 +177,16 @@ export function resolveName(name: PlayerName | undefined): { adj: Adjective; nou
  * English is `<Adjective> <Noun>` with no agreement at all.
  *
  * A record rather than a branch, so promoting a language reds HERE and asks
- * the question out loud instead of quietly rendering the English rule. That
- * question is real and is not settled: Spanish would want `<Noun> <adjective>`
- * agreeing like Hebrew, Russian needs three genders, German declines, and
- * Arabic adds definiteness. `{ m, f }` models Hebrew alone, so a fifth
- * language is a data-shape decision and not thirty-six more words.
+ * the question out loud instead of quietly rendering the English rule. Spanish
+ * turned out to share Hebrew's SHAPE — noun first, adjective agreeing — and
+ * still not its DATA, because the two languages assign gender differently (see
+ * the file header). Russian needs three genders and German declines, so
+ * neither reuses this row; each will bring its own rule and its own column.
  */
 const RENDER: Record<Locale, (adj: Adjective, noun: Noun) => string> = {
-  he: (adj, noun) => `${noun.he} ${adj.he[noun.gender]}`,
+  he: (adj, noun) => `${noun.he} ${adj.he[noun.gender.he]}`,
   en: (adj, noun) => `${adj.en} ${noun.en}`,
+  es: (adj, noun) => `${noun.es} ${adj.es[noun.gender.es]}`,
 };
 
 /**

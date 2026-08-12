@@ -75,9 +75,9 @@ function now(): number {
 }
 
 const DIFF_OPTIONS: DifficultyOption<Difficulty>[] = [
-  { id: "easy", label: { he: "קל", en: "Easy" } },
-  { id: "medium", label: { he: "בינוני", en: "Med" } },
-  { id: "hard", label: { he: "קשה", en: "Hard" } },
+  { id: "easy", label: { he: "קל", en: "Easy", es: "Fácil" } },
+  { id: "medium", label: { he: "בינוני", en: "Med", es: "Media" } },
+  { id: "hard", label: { he: "קשה", en: "Hard", es: "Difícil" } },
 ];
 
 /**
@@ -398,32 +398,32 @@ export function ReactionGame({ ctx }: { ctx: GameContext }): ReactElement {
   const done = attempt.phase === "result";
   const measured = done && isPlausible(attempt.reactionMs);
   const praiseText = {
-    lightning: say({ he: "מהיר כמו ברק!", en: "Lightning fast!" }),
-    quick: say({ he: "מהיר מאוד!", en: "Super quick!" }),
-    good: say({ he: "יפה מאוד!", en: "Nice one!" }),
-    steady: say({ he: "כל הכבוד!", en: "Well done!" }),
+    lightning: say({ he: "מהיר כמו ברק!", en: "Lightning fast!", es: "¡Rápido como un rayo!" }),
+    quick: say({ he: "מהיר מאוד!", en: "Super quick!", es: "¡Superrápido!" }),
+    good: say({ he: "יפה מאוד!", en: "Nice one!", es: "¡Muy bien!" }),
+    steady: say({ he: "כל הכבוד!", en: "Well done!", es: "¡Bravo!" }),
   }[praiseFor(attempt.reactionMs)];
 
 
   const caption =
     attempt.phase === "go"
-      ? say({ he: "עכשיו! 👆", en: "Now! 👆" })
+      ? say({ he: "עכשיו! 👆", en: "Now! 👆", es: "¡Ahora! 👆" })
       : attempt.phase === "waiting"
         ? nudged
-          ? say({ he: "עוד לא… חכו לירוק 🙂", en: "Not yet… wait for green 🙂" })
-          : say({ he: "חכו לאור הירוק…", en: "Waiting for green…" })
+          ? say({ he: "עוד לא… חכו לירוק 🙂", en: "Not yet… wait for green 🙂", es: "Todavía no… espera al verde 🙂" })
+          : say({ he: "חכו לאור הירוק…", en: "Waiting for green…", es: "Esperando el verde…" })
         : attempt.phase === "result"
           ? measured
             ? praiseText
-            : say({ he: "בואו ננסה שוב 🙂", en: "Let's try that again 🙂" })
-          : say({ he: "לחצו על הרמזור כדי להתחיל", en: "Tap the light to start" });
+            : say({ he: "בואו ננסה שוב 🙂", en: "Let's try that again 🙂", es: "Vamos a probar otra vez 🙂" })
+          : say({ he: "לחצו על הרמזור כדי להתחיל", en: "Tap the light to start", es: "Toca el semáforo para empezar" });
 
   const ariaLabel =
     attempt.phase === "go"
-      ? say({ he: "אור ירוק, לחצו עכשיו", en: "green light, tap now" })
+      ? say({ he: "אור ירוק, לחצו עכשיו", en: "green light, tap now", es: "luz verde, toca ahora" })
       : attempt.phase === "waiting"
-        ? say({ he: "אור אדום, מחכים", en: "red light, waiting" })
-        : say({ he: "רמזור, לחצו כדי להתחיל", en: "traffic light, tap to start" });
+        ? say({ he: "אור אדום, מחכים", en: "red light, waiting", es: "luz roja, esperando" })
+        : say({ he: "רמזור, לחצו כדי להתחיל", en: "traffic light, tap to start", es: "semáforo, toca para empezar" });
 
   return (
     <GameChrome
@@ -480,14 +480,14 @@ export function ReactionGame({ ctx }: { ctx: GameContext }): ReactElement {
                 cursor: "pointer",
               }}
             >
-              {done ? say({ he: "שוב! 🔄", en: "Again! 🔄" }) : say({ he: "יאללה! ▶", en: "Go! ▶" })}
+              {done ? say({ he: "שוב! 🔄", en: "Again! 🔄", es: "¡Otra vez! 🔄" }) : say({ he: "יאללה! ▶", en: "Go! ▶", es: "¡Vamos! ▶" })}
             </button>
           ) : null}
           {/* No tally and no count: a number next to "early" reads as a score,
               and jumping the gun is explicitly not one. */}
           {attempt.earlyTaps > 0 && attempt.phase !== "ready" ? (
             <span style={{ fontSize: 13, opacity: 0.75 }} dir="auto">
-              {say({ he: "יצאתם קצת מוקדם, וזה לגמרי בסדר 🙂", en: "You went a little early, and that is fine 🙂" })}
+              {say({ he: "יצאתם קצת מוקדם, וזה לגמרי בסדר 🙂", en: "You went a little early, and that is fine 🙂", es: "Saliste un poquito antes, y no pasa nada 🙂" })}
             </span>
           ) : null}
         </div>
@@ -496,10 +496,11 @@ export function ReactionGame({ ctx }: { ctx: GameContext }): ReactElement {
       <Prompt
         ctx={ctx}
         glyph="🟢"
-        text={say({ he: "חכו לאור הירוק ואז לחצו מהר!", en: "Wait for the green light, then tap fast!" })}
+        text={say({ he: "חכו לאור הירוק ואז לחצו מהר!", en: "Wait for the green light, then tap fast!", es: "¡Espera la luz verde y luego toca rápido!" })}
         speak={say({
           he: "חכו לאור הירוק. כשהוא נדלק, לחצו מהר",
           en: "Wait for the green light. When it lights up, tap fast",
+          es: "Espera la luz verde. Cuando se encienda, toca rápido",
         })}
       />
 

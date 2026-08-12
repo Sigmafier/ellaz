@@ -12,9 +12,9 @@ const NUM_COLORS = ["", "#4d7cff", "#2e9e5b", "#e0533d", "#7a44c9", "#c9962e", "
 type DiffKey = "easy" | "medium" | "hard";
 
 const DIFF_OPTIONS: DifficultyOption<DiffKey>[] = [
-  { id: "easy", label: { he: "קל", en: "Easy" } },
-  { id: "medium", label: { he: "בינוני", en: "Med" } },
-  { id: "hard", label: { he: "קשה", en: "Hard" } },
+  { id: "easy", label: { he: "קל", en: "Easy", es: "Fácil" } },
+  { id: "medium", label: { he: "בינוני", en: "Med", es: "Media" } },
+  { id: "hard", label: { he: "קשה", en: "Hard", es: "Difícil" } },
 ];
 
 // Analytics/reward level name for a given config (avoids brittle chained ternaries as difficulties grow).
@@ -199,6 +199,13 @@ export function Minesweeper({ ctx }: { ctx: GameContext }) {
         revealMode: "Reveal mode",
         flagHint: "Tap to mark · press here to go back to revealing",
         revealHint: "Tap to reveal · press here to place flags",
+      },
+      es: {
+        flags: "Banderas",
+        flagMode: "Modo bandera 🚩",
+        revealMode: "Modo descubrir",
+        flagHint: "Toca para marcar · pulsa aquí para volver a descubrir",
+        revealHint: "Toca para descubrir · pulsa aquí para poner banderas",
       },
     },
     ctx.locale,

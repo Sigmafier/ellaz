@@ -260,6 +260,129 @@ export const hidden: GameContent = {
 
       keywords: ["hidden object", "find me", "searching", "attention", "preschool", "visual scanning"],
     },
+    es: {
+      metaTitle: "Encuéntrame - juego de buscar objetos gratis | Ellaz",
+      metaDescription:
+        "Juego gratis de buscar objetos para niños. Encuentra unas cosas en un montón, sin reloj y sin castigo. Sin descargas ni registro.",
+
+      lede: "Un juego de buscar gratuito para niños. Una pantalla llena de objetos y unos cuantos pedidos. Los encuentras a tu ritmo, sin reloj y sin ningún error que cueste algo.",
+
+      body: [
+        "Una pantalla llena. Unas cuantas cosas pedidas. Encuéntralas.",
+
+        "Lo que cambian los niveles no es cuánto hay que encontrar sino cuánto hay que rebuscar. El fácil reparte 16 objetos y pide 3. El medio reparte 24 y pide 4. El difícil reparte 32 y pide 5. Así que el espacio de búsqueda se dobla entre fácil y difícil mientras el número de objetivos sube solo en 2, y eso es exactamente lo que hace difícil al difícil: no más trabajo, solo más sitios donde la cosa no está.",
+
+        "Cada ronda se genera de cero. Las posiciones son aleatorias y los objetos cambian, así que no hay nada que memorizar ni un número finito de escenas que se agote en una semana. Esa es la diferencia principal entre este y las siete diferencias, y si tu hijo juega a diario este es el que dura de los dos.",
+
+        "No hay reloj ni castigo por tocar lo que no era. Tampoco aparece una pista a los pocos segundos para meteros prisa. Un niño que se queda mirando un cuarto de la pantalla un minuto entero está haciendo precisamente lo que el juego pide.",
+
+        "El contador de rondas se reinicia al cambiar de dificultad, así que el récord también se guarda por nivel. Una ronda entre 16 objetos y una entre 32 no son el mismo logro.",
+      ],
+
+      howToPlay: [
+        { title: "Elige un nivel", body: "16, 24 o 32 objetos en pantalla. Lo que cambia es lo lleno que está." },
+        { title: "Mira qué piden", body: "Arriba salen de 3 a 5 objetos, grandes y claros." },
+        { title: "Búscalo y tócalo", body: "Cada uno está en algún sitio del montón. Un toque lo marca encontrado." },
+        { title: "Termina la ronda", body: "Encuéntralos todos y empieza otra con un reparto nuevo." },
+      ],
+
+      tips: [
+        {
+          title: "Busca de uno en uno",
+          body: "No los tres a la vez. El ojo encuentra cosas mucho más rápido cuando sabe exactamente qué está buscando.",
+        },
+        {
+          title: "Repasa por filas",
+          body: "De izquierda a derecha, fila tras fila. Suena más lento y encuentra las cosas antes que ir dando saltos.",
+        },
+        {
+          title: "Recuerda la forma, no el color",
+          body: "En un montón lleno los colores se mezclan. El contorno de un objeto destaca más.",
+        },
+        {
+          title: "Empezad por 16",
+          body: "Incluso a un niño mayor le viene bien una ronda en fácil, solo para ver qué está pidiendo el juego.",
+        },
+      ],
+
+      teaches: [
+        { title: "Rastreo visual", body: "Encontrar algo conocido dentro del ruido es exactamente lo que pasa al leer, y aquí se entrena." },
+        { title: "Sostener un objetivo", body: "Hay que recordar qué buscas mientras rastreas, que es la memoria de trabajo haciendo su trabajo." },
+        { title: "Insistencia", body: "El último objeto siempre tarda. Sin reloj, los niños siguen en lugar de rendirse." },
+        {
+          title: "Ir con método",
+          body: "Rastrear en orden encuentra las cosas antes, y los niños lo descubren solos después de dos rondas.",
+        },
+      ],
+
+      ages: [
+        { title: "3 a 4", body: "16 objetos, a poder ser acompañados. Encontrar uno ya es un logro a esta edad." },
+        { title: "5 a 6", body: "24. Aquí es donde rastrear con método sustituye a ir dando saltos." },
+        { title: "7 en adelante", body: "32 objetos, que están apretados incluso para un adulto." },
+        {
+          title: "Padres",
+          body: "Sin reloj y sin nada que perder, así que un niño puede abrir y cerrar este sin llamaros.",
+        },
+      ],
+
+      accessibility:
+        "Un toque, sin arrastrar y sin mantener pulsado. Los objetos miden más de 2 centímetros de lado y no se solapan, así que ninguno se esconde detrás de otro. Se reconocen por la forma del objeto y no por el color, de modo que el daltonismo no molesta. Sin reloj, sin cuenta atrás y sin nada que parpadee, y no aparece ninguna pista sola para meter prisa a nadie. No hay ni una palabra que leer para jugar.",
+
+      together: [
+        { title: "Repartíos la pantalla", body: "Tú la mitad de arriba y tu hijo la de abajo. Se convierte en trabajo en equipo." },
+        {
+          title: "Describid en lugar de señalar",
+          body: "¿Has encontrado uno? Describe dónde sin tocarlo. Él lo encuentra con tus indicaciones, que es práctica de lenguaje.",
+        },
+        { title: "Adivinad el tiempo", body: "Predecid cuánto se va a tardar en encontrarlos todos, y después comprobadlo." },
+        {
+          title: "Media pista",
+          body: "Cuando un niño se atasque, decidle solo en qué mitad está. Casi siempre basta, y no le estropea el hallazgo.",
+        },
+      ],
+
+      faq: [
+        {
+          q: "¿El juego es gratis?",
+          a: "Del todo. Nada que pagar y ninguna compra dentro del juego. Todos los juegos de la web están abiertos desde el primer segundo.",
+        },
+        {
+          q: "¿Hay que descargar algo o registrarse?",
+          a: "Ni una cosa ni la otra. Funciona en el navegador sin descarga y sin cuenta, y no pedimos ningún correo.",
+        },
+        {
+          q: "¿Se le acaban las escenas al juego?",
+          a: "No. Cada ronda se genera de cero con posiciones aleatorias, así que no hay un conjunto finito de escenas ni nada que memorizar.",
+        },
+        {
+          q: "¿En qué se diferencian los niveles?",
+          a: "En lo lleno que está. 16 objetos y 3 objetivos en fácil, 24 y 4 en medio, 32 y 5 en difícil. El espacio de búsqueda se dobla mientras el número de objetivos sube solo en 2.",
+        },
+        { q: "¿Tiene anuncios?", a: "Ninguno. Ni banners ni vídeo entre nivel y nivel." },
+        {
+          q: "¿Funciona sin conexión?",
+          a: "Sí. Después de una visita el juego queda guardado en el aparato y funciona en un avión.",
+        },
+        {
+          q: "¿Hay cronómetro o presión de tiempo?",
+          a: "Ninguna. Tampoco aparece sola una pista a los pocos segundos, porque un niño mirando una zona durante un minuto está haciendo exactamente lo que el juego pide.",
+        },
+        {
+          q: "¿Qué pasa si toca el objeto equivocado?",
+          a: "Nada. No baja ninguna puntuación y no hay vidas, y la búsqueda continúa.",
+        },
+        {
+          q: "¿Cómo se mide el récord?",
+          a: "Por cuántas rondas seguidas has superado, donde más es mejor, y por separado en cada nivel. Una ronda entre 16 objetos y una entre 32 no son el mismo logro.",
+        },
+        {
+          q: "¿Recoge datos sobre mi hijo?",
+          a: "No. No hay registro ni nombre. Nada graba la sesión y nada dirige publicidad según el comportamiento. Contamos cuántas veces se ha abierto un juego, sin nada al lado que identifique a quién lo abrió.",
+        },
+      ],
+
+      keywords: ["buscar objetos", "encuéntrame", "búsqueda", "atención", "infantil", "rastreo visual"],
+    },
   },
 
   provenance: [

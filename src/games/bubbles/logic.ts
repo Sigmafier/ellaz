@@ -50,6 +50,14 @@ export const FINAL_FORMS: readonly string[] = ["ך", "ם", "ן", "ף", "ץ"];
 const EN_LETTERS = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
 
 /**
+ * The Latin alphabet plus Ñ, in its alphabetical place between N and O. Not
+ * English with a decoration on it — a child learning to read Spanish is
+ * learning that Ñ is its own letter, and a bubble game that never floats one
+ * is teaching them otherwise.
+ */
+const ES_LETTERS = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ".split("");
+
+/**
  * Everything a bubble may carry, for one locale. Digits first, then letters.
  *
  * A RECORD of alphabets rather than a two-way branch, because an alphabet is
@@ -57,7 +65,7 @@ const EN_LETTERS = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 +
  * and a child learning it is learning that), and a language promoted without
  * one would silently be handed the English alphabet to read aloud.
  */
-const LETTERS: Record<Locale, string[]> = { he: HE_LETTERS, en: EN_LETTERS };
+const LETTERS: Record<Locale, string[]> = { he: HE_LETTERS, en: EN_LETTERS, es: ES_LETTERS };
 
 export function contentPool(locale: Locale): string[] {
   return [...DIGITS, ...LETTERS[locale]];
@@ -102,6 +110,23 @@ export const CONFUSION_GROUPS: Record<Locale, readonly (readonly string[])[]> = 
     ["6", "9"],
     ["3", "8"],
   ],
+  // Spanish shares the Latin shapes, so it shares most of the English groups.
+  // Ñ joins the M/N/W group - a new reader confuses it by SHAPE with N, which
+  // is exactly the discrimination this game is asking them to practise.
+  es: [
+    ["B", "P", "R"],
+    ["C", "G"],
+    ["E", "F"],
+    ["I", "J", "L", "T", "1"],
+    ["M", "N", "Ñ", "W"],
+    ["O", "Q", "D", "0"],
+    ["U", "V", "Y"],
+    ["S", "5"],
+    ["Z", "2"],
+    ["K", "X"],
+    ["6", "9"],
+    ["3", "8"],
+  ],
 };
 
 function buildIndex(groups: readonly (readonly string[])[]): Map<string, string> {
@@ -113,6 +138,7 @@ function buildIndex(groups: readonly (readonly string[])[]): Map<string, string>
 const CONFUSION_INDEX: Record<Locale, Map<string, string>> = {
   he: buildIndex(CONFUSION_GROUPS.he),
   en: buildIndex(CONFUSION_GROUPS.en),
+  es: buildIndex(CONFUSION_GROUPS.es),
 };
 
 /** Which confusion group a character sits in. Ungrouped characters get their own. */

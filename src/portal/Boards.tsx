@@ -59,10 +59,10 @@ import { gameHref } from "./paths";
 // one shows a fast time ranked as if slow were better.
 
 const WINDOWS: { id: BoardWindow; label: Record<Locale, string> }[] = [
-  { id: "d", label: { he: "היום", en: "Today" } },
-  { id: "w", label: { he: "השבוע", en: "This week" } },
-  { id: "m", label: { he: "החודש", en: "This month" } },
-  { id: "all", label: { he: "תמיד", en: "All time" } },
+  { id: "d", label: { he: "היום", en: "Today", es: "Hoy" } },
+  { id: "w", label: { he: "השבוע", en: "This week", es: "Esta semana" } },
+  { id: "m", label: { he: "החודש", en: "This month", es: "Este mes" } },
+  { id: "all", label: { he: "תמיד", en: "All time", es: "Siempre" } },
 ];
 
 /**
@@ -72,13 +72,13 @@ const WINDOWS: { id: BoardWindow; label: Record<Locale, string> }[] = [
  * announces that it wants a translation.
  */
 const BOARD_LABELS: Record<string, Record<Locale, string>> = {
-  default: { he: "הכול", en: "All" },
-  easy: { he: "קל", en: "Easy" },
-  medium: { he: "בינוני", en: "Med" },
-  hard: { he: "קשה", en: "Hard" },
-  expert: { he: "מומחה", en: "Expert" },
-  kids4: { he: "חיות 4×4", en: "Animals 4×4" },
-  kids6: { he: "חיות 6×6", en: "Animals 6×6" },
+  default: { he: "הכול", en: "All", es: "Todo" },
+  easy: { he: "קל", en: "Easy", es: "Fácil" },
+  medium: { he: "בינוני", en: "Med", es: "Media" },
+  hard: { he: "קשה", en: "Hard", es: "Difícil" },
+  expert: { he: "מומחה", en: "Expert", es: "Experto" },
+  kids4: { he: "חיות 4×4", en: "Animals 4×4", es: "Animales 4×4" },
+  kids6: { he: "חיות 6×6", en: "Animals 6×6", es: "Animales 6×6" },
 };
 
 function boardLabel(board: string): Record<Locale, string> {

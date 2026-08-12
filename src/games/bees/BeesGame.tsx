@@ -109,9 +109,9 @@ function Butterfly(): ReactElement {
 }
 
 const DIFF_OPTIONS: DifficultyOption<Difficulty>[] = [
-  { id: "easy", label: { he: "קל", en: "Easy" } },
-  { id: "medium", label: { he: "בינוני", en: "Med" } },
-  { id: "hard", label: { he: "קשה", en: "Hard" } },
+  { id: "easy", label: { he: "קל", en: "Easy", es: "Fácil" } },
+  { id: "medium", label: { he: "בינוני", en: "Med", es: "Media" } },
+  { id: "hard", label: { he: "קשה", en: "Hard", es: "Difícil" } },
 ];
 
 /**
@@ -164,6 +164,7 @@ function creatureLabel(creature: Creature, lane: number, locale: Locale): string
     {
       he: { bee: "דבורה", butterfly: "פרפר", lane: (n: string) => `מסלול ${n} מתוך ${LANES}` },
       en: { bee: "bee", butterfly: "butterfly", lane: (n: string) => `lane ${n} of ${LANES}` },
+      es: { bee: "abeja", butterfly: "mariposa", lane: (n: string) => `carril ${n} de ${LANES}` },
     },
     locale,
   );
@@ -221,6 +222,20 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
         again: "Again! 🔄",
         howTo: "Catch bees. Let butterflies fly.",
         go: "Go! ▶",
+      },
+      es: {
+        start: "¡Buen comienzo!",
+        good: "¡Muy bien!",
+        great: "¡Guau! ¡Campeón!",
+        bees: "Abejas",
+        ask: "¡Toca solo las abejas!",
+        speak: "Toca solo las abejas. Deja volar a las mariposas",
+        scene: "cielo con abejas y mariposas",
+        caught: (n: number) => `¡Atrapaste ${n} abejas!`,
+        freed: (n: number) => `${n} mariposas salieron volando 🦋`,
+        again: "¡Otra vez! 🔄",
+        howTo: "Atrapa abejas. Deja volar a las mariposas.",
+        go: "¡Vamos! ▶",
       },
     },
     ctx.locale,

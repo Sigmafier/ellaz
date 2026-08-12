@@ -69,9 +69,9 @@ const PAD = `calc(${FROG} * 1.5)`;
 const ARC = 0.15;
 
 const DIFF_OPTIONS: DifficultyOption<Difficulty>[] = [
-  { id: "easy", label: { he: "קל", en: "Easy" } },
-  { id: "medium", label: { he: "בינוני", en: "Med" } },
-  { id: "hard", label: { he: "קשה", en: "Hard" } },
+  { id: "easy", label: { he: "קל", en: "Easy", es: "Fácil" } },
+  { id: "medium", label: { he: "בינוני", en: "Med", es: "Media" } },
+  { id: "hard", label: { he: "קשה", en: "Hard", es: "Difícil" } },
 ];
 
 /**
@@ -204,6 +204,14 @@ export function FrogGame({ ctx }: { ctx: GameContext }): ReactElement {
         speak: "Catch the frog. If she hops away, just catch her on the next pad",
         cheer: (n: number) => `🎉 Nice! On to level ${n}…`,
         miss: "Hopped away? Just catch her on the next pad 🐸",
+      },
+      es: {
+        caught: "Atrapadas",
+        ask: "¡Atrapa la rana!",
+        scene: "estanque con hojas de nenúfar",
+        speak: "Atrapa la rana. Si salta, atrápala en la siguiente hoja",
+        cheer: (n: number) => `🎉 ¡Bien! Vamos al nivel ${n}…`,
+        miss: "¿Se escapó? Atrápala en la siguiente hoja 🐸",
       },
     },
     ctx.locale,

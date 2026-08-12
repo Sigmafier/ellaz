@@ -1,5 +1,6 @@
 import { type ReactNode } from "react";
 import type { GameContext } from "@sdk/index";
+import type { Locale } from "@i18n/index";
 import { Icon, type IconName } from "./icons";
 
 /**
@@ -50,7 +51,12 @@ export type ChromeStat = {
 
 export type ChromeLevel<T extends string> = {
   id: T;
-  label: { he: string; en: string };
+  /**
+   * A locale RECORD, matching `DifficultyOption`. Written as `{ he, en }` it
+   * compiles under a promoted language and renders the toggle in English over
+   * a page that is not - the one failure this whole type exists to prevent.
+   */
+  label: Record<Locale, string>;
   /** The dot colour for this level. Defaults walk green -> yellow -> pink. */
   color?: string;
 };

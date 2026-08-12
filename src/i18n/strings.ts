@@ -15,7 +15,9 @@
 // `he` and `en` are STATIC. They are the two the shell has always carried, so
 // the split costs the first visit nothing, and Hebrew — the default — must
 // render on the first frame with nothing to await. Every other language is a
-// `locale-<xx>` chunk fetched only by somebody who asked for it.
+// `locale-<xx>` chunk fetched only by somebody who asked for it, PAGE
+// LANGUAGES INCLUDED: see the note on `STATIC_LOCALES` for why that stopped
+// being "make it static" and became "make the page fetch it".
 //
 // Until that chunk arrives, a string resolves through ENGLISH rather than
 // through Hebrew: English is the x-default for exactly this reason. A Turkish
@@ -104,19 +106,24 @@ export type Dictionary = Record<StringKey, string>;
 const STATIC: Partial<Record<AppLocale, Dictionary>> = { he, en };
 
 /**
- * Which languages need no fetch — and therefore which languages may have PAGES.
+ * Which languages need no fetch.
  *
- * An emitted page is not the app: `PageApp` mounts straight into a document and
- * never calls `loadDict`, because it has no picker and no reason to. So chrome
- * on a page resolves out of `STATIC` or it falls back to English and stays
- * there. A page locale whose dictionary is LAZY would render Spanish prose
- * wrapped in English buttons, on every emitted page, with nothing thrown and
- * nothing logged.
+ * THIS IS NOT THE SET OF LANGUAGES THAT MAY HAVE PAGES, and the difference cost
+ * a measurement to find. The real defect is that an emitted page mounts straight
+ * into a document with no picker, so if nothing calls `loadDict` its chrome
+ * resolves out of `STATIC` or falls back to English and stays there — Spanish
+ * prose wrapped in English buttons, permanently, nothing thrown.
  *
- * `dict.test.ts` pins `PAGE_LOCALES ⊆ STATIC_LOCALES`, so promoting a language
- * to pages without making its dictionary static is a red test rather than a
- * discovery. Promotion is already two commits (prose, then the list); this
- * makes it three, and the third one is one word long.
+ * The obvious repair is to make every page locale static. It works, and it bills
+ * every child on earth for it: Spanish alone measured **+1,363 B gz** on the
+ * first visit against 1,657 B of headroom, and a Hebrew-speaking four-year-old
+ * in Tel Aviv would download the Spanish dictionary to reach a game that has no
+ * Spanish in it. The next page language would do the same again.
+ *
+ * So `bootContentPage` AWAITS its locale's dictionary instead, and it does so
+ * while the poster is still up — a page has not mounted anything yet, so there
+ * is no flash to trade for the bytes. `page-loads-its-dictionary.test.ts` pins
+ * that await; without it this is exactly the silent-English-buttons bug again.
  */
 export const STATIC_LOCALES = Object.keys(STATIC) as readonly AppLocale[];
 

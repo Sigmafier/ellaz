@@ -4,7 +4,7 @@ import type { GameMeta } from "@sdk/index";
 // renders without pulling React/Phaser into the shell bundle.
 export const meta: GameMeta = {
   id: "shadows",
-  title: { he: "צל ותמונה", en: "Shadow Match" },
+  title: { he: "צל ותמונה", en: "Shadow Match", es: "Sombra y foto" },
   // NOT 🌑. The home card draws its icon over a dark surface, so an all-black
   // glyph renders as an empty card — caught by eyeballing the grid, invisible in
   // every test. 🌓 keeps the shadow reading and has a lit half to see.

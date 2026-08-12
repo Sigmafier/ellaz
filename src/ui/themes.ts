@@ -9,14 +9,24 @@
  *
  * It also holds no React and touches no DOM, so the port (`theme.ts`), the
  * React glue (`useTheme.ts`) and the build can all read the same list.
+ *
+ * The one import below is a RELATIVE path to a leaf module with no imports of
+ * its own, which is the exact shape the constraint above permits: the problem
+ * was never "an import", it was an ALIAS the config cannot resolve. It buys the
+ * theme labels the same promotion guarantee every other authored string has.
  */
+import type { PageLocale } from "../i18n/locales";
 
 export type ThemeId = "market" | "night";
 
 export interface Theme {
   readonly id: ThemeId;
-  /** Shown on the toggle. Bilingual, because the toggle is. */
-  readonly label: { readonly he: string; readonly en: string };
+  /**
+   * Shown on the toggle. A locale RECORD rather than a `{ he, en }` literal,
+   * so promoting a language reds here instead of leaving the theme name in
+   * English on a screen that is not.
+   */
+  readonly label: Record<PageLocale, string>;
   /** One glyph, so the control reads without reading. */
   readonly glyph: string;
   /**
@@ -33,14 +43,14 @@ export interface Theme {
 export const THEMES: readonly Theme[] = [
   {
     id: "market",
-    label: { he: "יום", en: "Day" },
+    label: { he: "יום", en: "Day", es: "Día" },
     glyph: "☀",
     browserChrome: "#ff4d8d",
     background: "#fff6e9",
   },
   {
     id: "night",
-    label: { he: "לילה", en: "Night" },
+    label: { he: "לילה", en: "Night", es: "Noche" },
     glyph: "☾",
     browserChrome: "#6c5ce7",
     background: "#0f1226",

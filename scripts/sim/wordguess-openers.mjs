@@ -100,7 +100,10 @@ function parseTable(src, name) {
 }
 
 const src = readFileSync(WORDS_SRC, "utf8");
-const LISTS = { he: parseTable(src, "HE"), en: parseTable(src, "EN") };
+// One entry per language the game ships a word list for. Spanish joined on
+// 2026-08-12; its page quotes numbers from this run, so the list has to be
+// here or the claim has no script behind it.
+const LISTS = { he: parseTable(src, "HE"), en: parseTable(src, "EN"), es: parseTable(src, "ES") };
 
 /* --- the game's own marking rule, reimplemented ------------------------ */
 

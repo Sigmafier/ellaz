@@ -262,6 +262,129 @@ export const finddiff: GameContent = {
 
       keywords: ["spot the difference", "find differences", "comparison", "attention", "preschool", "observation"],
     },
+    es: {
+      metaTitle: "Encuentra las diferencias - juego gratis | Ellaz",
+      metaDescription:
+        "Juego gratis de encontrar las diferencias para niños. Dos dibujos casi iguales, busca qué cambió. Sin reloj y sin registro.",
+
+      lede: "Un juego gratuito de encontrar las diferencias. Dos dibujos que parecen iguales, con unas cuantas cosas pequeñas cambiadas entre ellos. Sin reloj, sin castigo por tocar donde no era, y sin forma de quedarse atascado.",
+
+      body: [
+        "Dos dibujos, uno al lado del otro. Algo cambia. Tócalo.",
+
+        "Aquí va nuestra confesión, y preferimos dárosla por delante a que la descubráis en la segunda semana. Ahora mismo hay 4 escenas con 15 diferencias entre todas. Un niño que juegue a menudo va a volver a ver el jardín y la escena bajo el agua, y una diferencia que ya encontró le va a salir antes la segunda vez. Este es un juego de contenido, y la cantidad de contenido es exactamente la que es. Vamos añadiendo escenas, y una nueva llega a todo el que ya está jugando sin que tenga que hacer nada.",
+
+        "Aun así funciona. Por dos motivos. Las diferencias caen en sitios distintos cada ronda, y los niños de cuatro años no se acuerdan de un día para otro de dónde estaba la mariposa. Los de siete sí, y por eso este juego les va mejor a los pequeños.",
+
+        "No hay reloj de ningún tipo ni castigo por tocar donde no era. Puedes buscar un minuto entero, rendirte con una diferencia y volver a ella, y probar otra vez más tarde. Los niveles siguen sin final y lo que se guarda es cuántas escenas has completado en total.",
+
+        "Ese número cuenta escenas y no niveles, a propósito. La pantalla enseña un nivel, pero el nivel solo sube después de una vuelta completa por las 4 escenas. Guardar eso como récord dejaría a casi todo el mundo en 1 para siempre, que es un número que no dice nada.",
+      ],
+
+      howToPlay: [
+        { title: "Mira los dos dibujos", body: "Son casi idénticos. Casi." },
+        { title: "Busca una diferencia", body: "Un color cambiado, algo que falta, algo movido. 3 o 4 por escena." },
+        { title: "Tócala", body: "Tocar el sitio correcto la marca. Tocar en cualquier otro no cuesta nada." },
+        { title: "Completa la escena", body: "Encuéntralas todas y la escena siguiente llega sola." },
+      ],
+
+      tips: [
+        {
+          title: "Repasa por cuartos",
+          body: "Divide el dibujo en cuatro mentalmente y ve por ellos en orden. El método gana a ir dando saltos.",
+        },
+        {
+          title: "Compara cosa contra cosa",
+          body: "No el dibujo entero de golpe. Sol contra sol, nube contra nube. La diferencia salta sola.",
+        },
+        {
+          title: "Busca lo que falta",
+          body: "Las cosas que faltan cuestan más que las cambiadas, porque no hay nada que llame la atención. Merece la pena buscarlas aparte.",
+        },
+        {
+          title: "Déjala y vuelve",
+          body: "No hay reloj, así que mira otra cosa y vuelve. Los ojos encuentran cosas en la segunda pasada.",
+        },
+      ],
+
+      teaches: [
+        { title: "Comparación visual", body: "Sostener dos dibujos en la cabeza y cruzarlos es una habilidad de verdad, y es justo lo que se entrena aquí." },
+        { title: "Rastreo con método", body: "Rastrear en orden encuentra más. Los niños lo descubren solos en dos escenas." },
+        { title: "Atención al detalle", body: "El juego entero consiste en fijarse en lo pequeño y no en el conjunto." },
+        {
+          title: "Insistencia",
+          body: "La última diferencia siempre tarda. Sin reloj y sin castigo, los niños siguen mirando en vez de rendirse.",
+        },
+      ],
+
+      ages: [
+        { title: "3 a 4", body: "Acompañados al principio. Una diferencia encontrada sin ayuda ya es un logro a esta edad." },
+        { title: "5 a 6", body: "Solos, y esta es la edad a la que mejor le va el juego." },
+        { title: "7 en adelante", body: "Sigue teniendo gracia, pero 15 diferencias se memorizan rápido. Mejor en visitas sueltas." },
+        {
+          title: "Padres",
+          body: "Un buen juego para dos, porque quien encuentra una primero no le quita nada a quien sigue mirando.",
+        },
+      ],
+
+      accessibility:
+        "Un toque, sin arrastrar y sin mantener pulsado. Las zonas que responden son más grandes que las propias cosas, así que basta con acercarse y no hace falta precisión. Unas diferencias son de color y otras de forma o de presencia, de modo que un niño que no separa tonos encuentra igualmente casi todas. Sin reloj, sin cuenta atrás y sin nada que parpadee, y se puede buscar todo el rato que se quiera. No hay ni una palabra que leer para jugar.",
+
+      together: [
+        { title: "Quién la ve antes", body: "Los dos en la misma pantalla. Encontrar una primero no le quita nada al otro." },
+        {
+          title: "Describid en lugar de señalar",
+          body: "¿Has visto algo? Descríbelo con palabras en vez de tocarlo. Se convierte en un ejercicio de lenguaje.",
+        },
+        { title: "Contad primero", body: "Adivinad cuántas diferencias tiene la escena antes de empezar, y después comprobadlo." },
+        {
+          title: "Una sola pista",
+          body: "Cuando un niño se atasque, decidle solo en qué mitad del dibujo está. Con eso basta casi siempre.",
+        },
+      ],
+
+      faq: [
+        {
+          q: "¿El juego es gratis?",
+          a: "Del todo. Nada que pagar y ninguna compra dentro del juego. Todos los juegos de la web están abiertos desde el primer segundo.",
+        },
+        {
+          q: "¿Hay que descargar algo o registrarse?",
+          a: "Ni una cosa ni la otra. Funciona en el navegador sin descarga y sin cuenta, y no pedimos ningún correo.",
+        },
+        {
+          q: "¿Cuántas escenas hay?",
+          a: "4 escenas con 15 diferencias en total. Es un juego de contenido, así que un niño que juegue a menudo las va a volver a ver. Vamos añadiendo más, y una escena nueva os llega sin que tengáis que hacer nada.",
+        },
+        {
+          q: "¿Qué pasa si toco donde no era?",
+          a: "Nada. No baja ninguna puntuación, no hay vidas y no corre ningún reloj. Toca las veces que quieras.",
+        },
+        { q: "¿Tiene anuncios?", a: "Ninguno. Ni banners ni vídeo entre nivel y nivel." },
+        {
+          q: "¿Funciona sin conexión?",
+          a: "Sí. Después de una visita el juego queda guardado en el aparato y funciona en un avión.",
+        },
+        {
+          q: "¿Hay cronómetro o presión de tiempo?",
+          a: "Ninguna en absoluto. Podéis pasar cinco minutos con una sola diferencia, que es exactamente lo que hacen los niños de cuatro años.",
+        },
+        {
+          q: "¿Cómo se mide el récord?",
+          a: "Por cuántas escenas has completado en total, donde más es mejor. La pantalla también enseña un nivel, pero ese solo sube tras una vuelta completa por las 4 escenas, y por eso no es el número que se guarda.",
+        },
+        {
+          q: "¿Para qué edad es?",
+          a: "Desde unos tres años con un adulto, y solos a partir de los cinco. En el juego no se lee nada.",
+        },
+        {
+          q: "¿Recoge datos sobre mi hijo?",
+          a: "No. No hay registro ni nombre. Nada graba la sesión y nada dirige publicidad según el comportamiento. Contamos cuántas veces se ha abierto un juego, sin nada al lado que identifique a quién lo abrió.",
+        },
+      ],
+
+      keywords: ["encuentra las diferencias", "siete diferencias", "comparar", "atención", "infantil", "observación"],
+    },
   },
 
   provenance: [

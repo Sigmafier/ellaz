@@ -7,9 +7,20 @@ import { SITE, homeCopy } from "./site";
 import { analyse, violations, proseOf } from "./voice";
 import { CATALOG } from "../portal/catalog";
 import type { GameCopy, Locale } from "./types";
+import { PAGE_LOCALES } from "../i18n/locales";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const LOCALES: Locale[] = ["he", "en"];
+/**
+ * Every language that HAS pages, read off the one list rather than written out.
+ *
+ * It was the literal `["he", "en"]`, which is the defect this whole lane keeps
+ * finding one layer at a time: promoting a language would have run ZERO of its
+ * pages through the voice gate, reported a clean sweep, and shipped prose
+ * nothing had measured. Same shape as the four `locale === "he" ? … : …`
+ * ternaries in `voice.ts` and the hardcoded `en/**` in `globIgnores` - correct
+ * for the two languages that existed, silently wrong for the third.
+ */
+const LOCALES: Locale[] = [...PAGE_LOCALES];
 const PAGES = CONTENT_IDS.flatMap((id) => LOCALES.map((l) => [id, l, CONTENT[id].copy[l]] as const));
 
 describe("the content roster lines up with the catalog", () => {
@@ -143,17 +154,43 @@ describe("required shape", () => {
     expect(copy.accessibility.trim().length).toBeGreaterThan(80);
   });
 
+  /**
+   * Leftover scaffolding, in two matchers rather than one, and the split is a
+   * bug fix rather than tidiness.
+   *
+   * It used to be a single case-INSENSITIVE regex, which was correct for the
+   * two languages it was written against and wrong the day a third arrived:
+   * `/todo/i` matches the ordinary Spanish word **todo**, meaning "all" or
+   * "everything", which turns up in perfectly good prose several times a page.
+   * On the first Spanish run it flagged 17 of 23 pages, including sentences
+   * like "queda todo guardado en el aparato".
+   *
+   * The markers below are written in CAPS by every convention that produces
+   * them, so matching them case-sensitively keeps the catch and drops the
+   * collision. `lorem ipsum` and `placeholder` stay insensitive because they
+   * are phrases nobody writes by accident in any of our languages.
+   *
+   * Worth noticing which way this one failed. A false POSITIVE is loud and
+   * costs an afternoon; the same mistake pointed the other way - a gate that
+   * silently stops matching in a new language - is the shape that ships.
+   */
+  const SCAFFOLD_CAPS = /\b(TODO|TBD|FIXME|XXX+)\b/;
+  const SCAFFOLD_PROSE = /\b(lorem ipsum|placeholder)\b/i;
+  const isScaffold = (s: string): boolean => SCAFFOLD_CAPS.test(s) || SCAFFOLD_PROSE.test(s);
+
   it.each(PAGES)("%s/%s has no placeholder text", (id, locale, copy) => {
-    const PLACEHOLDER = /\b(TODO|TBD|FIXME|lorem ipsum|xxx+|placeholder)\b/i;
-    const hits = proseOf(copy).filter((s) => PLACEHOLDER.test(s));
+    const hits = proseOf(copy).filter(isScaffold);
     expect(hits, `placeholder text left in ${id}/${locale}`).toEqual([]);
   });
 
   it("the placeholder matcher fires on the shape it claims to catch", () => {
-    const PLACEHOLDER = /\b(TODO|TBD|FIXME|lorem ipsum|xxx+|placeholder)\b/i;
-    expect(PLACEHOLDER.test("TODO: write this bit")).toBe(true);
-    expect(PLACEHOLDER.test("Lorem ipsum dolor")).toBe(true);
-    expect(PLACEHOLDER.test("A free memory game in your browser.")).toBe(false);
+    expect(isScaffold("TODO: write this bit")).toBe(true);
+    expect(isScaffold("TBD before we ship")).toBe(true);
+    expect(isScaffold("Lorem ipsum dolor")).toBe(true);
+    expect(isScaffold("A free memory game in your browser.")).toBe(false);
+    // ...and does NOT fire on the Spanish word that broke the old one.
+    expect(isScaffold("Queda todo guardado en el aparato.")).toBe(false);
+    expect(isScaffold("Todo se guarda en el propio aparato.")).toBe(false);
   });
 });
 
@@ -244,14 +281,30 @@ describe("code supplies the game count, an author never types it", () => {
   // - a simulation count, not a roster count. The control below plants exactly
   // that string, and it is what caught this: the first version of this regex
   // flagged it, which would have made the whole check un-shippable.
-  /** A number - as digits, an English word, or a Hebrew word - right before "games". */
+  /**
+   * A number - as digits or as a word in any language that has pages - right
+   * before the word "games".
+   *
+   * The Spanish half was added 2026-08-12 and it was not cosmetic: without
+   * `juegos` the gate could not see a Spanish roster claim at all, so 23 new
+   * pages were outside a check that reported green over them. Its own control
+   * is what caught that, which is the argument for writing one per language
+   * rather than one per gate.
+   *
+   * Note `veinti…` is a single word in Spanish (veintitrés, not veinte y tres),
+   * so it needs its own alternative rather than the connector shape Hebrew and
+   * English share.
+   */
   const COUNT_CLAIM = new RegExp(
     "(?:(?<![\\d,.])\\d{1,3}(?![\\d,.])|" +
       "(?:twenty|thirty|forty)(?:[- ](?:one|two|three|four|five|six|seven|eight|nine))?|" +
       "(?:ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen)|" +
       "(?:עשרים|שלושים|ארבעים)(?: ו?(?:אחד|שניים|שלושה|ארבעה|חמישה|שישה|שבעה|שמונה|תשעה))?|" +
-      "(?:עשרה|אחת עשרה|שתים עשרה)" +
-      ")\\s+(?:free\\s+)?(?:games|משחקים)",
+      "(?:עשרה|אחת עשרה|שתים עשרה)|" +
+      "veinti(?:ún|uno|dós|dos|trés|tres|cuatro|cinco|séis|seis|siete|ocho|nueve)|" +
+      "(?:veinte|treinta|cuarenta)(?: y (?:uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve))?|" +
+      "(?:diez|once|doce|trece|catorce|quince|diecis[éeí]is|diecisiete|dieciocho|diecinueve)" +
+      ")\\s+(?:free\\s+|juegos\\s+)?(?:games|משחקים|juegos)",
     "i",
   );
 
@@ -279,6 +332,9 @@ describe("code supplies the game count, an author never types it", () => {
     expect(COUNT_CLAIM.test("Twenty-one free games that run in the browser")).toBe(true);
     expect(COUNT_CLAIM.test("עשרים ואחד משחקים חינמיים בעברית")).toBe(true);
     expect(COUNT_CLAIM.test("22 games")).toBe(true);
+    // Spanish, digits and words. Without these the gate was blind to 23 pages.
+    expect(COUNT_CLAIM.test("Los 23 juegos de la web")).toBe(true);
+    expect(COUNT_CLAIM.test("veintitrés juegos gratis en el navegador")).toBe(true);
     // ...and does not fire on the things that are not roster counts.
     expect(COUNT_CLAIM.test("There are memory games, thinking games and speed games")).toBe(false);
     expect(COUNT_CLAIM.test("we ran 20,000 games on our own boards")).toBe(false);
@@ -293,6 +349,71 @@ describe("code supplies the game count, an author never types it", () => {
       "these strings hardcode the roster size. Use the {games} token instead - " +
         "homeCopy() fills it from the catalog, so it cannot go stale.",
     ).toEqual([]);
+  });
+
+  /**
+   * The same claim, on the GAME pages - the population the check above could
+   * not see, and the reason it needs its own test rather than a wider walk.
+   *
+   * Written 2026-08-12, and it had three live offenders the moment it ran:
+   * memory, sudoku and snake each answered "is it free?" with "All 22 games on
+   * the site are open from the first second" while the roster held 23. Every
+   * gate here was green. `siteStrings()` walks `SITE`, so 46 published
+   * documents sat outside its population entirely - which is the question to
+   * ask of any gate before trusting its silence: not "is the logic right" but
+   * "which pages are EXCLUDED from this".
+   *
+   * There is no `{games}` token to reach for here, because nothing fills one
+   * on a game page - `homeCopy()` is the only filler and it only ever sees
+   * `SITE`. So the fix is the one that needs no machinery: an FAQ answers
+   * "every game on the site", which is true at any roster size and needs
+   * nobody to keep it true.
+   */
+  /**
+   * The same claim on a GAME page needs a tighter matcher than on the home
+   * page, and finding out why is the useful part.
+   *
+   * `COUNT_CLAIM` alone is right for `SITE`, whose copy is all about the site.
+   * Pointed at `CONTENT` it flagged three pages and only ONE was a defect:
+   * blocks says "300 games per level" about a SIMULATION, and tictactoe says
+   * "out of ten games" about games PLAYED. Both are exactly the specifics this
+   * repo asks authors for.
+   *
+   * So the population changed and the matcher's required precision changed with
+   * it. A roster claim is always a count of games ON THE SITE, so that is what
+   * gets matched - the count, then a reference to the site within a short
+   * window. A simulation count never carries one.
+   */
+  const SITE_REF = /(?:on|of) the site|באתר|de la (?:web|página)/i;
+
+  it("and neither does any game page, in any language", () => {
+    const claims: string[] = [];
+    for (const id of CONTENT_IDS)
+      for (const locale of LOCALES)
+        for (const text of proseOf(CONTENT[id].copy[locale])) {
+          const m = COUNT_CLAIM.exec(text);
+          if (m && SITE_REF.test(text.slice(m.index, m.index + m[0].length + 30)))
+            claims.push(`${id}/${locale}: "${text.slice(0, 70)}…"`);
+        }
+    expect(
+      claims,
+      "these game pages state how many games the site has, and the roster grows. " +
+        'Say "every game on the site" - true at any size, and nothing has to fill it.',
+    ).toEqual([]);
+  });
+
+  it("the game-page matcher separates a roster claim from a simulation count", () => {
+    // The control, and it is the whole reason the site reference is there.
+    const fires = (t: string): boolean => {
+      const m = COUNT_CLAIM.exec(t);
+      return !!m && SITE_REF.test(t.slice(m.index, m.index + m[0].length + 30));
+    };
+    expect(fires("All 22 games on the site are open from the first second.")).toBe(true);
+    expect(fires("יש 22 משחקים באתר, וכולם פתוחים מיד.")).toBe(true);
+    expect(fires("Los 23 juegos de la web están abiertos.")).toBe(true);
+    // ...and not on the specifics the pages are supposed to carry.
+    expect(fires("A bot ran 300 games per level and survived every one.")).toBe(false);
+    expect(fires("counting who drew more out of ten games")).toBe(false);
   });
 
   it("homeCopy fills {games} with the real catalog length", () => {

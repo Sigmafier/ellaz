@@ -303,6 +303,7 @@ export class SnakeScene extends Phaser.Scene {
       {
         he: { ready: "הקישו כדי להתחיל", over: "המשחק נגמר", again: "הקישו לשחק שוב" },
         en: { ready: "Tap to start", over: "Game over", again: "Tap to play again" },
+        es: { ready: "Toca para empezar", over: "Fin del juego", again: "Toca para jugar otra vez" },
       },
       this.ctx.locale,
     );

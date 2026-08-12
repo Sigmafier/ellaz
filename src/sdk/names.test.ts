@@ -28,20 +28,32 @@ describe("the word lists", () => {
     }
   });
 
-  it("declares a gender for every noun, because Hebrew adjectives must agree", () => {
+  it("declares a gender per language for every noun, because they disagree", () => {
     for (const noun of NOUNS) {
       expect(noun.id, `noun ${JSON.stringify(noun)}`).toMatch(/^[a-z][a-z-]*$/);
       expect(noun.en.length).toBeGreaterThan(0);
       expect(noun.he.length).toBeGreaterThan(0);
-      expect(["m", "f"]).toContain(noun.gender);
+      expect(noun.es.length).toBeGreaterThan(0);
+      expect(["m", "f"], `${noun.id} he`).toContain(noun.gender.he);
+      expect(["m", "f"], `${noun.id} es`).toContain(noun.gender.es);
       expect(noun.emoji.length).toBeGreaterThan(0);
     }
   });
 
-  it("has both genders represented, or half the adjective forms are unreachable", () => {
-    const genders = new Set(NOUNS.map((n) => n.gender));
-    expect(genders.has("m")).toBe(true);
-    expect(genders.has("f")).toBe(true);
+  // The whole argument for a per-language column is that a shared one would be
+  // WRONG, so this asserts the disagreement is real rather than theoretical. If
+  // it ever drops to zero, one column would do and this design is overbuilt.
+  it("has nouns whose Hebrew and Spanish genders disagree", () => {
+    const split = NOUNS.filter((n) => n.gender.he !== n.gender.es);
+    expect(split.map((n) => n.id)).toEqual(["turtle", "butterfly", "squirrel", "whale", "panda"]);
+  });
+
+  it("has both genders represented in each language, or half the forms are unreachable", () => {
+    for (const lang of ["he", "es"] as const) {
+      const genders = new Set(NOUNS.map((n) => n.gender[lang]));
+      expect(genders.has("m"), `${lang} masculine`).toBe(true);
+      expect(genders.has("f"), `${lang} feminine`).toBe(true);
+    }
   });
 
   it("keeps every id unique — a duplicate would make one word unaddressable", () => {
@@ -73,8 +85,8 @@ describe("rendering a name", () => {
 
   it("agrees the Hebrew adjective with the noun's gender", () => {
     const adj = ADJECTIVES.find((a) => a.id === "swift")!;
-    const masc = NOUNS.find((n) => n.gender === "m")!;
-    const fem = NOUNS.find((n) => n.gender === "f")!;
+    const masc = NOUNS.find((n) => n.gender.he === "m")!;
+    const fem = NOUNS.find((n) => n.gender.he === "f")!;
 
     expect(renderName({ adj: adj.id, noun: masc.id }, "he")).toBe(`${masc.he} ${adj.he.m}`);
     expect(renderName({ adj: adj.id, noun: fem.id }, "he")).toBe(`${fem.he} ${adj.he.f}`);
@@ -83,11 +95,30 @@ describe("rendering a name", () => {
     expect(adj.he.m).not.toBe(adj.he.f);
   });
 
-  it("renders every combination in both languages without a gap", () => {
+  it("agrees the Spanish adjective with the SPANISH gender, not the Hebrew one", () => {
+    // "mariposa" is feminine in Spanish and פרפר is masculine in Hebrew. Reading
+    // the wrong column renders "mariposa rápido", which is the exact defect the
+    // per-language map exists to prevent — so the control uses a noun where the
+    // two disagree. Against a shared column this line goes red.
+    const swift = ADJECTIVES.find((a) => a.id === "swift")!;
+    const butterfly = NOUNS.find((n) => n.id === "butterfly")!;
+    expect(butterfly.gender.he).toBe("m");
+    expect(butterfly.gender.es).toBe("f");
+    expect(renderName({ adj: "swift", noun: "butterfly" }, "es")).toBe(`mariposa ${swift.es.f}`);
+    expect(renderName({ adj: "swift", noun: "tiger" }, "es")).toBe(`tigre ${swift.es.m}`);
+    expect(swift.es.m).not.toBe(swift.es.f);
+  });
+
+  it("puts the noun first in Spanish too, which is where Spanish puts it", () => {
+    const es = renderName(swiftTiger(), "es")!;
+    expect(es.startsWith("tigre")).toBe(true);
+  });
+
+  it("renders every combination in every page language without a gap", () => {
     for (const adj of ADJECTIVES) {
       for (const noun of NOUNS) {
         const name = { adj: adj.id, noun: noun.id };
-        for (const locale of ["he", "en"] as const) {
+        for (const locale of PAGE_LOCALES) {
           const rendered = renderName(name, locale);
           expect(rendered, `${adj.id}/${noun.id}/${locale}`).toBeTruthy();
           expect(rendered).not.toContain("undefined");
@@ -203,13 +234,14 @@ describe("promoting a language must not silently leave names in English", () => 
   // its languages under `copy` (see `src/content/types.ts`).
   //
   // So the gate is a TEST rather than a type. It is not a lesser gate for being
-  // one - it names the file and fails the build the same way - and it
-  // deliberately does NOT decide the morphology question it would otherwise
-  // pre-empt: nine languages need gender agreement (Russian has three genders,
-  // German declines, the Romance languages put the adjective after the noun
-  // like Hebrew does), and `{ m, f }` models Hebrew alone. Whether names get
-  // that machinery or stay `he | en` on purpose is a design decision, not a
-  // translation task. Until it is taken, this test makes the gap LOUD.
+  // one - it names the file and fails the build the same way.
+  //
+  // It made the morphology gap loud, and Spanish is the answer to it: names DO
+  // get the machinery, per language rather than per pool. Spanish shares
+  // Hebrew's shape (noun first, adjective agreeing) and not its data, because
+  // the two assign gender differently — so `gender` became a map. Russian's
+  // three genders and German's declension will each need their own column and
+  // their own `RENDER` row; neither can reuse this one.
   it("has every page locale's form for every adjective and noun", () => {
     for (const locale of PAGE_LOCALES) {
       for (const a of ADJECTIVES) {

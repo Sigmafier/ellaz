@@ -14,12 +14,12 @@ import { generate, setCell, conflicts, isSolved, type SudokuState, type Level } 
 // and a single ramp is also the honest shape, since these are six rungs of one
 // ladder rather than two kinds of puzzle.
 const LEVEL_OPTIONS: DifficultyOption<Level>[] = [
-  { id: "kids4", label: { he: "חיות 4×4", en: "Animals 4×4" } },
-  { id: "kids6", label: { he: "חיות 6×6", en: "Animals 6×6" } },
-  { id: "easy", label: { he: "קל", en: "Easy" } },
-  { id: "medium", label: { he: "בינוני", en: "Med" } },
-  { id: "hard", label: { he: "קשה", en: "Hard" } },
-  { id: "expert", label: { he: "מומחה", en: "Expert" } },
+  { id: "kids4", label: { he: "חיות 4×4", en: "Animals 4×4", es: "Animales 4×4" } },
+  { id: "kids6", label: { he: "חיות 6×6", en: "Animals 6×6", es: "Animales 6×6" } },
+  { id: "easy", label: { he: "קל", en: "Easy", es: "Fácil" } },
+  { id: "medium", label: { he: "בינוני", en: "Med", es: "Media" } },
+  { id: "hard", label: { he: "קשה", en: "Hard", es: "Difícil" } },
+  { id: "expert", label: { he: "מומחה", en: "Expert", es: "Experto" } },
 ];
 
 // Sudoku has six levels; the economy has three tiers. The two animal boards are
@@ -210,6 +210,12 @@ export function Sudoku({ ctx }: { ctx: GameContext }) {
         errors: (n: number) => `${n} errors`,
         pickKids: "Pick a cell, tap an animal",
         pick: "Pick a cell, tap a number",
+      },
+      es: {
+        filled: "Rellenadas",
+        errors: (n: number) => `${n} errores`,
+        pickKids: "Elige una casilla y toca un animal",
+        pick: "Elige una casilla y toca un número",
       },
     },
     ctx.locale,

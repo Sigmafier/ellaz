@@ -47,9 +47,9 @@ const SURFACE_H = "min(56vh, 440px)";
 const BUBBLE = "max(64px, min(19vw, 11vh, 96px))";
 
 const DIFF_OPTIONS: DifficultyOption<Difficulty>[] = [
-  { id: "easy", label: { he: "קל", en: "Easy" } },
-  { id: "medium", label: { he: "בינוני", en: "Med" } },
-  { id: "hard", label: { he: "קשה", en: "Hard" } },
+  { id: "easy", label: { he: "קל", en: "Easy", es: "Fácil" } },
+  { id: "medium", label: { he: "בינוני", en: "Med", es: "Media" } },
+  { id: "hard", label: { he: "קשה", en: "Hard", es: "Difícil" } },
 ];
 
 /**
@@ -66,6 +66,7 @@ function bubbleLabel(char: string, lane: number, locale: Locale): string {
     {
       he: () => `בועה עם ${char}, מסלול ${lane + 1} מתוך ${LANES}`,
       en: () => `bubble with ${char}, lane ${lane + 1} of ${LANES}`,
+      es: () => `burbuja con ${char}, carril ${lane + 1} de ${LANES}`,
     },
     locale,
   )();
@@ -151,6 +152,7 @@ export function BubblesGame({ ctx }: { ctx: GameContext }) {
     {
       he: { caught: "נתפסו", verb: "תפסו", ask: (x: string) => `תפסו את ${x}` },
       en: { caught: "Caught", verb: "Catch", ask: (x: string) => `Catch the ${x}` },
+      es: { caught: "Atrapadas", verb: "Atrapa", ask: (x: string) => `Atrapa la ${x}` },
     },
     ctx.locale,
   );

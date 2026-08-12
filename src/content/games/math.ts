@@ -261,6 +261,129 @@ export const math: GameContent = {
 
       keywords: ["math", "maths", "counting", "addition", "multiplication", "kids learning"],
     },
+    es: {
+      metaTitle: "Matemáticas - juego gratis de contar a multiplicar | Ellaz",
+      metaDescription:
+        "Juego de matemáticas gratis para niños. 7 niveles, de contar a multiplicar, con 3 respuestas por pregunta. Sin reloj y sin registro.",
+
+      lede: "Un juego de matemáticas gratuito para niños. 7 niveles que empiezan antes de que un niño conozca ninguna cifra y terminan en la multiplicación, con 3 respuestas para elegir y sin reloj por ninguna parte.",
+
+      body: [
+        "Una pregunta arriba. 3 respuestas abajo. Tocas la correcta.",
+
+        "La escalera de aquí cruza una frontera de verdad a mitad de camino, y eso es lo que la hace poco común. Los tres primeros niveles son previos a la aritmética: cuenta las manzanas, empareja un número con un grupo, cuenta los dibujos. Un niño que no reconoce el símbolo 4 puede contar cuatro manzanas y ganar. Los cuatro últimos son aritmética de verdad, hasta 5, hasta 10, hasta 20 y multiplicar, y ahí sí hay que leer símbolos. Cruzar de un lado al otro es el salto auténtico de las matemáticas tempranas, y la mayoría de las aplicaciones sencillamente empiezan después de él.",
+
+        "Hay un detalle en el nivel de emparejar que merece explicación, porque parece un error. Contar llega hasta 10 y emparejar se para en 6, aunque cubran el mismo terreno. El motivo: al contar, un niño va señalando cada cosa y llegar a diez así no tiene ningún problema, pero al emparejar los grupos son los propios botones de respuesta, y un niño de cinco años no distingue un grupo de 7 de uno de 8 de un vistazo. Por encima de 6 se convertiría en adivinar.",
+
+        "3 respuestas por pregunta significa que adivinar a ciegas vale un 33,3%. Suficiente para que un niño nunca se quede completamente atascado, y poco para que una racha de diez aciertos no salga por casualidad.",
+
+        "No hay reloj ni puntuación que baje. Una respuesta equivocada enseña la correcta y pasa a otra, porque un niño de cinco años atascado en una pregunta no gana absolutamente nada si le obligan a intentarla otra vez.",
+      ],
+
+      howToPlay: [
+        { title: "Elige un nivel", body: "Hay 7: contar, emparejar, dibujos, hasta 5, hasta 10, hasta 20 y multiplicar." },
+        { title: "Lee la pregunta", body: "Sale grande, y también en dibujos en los niveles previos a la aritmética." },
+        { title: "Elige una respuesta", body: "3 opciones. Un toque." },
+        { title: "Sigue", body: "Otra pregunta al momento. Tu racha se cuenta, y un fallo la reinicia sin castigo." },
+      ],
+
+      tips: [
+        {
+          title: "Empieza antes de la aritmética",
+          body: "Los 3 primeros niveles no piden leer ninguna cifra. Un niño que todavía no ha llegado ahí ya puede jugar.",
+        },
+        {
+          title: "Contad en voz alta",
+          body: "En los niveles de dibujos, un dedo en cada cosa y un número dicho. Así es como cuentan los niños de verdad.",
+        },
+        {
+          title: "Descarta antes de elegir",
+          body: "De 3 respuestas, normalmente hay una claramente equivocada. Quitarla deja una elección entre dos.",
+        },
+        {
+          title: "No corráis a multiplicar",
+          body: "Aquí la multiplicación llega hasta 5 por 5. Merece la pena llegar cuando el hasta 20 sea fácil, no antes.",
+        },
+      ],
+
+      teaches: [
+        { title: "Contar", body: "3 niveles enteros van de contar cosas reales antes de que exista ningún símbolo." },
+        { title: "Entender la cantidad", body: "Emparejar un número con un grupo es lo que convierte el símbolo 4 en significar cuatro cosas." },
+        { title: "Sumar y restar", body: "3 rangos, hasta 5, 10 y 20, así que se avanza al ritmo del niño." },
+        {
+          title: "Primera multiplicación",
+          body: "Hasta 5 por 5. Lo justo para entender qué hace multiplicar, sin ninguna tabla que memorizar.",
+        },
+      ],
+
+      ages: [
+        { title: "3 a 4", body: "Contar y dibujos. Ninguno de los dos niveles pide reconocer cifras." },
+        { title: "5 a 6", body: "Emparejar y después hasta 5. Aquí es donde la aritmética se vuelve aritmética." },
+        { title: "7 a 8", body: "Hasta 10 y hasta 20." },
+        {
+          title: "9 en adelante",
+          body: "Multiplicar. El rango es pequeño a propósito, así que esto es una introducción y no machaque.",
+        },
+      ],
+
+      accessibility:
+        "Un toque, sin arrastrar y sin teclear en ningún momento. Los 3 botones de respuesta son grandes y están bien separados. Las preguntas salen en cifras y, en los primeros niveles, también en dibujos que se pueden contar, así que un niño que todavía no lee números juega por los dibujos. No hay reloj sobre la respuesta, de modo que contar con los dedos lleva lo que lleve. Nada parpadea y se juega entero en silencio. La ecuación va de izquierda a derecha incluso en hebreo, porque esa es la notación estándar.",
+
+      together: [
+        { title: "Contad con los dedos juntos", body: "En los niveles de dibujos, contad en voz alta los dos. Así aprenden a contar los niños." },
+        {
+          title: "Preguntad cómo lo ha sabido",
+          body: "Después de un acierto, preguntadle cómo ha llegado ahí. La respuesta sorprende a veces.",
+        },
+        { title: "Fallad a propósito", body: "Un error de un adulto que un niño corrige vale por diez aciertos suyos." },
+        {
+          title: "Matemáticas sin pantalla",
+          body: "La misma pregunta con los dedos o con manzanas en la mesa. El juego entrena, no enseña él solo.",
+        },
+      ],
+
+      faq: [
+        {
+          q: "¿El juego de matemáticas es gratis?",
+          a: "Del todo. Nada que pagar y ninguna compra dentro del juego. Todos los niveles están abiertos desde el primer segundo.",
+        },
+        {
+          q: "¿Hay que descargar algo o registrarse?",
+          a: "Ni una cosa ni la otra. Funciona en el navegador sin descarga y sin cuenta, y no pedimos ningún correo.",
+        },
+        {
+          q: "¿A qué edad se puede empezar?",
+          a: "Sobre los tres años. 3 de los 7 niveles no piden reconocer ninguna cifra, solo contar dibujos, así que un niño que no conoce los números escritos puede jugar a esos.",
+        },
+        {
+          q: "¿Por qué emparejar se para en 6 si contar llega a 10?",
+          a: "Porque al contar vas señalando cada cosa y llegar a diez así va bien. Al emparejar los grupos son los botones de respuesta, y un niño de cinco años no distingue 7 de 8 de un vistazo. Por encima de 6 sería adivinar.",
+        },
+        { q: "¿Tiene anuncios?", a: "Ninguno. Ni banners ni vídeo entre pregunta y pregunta." },
+        {
+          q: "¿Funciona sin conexión?",
+          a: "Sí. Después de una visita el juego queda guardado en el aparato y funciona en un avión.",
+        },
+        {
+          q: "¿Qué pasa cuando la respuesta es incorrecta?",
+          a: "Se enseña la correcta y el juego pasa a otra. No baja ninguna puntuación y la misma pregunta no se repite, porque un niño atascado no gana nada con eso.",
+        },
+        {
+          q: "¿Hay cronómetro?",
+          a: "No. Contar con los dedos lleva lo que lleve, que es exactamente como cuentan los niños.",
+        },
+        {
+          q: "¿Cómo se mide el récord?",
+          a: "Por tu racha más larga de aciertos, donde más es mejor. Con 3 opciones por pregunta, adivinar a ciegas vale un 33,3%, así que una racha larga no sale por casualidad.",
+        },
+        {
+          q: "¿Recoge datos sobre mi hijo?",
+          a: "No. No hay registro ni nombre. Nada graba la sesión y nada dirige publicidad según el comportamiento. Contamos cuántas veces se ha abierto un juego, sin nada al lado que identifique a quién lo abrió.",
+        },
+      ],
+
+      keywords: ["matemáticas", "contar", "sumar", "multiplicar", "cálculo", "aprender jugando"],
+    },
   },
 
   provenance: [

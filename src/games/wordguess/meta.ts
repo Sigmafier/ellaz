@@ -14,7 +14,7 @@ import type { GameMeta } from "@sdk/index";
 // yellow that are somebody else's trade dress.
 export const meta: GameMeta = {
   id: "wordguess",
-  title: { he: "נחשו מילה", en: "Word Guess" },
+  title: { he: "נחשו מילה", en: "Word Guess", es: "Adivina la palabra" },
   emoji: "🔤",
   // Deepened from #c44dd6, which measured 4.34 against the 4.5 ink-contrast
   // floor. Not nudged to the first passing value either: #b63ec8 clears at

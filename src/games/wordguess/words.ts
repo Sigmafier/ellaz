@@ -19,10 +19,23 @@
  * is a word they cannot guess. Everything here is concrete and common: things
  * in a house, animals, colours, food, school.
  *
- * The two languages are NOT translations of each other. They are separately
+ * The languages are NOT translations of each other. They are separately
  * chosen against the same criteria, the way the game pages are written twice.
  * A translated list inherits English letter-frequency and plays badly in
  * Hebrew, where ו and י carry vowels and dominate any honest list.
+ *
+ * NO ACCENTS IN THE SPANISH LIST, and that is a keyboard decision rather than
+ * a spelling one. `árbol` and `león` are spelled with them, so putting either
+ * in the list means a child must find á on a board that does not offer it -
+ * the unwinnable round `logic.test.ts` guards against. Offering five accented
+ * vowels instead would grow the keyboard to 32 keys on a phone and ask a
+ * five-year-old to distinguish a from á under time pressure. So the list holds
+ * only words that are already accent-free, of which Spanish has plenty.
+ *
+ * Ñ IS A LETTER AND IT STAYS. It is not n with a mark on it - it is its own
+ * letter with its own place in the alphabet, and a child learning Spanish is
+ * learning exactly that. Dropping it to keep the keyboard at 26 would be
+ * teaching them something false to save one key.
  */
 
 export type WordLength = 4 | 5 | 6;
@@ -84,5 +97,40 @@ export const EN: Record<WordLength, readonly string[]> = {
     "pencil", "crayon", "school", "friend", "family", "summer",
     "winter", "spring", "silver", "purple", "yellow", "bright",
     "puzzle",
+  ],
+};
+
+/** Spanish, accent-free but NOT n-for-ñ. See the header. */
+export const ES: Record<WordLength, readonly string[]> = {
+  4: [
+    "casa", "mesa", "cama", "gato", "pato", "rana", "mono", "lobo",
+    "vaca", "toro", "mula", "foca", "puma", "nido", "hoja", "flor",
+    "rosa", "pino", "agua", "nube", "mano", "pelo", "dedo", "boca",
+    "cara", "ojos", "pies", "cola", "ropa", "bota", "tren", "moto",
+    "bici", "remo", "vela", "faro", "mapa", "sopa", "pera", "uvas",
+    "piña", "kiwi", "papa", "taza", "vaso", "miel", "nuez", "luna",
+    "cine", "azul", "rojo", "gris", "dado", "pala", "sapo", "lima",
+    "mora", "higo", "seta", "arco", "alas", "isla", "lago", "nave",
+    "olas",
+  ],
+  5: [
+    "perro", "gallo", "pollo", "oveja", "tigre", "koala", "panda",
+    "zorro", "burro", "cerdo", "cabra", "pluma", "nieve", "playa",
+    "arena", "campo", "monte", "cielo", "calle", "plaza", "banco",
+    "silla", "libro", "papel", "regla", "clase", "letra", "color",
+    "verde", "negro", "plata", "fresa", "pasta", "arroz", "queso",
+    "leche", "torta", "dulce", "fruta", "huevo", "carne", "salsa",
+    "barco", "coche", "globo", "nubes", "rueda", "motor", "radio",
+    "reloj", "gorro", "falda", "blusa", "botas", "manta",
+  ],
+  6: [
+    "conejo", "iguana", "paloma", "abejas", "gusano", "planta",
+    "bosque", "laguna", "arroyo", "piedra", "madera", "hierba",
+    "flores", "frutas", "tomate", "cereza", "helado", "dulces",
+    "pastel", "comida", "cocina", "puerta", "dibujo", "camisa",
+    "zapato", "cohete", "alumno", "sonido", "juegos", "amigos",
+    "fiesta", "pelota", "muñeca", "globos", "regalo", "cuento",
+    "letras", "ciudad", "pueblo", "camino", "puente", "verano",
+    "semana", "minuto", "mañana", "noches",
   ],
 };

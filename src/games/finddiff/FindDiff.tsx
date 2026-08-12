@@ -25,6 +25,7 @@ export function FindDiff({ ctx }: { ctx: GameContext }) {
     {
       he: { left: "נותרו", next: "הבא", ask: "מצאו את ההבדלים 🔍" },
       en: { left: "Left", next: "Next", ask: "Find the differences 🔍" },
+      es: { left: "Faltan", next: "Siguiente", ask: "Encuentra las diferencias 🔍" },
     },
     ctx.locale,
   );

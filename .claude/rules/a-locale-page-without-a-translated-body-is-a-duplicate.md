@@ -108,6 +108,40 @@ gate has not yet been proven to catch something *no other gate* catches. Its uni
 controls prove the mechanism; its independent value arrives with Spanish, which
 is the first same-script pair.
 
+## The third language is what tells you which gates were only ever guessing
+
+Spanish landed on 2026-08-12 and **six separate constants had to change**, none
+of them in the emitter, all of them written when two languages was the whole
+world. They are worth listing together because the list is the lesson: this
+never arrives as one bug, it arrives as a scatter.
+
+| Where | The two-language assumption | How it failed |
+|---|---|---|
+| `content.test.ts` `LOCALES` | `["he","en"]` literal | **SILENT** — ran zero Spanish pages through the voice gate and reported a clean sweep over 23 unmeasured articles |
+| the placeholder matcher | `/\b(TODO\|TBD\|…)\b/i` | **LOUD** — `/todo/i` matches the ordinary Spanish word **todo**; flagged 17 of 23 correct pages |
+| the roster-count gate | walked `SITE`, matched `games\|משחקים` | **SILENT twice** — game pages were outside its population (3 live offenders), and it had no word for `juegos` |
+| `build.test.ts`, four sites | `GAMES.length * 2`, `toBe(4)`, `rows.length * 2` | **LOUD** — arithmetic |
+| `assert-pages.mjs` chunk check | `byChunk.size * 2` | **LOUD** — 23 chunks over 69 pages read as a defect |
+
+**Sort them by how they failed, not by where they live.** The loud ones cost an
+afternoon and announced themselves. The silent ones were green over prose
+nothing had measured, and only turned up because a *control* for something else
+happened to exercise them — the roster gate's own positive control is what
+revealed it could not see `juegos`.
+
+So the question to ask of every gate when a language arrives is not "is its
+logic right". It is **"which pages are in its population, and which words does
+it know"**. A gate answering confidently about a language it has never heard of
+is the shape that ships.
+
+### And the false positive is the friendly one
+
+`/todo/i` is worth keeping in mind as the counter-example. It was maximally
+annoying and maximally safe: it stopped the build, named the sentences, and
+could not possibly have reached production. The same mistake pointed the other
+way — a matcher that quietly stops matching in a new language — looks like
+success. Prefer the noisy failure mode when you get to choose.
+
 ## `/` is not in the population, and the gate said so out loud
 
 `/` is `emitted: false` in the manifest — it is the app shell, head-enhanced in

@@ -266,6 +266,132 @@ export const shadows: GameContent = {
 
       keywords: ["shadows", "matching", "silhouette", "shapes", "preschool", "recognition"],
     },
+    es: {
+      metaTitle: "Sombras - juego de emparejar gratis para niños | Ellaz",
+      metaDescription:
+        "Juego gratis de emparejar sombras para niños. Aparece una silueta y hay que encontrar qué la proyecta. Tres niveles, sin descargas ni registro.",
+
+      lede: "Un juego gratuito para niños en el que aparece una sombra y hay que encontrar qué la proyectó. Tres niveles, sin reloj, y no hay forma de perder.",
+
+      body: [
+        "Una sombra arriba. Unos dibujos abajo. Toca el que encaje.",
+
+        "Lo interesante de estos niveles es lo que no cambia. El medio ofrece cuatro opciones y el difícil ofrece cuatro, exactamente el mismo número, así que adivinar a ciegas vale un 25% en los dos. Lo que cambia es de dónde salen las opciones. En medio cada una pertenece a una categoría distinta, un elefante junto a una silla junto a una manzana, y las sombras de cosas diferentes se separan de un vistazo. En difícil todas vienen de una misma familia, así que te encuentras cuatro siluetas de animales todas redondeadas y con cuatro patas. Adivinar vale lo mismo. Mirar vale muchísimo menos.",
+
+        "El fácil ofrece tres opciones, o sea un 33,3% para quien adivine, y también vienen de categorías distintas. Es una entrada suave a propósito: un niño de tres años que ve la sombra de un elefante junto a la de una silla entiende el juego en un segundo y sin que nadie se lo explique.",
+
+        "Una sombra es una forma a la que le han quitado el detalle, y eso es exactamente lo que se entrena aquí. Ningún color del que fiarse, ninguna cara, ninguna textura. Lo que queda es el contorno, y reconocer cosas solo por el contorno es una habilidad de verdad. Los niños son mucho mejores en esto de lo que un adulto espera, sobre todo con animales.",
+
+        "Fallar no cuesta absolutamente nada. La sombra se queda, se puede volver a probar al momento, y no baja ninguna puntuación. Los niveles siguen sin final y el número que se guarda es hasta dónde llegaste en esa dificultad.",
+      ],
+
+      howToPlay: [
+        { title: "Elige un nivel", body: "Fácil, medio o difícil. Cambian cuántas opciones hay y lo parecidas que son." },
+        { title: "Mira la sombra", body: "Está arriba, grande y clara, con nada más que la forma." },
+        { title: "Elige un dibujo", body: "Toca el que creas que la proyectó. Fallar no cuesta nada." },
+        { title: "Sigue", body: "Un acierto te sube un nivel y trae otra sombra." },
+      ],
+
+      tips: [
+        {
+          title: "Mira los bordes",
+          body: "Una trompa, unas orejas, una cola, la pata de una silla. Lo que sobresale identifica una forma más rápido que el cuerpo.",
+        },
+        {
+          title: "Cuenta las patas",
+          body: "En difícil todos los animales son redondeados, así que el número de patas y el largo de la cola son lo que de verdad los separa.",
+        },
+        {
+          title: "Tomaos vuestro tiempo",
+          body: "Aquí no hay reloj de ningún tipo. Un niño que mira cinco segundos acierta muchas más veces que uno que toca al instante.",
+        },
+        {
+          title: "Empezad en fácil aunque sea mayor",
+          body: "No es tratarle de pequeño, es explicarle el juego sin palabras. Con una ronda ahí basta.",
+        },
+      ],
+
+      teaches: [
+        { title: "Reconocer por la forma", body: "Sin color y sin detalle, solo queda el contorno. Eso ya es una habilidad." },
+        {
+          title: "Comparar cosas parecidas",
+          body: "En difícil todas las opciones vienen de una familia, así que hay que encontrar la diferencia pequeña y no la obvia.",
+        },
+        { title: "Vocabulario visual", body: "Cada ronda enseña un animal o un objeto, y los niños los nombran en voz alta sin que nadie se lo pida." },
+        {
+          title: "Pensar antes de tocar",
+          body: "Nada castiga un fallo, así que el juego enseña a pararse por interés y no por miedo.",
+        },
+      ],
+
+      ages: [
+        { title: "3 a 4", body: "Fácil. Tres opciones de categorías lejanas, así que acertar está casi garantizado." },
+        { title: "5 a 6", body: "Medio. Cuatro opciones, todavía de mundos distintos." },
+        { title: "7 en adelante", body: "Difícil, donde todas las sombras vienen de una familia. Aquí es donde se pone interesante." },
+        {
+          title: "Padres",
+          body: "Nada que perder y sin reloj, lo que hace de este un buen candidato para un rato tranquilo sin supervisión.",
+        },
+      ],
+
+      accessibility:
+        "Un toque, sin arrastrar y sin mantener pulsado. Los dibujos miden más de 2 centímetros de lado en cualquier pantalla y están lo bastante separados como para que un toque poco preciso caiga donde toca. El juego entero está construido sobre la forma y no sobre el color, así que aquí el daltonismo no es que esté contemplado: es que resulta irrelevante. Sin reloj, sin cuenta atrás y sin nada que parpadee. No se lee nada en ninguna parte, y cada ronda se entiende solo con los dibujos.",
+
+      together: [
+        { title: "Que lo nombre primero", body: "Pedidle que diga el animal antes de tocar. Se oye si lo ha reconocido." },
+        {
+          title: "Sombras de verdad",
+          body: "Apagad la luz y haced sombras con las manos en la pared. Mismo juego, sin pantalla, bastante más gracioso.",
+        },
+        { title: "Tú tocas", body: "Tu hijo explica qué sombra encaja y por qué, y tú la tocas. Le obliga a dar un motivo." },
+        {
+          title: "Buscad la única diferencia",
+          body: "En difícil, averiguad juntos qué rasgo separa a las dos opciones más parecidas.",
+        },
+      ],
+
+      faq: [
+        {
+          q: "¿El juego de sombras es gratis?",
+          a: "Del todo. Nada que pagar y ninguna compra dentro del juego. Todos los juegos de la web están abiertos desde el primer segundo.",
+        },
+        {
+          q: "¿Hay que descargar algo o registrarse?",
+          a: "Ni una cosa ni la otra. Funciona en el navegador sin descarga y sin cuenta, y no pedimos ningún correo.",
+        },
+        {
+          q: "¿Qué diferencia hay entre medio y difícil?",
+          a: "No el número de opciones, que son cuatro en los dos, así que adivinar vale un 25% igualmente. En difícil todas las opciones vienen de una familia, así que las siluetas se parecen entre sí y un vistazo rápido no basta.",
+        },
+        {
+          q: "¿Qué pasa si la respuesta es incorrecta?",
+          a: "Nada. La sombra se queda y se puede volver a probar enseguida. No baja ninguna puntuación y no se acaban las vidas.",
+        },
+        { q: "¿Tiene anuncios?", a: "Ninguno. Ni banners ni vídeo entre nivel y nivel." },
+        {
+          q: "¿Funciona sin conexión?",
+          a: "Sí. Después de una visita el juego queda guardado en el aparato y funciona en un avión.",
+        },
+        {
+          q: "Mi hijo todavía no lee. ¿Es un problema?",
+          a: "En absoluto. No hay ni una palabra que haya que leer para jugar. Cada ronda se entiende con los dibujos.",
+        },
+        {
+          q: "¿Cómo se mide el récord?",
+          a: "Por cuántos niveles seguidos has superado, donde más es mejor, y por separado en cada dificultad. El contador de nivel se reinicia al cambiar de dificultad, así que no son comparables.",
+        },
+        {
+          q: "¿Para qué edad es?",
+          a: "Desde unos tres años en fácil. Un niño de esa edad reconoce la sombra de un elefante sin que nadie le explique qué es una sombra.",
+        },
+        {
+          q: "¿Recoge datos sobre mi hijo?",
+          a: "No. No hay registro ni nombre. Nada graba la sesión y nada dirige publicidad según el comportamiento. Contamos cuántas veces se ha abierto un juego, sin nada al lado que identifique a quién lo abrió.",
+        },
+      ],
+
+      keywords: ["sombras", "emparejar", "siluetas", "formas", "infantil", "reconocer"],
+    },
   },
 
   provenance: [

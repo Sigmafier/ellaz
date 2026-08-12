@@ -121,6 +121,7 @@ export function makeRound(difficulty: Difficulty, rng: () => number = Math.rando
     emoji: character.emoji,
     he: character.he,
     en: character.en,
+    es: character.es,
     size,
     rank,
   }));

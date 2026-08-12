@@ -276,6 +276,135 @@ export const tictactoe: GameContent = {
 
       keywords: ["tic tac toe", "noughts and crosses", "vs computer", "strategy", "classic game", "two player"],
     },
+    es: {
+      metaTitle: "Tres en raya gratis contra el ordenador | Ellaz",
+      metaDescription:
+        "Juega al tres en raya gratis contra el ordenador en tres niveles. El difícil no se puede ganar, y lo contamos. Sin descargas y sin registro.",
+
+      lede: "Tres en raya gratis contra el ordenador, en el navegador. Empiezas tú, tres en línea gana, y los tres rivales son de verdad tres rivales distintos y no uno con una etiqueta encima.",
+
+      body: [
+        "Tres por tres. Llevas la X. Abres tú. Tres en línea, en cualquier dirección, y se acabó.",
+
+        "Ahora lo que ninguna otra web os va a contar. Al rival difícil no se le puede ganar. No es que sea difícil ganarle. No se puede. Jugamos 3.000 partidas contra el rival real con un jugador que mueve al azar y salieron 0 victorias, un 21,7% de empates y un 78,3% de derrotas. Después resolvimos el juego del todo, las 255.168 partidas completas que existen, y no hay en ninguna parte una línea que gane a un juego perfecto. El tres en raya acaba en empate cuando los dos lados juegan bien. Eso es una propiedad del juego y no de nuestro código.",
+
+        "O sea que aquí el récord del difícil puede quedarse vacío para siempre. Y está bien. El récord cuenta tu racha más larga de victorias contra un rival, así que contra el difícil sencillamente no se mueve nunca. Empatar contra algo que no puede perder es el logro, y un niño que llega a esa conclusión ha entendido el juego.",
+
+        "Los otros dos son rivales completamente distintos. El fácil elige una casilla al azar, y aun así un jugador aleatorio solo le gana el 58,8% de las veces, porque salir primero ya vale algo por sí solo. El medio juega bien más o menos la mitad del tiempo y ya le gana a un jugador aleatorio el 54,3% de las partidas. Mismo tablero, mismas reglas, tres juegos.",
+
+        "Cambiar de nivel reinicia la racha. Un rival distinto es un logro distinto, y no tenía sentido amontonar victorias contra el que va al azar en el mismo contador que las victorias contra la máquina que se lo está tomando en serio.",
+      ],
+
+      howToPlay: [
+        { title: "Elige rival", body: "Fácil, medio o difícil. Elegir limpia el tablero y reinicia la racha." },
+        { title: "Toca una casilla", body: "Llevas la X y siempre mueves primero. El ordenador responde al instante." },
+        { title: "Haz tres", body: "Fila, columna o diagonal. La línea ganadora se marca." },
+        { title: "Otra vez", body: "Un toque reinicia el tablero y tu racha continúa." },
+      ],
+
+      tips: [
+        {
+          title: "Coge el centro",
+          body: "El centro está en cuatro líneas ganadoras, una esquina en tres y un lateral solo en dos. Si el centro está libre, esa es la jugada.",
+        },
+        {
+          title: "Monta una doble amenaza",
+          body: "Dos esquinas opuestas crean dos amenazas a la vez y tu rival solo puede tapar una. Esta es la forma práctica de ganar al medio.",
+        },
+        {
+          title: "Tapa antes de construir",
+          body: "En cada turno mira primero si tienen dos en raya. Una amenaza sin tapar termina la partida al momento.",
+        },
+        {
+          title: "Contra el difícil, juega al empate",
+          body: "Centro y después tapar con constancia. Un empate contra un rival perfecto es el mejor resultado que existe.",
+        },
+      ],
+
+      teaches: [
+        { title: "Pensar un turno por delante", body: "Cada jugada abre y cierra opciones para los dos lados. Es la primera lección de estrategia que hay." },
+        {
+          title: "Detectar una amenaza",
+          body: "Dos en raya con una casilla libre es una amenaza. Verla antes que el otro es la habilidad entera.",
+        },
+        { title: "Que existen los empates", body: "No todas las peleas tienen ganador, y es una idea útil de conocer pronto." },
+        {
+          title: "Perder sin drama",
+          body: "Una partida dura veinte segundos. Puedes perder y volver a empezar al instante, lo que deja el coste de un error casi en nada.",
+        },
+      ],
+
+      ages: [
+        { title: "4 a 5", body: "Fácil, normalmente acompañados. A esta edad el tres en línea ya es la idea nueva." },
+        { title: "6 a 7", body: "Fácil solos y después medio. Aquí se descubren el centro y lo de tapar." },
+        { title: "8 en adelante", body: "Medio durante una buena temporada, y el difícil para averiguar por qué no se puede." },
+        {
+          title: "Adultos",
+          body: "Probad a empatar cinco veces seguidas contra el difícil. Solo el 21,7% de las partidas al azar acaban en empate, así que tiene menos trampa de lo que suena.",
+        },
+      ],
+
+      accessibility:
+        "Un toque por casilla, sin arrastrar y sin mantener pulsado. Nueve casillas grandes ocupan casi toda la pantalla, así que un dedo pequeño o un dispositivo de entrada alternativo les da sin esfuerzo. La X y el O se distinguen por forma y no por color, de modo que el daltonismo no cambia nada, y la línea ganadora se marca con un trazo dibujado y no solo con un tinte. No hay reloj ni presión de tiempo, así que puedes pensar lo que quieras. Nada parpadea y la partida entera se juega en silencio.",
+
+      together: [
+        {
+          title: "Dos en un aparato",
+          body: "Turnaos el uno contra el otro e ignorad al ordenador. Mismo tablero, con un rival al que se le puede mirar a la cara.",
+        },
+        {
+          title: "Carrera al empate",
+          body: "Los dos contra el difícil, contando quién empató más de diez. Cambia la definición de ganar.",
+        },
+        { title: "Di el motivo", body: "Una frase antes de cada toque explicando por qué ahí. Los niños descubren que tenían uno." },
+        {
+          title: "Centro prohibido",
+          body: "Jugad una partida en la que nadie pueda coger el medio. Se descubre rapidísimo cuánto valía.",
+        },
+      ],
+
+      faq: [
+        {
+          q: "¿El tres en raya contra el ordenador es gratis?",
+          a: "Del todo. Nada que pagar, ninguna compra dentro del juego y ninguna versión de pago. Todos los juegos de la web se abren al momento.",
+        },
+        {
+          q: "¿Hay que descargar algo o registrarse?",
+          a: "Ni una cosa ni la otra. Funciona en el navegador sin descarga y sin cuenta, y no pedimos ningún correo.",
+        },
+        {
+          q: "¿Se le puede ganar al nivel difícil?",
+          a: "No, y es a propósito. Calcula el resto de la partida antes de cada jugada. Lo probamos en 3.000 partidas y salieron 0 victorias, y aparte resolvimos las 255.168 partidas posibles. Empatar es el mejor resultado que existe contra él.",
+        },
+        {
+          q: "¿En qué se diferencian los niveles?",
+          a: "El fácil elige una casilla al azar. El medio juega bien más o menos la mitad del tiempo. El difícil calcula la jugada perfecta siempre. Contra un jugador aleatorio ganan el 29%, el 54,3% y el 78,3% de las partidas respectivamente.",
+        },
+        { q: "¿Tiene anuncios?", a: "Ninguno. Ni banners ni vídeo entre nivel y nivel." },
+        {
+          q: "¿Funciona sin conexión?",
+          a: "Sí. Después de una visita el juego queda guardado en el aparato y funciona en un avión.",
+        },
+        {
+          q: "¿Pueden jugar dos personas en el mismo aparato?",
+          a: "No hay un modo específico para dos jugadores, pero nada os impide pasaros el aparato e ignorar al ordenador por completo.",
+        },
+        {
+          q: "¿Cómo se mide el récord?",
+          a: "Como tu racha más larga de victorias contra un mismo rival, donde más es mejor. Cambiar de nivel reinicia la racha, porque cada nivel es otro rival. En el difícil el récord puede quedarse vacío para siempre, y eso es lo correcto.",
+        },
+        {
+          q: "¿Para qué edad es?",
+          a: "Desde unos cuatro años en fácil, con un adulto las primeras veces. No se lee nada y la única idea que hace falta es tres en línea.",
+        },
+        {
+          q: "¿Recoge datos sobre mi hijo?",
+          a: "No. No hay registro ni nombre. Nada graba la sesión y nada dirige publicidad según el comportamiento. Contamos cuántas veces se ha abierto un juego, sin nada al lado que identifique a quién lo abrió.",
+        },
+      ],
+
+      keywords: ["tres en raya", "gato", "contra el ordenador", "estrategia", "juego clásico", "dos jugadores"],
+    },
   },
 
   provenance: [

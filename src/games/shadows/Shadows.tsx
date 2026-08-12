@@ -25,9 +25,9 @@ import { isCorrect, newRound, type Difficulty, type ShadowChoice, type ShadowRou
 const SILHOUETTE = "brightness(0)";
 
 const DIFF_OPTIONS: DifficultyOption<Difficulty>[] = [
-  { id: "easy", label: { he: "קל", en: "Easy" } },
-  { id: "medium", label: { he: "בינוני", en: "Med" } },
-  { id: "hard", label: { he: "קשה", en: "Hard" } },
+  { id: "easy", label: { he: "קל", en: "Easy", es: "Fácil" } },
+  { id: "medium", label: { he: "בינוני", en: "Med", es: "Media" } },
+  { id: "hard", label: { he: "קשה", en: "Hard", es: "Difícil" } },
 ];
 
 // Kids targets: the `max(72px, …)` floor keeps every tile above the ~2cm rule
@@ -45,6 +45,7 @@ export function Shadows({ ctx }: { ctx: GameContext }) {
     {
       he: { cheer: (n: number) => `🎉 יפה! ממשיכים לשלב ${n}…`, hiding: "מי מסתתר בצל? 🕵️", ask: "איזו תמונה מתאימה לצל?" },
       en: { cheer: (n: number) => `🎉 Nice! On to level ${n}…`, hiding: "Who is hiding in the shadow? 🕵️", ask: "Which picture matches the shadow?" },
+      es: { cheer: (n: number) => `🎉 ¡Bien! Vamos al nivel ${n}…`, hiding: "¿Quién se esconde en la sombra? 🕵️", ask: "¿Qué dibujo va con la sombra?" },
     },
     ctx.locale,
   );

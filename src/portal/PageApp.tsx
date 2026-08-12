@@ -1,5 +1,5 @@
 import { createRoot, type Root } from "react-dom/client";
-import type { Locale } from "@i18n/index";
+import { loadDict, type Locale } from "@i18n/index";
 import { analytics, startCloudSync } from "@sdk/index";
 import { Boards } from "./Boards";
 import { fitStage } from "./fitStage";
@@ -118,7 +118,20 @@ export function bootContentPage(ctx: PageContext): void {
   const message = document.getElementById("game-msg");
   const button = document.getElementById("game-play") as HTMLButtonElement | null;
 
-  const start = () => {
+  /**
+   * Fetch this page's chrome dictionary before anything mounts.
+   *
+   * A page locale is NOT static (see `STATIC_LOCALES` in `i18n/strings.ts` for
+   * the 1,363 B gz that decided it), so without this the buttons inside a
+   * Spanish game page resolve through English and stay there. Nothing throws;
+   * the prose around them is perfect Spanish, which is what makes it invisible.
+   *
+   * Awaited BEFORE `createRoot`, which costs no flash at all: the poster is
+   * still up and React has not rendered a thing. A failed fetch resolves false
+   * and we mount anyway — English chrome beats no game.
+   */
+  const start = async () => {
+    await loadDict(locale);
     poster?.setAttribute("hidden", "");
 
     // The game and the room get the whole first screen, which means a fixed
@@ -152,7 +165,7 @@ export function bootContentPage(ctx: PageContext): void {
     if (message && poster) message.textContent = poster.dataset.saver ?? message.textContent;
     button?.addEventListener("click", () => {
       button.disabled = true;
-      start();
+      void start();
     });
     return;
   }
@@ -162,5 +175,5 @@ export function bootContentPage(ctx: PageContext): void {
   // running, both can be replaced with the truth.
   if (button) button.hidden = true;
   if (message && poster) message.textContent = poster.dataset.loading ?? message.textContent;
-  start();
+  void start();
 }

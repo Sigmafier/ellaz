@@ -18,21 +18,21 @@ import { generateProblem, isCorrect, type MathLevel, type Problem } from "./logi
 // The chrome's toggle shows only the current one, so the split is gone - and
 // the order is now the actual teaching order rather than two unranked groups.
 const LEVEL_OPTIONS: DifficultyOption<MathLevel>[] = [
-  { id: "count", label: { he: "ספירה", en: "Count" } },
-  { id: "match", label: { he: "התאמה", en: "Match" } },
-  { id: "visual", label: { he: "תמונות", en: "Pictures" } },
-  { id: "up5", label: { he: "עד 5", en: "Up to 5" } },
-  { id: "up10", label: { he: "עד 10", en: "Up to 10" } },
-  { id: "up20", label: { he: "עד 20", en: "Up to 20" } },
-  { id: "mult", label: { he: "כפל", en: "Times ×" } },
+  { id: "count", label: { he: "ספירה", en: "Count", es: "Contar" } },
+  { id: "match", label: { he: "התאמה", en: "Match", es: "Parejas" } },
+  { id: "visual", label: { he: "תמונות", en: "Pictures", es: "Dibujos" } },
+  { id: "up5", label: { he: "עד 5", en: "Up to 5", es: "Hasta 5" } },
+  { id: "up10", label: { he: "עד 10", en: "Up to 10", es: "Hasta 10" } },
+  { id: "up20", label: { he: "עד 20", en: "Up to 20", es: "Hasta 20" } },
+  { id: "mult", label: { he: "כפל", en: "Times ×", es: "Por ×" } },
 ];
 
 // Bottom-of-screen hint, per mode.
 const HINTS: Record<Problem["mode"], Record<Locale, string>> = {
-  arith: { he: "בחרו את התשובה הנכונה", en: "Tap the right answer" },
-  count: { he: "כמה יש? בחרו את המספר", en: "How many? Tap the number" },
-  match: { he: "בחרו את הקבוצה עם המספר הזה", en: "Tap the group with that many" },
-  visual: { he: "ספרו את התמונות ובחרו את המספר", en: "Count the pictures, tap the number" },
+  arith: { he: "בחרו את התשובה הנכונה", en: "Tap the right answer", es: "Toca la respuesta correcta" },
+  count: { he: "כמה יש? בחרו את המספר", en: "How many? Tap the number", es: "¿Cuántos hay? Toca el número" },
+  match: { he: "בחרו את הקבוצה עם המספר הזה", en: "Tap the group with that many", es: "Toca el grupo que tenga esa cantidad" },
+  visual: { he: "ספרו את התמונות ובחרו את המספר", en: "Count the pictures, tap the number", es: "Cuenta los dibujos y toca el número" },
 };
 
 /**
@@ -68,7 +68,7 @@ export function MathGame({ ctx }: { ctx: GameContext }) {
   // this block by name instead of leaving the game speaking English
   // inside a page that is not.
   const T = textFor(
-    { he: { streak: "רצף" }, en: { streak: "Streak" } },
+    { he: { streak: "רצף" }, en: { streak: "Streak" }, es: { streak: "Racha" } },
     ctx.locale,
   );
   const [level, setLevel] = useRememberedLevel(ctx, LEVEL_OPTIONS.map((o) => o.id), "up10");

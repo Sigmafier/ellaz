@@ -20,16 +20,16 @@ const FACE_SETS = [
 // Difficulty = how many pairs. Grid stays 4 cols for easy/medium; hard (20 cards)
 // goes to 5 cols so it keeps 4 rows and fits the height cap.
 const LEVELS = [
-  { id: "easy", pairs: 6, cols: 4, he: "קל", en: "Easy" },
-  { id: "medium", pairs: 8, cols: 4, he: "בינוני", en: "Med" },
-  { id: "hard", pairs: 10, cols: 5, he: "קשה", en: "Hard" },
+  { id: "easy", pairs: 6, cols: 4, he: "קל", en: "Easy", es: "Fácil" },
+  { id: "medium", pairs: 8, cols: 4, he: "בינוני", en: "Med", es: "Media" },
+  { id: "hard", pairs: 10, cols: 5, he: "קשה", en: "Hard", es: "Difícil" },
 ] as const;
 
 type LevelId = (typeof LEVELS)[number]["id"];
 
 const LEVEL_OPTIONS: DifficultyOption<LevelId>[] = LEVELS.map((lv) => ({
   id: lv.id,
-  label: { he: lv.he, en: lv.en },
+  label: { he: lv.he, en: lv.en, es: lv.es },
 }));
 
 function deckFor(setIdx: number, levelIdx: number) {
@@ -185,7 +185,7 @@ export function Memory({ ctx }: { ctx: GameContext }) {
   // this block by name instead of leaving the game speaking English
   // inside a page that is not.
   const T = textFor(
-    { he: { newSet: "ערכה חדשה" }, en: { newSet: "New set" } },
+    { he: { newSet: "ערכה חדשה" }, en: { newSet: "New set" }, es: { newSet: "Nuevas cartas" } },
     ctx.locale,
   );
   const nextSet = (setIdx + 1) % FACE_SETS.length;

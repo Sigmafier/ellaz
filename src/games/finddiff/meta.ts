@@ -4,7 +4,7 @@ import type { GameMeta } from "@sdk/index";
 // renders without pulling React/Phaser into the shell bundle.
 export const meta: GameMeta = {
   id: "finddiff",
-  title: { he: "מצא הבדלים", en: "Find Differences" },
+  title: { he: "מצא הבדלים", en: "Find Differences", es: "Busca las diferencias" },
   emoji: "🔍",
   color: "#00cec9",
   ageBand: "kids",

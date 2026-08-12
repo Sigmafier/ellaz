@@ -26,9 +26,9 @@ import {
 // score to lose and no attempt counter to exhaust.
 
 const LEVEL_LABELS: Record<Difficulty, Record<Locale, string>> = {
-  easy: { he: "קל", en: "Easy" },
-  medium: { he: "בינוני", en: "Med" },
-  hard: { he: "קשה", en: "Hard" },
+  easy: { he: "קל", en: "Easy", es: "Fácil" },
+  medium: { he: "בינוני", en: "Med", es: "Media" },
+  hard: { he: "קשה", en: "Hard", es: "Difícil" },
 };
 
 // Built from DIFFICULTIES so the row can never drift out of sync with the ladder.
@@ -60,6 +60,17 @@ const T = {
     time: "Time",
     again: "Again",
     next: "Next round",
+  },
+  es: {
+    study: "Mira bien a los amigos",
+    cover: "Cierra los ojos un momento...",
+    ask: "¿Quién desapareció?",
+    solved: "¡Muy bien! Encontraste a",
+    round: "Ronda",
+    found: "Encontrados",
+    time: "Tiempo",
+    again: "Otra vez",
+    next: "Siguiente ronda",
   },
 } as const;
 

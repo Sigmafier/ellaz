@@ -243,6 +243,119 @@ export const blocks: GameContent = {
 
       keywords: ["falling blocks", "block puzzle", "arcade", "classic", "endless", "rotation"],
     },
+    es: {
+      metaTitle: "Bloques que caen - juego gratis online | Ellaz",
+      metaDescription:
+        "Juego gratis de bloques que caen en el navegador. Gira las piezas, completa una fila y desaparece. Tres niveles, once formas y botones grandes.",
+
+      lede: "Un juego gratuito de bloques que caen y se juega en el navegador. Bajan formas, las giras y las desplazas, y una fila completa desaparece. Cuatro formas en Calma, nueve en Normal y once en Rápido.",
+
+      body: [
+        "Gírala, muévela, déjala caer. Una fila que se llena de lado a lado se esfuma y todo lo que había encima baja. Ese es el juego entero, y lo lleva siendo cuarenta años.",
+
+        "Nuestras formas no son las siete famosas. Hay once, desde tres casillas hasta cinco, y cuáles te tocan es lo que decide de verdad el nivel. Calma reparte cuatro suaves. Rápido añade una cruz y una copa, y ninguna de las dos se puede tumbar plana encima de nada.",
+
+        "Eso lo medimos en lugar de afirmarlo. Un bot que prueba todas las columnas y todos los giros y se queda con lo que deje menos huecos enterrados jugó 300 partidas por nivel: sobrevivió a las 1000 piezas completas en todas las partidas de Calma, en el 99,3 por ciento de las de Normal, y en ninguna de Rápido, donde murió tras una mediana de 78 filas. El bot coloca al instante, así que la velocidad de caída no entró en ese resultado. Dos piezas sí. Un bot que suelta en columnas al azar, para comparar, está muerto a las 20 piezas sin haber despejado nada.",
+
+        "La puntuación premia esperar. Una fila da 10, dos juntas dan 30, tres dan 60 y cuatro dan 100. Así que la pieza larga para la que llevas rato guardando un canal vale más del doble de lo que habrían pagado esas mismas cuatro filas de una en una. Cada cinco filas caen monedas en la cartera. El récord se toma una vez, cuando la torre llega arriba, y cada nivel guarda el suyo.",
+      ],
+
+      howToPlay: [
+        { title: "Elige un nivel", body: "Calma, Normal o Rápido. Cambiar arranca un tablero limpio en ese nivel." },
+        { title: "Muévela de lado", body: "Los botones de flecha bajo el tablero, un deslizamiento encima, o las flechas del teclado." },
+        { title: "Gírala", body: "El botón de giro, un toque en el tablero, o la flecha arriba. Pegada a una pared se aparta sola." },
+        { title: "Suéltala", body: "El último botón la manda directa a la sombra de rayas. Esperar también vale." },
+        { title: "Completa una fila", body: "Desaparece. La partida acaba cuando la siguiente forma ya no tiene sitio para entrar." },
+      ],
+
+      tips: [
+        {
+          title: "Un hueco cuesta más que la altura",
+          body: "Una torre alta y lisa todavía tiene arreglo. Una casilla enterrada bajo otra forma bloquea su fila entera hasta que desmontes todo lo de encima. Puestos a elegir, alto y limpio.",
+        },
+        {
+          title: "Guarda un canal abierto",
+          body: "Deja una columna del extremo vacía y construye el resto hasta tres o cuatro de alto. Cuando llegue la pieza recta despeja cuatro filas de golpe, que son 100 puntos en vez de 40.",
+        },
+        {
+          title: "La siguiente forma ya está a la vista",
+          body: "Encima del tablero está la que llega después de esta. Míralo antes de decidir, porque más o menos la mitad de tus decisiones cambian cuando lo haces.",
+        },
+        {
+          title: "Suelta pronto y a menudo",
+          body: "Usa el botón de soltar sin parar mientras aprendes. La gracia no es el punto extra por fila. Es que pasas por el triple de formas en los mismos diez minutos.",
+        },
+        {
+          title: "Deja Rápido para más adelante",
+          body: "La cruz deja un hueco casi siempre que aterriza, y Rápido es el único nivel que la reparte. Volved cuando despejar tres filas de una os salga sin pensar.",
+        },
+      ],
+
+      teaches: [
+        { title: "Rotación mental", body: "Ver en qué se convierte una forma tras un cuarto de vuelta, antes de girarla." },
+        { title: "Planificar", body: "Cada colocación decide qué colocaciones quedan. Por eso la forma siguiente está en pantalla." },
+        { title: "Elegir la opción menos mala", body: "A veces la casilla buena no existe. Eliges, colocas y sigues." },
+        { title: "Paciencia contra impulso", body: "Una fila ahora o cuatro dentro de un rato. La misma pregunta, una y otra vez." },
+      ],
+
+      ages: [
+        { title: "5 a 6", body: "Calma, y sin decir nada de la puntuación. Cuatro formas son de sobra y los botones son grandes." },
+        { title: "7 a 9", body: "Calma y después Normal. Aquí es donde empiezan a mirar la vista previa." },
+        { title: "10 en adelante", body: "Normal. Un canal lateral y un despeje de cuatro filas es el primer objetivo con nombre propio." },
+        { title: "Adultos", body: "Rápido, después de unas cuantas partidas en Normal. 140 milisegundos por paso es menos tiempo del que parece." },
+      ],
+
+      accessibility:
+        "Aquí todo son toques sueltos. Cinco botones grandes bajo el tablero hacen absolutamente todo, y nada del juego pide arrastrar ni mantener el dedo. Deslizar por el tablero y las flechas del teclado también funcionan si os van más, y los tres caminos son equivalentes. La sombra de rayas marca la casilla de aterrizaje, así que nadie tiene que alinear columnas a ojo. Cada forma tiene su propio color y su propio contorno, de modo que se siguen distinguiendo sin depender del color. No hay destellos rápidos ni ningún sonido del que dependa el juego.",
+
+      together: [
+        { title: "Uno gira, otro mueve", body: "Dos personas, un móvil. Divertido durante unas tres partidas y competitivo a partir de ahí." },
+        { title: "Cambio en cada partida", body: "Pasadlo cuando la torre llegue arriba. Se lo lleva quien más filas haga en la tarde." },
+        { title: "Poned un objetivo pequeño", body: "Diez filas en Calma. Para un niño que acaba de empezar, un objetivo cercano vale más que un récord lejano." },
+        { title: "Sin soltar", body: "Una partida entera usando solo la velocidad de caída. El ritmo cambia por completo." },
+      ],
+
+      faq: [
+        {
+          q: "¿Este juego de bloques es gratis?",
+          a: "Sí. Nada que pagar, nada que comprar dentro y ningún registro. Todos los juegos de la web están abiertos desde el primer segundo.",
+        },
+        {
+          q: "¿Cómo se juega en el móvil?",
+          a: "Cinco botones bajo el tablero: izquierda, girar, derecha, bajar y soltar. También puedes deslizar por el tablero y tocarlo para girar la forma.",
+        },
+        {
+          q: "¿Qué cambia en cada nivel?",
+          a: "Sobre todo qué formas reparte. Calma tiene 4 formas en un tablero de 8 por 14, Normal tiene 9 en uno de 10 por 18, y Rápido añade dos formas de cinco casillas incómodas de tumbar. El ritmo también cambia, de 1000 milisegundos por paso a 140.",
+        },
+        {
+          q: "¿Cuántos puntos vale una fila?",
+          a: "Una fila son 10, dos juntas son 30, tres son 60 y cuatro son 100. Soltar una forma suma un punto por cada fila que se salta al caer.",
+        },
+        {
+          q: "¿El juego acelera?",
+          a: "Sí, según las filas despejadas. Calma acelera cada 6 filas hasta un suelo de 620 milisegundos, Normal cada 5 hasta 260 y Rápido cada 4 hasta 140.",
+        },
+        {
+          q: "¿Se puede jugar sin conexión?",
+          a: "Sí. Después de una visita queda guardado en el aparato y funciona sin cobertura.",
+        },
+        {
+          q: "¿Cómo se mide el récord?",
+          a: "En puntos, donde gana el más alto, y por separado en cada nivel. Se lee una vez, cuando termina la partida.",
+        },
+        {
+          q: "¿Para qué edad es?",
+          a: "A partir de unos cinco años en Calma. En el juego no se lee nada, así que un niño que todavía no lee juega solo.",
+        },
+        {
+          q: "¿Tiene anuncios?",
+          a: "Ninguno. Ni banners ni nada que se ponga entre partida y partida.",
+        },
+      ],
+
+      keywords: ["bloques que caen", "puzle de bloques", "arcade", "clásico", "infinito", "rotación"],
+    },
   },
 
   provenance: [

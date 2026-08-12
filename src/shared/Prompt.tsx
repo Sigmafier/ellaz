@@ -79,7 +79,7 @@ export function Prompt({ ctx, glyph, text, speak }: PromptProps): ReactElement {
       </span>
       {canSpeak ? (
         // IconButton is already a full `var(--tap)` target on both axes.
-        <IconButton ariaLabel={textFor({ he: "השמע", en: "listen" }, ctx.locale)} onClick={say}>
+        <IconButton ariaLabel={textFor({ he: "השמע", en: "listen", es: "escuchar" }, ctx.locale)} onClick={say}>
           🔊
         </IconButton>
       ) : null}

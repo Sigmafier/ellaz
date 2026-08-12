@@ -36,9 +36,9 @@ import {
 // for a half-second flash.
 
 const LEVEL_LABELS: Record<LevelId, Record<Locale, string>> = {
-  easy: { he: "קל", en: "Easy" },
-  medium: { he: "בינוני", en: "Med" },
-  hard: { he: "קשה", en: "Hard" },
+  easy: { he: "קל", en: "Easy", es: "Fácil" },
+  medium: { he: "בינוני", en: "Med", es: "Media" },
+  hard: { he: "קשה", en: "Hard", es: "Difícil" },
 };
 
 // Derived from LEVELS rather than re-typed, so the row can never drift from the
@@ -65,6 +65,13 @@ function promptFor(phase: SeqState["phase"], round: number, locale: Locale): str
         lost: (n: number) => `You reached round ${n}`,
         idle: "Press start and watch the order",
       },
+      es: {
+        showing: "Mira el orden",
+        input: "Te toca - sígueme",
+        won: "¡Bien! Una más",
+        lost: (n: number) => `Llegaste a la ronda ${n}`,
+        idle: "Pulsa empezar y mira el orden",
+      },
     },
     locale,
   );
@@ -87,7 +94,7 @@ export function Echo({ ctx }: { ctx: GameContext }) {
   // this block by name instead of leaving the game speaking English
   // inside a page that is not.
   const T = textFor(
-    { he: { start: "התחילו" }, en: { start: "Start" } },
+    { he: { start: "התחילו" }, en: { start: "Start" }, es: { start: "Empezar" } },
     ctx.locale,
   );
   const [levelId, setLevelId] = useRememberedLevel(ctx, LEVEL_OPTIONS.map((o) => o.id), "easy");

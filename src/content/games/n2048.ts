@@ -274,6 +274,135 @@ export const n2048: GameContent = {
 
       keywords: ["2048", "number game", "puzzle", "tiles", "merge", "free game"],
     },
+    es: {
+      metaTitle: "2048 - jugar gratis online, sin descargas | Ellaz",
+      metaDescription:
+        "Juega al 2048 gratis en el navegador, en tres tamaños de tablero, uno de ellos para niños. Desliza, une números iguales, sin registro.",
+
+      lede: "2048, gratis y en el navegador. Deslizas el tablero entero hacia un lado, dos números iguales que se encuentran se convierten en uno más grande, y sigues hasta que el tablero se llena. Tres tamaños de tablero, uno pensado para niños pequeños.",
+
+      body: [
+        "Un deslizamiento mueve todo. Dos fichas iguales que chocan se convierten en una del doble de valor, y después de cada movimiento aparece una ficha nueva en un hueco libre. Ese es el juego entero.",
+
+        "Lo que separa de verdad a los tres tableros no es su tamaño, es cuánto sitio te dejan. Una ficha de 2048 se construye con dos de 1024, cada una de esas con dos de 512, y así hasta abajo: hay que hacer nacer y unir 1.024 fichas de 2 sueltas, en un tablero de 16 casillas. Sesenta y cuatro apariciones por casilla. Pasamos el motor real de movimientos por 1.500 partidas de cada tablero y quien desliza completamente al azar se queda en una mejor ficha de 105 de media. La estrategia de la esquina, que es todo el saber popular que existe sobre este juego, casi lo dobla hasta 198. Las dos se quedan a más de diez veces de 2048, y esa distancia es el juego.",
+
+        "En el tablero infantil los números se dan la vuelta. Un 5x5 con objetivo 256 necesita 128 apariciones repartidas entre 25 casillas, apenas cinco por casilla, y quien desliza al azar llega al objetivo en el 94% de las partidas. No es un nivel un poco más fácil. Es el único que puedes ganar jugando mal, que es exactamente lo que necesita un niño de cinco años la primera vez.",
+
+        "El tablero difícil, el 3x3, no te pide un número mayor. Te da menos sitio donde equivocarte. Una partida al azar termina ahí a los 30 movimientos de media, frente a 116 en el clásico y 509 en el infantil. Nueve casillas se llenan enseguida.",
+
+        "Aquí nada es realmente perder. Cuando ya no queda movimiento la partida se detiene y te enseña lo que has construido, y arranca otra al momento. También puedes seguir jugando pasado el objetivo, porque a esas alturas el objetivo ha dejado de ser la pregunta interesante.",
+
+        "El tablero va de izquierda a derecha incluso en hebreo, y es a propósito. La dirección del deslizamiento tiene que coincidir con lo que ven tus ojos, y un tablero reflejado convertiría cada deslizamiento a la derecha en movimiento a la izquierda.",
+      ],
+
+      howToPlay: [
+        { title: "Elige tablero", body: "Infantil, clásico o difícil. Elegir arranca una partida limpia." },
+        { title: "Desliza", body: "Un dedo en cualquier dirección, o las flechas. El tablero entero se mueve de golpe." },
+        { title: "Une", body: "Dos números iguales que se encuentran durante un movimiento se convierten en una ficha del doble." },
+        { title: "Puntúa", body: "Cada unión suma a tu marcador el valor de la ficha nueva." },
+        { title: "Sigue", body: "Llegar al objetivo hace una pausa para celebrarlo y después te devuelve el tablero." },
+      ],
+
+      tips: [
+        {
+          title: "Elige una esquina y quédate",
+          body: "Mantén tu ficha más grande en una esquina fija y desliza solo en las dos direcciones que la alimentan. En nuestra medición esa única costumbre dobló el resultado.",
+        },
+        {
+          title: "La cuarta dirección es una trampa",
+          body: "El deslizamiento que arranca tu ficha grande de su esquina resulta tentador cuando el tablero se atasca. Es justo el que deshace la estructura que has montado.",
+        },
+        {
+          title: "Monta una fila descendente",
+          body: "Fichas ordenadas de mayor a menor a lo largo de un borde se encadenan en un solo deslizamiento. Por eso funciona lo de la esquina.",
+        },
+        {
+          title: "Sáltate las uniones baratas",
+          body: "Dos cuatros en el extremo equivocado del tablero valen menos que el desorden que te van a costar.",
+        },
+      ],
+
+      teaches: [
+        { title: "Pensar un movimiento por delante", body: "Cada deslizamiento cambia el tablero entero, así que un solo movimiento de previsión cunde mucho." },
+        {
+          title: "Potencias de dos",
+          body: "2, 4, 8, 16 y hacia arriba. Después de una partida un niño se sabe esa serie de memoria sin que nadie se la haya enseñado.",
+        },
+        { title: "Aplazar la recompensa", body: "El movimiento que puntúa ahora casi nunca es el que deja un tablero manejable." },
+        {
+          title: "Encajar un final",
+          body: "La partida siempre acaba. Aprender a empezar otra sin enfadarse es la mitad de la habilidad.",
+        },
+      ],
+
+      ages: [
+        { title: "5 a 6", body: "El tablero infantil. Objetivo bajo y tablero ancho, así que hasta deslizar sin plan avanza." },
+        { title: "7 a 9", body: "Infantil primero y luego clásico. Aquí una esquina sustituye a deslizar por deslizar." },
+        { title: "10 en adelante", body: "Clásico, y el tablero pequeño cuando quieran pelea de verdad." },
+        {
+          title: "Adultos",
+          body: "Una ficha de 2048 en el tablero clásico exige que nazcan y se unan 1.024 fichas de 2 por separado. Eso no es trabajo de una tarde.",
+        },
+      ],
+
+      accessibility:
+        "Se juega deslizando o con las flechas, nunca arrastrando una ficha concreta con precisión. Se maneja con una mano y no hay que mantener nada pulsado. Las fichas se distinguen por el número impreso encima y no solo por el color de fondo, así que el daltonismo no cambia nada, y cada ficha lleva una etiqueta hablada para lectores de pantalla. El tablero se encoge para caber en cualquier pantalla y se mantiene cuadrado. Nada parpadea, no hay reloj y ninguna parte del juego va contra el tiempo.",
+
+      together: [
+        { title: "Deslizamientos alternos", body: "Un movimiento cada uno en el mismo tablero. Marcador compartido y culpa compartida." },
+        {
+          title: "Dilo antes",
+          body: "Anunciad hacia dónde vais y por qué antes de mover el dedo. Se oye al instante si había un plan.",
+        },
+        { title: "Carrera a dos aparatos", body: "Mismo tamaño de tablero, dos móviles, el primero que llegue a 256." },
+        {
+          title: "Buscar números",
+          body: "Con un niño pequeño, pedidle que encuentre el 16 en el tablero. Convierte la partida en leer números.",
+        },
+      ],
+
+      faq: [
+        {
+          q: "¿El 2048 es gratis aquí?",
+          a: "Del todo. Nada que pagar, ninguna compra dentro del juego y ninguna versión de pago con tableros extra. Todos los juegos de la web se abren al momento.",
+        },
+        {
+          q: "¿Hay que descargar algo o registrarse?",
+          a: "Ni una cosa ni la otra. Funciona en el navegador sin descarga y sin cuenta, y no pedimos ningún correo.",
+        },
+        {
+          q: "¿Puedo seguir jugando después de llegar a 2048?",
+          a: "Sí. El objetivo hace una pausa para celebrarlo y después te devuelve el tablero. Desde ahí compites contra tu marcador y ya no contra el objetivo.",
+        },
+        {
+          q: "¿En qué se diferencian los tres tableros?",
+          a: "En cuánto sitio te dan. El infantil es 5x5 hasta 256, el clásico 4x4 hasta 2048 y el difícil 3x3 hasta 512. En nuestra simulación un jugador al azar gana el 94% de las partidas infantiles y no gana nunca en los otros dos.",
+        },
+        { q: "¿Tiene anuncios?", a: "Ninguno. Ni banners ni vídeo entre nivel y nivel." },
+        {
+          q: "¿Funciona sin conexión?",
+          a: "Sí. Después de una visita el juego queda guardado en el aparato y funciona en un avión.",
+        },
+        {
+          q: "¿Por qué el tablero no se refleja en hebreo?",
+          a: "Porque la dirección del deslizamiento tiene que coincidir con lo que ves. Un tablero reflejado convertiría cada deslizamiento a la derecha en movimiento a la izquierda, que es justo el tipo de fallo que rompe un juego entero.",
+        },
+        {
+          q: "¿Cómo se mide el récord?",
+          a: "En puntos, donde más es mejor. Es un único récord para los tres tableros y no uno por tablero, porque existía antes de la separación y separarlo habría borrado la puntuación de todo el que ya había jugado.",
+        },
+        {
+          q: "¿Para qué edad es?",
+          a: "El tablero infantil desde unos cinco años, si el niño reconoce números. En el juego no se lee nada. El tablero clásico entretiene a un adulto sin problema.",
+        },
+        {
+          q: "¿Recoge datos sobre mi hijo?",
+          a: "No. No hay registro ni nombre. Nada graba la sesión y nada dirige publicidad según el comportamiento. Contamos cuántas veces se ha abierto un juego, sin nada al lado que identifique a quién lo abrió.",
+        },
+      ],
+
+      keywords: ["2048", "juego de números", "puzle", "fichas", "unir", "juego gratis"],
+    },
   },
 
   provenance: [

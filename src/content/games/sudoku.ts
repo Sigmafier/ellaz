@@ -208,7 +208,7 @@ export const sudoku: GameContent = {
         },
         {
           q: "Is the sudoku free?",
-          a: "Yes. No payment and no in-game purchases. All 22 games on the site are open from the first second.",
+          a: "Yes. No payment and no in-game purchases. Every game on the site is open from the first second.",
         },
         {
           q: "How many clues does each level give you?",
@@ -241,6 +241,120 @@ export const sudoku: GameContent = {
       ],
 
       keywords: ["sudoku", "logic", "puzzle", "grid", "animals", "expert"],
+    },
+    es: {
+      metaTitle: "Sudoku gratis - de animales 4x4 a experto 9x9 | Ellaz",
+      metaDescription:
+        "Sudoku gratis en el navegador, desde un tablero de animales 4x4 para niños de cuatro años hasta el experto 9x9. Seis niveles, reloj y récord por nivel.",
+
+      lede: "Sudoku gratis en el navegador, en seis niveles. Empieza con un tablero de animales de 4x4 que termina un niño de cuatro años, y acaba en un 9x9 que os va a tener un cuarto de hora.",
+
+      body: [
+        "Una sola regla, y no cambia entre niveles. Cada fila, cada columna y cada caja llevan cada símbolo exactamente una vez. Ya está.",
+
+        "Lo que cambia es cuánto tablero viene hecho de casa. Pasamos el generador por 60 tableros de cada nivel y los contamos. En el de animales 4x4 rellenas 7 casillas de 16. En el fácil, 39 de 81. En el experto, 56. Misma regla. Ocho veces el trabajo.",
+
+        "Y entonces el experto hizo algo que no esperábamos. Le pedimos al generador que bajara hasta 24 pistas y se quedó en 24,7 de media, parándose a veces en 27, porque se niega a quitar una pista que dejaría el tablero con dos soluciones distintas. Alrededor de las 24 pistas empieza a chocar con ese muro. Los otros cinco niveles llegan a su objetivo exacto sin despeinarse. Así que el experto no es una muesca más en la misma escala: es el punto donde el sudoku empieza a defenderse.",
+
+        "Los dos tableros pequeños llevan animales en lugar de cifras, y no por hacerlos monos. Un niño de cuatro años no necesita saber qué es un 7 para ver que hay dos perros en la misma fila. Seis animales que se distinguen por forma y no solo por color, así que quien no separa colores también resuelve el tablero.",
+
+        "Hay un reloj y corre. Es el único juego donde medimos tiempo en vez de movimientos, porque en el sudoku no existe el movimiento tirado: o puedes demostrar qué va en una casilla o todavía no. El récord se guarda por nivel, porque un tablero de animales y una rejilla experta no son el mismo logro y compararlos no aporta nada.",
+      ],
+
+      howToPlay: [
+        { title: "Elige un nivel", body: "Dos filas: animales 4x4 y 6x6 arriba, y después fácil, medio, difícil y experto." },
+        { title: "Toca una casilla vacía", body: "Se selecciona. Ya está." },
+        { title: "Elige un símbolo", body: "Un animal o una cifra, según el tablero. Puedes cambiarlo las veces que quieras." },
+        { title: "Mira la fila, la columna y la caja", body: "Si ese símbolo ya está en alguna, no puede repetirse." },
+        { title: "Completa el tablero", body: "El reloj se para y se guarda el récord de ese nivel si lo has batido." },
+      ],
+
+      tips: [
+        {
+          title: "Empieza por donde hay más gente",
+          body: "Busca la fila o la caja que ya tenga más pistas puestas. Menos opciones libres significa que ahí es donde se esconde tu primer movimiento demostrable.",
+        },
+        {
+          title: "Nunca adivines",
+          body: "Un sudoku bueno siempre tiene una casilla que puedes demostrar. Si no la encuentras, no se te ha acabado la suerte: se te ha acabado el rastreo.",
+        },
+        {
+          title: "Persigue un símbolo, no una casilla",
+          body: "En vez de preguntarte qué va en esta casilla, coge un símbolo y pregúntate dónde puede caber dentro de esta caja. Casi siempre la respuesta es un único sitio.",
+        },
+        {
+          title: "¿Atascado? Cuenta",
+          body: "Cada fila lleva el mismo conjunto de símbolos. Mira cuál falta y después averigua en qué punto de la fila puede ir.",
+        },
+      ],
+
+      teaches: [
+        { title: "Deducción", body: "Cada casilla se resuelve por eliminación: por lo que no puede ir ahí. Eso es pensamiento matemático sin una sola cuenta." },
+        { title: "Trabajar con método", body: "Ir a saltos te atasca. Rastrear en orden te saca. El tablero lo enseña solo." },
+        { title: "Paciencia", body: "Aquí no hay suerte ni atajos. Solo la siguiente casilla que puedas demostrar." },
+        { title: "Reconocer patrones", body: "Después de unos cuantos tableros el ojo empieza a cazar una caja casi llena desde la otra punta." },
+      ],
+
+      ages: [
+        { title: "4 a 5", body: "El tablero de animales 4x4. Seis animales, 16 casillas, 7 para rellenar. No está mal como primer récord." },
+        { title: "6 a 8", body: "Animales 6x6 y después fácil. Aquí es donde el rastreo sustituye al adivinar." },
+        { title: "9 en adelante", body: "Medio y difícil. El tablero deja de caerse solo en una vuelta." },
+        { title: "Adultos", body: "Experto. 56 casillas por rellenar, y la regla ya os la sabéis." },
+      ],
+
+      accessibility:
+        "Un toque por acción, sin arrastrar y sin nada que mantener pulsado. En los tableros infantiles los símbolos son animales que se distinguen por forma y no solo por color, así que el daltonismo no estorba. La rejilla siempre sale cuadrada de verdad en pantalla y nunca aparece estirada, tampoco con el móvil de lado. Nada desaparece si esperas, no hay cuenta atrás y no hay pantalla roja. El reloj es una medida y no una presión: podéis parar a la mitad, pensar un minuto y volver.",
+
+      together: [
+        { title: "Quién lo ve antes", body: "Elegid un símbolo y que cada uno lo busque en su propia caja. Quien pueda demostrarlo, lo pone." },
+        {
+          title: "Que diga por qué",
+          body: "Antes de que toque una casilla, pedidle el motivo. Un niño que sabe explicar por qué tiene que ser un tres ha entendido el juego, aunque la siguiente la falle.",
+        },
+        { title: "Reloj fuera", body: "Ignoradlo y punto. No pone nota ni se acaba." },
+        { title: "Al revés", body: "Resolved un tablero juntos, tapad después dos casillas y dejad que las reponga. Es una victoria fácil con el mismo momento de entenderlo." },
+      ],
+
+      faq: [
+        {
+          q: "¿A qué edad se puede empezar a jugar al sudoku?",
+          a: "A los cuatro años, con el tablero de animales 4x4. Ahí no hay ni una cifra, así que un niño que todavía no conoce los números lo resuelve sin problema.",
+        },
+        {
+          q: "¿El sudoku es gratis?",
+          a: "Sí. Sin pagos y sin compras dentro del juego. Todos los juegos de la web están abiertos desde el primer segundo.",
+        },
+        {
+          q: "¿Cuántas pistas da cada nivel?",
+          a: "Contadas sobre 60 tableros por nivel: 9 en animales 4x4, 18 en animales 6x6, 42 en fácil, 34 en medio, 28 en difícil y unas 24,7 en experto. El experto no da exactamente 24 porque el generador se niega a bajar del punto en el que el tablero tendría más de una respuesta.",
+        },
+        {
+          q: "¿Todos los tableros tienen una única solución?",
+          a: "Siempre. El generador lo comprueba con cada pista que quita y la devuelve si el tablero fuese a quedar ambiguo. Nunca te vas a quedar teniendo que adivinar.",
+        },
+        {
+          q: "¿Hay que descargar algo o registrarse?",
+          a: "No. Funciona en el navegador, sin descarga y sin cuenta.",
+        },
+        {
+          q: "¿Cómo se mide el récord?",
+          a: "Por tiempo de resolución, donde más rápido es mejor, y por separado para cada nivel. Un tablero de animales y una rejilla experta nunca compiten entre sí.",
+        },
+        {
+          q: "¿Se puede jugar sin conexión?",
+          a: "Sí. Después de una visita queda todo guardado en el aparato, generador incluido, así que siguen apareciendo tableros nuevos sin cobertura.",
+        },
+        {
+          q: "¿Tiene anuncios?",
+          a: "Ninguno. Ni banners ni nada que se ponga entre nivel y nivel.",
+        },
+        {
+          q: "¿Qué pasa si me equivoco en una casilla?",
+          a: "Cambias el símbolo las veces que haga falta. No hay penalización, no baja ninguna puntuación y nadie lleva la cuenta de los fallos.",
+        },
+      ],
+
+      keywords: ["sudoku", "lógica", "pasatiempo", "rejilla", "animales", "experto"],
     },
   },
 

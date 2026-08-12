@@ -72,11 +72,11 @@ export type BalloonColor = Record<Locale, string> & {
  * the marks start doing real work.
  */
 export const BALLOON_COLORS: readonly BalloonColor[] = [
-  { id: "red", hex: "#ff5a5f", cue: "star", he: "אדומים", en: "red" },
-  { id: "blue", hex: "#49a9ff", cue: "dots", he: "כחולים", en: "blue" },
-  { id: "yellow", hex: "#ffd23f", cue: "stripes", he: "צהובים", en: "yellow" },
-  { id: "green", hex: "#3fd67a", cue: "heart", he: "ירוקים", en: "green" },
-  { id: "purple", hex: "#b06bff", cue: "zigzag", he: "סגולים", en: "purple" },
+  { id: "red", hex: "#ff5a5f", cue: "star", he: "אדומים", en: "red", es: "rojo" },
+  { id: "blue", hex: "#49a9ff", cue: "dots", he: "כחולים", en: "blue", es: "azul" },
+  { id: "yellow", hex: "#ffd23f", cue: "stripes", he: "צהובים", en: "yellow", es: "amarillo" },
+  { id: "green", hex: "#3fd67a", cue: "heart", he: "ירוקים", en: "green", es: "verde" },
+  { id: "purple", hex: "#b06bff", cue: "zigzag", he: "סגולים", en: "purple", es: "morado" },
 ];
 
 /** How many colours share the screen. More colours = a harder discrimination. */

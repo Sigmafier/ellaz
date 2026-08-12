@@ -21,9 +21,9 @@ import {
 } from "./logic";
 
 const LEVEL_OPTIONS: ChromeLevel<LevelKey>[] = [
-  { id: "easy", label: { he: "רגוע", en: "Calm" } },
-  { id: "normal", label: { he: "רגיל", en: "Normal" } },
-  { id: "hard", label: { he: "מהיר", en: "Fast" } },
+  { id: "easy", label: { he: "רגוע", en: "Calm", es: "Tranquilo" } },
+  { id: "normal", label: { he: "רגיל", en: "Normal", es: "Normal" } },
+  { id: "hard", label: { he: "מהיר", en: "Fast", es: "Rápido" } },
 ];
 
 const LEVEL_TIER: Record<LevelKey, RewardTier> = {
@@ -434,6 +434,7 @@ export function BlocksGame({ ctx }: { ctx: GameContext }) {
     {
       he: { rows: "שורות", left: "שמאלה", rotate: "סובב", right: "ימינה", down: "למטה", drop: "הפל", next: "הבא" },
       en: { rows: "Rows", left: "Left", rotate: "Rotate", right: "Right", down: "Down", drop: "Drop", next: "Next" },
+      es: { rows: "Filas", left: "Izquierda", rotate: "Girar", right: "Derecha", down: "Abajo", drop: "Soltar", next: "Siguiente" },
     },
     ctx.locale,
   );
