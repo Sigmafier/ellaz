@@ -290,7 +290,15 @@ function checkBundle(dir, problems) {
     if (!stamped) {
       problems.push(`${label}/index.html — no build stamp; a stale upload on itch is invisible from here without one`);
     } else if (stamped[1] !== buildStamp()) {
-      problems.push(`${label}/index.html — stamped ${stamped[1].slice(0, 16)} but the tree is ${buildStamp().slice(0, 16)}; rebuild before uploading`);
+      // Print both IN FULL. These were truncated to 16 chars until 2026-08-12, and
+      // buildStamp() discriminates a dirty tree by appending "-dirty" at char 41 - so
+      // the one thing that differed was the one thing the message could not show. It
+      // read "stamped 13840666dff557ae but the tree is 13840666dff557ae; rebuild",
+      // which is a correct refusal wearing a self-contradicting sentence. Trigger was
+      // "build, then edit any file". A gate that reads as broken gets bypassed, and a
+      // bypassed stamp check is how a stale bundle reaches itch - the exact thing the
+      // stamp exists to prevent.
+      problems.push(`${label}/index.html — stamped ${stamped[1]} but the tree is ${buildStamp()}; rebuild before uploading`);
     }
   }
 }
