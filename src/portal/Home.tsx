@@ -173,7 +173,17 @@ export function Home({
               alignItems: "center",
               gap: 8,
               rowGap: 8,
-              flex: "0 0 auto",
+              // `0 1 auto` with `minWidth: 0`, and the SHRINK half is
+              // load-bearing rather than defensive. At `0 0 auto` this group
+              // keeps its max-content width - 431px in Indonesian once the
+              // autonym is back - so it never gets squeezed, so its own
+              // `flexWrap` above never fires, so it overflows instead of
+              // wrapping. Measured at exactly 430px, the width where the label
+              // returns: 21px of sideways travel and three controls outside the
+              // viewport, i.e. the original bug reproduced in a 1px-wide band.
+              // A wrap that cannot be reached is not a wrap.
+              flex: "0 1 auto",
+              minWidth: 0,
               marginInlineStart: "auto",
             }}
           >

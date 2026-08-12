@@ -307,7 +307,16 @@ body.app-shell h3,
  * which is what keeps it honest when a twelfth language arrives with a longer
  * autonym - see
  * .claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md. The header
- * wraps regardless, so being wrong here costs a second row, never an overflow. */
+ * wraps regardless, so being wrong here costs a second row, never an overflow.
+ *
+ * THE SECOND ROW IS REAL AND IS THE ACCEPTED COST. Swept 320-1280px in
+ * Indonesian, the longest autonym: 430-479px puts the four controls on two rows
+ * (header 187px tall rather than 131), and 480px up is one row again. Nothing
+ * overflows anywhere in that band. Moving this to 480 would remove it today and
+ * would be a fit calculation against the longest string currently in the pool -
+ * a number that goes stale the moment a twelfth language lands, for a band of
+ * widths almost nobody holds. 430 is a fact about phones instead, and it keeps
+ * being one. */
 .ellaz-lang-label {
   display: none;
 }

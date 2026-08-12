@@ -46,6 +46,15 @@ function headerStyle(): string {
   return HEADER.slice(open, end);
 }
 
+/** The wrapper holding the four controls, from its opening tag to the picker inside it. */
+function controlGroup(): string {
+  const wallet = HEADER.indexOf("<WalletChip />");
+  const picker = HEADER.indexOf("<LanguagePicker");
+  expect(wallet, "Home.tsx no longer renders <WalletChip />").toBeGreaterThan(-1);
+  expect(picker, "<LanguagePicker> must sit after <WalletChip />").toBeGreaterThan(wallet);
+  return HEADER.slice(HEADER.lastIndexOf("<div", wallet), picker);
+}
+
 describe("the home header", () => {
   it("wraps, because its width grows with the language list", () => {
     expect(headerStyle()).toMatch(/flexWrap:\s*"wrap"/);
@@ -69,13 +78,19 @@ describe("the home header", () => {
   it("keeps the four controls in one group that wraps as a unit", () => {
     // Without the wrapper the row wraps one control at a time and a phone gets
     // the language pill alone on a second line under its three siblings.
-    const wallet = HEADER.indexOf("<WalletChip />");
-    const picker = HEADER.indexOf("<LanguagePicker");
-    expect(wallet).toBeGreaterThan(-1);
-    expect(picker).toBeGreaterThan(wallet);
-    const group = HEADER.slice(HEADER.lastIndexOf("<div", wallet), picker);
-    expect(group).toMatch(/flexWrap:\s*"wrap"/);
-    expect(group).toMatch(/marginInlineStart:\s*"auto"/);
+    expect(controlGroup()).toMatch(/flexWrap:\s*"wrap"/);
+    expect(controlGroup()).toMatch(/marginInlineStart:\s*"auto"/);
+  });
+
+  it("lets that group SHRINK, or its own wrap can never fire", () => {
+    // The subtle half, and it shipped wrong first. At `flex: 0 0 auto` the
+    // group keeps its max-content width - 431px in Indonesian with the autonym
+    // shown - so it is never squeezed, so the flexWrap above is unreachable and
+    // it overflows instead. Measured at exactly 430px, the width where the
+    // label returns: 21px of sideways travel and three controls outside the
+    // viewport. The original bug, reproduced in a 1px band.
+    expect(controlGroup()).toMatch(/flex:\s*"0 1 auto"/);
+    expect(controlGroup()).toMatch(/minWidth:\s*0/);
   });
 });
 
