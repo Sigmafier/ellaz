@@ -208,8 +208,73 @@ export function robotsBlocksEverything(txt) {
   return false;
 }
 
-async function get(url) {
-  const res = await fetch(url, { headers: { "User-Agent": UA }, redirect: "follow" });
+/**
+ * Every crawler `robots.txt` NAMES and does not disallow.
+ *
+ * The list is parsed out of the SERVED robots.txt rather than kept here, and
+ * that is the whole design. `src/build/siteFiles.ts` already decides which bots
+ * we welcome; a second copy in this file would drift, and would drift SILENTLY,
+ * because both halves would go on passing their own assertions. Reading the
+ * live file means the gate asks exactly one question:
+ *
+ *     does the server serve what our own robots.txt promises?
+ *
+ * A bot under `Disallow: /` is deliberately excluded - we are telling it to go
+ * away, so a refusal is agreement, not a defect. `*` is excluded because
+ * `robotsBlocksEverything` already owns that group.
+ *
+ * A bot NOT named at all is also not checked, and that is correct rather than a
+ * gap: we made it no promise, so there is no contradiction to detect.
+ */
+export function allowedBots(txt) {
+  const groups = [];
+  let group = null;
+  // Consecutive `User-agent:` lines share one group of rules, per the spec, so
+  // a rule line is what ends the run of names - the NEXT name then opens a new
+  // group. Tracking that with a flag is the whole parser.
+  let inRules = false;
+  for (const raw of txt.split(/\r?\n/)) {
+    const line = raw.replace(/#.*$/, "").trim();
+    if (!line) continue;
+    const ua = line.match(/^user-agent:\s*(.+)$/i);
+    if (ua) {
+      if (!group || inRules) groups.push((group = { agents: [], blocked: false }));
+      inRules = false;
+      group.agents.push(ua[1].trim());
+      continue;
+    }
+    inRules = true;
+    const dis = line.match(/^disallow:\s*(.*)$/i);
+    if (dis && group && dis[1].trim() === "/") group.blocked = true;
+  }
+  const out = [];
+  for (const g of groups) {
+    if (g.blocked) continue;
+    for (const a of g.agents) if (a !== "*" && !out.includes(a)) out.push(a);
+  }
+  return out;
+}
+
+/**
+ * A crawler-shaped user agent carrying `token`.
+ *
+ * MEASURED, not assumed, and the measurement changed the design. Sending the
+ * bare token as the whole user agent - the obvious first move - returns 200 for
+ * a bot the server actually refuses:
+ *
+ *     UA "GPTBot"                                        -> 200
+ *     UA "Mozilla/5.0 (compatible; GPTBot/1.0; +...)"    -> 429
+ *
+ * So a gate built on the bare token would have reported green over the exact
+ * defect it was written for. Whatever does the refusing is matching a real
+ * crawler's shape, so the probe has to send one.
+ */
+export function botUserAgent(token) {
+  return `Mozilla/5.0 (compatible; ${token}/1.0; +ellaz-crawlability-check)`;
+}
+
+async function get(url, ua = UA) {
+  const res = await fetch(url, { headers: { "User-Agent": ua }, redirect: "follow" });
   return { status: res.status, body: await res.text() };
 }
 
@@ -343,6 +408,71 @@ async function main() {
     }
   }
 
+  // --- the named crawlers ---------------------------------------------------
+  // Everything above walks as GOOGLEBOT, and is therefore structurally incapable
+  // of seeing a block keyed on a DIFFERENT user agent. Measured 2026-08-13: this
+  // script was green while GPTBot received HTTP 429 on every HTML page on the
+  // site, and had been for at least two days. Not a subtle case - every page,
+  // every time - and the one gate that reads the network could not express it.
+  //
+  // ONE URL PER BOT, deliberately. The sitemap walk above is already the burst
+  // test (the challenge documented in
+  // `.claude/rules/a-bot-challenge-at-the-edge-is-invisible-from-your-browser.md`
+  // arms on a RUN of requests from one IP, ~40 in two minutes), so sweeping N
+  // bots across N URLs would multiply the request count by the number of bots
+  // and re-arm the exact rule this file exists to detect. A per-UA block has
+  // never once been per-URL - it is the name that is refused - so the second URL
+  // buys nothing and costs the primary check its conditions.
+  //
+  // The home page, because it is HTML: `sitemap.xml` and `llms.txt` returned 200
+  // for the blocked agents while every document 429'd, so a check pointed at the
+  // sitemap would have been green too.
+  //
+  // ADVISORY BY DEFAULT, for the same reason the content floor is, and this is
+  // the case that rule was written about rather than a hypothetical: two agents
+  // are refused RIGHT NOW by a vendor setting nobody here can change today.
+  // Failing on day one would red the daily email every morning for something the
+  // reader cannot fix, which is precisely how a daily email stops being read.
+  // ARM with `CRAWL_BOT_ACCESS=1` once the server and robots.txt agree.
+  const bots = allowedBots(robots.body);
+  if (bots.length === 0) {
+    // Zero named bots satisfies the loop below forever - the same empty-
+    // population trap the sitemap check refuses two screens up.
+    console.log("\nbots:    robots.txt names no specific crawlers, so none were checked");
+  } else {
+    const refused = [];
+    for (const bot of bots) {
+      let res;
+      try {
+        res = await get(`${ORIGIN}/`, botUserAgent(bot));
+      } catch {
+        try {
+          res = await get(`${ORIGIN}/`, botUserAgent(bot));
+        } catch (err) {
+          refused.push({ bot, why: `request failed twice: ${err.message}` });
+          continue;
+        }
+      }
+      // Body before status, same order and same reason as the walk: a challenge
+      // served with 200 is green to a status check and empty to the crawler.
+      if (looksLikeChallenge(res.body)) refused.push({ bot, why: `a bot challenge (HTTP ${res.status})` });
+      else if (res.status !== 200) refused.push({ bot, why: `HTTP ${res.status}` });
+    }
+    if (refused.length === 0) {
+      console.log(`bots:    all ${bots.length} crawlers named in robots.txt are served`);
+    } else {
+      const lines = refused.map((r) => `    ${r.bot} — ${r.why}`).join("\n");
+      const headline =
+        `${refused.length} of ${bots.length} crawlers are REFUSED BY THE SERVER while ` +
+        `robots.txt grants them access. The file promises what the host will not serve:`;
+      const where =
+        "  Not fixable in this repo - robots.txt is emitted and already correct. " +
+        "Either the host stops refusing them, or robots.txt stops promising it.";
+      if (process.env.CRAWL_BOT_ACCESS === "1") fail(`${headline}\n${lines}\n${where}`);
+      else console.log(`\nADVISORY  ${headline}\n${lines}\n${where}\n  (not failing: CRAWL_BOT_ACCESS is unset)`);
+    }
+  }
+
   // --- negative controls ----------------------------------------------------
   // Every check above can only be trusted if it is capable of firing. These
   // run the SAME functions over planted input.
@@ -355,6 +485,68 @@ async function main() {
     ["robots blocking everything", () => robotsBlocksEverything("User-agent: *\nDisallow: /")],
     ["robots allowing everything", () => !robotsBlocksEverything("User-agent: *\nAllow: /")],
     ["a named-bot block is not an outage", () => !robotsBlocksEverything("User-agent: BadBot\nDisallow: /")],
+
+    // --- the named-crawler list ----------------------------------------------
+    // The first is this site's actual robots.txt shape. It is the control that
+    // matters, because every assertion below it is void if the parser returns an
+    // empty list against the real file - and an empty list passes the whole bot
+    // check silently, which is the zero-population trap.
+    [
+      "the real robots.txt shape yields its named bots",
+      () => {
+        const got = allowedBots(
+          "# a comment\nUser-agent: *\nAllow: /\n\n" +
+            "# Answer engines that cite their sources.\n" +
+            "User-agent: OAI-SearchBot\nAllow: /\n\n" +
+            "User-agent: PerplexityBot\nAllow: /\n\n" +
+            "Sitemap: https://ellaz.fun/sitemap.xml\n",
+        );
+        return got.length === 2 && got[0] === "OAI-SearchBot" && got[1] === "PerplexityBot";
+      },
+    ],
+    ["'*' is not a named bot - robotsBlocksEverything owns that group", () => !allowedBots("User-agent: *\nAllow: /").includes("*")],
+    // An INLINE comment, which is the only shape the comment strip actually
+    // guards. A whole-line `#` comment is already handled by "not a User-agent
+    // line, not a Disallow line" - so the strip survived a mutation against the
+    // real-file fixture, and the honest reading was that the fixture could not
+    // reach it rather than that the line was dead. Without the strip the agent
+    // name becomes "GPTBot # training", which matches no server rule and would
+    // send a nonsense probe that quietly passes.
+    [
+      "an inline comment is not part of the bot's name",
+      () => {
+        const got = allowedBots("User-agent: GPTBot # training crawler\nAllow: /");
+        return got.length === 1 && got[0] === "GPTBot";
+      },
+    ],
+    ["a bot we DISALLOW is not expected to be served", () => allowedBots("User-agent: BadBot\nDisallow: /").length === 0],
+    // Consecutive agent lines share one group of rules, per the spec. Get this
+    // wrong and a `Disallow: /` covering three bots is read as covering one, so
+    // the gate demands the server honour two bots we deliberately turned away -
+    // a permanent false red on the daily email.
+    [
+      "consecutive agent lines share the group's rules",
+      () => allowedBots("User-agent: A\nUser-agent: B\nDisallow: /").length === 0,
+    ],
+    [
+      "...and a rule line ends the run of names",
+      () => {
+        const got = allowedBots("User-agent: A\nAllow: /\nUser-agent: B\nDisallow: /");
+        return got.length === 1 && got[0] === "A";
+      },
+    ],
+    // The trap that would have made the whole bot check vacuous, pinned.
+    // MEASURED on the live site: UA "GPTBot" returns 200 from a server that
+    // returns 429 for "Mozilla/5.0 (compatible; GPTBot/1.0; +...)". The probe
+    // must send a crawler SHAPE, not just the name, or it reports green over the
+    // exact defect it was written for.
+    [
+      "the bot probe sends a crawler shape, not a bare token",
+      () => {
+        const ua = botUserAgent("GPTBot");
+        return ua.includes("GPTBot") && ua !== "GPTBot" && /mozilla.*compatible/i.test(ua);
+      },
+    ],
 
     // --- the content floor, planted five ways --------------------------------
     // The first is the real thing: the shape ellaz.fun/ served on 2026-08-11,

@@ -160,10 +160,28 @@ Verify by `curl`ing as Googlebot, never in a browser:
 **`npm run assert:crawlable` is the only gate here that reads the NETWORK** rather
 than `dist/`, which is precisely why it exists — a 403 to every crawler passed every
 other check in this repo. It fetches robots.txt and the sitemap as Googlebot and then
-walks all 52 URLs; that walk IS the burst test, since the challenge arms on a run of
+walks all 78 URLs; that walk IS the burst test, since the challenge arms on a run of
 requests rather than the first one. It checks the BODY as well as the status, because
 a challenge can be served with 200. `.github/workflows/crawlable.yml` runs it daily
 and a red run emails the owner. Node built-ins only, so it needs no `npm ci`.
+
+**And it walks as every crawler robots.txt NAMES, not only as Googlebot** — because
+walking as one agent is structurally incapable of seeing a block keyed on another.
+Measured 2026-08-13: this gate was green while **GPTBot received HTTP 429 on every
+HTML page**, from Hostinger's own server, contradicting the `Allow: /` our emitted
+robots.txt grants it. `sitemap.xml` and `llms.txt` returned 200 for it throughout, so
+a check pointed at either would also have been green. Every citation crawler
+(OAI-SearchBot, ClaudeBot, Claude-SearchBot, PerplexityBot) is served, so ChatGPT,
+Claude and Perplexity citations are unaffected; the two refused agents are *training*
+crawlers. **The bot list is parsed out of the SERVED robots.txt** rather than kept in
+the script, so there is exactly one list and the gate asks only "does the server serve
+what our own file promises". **One URL per bot**, since the 78-URL walk is already the
+burst and a per-UA block has never been per-URL. **The probe must send a crawler
+SHAPE**: measured, the bare token `GPTBot` gets 200 from the same server that 429s
+`Mozilla/5.0 (compatible; GPTBot/1.0; …)`, so a gate built on the token alone reports
+green over the defect it exists for. Advisory until `CRAWL_BOT_ACCESS=1`, for the same
+reason the content floor is — a known offender is live and nobody here can fix a
+vendor setting today.
 
 **It also reads HOW MUCH BODY, because a 200 carrying the whole correct document
 and no content is the third shape of this failure and the one a status check can
