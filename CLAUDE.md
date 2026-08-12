@@ -786,6 +786,25 @@ attached. Full rule, including the case-sensitivity trap that passes on `/mnt/c`
 404s on their CDN:
 [`.claude/rules/a-second-published-artifact-needs-its-own-gate.md`](.claude/rules/a-second-published-artifact-needs-its-own-gate.md).
 
+**The gate's own stamp message was wrong for a day, and the shape is worth keeping.**
+It compared the build stamp in full and printed `.slice(0, 16)` of each side, while
+`buildStamp()` marks a dirty tree by appending `-dirty` at character 41 — so the only
+thing that differed was the only thing 16 characters could not show. It read
+*"stamped 13840666dff557ae but the tree is 13840666dff557ae; rebuild"*: a correct
+refusal wearing a self-contradicting sentence, triggered by **build, then edit any
+file**. Fixed to print both in full. It matters because a gate that reads as broken
+gets bypassed, and a bypassed stamp check is how a stale bundle reaches itch — the
+exact outcome the stamp exists to prevent. Two more instruments in this repo failed the
+same way in two days, one of them the check verifying this very fix:
+[`.claude/rules/a-diagnostic-that-truncates-what-it-compares.md`](.claude/rules/a-diagnostic-that-truncates-what-it-compares.md).
+
+Two things the gate is known to do that are easy to forget: it refuses a **torn** bundle
+(`1 html, 0 js` — the shape a killed upload leaves), and the standalone build **requires
+a git repository**. Outside one it fails with a message about *webfonts*, because the
+commit-stamp step shells out to git and a later step reports the CSS that was never
+written. Both deploy workflows always have git, so this is a trap for a source unpack
+rather than a live defect.
+
 ## Two locale sets, and the narrow one is a type
 
 `src/i18n/locales.ts` holds both, and the difference between them is the whole
