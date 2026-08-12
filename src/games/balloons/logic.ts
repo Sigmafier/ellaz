@@ -1,3 +1,4 @@
+import type { Locale } from "@i18n/index";
 // Pop the Balloons ("פוצצו בלונים") — PURE logic. No DOM, no React, no Phaser.
 //
 // COLOUR IS THE WHOLE MECHANIC. A prompt names one colour, balloons of every
@@ -43,15 +44,22 @@ export type ColorId = "red" | "blue" | "green" | "yellow" | "purple";
  */
 export type CueId = "star" | "dots" | "stripes" | "heart" | "zigzag";
 
-export interface BalloonColor {
+/**
+ * A colour, plus its name in every language somebody has written prose in.
+ *
+ * The name is a locale RECORD rather than two fields called `he` and `en`,
+ * which is the whole difference between a table that refuses to compile when a
+ * language is promoted and one that quietly keeps answering in English. Note
+ * the Hebrew is a PLURAL adjective — the prompt reads "פוצצו בלונים אדומים" —
+ * so a new language supplies whatever form its own sentence needs, not a
+ * translation of the English singular.
+ */
+export type BalloonColor = Record<Locale, string> & {
   id: ColorId;
   /** Body fill. Chosen bright, since the app renders on a near-black surface. */
   hex: string;
   cue: CueId;
-  /** Hebrew PLURAL adjective — the prompt reads "פוצצו בלונים אדומים". */
-  he: string;
-  en: string;
-}
+};
 
 /**
  * The palette, in ladder order: the first three are the easy round, and each

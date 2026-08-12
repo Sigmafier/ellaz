@@ -1,3 +1,4 @@
+import { textFor, type Locale } from "@i18n/index";
 import {
   useEffect,
   useRef,
@@ -60,10 +61,14 @@ const DIFF_OPTIONS: DifficultyOption<Difficulty>[] = [
  * exposes "3 of 4": two bubbles carrying different characters are still only
  * tellable apart by where they are while they rise.
  */
-function bubbleLabel(char: string, lane: number, he: boolean): string {
-  return he
-    ? `בועה עם ${char}, מסלול ${lane + 1} מתוך ${LANES}`
-    : `bubble with ${char}, lane ${lane + 1} of ${LANES}`;
+function bubbleLabel(char: string, lane: number, locale: Locale): string {
+  return textFor(
+    {
+      he: () => `בועה עם ${char}, מסלול ${lane + 1} מתוך ${LANES}`,
+      en: () => `bubble with ${char}, lane ${lane + 1} of ${LANES}`,
+    },
+    locale,
+  )();
 }
 
 /** Is the keyboard currently sitting on the button for this prop? */
@@ -139,7 +144,16 @@ function Bubble({ char }: { char: string }) {
 }
 
 export function BubblesGame({ ctx }: { ctx: GameContext }) {
-  const he = ctx.locale === "he";
+  // This game's own words. A locale RECORD, so promoting a language reds
+  // this block by name instead of leaving the game speaking English
+  // inside a page that is not.
+  const T = textFor(
+    {
+      he: { caught: "נתפסו", verb: "תפסו", ask: (x: string) => `תפסו את ${x}` },
+      en: { caught: "Caught", verb: "Catch", ask: (x: string) => `Catch the ${x}` },
+    },
+    ctx.locale,
+  );
   const [difficulty, setDifficulty] = useRememberedLevel(
     ctx,
     DIFF_OPTIONS.map((o) => o.id),
@@ -317,8 +331,8 @@ export function BubblesGame({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "layers", label: he ? "שלב" : "Level", value: level },
-        { icon: "check", label: he ? "נתפסו" : "Caught", value: `${round.caught}/${round.needed}`, ltr: true },
+        { icon: "layers", label: ctx.t("stage"), value: level },
+        { icon: "check", label: T.caught, value: `${round.caught}/${round.needed}`, ltr: true },
         { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
       ]}
       levels={DIFF_OPTIONS}
@@ -345,7 +359,7 @@ export function BubblesGame({ ctx }: { ctx: GameContext }) {
           }}
         >
           <span style={{ fontSize: 12, fontWeight: 800, color: "var(--text-dim)" }}>
-            {he ? "תפסו" : "Catch"}
+            {T.verb}
           </span>
           <span style={{ fontSize: 46, lineHeight: 1, fontFamily: "Fredoka, inherit", fontWeight: 700 }}>
             {round.target}
@@ -363,7 +377,7 @@ export function BubblesGame({ ctx }: { ctx: GameContext }) {
       <Prompt
         ctx={ctx}
         glyph="🫧"
-        text={he ? `תפסו את ${round.target}` : `Catch the ${round.target}`}
+        text={T.ask(round.target)}
         speak={round.target}
       />
 
@@ -402,7 +416,7 @@ export function BubblesGame({ ctx }: { ctx: GameContext }) {
             type="button"
             ref={(el) => spawner.attach(p, el)}
             data-prop-id={p.id}
-            aria-label={bubbleLabel(p.kind, p.lane, he)}
+            aria-label={bubbleLabel(p.kind, p.lane, ctx.locale)}
             onKeyDown={(e) => onKeyDown(e, p)}
             style={{
               position: "absolute",

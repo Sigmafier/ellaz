@@ -1,3 +1,4 @@
+import { textFor } from "@i18n/index";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GameContext, SessionSpec } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
@@ -111,7 +112,16 @@ function lengthOf(id: LevelId): WordLength {
 }
 
 export function WordGuess({ ctx }: { ctx: GameContext }) {
-  const he = ctx.locale === "he";
+  // This game's own words. A locale RECORD, so promoting a language reds
+  // this block by name instead of leaving the game speaking English
+  // inside a page that is not.
+  const T = textFor(
+    {
+      he: { streak: "רצף", tries: "ניחושים", wasWord: "המילה הייתה", nextWord: "מילה הבאה" },
+      en: { streak: "Streak", tries: "Tries", wasWord: "The word was", nextWord: "Next word" },
+    },
+    ctx.locale,
+  );
   const restored = useMemo(() => ctx.session.load(SESSION), [ctx]);
   const [levelId, setLevelId] = useRememberedLevel(
     ctx,
@@ -287,11 +297,11 @@ export function WordGuess({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "trophy", label: he ? "רצף" : "Streak", value: streak },
+        { icon: "trophy", label: T.streak, value: streak },
         { icon: "star", label: ctx.t("best"), value: best ?? "-" },
         {
           icon: "moves",
-          label: he ? "ניחושים" : "Tries",
+          label: T.tries,
           value: `${Math.min(state.guesses.length, MAX_GUESSES)}/${MAX_GUESSES}`,
           ltr: true,
         },
@@ -316,15 +326,15 @@ export function WordGuess({ ctx }: { ctx: GameContext }) {
             }}
           >
             <span style={{ fontSize: 15, fontWeight: 800 }}>
-              {state.solved ? ctx.t("youWon") : he ? "המילה הייתה" : "The word was"}
+              {state.solved ? ctx.t("youWon") : T.wasWord}
             </span>
             {!state.solved && (
-              <span dir={he ? "rtl" : "ltr"} style={{ fontSize: 20, fontWeight: 900 }}>
+              <span dir={ctx.dir} style={{ fontSize: 20, fontWeight: 900 }}>
                 {answer}
               </span>
             )}
             <span style={{ fontSize: 15, fontWeight: 800, opacity: 0.85 }}>
-              · {he ? "מילה הבאה" : "Next word"}
+              · {T.nextWord}
             </span>
           </button>
         ) : (
@@ -338,7 +348,7 @@ export function WordGuess({ ctx }: { ctx: GameContext }) {
         // directions cannot invert, but these tiles are a WORD, and a Hebrew
         // word reads right to left. Pinning this one would spell every answer
         // backwards — the exact bug that rule exists to prevent, mirrored.
-        dir={he ? "rtl" : "ltr"}
+        dir={ctx.dir}
         style={{ display: "grid", gap: 6, width: `min(92vw, 52vh, ${length * 72}px)` }}
       >
         {rows.map((row, r) => (
@@ -378,7 +388,10 @@ function Keyboard({
   onEnter: () => void;
   onBack: () => void;
 }) {
-  const he = ctx.locale === "he";
+  const K = textFor(
+    { he: { del: "מחיקה", check: "בדיקה" }, en: { del: "delete", check: "Check" } },
+    ctx.locale,
+  );
   const keys = keysFor(ctx.locale);
   const big = {
     flex: "1 1 auto", minWidth: 74, minHeight: 44, border: "none",
@@ -387,7 +400,7 @@ function Keyboard({
   } as const;
   return (
     <div
-      dir={he ? "rtl" : "ltr"}
+      dir={ctx.dir}
       // WRAPS, because the key count is fixed by the ALPHABET and not by this
       // layout: 22 in Hebrew, 26 in English, and a non-wrapping row of 26 is
       // ~900px inside a 390px phone with the frame's own overflow hidden — the
@@ -414,11 +427,11 @@ function Keyboard({
           </button>
         );
       })}
-      <button type="button" onClick={onBack} style={big} aria-label={he ? "מחיקה" : "delete"}>
+      <button type="button" onClick={onBack} style={big} aria-label={K.del}>
         ⌫
       </button>
       <button type="button" onClick={onEnter} style={{ ...big, background: "var(--brand-fill)", color: "#fff" }}>
-        {he ? "בדיקה" : "Check"}
+        {K.check}
       </button>
     </div>
   );

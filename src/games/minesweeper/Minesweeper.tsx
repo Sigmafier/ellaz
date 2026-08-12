@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { textFor } from "@i18n/index";
 import { formatScore, type GameContext, type SessionSpec } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
 import { type DifficultyOption } from "@ui/DifficultySelector";
@@ -180,12 +181,33 @@ export function Minesweeper({ ctx }: { ctx: GameContext }) {
     return cell.adj > 0 ? String(cell.adj) : "";
   };
 
-  const he = ctx.locale === "he";
+  // This game's own words. A locale RECORD, so promoting a language reds
+  // this block by name instead of leaving the game speaking English
+  // inside a page that is not.
+  const T = textFor(
+    {
+      he: {
+        flags: "דגלים",
+        flagMode: "מצב דגל 🚩",
+        revealMode: "מצב חשיפה",
+        flagHint: "הקישו לסמן · לחצו כאן לחזרה לחשיפה",
+        revealHint: "הקישו לחשוף · לחצו כאן לסימון דגלים",
+      },
+      en: {
+        flags: "Flags",
+        flagMode: "Flag mode 🚩",
+        revealMode: "Reveal mode",
+        flagHint: "Tap to mark · press here to go back to revealing",
+        revealHint: "Tap to reveal · press here to place flags",
+      },
+    },
+    ctx.locale,
+  );
   return (
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "flag", label: he ? "דגלים" : "Flags", value: state.flagsLeft },
+        { icon: "flag", label: T.flags, value: state.flagsLeft },
         // A clock reads right-to-left in Hebrew and "1:30" becomes "30:1".
         { icon: "clock", label: ctx.t("time"), value: formatScore(timer.elapsedMs, "ms"), ltr: true },
         { icon: "trophy", label: ctx.t("best"), value: best === undefined ? "-" : formatScore(best, "ms"), ltr: true },
@@ -228,21 +250,11 @@ export function Minesweeper({ ctx }: { ctx: GameContext }) {
               : state.won
                 ? ctx.t("youWon")
                 : flagMode
-                  ? he
-                    ? "מצב דגל 🚩"
-                    : "Flag mode 🚩"
-                  : he
-                    ? "מצב חשיפה"
-                    : "Reveal mode"}
+                  ? T.flagMode
+                  : T.revealMode}
           </span>
           <span style={{ fontSize: 13, opacity: 0.85 }}>
-            {flagMode
-              ? he
-                ? "הקישו לסמן · לחצו כאן לחזרה לחשיפה"
-                : "Tap to mark · press here to go back to revealing"
-              : he
-                ? "הקישו לחשוף · לחצו כאן לסימון דגלים"
-                : "Tap to reveal · press here to place flags"}
+            {flagMode ? T.flagHint : T.revealHint}
           </span>
         </button>
       }

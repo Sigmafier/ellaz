@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import type { GameContext, RewardTier, SessionSpec } from "@sdk/index";
-import type { Locale } from "@i18n/index";
+import { textFor, type Locale } from "@i18n/index";
 import { Button } from "@ui/components";
 import { GameChrome } from "@ui/GameChrome";
 import { type DifficultyOption } from "@ui/DifficultySelector";
@@ -306,7 +306,16 @@ export function Game2048({ ctx, skin }: { ctx: GameContext; skin?: TileSkin }) {
   // of animals, and "512" is the implementation detail under that.
   const topTile = Math.max(...grid.flat());
   const topPaint = topTile > 0 && skin ? skin.tile(topTile) : null;
-  const he = ctx.locale === "he";
+  // This game's own words. A locale RECORD, so promoting a language reds
+  // this block by name instead of leaving the game speaking English
+  // inside a page that is not.
+  const T = textFor(
+    {
+      he: { highest: "הכי גבוה", hint: "החליקו או חצים" },
+      en: { highest: "Highest", hint: "Swipe or arrow keys" },
+    },
+    ctx.locale,
+  );
   return (
     <GameChrome
       ctx={ctx}
@@ -314,7 +323,7 @@ export function Game2048({ ctx, skin }: { ctx: GameContext; skin?: TileSkin }) {
         { icon: "bolt", label: ctx.t("score"), value: score },
         {
           icon: "layers",
-          label: he ? "הכי גבוה" : "Highest",
+          label: T.highest,
           value: topPaint ? topPaint.glyph : topTile,
           ltr: true,
         },
@@ -339,7 +348,7 @@ export function Game2048({ ctx, skin }: { ctx: GameContext; skin?: TileSkin }) {
           }}
         >
           <b style={{ fontSize: 17, fontFamily: "Fredoka, inherit" }}>
-            {won ? ctx.t("youWon") : over ? ctx.t("gameOver") : he ? "החליקו או חצים" : "Swipe or arrow keys"}
+            {won ? ctx.t("youWon") : over ? ctx.t("gameOver") : T.hint}
           </b>
         </div>
       }

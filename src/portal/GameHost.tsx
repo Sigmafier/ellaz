@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { makeT, type Locale } from "@i18n/index";
+import { backArrow, makeT, type Locale } from "@i18n/index";
 import { createHostControls, audioPort, wallet } from "@sdk/index";
 import { Button, IconButton } from "@ui/components";
 import { findEntry } from "./catalog";
@@ -121,7 +121,7 @@ export function GameHost({
       >
         {!onPage && (
           <IconButton ariaLabel="back" onClick={onExit}>
-            {locale === "he" ? "→" : "←"}
+            {backArrow(locale)}
           </IconButton>
         )}
         <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
@@ -216,7 +216,7 @@ export function GameHost({
               <Button onClick={() => window.location.reload()}>{t("tryAgain")}</Button>
             )}
             <IconButton ariaLabel={t("back")} onClick={onExit}>
-              {locale === "he" ? "→" : "←"}
+              {backArrow(locale)}
             </IconButton>
           </div>
         </div>

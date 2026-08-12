@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { textFor, type Locale } from "@i18n/index";
 import type { GameContext } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
 import { type DifficultyOption } from "@ui/DifficultySelector";
@@ -27,7 +28,7 @@ const LEVEL_OPTIONS: DifficultyOption<MathLevel>[] = [
 ];
 
 // Bottom-of-screen hint, per mode.
-const HINTS: Record<Problem["mode"], { he: string; en: string }> = {
+const HINTS: Record<Problem["mode"], Record<Locale, string>> = {
   arith: { he: "בחרו את התשובה הנכונה", en: "Tap the right answer" },
   count: { he: "כמה יש? בחרו את המספר", en: "How many? Tap the number" },
   match: { he: "בחרו את הקבוצה עם המספר הזה", en: "Tap the group with that many" },
@@ -63,6 +64,13 @@ function GlyphGroup({ n, glyph, size }: { n: number; glyph?: string; size: strin
 }
 
 export function MathGame({ ctx }: { ctx: GameContext }) {
+  // This game's own words. A locale RECORD, so promoting a language reds
+  // this block by name instead of leaving the game speaking English
+  // inside a page that is not.
+  const T = textFor(
+    { he: { streak: "רצף" }, en: { streak: "Streak" } },
+    ctx.locale,
+  );
   const [level, setLevel] = useRememberedLevel(ctx, LEVEL_OPTIONS.map((o) => o.id), "up10");
   const [problem, setProblem] = useState<Problem>(() => generateProblem(level));
   const [score, setScore] = useState(0);
@@ -148,8 +156,8 @@ export function MathGame({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "bolt", label: ctx.locale === "he" ? "נקודות" : "Score", value: score },
-        { icon: "check", label: ctx.locale === "he" ? "רצף" : "Streak", value: `${streak} 🔥` },
+        { icon: "bolt", label: ctx.t("score"), value: score },
+        { icon: "check", label: T.streak, value: `${streak} 🔥` },
         { icon: "trophy", label: ctx.t("best"), value: best },
       ]}
       levels={LEVEL_OPTIONS}

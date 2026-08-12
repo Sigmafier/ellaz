@@ -98,4 +98,10 @@ export const fr: Record<StringKey, string> = {
   catRug: "Tapis",
   catPlant: "Plante",
   catPoster: "Affiche",
+  cards: "Cartes",
+  cardsPictures: "Dessins",
+  cardsIcons: "Icônes",
+  home: "Accueil",
+  level: "Niveau",
+  stage: "Niveau",
 };

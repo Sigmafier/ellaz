@@ -1,3 +1,4 @@
+import { textFor } from "@i18n/index";
 import {
   useCallback,
   useEffect,
@@ -183,7 +184,30 @@ export function FrogGame({ ctx }: { ctx: GameContext }): ReactElement {
   // record on hard, where the frog hops sooner and the round asks for more.
   const [best, setBest] = useState<number | undefined>(() => ctx.score?.best(difficulty));
 
-  const he = ctx.locale === "he";
+  // This game's own words. A locale RECORD, so promoting a language reds
+  // this block by name instead of leaving the game speaking English
+  // inside a page that is not.
+  const T = textFor(
+    {
+      he: {
+        caught: "תפסתם",
+        ask: "תפסו את הצפרדע!",
+        scene: "בריכה עם עלי נופר",
+        speak: "תפסו את הצפרדע. אם היא קפצה, פשוט תפסו אותה בעלה הבא",
+        cheer: (n: number) => `🎉 יופי! ממשיכים לשלב ${n}…`,
+        miss: "היא קפצה? פשוט תפסו אותה בעלה הבא 🐸",
+      },
+      en: {
+        caught: "Caught",
+        ask: "Catch the frog!",
+        scene: "pond with lily pads",
+        speak: "Catch the frog. If she hops away, just catch her on the next pad",
+        cheer: (n: number) => `🎉 Nice! On to level ${n}…`,
+        miss: "Hopped away? Just catch her on the next pad 🐸",
+      },
+    },
+    ctx.locale,
+  );
   const pads = useMemo(() => padsFor(difficulty), [difficulty]);
 
   // Read at CALL time, not render time: the spawner's housekeeping tick and the
@@ -386,8 +410,8 @@ export function FrogGame({ ctx }: { ctx: GameContext }): ReactElement {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "layers", label: he ? "שלב" : "Level", value: level },
-        { icon: "check", label: he ? "תפסתם" : "Caught", value: `${caught}/${ROUND_GOAL[difficulty]}`, ltr: true },
+        { icon: "layers", label: ctx.t("stage"), value: level },
+        { icon: "check", label: T.caught, value: `${caught}/${ROUND_GOAL[difficulty]}`, ltr: true },
         { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
       ]}
       levels={DIFF_OPTIONS}
@@ -409,13 +433,7 @@ export function FrogGame({ ctx }: { ctx: GameContext }): ReactElement {
           }}
         >
           <b style={{ fontSize: 17, fontFamily: "Fredoka, inherit" }}>
-            {phase === "cheer"
-              ? he
-                ? `🎉 יופי! ממשיכים לשלב ${level + 1}…`
-                : `🎉 Nice! On to level ${level + 1}…`
-              : he
-                ? "היא קפצה? פשוט תפסו אותה בעלה הבא 🐸"
-                : "Hopped away? Just catch her on the next pad 🐸"}
+            {phase === "cheer" ? T.cheer(level + 1) : T.miss}
           </b>
         </div>
       }
@@ -423,12 +441,8 @@ export function FrogGame({ ctx }: { ctx: GameContext }): ReactElement {
       <Prompt
         ctx={ctx}
         glyph="🐸"
-        text={he ? "תפסו את הצפרדע!" : "Catch the frog!"}
-        speak={
-          he
-            ? "תפסו את הצפרדע. אם היא קפצה, פשוט תפסו אותה בעלה הבא"
-            : "Catch the frog. If she hops away, just catch her on the next pad"
-        }
+        text={T.ask}
+        speak={T.speak}
       />
 
       {/* `dir="ltr"`: the pads are SPATIAL, and the app is Hebrew-RTL by default,
@@ -437,7 +451,7 @@ export function FrogGame({ ctx }: { ctx: GameContext }): ReactElement {
       <div
         dir="ltr"
         role="application"
-        aria-label={he ? "בריכה עם עלי נופר" : "pond with lily pads"}
+        aria-label={T.scene}
         onPointerDown={onTap}
         style={{
           ...PLAY_SURFACE_STYLE,

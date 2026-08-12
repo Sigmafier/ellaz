@@ -101,6 +101,12 @@ export const he = {
   catRug: "שטיח",
   catPlant: "צמח",
   catPoster: "פוסטר",
+  cards: "כרטיסים",
+  cardsPictures: "ציורים",
+  cardsIcons: "סמלים",
+  home: "בית",
+  level: "רמה",
+  stage: "שלב",
 } as const;
 
 export type StringKey = keyof typeof he;

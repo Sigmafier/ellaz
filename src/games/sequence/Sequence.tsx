@@ -1,3 +1,4 @@
+import { textFor } from "@i18n/index";
 import {
   useCallback,
   useEffect,
@@ -73,6 +74,16 @@ function ItemView({ item, variant }: { item: SeqItem; variant: "row" | "choice" 
 }
 
 export function Sequence({ ctx }: { ctx: GameContext }): ReactElement {
+  // This game's own words. A locale RECORD, so promoting a language reds
+  // this block by name instead of leaving the game speaking English
+  // inside a page that is not.
+  const T = textFor(
+    {
+      he: { ask: "מה בא אחר כך?", cheer: "🎉 כל הכבוד! ממשיכים…", blank: "מה חסר במשבצת? 🤔", option: (n: number) => `אפשרות ${n}` },
+      en: { ask: "What comes next?", cheer: "🎉 Nice! Next one…", blank: "What fills the blank? 🤔", option: (n: number) => `option ${n}` },
+    },
+    ctx.locale,
+  );
   const [difficulty, setDifficulty] = useRememberedLevel(
     ctx,
     DIFF_OPTIONS.map((o) => o.id),
@@ -173,13 +184,13 @@ export function Sequence({ ctx }: { ctx: GameContext }): ReactElement {
     [ctx, round, difficulty, level, dealRound],
   );
 
-  const promptText = ctx.locale === "he" ? "מה בא אחר כך?" : "What comes next?";
+  const promptText = T.ask;
 
   return (
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "layers", label: ctx.locale === "he" ? "שלב" : "Level", value: level },
+        { icon: "layers", label: ctx.t("stage"), value: level },
         { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
       ]}
       levels={DIFF_OPTIONS}
@@ -204,13 +215,7 @@ export function Sequence({ ctx }: { ctx: GameContext }): ReactElement {
           }}
         >
           <b style={{ fontSize: 17, fontFamily: "Fredoka, inherit" }}>
-            {solved
-              ? ctx.locale === "he"
-                ? "🎉 כל הכבוד! ממשיכים…"
-                : "🎉 Nice! Next one…"
-              : ctx.locale === "he"
-                ? "מה חסר במשבצת? 🤔"
-                : "What fills the blank? 🤔"}
+            {solved ? T.cheer : T.blank}
           </b>
         </div>
       }
@@ -284,7 +289,7 @@ export function Sequence({ ctx }: { ctx: GameContext }): ReactElement {
         {round.choices.map((item, i) => (
           <button
             key={`${i}-${itemKey(item)}`}
-            aria-label={ctx.locale === "he" ? `אפשרות ${i + 1}` : `option ${i + 1}`}
+            aria-label={T.option(i + 1)}
             disabled={solved}
             onPointerDown={(e) => onChoice(i, e)}
             style={{

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { textFor } from "@i18n/index";
 import { formatScore, type GameContext, type RewardTier, type SessionSpec } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
 import { type DifficultyOption } from "@ui/DifficultySelector";
@@ -193,14 +194,33 @@ export function Sudoku({ ctx }: { ctx: GameContext }) {
 
   const padCols = kids ? 4 : 5;
 
-  const he = ctx.locale === "he";
+  // This game's own words. A locale RECORD, so promoting a language reds
+  // this block by name instead of leaving the game speaking English
+  // inside a page that is not.
+  const T = textFor(
+    {
+      he: {
+        filled: "מולאו",
+        errors: (n: number) => `${n} שגיאות`,
+        pickKids: "בחרו תא והקישו חיה",
+        pick: "בחרו תא והקישו מספר",
+      },
+      en: {
+        filled: "Filled",
+        errors: (n: number) => `${n} errors`,
+        pickKids: "Pick a cell, tap an animal",
+        pick: "Pick a cell, tap a number",
+      },
+    },
+    ctx.locale,
+  );
   const cells = n * n;
   return (
     <GameChrome
       ctx={ctx}
       stats={[
         { icon: "clock", label: ctx.t("time"), value: formatScore(timer.elapsedMs, "ms"), ltr: true },
-        { icon: "check", label: he ? "מולאו" : "Filled", value: `${cells - empties}/${cells}`, ltr: true },
+        { icon: "check", label: T.filled, value: `${cells - empties}/${cells}`, ltr: true },
         { icon: "trophy", label: ctx.t("best"), value: best === undefined ? "-" : formatScore(best, "ms"), ltr: true },
       ]}
       levels={LEVEL_OPTIONS}
@@ -213,16 +233,10 @@ export function Sudoku({ ctx }: { ctx: GameContext }) {
             {won
               ? ctx.t("youWon") + " 🎉"
               : bad.size > 0
-                ? he
-                  ? `${bad.size} שגיאות`
-                  : `${bad.size} errors`
-                : he
-                  ? kids
-                    ? "בחרו תא והקישו חיה"
-                    : "בחרו תא והקישו מספר"
-                  : kids
-                    ? "Pick a cell, tap an animal"
-                    : "Pick a cell, tap a number"}
+                ? T.errors(bad.size)
+                : kids
+                  ? T.pickKids
+                  : T.pick}
           </div>
           {/* Keypad — the same glyphs the board shows. Kids sizes get ≥64px
               targets. This is exactly what the footer region exists for. */}

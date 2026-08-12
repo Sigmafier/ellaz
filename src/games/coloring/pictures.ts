@@ -1,3 +1,4 @@
+import type { Locale } from "@i18n/index";
 // Coloring pages as sets of SVG regions. Each region is a path the child taps to
 // fill with the selected color. Original simple shapes (no third-party art).
 export interface Region {
@@ -6,7 +7,7 @@ export interface Region {
 }
 export interface Picture {
   id: string;
-  name: { he: string; en: string };
+  name: Record<Locale, string>;
   viewBox: string;
   regions: Region[];
   // decorative outlines drawn on top (not fillable — e.g. whiskers, antennae)

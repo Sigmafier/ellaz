@@ -1,6 +1,14 @@
 import { describe, it, expect, vi } from "vitest";
 import { APP_LOCALES, PAGE_LOCALES, dirOf } from "./locales";
-import { AVAILABLE, DIR, loadDict, isLoaded, makeT, textFor } from "./strings";
+import {
+  AVAILABLE,
+  DIR,
+  loadDict,
+  isLoaded,
+  makeT,
+  textFor,
+  STATIC_LOCALES,
+} from "./strings";
 import { he } from "./dict/he";
 import { en } from "./dict/en";
 
@@ -180,5 +188,34 @@ describe("loadDict says whether the language actually arrived", () => {
     expect(fresh.makeT("ru")("play")).toBe(en.play);
     vi.doUnmock("./dict/ru");
     vi.resetModules();
+  });
+});
+
+describe("a language with PAGES cannot have a lazy dictionary", () => {
+  /**
+   * The one invariant a type cannot express here, and the reason it matters:
+   * `PageApp` boots an emitted document and never calls `loadDict`. There is no
+   * picker on a game page and no reason for one, so its chrome resolves out of
+   * the STATIC map or it silently falls back to English.
+   *
+   * A Spanish page whose dictionary is lazy therefore renders Spanish prose,
+   * Spanish difficulty pills and English buttons - permanently, with nothing
+   * thrown. The failure looks like a translation somebody forgot rather than a
+   * dictionary nobody fetched, which is what makes it expensive to find.
+   */
+  it("every PAGE_LOCALE ships its dictionary in the shell", () => {
+    const lazy = PAGE_LOCALES.filter((l) => !STATIC_LOCALES.includes(l));
+    expect(lazy, `page locales whose dictionary is a lazy chunk: ${lazy.join(", ")}`).toEqual(
+      [],
+    );
+  });
+
+  it("and the check can fail - a locale outside STATIC is caught", () => {
+    // The control. Without it, a STATIC_LOCALES that accidentally listed all
+    // eleven would pass the test above forever.
+    const notStatic = APP_LOCALES.filter((l) => !STATIC_LOCALES.includes(l));
+    expect(notStatic.length).toBeGreaterThan(0);
+    const pretend = [...PAGE_LOCALES, notStatic[0]];
+    expect(pretend.filter((l) => !STATIC_LOCALES.includes(l))).not.toEqual([]);
   });
 });

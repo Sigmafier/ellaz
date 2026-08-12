@@ -102,4 +102,10 @@ export const ar: Record<StringKey, string> = {
   catRug: "سجادة",
   catPlant: "نبتة",
   catPoster: "ملصق",
+  cards: "بطاقات",
+  cardsPictures: "رسوم",
+  cardsIcons: "رموز",
+  home: "الرئيسية",
+  level: "المستوى",
+  stage: "المرحلة",
 };

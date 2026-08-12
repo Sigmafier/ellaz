@@ -4,6 +4,7 @@ export {
   DIR,
   makeT,
   textFor,
+  backArrow,
   loadDict,
   isLoaded,
   DEFAULT_LOCALE,

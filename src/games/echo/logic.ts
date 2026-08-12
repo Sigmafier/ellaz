@@ -10,6 +10,7 @@
 // modules, never the `@shared` barrel, because the barrel re-exports React
 // components and a pure logic module must not reach them.
 import { PENTATONIC } from "@shared/notes";
+import type { Locale } from "@i18n/index";
 
 /** Level ids double as reward tiers - the union is identical by design. */
 export type LevelId = "easy" | "medium" | "hard";
@@ -44,7 +45,7 @@ export interface Pad {
    */
   glyph: string;
   /** Spoken/read label, so the aria-label never says "button 3". */
-  name: { he: string; en: string };
+  name: Record<Locale, string>;
 }
 
 /**

@@ -1,3 +1,4 @@
+import { textFor } from "@i18n/index";
 import { useEffect, useRef, useState } from "react";
 import type { GameContext } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
@@ -128,13 +129,30 @@ export function SnakeGame({ ctx }: { ctx: GameContext }) {
     };
   }, [ctx]);
 
-  const he = ctx.locale === "he";
+  // This game's own words. A locale RECORD, so promoting a language reds
+  // this block by name instead of leaving the game speaking English
+  // inside a page that is not.
+  const T = textFor(
+    {
+      he: {
+        over: "המשחק נגמר - הקישו לשחק שוב",
+        ready: "הקישו כדי להתחיל",
+        hint: "החליקו או חצים",
+      },
+      en: {
+        over: "Game over - tap to play again",
+        ready: "Tap to start",
+        hint: "Swipe or arrow keys",
+      },
+    },
+    ctx.locale,
+  );
   return (
     <GameChrome
       ctx={ctx}
       stats={[
         { icon: "bolt", label: ctx.t("score"), value: status.score },
-        { icon: "layers", label: he ? "רמה" : "Level", value: status.level },
+        { icon: "layers", label: ctx.t("level"), value: status.level },
         { icon: "trophy", label: ctx.t("best"), value: Math.max(best, status.score) },
       ]}
       levels={SPEED_OPTIONS}
@@ -162,16 +180,10 @@ export function SnakeGame({ ctx }: { ctx: GameContext }) {
         >
           <b style={{ fontSize: 17, fontFamily: "Fredoka, inherit" }}>
             {status.phase === "over"
-              ? he
-                ? "המשחק נגמר - הקישו לשחק שוב"
-                : "Game over - tap to play again"
+              ? T.over
               : status.phase === "ready"
-                ? he
-                  ? "הקישו כדי להתחיל"
-                  : "Tap to start"
-                : he
-                  ? "החליקו או חצים"
-                  : "Swipe or arrow keys"}
+                ? T.ready
+                : T.hint}
           </b>
         </div>
       }

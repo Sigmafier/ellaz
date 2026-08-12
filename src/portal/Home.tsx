@@ -339,18 +339,15 @@ function ThemeToggle({ locale, onTap }: { locale: AppLocale; onTap: () => void }
  */
 function CardStyleToggle({ locale, onTap }: { locale: AppLocale; onTap: () => void }) {
   const [style, setStyle] = useCardStyle();
+  const t = makeT(locale);
   const next: CardStyle = style === "art" ? "emoji" : "art";
-  const label =
-    locale === "he"
-      ? next === "art"
-        ? "ציורים"
-        : "סמלים"
-      : next === "art"
-        ? "Pictures"
-        : "Icons";
+  // These three were a he/en ternary on a screen that already speaks eleven
+  // languages, so an Arabic or Russian reader got two English words in the
+  // middle of their own home screen. Chrome belongs in the dictionary.
+  const label = next === "art" ? t("cardsPictures") : t("cardsIcons");
   return (
     <button
-      aria-label={`${locale === "he" ? "כרטיסים" : "Cards"}: ${label}`}
+      aria-label={`${t("cards")}: ${label}`}
       onClick={() => {
         onTap();
         setStyle(next);

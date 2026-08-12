@@ -1,3 +1,4 @@
+import type { Locale } from "@i18n/index";
 // PURE game rules. No DOM, no React, no Phaser — driven by an injectable rng
 // so a round is reproducible in a test.
 import { pick } from "@shared/rng";
@@ -71,12 +72,21 @@ export function finalize(letters: string[]): string[] {
 export const HE_KEYS = [..."אבגדהוזחטיכלמנסעפצקרשת"];
 export const EN_KEYS = [..."abcdefghijklmnopqrstuvwxyz"];
 
-export function keysFor(locale: string): string[] {
-  return locale === "he" ? HE_KEYS : EN_KEYS;
+/**
+ * The keyboard and the word list are per-LANGUAGE data, not translations of
+ * each other - a Spanish board needs Spanish letters and Spanish words, and
+ * neither can be derived from the English. Records, so promoting a language
+ * reds here rather than dealing a child an English hand.
+ */
+const KEYS: Record<Locale, string[]> = { he: HE_KEYS, en: EN_KEYS };
+const WORDS: Record<Locale, Record<WordLength, readonly string[]>> = { he: HE, en: EN };
+
+export function keysFor(locale: Locale): string[] {
+  return KEYS[locale];
 }
 
-function listFor(locale: string, length: WordLength): readonly string[] {
-  return (locale === "he" ? HE : EN)[length];
+function listFor(locale: Locale, length: WordLength): readonly string[] {
+  return WORDS[locale][length];
 }
 
 /**
@@ -115,7 +125,7 @@ export function mark(target: string[], guess: string[]): Mark[] {
 
 /** A fresh round. `rng` last and defaulted, per the repo convention. */
 export function newRound(
-  locale: string,
+  locale: Locale,
   length: WordLength,
   rng: () => number = Math.random,
 ): WordState {

@@ -1,3 +1,4 @@
+import { textFor, type Locale } from "@i18n/index";
 import {
   useCallback,
   useEffect,
@@ -158,17 +159,15 @@ function laneTop(lane: number): string {
  * about. The lane follows for the same reason `sortsize` exposes "3 of 4": two
  * bees crossing at once are only tellable apart by where they are.
  */
-function creatureLabel(creature: Creature, lane: number, he: boolean): string {
-  const name = he
-    ? creature === "bee"
-      ? "דבורה"
-      : "פרפר"
-    : creature === "bee"
-      ? "bee"
-      : "butterfly";
-  return he
-    ? `${name}, מסלול ${lane + 1} מתוך ${LANES}`
-    : `${name}, lane ${lane + 1} of ${LANES}`;
+function creatureLabel(creature: Creature, lane: number, locale: Locale): string {
+  const L = textFor(
+    {
+      he: { bee: "דבורה", butterfly: "פרפר", lane: (n: string) => `מסלול ${n} מתוך ${LANES}` },
+      en: { bee: "bee", butterfly: "butterfly", lane: (n: string) => `lane ${n} of ${LANES}` },
+    },
+    locale,
+  );
+  return `${creature === "bee" ? L.bee : L.butterfly}, ${L.lane(String(lane + 1))}`;
 }
 
 /** Is the keyboard currently sitting on the button for this prop? */
@@ -190,7 +189,42 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
   const [best, setBest] = useState<number>(() => ctx.score?.best() ?? 0);
   const [roundNo, setRoundNo] = useState(1);
 
-  const he = ctx.locale === "he";
+  // This game's own words. A locale RECORD, so promoting a language reds
+  // this block by name instead of leaving the game speaking English
+  // inside a page that is not.
+  const T = textFor(
+    {
+      he: {
+        start: "התחלה טובה!",
+        good: "כל הכבוד!",
+        great: "וואו! אלופים!",
+        bees: "דבורים",
+        ask: "תפסו רק את הדבורים!",
+        speak: "תפסו רק את הדבורים. תנו לפרפרים לעוף",
+        scene: "שמיים עם דבורים ופרפרים",
+        caught: (n: number) => `תפסתם ${n} דבורים!`,
+        freed: (n: number) => `${n} פרפרים המשיכו לעוף 🦋`,
+        again: "שוב! 🔄",
+        howTo: "תפסו דבורים. את הפרפרים משאירים לעוף.",
+        go: "יאללה! ▶",
+      },
+      en: {
+        start: "Good start!",
+        good: "Well done!",
+        great: "Wow! Champion!",
+        bees: "Bees",
+        ask: "Tap only the bees!",
+        speak: "Tap only the bees. Let the butterflies fly",
+        scene: "sky with bees and butterflies",
+        caught: (n: number) => `You caught ${n} bees!`,
+        freed: (n: number) => `${n} butterflies flew free 🦋`,
+        again: "Again! 🔄",
+        howTo: "Catch bees. Let butterflies fly.",
+        go: "Go! ▶",
+      },
+    },
+    ctx.locale,
+  );
   const running = phase === "playing";
 
   // The score lives in a ref and is mirrored into state for rendering. Taps and
@@ -439,19 +473,15 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
 
   const secs = phase === "ready" ? ROUND_MS / 1000 : secondsLeft(timer.elapsedMs);
   const praise = praiseFor(score.caught);
-  const praiseText = {
-    start: he ? "התחלה טובה!" : "Good start!",
-    good: he ? "כל הכבוד!" : "Well done!",
-    great: he ? "וואו! אלופים!" : "Wow! Champion!",
-  }[praise];
+  const praiseText = { start: T.start, good: T.good, great: T.great }[praise];
 
   return (
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "clock", label: he ? "זמן" : "Time", value: secs, ltr: true },
-        { icon: "check", label: he ? "דבורים" : "Bees", value: score.caught },
-        { icon: "trophy", label: he ? "שיא" : "Best", value: best },
+        { icon: "clock", label: ctx.t("time"), value: secs, ltr: true },
+        { icon: "check", label: T.bees, value: score.caught },
+        { icon: "trophy", label: ctx.t("best"), value: best },
       ]}
       levels={DIFF_OPTIONS}
       level={difficulty}
@@ -464,8 +494,8 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
       <Prompt
         ctx={ctx}
         glyph="🐝"
-        text={he ? "תפסו רק את הדבורים!" : "Tap only the bees!"}
-        speak={he ? "תפסו רק את הדבורים. תנו לפרפרים לעוף" : "Tap only the bees. Let the butterflies fly"}
+        text={T.ask}
+        speak={T.speak}
       />
 
       {/* The sky. `dir="ltr"` because this surface is SPATIAL — the app is
@@ -479,7 +509,7 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
         // screen reader out of browse mode, which would make the closing
         // "you caught N bees!" text inside this box unreadable.
         role="group"
-        aria-label={he ? "שמיים עם דבורים ופרפרים" : "sky with bees and butterflies"}
+        aria-label={T.scene}
         // Reachable by script, never by Tab: this is only ever where focus lands
         // when the creature it was on is tapped or flies off.
         tabIndex={-1}
@@ -509,7 +539,7 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
             type="button"
             ref={(el) => spawner.attach(p, el)}
             data-prop-id={p.id}
-            aria-label={creatureLabel(p.kind, p.lane, he)}
+            aria-label={creatureLabel(p.kind, p.lane, ctx.locale)}
             onKeyDown={(e) => onKeyDown(e, p)}
             style={{
               position: "absolute",
@@ -553,26 +583,24 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
                 <>
                   <div style={{ fontSize: 44, lineHeight: 1 }}>🍯</div>
                   <div style={{ fontSize: 30, fontWeight: 800 }}>
-                    {he ? `תפסתם ${score.caught} דבורים!` : `You caught ${score.caught} bees!`}
+                    {T.caught(score.caught)}
                   </div>
                   <div style={{ fontSize: 17, fontWeight: 700 }}>{praiseText}</div>
                   <div style={{ fontSize: 15, opacity: 0.9 }}>
-                    {he
-                      ? `${score.freed} פרפרים המשיכו לעוף 🦋`
-                      : `${score.freed} butterflies flew free 🦋`}
+                    {T.freed(score.freed)}
                   </div>
                   <Button kids ariaLabel="play again" onClick={again}>
-                    {he ? "שוב! 🔄" : "Again! 🔄"}
+                    {T.again}
                   </Button>
                 </>
               ) : (
                 <>
                   <div style={{ fontSize: 44, lineHeight: 1 }}>🐝</div>
                   <div style={{ fontSize: 17, fontWeight: 700, maxWidth: 280 }}>
-                    {he ? "תפסו דבורים. את הפרפרים משאירים לעוף." : "Catch bees. Let butterflies fly."}
+                    {T.howTo}
                   </div>
                   <Button kids ariaLabel="start" onClick={startRound}>
-                    {he ? "יאללה! ▶" : "Go! ▶"}
+                    {T.go}
                   </Button>
                 </>
               )}

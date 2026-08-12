@@ -141,19 +141,37 @@ export function resolveName(name: PlayerName | undefined): { adj: Adjective; nou
 }
 
 /**
+ * How each language BUILDS a name out of the two word ids.
+ *
+ * Not a translation table - a rule per language, because word ORDER and
+ * AGREEMENT differ and neither is derivable from the other. Hebrew is
+ * `<noun> <adjective>` with the adjective agreeing in the noun's gender;
+ * English is `<Adjective> <Noun>` with no agreement at all.
+ *
+ * A record rather than a branch, so promoting a language reds HERE and asks
+ * the question out loud instead of quietly rendering the English rule. That
+ * question is real and is not settled: Spanish would want `<Noun> <adjective>`
+ * agreeing like Hebrew, Russian needs three genders, German declines, and
+ * Arabic adds definiteness. `{ m, f }` models Hebrew alone, so a fifth
+ * language is a data-shape decision and not thirty-six more words.
+ */
+const RENDER: Record<Locale, (adj: Adjective, noun: Noun) => string> = {
+  he: (adj, noun) => `${noun.he} ${adj.he[noun.gender]}`,
+  en: (adj, noun) => `${adj.en} ${noun.en}`,
+};
+
+/**
  * The name as a child reads it, or `undefined` when it cannot be resolved.
  *
- * Hebrew is `<noun> <adjective>` with the adjective agreeing in gender;
- * English is `<Adjective> <Noun>`. Returning `undefined` rather than a
- * placeholder string keeps the decision at the call site, where "this player
- * has no name yet" and "this build doesn't know that word" can both be answered
- * the same honest way: offer them a name.
+ * Returning `undefined` rather than a placeholder string keeps the decision at
+ * the call site, where "this player has no name yet" and "this build doesn't
+ * know that word" can both be answered the same honest way: offer them a name.
  */
 export function renderName(name: PlayerName | undefined, locale: Locale): string | undefined {
   const resolved = resolveName(name);
   if (!resolved) return undefined;
   const { adj, noun } = resolved;
-  return locale === "he" ? `${noun.he} ${adj.he[noun.gender]}` : `${adj.en} ${noun.en}`;
+  return RENDER[locale](adj, noun);
 }
 
 /** The noun's emoji — the character's face. `undefined` if the name doesn't resolve. */

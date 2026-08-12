@@ -103,4 +103,10 @@ export const id: Record<StringKey, string> = {
   catRug: "Karpet",
   catPlant: "Tanaman",
   catPoster: "Poster",
+  cards: "Kartu",
+  cardsPictures: "Gambar",
+  cardsIcons: "Ikon",
+  home: "Beranda",
+  level: "Tingkat",
+  stage: "Tahap",
 };

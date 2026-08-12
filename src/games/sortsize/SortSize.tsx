@@ -1,3 +1,4 @@
+import { textFor } from "@i18n/index";
 import {
   useCallback,
   useEffect,
@@ -59,7 +60,42 @@ export function SortSize({ ctx }: { ctx: GameContext }) {
   const started = useRef(false);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const he = ctx.locale === "he";
+  // This game's own words. A locale RECORD, so promoting a language reds
+  // this block by name instead of leaving the game speaking English
+  // inside a page that is not.
+  const T = textFor(
+    {
+      he: {
+        biggest: "תגעו בגדול ביותר",
+        smallest: "תגעו בקטן ביותר",
+        asc: "תגעו לפי הסדר: מהקטן לגדול",
+        desc: "תגעו לפי הסדר: מהגדול לקטן",
+        sort: "בחרו אחד, ואז את הסל המתאים",
+        cheer: "🎉 כל הכבוד! ממשיכים…",
+        look: "תסתכלו טוב על הגדלים 👀",
+        item: (name: string, i: number, n: number) => `${name} ${i} מתוך ${n}, מהקטן לגדול`,
+        binBig: "סל גדולים",
+        binSmall: "סל קטנים",
+        big: "גדולים",
+        small: "קטנים",
+      },
+      en: {
+        biggest: "Tap the biggest one",
+        smallest: "Tap the smallest one",
+        asc: "Tap them in order: smallest to biggest",
+        desc: "Tap them in order: biggest to smallest",
+        sort: "Pick one, then its basket",
+        cheer: "🎉 Nice! Next one…",
+        look: "Look closely at the sizes 👀",
+        item: (name: string, i: number, n: number) => `${name} ${i} of ${n}, smallest first`,
+        binBig: "big basket",
+        binSmall: "small basket",
+        big: "Big",
+        small: "Small",
+      },
+    },
+    ctx.locale,
+  );
   const { round } = state;
 
   useEffect(() => {
@@ -181,24 +217,12 @@ export function SortSize({ ctx }: { ctx: GameContext }) {
 
   const prompt = (() => {
     if (round.kind === "pick") {
-      return round.target === "biggest"
-        ? he
-          ? "תגעו בגדול ביותר"
-          : "Tap the biggest one"
-        : he
-          ? "תגעו בקטן ביותר"
-          : "Tap the smallest one";
+      return round.target === "biggest" ? T.biggest : T.smallest;
     }
     if (round.kind === "order") {
-      return round.direction === "asc"
-        ? he
-          ? "תגעו לפי הסדר: מהקטן לגדול"
-          : "Tap them in order: smallest to biggest"
-        : he
-          ? "תגעו לפי הסדר: מהגדול לקטן"
-          : "Tap them in order: biggest to smallest";
+      return round.direction === "asc" ? T.asc : T.desc;
     }
-    return he ? "בחרו אחד, ואז את הסל המתאים" : "Pick one, then its basket";
+    return T.sort;
   })();
 
   const inBin = (bin: Bin) => round.items.filter((i) => state.placed[i.id] === bin);
@@ -207,7 +231,7 @@ export function SortSize({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "layers", label: he ? "שלב" : "Level", value: level },
+        { icon: "layers", label: ctx.t("stage"), value: level },
         { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
       ]}
       levels={DIFF_OPTIONS}
@@ -229,13 +253,7 @@ export function SortSize({ ctx }: { ctx: GameContext }) {
           }}
         >
           <b style={{ fontSize: 17, fontFamily: "Fredoka, inherit" }}>
-            {justWon
-              ? he
-                ? "🎉 כל הכבוד! ממשיכים…"
-                : "🎉 Nice! Next one…"
-              : he
-                ? "תסתכלו טוב על הגדלים 👀"
-                : "Look closely at the sizes 👀"}
+            {justWon ? T.cheer : T.look}
           </b>
         </div>
       }
@@ -280,11 +298,7 @@ export function SortSize({ ctx }: { ctx: GameContext }) {
               // the name would leave the game unplayable rather than merely
               // harder. Exposing "3 of 4, smallest first" is the accessible
               // answer, not a leak.
-              aria-label={
-                he
-                  ? `${item.he} ${item.rank + 1} מתוך ${round.items.length}, מהקטן לגדול`
-                  : `${item.en} ${item.rank + 1} of ${round.items.length}, smallest first`
-              }
+              aria-label={T.item(textFor(item, ctx.locale), item.rank + 1, round.items.length)}
               onPointerDown={(e) => onItem(item.id, e)}
               style={{
                 position: "relative",
@@ -354,7 +368,7 @@ export function SortSize({ ctx }: { ctx: GameContext }) {
             return (
               <button
                 key={bin}
-                aria-label={bin === "big" ? (he ? "סל גדולים" : "big basket") : he ? "סל קטנים" : "small basket"}
+                aria-label={bin === "big" ? T.binBig : T.binSmall}
                 onPointerDown={(e) => onBin(bin, e)}
                 style={{
                   flex: "1 1 130px",
@@ -376,7 +390,7 @@ export function SortSize({ ctx }: { ctx: GameContext }) {
                 }}
               >
                 <span style={{ fontSize: 15, fontWeight: 800 }}>
-                  {bin === "big" ? (he ? "גדולים" : "Big") : he ? "קטנים" : "Small"}
+                  {bin === "big" ? T.big : T.small}
                 </span>
                 <span aria-hidden="true" style={{ fontSize: bin === "big" ? 30 : 18, lineHeight: 1 }}>
                   {round.items[0].emoji}

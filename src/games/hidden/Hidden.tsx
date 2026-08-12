@@ -1,3 +1,4 @@
+import { textFor } from "@i18n/index";
 import { useCallback, useRef, useState, useEffect, type PointerEvent as ReactPointerEvent } from "react";
 import type { GameContext } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
@@ -37,6 +38,16 @@ function makeRound(difficulty: Difficulty): HiddenState {
 }
 
 export function Hidden({ ctx }: { ctx: GameContext }) {
+  // This game's own words. A locale RECORD, so promoting a language reds
+  // this block by name instead of leaving the game speaking English
+  // inside a page that is not.
+  const T = textFor(
+    {
+      he: { found: "נמצאו", find: "מצאו:", done: (n: number) => `שלב ${n} הושלם! ממשיכים…` },
+      en: { found: "Found", find: "Find:", done: (n: number) => `Level ${n} done! Next up…` },
+    },
+    ctx.locale,
+  );
   const [difficulty, setDifficulty] = useRememberedLevel(
     ctx,
     DIFF_OPTIONS.map((o) => o.id),
@@ -135,8 +146,8 @@ export function Hidden({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "layers", label: ctx.locale === "he" ? "שלב" : "Level", value: round },
-        { icon: "check", label: ctx.locale === "he" ? "נמצאו" : "Found", value: `${foundCount}/${targets.length}`, ltr: true },
+        { icon: "layers", label: ctx.t("stage"), value: round },
+        { icon: "check", label: T.found, value: `${foundCount}/${targets.length}`, ltr: true },
         { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
       ]}
       levels={DIFF_OPTIONS}
@@ -162,7 +173,7 @@ export function Hidden({ ctx }: { ctx: GameContext }) {
           }}
         >
           <span style={{ color: "var(--text-dim)", fontSize: 13, fontWeight: 800 }}>
-            {ctx.locale === "he" ? "מצאו:" : "Find:"}
+            {T.find}
           </span>
           {targets.map((t) => (
             <div
@@ -233,7 +244,7 @@ export function Hidden({ ctx }: { ctx: GameContext }) {
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: 40 }}>🎉</div>
           <div style={{ color: "var(--text-dim)", fontSize: 13 }}>
-            {ctx.locale === "he" ? `שלב ${round} הושלם! ממשיכים…` : `Level ${round} done! Next up…`}
+            {T.done(round)}
           </div>
         </div>
       ) : null}

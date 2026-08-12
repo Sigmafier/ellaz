@@ -103,4 +103,10 @@ export const en: Record<StringKey, string> = {
   catRug: "Rug",
   catPlant: "Plant",
   catPoster: "Poster",
+  cards: "Cards",
+  cardsPictures: "Pictures",
+  cardsIcons: "Icons",
+  home: "Home",
+  level: "Level",
+  stage: "Level",
 };

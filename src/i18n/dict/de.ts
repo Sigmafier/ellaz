@@ -98,4 +98,10 @@ export const de: Record<StringKey, string> = {
   catRug: "Teppich",
   catPlant: "Pflanze",
   catPoster: "Poster",
+  cards: "Karten",
+  cardsPictures: "Bilder",
+  cardsIcons: "Symbole",
+  home: "Start",
+  level: "Stufe",
+  stage: "Level",
 };

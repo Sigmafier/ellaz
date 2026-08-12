@@ -1,3 +1,4 @@
+import { textFor, type Locale } from "@i18n/index";
 import {
   useCallback,
   useEffect,
@@ -171,7 +172,12 @@ export function ReactionGame({ ctx }: { ctx: GameContext }): ReactElement {
   /** True after an early tap, until the next green. Drives the gentle "not yet". */
   const [nudged, setNudged] = useState(false);
 
-  const he = ctx.locale === "he";
+  /**
+   * One string, in whichever language this page is. Takes a locale RECORD
+   * rather than two positional strings, so promoting a language reds every
+   * call site by name instead of leaving them all answering in English.
+   */
+  const say = (words: Record<Locale, string>): string => textFor(words, ctx.locale);
   const live = attempt.phase === "go";
 
   // Everything the pointer handler and the clock callback read lives in a ref.
@@ -392,42 +398,40 @@ export function ReactionGame({ ctx }: { ctx: GameContext }): ReactElement {
   const done = attempt.phase === "result";
   const measured = done && isPlausible(attempt.reactionMs);
   const praiseText = {
-    lightning: he ? "מהיר כמו ברק!" : "Lightning fast!",
-    quick: he ? "מהיר מאוד!" : "Super quick!",
-    good: he ? "יפה מאוד!" : "Nice one!",
-    steady: he ? "כל הכבוד!" : "Well done!",
+    lightning: say({ he: "מהיר כמו ברק!", en: "Lightning fast!" }),
+    quick: say({ he: "מהיר מאוד!", en: "Super quick!" }),
+    good: say({ he: "יפה מאוד!", en: "Nice one!" }),
+    steady: say({ he: "כל הכבוד!", en: "Well done!" }),
   }[praiseFor(attempt.reactionMs)];
 
-  /** Hebrew first — the app's default locale, not an afterthought. */
-  const say = (hebrew: string, english: string): string => (he ? hebrew : english);
 
   const caption =
     attempt.phase === "go"
-      ? say("עכשיו! 👆", "Now! 👆")
+      ? say({ he: "עכשיו! 👆", en: "Now! 👆" })
       : attempt.phase === "waiting"
         ? nudged
-          ? say("עוד לא… חכו לירוק 🙂", "Not yet… wait for green 🙂")
-          : say("חכו לאור הירוק…", "Waiting for green…")
+          ? say({ he: "עוד לא… חכו לירוק 🙂", en: "Not yet… wait for green 🙂" })
+          : say({ he: "חכו לאור הירוק…", en: "Waiting for green…" })
         : attempt.phase === "result"
           ? measured
             ? praiseText
-            : say("בואו ננסה שוב 🙂", "Let's try that again 🙂")
-          : say("לחצו על הרמזור כדי להתחיל", "Tap the light to start");
+            : say({ he: "בואו ננסה שוב 🙂", en: "Let's try that again 🙂" })
+          : say({ he: "לחצו על הרמזור כדי להתחיל", en: "Tap the light to start" });
 
   const ariaLabel =
     attempt.phase === "go"
-      ? say("אור ירוק, לחצו עכשיו", "green light, tap now")
+      ? say({ he: "אור ירוק, לחצו עכשיו", en: "green light, tap now" })
       : attempt.phase === "waiting"
-        ? say("אור אדום, מחכים", "red light, waiting")
-        : say("רמזור, לחצו כדי להתחיל", "traffic light, tap to start");
+        ? say({ he: "אור אדום, מחכים", en: "red light, waiting" })
+        : say({ he: "רמזור, לחצו כדי להתחיל", en: "traffic light, tap to start" });
 
   return (
     <GameChrome
       ctx={ctx}
       stats={[
         // Numbers stay LTR inside the Hebrew app - "0.41" must not mirror.
-        { icon: "clock", label: say("זמן", "Time"), value: measured ? seconds(attempt.reactionMs) : "-", ltr: true },
-        { icon: "trophy", label: say("שיא", "Best"), value: best > 0 ? seconds(best) : "-", ltr: true },
+        { icon: "clock", label: ctx.t("time"), value: measured ? seconds(attempt.reactionMs) : "-", ltr: true },
+        { icon: "trophy", label: ctx.t("best"), value: best > 0 ? seconds(best) : "-", ltr: true },
       ]}
       levels={DIFF_OPTIONS}
       level={difficulty}
@@ -476,14 +480,14 @@ export function ReactionGame({ ctx }: { ctx: GameContext }): ReactElement {
                 cursor: "pointer",
               }}
             >
-              {done ? say("שוב! 🔄", "Again! 🔄") : say("יאללה! ▶", "Go! ▶")}
+              {done ? say({ he: "שוב! 🔄", en: "Again! 🔄" }) : say({ he: "יאללה! ▶", en: "Go! ▶" })}
             </button>
           ) : null}
           {/* No tally and no count: a number next to "early" reads as a score,
               and jumping the gun is explicitly not one. */}
           {attempt.earlyTaps > 0 && attempt.phase !== "ready" ? (
             <span style={{ fontSize: 13, opacity: 0.75 }} dir="auto">
-              {say("יצאתם קצת מוקדם, וזה לגמרי בסדר 🙂", "You went a little early, and that is fine 🙂")}
+              {say({ he: "יצאתם קצת מוקדם, וזה לגמרי בסדר 🙂", en: "You went a little early, and that is fine 🙂" })}
             </span>
           ) : null}
         </div>
@@ -492,12 +496,11 @@ export function ReactionGame({ ctx }: { ctx: GameContext }): ReactElement {
       <Prompt
         ctx={ctx}
         glyph="🟢"
-        text={he ? "חכו לאור הירוק ואז לחצו מהר!" : "Wait for the green light, then tap fast!"}
-        speak={
-          he
-            ? "חכו לאור הירוק. כשהוא נדלק, לחצו מהר"
-            : "Wait for the green light. When it lights up, tap fast"
-        }
+        text={say({ he: "חכו לאור הירוק ואז לחצו מהר!", en: "Wait for the green light, then tap fast!" })}
+        speak={say({
+          he: "חכו לאור הירוק. כשהוא נדלק, לחצו מהר",
+          en: "Wait for the green light. When it lights up, tap fast",
+        })}
       />
 
       <div

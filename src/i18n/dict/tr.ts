@@ -101,4 +101,10 @@ export const tr: Record<StringKey, string> = {
   catRug: "Halı",
   catPlant: "Bitki",
   catPoster: "Poster",
+  cards: "Kartlar",
+  cardsPictures: "Resimler",
+  cardsIcons: "Simgeler",
+  home: "Ana sayfa",
+  level: "Seviye",
+  stage: "Aşama",
 };

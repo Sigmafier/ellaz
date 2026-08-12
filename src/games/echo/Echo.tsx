@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { textFor, type Locale } from "@i18n/index";
 import type { GameContext } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
 import { type DifficultyOption } from "@ui/DifficultySelector";
@@ -34,7 +35,7 @@ import {
 // keep singing its pattern into an empty room. Cancellable beats sample-accurate
 // for a half-second flash.
 
-const LEVEL_LABELS: Record<LevelId, { he: string; en: string }> = {
+const LEVEL_LABELS: Record<LevelId, Record<Locale, string>> = {
   easy: { he: "קל", en: "Easy" },
   medium: { he: "בינוני", en: "Med" },
   hard: { he: "קשה", en: "Hard" },
@@ -47,23 +48,48 @@ const LEVEL_OPTIONS: DifficultyOption<LevelId>[] = LEVELS.map((l) => ({
   label: LEVEL_LABELS[l.id],
 }));
 
-function promptFor(phase: SeqState["phase"], round: number, he: boolean): string {
+function promptFor(phase: SeqState["phase"], round: number, locale: Locale): string {
+  const P = textFor(
+    {
+      he: {
+        showing: "הסתכלו על הסדר",
+        input: "עכשיו תורכם - חזרו אחריי",
+        won: "יופי! עוד אחד",
+        lost: (n: number) => `הגעתם לשלב ${n}`,
+        idle: "לחצו על ההתחלה ותראו את הסדר",
+      },
+      en: {
+        showing: "Watch the order",
+        input: "Your turn - follow me",
+        won: "Nice! One more",
+        lost: (n: number) => `You reached round ${n}`,
+        idle: "Press start and watch the order",
+      },
+    },
+    locale,
+  );
   switch (phase) {
     case "showing":
-      return he ? "הסתכלו על הסדר" : "Watch the order";
+      return P.showing;
     case "input":
-      return he ? "עכשיו תורכם - חזרו אחריי" : "Your turn - follow me";
+      return P.input;
     case "won":
-      return he ? "יופי! עוד אחד" : "Nice! One more";
+      return P.won;
     case "lost":
-      return he ? `הגעתם לשלב ${round}` : `You reached round ${round}`;
+      return P.lost(round);
     default:
-      return he ? "לחצו על ההתחלה ותראו את הסדר" : "Press start and watch the order";
+      return P.idle;
   }
 }
 
 export function Echo({ ctx }: { ctx: GameContext }) {
-  const he = ctx.locale === "he";
+  // This game's own words. A locale RECORD, so promoting a language reds
+  // this block by name instead of leaving the game speaking English
+  // inside a page that is not.
+  const T = textFor(
+    { he: { start: "התחילו" }, en: { start: "Start" } },
+    ctx.locale,
+  );
   const [levelId, setLevelId] = useRememberedLevel(ctx, LEVEL_OPTIONS.map((o) => o.id), "easy");
   const level = levelById(levelId);
   const [seq, setSeq] = useState<SeqState>(IDLE);
@@ -248,7 +274,7 @@ export function Echo({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "layers", label: he ? "שלב" : "Round", value: seq.round },
+        { icon: "layers", label: ctx.t("stage"), value: seq.round },
         { icon: "trophy", label: ctx.t("best"), value: best },
       ]}
       levels={LEVEL_OPTIONS}
@@ -279,12 +305,12 @@ export function Echo({ ctx }: { ctx: GameContext }) {
               cursor: "pointer",
             }}
           >
-            {lost ? `🙂 ${ctx.t("restart")}` : `▶ ${he ? "התחילו" : "Start"}`}
+            {lost ? `🙂 ${ctx.t("restart")}` : `▶ ${T.start}`}
           </button>
         ) : undefined
       }
     >
-      <Prompt ctx={ctx} glyph="💡" text={promptFor(seq.phase, seq.round, he)} />
+      <Prompt ctx={ctx} glyph="💡" text={promptFor(seq.phase, seq.round, ctx.locale)} />
 
       {/* dir="ltr": a spatial grid must not mirror in the Hebrew RTL app, or the
           pad the child watched is not the pad under their finger. */}

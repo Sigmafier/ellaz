@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { textFor } from "@i18n/index";
 import type { GameContext, SessionSpec } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
 import { type DifficultyOption } from "@ui/DifficultySelector";
@@ -180,7 +181,13 @@ export function Memory({ ctx }: { ctx: GameContext }) {
   );
 
   const cols = LEVELS[levelIdx].cols;
-  const he = ctx.locale === "he";
+  // This game's own words. A locale RECORD, so promoting a language reds
+  // this block by name instead of leaving the game speaking English
+  // inside a page that is not.
+  const T = textFor(
+    { he: { newSet: "ערכה חדשה" }, en: { newSet: "New set" } },
+    ctx.locale,
+  );
   const nextSet = (setIdx + 1) % FACE_SETS.length;
   return (
     <GameChrome
@@ -221,7 +228,7 @@ export function Memory({ ctx }: { ctx: GameContext }) {
         >
           <span style={{ fontSize: 15, fontWeight: 800 }}>
             {won ? `${ctx.t("youWon")} · ` : ""}
-            {he ? "ערכה חדשה" : "New set"}
+            {T.newSet}
           </span>
           <span style={{ fontSize: 26, letterSpacing: 2, lineHeight: 1 }}>
             {FACE_SETS[nextSet].slice(0, 3).join("")}

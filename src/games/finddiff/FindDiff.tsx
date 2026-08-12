@@ -1,3 +1,4 @@
+import { textFor } from "@i18n/index";
 import { useCallback, useMemo, useRef, useState, useEffect, type PointerEvent as ReactPointerEvent } from "react";
 import type { GameContext, RewardTier } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
@@ -17,6 +18,16 @@ function tierForScene(idx: number): RewardTier {
 
 // Two pictures, spot the differences. Tap a difference on EITHER picture.
 export function FindDiff({ ctx }: { ctx: GameContext }) {
+  // This game's own words. A locale RECORD, so promoting a language reds
+  // this block by name instead of leaving the game speaking English
+  // inside a page that is not.
+  const T = textFor(
+    {
+      he: { left: "נותרו", next: "הבא", ask: "מצאו את ההבדלים 🔍" },
+      en: { left: "Left", next: "Next", ask: "Find the differences 🔍" },
+    },
+    ctx.locale,
+  );
   const [sceneIdx, setSceneIdx] = useState(0);
   const [level, setLevel] = useState(1);
   const scene: Scene = SCENES[sceneIdx];
@@ -113,8 +124,8 @@ export function FindDiff({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "layers", label: ctx.locale === "he" ? "שלב" : "Level", value: level },
-        { icon: "check", label: ctx.locale === "he" ? "נותרו" : "Left", value: remaining(state) },
+        { icon: "layers", label: ctx.t("stage"), value: level },
+        { icon: "check", label: T.left, value: remaining(state) },
         { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
       ]}
       // finddiff has no difficulty - it is one endless ladder of scenes, so the
@@ -139,7 +150,7 @@ export function FindDiff({ ctx }: { ctx: GameContext }) {
               cursor: "pointer",
             }}
           >
-            🎉 {ctx.locale === "he" ? "הבא" : "Next"} ▶
+            🎉 {T.next} ▶
           </button>
         ) : (
           <div
@@ -159,7 +170,7 @@ export function FindDiff({ ctx }: { ctx: GameContext }) {
           >
             <b style={{ fontSize: 17, fontFamily: "Fredoka, inherit" }}>{scene.name[ctx.locale]}</b>
             <span style={{ color: "var(--text-dim)", fontSize: 13 }}>
-              {ctx.locale === "he" ? "מצאו את ההבדלים 🔍" : "Find the differences 🔍"}
+              {T.ask}
             </span>
           </div>
         )

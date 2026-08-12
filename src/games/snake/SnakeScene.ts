@@ -1,3 +1,4 @@
+import { textFor } from "@i18n/index";
 import Phaser from "phaser";
 import type { GameContext } from "@sdk/index";
 import { winMoment } from "@shared/index";
@@ -298,16 +299,22 @@ export class SnakeScene extends Phaser.Scene {
       const color = i === 0 ? 0x55efc4 : 0x00cec9;
       g.fillStyle(color, 1).fillRoundedRect(ox + p.x * c + 1, oy + p.y * c + 1, c - 2, c - 2, 5);
     });
-    const he = this.ctx.locale === "he";
+    const T = textFor(
+      {
+        he: { ready: "הקישו כדי להתחיל", over: "המשחק נגמר", again: "הקישו לשחק שוב" },
+        en: { ready: "Tap to start", over: "Game over", again: "Tap to play again" },
+      },
+      this.ctx.locale,
+    );
     // Keep the overlay off the snake's spawn row.
     this.overText.setPosition(this.scale.width / 2, this.scale.height * 0.28);
     if (this.phase === "ready") {
-      this.overText.setText(he ? "הקישו כדי להתחיל" : "Tap to start");
+      this.overText.setText(T.ready);
     } else if (this.phase === "over") {
       this.overText.setText(
-        (he ? "המשחק נגמר" : "Game over") +
+        T.over +
           `\n${this.ctx.t("score")}: ${this.state.score}\n` +
-          (he ? "הקישו לשחק שוב" : "Tap to play again"),
+          T.again,
       );
     } else {
       this.overText.setText("");

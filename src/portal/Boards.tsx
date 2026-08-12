@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Locale } from "@i18n/index";
-import { makeT } from "@i18n/index";
+import { backArrow, makeT } from "@i18n/index";
 import {
   audioPort,
   boardStanding,
@@ -58,7 +58,7 @@ import { gameHref } from "./paths";
 // where `score-unit-declared.test.ts` pins it to the renderer. Guessing either
 // one shows a fast time ranked as if slow were better.
 
-const WINDOWS: { id: BoardWindow; label: { he: string; en: string } }[] = [
+const WINDOWS: { id: BoardWindow; label: Record<Locale, string> }[] = [
   { id: "d", label: { he: "היום", en: "Today" } },
   { id: "w", label: { he: "השבוע", en: "This week" } },
   { id: "m", label: { he: "החודש", en: "This month" } },
@@ -71,7 +71,7 @@ const WINDOWS: { id: BoardWindow; label: { he: string; en: string } }[] = [
  * honest raw label beats a missing one, and it is also how a new difficulty
  * announces that it wants a translation.
  */
-const BOARD_LABELS: Record<string, { he: string; en: string }> = {
+const BOARD_LABELS: Record<string, Record<Locale, string>> = {
   default: { he: "הכול", en: "All" },
   easy: { he: "קל", en: "Easy" },
   medium: { he: "בינוני", en: "Med" },
@@ -81,7 +81,7 @@ const BOARD_LABELS: Record<string, { he: string; en: string }> = {
   kids6: { he: "חיות 6×6", en: "Animals 6×6" },
 };
 
-function boardLabel(board: string): { he: string; en: string } {
+function boardLabel(board: string): Record<Locale, string> {
   return BOARD_LABELS[board] ?? { he: board, en: board };
 }
 
@@ -141,7 +141,7 @@ function GameGrid({
         }}
       >
         <IconButton ariaLabel={t("back")} onClick={onExit}>
-          {locale === "he" ? "→" : "←"}
+          {backArrow(locale)}
         </IconButton>
         {/* h2, not h1. The document this mounts into already carries an h1
             naming the page; a second one appears only once JavaScript has run,
@@ -310,7 +310,7 @@ function GameBoard({
         }}
       >
         <IconButton ariaLabel={t("back")} onClick={onBack}>
-          {locale === "he" ? "→" : "←"}
+          {backArrow(locale)}
         </IconButton>
         <span aria-hidden="true" style={{ fontSize: 26, lineHeight: 1 }}>
           {meta.emoji}

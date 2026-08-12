@@ -1,4 +1,5 @@
 import type { Diff } from "./logic";
+import type { Locale } from "@i18n/index";
 
 // A scene: a shared base picture plus a set of differences. Each difference
 // renders one way on the LEFT picture and another on the RIGHT, and carries a
@@ -9,7 +10,7 @@ export interface SceneDiff extends Diff {
 }
 export interface Scene {
   id: string;
-  name: { he: string; en: string };
+  name: Record<Locale, string>;
   viewBox: string;
   base: string; // static SVG fragment shared by both pictures
   diffs: SceneDiff[];

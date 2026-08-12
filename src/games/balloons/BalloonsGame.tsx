@@ -1,3 +1,4 @@
+import { textFor, type Locale } from "@i18n/index";
 import {
   useCallback,
   useEffect,
@@ -104,10 +105,17 @@ const HE_SINGULAR: Record<ColorId, string> = {
  * same reason `sortsize` exposes "3 of 4": two red balloons are only tellable
  * apart by where they are.
  */
-function balloonLabel(color: BalloonColor, lane: number, he: boolean): string {
-  return he
-    ? `בלון ${HE_SINGULAR[color.id]}, מסלול ${lane + 1} מתוך ${LANES}`
-    : `${color.en} balloon, lane ${lane + 1} of ${LANES}`;
+function balloonLabel(color: BalloonColor, lane: number, locale: Locale): string {
+  // Hebrew needs the SINGULAR adjective here while the prompt above needs the
+  // plural, which is why the colour record cannot serve both and this table
+  // exists. Spanish inflects for number the same way and will need its own.
+  return textFor(
+    {
+      he: () => `בלון ${HE_SINGULAR[color.id]}, מסלול ${lane + 1} מתוך ${LANES}`,
+      en: () => `${color.en} balloon, lane ${lane + 1} of ${LANES}`,
+    },
+    locale,
+  )();
 }
 
 /** Is the keyboard currently sitting on the button for this prop? */
@@ -472,15 +480,34 @@ export function BalloonsGame({ ctx }: { ctx: GameContext }): ReactElement {
     [ctx, phase, resolve],
   );
 
-  const he = ctx.locale === "he";
-  const ask = he ? `פוצצו בלונים ${target.he}` : `Pop the ${target.en} balloons`;
+  // This game's own words. A locale RECORD, so promoting a language reds
+  // this block by name instead of leaving the game speaking English
+  // inside a page that is not.
+  const T = textFor(
+    {
+      he: {
+        popped: "פוצצתם",
+        ask: (c: string) => `פוצצו בלונים ${c}`,
+        cheer: (n: number) => `🎉 כל הכבוד! ממשיכים לשלב ${n}…`,
+        miss: "טעות? הבלון רק יתנדנד 🎈",
+      },
+      en: {
+        popped: "Popped",
+        ask: (c: string) => `Pop the ${c} balloons`,
+        cheer: (n: number) => `🎉 Great! On to level ${n}…`,
+        miss: "Wrong one? It just wobbles 🎈",
+      },
+    },
+    ctx.locale,
+  );
+  const ask = T.ask(textFor(target, ctx.locale));
 
   return (
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "layers", label: he ? "שלב" : "Level", value: level },
-        { icon: "check", label: he ? "פוצצתם" : "Popped", value: `${popped}/${round.goal}`, ltr: true },
+        { icon: "layers", label: ctx.t("stage"), value: level },
+        { icon: "check", label: T.popped, value: `${popped}/${round.goal}`, ltr: true },
         { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
       ]}
       levels={DIFF_OPTIONS}
@@ -502,13 +529,7 @@ export function BalloonsGame({ ctx }: { ctx: GameContext }): ReactElement {
           }}
         >
           <b style={{ fontSize: 17, fontFamily: "Fredoka, inherit" }}>
-            {phase === "cheer"
-              ? he
-                ? `🎉 כל הכבוד! ממשיכים לשלב ${level + 1}…`
-                : `🎉 Great! On to level ${level + 1}…`
-              : he
-                ? "טעות? הבלון רק יתנדנד 🎈"
-                : "Wrong one? It just wobbles 🎈"}
+            {phase === "cheer" ? T.cheer(level + 1) : T.miss}
           </b>
         </div>
       }
@@ -558,7 +579,7 @@ export function BalloonsGame({ ctx }: { ctx: GameContext }): ReactElement {
             type="button"
             ref={(el) => spawner.attach(p, el)}
             data-prop-id={p.id}
-            aria-label={balloonLabel(colorOf(p.kind), p.lane, he)}
+            aria-label={balloonLabel(colorOf(p.kind), p.lane, ctx.locale)}
             onKeyDown={(e) => onKey(e, p)}
             style={{
               position: "absolute",

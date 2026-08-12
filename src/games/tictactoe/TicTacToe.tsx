@@ -1,3 +1,4 @@
+import { textFor } from "@i18n/index";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { GameContext } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
@@ -141,27 +142,32 @@ export function TicTacToe({ ctx }: { ctx: GameContext }) {
     [board, busy, done, ctx, finish, difficulty],
   );
 
+  // This game's own words. A locale RECORD, so promoting a language reds
+  // this block by name instead of leaving the game speaking English
+  // inside a page that is not.
+  const T = textFor(
+    {
+      he: { draw: "תיקו", turn: "התור שלך", rule: "שלושה ברצף מנצחים", wins: "ניצחונות", draws: "תיקו" },
+      en: { draw: "Draw", turn: "Your turn", rule: "Three in a row wins", wins: "Wins", draws: "Draws" },
+    },
+    ctx.locale,
+  );
+
   const status = win
     ? win.player === "X"
       ? ctx.t("youWon")
       : ctx.t("gameOver")
     : draw
-      ? ctx.locale === "he"
-        ? "תיקו"
-        : "Draw"
-      : ctx.locale === "he"
-        ? "התור שלך"
-        : "Your turn";
-
-  const he = ctx.locale === "he";
+      ? T.draw
+      : T.turn;
 
   return (
     <GameChrome
       ctx={ctx}
       stats={[
         { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
-        { icon: "star", label: he ? "ניצחונות" : "Wins", value: score.wins },
-        { icon: "draw", label: he ? "תיקו" : "Draws", value: score.draws },
+        { icon: "star", label: T.wins, value: score.wins },
+        { icon: "draw", label: T.draws, value: score.draws },
       ]}
       levels={DIFF_OPTIONS}
       level={difficulty}
@@ -189,7 +195,7 @@ export function TicTacToe({ ctx }: { ctx: GameContext }) {
         >
           <b style={{ fontSize: 25, fontFamily: "Fredoka, inherit" }}>{status}</b>
           <span style={{ fontSize: 13.5, color: "var(--text-dim)" }}>
-            {he ? "שלושה ברצף מנצחים" : "Three in a row wins"}
+            {T.rule}
           </span>
         </div>
       }

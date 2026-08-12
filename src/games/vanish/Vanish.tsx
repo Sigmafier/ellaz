@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
+import type { Locale } from "@i18n/index";
 import type { GameContext } from "@sdk/index";
 import { type DifficultyOption } from "@ui/index";
 import { GameChrome } from "@ui/GameChrome";
@@ -24,7 +25,7 @@ import {
 // character stays hidden, and the same question is asked again. There is no
 // score to lose and no attempt counter to exhaust.
 
-const LEVEL_LABELS: Record<Difficulty, { he: string; en: string }> = {
+const LEVEL_LABELS: Record<Difficulty, Record<Locale, string>> = {
   easy: { he: "קל", en: "Easy" },
   medium: { he: "בינוני", en: "Med" },
   hard: { he: "קשה", en: "Hard" },

@@ -80,10 +80,45 @@ export const DIR: Record<AppLocale, "rtl" | "ltr"> = Object.fromEntries(
   APP_LOCALES.map((l) => [l, dirOf(l)]),
 ) as Record<AppLocale, "rtl" | "ltr">;
 
+/**
+ * The glyph on a "go back" control. A DIRECTION question, never a language one.
+ *
+ * Five screens each wrote `locale === "he" ? "→" : "←"`, which is right for the
+ * two languages that existed and wrong for the reason it is right: it reads the
+ * LANGUAGE to answer a question about the LAYOUT. Arabic is RTL and is not
+ * Hebrew, so every one of those five would point an Arabic reader's back button
+ * the wrong way — and Spanish would have to be handed a "translation" of an
+ * arrow to keep them compiling.
+ *
+ * Keyed on direction it is correct for every language there will ever be, and
+ * it never needs translating. `←` is the literal glyph in both cases: arrows do
+ * not bidi-mirror (`Bidi_Mirrored=0`), so `dir="rtl"` renders them as drawn.
+ */
+export function backArrow(locale: AppLocale): string {
+  return DIR[locale] === "rtl" ? "→" : "←";
+}
+
 export type Dictionary = Record<StringKey, string>;
 
 /** The dictionaries that are in the shell already and need no fetch. */
 const STATIC: Partial<Record<AppLocale, Dictionary>> = { he, en };
+
+/**
+ * Which languages need no fetch — and therefore which languages may have PAGES.
+ *
+ * An emitted page is not the app: `PageApp` mounts straight into a document and
+ * never calls `loadDict`, because it has no picker and no reason to. So chrome
+ * on a page resolves out of `STATIC` or it falls back to English and stays
+ * there. A page locale whose dictionary is LAZY would render Spanish prose
+ * wrapped in English buttons, on every emitted page, with nothing thrown and
+ * nothing logged.
+ *
+ * `dict.test.ts` pins `PAGE_LOCALES ⊆ STATIC_LOCALES`, so promoting a language
+ * to pages without making its dictionary static is a red test rather than a
+ * discovery. Promotion is already two commits (prose, then the list); this
+ * makes it three, and the third one is one word long.
+ */
+export const STATIC_LOCALES = Object.keys(STATIC) as readonly AppLocale[];
 
 /** Loaded lazily and kept. A language is fetched once per session, not per render. */
 const loaded = new Map<AppLocale, Dictionary>(

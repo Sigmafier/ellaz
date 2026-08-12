@@ -1,3 +1,4 @@
+import { textFor } from "@i18n/index";
 // The instruction chip at the top of a kids game: a glyph, the instruction in
 // the player's language, and a speaker that reads it aloud.
 //
@@ -78,7 +79,7 @@ export function Prompt({ ctx, glyph, text, speak }: PromptProps): ReactElement {
       </span>
       {canSpeak ? (
         // IconButton is already a full `var(--tap)` target on both axes.
-        <IconButton ariaLabel={ctx.locale === "he" ? "השמע" : "listen"} onClick={say}>
+        <IconButton ariaLabel={textFor({ he: "השמע", en: "listen" }, ctx.locale)} onClick={say}>
           🔊
         </IconButton>
       ) : null}

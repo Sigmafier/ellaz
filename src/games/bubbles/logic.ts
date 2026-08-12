@@ -49,9 +49,18 @@ export const FINAL_FORMS: readonly string[] = ["ך", "ם", "ן", "ף", "ץ"];
 /** Uppercase only — A and a must never be the same question. */
 const EN_LETTERS = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
 
-/** Everything a bubble may carry, for one locale. Digits first, then letters. */
+/**
+ * Everything a bubble may carry, for one locale. Digits first, then letters.
+ *
+ * A RECORD of alphabets rather than a two-way branch, because an alphabet is
+ * not a translation: Spanish is not English plus accents (ñ is its own letter,
+ * and a child learning it is learning that), and a language promoted without
+ * one would silently be handed the English alphabet to read aloud.
+ */
+const LETTERS: Record<Locale, string[]> = { he: HE_LETTERS, en: EN_LETTERS };
+
 export function contentPool(locale: Locale): string[] {
-  return [...DIGITS, ...(locale === "he" ? HE_LETTERS : EN_LETTERS)];
+  return [...DIGITS, ...LETTERS[locale]];
 }
 
 /**

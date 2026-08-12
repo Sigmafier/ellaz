@@ -95,4 +95,10 @@ export const it: Record<StringKey, string> = {
   catRug: "Tappeto",
   catPlant: "Pianta",
   catPoster: "Poster",
+  cards: "Carte",
+  cardsPictures: "Disegni",
+  cardsIcons: "Icone",
+  home: "Home",
+  level: "Livello",
+  stage: "Livello",
 };

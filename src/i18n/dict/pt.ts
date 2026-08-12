@@ -97,4 +97,10 @@ export const pt: Record<StringKey, string> = {
   catRug: "Tapete",
   catPlant: "Planta",
   catPoster: "Pôster",
+  cards: "Cartões",
+  cardsPictures: "Desenhos",
+  cardsIcons: "Ícones",
+  home: "Início",
+  level: "Nível",
+  stage: "Fase",
 };

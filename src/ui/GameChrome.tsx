@@ -85,7 +85,10 @@ export function GameChrome<T extends string>({
   /** The board. */
   children: ReactNode;
 }) {
-  const he = ctx.locale === "he";
+  // Chrome, not game words: every one of these already had a key in the
+  // eleven-language dictionary, so a hand-written he/en pair was strictly
+  // less translated than the shared bar it sits in.
+  const t = ctx.t;
   const muted = ctx.audio.muted;
   const i = levels && level ? levels.findIndex((l) => l.id === level) : -1;
   const current = i >= 0 && levels ? levels[i] : undefined;
@@ -160,13 +163,13 @@ export function GameChrome<T extends string>({
             296px of usable width on a 320px phone, and this container clips
             rather than scrolls. See a-row-that-grows-with-the-catalog-must-wrap. */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          {navBtn("home", he ? "בית" : "Home", () => ctx.requestExit())}
-          {navBtn("redo", he ? "מחדש" : "Restart", onRestart)}
-          {navBtn(muted ? "muted" : "sound", he ? "קול" : "Sound", () => ctx.audio.toggleMute())}
+          {navBtn("home", t("home"), () => ctx.requestExit())}
+          {navBtn("redo", t("restart"), onRestart)}
+          {navBtn(muted ? "muted" : "sound", t("sound"), () => ctx.audio.toggleMute())}
           {levels && current && onLevel && (
             <button
               type="button"
-              aria-label={`${he ? "רמה" : "Level"}: ${current.label[ctx.locale]}`}
+              aria-label={`${t("level")}: ${current.label[ctx.locale]}`}
               onClick={() => onLevel(levels[(i + 1) % levels.length].id)}
               style={{
                 height: TAP,
@@ -188,7 +191,7 @@ export function GameChrome<T extends string>({
             >
               <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.12 }}>
                 <span style={{ fontSize: 10, fontWeight: 800, color: "var(--text-dim)" }}>
-                  {he ? "רמה" : "Level"}
+                  {t("level")}
                 </span>
                 <span style={{ fontSize: 16, fontWeight: 800, fontFamily: "Fredoka, inherit" }}>
                   {current.label[ctx.locale]}

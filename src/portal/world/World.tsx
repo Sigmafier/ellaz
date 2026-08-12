@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Locale } from "@i18n/index";
-import { makeT } from "@i18n/index";
+import { backArrow, makeT } from "@i18n/index";
 import { audioPort, nameEmoji, renderName, wallet, type ProfileV1 } from "@sdk/index";
 import { IconButton } from "@ui/components";
 import { Icon } from "@ui/icons";
@@ -97,7 +97,7 @@ export function World({ locale, onExit }: { locale: Locale; onExit: () => void }
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "8px 16px 32px" }}>
         <header style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0 16px" }}>
           <IconButton ariaLabel={t("back")} onClick={onExit}>
-            {locale === "he" ? "→" : "←"}
+            {backArrow(locale)}
           </IconButton>
           {/* h2 — the emitted page already has the h1. See Boards.tsx. */}
           <h2 style={{ flex: 1, fontSize: 26, lineHeight: 1, margin: 0 }}>{t("world")}</h2>

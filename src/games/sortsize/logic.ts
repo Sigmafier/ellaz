@@ -1,3 +1,4 @@
+import type { Locale } from "@i18n/index";
 // "Big & Small" / גדול וקטן - pure logic for a PRE-NUMERIC size game.
 //
 // This is deliberately NOT a math game. A three-year-old can see that one
@@ -62,17 +63,15 @@ export const LEVELS: Record<Difficulty, LevelConfig> = {
 
 export const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard"];
 
-export interface SizedItem {
+/** A character to sort, plus its name in every language with written prose. */
+export type SizedItem = Record<Locale, string> & {
   id: string;
   emoji: string;
-  /** Hebrew name of the character - the primary string. */
-  he: string;
-  en: string;
   /** Rendered glyph size in px. */
   size: number;
   /** 0 = smallest in this round. Never leaks through display position. */
   rank: number;
-}
+};
 
 export interface Round {
   kind: RoundKind;

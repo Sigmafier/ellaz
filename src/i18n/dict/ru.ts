@@ -99,4 +99,10 @@ export const ru: Record<StringKey, string> = {
   catRug: "Ковёр",
   catPlant: "Растение",
   catPoster: "Плакат",
+  cards: "Карточки",
+  cardsPictures: "Рисунки",
+  cardsIcons: "Значки",
+  home: "Главная",
+  level: "Уровень",
+  stage: "Этап",
 };

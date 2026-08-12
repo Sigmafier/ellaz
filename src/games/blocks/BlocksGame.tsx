@@ -1,3 +1,4 @@
+import { textFor } from "@i18n/index";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { GameContext, RewardTier, SessionSpec } from "@sdk/index";
 import { Button } from "@ui/components";
@@ -426,7 +427,16 @@ export function BlocksGame({ ctx }: { ctx: GameContext }) {
 
   /* -------------------------------------------------------------- the view */
 
-  const he = ctx.locale === "he";
+  // This game's own words. A locale RECORD, so promoting a language reds
+  // this block by name instead of leaving the game speaking English
+  // inside a page that is not.
+  const T = textFor(
+    {
+      he: { rows: "שורות", left: "שמאלה", rotate: "סובב", right: "ימינה", down: "למטה", drop: "הפל", next: "הבא" },
+      en: { rows: "Rows", left: "Left", rotate: "Rotate", right: "Right", down: "Down", drop: "Drop", next: "Next" },
+    },
+    ctx.locale,
+  );
   const L = LEVELS[state.level];
   const cell = cellSize(L.cols, L.rows);
   const painted = render(state);
@@ -460,7 +470,7 @@ export function BlocksGame({ ctx }: { ctx: GameContext }) {
       ctx={ctx}
       stats={[
         { icon: "bolt", label: ctx.t("score"), value: state.score },
-        { icon: "layers", label: he ? "שורות" : "Rows", value: state.lines },
+        { icon: "layers", label: T.rows, value: state.lines },
         { icon: "trophy", label: ctx.t("best"), value: best },
       ]}
       levels={LEVEL_OPTIONS}
@@ -472,17 +482,17 @@ export function BlocksGame({ ctx }: { ctx: GameContext }) {
         // board that is itself pinned LTR - mirroring them in Hebrew would put
         // the left arrow on the right of the piece it moves.
         <div dir="ltr" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {pad(he ? "שמאלה" : "Left", "◀", () => nudge(-1))}
-          {pad(he ? "סובב" : "Rotate", "⟳", turn, true)}
-          {pad(he ? "ימינה" : "Right", "▶", () => nudge(1))}
-          {pad(he ? "למטה" : "Down", "▼", soften)}
-          {pad(he ? "הפל" : "Drop", "⤓", slam, true)}
+          {pad(T.left, "◀", () => nudge(-1))}
+          {pad(T.rotate, "⟳", turn, true)}
+          {pad(T.right, "▶", () => nudge(1))}
+          {pad(T.down, "▼", soften)}
+          {pad(T.drop, "⤓", slam, true)}
         </div>
       }
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <span style={{ fontSize: 12, fontWeight: 800, color: "var(--text-dim)" }}>
-          {he ? "הבא" : "Next"}
+          {T.next}
         </span>
         <NextPiece piece={state.next} />
       </div>

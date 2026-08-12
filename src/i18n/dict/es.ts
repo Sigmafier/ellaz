@@ -100,4 +100,10 @@ export const es: Record<StringKey, string> = {
   catRug: "Alfombra",
   catPlant: "Planta",
   catPoster: "Póster",
+  cards: "Tarjetas",
+  cardsPictures: "Dibujos",
+  cardsIcons: "Iconos",
+  home: "Inicio",
+  level: "Nivel",
+  stage: "Nivel",
 };

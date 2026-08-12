@@ -1,3 +1,4 @@
+import { textFor } from "@i18n/index";
 import {
   useCallback,
   useEffect,
@@ -37,6 +38,16 @@ const PLATE = "max(150px, min(66vw, 32vh, 300px))";
 const PLATE_GLYPH = "max(96px, min(42vw, 20vh, 190px))";
 
 export function Shadows({ ctx }: { ctx: GameContext }) {
+  // This game's own words. A locale RECORD, so promoting a language reds
+  // this block by name instead of leaving the game speaking English
+  // inside a page that is not.
+  const T = textFor(
+    {
+      he: { cheer: (n: number) => `🎉 יפה! ממשיכים לשלב ${n}…`, hiding: "מי מסתתר בצל? 🕵️", ask: "איזו תמונה מתאימה לצל?" },
+      en: { cheer: (n: number) => `🎉 Nice! On to level ${n}…`, hiding: "Who is hiding in the shadow? 🕵️", ask: "Which picture matches the shadow?" },
+    },
+    ctx.locale,
+  );
   const [difficulty, setDifficulty] = useRememberedLevel(
     ctx,
     DIFF_OPTIONS.map((o) => o.id),
@@ -146,7 +157,7 @@ export function Shadows({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "layers", label: ctx.locale === "he" ? "שלב" : "Level", value: level },
+        { icon: "layers", label: ctx.t("stage"), value: level },
         { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
       ]}
       levels={DIFF_OPTIONS}
@@ -171,13 +182,7 @@ export function Shadows({ ctx }: { ctx: GameContext }) {
           }}
         >
           <b style={{ fontSize: 17, fontFamily: "Fredoka, inherit" }}>
-            {solved
-              ? ctx.locale === "he"
-                ? `🎉 יפה! ממשיכים לשלב ${level + 1}…`
-                : `🎉 Nice! On to level ${level + 1}…`
-              : ctx.locale === "he"
-                ? "מי מסתתר בצל? 🕵️"
-                : "Who is hiding in the shadow? 🕵️"}
+            {solved ? T.cheer(level + 1) : T.hiding}
           </b>
         </div>
       }
@@ -185,7 +190,7 @@ export function Shadows({ ctx }: { ctx: GameContext }) {
       <Prompt
         ctx={ctx}
         glyph="🌑"
-        text={ctx.locale === "he" ? "איזו תמונה מתאימה לצל?" : "Which picture matches the shadow?"}
+        text={T.ask}
       />
 
       {/* The shadow, on its light plate. */}
@@ -235,7 +240,7 @@ export function Shadows({ ctx }: { ctx: GameContext }) {
           return (
             <button
               key={c.id}
-              aria-label={ctx.locale === "he" ? c.he : c.en}
+              aria-label={textFor(c, ctx.locale)}
               onPointerDown={(e) => onChoice(c, e)}
               style={{
                 width: TILE,
