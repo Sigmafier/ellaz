@@ -109,25 +109,89 @@ export function Home({
     <div className="ellaz-scroll" style={{ flex: 1 }} ref={juiceRef}>
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "8px 16px 32px" }}>
         <header
-          // gap 8, not 12. The header carries five things on a 430px phone -
-          // emoji, title block, wallet, theme, language - and measured at 383px
-          // wide the children plus 4x12 of gap left the title block 64px, which
-          // wrapped the tagline onto three lines. The tagline was already on
-          // two before the theme toggle existed; adding a fifth child is what
-          // made it three. Recovering the gap is cheaper than hiding a word.
-          style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 4px 16px" }}
+          // IT WRAPS, and that is the fix rather than a tidy-up.
+          //
+          // This row's width grows with the LANGUAGE LIST, which only ever gets
+          // longer - the same shape as
+          // .claude/rules/a-row-that-grows-with-the-catalog-must-wrap.md, whose
+          // two earlier instances grew with the catalog. Measured at 390px
+          // before this: 447px of demand in Hebrew, 489 in English, 509 in
+          // Indonesian, against a 350px box. All eleven languages overflowed at
+          // 320, 360 and 390.
+          //
+          // The symptom was SIDEWAYS SCROLL rather than clipping, and that is
+          // why both checks that rule recommends reported clean. `body.app-shell`
+          // is overflow:hidden so the document never widened -
+          // documentElement.scrollWidth was exactly innerWidth in all 33 cells -
+          // and the overflow landed in `.ellaz-scroll` (overflow-x:auto) one
+          // level in, 76px of travel in Hebrew and 139 in Indonesian. The
+          // per-item check found nothing either, because these children were
+          // never squeezed: they were pushed bodily outside the box. In Hebrew
+          // the language pill sat at x=-76, half off the left edge, on the
+          // DEFAULT locale.
+          //
+          // Trimming was measured before being rejected: deleting the language
+          // control outright still leaves English and Indonesian 17px over.
+          // Wrapping is the only answer that needs no re-deriving when the
+          // twelfth language, a longer app name or a four-digit coin count
+          // arrives.
+          //
+          // gap stays 8 rather than going back to 12: with the row wrapped the
+          // header no longer needs what that recovers, and two rows on a phone
+          // should read as one block rather than as two unrelated bars.
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: 8,
+            rowGap: 8,
+            padding: "12px 4px 16px",
+          }}
         >
           <div style={{ fontSize: 40 }} aria-hidden="true">
             🎮
           </div>
-          <div style={{ flex: 1 }}>
+          {/* `minWidth: 0` because a flex item's default `min-width: auto`
+              refuses to shrink below its own content - which is what let the
+              title push the controls off the screen instead of the row
+              wrapping. The wrap above does nothing without it. */}
+          <div style={{ flex: "1 1 auto", minWidth: 0 }}>
             <h1 style={{ fontSize: 30, lineHeight: 1 }}>{t("appName")}</h1>
             <div style={{ color: "var(--text-dim)", fontSize: 14 }}>{t("tagline")}</div>
           </div>
-          <WalletChip />
-          <CardStyleToggle locale={locale} onTap={tap} />
-          <ThemeToggle locale={locale} onTap={tap} />
-          <LanguagePicker locale={locale} onPick={onPickLocale} onTap={tap} />
+          {/* The four controls travel together. Without this wrapper the row
+              wraps one control at a time, and a phone gets the language pill
+              alone on a second line under its three siblings; with it, the
+              group drops as a unit and returns to one line the moment there is
+              room. It wraps internally too, so no autonym and no coin count can
+              overflow it either - the same guarantee, one level down. */}
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "flex-end",
+              alignItems: "center",
+              gap: 8,
+              rowGap: 8,
+              // `0 1 auto` with `minWidth: 0`, and the SHRINK half is
+              // load-bearing rather than defensive. At `0 0 auto` this group
+              // keeps its max-content width - 431px in Indonesian once the
+              // autonym is back - so it never gets squeezed, so its own
+              // `flexWrap` above never fires, so it overflows instead of
+              // wrapping. Measured at exactly 430px, the width where the label
+              // returns: 21px of sideways travel and three controls outside the
+              // viewport, i.e. the original bug reproduced in a 1px-wide band.
+              // A wrap that cannot be reached is not a wrap.
+              flex: "0 1 auto",
+              minWidth: 0,
+              marginInlineStart: "auto",
+            }}
+          >
+            <WalletChip />
+            <CardStyleToggle locale={locale} onTap={tap} />
+            <ThemeToggle locale={locale} onTap={tap} />
+            <LanguagePicker locale={locale} onPick={onPickLocale} onTap={tap} />
+          </div>
         </header>
 
         <WorldHero profile={profile} locale={locale} onTap={tap} />

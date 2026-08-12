@@ -28,6 +28,18 @@ import { AVAILABLE, makeT } from "@i18n/strings";
  * 3. THE CURRENT LANGUAGE IS MARKED BY SHAPE, NOT COLOUR. A ring plus a check
  *    glyph, so it reads for a colour-blind parent and in a screenshot.
  *
+ * 4. THE AUTONYM ON THE BUTTON IS HIDDEN ON A NARROW SCREEN. `Bahasa Indonesia`
+ *    made this control 134px wide beside three 48px siblings, and the home
+ *    header has no 134px to give: measured at 390px it asked for 509px of a
+ *    350px box. The label is a convenience, not the control - the globe is the
+ *    control, `aria-label` carries the name, and the sheet it opens writes
+ *    every language in itself. Nothing is lost that the next tap does not show.
+ *
+ *    It is a CLASS rather than a `useState` on window width, because a resize
+ *    listener re-renders on every drag and reads wrong on the first paint; and
+ *    because these styles are inline, the label's `display` has to be the one
+ *    thing the stylesheet owns or a media query cannot reach it at all.
+ *
  * Each entry carries its own `dir` and `lang`, so an Arabic autonym renders
  * right-to-left inside an otherwise left-to-right sheet. Without that, the label
  * of the language somebody is looking for is the one label rendered wrongly.
@@ -68,6 +80,10 @@ export function LanguagePicker({
         }}
         style={{
           minHeight: "var(--tap)",
+          // The tap target has to survive losing its label: 14px of padding
+          // either side of an 18px globe is 46, which is under the floor every
+          // other control in that header holds.
+          minWidth: "var(--tap)",
           padding: "0 14px",
           borderRadius: "var(--radius-pill)",
           border: "none",
@@ -77,11 +93,12 @@ export function LanguagePicker({
           fontSize: 15,
           display: "flex",
           alignItems: "center",
+          justifyContent: "center",
           gap: 6,
         }}
       >
         <GlobeIcon />
-        <span lang={locale} dir={dirOf(locale)}>
+        <span className="ellaz-lang-label" lang={locale} dir={dirOf(locale)}>
           {AUTONYM[locale]}
         </span>
       </button>

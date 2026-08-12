@@ -291,6 +291,41 @@ body.app-shell h3,
   }
 }
 
+/* The autonym on the language BUTTON - never in the sheet it opens, which
+ * always writes every language in itself.
+ *
+ * Hidden by default and restored at 430px, mobile-first, because the phone is
+ * the case that cannot afford it. `Bahasa Indonesia` makes that control 134px
+ * against three 48px siblings, and the home header measured 509px of demand in
+ * a 350px box at 390px wide - so this label is the largest single thing in that
+ * row that nothing depends on.
+ *
+ * WHY 430 AND NOT 390. 430 is the widest phone in common use, and the header
+ * still overflowed at that width with the label shown: 509px of demand against
+ * 398px. Restoring the label at 390 would put it back exactly where it does not
+ * fit. The number is an upper bound on phones rather than a fit calculation,
+ * which is what keeps it honest when a twelfth language arrives with a longer
+ * autonym - see
+ * .claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md. The header
+ * wraps regardless, so being wrong here costs a second row, never an overflow.
+ *
+ * THE SECOND ROW IS REAL AND IS THE ACCEPTED COST. Swept 320-1280px in
+ * Indonesian, the longest autonym: 430-479px puts the four controls on two rows
+ * (header 187px tall rather than 131), and 480px up is one row again. Nothing
+ * overflows anywhere in that band. Moving this to 480 would remove it today and
+ * would be a fit calculation against the longest string currently in the pool -
+ * a number that goes stale the moment a twelfth language lands, for a band of
+ * widths almost nobody holds. 430 is a fact about phones instead, and it keeps
+ * being one. */
+.ellaz-lang-label {
+  display: none;
+}
+@media (min-width: 430px) {
+  .ellaz-lang-label {
+    display: inline;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.001ms !important;
