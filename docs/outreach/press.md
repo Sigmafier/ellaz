@@ -12,10 +12,68 @@
 | `https://www.mako.co.il/` | 200 | consumer angle only |
 | `https://www.calcalist.co.il/` | **403 to a script** | loads in a browser; the contact page must be found by hand |
 
-**The parenting and education blog list is NOT yet verified and is deliberately absent
-below.** Naming blogs from memory is how a draft ends up addressed to a site that shut
-down in 2019. The email template is written and reusable; the list is a separate step,
-and it is the only part of this file that is not ready to send.
+---
+
+## The parenting list, verified 2026-08-12 - and the two candidates it killed
+
+The earlier version of this file left this list out on the grounds that naming blogs from
+memory is how a draft ends up addressed to a site that shut down in 2019. That caution was
+correct, and it was cheap to prove: **two of the first sites that came to mind do not
+resolve at all.**
+
+Every row below was fetched with a browser user agent, and each is scored on words of
+readable prose and count of Hebrew characters. An invented domain was fetched in the same
+batch as a control.
+
+| Destination | Code | Words | Hebrew | Verdict |
+|---|---|---|---|---|
+| `basalon.co.il` | 200 | 20,159 | 18,459 | **best fit** - "what to do with the kids", exactly our reader |
+| `horimnet.co.il` | 200 | 4,040 | 14,235 | strong - a parenting guides portal |
+| `haaretz.co.il/family` | 200 | 1,763 | 25,780 | real, but a newspaper desk rather than a blog |
+| `imaba.co.il` | 200 | 1,365 | 7,345 | good - a parenting portal with a contact form |
+| `littleann.co.il` | 200 | 1,415 | 2,246 | moderate - gifts, design and tips |
+| `atmag.co.il` | 200 | 721 | 2,880 | moderate - a magazine that runs a parenting issue |
+| `mako.co.il/home-family` | 200 | 2,605 | 7,780 | real, consumer desk |
+| `ynet.co.il/parents` | 200 | 2,904 | 14,139 | real, consumer desk |
+| `kolzchut.org.il` | 200 | 795 | 4,233 | **dropped** - a rights wiki, not a fit |
+| `parents.education.gov.il` | 200 | **228** | **10** | client-rendered shell; the probe learned nothing |
+| `edu.gov.il` | 403 | 23 | 0 | redirects to gov.il and blocks scripts |
+| **`kidsdo.co.il`** | **000** | 0 | 0 | **does not resolve** |
+| **`gogomom.co.il`** | **000** | 0 | 0 | **does not resolve** |
+| `zzzzz-not-real-xyzzy.co.il` | 000 | 0 | 0 | *the control, invented* |
+
+**The control is what makes this a verified list rather than a hopeful one.** The invented
+domain failed at DNS with `000` and zero words, so a `200` carrying thousands of Hebrew
+characters is real information about a real site. That is the opposite of the Reddit and
+AlternativeTo probes in this folder, where a real destination and an invented one answered
+identically and the honest conclusion was that nothing had been learned.
+
+And it paid immediately: `kidsdo.co.il` and `gogomom.co.il` both read like plausible
+Israeli parenting sites and neither exists. Those are precisely the two rows that would
+have shipped in a list written from memory.
+
+### Contact routes, as far as a script could get
+
+| Site | Route | Found |
+|---|---|---|
+| `basalon.co.il` | `/contact/` | 200, a form **and** a published address: `info@basalon.co.il` |
+| `imaba.co.il` | `/contact.php` | 200, a contact form, no published address |
+| `horimnet.co.il` | `/contact` | **404** - the real route was not found by a script |
+| `littleann.co.il` | `/contact` | **404** - same |
+
+The two 404s are not evidence the sites lack a contact page; their navigation did not
+survive a raw fetch. Open those two in a browser.
+
+One small trap worth recording, because it is the same class as everything else in this
+folder: the address grep also matched `Spin@1x-1.0s-200px-200px.svg`, an SVG filename with
+an `@` in it. It is excluded above. **A pattern written for one shape of input will happily
+fire on another and report it with total confidence.**
+
+### Before sending to any of them
+
+Their fit is verified. Their **submission policy is not** - none of these publishes one in
+a form a script can read. Read the site first, find a specific article, and name it. An
+email with `[הכתבה הספציפית]` left as a placeholder is worse than no email.
 
 ---
 
@@ -27,9 +85,16 @@ that are true and documented: no backend at all, a first load smaller than most 
 images, and a set of published post-mortems about failures that are invisible from a
 browser. Lead with the last of those - it is the only part nobody else has written.
 
-**Every number in the letter is derived**: 86,927 bytes gzipped is the first visit
+**Every number in the letter is derived**: 88,234 bytes gzipped is the first visit
 measured on the built artifact by `scripts/assert-payload.mjs`, which fails the build
 above 90,000. 23 games and 52 pages come from the roster and the emitted sitemap.
+
+**That figure moved after this letter was first written, and the letter was wrong for a
+day.** It read 86,927, measured on a clean tree on 2026-08-11; eleven interface languages
+landed that evening and the same script now reports 88,234 on clean `HEAD` 799e2ef,
+re-measured 2026-08-12. Both numbers were honest when taken, which is the point: **a
+figure in an outgoing letter carries the tree it was measured on, so re-measure before
+sending rather than trusting a number written down yesterday.**
 
 > **נושא:** אתר משחקים לילדים בעברית, בלי שרת ובלי פרסומות - והבאגים שאי אפשר לראות
 > מהדפדפן
@@ -39,7 +104,7 @@ above 90,000. 23 games and 52 pages come from the roster and the emitted sitemap
 > בניתי אתר משחקים לילדים בעברית, ואני חושב שהחלק המעניין בו הוא דווקא ההנדסי.
 >
 > 23 משחקים, 52 עמודים, ואפס שרת. אין בסיס נתונים, אין הרשמה, אין איסוף מידע. הכל נשמר
-> על המכשיר עצמו. הטעינה הראשונה שוקלת 86,927 בתים דחוסים, פחות מתמונה בודדת בכתבה
+> על המכשיר עצמו. הטעינה הראשונה שוקלת 88,234 בתים דחוסים, פחות מתמונה בודדת בכתבה
 > ממוצעת, ויש בדיקה אוטומטית שמפילה את הבילד אם המספר עובר 90,000.
 >
 > אבל מה שהייתי כותב עליו הוא זה: תוך שבועיים האתר נשבר שלוש פעמים בשלוש דרכים שאף אחת
