@@ -128,6 +128,25 @@ all local, is a measurement; "no absolute paths found" is an argument.
   imports unconditionally first, because static imports are not removable by
   chunking config
 
+## The same shape, one layer out: committed is not landed
+
+A local verification of a **shared** artifact proves the artifact and never the
+sharing. Parse equality, byte-identical output, three gates green — all of it can
+be true of a state no other session or host can see, and every one of those checks
+passes identically whether or not the thing was ever published.
+
+So when the claim is about the world rather than about a file, the last step is
+part of the claim: `git push` and read `origin/main` back, upload and re-fetch,
+deploy and fetch as a stranger. The failure is invisible from the inside, because
+the inside is exactly where it is true.
+
+(2026-08-12: I told a peer session that a reformat meant their next tooling run
+would churn nothing. Every fact under it was checked; the commit was never pushed,
+so the claim was about a tree only I had. Same shape as the fabricated sha earlier
+the same hour — the one step nobody looked at was the one that was wrong, and it
+travelled inside a paragraph of genuinely verified evidence, which is what made it
+credible.)
+
 ## Related
 
 - [`precache-glob-sweeps-new-chunks.md`](precache-glob-sweeps-new-chunks.md) - the
@@ -140,3 +159,14 @@ all local, is a measurement; "no absolute paths found" is an argument.
 - [`a-bot-challenge-at-the-edge-is-invisible-from-your-browser.md`](a-bot-challenge-at-the-edge-is-invisible-from-your-browser.md)
   - the other outage where every gate read `dist/` and none read what the user
   received.
+- `~/.claude/rules/quality/sandbox-is-only-as-real-as-its-least-scoped-output.md`
+  - the machine-wide sibling, written by the ads-doctrine session on 2026-08-12:
+  enumerate every path a sandboxed process can WRITE to, not only the one the
+  sandbox re-points, because a rig that protects the main artifact while writing
+  through to a real one is worse than one that protects nothing — it reports
+  success. Its companion section carries the two instruments that failed the same
+  way in one afternoon: a regex written from the source against a minified
+  artifact, and a column-aligned print whose padding absorbed the leading
+  whitespace it existed to measure. **Ask of any probe whether it is capable of
+  representing the failure you are looking for.** One copy, linked rather than
+  duplicated.
