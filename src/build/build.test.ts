@@ -593,7 +593,7 @@ describe("the Hebrew home is a document, not an empty shell", () => {
 
   // The plugin declares `transformIndexHtml` as a plain function; Vite's type
   // also allows the object form, which is why this narrows before calling.
-  const runTransform = (base: string, html: string): string => {
+  const runTransform = (base: string, html: string, path = "/index.html"): string => {
     const hook = pagesPlugin(base).transformIndexHtml;
     const fn =
       typeof hook === "function"
@@ -602,7 +602,7 @@ describe("the Hebrew home is a document, not an empty shell", () => {
           ? hook.handler
           : hook?.transform;
     if (typeof fn !== "function") throw new Error("transformIndexHtml is not a function");
-    return String(fn.call(null as never, html, { path: "/index.html", filename: "index.html" }));
+    return String(fn.call(null as never, html, { path, filename: path.slice(1) }));
   };
 
   const transform = (base: string): string => runTransform(base, SHELL);
@@ -645,6 +645,22 @@ describe("the Hebrew home is a document, not an empty shell", () => {
     expect(transform("/")).toContain('href="/games/snake/"');
     expect(transform("/ellaz/")).toContain('href="/ellaz/games/snake/"');
     expect(transform("/ellaz/")).not.toContain('href="/games/snake/"');
+  });
+
+  it("leaves an emitted page alone - dev sends those through this same hook", () => {
+    // 2026-08-12: it did not, and every content page in dev was a 500. The dev
+    // middleware must run the emitted pages through Vite's html pipeline (the
+    // react-refresh preamble), so this hook is handed 78 documents that have no
+    // `#root` - and the mount-point guard below fired on all of them. Nothing in
+    // production could see it: at build time the hook runs once, for index.html.
+    const page = renderRoute(
+      ROUTES.find((r) => r.kind === "game" && r.locale === "es")!,
+      "/",
+      DEV_HEAD_ASSETS,
+    );
+    const out = runTransform("/", page, "/es/games/snake/");
+    expect(out).toBe(page);
+    expect(out).not.toContain('id="home-doc"');
   });
 
   it("refuses to emit silently if the mount point moves", () => {

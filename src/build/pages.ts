@@ -207,7 +207,20 @@ export function pagesPlugin(base: string): Plugin {
     enforce: "post",
     apply: () => true,
 
-    transformIndexHtml(html) {
+    transformIndexHtml(html, ctx) {
+      // ONLY the app's own index.html. In dev the 78 emitted pages are handed
+      // to this very pipeline on purpose - they need `@vitejs/plugin-react`'s
+      // refresh preamble or nothing boots (see `configureServer` below, and
+      // `dev-pages-must-go-through-vites-html-pipeline.md`) - so this hook is
+      // called with documents that are NOT the shell and have no `#root`. The
+      // marker guard then fired on every one of them: measured 2026-08-12,
+      // every game page, the room and the boards answered 500 in dev while
+      // production was perfectly correct, because at build time this hook is
+      // called exactly once and only for index.html.
+      //
+      // `/index.html` is the path in BOTH environments - measured, not assumed:
+      // dev normalises `/` to it, and the build reports it under either base.
+      if (ctx.path !== "/index.html") return html;
       const withHead = html.replace("</head>", `  ${indexHeadTags(base)}\n  </head>`);
       // The Hebrew home, as a document, ahead of the app's mount point.
       //
