@@ -1,5 +1,6 @@
 import type { GameMeta } from "../sdk/types";
 import { ORIGIN } from "../content/site";
+import { ENGLISH_NAME } from "../i18n/locales";
 import { LOCALES, ROUTES, canonicalUrl, gamePath, homePath } from "./routes";
 import { escapeHtml } from "./html";
 
@@ -122,10 +123,26 @@ export function sitemapXml(lastmods?: ReadonlyMap<string, string>): string {
  * plain text. It costs nothing and it is a real index of the site.
  */
 export function llmsTxt(games: ReadonlyArray<GameMeta>): string {
+  // Both language lines are DERIVED from LOCALES, and that is the whole point of
+  // this edit. They were the literals "in Hebrew and English" plus exactly two
+  // home links - correct when written, and silently wrong the day Spanish
+  // shipped: the one file whose entire job is telling an answer engine what this
+  // site IS went on claiming two languages while serving three, and named no
+  // Spanish page at all. Nothing could have caught it. It is prose, not a type,
+  // so promoting the locale did not red a build, and every gate in this repo was
+  // busy asserting that the pages themselves were correct - which they were.
+  //
+  // Same class as the six two-language constants Spanish killed, arriving one
+  // layer further out: a STRING that describes the system rather than a value
+  // the system reads back.
+  const names = LOCALES.map((l) => ENGLISH_NAME[l]);
+  const languages =
+    names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0];
+
   return [
     "# Ellaz",
     "",
-    "> Free browser games for kids and grown-ups, in Hebrew and English. No download,",
+    `> Free browser games for kids and grown-ups, in ${languages}. No download,`,
     "> no account, no ads, and nothing collected about a child. Every game runs in the",
     "> browser and keeps working offline after one visit.",
     "",
@@ -135,8 +152,7 @@ export function llmsTxt(games: ReadonlyArray<GameMeta>): string {
     "",
     "## Pages",
     "",
-    `- [Home, Hebrew](${canonicalUrl(homePath("he"))})`,
-    `- [Home, English](${canonicalUrl(homePath("en"))})`,
+    ...LOCALES.map((l) => `- [Home, ${ENGLISH_NAME[l]}](${canonicalUrl(homePath(l))})`),
     "",
   ].join("\n");
 }

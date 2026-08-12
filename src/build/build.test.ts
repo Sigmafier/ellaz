@@ -5,6 +5,7 @@ import { SITE } from "../content/site";
 import { GAMES } from "../portal/games";
 import { CATALOG } from "../portal/catalog";
 import { escapeHtml, html, jsonLd, raw, toHtml } from "./html";
+import { ENGLISH_NAME } from "../i18n/locales";
 import { LOCALES, ROUTES, canonicalUrl, gamePath, homePath, href } from "./routes";
 import { allEmittedFiles, indexHeadTags, pagesPlugin, renderRoute } from "./pages";
 import { headingFor, relatedTo } from "./gamePage";
@@ -556,6 +557,21 @@ describe("robots, sitemap and llms", () => {
   it("lists every game in llms.txt", () => {
     const txt = llmsTxt(GAMES);
     for (const meta of GAMES) expect(txt).toContain(canonicalUrl(gamePath(meta.id, "en")));
+  });
+
+  it("names every page language in llms.txt, and links each home", () => {
+    // 2026-08-12, found by auditing the LIVE site rather than dist/. This file
+    // said "in Hebrew and English" and linked two homes for a day after Spanish
+    // shipped - the one artifact whose entire job is telling an answer engine
+    // what this site IS, under-reporting it. It is prose, so no type could red,
+    // and every other gate was busy proving the PAGES were right, which they were.
+    const txt = llmsTxt(GAMES);
+    for (const l of LOCALES) {
+      expect(txt, `llms.txt never names ${l}`).toContain(ENGLISH_NAME[l]);
+      expect(txt, `llms.txt has no home link for ${l}`).toContain(canonicalUrl(homePath(l)));
+    }
+    // ...and reads as a sentence rather than a list joined by commas.
+    expect(txt).toMatch(/in [A-Z][a-z]+(, [A-Z][a-z]+)* and [A-Z][a-z]+\./);
   });
 });
 
