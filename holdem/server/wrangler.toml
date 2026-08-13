@@ -1,0 +1,19 @@
+name = "holdem-server"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+
+# SQLite-backed Durable Objects are the flavour available on the free plan —
+# this must be new_sqlite_classes from day one; a KV-backed class cannot be
+# migrated to SQLite later on free.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["TableDO"]
+
+[[durable_objects.bindings]]
+name = "TABLE"
+class_name = "TableDO"
+
+[vars]
+# Comma-separated list of allowed browser origins for WS/API calls.
+# The pages.dev URL lands here once the first deploy exists.
+ALLOWED_ORIGINS = "http://localhost:5173"
