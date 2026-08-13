@@ -5,6 +5,7 @@ import {
   FLIP,
   POP,
   STAR,
+  STREAK,
   SUCCESS,
   TAP,
   WIN,
@@ -34,16 +35,22 @@ const NAMED: [string, VoiceSpec][] = [
   ["star", STAR],
   ["flip", FLIP],
   ["pop", POP],
+  // `streak` was missing from this list until 2026-08-13 - a shipped voice
+  // outside the playability check, which is exactly the population gap that
+  // makes a green suite mean less than it reads.
+  ["streak", STREAK],
 ];
 
 /** Every property a layer needs to make a sound at all. */
 function faults(spec: VoiceSpec): string[] {
   const bad: string[] = [];
   if (spec.layers.length === 0) bad.push("no layers");
-  if (!Number.isFinite(spec.freq) || spec.freq <= 0) bad.push(`freq ${spec.freq}`);
+  if (!Number.isFinite(spec.freq) || spec.freq <= 0)
+    bad.push(`freq ${spec.freq}`);
   if (!Number.isFinite(spec.ms) || spec.ms <= 0) bad.push(`ms ${spec.ms}`);
   spec.layers.forEach((l, i) => {
-    if (!Number.isFinite(l.gain) || l.gain <= 0) bad.push(`layer ${i} gain ${l.gain}`);
+    if (!Number.isFinite(l.gain) || l.gain <= 0)
+      bad.push(`layer ${i} gain ${l.gain}`);
     const ms = l.ms ?? spec.ms;
     if (!Number.isFinite(ms) || ms <= 0) bad.push(`layer ${i} ms ${ms}`);
     for (const k of ["a", "d", "s", "r"] as const) {
@@ -53,7 +60,10 @@ function faults(spec: VoiceSpec): string[] {
     if (l.ratio !== undefined && (!Number.isFinite(l.ratio) || l.ratio <= 0)) {
       bad.push(`layer ${i} ratio ${l.ratio}`);
     }
-    if (l.filter && (!Number.isFinite(l.filter.cutoff) || l.filter.cutoff <= 0)) {
+    if (
+      l.filter &&
+      (!Number.isFinite(l.filter.cutoff) || l.filter.cutoff <= 0)
+    ) {
       bad.push(`layer ${i} cutoff ${l.filter.cutoff}`);
     }
   });
@@ -65,64 +75,151 @@ describe("every shipped voice can actually make a sound", () => {
     expect(faults(spec), `${name}: ${faults(spec).join(", ")}`).toEqual([]);
   });
 
-  it.each(NAMED)("%s occupies a finite, non-zero span of time", (_name, spec) => {
-    const ms = voiceDurationMs(spec);
-    expect(Number.isFinite(ms)).toBe(true);
-    expect(ms).toBeGreaterThan(0);
-    // Nothing in a UI palette should ring for more than a few seconds; a voice
-    // that does is almost always a mistyped tail, and it would talk over the
-    // next thing the child does.
-    expect(ms).toBeLessThan(5000);
-  });
+  it.each(NAMED)(
+    "%s occupies a finite, non-zero span of time",
+    (_name, spec) => {
+      const ms = voiceDurationMs(spec);
+      expect(Number.isFinite(ms)).toBe(true);
+      expect(ms).toBeGreaterThan(0);
+      // Nothing in a UI palette should ring for more than a few seconds; a voice
+      // that does is almost always a mistyped tail, and it would talk over the
+      // next thing the child does.
+      expect(ms).toBeLessThan(5000);
+    },
+  );
 
   it("the fault detector fires - a planted silent layer is caught", () => {
     // Without this, every assertion above would pass over an empty list and
     // report success while measuring nothing.
-    const silent: VoiceSpec = { ...TAP, layers: [{ ...TAP.layers[0], gain: 0 }] };
+    const silent: VoiceSpec = {
+      ...TAP,
+      layers: [{ ...TAP.layers[0], gain: 0 }],
+    };
     expect(faults(silent)).toContain("layer 0 gain 0");
     const noLayers: VoiceSpec = { ...TAP, layers: [] };
     expect(faults(noLayers)).toContain("no layers");
   });
 });
 
-describe("the winners are the ones the operator actually chose", () => {
+describe("the voices are the ones the operator actually chose", () => {
   /**
-   * These pin the 2026-08-08 correction. The recorded verdict said coin and
-   * wrong "were won by the sounds already shipped", so the obvious reading was
-   * to leave `fail` as its 180Hz sawtooth and wire coin to `pop`'s 320Hz
-   * square. Both were wrong: the palette's control characters were the lab's
-   * LEAN arm, which had never shipped. If someone "restores" the old sounds on
-   * the strength of that note, these fail and say why.
+   * WHAT THIS BLOCK DEFENDS AGAINST, and it has already happened once.
+   *
+   * On 2026-08-08 a recorded verdict said coin and wrong "were won by the
+   * sounds already shipped". The obvious reading was to leave `fail` as its
+   * 180 Hz sawtooth and wire coin to `pop`'s 320 Hz square, and both were
+   * wrong - the palette's control characters were the lab's own unshipped arm.
+   * A verdict recorded as "the control won" is unreadable without knowing what
+   * the control WAS.
+   *
+   * That risk is now larger, not smaller. On 2026-08-13 all nine voices were
+   * re-picked with the names showing, and SIX of them overrode a blind-round
+   * winner from 2026-08-02. So there are two true and contradictory-sounding
+   * sentences in the record - "Shutter won the tournament" and "tap is Tick" -
+   * and only the second one describes what ships. If someone restores a
+   * predecessor on the strength of the first, these fail and say which.
+   *
+   * The predecessors are all preserved verbatim in `src/lab/previous.ts`, so
+   * nothing here is asserting a sound out of existence - only out of the app.
    */
-  it("fail is the soft falling thud, NOT the old 180Hz sawtooth", () => {
-    expect(FAIL.freq).toBe(196);
-    expect(FAIL.layers.some((l) => l.wave === "sawtooth")).toBe(false);
-    // The falling sine is the whole character: "not that one", never "you failed".
-    expect(FAIL.layers.some((l) => l.wave === "sine" && l.glide === -1.5)).toBe(true);
-  });
-
-  it("coin is two triangles a fifth apart, NOT pop's square", () => {
-    expect(COIN.freq).toBeCloseTo(987.77, 2);
-    const triangles = COIN.layers.filter((l) => l.wave === "triangle");
-    expect(triangles).toHaveLength(2);
-    // A fifth is 7 semitones, ratio 1.5.
-    expect(triangles[1].ratio).toBe(1.5);
-    expect(COIN.layers.some((l) => l.wave === "square")).toBe(false);
-  });
-
-  it("tap is the shutter double-click", () => {
-    // Two noise transients, the second delayed - that IS the double click.
+  it("tap is the bare tick, NOT the Shutter double-click", () => {
+    // Shutter's signature was TWO noise transients, the second delayed. Tick
+    // has exactly one, and it is a highpass rather than the mallet's bandpass.
     const noise = TAP.layers.filter((l) => l.wave === "noise");
-    expect(noise).toHaveLength(2);
-    expect(noise[1].delay).toBeGreaterThan(0);
+    expect(noise).toHaveLength(1);
+    expect(noise[0].filter?.type).toBe("highpass");
+    expect(noise[0].delay).toBeUndefined();
+    expect(TAP.ms).toBeLessThan(60);
   });
 
-  it("success is five pentatonic notes and star is three", () => {
-    // `run` copies the base timbre once per note, so layer count is a multiple.
-    const tine = struck(523.25, 280, "tine").layers.length;
-    expect(SUCCESS.layers).toHaveLength(tine * 5);
-    const glass = struck(1318.51, 420, "glass", { mallet: 0.03 }).layers.length;
-    expect(STAR.layers).toHaveLength(glass * 3);
+  it("pop is Pock, NOT Cork and NOT the 320Hz square", () => {
+    expect(POP.layers.some((l) => l.wave === "square")).toBe(false);
+    // Cork had two layers and a 9-semitone rise; Pock has three and a full
+    // octave, and the third is the resonant cavity Cork never had.
+    expect(POP.layers).toHaveLength(3);
+    expect(POP.layers.some((l) => l.glide === 12)).toBe(true);
+    const cavity = POP.layers.find((l) => l.filter?.type === "bandpass");
+    expect(cavity?.filter?.q).toBe(6);
+  });
+
+  it("flip moves, instead of being one triangle wave", () => {
+    // The whole point of replacing it: a card turning should travel and land.
+    expect(FLIP.layers.length).toBeGreaterThan(1);
+    const sweep = FLIP.layers.find((l) => l.wave === "noise");
+    expect(sweep?.filter?.cutoffEnd).toBeGreaterThan(
+      sweep?.filter?.cutoff ?? 0,
+    );
+    const landing = FLIP.layers.find((l) => l.wave === "sine");
+    expect(landing?.delay).toBeGreaterThan(0);
+  });
+
+  it("fail is two discrete steps down, NOT the old glide or a sawtooth", () => {
+    expect(FAIL.layers.some((l) => l.wave === "sawtooth")).toBe(false);
+    // Soft thud fell inside ONE note by gliding -1.5. Two steps down is two
+    // separate sines, the second a whole tone below and delayed.
+    expect(FAIL.layers.every((l) => l.glide === undefined)).toBe(true);
+    expect(FAIL.layers).toHaveLength(2);
+    expect(FAIL.layers[1].ratio).toBe(0.84);
+    expect(FAIL.layers[1].delay).toBeGreaterThan(0);
+  });
+
+  it("coin is the jar drop, NOT two triangles at B5", () => {
+    expect(COIN.freq).toBeCloseTo(1046.5, 2);
+    expect(COIN.layers.some((l) => l.wave === "square")).toBe(false);
+    // Four events in sequence rather than two notes: strike, coin, fifth, rest.
+    expect(COIN.layers).toHaveLength(4);
+    const delays = COIN.layers.map((l) => l.delay ?? 0);
+    expect(delays.filter((d) => d > 0)).toHaveLength(2);
+  });
+
+  it("correct, win and star are all tuned wood now", () => {
+    // `run` copies the base timbre once per note, so layer count is a multiple
+    // of the mode's partial count - which is how you can tell the mode from the
+    // outside. `bar` has three partials; `tine` also has three, so the note
+    // COUNT is what separates correct from its predecessor.
+    const bar = struck(523.25, 220, "bar").layers.length;
+    expect(SUCCESS.layers).toHaveLength(bar * 3); // was five, on tine
+    expect(WIN.layers).toHaveLength(bar * 6); // was a sweep plus a glass triad
+    expect(WIN.layers.some((l) => l.wave === "noise")).toBe(false);
+    expect(STAR.layers).toHaveLength(bar * 3); // was glass, with a mallet
+    expect(STAR.layers.some((l) => l.wave === "noise")).toBe(false);
+  });
+
+  it("streak is glass, and it is the one voice that must survive transposing", () => {
+    // Picked at the TOP rung, not at the bottom - it is the only voice in the
+    // app heard transposed, up to 21 semitones above its own base.
+    const glass = struck(523.25, 240, "glass").layers.length;
+    expect(STREAK.layers).toHaveLength(glass);
+    expect(STREAK.jitter).toBeGreaterThan(0);
+  });
+});
+
+describe("nothing shipped is inaudible", () => {
+  // `voiceEngine` drops any partial that spends its whole life above Nyquist -
+  // `star`'s top partial asks for 26,634 Hz at the octave, which no sample rate
+  // can represent. That guard is correct and it is also a silencer if a retune
+  // ever pushes a voice ENTIRELY up there: the app would go quiet for that
+  // event with no error anywhere, which is the failure this whole file exists
+  // to catch. So assert every voice keeps something a person can actually hear.
+  const AUDIBLE_CEILING = 20000;
+
+  it.each(NAMED)("%s keeps at least one layer under 20 kHz", (_name, spec) => {
+    const heard = spec.layers.filter((l) => {
+      if (l.wave === "noise") return true; // a filtered burst, not a partial
+      return spec.freq * (l.ratio ?? 1) < AUDIBLE_CEILING;
+    });
+    expect(heard.length).toBeGreaterThan(0);
+  });
+
+  it("the ceiling check fires - a voice pitched into the ultrasound is caught", () => {
+    // Without this the assertion above passes over any list and proves nothing.
+    const ultrasonic: VoiceSpec = { ...STREAK, freq: 30000 };
+    const heard = ultrasonic.layers.filter(
+      (l) =>
+        l.wave === "noise" ||
+        ultrasonic.freq * (l.ratio ?? 1) < AUDIBLE_CEILING,
+    );
+    expect(heard).toHaveLength(0);
   });
 });
 

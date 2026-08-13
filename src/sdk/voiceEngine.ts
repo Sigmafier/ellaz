@@ -221,13 +221,34 @@ function buildVoice(
       continue;
     }
 
+    const freq = baseFreq * (layer.ratio ?? 1);
+    const endFreq = layer.glide
+      ? Math.max(20, freq * semitonesToRatio(layer.glide))
+      : freq;
+
+    // A PARTIAL ABOVE NYQUIST IS NOT A QUIET SOUND, IT IS NO SOUND - and the
+    // browser says so out loud.
+    //
+    // `struck()` multiplies the base note by each mode's partial ratio, and
+    // `run()` then transposes the whole set. A high note plus a high partial
+    // plus a transposition compounds fast: high tuned wood at E6, top partial
+    // 10.1, transposed an octave, asks for 26,634 Hz. WebAudio clamps anything
+    // past sampleRate/2 and logs `value outside nominal range` for every play.
+    //
+    // Skipping it is not a tonal decision - nothing above Nyquist can be
+    // represented at all, let alone heard, so this removes a warning and an
+    // oscillator and changes nothing audible. Only skip when the layer is up
+    // there for its WHOLE life; one that glides back down is real for the part
+    // of its life that lands under the ceiling.
+    const nyquist = ctx.sampleRate / 2;
+    if (Math.min(freq, endFreq) >= nyquist) continue;
+
     const osc = ctx.createOscillator();
     osc.type = layer.wave;
-    const freq = baseFreq * (layer.ratio ?? 1);
-    osc.frequency.setValueAtTime(freq, start);
+    osc.frequency.setValueAtTime(Math.min(freq, nyquist), start);
     if (layer.glide) {
       osc.frequency.exponentialRampToValueAtTime(
-        Math.max(20, freq * semitonesToRatio(layer.glide)),
+        Math.min(endFreq, nyquist),
         start + lengthS,
       );
     }
@@ -242,14 +263,42 @@ function buildVoice(
 // Level matching
 // ---------------------------------------------------------------------------
 
-const trims = new WeakMap<VoiceSpec, number>();
+/**
+ * Measured trim per voice, keyed by CONTENT rather than by object identity.
+ *
+ * It was a `WeakMap<VoiceSpec, number>`, which is correct for the eight
+ * built-ins - they are module constants, so one object each, forever. It is
+ * wrong the moment a voice arrives from storage: `loadVoicePicks()` mints fresh
+ * objects on every read, so an identity-keyed trim is missed on every re-parse
+ * and the picked voice plays at trim 1 - unmatched against the palette it is
+ * being compared to, which is precisely the comparison the lab exists to make.
+ *
+ * Bounded by construction: eight built-ins, at most eight picks, and in the lab
+ * one entry per candidate. Tens of entries, not thousands, so a plain Map is
+ * the right shape and the WeakMap's collection was never doing anything.
+ */
+const trims = new Map<string, number>();
+/** Signature cache, so a repeated play does not re-stringify the same object. */
+const sigs = new WeakMap<VoiceSpec, string>();
+
+function sig(spec: VoiceSpec): string {
+  let s = sigs.get(spec);
+  if (s === undefined) {
+    s = JSON.stringify(spec);
+    sigs.set(spec, s);
+  }
+  return s;
+}
 
 function offlineCtor(): typeof OfflineAudioContext | null {
   try {
     return (
       window.OfflineAudioContext ??
-      (window as unknown as { webkitOfflineAudioContext?: typeof OfflineAudioContext })
-        .webkitOfflineAudioContext ??
+      (
+        window as unknown as {
+          webkitOfflineAudioContext?: typeof OfflineAudioContext;
+        }
+      ).webkitOfflineAudioContext ??
       null
     );
   } catch {
@@ -261,7 +310,10 @@ function offlineCtor(): typeof OfflineAudioContext | null {
  * Render a voice offline purely to MEASURE it. Nothing from this render is ever
  * played - it is a ruler, not a source.
  */
-async function measurePeak(ctx: AudioContext, spec: VoiceSpec): Promise<number> {
+async function measurePeak(
+  ctx: AudioContext,
+  spec: VoiceSpec,
+): Promise<number> {
   const OAC = offlineCtor();
   if (!OAC) return 0;
   const space = spec.space ?? 0;
@@ -316,29 +368,47 @@ async function measurePeak(ctx: AudioContext, spec: VoiceSpec): Promise<number> 
  * failure - slightly uneven for the first few hundred ms beats silent, and beats
  * blocking the gesture that unlocked audio in the first place.
  */
-export async function warmVoices(ctx: AudioContext, specs: readonly VoiceSpec[]): Promise<void> {
+export async function warmVoices(
+  ctx: AudioContext,
+  specs: readonly VoiceSpec[],
+): Promise<void> {
   for (const spec of specs) {
-    if (trims.has(spec)) continue;
+    const key = sig(spec);
+    if (trims.has(key)) continue;
     const peak = await measurePeak(ctx, spec);
     const trim =
-      !Number.isFinite(peak) || peak <= 0.0001 ? 1 : Math.min(MAX_TRIM, TARGET_PEAK / peak);
-    trims.set(spec, trim);
+      !Number.isFinite(peak) || peak <= 0.0001
+        ? 1
+        : Math.min(MAX_TRIM, TARGET_PEAK / peak);
+    trims.set(key, trim);
   }
 }
 
 /** True once this voice has been measured. Exposed so tests can assert warming. */
 export function isWarm(spec: VoiceSpec): boolean {
-  return trims.has(spec);
+  return trims.has(sig(spec));
 }
 
-export function playVoice(ctx: AudioContext, spec: VoiceSpec, opts: PlayVoiceOptions = {}): void {
+export function playVoice(
+  ctx: AudioContext,
+  spec: VoiceSpec,
+  opts: PlayVoiceOptions = {},
+): void {
   const when = opts.at ?? ctx.currentTime;
-  const rate = (opts.rate ?? jitterRatio(spec)) * semitonesToRatio(opts.semitones ?? 0);
+  const rate =
+    (opts.rate ?? jitterRatio(spec)) * semitonesToRatio(opts.semitones ?? 0);
   try {
     // Into the voice's own bus (warmth shelf + room send), never straight at the
     // destination. A dry note is the main reason synthesised UI sound reads as a
     // beep rather than as an object in a place.
-    buildVoice(ctx, voiceBus(ctx, spec), spec, when, rate, (trims.get(spec) ?? 1) * (opts.gain ?? 1));
+    buildVoice(
+      ctx,
+      voiceBus(ctx, spec),
+      spec,
+      when,
+      rate,
+      (trims.get(sig(spec)) ?? 1) * (opts.gain ?? 1),
+    );
   } catch {
     /* one dropped note is never worth throwing over */
   }

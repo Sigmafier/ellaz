@@ -11,3 +11,13 @@ export {
   type FlyToOptions,
 } from "./effects";
 export { attachShellJuice, shellRipple, type ShellJuiceOptions } from "./shell";
+export {
+  JUICE_SHIPPED,
+  JUICE_TUNING_KEY,
+  clearTuning,
+  loadTuning,
+  sanitizeTuning,
+  saveTuning,
+  tuning,
+  type JuiceTuning,
+} from "./tuning";

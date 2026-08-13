@@ -1,6 +1,15 @@
 // DOM game-feel effects: screen shake, success particle burst, and a tiny
 // rAF tween. Kept framework-neutral (plain elements) so any renderer can use them.
 
+import { loadTuning, tuning } from "./tuning";
+
+// Read the operator's picks ONCE, at module load. The alternative - reading
+// storage inside `shake()` - would touch localStorage on every wrong answer in
+// every game, which is a synchronous disk hit on the exact frame that is
+// supposed to feel immediate. A pick made in the lab reaches the games on the
+// next page load, which is the same contract the voice picks have.
+loadTuning();
+
 /**
  * The confetti palette, read off the live theme.
  *
@@ -41,7 +50,11 @@ const CONFETTI_FALLBACK = [
   "#74b9ff",
 ];
 
-export function shake(el: HTMLElement, intensity = 6, ms = 240): void {
+export function shake(
+  el: HTMLElement,
+  intensity = tuning().shakePx,
+  ms = tuning().shakeMs,
+): void {
   const start = performance.now();
   const base = el.style.transform;
   function frame(now: number) {
@@ -70,7 +83,7 @@ export interface BurstOptions {
 export function burst(x: number, y: number, opts: BurstOptions = {}): void {
   const count = opts.count ?? 14;
   const colors = opts.colors ?? themeColors("--spark-colors", SPARK_FALLBACK);
-  const spread = opts.spread ?? 90;
+  const spread = opts.spread ?? tuning().burstSpread;
   const layer = document.createElement("div");
   layer.style.cssText = `position:fixed;left:0;top:0;pointer-events:none;z-index:9999`;
   document.body.appendChild(layer);
@@ -100,7 +113,7 @@ export function burst(x: number, y: number, opts: BurstOptions = {}): void {
 // A full-screen confetti celebration raining from the top — the big "you did it"
 // reward moment. Heavier than burst(); use it for wins and milestones.
 export function celebrate(opts: { count?: number; colors?: string[] } = {}): void {
-  const count = opts.count ?? 60;
+  const count = opts.count ?? tuning().confetti;
   const colors = opts.colors ?? themeColors("--confetti-colors", CONFETTI_FALLBACK);
   const layer = document.createElement("div");
   layer.style.cssText =

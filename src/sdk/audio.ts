@@ -1,5 +1,6 @@
 import type { AudioPort, SfxName, ToneOptions } from "./types";
-import { COIN, FAIL, FLIP, POP, STAR, SUCCESS, TAP, WIN, type VoiceSpec } from "./voice";
+import { COIN, FAIL, FLIP, POP, STAR, STREAK, SUCCESS, TAP, WIN, type VoiceSpec } from "./voice";
+import { VOICE_PICKS_KEY, loadVoicePicks, type VoicePicks } from "./voiceOverride";
 import { playVoice, warmVoices } from "./voiceEngine";
 
 // Zero-asset, offline, synthesised SFX. The AudioContext starts suspended on
@@ -20,6 +21,7 @@ const VOICES: Record<SfxName, VoiceSpec> = {
   star: STAR,
   flip: FLIP,
   pop: POP,
+  streak: STREAK,
 };
 
 /** Every voice, for the one-time level-match. */
@@ -38,6 +40,17 @@ class WebAudioPort implements AudioPort {
   private _muted: boolean;
   private listeners = new Set<(m: boolean) => void>();
   private warmed = false;
+  /**
+   * The operator's picks from the lab, read on the gesture that unlocks audio.
+   *
+   * Read at UNLOCK rather than at construction, because the port is built at
+   * module load - before the lab has had any chance to write, and before the
+   * player has touched anything. Every game calls `unlock()` on pointerdown, so
+   * a pick made in one tab is picked up by the next tap in another.
+   */
+  private picks: VoicePicks = {};
+  /** The raw stored string the current `picks` were parsed from. See refreshPicks. */
+  private picksRaw: string | null = null;
 
   constructor() {
     let saved = false;
@@ -80,6 +93,36 @@ class WebAudioPort implements AudioPort {
       this.warmed = true;
       void warmVoices(ctx, ALL_VOICES);
     }
+    this.refreshPicks(ctx);
+  }
+
+  /**
+   * Pick up a change made in the lab, and level-match whatever it produced.
+   *
+   * Gated on the RAW STORED STRING, not on the parsed result. Every parse
+   * mints fresh objects, so re-reading on each pointerdown would re-render
+   * every picked voice offline on every tap. `warmVoices` now keys its trim
+   * cache by CONTENT rather than by object identity, so those re-renders would
+   * at least land on the right trim - but they would still be a full offline
+   * render per tap. Comparing the string means the parse and the warm happen
+   * once per actual change.
+   *
+   * A picked voice that has not been measured yet plays at trim 1: a little
+   * louder or quieter than its neighbours for a few hundred ms. Same tradeoff
+   * the built-in palette already makes on the first tap of a session.
+   */
+  private refreshPicks(ctx: AudioContext): void {
+    let raw: string | null = null;
+    try {
+      raw = localStorage.getItem(VOICE_PICKS_KEY);
+    } catch {
+      return;
+    }
+    if (raw === this.picksRaw) return;
+    this.picksRaw = raw;
+    this.picks = loadVoicePicks();
+    const picked = Object.values(this.picks).filter((s): s is VoiceSpec => !!s);
+    if (picked.length > 0) void warmVoices(ctx, picked);
   }
 
   toggleMute(): void {
@@ -130,7 +173,7 @@ class WebAudioPort implements AudioPort {
     }
   }
 
-  play(name: SfxName): void {
+  play(name: SfxName, opts?: { semitones?: number }): void {
     if (this._muted) return;
     const ctx = this.ensureCtx();
     if (!ctx) return;
@@ -138,7 +181,11 @@ class WebAudioPort implements AudioPort {
     // voice is scheduled against one absolute start. That is what makes a
     // five-note gliss land identically whether or not the clock ticks between
     // layers - the old table stepped `when` forward per note and could drift.
-    playVoice(ctx, VOICES[name]);
+    //
+    // A transpose rides the SAME spec object rather than producing a shifted
+    // copy, which is what keeps the level-match trim valid across the whole
+    // streak ladder - a per-rung copy would miss the trim cache on every note.
+    playVoice(ctx, this.picks[name] ?? VOICES[name], { semitones: opts?.semitones });
   }
 }
 

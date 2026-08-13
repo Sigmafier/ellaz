@@ -45,8 +45,16 @@ export interface AudioPort {
   readonly muted: boolean;
   toggleMute(): void;
   onMuteChange(cb: (muted: boolean) => void): () => void;
-  /** Play a named short SFX. No-ops if muted or asset missing (best-effort). */
-  play(name: SfxName): void;
+  /**
+   * Play a named short SFX. No-ops if muted or asset missing (best-effort).
+   *
+   * `semitones` TRANSPOSES the named voice rather than selecting a different
+   * one, which is what lets `streak` be a ladder without being ten voices. It
+   * is a transpose and not a free frequency on purpose: a caller that could
+   * name a pitch would be deciding the ladder, and the ladder belongs to
+   * `src/sdk/streak.ts` alone.
+   */
+  play(name: SfxName, opts?: { semitones?: number }): void;
   /**
    * Play a single pitched tone. For games that own their own scale — a
    * repeat-the-sequence game picking from `PENTATONIC` (`@shared`), or a rhythm
@@ -71,7 +79,16 @@ export interface AudioPort {
  * reports what happened and the economy decides what that is worth, so it is
  * the economy's moment that gets to make the noise.
  */
-export type SfxName = "tap" | "success" | "win" | "fail" | "flip" | "pop" | "coin" | "star";
+export type SfxName =
+  | "tap"
+  | "success"
+  | "win"
+  | "fail"
+  | "flip"
+  | "pop"
+  | "coin"
+  | "star"
+  | "streak";
 
 export interface SpeakOptions {
   /** Which language to speak in. Default "he" (the app's default locale). */

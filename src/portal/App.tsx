@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import type { AppLocale } from "@i18n/locales";
 import { APP_LOCALES } from "@i18n/locales";
 import { DEFAULT_LOCALE, DIR, isLoaded, loadDict } from "@i18n/index";
@@ -6,6 +6,38 @@ import { analytics, startCloudSync } from "@sdk/index";
 import { Home } from "./Home";
 
 const LOCALE_KEY = "ellaz:locale";
+
+/**
+ * The sound lab, at `#/lab`.
+ *
+ * A FRAGMENT, not a path: a fragment never reaches the server, so this needs no
+ * emitted document, joins no sitemap, and no crawler can find it. `#/lab` was
+ * the old Juice Lab's address and has been an unrecognised hash since that lab
+ * was deleted; giving it a destination again costs nothing and means an old
+ * bookmark lands somewhere useful.
+ *
+ * Lazy, and carved into its own `lab-*` chunk by `manualChunks` with a matching
+ * `globIgnores` entry - the documented three changes. It is NOT guarded by
+ * `import.meta.env.DEV` the way the old lab was, because the whole point is
+ * that it is reachable from a phone; `npm run build:check` is what proves it
+ * still costs a first visit nothing.
+ */
+const Lab = lazy(() => import("../lab/Lab").then((m) => ({ default: m.Lab })));
+
+const LAB_HASH = "#/lab";
+
+/** Re-render on hash change, so leaving the lab does not need a reload. */
+function useHash(): string {
+  const [hash, setHash] = useState(() =>
+    typeof window === "undefined" ? "" : window.location.hash,
+  );
+  useEffect(() => {
+    const on = () => setHash(window.location.hash);
+    window.addEventListener("hashchange", on);
+    return () => window.removeEventListener("hashchange", on);
+  }, []);
+  return hash;
+}
 
 function initialLocale(): AppLocale {
   try {
@@ -42,6 +74,7 @@ export function App() {
   // Which pick is current. A ref rather than state: it must be readable by a
   // promise that resolved after a later pick started, and it must never render.
   const pickSeq = useRef(0);
+  const hash = useHash();
 
   // The stored language may be one of the nine that live in their own chunk, so
   // the very first render of a returning Spanish visitor happens before their
@@ -108,6 +141,16 @@ export function App() {
       }
     });
   };
+
+  // After the hooks, never before them - an early return above a hook changes
+  // the hook order between renders and React crashes.
+  if (hash === LAB_HASH) {
+    return (
+      <Suspense fallback={null}>
+        <Lab locale={locale} />
+      </Suspense>
+    );
+  }
 
   return <Home locale={locale} onPickLocale={pickLocale} />;
 }
