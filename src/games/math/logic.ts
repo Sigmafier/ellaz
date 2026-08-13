@@ -165,13 +165,20 @@ export function generateProblem(
     answer = a * b;
   } else {
     op = rng() < 0.5 ? "+" : "-";
+    // Zero is a real number worth meeting, but a run full of "5+0" and "3-0"
+    // drills nothing - so keep it rare. Most problems draw operands from
+    // 1..max; only about one in six allows a zero operand.
+    const lo = rng() < 1 / 6 ? cfg.min : Math.min(cfg.min + 1, cfg.max);
     if (op === "+") {
-      a = randInt(cfg.min, cfg.max, rng);
-      b = randInt(cfg.min, cfg.max - a, rng); // a + b <= max
+      // Cap `a` so a non-zero `b` still fits under `max` (when lo is 0, `a` may
+      // take `max` and `b` is then forced to 0).
+      const aMax = lo === cfg.min ? cfg.max : cfg.max - 1;
+      a = randInt(lo, aMax, rng);
+      b = randInt(lo, cfg.max - a, rng); // a + b <= max
       answer = a + b;
     } else {
-      a = randInt(cfg.min, cfg.max, rng);
-      b = randInt(cfg.min, a, rng); // a - b >= min
+      a = randInt(lo, cfg.max, rng);
+      b = randInt(lo, a, rng); // a - b >= min
       answer = a - b;
     }
   }

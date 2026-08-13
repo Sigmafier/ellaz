@@ -79,15 +79,15 @@ describe("math quiz logic", () => {
     expect(isCorrect(p, wrong)).toBe(false);
   });
 
-  // The four arithmetic levels predate the pre-arithmetic modes. Widening the
-  // Problem shape must not perturb a single draw: these are the exact strings
-  // the pre-widening logic emitted for seed 2026, captured before any edit.
-  // If one of these moves, the arithmetic levels are no longer byte-identical.
-  it("legacy levels are byte-identical to their pre-widening output", () => {
+  // A pin on the exact draw sequence for seed 2026, captured after the
+  // "keep zero rare" change (2026-08-13). If one of these moves, the arithmetic
+  // generator drifted - regenerate deliberately, never to make a red go green.
+  // `mult` never draws a zero and is unchanged from the pre-widening output.
+  it("arithmetic levels are byte-stable for a fixed seed", () => {
     const golden: Record<string, string[]> = {
-      up5: ["0+0=0[0,2,1]", "5+0=5[5,3,4]", "0-0=0[1,2,0]", "2-0=2[4,2,1]", "5+0=5[4,3,5]", "2+1=3[3,1,4]"],
-      up10: ["0+0=0[2,1,0]", "6+4=10[8,10,9]", "7+0=7[5,7,6]", "3+3=6[4,6,7]", "0+1=1[0,3,1]", "6-2=4[4,6,5]"],
-      up20: ["0+0=0[1,0,2]", "18-7=11[13,11,10]", "12+6=18[16,18,17]", "15+2=17[18,16,17]", "4-3=1[0,3,1]", "19-15=4[2,4,5]"],
+      up5: ["0+3=3[1,3,5]", "1-1=0[2,0,1]", "3+2=5[3,5,4]", "5-5=0[2,1,0]", "1+2=3[3,1,4]", "3+2=5[3,4,5]"],
+      up10: ["0+7=7[5,7,9]", "10-2=8[10,9,8]", "8+1=9[10,8,9]", "6+2=8[9,6,8]", "10-6=4[3,2,4]", "2-1=1[3,0,1]"],
+      up20: ["0+13=13[15,11,13]", "5-4=1[1,2,3]", "16-3=13[12,13,14]", "12+7=19[19,17,20]", "12+5=17[16,15,17]", "9-9=0[1,0,2]"],
       mult: ["1×1=1[3,1,2]", "2×4=8[10,8,7]", "1×1=1[1,2,3]", "5×3=15[15,16,13]", "5×3=15[13,16,15]", "4×1=4[4,6,5]"],
     };
     for (const level of LEVEL_IDS) {
@@ -98,6 +98,23 @@ describe("math quiz logic", () => {
         rows.push(`${p.a}${p.op}${p.b}=${p.answer}[${p.choices.join(",")}]`);
       }
       expect(rows, `level ${level} drifted`).toEqual(golden[level]);
+    }
+  });
+
+  // The whole point of the "keep zero rare" change: a run must not be dominated
+  // by "5+0" / "3-0" style problems. Across a large sample, an operand of 0
+  // should show up in well under a quarter of arithmetic problems, where before
+  // it was the majority (5 of 6 for up5).
+  it("arithmetic levels use a zero operand only rarely", () => {
+    for (const level of ["up5", "up10", "up20"] as MathLevel[]) {
+      const rng = lcg(level.length * 17 + 3);
+      const N = 2000;
+      let zeros = 0;
+      for (let i = 0; i < N; i++) {
+        const p = generateProblem(level, rng);
+        if (p.a === 0 || p.b === 0) zeros++;
+      }
+      expect(zeros / N, `${level} used a zero operand too often`).toBeLessThan(0.25);
     }
   });
 
