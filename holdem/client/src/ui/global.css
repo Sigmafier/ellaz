@@ -1,0 +1,121 @@
+@import "./tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+button {
+  font-family: inherit;
+  border: 0;
+  cursor: pointer;
+}
+
+input,
+select {
+  font-family: inherit;
+}
+
+/* Play surfaces never pan/zoom under a finger. */
+.no-touch-drift {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.btn {
+  min-height: var(--tap);
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-pill);
+  font-size: 17px;
+  font-weight: 700;
+  background: var(--surface-2);
+  color: var(--ink);
+  transition: transform 90ms var(--ease);
+}
+.btn:active {
+  transform: scale(0.94);
+}
+.btn.primary {
+  background: var(--gold);
+  color: var(--gold-ink);
+}
+.btn.danger {
+  background: var(--danger);
+  color: #fff;
+}
+.btn.ghost {
+  background: transparent;
+  border: 1px solid var(--line);
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.field {
+  min-height: var(--tap);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-1);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 17px;
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes holdem-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes holdem-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(232, 182, 76, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(232, 182, 76, 0);
+  }
+}
+
+@keyframes holdem-flip-in {
+  from {
+    transform: rotateY(90deg);
+  }
+  to {
+    transform: rotateY(0);
+  }
+}
