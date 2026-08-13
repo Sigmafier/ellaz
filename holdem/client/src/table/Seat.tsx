@@ -42,9 +42,9 @@ export function Seat({
   };
 
   if (seat.status === "empty") {
-    if (!onSitHere) return <div style={box} />;
+    if (!onSitHere) return <div id={`seat-${seat.seat}`} style={box} />;
     return (
-      <div style={box}>
+      <div id={`seat-${seat.seat}`} style={box}>
         <button
           className="btn ghost"
           style={{ minHeight: 40, fontSize: 13, padding: "0 12px", opacity: 0.8 }}
@@ -58,7 +58,7 @@ export function Seat({
 
   const dim = seat.folded || seat.sittingOut;
   return (
-    <div style={{ ...box, opacity: dim ? 0.45 : 1 }}>
+    <div id={`seat-${seat.seat}`} style={{ ...box, opacity: dim ? 0.45 : 1 }}>
       {/* cards */}
       <div style={{ display: "flex", gap: 3, minHeight: 40, alignItems: "flex-end" }}>
         {hand && seat.inHand && !seat.folded ? (

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { savedName, saveName, socket } from "../net/socket";
+import { attachJuice } from "../juice/moments";
+import { isMuted, setMuted } from "../audio/audio";
 import { useApp } from "../state/store";
 import { Table } from "../table/Table";
 import { HistoryPanel } from "./HistoryPanel";
@@ -28,8 +30,13 @@ export function RoomScreen({
   useEffect(() => {
     if (!hasName) return;
     socket.connect(code);
-    return () => socket.disconnect();
+    const offJuice = attachJuice();
+    return () => {
+      offJuice();
+      socket.disconnect();
+    };
   }, [code, hasName]);
+  const [muted, setMutedUi] = useState(isMuted());
 
   if (!hasName) {
     return (
@@ -140,6 +147,15 @@ export function RoomScreen({
         <Sheet onClose={() => setPanel("none")}>
           <button className="btn ghost" onClick={onToggleLocale}>
             {t("language")}
+          </button>
+          <button
+            className="btn ghost"
+            onClick={() => {
+              setMuted(!muted);
+              setMutedUi(!muted);
+            }}
+          >
+            {muted ? "🔇 → 🔊" : "🔊 → 🔇"}
           </button>
           {me && !me.sittingOut && (
             <button

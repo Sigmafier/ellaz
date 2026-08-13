@@ -21,7 +21,7 @@ const EMOTE_GLYPHS: Record<EmoteId, string> = {
 };
 
 /** The felt: seats on an ellipse, board and pot in the middle. Pinned LTR. */
-export function Table({ locale }: { locale: Locale }) {
+export function Table({ locale, spectator = false }: { locale: Locale; spectator?: boolean }) {
   const { view, you, chats } = useApp();
   const t = makeT(locale);
   const [buyInFor, setBuyInFor] = useState<number | null>(null);
@@ -42,6 +42,7 @@ export function Table({ locale }: { locale: Locale }) {
     >
       {/* the felt */}
       <div
+        id="felt"
         style={{
           position: "absolute",
           inset: "7% 4% 12% 4%",
@@ -68,6 +69,7 @@ export function Table({ locale }: { locale: Locale }) {
         {hand ? (
           <>
             <div
+              id="pot-chip"
               style={{
                 background: "rgba(0,0,0,.35)",
                 borderRadius: "var(--radius-pill)",
@@ -101,7 +103,7 @@ export function Table({ locale }: { locale: Locale }) {
             y={pos.y}
             isMe={s.seat === mySeat}
             locale={locale}
-            onSitHere={!seated && s.status === "empty" ? () => setBuyInFor(s.seat) : null}
+            onSitHere={!spectator && !seated && s.status === "empty" ? () => setBuyInFor(s.seat) : null}
           />
         );
       })}
