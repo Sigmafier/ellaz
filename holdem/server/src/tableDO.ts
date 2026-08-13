@@ -419,7 +419,10 @@ export class TableDO implements DurableObject {
     if (archived) await this.archiveHand();
     await this.postProcess(result.events, preState);
 
-    // Broadcast redacted events + fresh private views.
+    // Broadcast redacted events, a fresh public snapshot (the client's view
+    // is always THIS, never a client-side event fold — events exist for
+    // animation and history), and fresh private views.
+    const view = publicView(this.table);
     const sockets = this.ctx.getWebSockets();
     for (const sock of sockets) {
       const att = safeAttachment(sock);
@@ -431,6 +434,7 @@ export class TableDO implements DurableObject {
         .map((e) => redactEvent(e, forSeat))
         .filter((e): e is EngineEvent => e !== null);
       this.send(sock, { t: "ev", seq: this.seq, events });
+      this.send(sock, { t: "room", view, seq: this.seq });
       if (att.playerId) this.send(sock, { t: "you", you: this.youFor(att.playerId) });
     }
     await this.armNext();

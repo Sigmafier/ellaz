@@ -1,0 +1,42 @@
+/* Design tokens — the ellaz tokens.css structure (neutral scale first, then
+   the palette) with a poker skin: dark felt, gold accent, card red/black.
+   One theme in v1; the shape stays ready for a second block. */
+
+:root {
+  /* neutral scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --radius-1: 8px;
+  --radius-2: 14px;
+  --radius-pill: 999px;
+  --tap: 48px;
+  --font:
+    "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Hebrew",
+    sans-serif;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* palette — dark room, green felt, gold chips */
+  --bg: #0d1512;
+  --surface: #16211c;
+  --surface-2: #1e2c25;
+  --felt: #1b4d3e;
+  --felt-edge: #123528;
+  --line: #2c3f36;
+  --ink: #f2f0e9;
+  --ink-dim: #9fb0a7;
+  --gold: #e8b64c;
+  --gold-ink: #241a05;
+  --accent: #58b98a;
+  --danger: #e2604f;
+  --card-face: #faf7ef;
+  --card-red: #c2372c;
+  --card-black: #1c1f26;
+  --seat-bg: #10231b;
+  --seat-active: #2c5c48;
+  --chip: #e8b64c;
+  --confetti-colors: #e8b64c, #58b98a, #faf7ef, #c2372c;
+}
