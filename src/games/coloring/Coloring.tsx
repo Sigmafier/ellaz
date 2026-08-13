@@ -104,20 +104,22 @@ function strokePath(pts: number[][]): string {
 export function Coloring({ ctx }: { ctx: GameContext }) {
   const T = textFor(
     {
-      he: { pick: "בחרו ציור", fill: "מילוי", brush: "מכחול", size: "גודל" },
-      en: { pick: "Pick a picture", fill: "Fill", brush: "Brush", size: "Size" },
-      es: { pick: "Elige un dibujo", fill: "Rellenar", brush: "Pincel", size: "Tamaño" },
+      he: { pick: "בחרו ציור", fill: "מילוי", brush: "מכחול", size: "גודל", undo: "בטל" },
+      en: { pick: "Pick a picture", fill: "Fill", brush: "Brush", size: "Size", undo: "Undo" },
+      es: { pick: "Elige un dibujo", fill: "Rellenar", brush: "Pincel", size: "Tamaño", undo: "Deshacer" },
     },
     ctx.locale,
   );
 
   // The picture rides the same level memory every other game uses, by ID rather
   // than by index: an index means "whichever picture is third", so adding a
-  // drawing would silently hand every returning child a different page.
+  // drawing would silently hand every returning child a different page. A new
+  // player lands on the first REAL picture, not the blank page (which sits first
+  // in the gallery for discoverability).
   const [picId, setPicId] = useRememberedLevel(
     ctx,
     PICTURES.map((p) => p.id),
-    PICTURES[0].id,
+    (PICTURES.find((p) => p.id !== "blank") ?? PICTURES[0]).id,
   );
   const pic = PICTURES[Math.max(0, PICTURES.findIndex((p) => p.id === picId))];
 
@@ -169,7 +171,9 @@ export function Coloring({ ctx }: { ctx: GameContext }) {
     const wasComplete = pic.regions.every((r) => fills[r.id]);
     const nowComplete = pic.regions.every((r) => nf[r.id]);
     setFills(nf);
-    if (!wasComplete && nowComplete) {
+    // The blank page is a single region; flood-filling it is choosing a
+    // background, not completing a picture, so it earns no win.
+    if (pic.id !== "blank" && !wasComplete && nowComplete) {
       const r = el.getBoundingClientRect();
       winMoment(ctx, {
         reason: "level_complete",
@@ -298,15 +302,19 @@ export function Coloring({ ctx }: { ctx: GameContext }) {
                       cursor: "pointer",
                     }}
                   >
-                    <Thumb pic={p} />
+                    {p.id === "blank" ? (
+                      <span style={{ fontSize: 30, display: "grid", placeItems: "center", height: "100%" }}>✏️</span>
+                    ) : (
+                      <Thumb pic={p} />
+                    )}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Tool row: fill vs brush, brush sizes (only while brushing), undo. */}
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          {/* Tool row: fill vs brush. Both buttons share the width. */}
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <button
               aria-label={T.fill}
               aria-pressed={tool === "fill"}
@@ -316,6 +324,7 @@ export function Coloring({ ctx }: { ctx: GameContext }) {
               }}
               style={{
                 ...btnBase,
+                flex: "1 1 0",
                 background: tool === "fill" ? "var(--brand)" : "var(--surface)",
                 color: tool === "fill" ? "#fff" : "var(--text)",
               }}
@@ -331,54 +340,67 @@ export function Coloring({ ctx }: { ctx: GameContext }) {
               }}
               style={{
                 ...btnBase,
+                flex: "1 1 0",
                 background: tool === "brush" ? "var(--brand)" : "var(--surface)",
                 color: tool === "brush" ? "#fff" : "var(--text)",
               }}
             >
               🖌️ {T.brush}
             </button>
+          </div>
 
-            {tool === "brush" && (
-              <div style={{ display: "flex", gap: 6, alignItems: "center", marginInlineStart: 2 }}>
-                {BRUSH_SIZES.map((s) => {
-                  const on = brushSize === s;
-                  const dot = 8 + s * 0.9;
-                  return (
-                    <button
-                      key={s}
-                      aria-label={`${T.size} ${s}`}
-                      aria-pressed={on}
-                      onClick={() => {
-                        setBrushSize(s);
-                        ctx.audio.play("tap");
-                      }}
-                      style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 12,
-                        border: on ? "3px solid var(--brand)" : "2px solid var(--line)",
-                        background: "var(--surface)",
-                        display: "grid",
-                        placeItems: "center",
-                        cursor: "pointer",
-                        boxShadow: "var(--shadow-1)",
-                      }}
-                    >
-                      <span style={{ width: dot, height: dot, borderRadius: "50%", background: color, display: "block" }} />
-                    </button>
-                  );
-                })}
-                {strokes.length > 0 && (
-                  <button
-                    aria-label="undo"
-                    onClick={undo}
-                    style={{ ...btnBase, background: "var(--surface)", color: "var(--text)", height: 44, width: 48, padding: 0 }}
-                  >
-                    ↶
-                  </button>
-                )}
-              </div>
-            )}
+          {/* Brush sizes + undo. ALWAYS rendered — the row does not appear and
+              disappear with the tool, so toggling fill/brush never reflows the
+              footer (the layout-shift bug). Undo is always here and disabled,
+              not hidden, when there is nothing to take back. */}
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            {BRUSH_SIZES.map((s) => {
+              const on = brushSize === s;
+              const dot = 8 + s * 0.9;
+              return (
+                <button
+                  key={s}
+                  aria-label={`${T.size} ${s}`}
+                  aria-pressed={on}
+                  onClick={() => {
+                    setBrushSize(s);
+                    setTool("brush"); // choosing a size means you want to draw
+                    ctx.audio.play("tap");
+                  }}
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
+                    border: on ? "3px solid var(--brand)" : "2px solid var(--line)",
+                    background: "var(--surface)",
+                    display: "grid",
+                    placeItems: "center",
+                    cursor: "pointer",
+                    boxShadow: "var(--shadow-1)",
+                  }}
+                >
+                  <span style={{ width: dot, height: dot, borderRadius: "50%", background: color, display: "block" }} />
+                </button>
+              );
+            })}
+            <button
+              aria-label={T.undo}
+              onClick={undo}
+              disabled={strokes.length === 0}
+              style={{
+                ...btnBase,
+                marginInlineStart: "auto",
+                height: 48,
+                padding: "0 16px",
+                fontSize: 18,
+                background: "var(--surface)",
+                color: "var(--text)",
+                opacity: strokes.length === 0 ? 0.4 : 1,
+                cursor: strokes.length === 0 ? "default" : "pointer",
+              }}
+            >
+              <span style={{ fontSize: 24, lineHeight: 1 }}>↶</span> {T.undo}
+            </button>
           </div>
 
           {/* The palette. auto-fit keeps every swatch at the 44px tap floor and
