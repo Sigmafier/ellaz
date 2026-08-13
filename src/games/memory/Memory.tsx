@@ -5,6 +5,21 @@ import { GameChrome } from "@ui/GameChrome";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { burst, haptic } from "@juice/index";
 import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
+// Direct module paths, not the `@shared` barrel: pass-and-play is two games'
+// worth of code and the barrel would pull it into every other game's chunk.
+import {
+  finish,
+  leader,
+  newVersus,
+  nextMatch,
+  pass,
+  take,
+  versusWords,
+  type Seat,
+  type VersusState,
+} from "@shared/versus";
+import { VersusBanner, VersusToggle } from "@shared/VersusBanner";
+import { versusMatchEnd } from "@shared/versusMoment";
 import { newGame, flip, resolveMismatch, isWon, settle, type MemoryState } from "./logic";
 
 // Big, colorful, icon-first faces — no reading required (age 5). Each themed set
@@ -109,12 +124,69 @@ export function Memory({ ctx }: { ctx: GameContext }) {
   const [best, setBest] = useState<number | undefined>(() => ctx.score?.best(levelId));
   const gridRef = useRef<HTMLDivElement>(null);
   const started = useRef(false);
+  /**
+   * PASS-AND-PLAY. `undefined` means one player, which is what this game has
+   * always been; a state means two people are sitting here taking turns.
+   *
+   * NOT persisted, and that is deliberate rather than unfinished — see the
+   * `useGameSession` call below.
+   */
+  const [versus, setVersus] = useState<VersusState | undefined>(undefined);
+  /**
+   * Which seat took each card, by card id.
+   *
+   * THE SCORING RULE IS THE BOARD ITSELF. A five-year-old is not told "you have
+   * four pairs and she has three" — a taken pair turns that player's colour and
+   * stays face-up, so the answer to "who is winning" is which colour covers more
+   * of the table. It is the rule every family already plays by, and it needs no
+   * number at all to read.
+   *
+   * State rather than a ref so the board stays a pure function of what is
+   * rendered — and deliberately NOT part of `MemoryState`, because that shape is
+   * the session snapshot's and widening it would invalidate every stored solo
+   * board for the sake of a mode that is never stored.
+   */
+  const [owners, setOwners] = useState<Record<number, Seat>>({});
+  // One payout per match, latched. The board's last pair is reachable from one
+  // handler, but a latch costs nothing and a double payout is real money.
+  const paidRef = useRef(false);
+  /**
+   * Which deal the pending mismatch timer belongs to.
+   *
+   * A mismatch is turned back over 850ms later by a `setTimeout` holding two
+   * card INDICES. Deal a new board inside that window — restart, a new set, a
+   * difficulty change, and now the two-player switch — and those indices point
+   * at two cards on a deck that did not exist when the timer was set, so it
+   * turns whatever is at those positions face down. Pre-existing; two-player
+   * mode adds an easier door to it.
+   */
+  const dealRef = useRef(0);
 
   // `settle(state)`, not `state`. A flush can land inside the 850ms a mismatch
   // is shown for, and that state is only escapable by the timer that is about
   // to be thrown away — see settle() in logic.ts.
+  /**
+   * `settle(state)`, not `state`. A flush can land inside the 850ms a mismatch
+   * is shown for, and that state is only escapable by the timer that is about
+   * to be thrown away — see settle() in logic.ts.
+   *
+   * `live` also goes false the moment two people are playing, and that CLEARS
+   * rather than freezes. Three reasons, and the third is the one that matters:
+   *
+   *  1. A match is two people who are in the room together. Restoring one into a
+   *     room the second player has left is worse than a clean board.
+   *  2. The board on screen already changed when they tapped "two players" —
+   *     a fresh deck is dealt — so the stored position was gone from view either
+   *     way. Clearing it makes the disk agree with the screen.
+   *  3. IT REMOVES THE DOUBLE-PAY HOLE BY CONSTRUCTION. A snapshot must carry
+   *     every latch recording a reward the run already collected, or walking out
+   *     and coming back is a way to be paid twice
+   *     (.claude/rules/session-snapshot-convention.md). Nothing about a match
+   *     ever reaches the disk, so there is no latch to lose and no restore to
+   *     pay for.
+   */
   useGameSession(ctx, SESSION, () => ({ levelId, setIdx, state: settle(state) }), {
-    live: !won,
+    live: !won && !versus,
   });
 
   useEffect(() => {
@@ -127,6 +199,7 @@ export function Memory({ ctx }: { ctx: GameContext }) {
 
   const reset = useCallback(
     (opts?: { set?: number; level?: number }) => {
+      dealRef.current += 1;
       const si = opts?.set ?? setIdx;
       const li = opts?.level ?? levelIdx;
       setSetIdx(si);
@@ -134,10 +207,30 @@ export function Memory({ ctx }: { ctx: GameContext }) {
       setState(deckFor(si, li));
       setWon(false);
       setBest(ctx.score?.best(LEVELS[li].id));
+      setOwners({});
+      paidRef.current = false;
+      // In two-player mode the restart button is "deal again", and dealing again
+      // is what hands the first move to whoever lost the last match.
+      setVersus((v) => (v ? nextMatch(v) : v));
       ctx.analytics.levelStart(`set-${si + 1}-${LEVELS[li].id}`);
     },
     [ctx, setIdx, levelIdx, setLevelId],
   );
+
+  /**
+   * Invite somebody, or go back to playing alone.
+   *
+   * Two people start a game together with ONE TAP and nothing else: no code, no
+   * pairing, no second device, and above all no name to type — both players are
+   * DRAWN from the pool the moment this is tapped. Tapping it again ends the
+   * match and returns to playing alone.
+   */
+  const toggleVersus = useCallback(() => {
+    ctx.audio.unlock();
+    ctx.audio.play("pop");
+    setVersus((v) => (v ? undefined : newVersus()));
+    reset();
+  }, [ctx, reset]);
 
   const onCard = useCallback(
     (index: number) => {
@@ -156,6 +249,33 @@ export function Memory({ ctx }: { ctx: GameContext }) {
         const r = el?.getBoundingClientRect();
         const centre = r ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : undefined;
         if (centre) burst(centre.x, centre.y, { count: 10 });
+
+        // TWO PLAYERS. The rule is the one every family already plays: a pair
+        // you find is YOURS and you go again; a miss hands the turn over; the
+        // most cards at the end wins. Nothing about it has to be read.
+        if (versus) {
+          const mine = versus.turn;
+          setOwners((o) => ({ ...o, [ns.cards[outcome.a].id]: mine, [ns.cards[outcome.b].id]: mine }));
+          const scored = take(versus, mine);
+          if (isWon(ns)) {
+            setWon(true);
+            setVersus(finish(scored, leader(scored)));
+            if (!paidRef.current) {
+              paidRef.current = true;
+              // ONE payout per match, for FINISHING and not for winning — so it
+              // lands on a draw too, and the child who lost watches the same
+              // coin fly to the same wallet. No score is reported: see
+              // versusWinOptions for why a match must not touch a personal best.
+              versusMatchEnd(ctx, centre, `versus-${LEVELS[levelIdx].id}`);
+            }
+          } else {
+            // A match keeps the turn. That is the whole reason memory is worth
+            // playing against a person.
+            setVersus(scored);
+          }
+          return;
+        }
+
         if (isWon(ns)) {
           setWon(true);
           // `ms` is deliberately absent. It used to carry `ns.moves`, which is
@@ -174,10 +294,20 @@ export function Memory({ ctx }: { ctx: GameContext }) {
         }
       } else if (outcome.kind === "mismatch") {
         const { a, b } = outcome;
-        setTimeout(() => setState((s) => resolveMismatch(s, a, b)), 850);
+        const deal = dealRef.current;
+        setTimeout(() => {
+          // Those two indices belong to a deck that is no longer on the table.
+          if (dealRef.current !== deal) return;
+          setState((s) => resolveMismatch(s, a, b));
+        }, 850);
+        // The turn passes on a miss, and it passes NOW rather than when the
+        // cards flip back — so the banner has already changed colour while the
+        // two wrong cards are still up, which is what makes a four-year-old
+        // look at the banner at all.
+        if (versus) setVersus(pass(versus));
       }
     },
-    [ctx, state, setIdx, levelIdx],
+    [ctx, state, setIdx, levelIdx, versus],
   );
 
   const cols = LEVELS[levelIdx].cols;
@@ -192,11 +322,31 @@ export function Memory({ ctx }: { ctx: GameContext }) {
   return (
     <GameChrome
       ctx={ctx}
-      stats={[
-        { icon: "cards", label: ctx.t("pairs"), value: `${state.matchedPairs}/${state.totalPairs}`, ltr: true },
-        { icon: "moves", label: ctx.t("moves"), value: state.moves },
-        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
-      ]}
+      stats={
+        versus
+          ? // The personal best is a fact about the PROFILE and a match is not,
+            // so it would be answering a question nobody asked. Pairs left and
+            // matches played are the two numbers that are true of this sitting.
+            [
+              {
+                icon: "cards",
+                label: ctx.t("pairs"),
+                value: `${state.matchedPairs}/${state.totalPairs}`,
+                ltr: true,
+              },
+              { icon: "flag", label: versusWords(ctx.locale).matches, value: versus.matches },
+            ]
+          : [
+              {
+                icon: "cards",
+                label: ctx.t("pairs"),
+                value: `${state.matchedPairs}/${state.totalPairs}`,
+                ltr: true,
+              },
+              { icon: "moves", label: ctx.t("moves"), value: state.moves },
+              { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+            ]
+      }
       levels={LEVEL_OPTIONS}
       level={LEVELS[levelIdx].id}
       onLevel={(id) => reset({ level: LEVEL_OPTIONS.findIndex((o) => o.id === id) })}
@@ -205,35 +355,51 @@ export function Memory({ ctx }: { ctx: GameContext }) {
       // nothing said what it did. It shows the faces it is about to deal, so a
       // child who cannot read still knows what the button gives them.
       footer={
-        <button
-          type="button"
-          aria-label="next set"
-          onClick={() => reset({ set: nextSet })}
-          style={{
-            width: "100%",
-            border: "none",
-            borderRadius: "var(--radius-2)",
-            background: "var(--surface)",
-            boxShadow: "var(--shadow-1)",
-            color: "var(--text)",
-            fontFamily: "inherit",
-            padding: "12px 14px",
-            minHeight: 68,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 12,
-            cursor: "pointer",
-          }}
-        >
-          <span style={{ fontSize: 15, fontWeight: 800 }}>
-            {won ? `${ctx.t("youWon")} · ` : ""}
-            {T.newSet}
-          </span>
-          <span style={{ fontSize: 26, letterSpacing: 2, lineHeight: 1 }}>
-            {FACE_SETS[nextSet].slice(0, 3).join("")}
-          </span>
-        </button>
+        <div style={{ display: "grid", gap: 8 }}>
+          {versus && (
+            <VersusBanner
+              v={versus}
+              locale={ctx.locale}
+              // The pile taken THIS match — the number that is changing while
+              // they play, and the one the coloured cards on the table already
+              // show. The sitting's tally lives in the stat row instead.
+              counts={versus.taken}
+              result={won ? leader(versus) : undefined}
+            />
+          )}
+          {!versus && (
+            <button
+              type="button"
+              aria-label="next set"
+              onClick={() => reset({ set: nextSet })}
+              style={{
+                width: "100%",
+                border: "none",
+                borderRadius: "var(--radius-2)",
+                background: "var(--surface)",
+                boxShadow: "var(--shadow-1)",
+                color: "var(--text)",
+                fontFamily: "inherit",
+                padding: "12px 14px",
+                minHeight: 68,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 12,
+                cursor: "pointer",
+              }}
+            >
+              <span style={{ fontSize: 15, fontWeight: 800 }}>
+                {won ? `${ctx.t("youWon")} · ` : ""}
+                {T.newSet}
+              </span>
+              <span style={{ fontSize: 26, letterSpacing: 2, lineHeight: 1 }}>
+                {FACE_SETS[nextSet].slice(0, 3).join("")}
+              </span>
+            </button>
+          )}
+          <VersusToggle on={!!versus} locale={ctx.locale} onToggle={toggleVersus} />
+        </div>
       }
     >
       <div
@@ -248,6 +414,15 @@ export function Memory({ ctx }: { ctx: GameContext }) {
       >
         {state.cards.map((card, i) => {
           const faceUp = card.flipped || card.matched;
+          // WHO TOOK IT — and this is memory's whole scoring rule, drawn rather
+          // than counted. A taken pair wears the colour of the player who took
+          // it, so "who is winning" is answered by looking at the table. In one-
+          // player mode nothing owns anything and the board is exactly as it was.
+          const owner = versus ? owners[card.id] : undefined;
+          const takenFill =
+            owner === undefined
+              ? "linear-gradient(180deg,#55efc4,#00cec9)"
+              : `linear-gradient(180deg, ${versus?.players[owner].color}, ${versus?.players[owner].color})`;
           return (
             <button
               key={card.id}
@@ -264,7 +439,7 @@ export function Memory({ ctx }: { ctx: GameContext }) {
                 placeItems: "center",
                 background: faceUp
                   ? card.matched
-                    ? "linear-gradient(180deg,#55efc4,#00cec9)"
+                    ? takenFill
                     : "#fff"
                   : "linear-gradient(180deg,var(--brand-2),var(--brand))",
                 color: "#222",
