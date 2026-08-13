@@ -28,6 +28,8 @@ import { meta as blocks } from "../games/blocks/meta";
 import { meta as wordguess } from "../games/wordguess/meta";
 import { meta as sort } from "../games/sort/meta";
 import { meta as merge } from "../games/merge/meta";
+import { meta as pet } from "../games/pet/meta";
+import { meta as fit } from "../games/fit/meta";
 
 /**
  * The roster, in the order the home grid renders it.
@@ -89,6 +91,23 @@ export const GAMES: ReadonlyArray<GameMeta> = [
   // `personal_best`) even though they arrived together.
   sort,
   merge,
+
+  // Wave 4 - the two the 2026 market data rewards that Wave 3 did not cover:
+  // something to come back TO rather than finish, and a calm placement puzzle
+  // to sit beside the falling-block one. Both tap-only.
+  //
+  // `pet` is the first game here with no failure state at all - it cannot get
+  // sick, hungry or sad however long it is left, which is why its record only
+  // counts how big it has grown and can never go down. `fit` shares only
+  // "polyomino on a grid" with `blocks`: nothing falls, nothing is timed, and
+  // columns clear as well as rows, which is the comparison written into the
+  // head of its own `logic.ts` so nobody re-derives it.
+  //
+  // Appended, so both land in the LAZY half of the card art by construction -
+  // see `SHELL_ART_COUNT` in `src/ui/gameArt.ts`. That is the whole reason a new
+  // game no longer costs the first visit its picture.
+  pet,
+  fit,
 ];
 
 export function metaFor(id: string): GameMeta | undefined {

@@ -1044,29 +1044,49 @@ built-in, which is the same answer as "nothing was ever picked". Gain is the one
 exception: it is scaled down as a whole rather than refused, so a slightly-loud
 pick stays picked and stays safe.
 
-Measured on the artifact 2026-08-13: the lab is **9,465 B gz in its own
+Measured on the artifact 2026-08-13: the lab is **9,715 B gz in its own
 `lab-*` chunk**, referenced 0 times in `index.html` and absent from the precache
 manifest, while sibling `.js` chunks are precached — which is the positive
 control proving the `globIgnores` entry is doing the work rather than the glob
-missing it. First visit **86,463 B gz of 90,000**, 3,537 spare. Adding it was the
+missing it. First visit **89,164 B gz of 90,000**, 836 spare. Adding it was the
 documented three changes: the dynamic import, the named `manualChunks` branch,
 the `globIgnores` entry. `src/lab/**` matches none of the other `manualChunks`
 rules, so without its own branch it falls to `return undefined` and lands in the
 ENTRY chunk, shipped to every child with no `lab-` name for anything to match.
 
-**`pop` is now "Cork", and it was PICKED rather than blind-judged.** Until
-2026-08-13 it was one 320 Hz square wave — no transient, no room, no glide — and
-it is the second most-played sound in the app: the balloon, the bee, the block,
-the brush, the frog, the flag and every shop purchase. Cork is a 6 ms transient
-at 1.5 kHz over a sine gliding UP nine semitones. **The distinction between
-"picked" and "blind" is load-bearing** and `VERDICT` in `src/lab/voices.ts`
-records it per sound, because the six tournament winners beat 4–5 alternatives
-each with the names hidden while Cork was chosen with them showing. Collapsing
-the two is how a preference gets remembered as a result — the exact mistake
-`docs/juice-lab.md` records. `flip` is the last never-judged sound. The old
-square is still in the strip as the control arm, holding **its own literal copy**
-of the spec: it used to import `POP`, which was correct only while `POP` *was*
-the square, and would have silently become a second copy of Cork on promotion.
+**All nine sounds were re-picked on 2026-08-13, and six of them overrode a
+blind-tournament winner.** tap is **Tick**, pop is **Pock**, correct is **Wood
+run**, wrong is **Two steps down**, win is **Ladder**, coin is **Drop in**, star
+is **High bar**, flip is **Whoosh**, streak is **Glass**. Every one was chosen
+from its own strip of 5–8 arms with the names showing.
+
+**"Shutter won the tournament" and "tap is Tick" are both true**, and somebody
+will eventually cite the first. A blind round (2026-08-02) asked which sounds
+better with nothing else to go on; a named pick asks which belongs in this app,
+and the second question is the one that ships. `VERDICT` and **`OVERRODE_BLIND`**
+in `src/lab/voices.ts` record which is which, and the card badge says *"picked
+over a blind winner"* for those six. Collapsing the two is how a preference gets
+remembered as a result — the exact mistake `docs/juice-lab.md` records.
+
+**Nothing was deleted: all nine predecessors live in `src/lab/previous.ts`** and
+remain playable arms. That file exists because of a trap this repo had already
+documented once and still nearly shipped: every "was" arm was written as the
+shipped CONSTANT (`TAP`, `SUCCESS`, `WIN`…), which is correct exactly until the
+constant moves. When all nine moved at once, each of those arms would have
+silently become a second copy of its own replacement — two buttons per strip
+playing an identical sound, one labelled with the old name, and every test still
+green because a duplicate spec is a valid spec. `pop-square` was the only arm
+holding its own literal (written out longhand when Cork was promoted) and so the
+only one that survived. **A control arm must be a literal, never an import.**
+`voices.test.ts` now fails on any two arms in a strip that are byte-identical;
+mutation-proven by restoring the pre-fix line.
+
+**A partial nobody can hear was making the browser complain.** `star` on tuned
+wood asks for 26,634 Hz on its top note, above Nyquist at any sample rate, so
+WebAudio clamped it and logged `value outside nominal range` on every star.
+`voiceEngine` now skips any layer that spends its whole life above `sampleRate/2`
+— measured on the artifact: **8 oscillators instead of 9, zero warnings**, and
+nothing audible changed because nothing up there was audible.
 
 **The streak ladder exists, is playable, and nothing calls it.**
 `src/sdk/streak.ts` is the third policy port after `economy.ts` and `score.ts` —
@@ -1078,18 +1098,31 @@ Pentatonic and not diatonic on purpose: a leading tone makes an ascending line
 *beg* for the next step, and building that pull deliberately for five-year-olds
 is not something this platform does. `streakStep` returns **`undefined`, never
 0**, for "too short to count" — 0 is a real rung, so the two must not be
-spellable the same way or the ladder fires on every correct answer. Measured in a
-browser at the audio layer: 523 Hz for the first two taps (that is `success`),
-then the climb to 1745, and 1749 on the thirteenth — the same rung, jittered.
-`streakTier()` returns `good`/`great`/`amazing` and **nothing speaks them**.
+spellable the same way or the ladder fires on every correct answer. Measured at
+the audio layer after the timbre moved to Glass: 523 Hz on the first two taps,
+then 519 → 1756, and 1773 on the thirteenth — the same rung, jittered, the cap
+holding. **The partial COUNT is the better evidence than the pitch**: taps 1–2
+draw nine oscillators (Wood run, three bar partials across three notes — the
+ordinary `success` sound below the floor) and every tap after draws four, which
+is glass. `streakTier()` returns `good`/`great`/`amazing` and **nothing speaks
+them**.
 
-**Confetti, shake and burst spread are tunable from the lab** (`ellaz:juice:v1`,
-`src/juice/tuning.ts`), and the honest limit is worth knowing: **burst COUNT is
-not**, because 20 sites pass their own hand-authored 5–16 and an explicit
-argument beats a default. Unlike `voiceOverride` this store **clamps rather than
-drops** — the worst a bad number here does is draw odd confetti. Proven in a
-browser with the control both ways: with 24 picked a win drew 24 pieces; after
-"back to shipped" the same button drew 60.
+**Confetti and burst spread are now 140 and 190 px** (`ellaz:juice:v1`,
+`src/juice/tuning.ts`), both picked in the lab on 2026-08-13; shake was
+re-chosen and came back unchanged at 6 px / 240 ms, which is worth recording
+rather than reading as "that one was skipped". The honest limit: **burst COUNT
+is not tunable**, because 20 sites pass their own hand-authored 5–16 and an
+explicit argument beats a default. Unlike `voiceOverride` this store **clamps
+rather than drops** — the worst a bad number here does is draw odd confetti.
+Measured in a fresh browser context with nothing stored: a win draws **140**
+pieces and the lab marks 140 / 6 / 240 / 190 as shipped.
+
+**A control that stops controlling is worse than no control.** `tuning.test.ts`
+proved `clearTuning` by saving `confetti: 140` and asserting the result equalled
+shipped — fine until 140 *became* shipped, at which point the save was a no-op
+and the assertion passed whether or not `clearTuning` did anything, with nothing
+in either diff to show it. It now derives a value that cannot collide and
+asserts the setup changed something before asserting the teardown undid it.
 
 **Level-matching now keys on CONTENT, not object identity.** `voiceEngine`'s
 trim cache was a `WeakMap<VoiceSpec, number>`, which is right for eight module
@@ -1290,20 +1323,34 @@ has never had data to tune against.
 
 Setting the secret is safe at any time: `build:check` fails the deploy if the
 PostHog chunk would land in the precache, rather than shipping it behind a green
-checkmark. **First visit is 86,463 B gz of the 90,000 ceiling** in
-`scripts/assert-payload.mjs` — **3,537 B spare**, measured on the artifact
-2026-08-13, with Colour Sort and Merge landed. (It was 69,624 on 2026-08-02, down from 143,234; the ceiling has
+checkmark. **First visit is 89,164 B gz of the 90,000 ceiling** in
+`scripts/assert-payload.mjs` — **836 B spare**, measured on the artifact
+2026-08-13 on a tree carrying a peer's in-flight `daily` and `share` work; see
+the attribution note further down before reading that delta as anyone's. (It was 69,624 on 2026-08-02, down from 143,234; the ceiling has
 moved more than once since, so read `CEILING` in the script rather than trusting
 this line.) **Adding a game costs the SHELL about 300 B gz** even though its code
 is lazy: its `meta.ts` is in the statically-imported roster and its `gameArt`
 scene is in the grid. Falling Blocks cost 306 B, measured against a clean `main`
 build.
 
-**But 300 is a floor, not a rate.** Colour Sort and Merge together cost **1,489 B
-gz**, about **745 each** — two and a half times Blocks. The variable is the ART:
-a `gameArt` scene is inlined into the shell, so a scene with fourteen shapes
-costs more than one with six. Budget a new game at ~750 B unless its scene is
-deliberately simple, and measure rather than assume.
+**The real number is 192 B gz per game, and both figures this file carried
+before were wrong.** It said ~300 B from Falling Blocks; I raised that to ~745 B
+on 2026-08-13 from Colour Sort and Merge. Each was measured across a window that
+contained other changes, which is the same mistake twice — a delta is only a
+per-game cost if the game is the only variable.
+
+Isolated properly (two build arms from one tree, 25 games versus 6 with the
+other 19 stubbed): **163 B is the card art and 29 B is the game's link in the
+emitted home document.** The art dominates because `src/ui/gameArt.ts` is one
+object literal — every scene is reachable, so every scene ships, on a screen
+showing about eight cards. Dropping games from the roster *alone* saves only
+**24 B each**, because the art never leaves with them; that number is the trap,
+not the answer.
+
+**So do not quote a per-game cost from a payload diff taken across a working
+session.** Build two arms, change one thing.
+[`docs/scaling-the-first-visit.md`](docs/scaling-the-first-visit.md) carries the
+measurement, the O(1) rule that replaces the fixed ceiling, and the three steps.
 
 **The ceiling stopped binding on 2026-08-13**, and how it stopped matters more
 than the number, because the fix written down here was wrong about its own size
@@ -1327,6 +1374,22 @@ ordering IS the guard: move it and the shell imports from the page chunk, which
 is the failure `assert-first-visit.mjs` exists to catch and has now caught three
 times. It passed with its negative control rejecting 9 of 9 planted entries, so
 that green is a real one rather than a vacuous one.
+
+**Latest reading: 89,164 B gz, 836 spare** (2026-08-13, after the nine voices
+were re-picked). That is **tight**, and the tree it was measured on is not the
+one the previous line describes: `daily` and `share` are now static in the shell
+(15 and 17 occurrences in the shell chunk), and a peer has all eleven locale
+dictionaries, `Home.tsx`, `PageApp.tsx` and `gameArt.ts` modified in flight. So
+the +2,701 since 86,463 is **not attributable to the sound work** — the voice
+data itself moved by a few hundred bytes at most, and `src/lab/previous.ts` was
+verified to land in the lab chunk with **zero** references in `index.html` and
+zero in the precache manifest.
+
+Whoever lands next should re-run the gate first: 836 B is roughly one more game's
+worth of `gameArt` scene, and the honest reading is that this ceiling is now the
+binding constraint again rather than a formality. The 84,974 further up is the
+correct record of the `manualChunks` change against the tree IT was measured on;
+all three are true of different trees, which is the whole point of the rule below.
 
 **The transferable half is the measurement, not the bytes.** Two numbers in this
 file were confidently wrong at the same moment: a ceiling of 86,000 that the live

@@ -24,6 +24,8 @@ import { tictactoe } from "./games/tictactoe";
 import { wordguess } from "./games/wordguess";
 import { sort } from "./games/sort";
 import { merge } from "./games/merge";
+import { pet } from "./games/pet";
+import { fit } from "./games/fit";
 
 export type { GameContent, GameCopy, FaqItem, Titled, Provenance, Locale, PageLocale } from "./types";
 
@@ -68,6 +70,8 @@ export const CONTENT: Record<string, GameContent> = {
   [wordguess.id]: wordguess,
   [sort.id]: sort,
   [merge.id]: merge,
+  [pet.id]: pet,
+  [fit.id]: fit,
 };
 
 /** The ids that have prose today. */
