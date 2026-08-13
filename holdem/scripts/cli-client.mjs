@@ -41,7 +41,9 @@ const ws = new WebSocket(`${WS_BASE}/ws/${code}`);
 const send = (m) => ws.send(JSON.stringify(m));
 
 ws.onopen = () => {
-  send({ t: "hello", v: 1, token, name });
+  // v2: a name is two word ids from the shared pool, never text. Sending none
+  // lets the server assign one; `name` here only picks the local token label.
+  send({ t: "hello", v: 2, token });
   if (seatArg !== undefined) setTimeout(() => send({ t: "takeSeat", seatIdx: Number(seatArg), buyIn: 200 }), 300);
 };
 ws.onclose = () => {
@@ -52,7 +54,12 @@ ws.onmessage = (ev) => {
   const m = JSON.parse(ev.data);
   switch (m.t) {
     case "welcome":
-      console.log(`hello ${m.name}${m.isHost ? " (host)" : ""} — room ${code}`);
+      console.log(
+        `hello ${m.name.adj} ${m.name.noun}${m.isHost ? " (host)" : ""} — room ${code}`,
+      );
+      break;
+    case "name":
+      console.log(`you are now ${m.name.adj} ${m.name.noun}`);
       break;
     case "room":
       view = m.view;

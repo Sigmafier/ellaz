@@ -13,6 +13,7 @@
 
 const BASE = process.argv[2] ?? "http://localhost:8787";
 const WS_BASE = BASE.replace(/^http/, "ws");
+const PROTOCOL_V = 2;
 const HANDS = Number(process.env.SMOKE_HANDS ?? 5);
 const DEADLINE_MS = Number(process.env.SMOKE_DEADLINE_MS ?? 90_000);
 
@@ -43,6 +44,8 @@ class Player {
     this.handNo = -1;
     this.sawWelcome = false;
     this.sawRoom = false;
+    this.assignedName = null;
+    this.seatNames = null;
     this.foreignHoleCards = 0;
     this.errors = [];
     this.holeSeen = 0;
@@ -52,7 +55,10 @@ class Player {
     return new Promise((resolve, reject) => {
       this.ws = new WebSocket(`${WS_BASE}/ws/${code}`);
       this.ws.onopen = () => {
-        this.sendMsg({ t: "hello", v: 1, token: this.token, name: this.name });
+        // No name sent: the server assigns one from the pool. Exercising the
+        // no-name path on purpose, since it is what a first-time client does
+        // before its user has touched the reroll button.
+        this.sendMsg({ t: "hello", v: PROTOCOL_V, token: this.token });
         resolve();
       };
       this.ws.onerror = (e) => reject(new Error(`${this.name} ws error: ${e.message ?? e}`));
@@ -69,9 +75,11 @@ class Player {
       case "welcome":
         this.sawWelcome = true;
         this.playerId = m.playerId;
+        this.assignedName = m.name;
         break;
       case "room":
         this.sawRoom = true;
+        this.seatNames = m.names;
         if (m.view.hand) this.handNo = m.view.hand.handNo;
         break;
       case "you":
@@ -150,5 +158,68 @@ if (done < HANDS) {
   fail(`only ${done}/${HANDS} hands completed in ${DEADLINE_MS}ms`);
 }
 if (!reconnected) fail("reconnect leg never ran");
-console.log(`SMOKE OK: ${done} hands, privacy clean, reconnect clean`);
+
+// ---------------------------------------------------------------------------
+// Names: the server assigns them, and text cannot become one.
+//
+// This is the half a type system cannot promise, because the attacker does not
+// run our client. The guard lives in parseC2S + the pool allowlist; this proves
+// it end to end, over a real socket, against a real Durable Object.
+
+for (const p of players) {
+  const n = p.assignedName;
+  if (!n || typeof n.adj !== "string" || typeof n.noun !== "string") {
+    fail(`${p.name} was not assigned a pooled name (got ${JSON.stringify(n)})`);
+  }
+  if (Object.keys(n).length !== 2) fail(`${p.name}'s name carried extra fields: ${JSON.stringify(n)}`);
+}
+if (players.every((p) => !p.seatNames || Object.keys(p.seatNames).length === 0)) {
+  fail("no client ever received seat name ids — the room snapshot lost `names`");
+}
+
+const HOSTILE = [
+  "<script>alert(1)</script>",
+  { adj: "<img onerror=x>", noun: "tiger" },
+  { adj: "swift", noun: "tiger", label: "smuggled" },
+  { adj: "", noun: "" },
+];
+for (const [i, attempt] of HOSTILE.entries()) {
+  const got = await new Promise((resolve) => {
+    const ws = new WebSocket(`${WS_BASE}/ws/${code}`);
+    const t = setTimeout(() => resolve({ outcome: "timeout" }), 5000);
+    ws.onopen = () =>
+      ws.send(JSON.stringify({ t: "hello", v: PROTOCOL_V, token: `tok-hostile-${i}-abcdefgh`, name: attempt }));
+    ws.onmessage = (ev) => {
+      const m = JSON.parse(ev.data);
+      if (m.t === "welcome") {
+        clearTimeout(t);
+        ws.close();
+        resolve({ outcome: "welcome", name: m.name });
+      } else if (m.t === "err") {
+        clearTimeout(t);
+        ws.close();
+        resolve({ outcome: "err", code: m.code });
+      }
+    };
+    ws.onerror = () => {
+      clearTimeout(t);
+      resolve({ outcome: "wserror" });
+    };
+  });
+
+  if (got.outcome === "timeout") fail(`hostile name ${i} got no answer at all`);
+  // Either answer is correct — refused outright, or accepted and REPLACED with
+  // a real pooled name. What must never happen is the payload coming back.
+  if (got.outcome === "welcome") {
+    const flat = JSON.stringify(got.name);
+    if (flat.includes("script") || flat.includes("onerror") || flat.includes("smuggled")) {
+      fail(`hostile name ${i} SURVIVED into welcome: ${flat}`);
+    }
+    if (Object.keys(got.name).length !== 2) fail(`hostile name ${i} kept extra fields: ${flat}`);
+  }
+}
+
+console.log(
+  `SMOKE OK: ${done} hands, privacy clean, reconnect clean, ${HOSTILE.length} hostile names rejected`,
+);
 process.exit(0);

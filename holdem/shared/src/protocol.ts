@@ -14,8 +14,13 @@ import type { LegalActions } from "./engine/betting";
 import type { Card } from "./engine/cards";
 import type { EngineEvent, TableConfig } from "./engine/types";
 import type { PublicTableView } from "./engine/view";
+import { isPlayerName, type PlayerName } from "./names";
 
-export const PROTOCOL_VERSION = 1;
+// Bumped from 1: a name is now two word ids rather than free text, so a v1
+// client's `name: "Dani"` would be silently dropped by the new guard and the
+// player would arrive nameless. The version check turns that into "refresh the
+// app", which is the honest answer.
+export const PROTOCOL_VERSION = 2;
 
 export const EMOTES = [
   "laugh",
@@ -33,7 +38,11 @@ export type EmoteId = (typeof EMOTES)[number];
 // Client → Server
 
 export type C2S =
-  | { t: "hello"; v: number; token: string; name?: string; relink?: string; spectate?: boolean }
+  // `name` is two word ids from the shared pool, never text. The server
+  // re-validates them against the pool and renders the string itself, so a
+  // client cannot put arbitrary characters on anyone else's screen.
+  | { t: "hello"; v: number; token: string; name?: PlayerName; relink?: string; spectate?: boolean }
+  | { t: "setName"; name: PlayerName }
   | { t: "takeSeat"; seatIdx: number; buyIn: number }
   | { t: "leaveSeat" }
   | { t: "sitOut" }
@@ -80,12 +89,25 @@ export interface HandSummary {
   potTotal: number;
   board: Card[];
   winners: number[];
+  /**
+   * RENDERED strings, not ids — deliberately, and the one place in this
+   * protocol that goes the other way.
+   *
+   * History is an archive. Word ids are promised never to be removed, but a
+   * rendered name is immune even to that promise being broken, and to a future
+   * language switch: a hand played tonight should still read the way it read
+   * tonight when someone scrolls back to it. Live seats carry ids (see the
+   * `room` message) because they need the emoji and can be re-rendered.
+   */
   names: Record<number, string>;
 }
 
 export interface LedgerRow {
   playerId: string;
+  /** Rendered at send time. See HandSummary.names for why it is not ids. */
   name: string;
+  /** The ids too, so the row can show the player's animal beside the figure. */
+  nameIds: PlayerName;
   net: number;
   buyIn: number;
   handsPlayed: number;
@@ -97,13 +119,17 @@ export type S2C =
       t: "welcome";
       v: number;
       playerId: string;
-      name: string;
+      /** The ids the server settled on — it may have assigned them itself. */
+      name: PlayerName;
       seatIdx: number;
       isHost: boolean;
       serverNow: number;
       chipsMode: string;
     }
-  | { t: "room"; view: PublicTableView; seq: number }
+  // `names` rides alongside the view rather than inside it: the engine treats a
+  // seat's name as an opaque string and must not learn about the word pool, so
+  // the ids the client needs for each seat's animal travel next to it.
+  | { t: "room"; view: PublicTableView; names: Record<number, PlayerName>; seq: number }
   | { t: "you"; you: YouView }
   | { t: "ev"; seq: number; events: EngineEvent[] }
   | { t: "timer"; seatIdx: number; deadlineEpochMs: number; serverNow: number; timeBank: boolean }
@@ -111,6 +137,10 @@ export type S2C =
   | { t: "history"; hands: HandSummary[]; hasMore: boolean }
   | { t: "hand"; handNo: number; events: EngineEvent[] }
   | { t: "ledger"; rows: LedgerRow[] }
+  // The name the server SETTLED ON, which is not always the one asked for: an
+  // id this build does not know is answered with a fresh name rather than an
+  // error, so the client must render what comes back, never what it sent.
+  | { t: "name"; name: PlayerName }
   | { t: "relinkCode"; playerId: string; code: string; expiresAt: number }
   | { t: "kicked" }
   | { t: "err"; code: string; msg: string }
@@ -133,8 +163,13 @@ export function parseC2S(raw: unknown): C2S | null {
   switch (m.t) {
     case "hello":
       if (typeof m.token !== "string" || m.token.length < 8 || m.token.length > 128) return null;
-      if (m.name !== undefined && (typeof m.name !== "string" || m.name.length > 24)) return null;
+      // Shape only here; membership in the pool is checked server-side, where
+      // an unknown id becomes a fresh assigned name rather than a rejection.
+      if (m.name !== undefined && !isPlayerName(m.name)) return null;
       if (m.relink !== undefined && typeof m.relink !== "string") return null;
+      return m as C2S;
+    case "setName":
+      if (!isPlayerName(m.name)) return null;
       return m as C2S;
     case "takeSeat":
       if (!Number.isInteger(m.seatIdx) || !Number.isInteger(m.buyIn)) return null;
