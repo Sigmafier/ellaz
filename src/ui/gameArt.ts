@@ -1,4 +1,4 @@
-/* Ellaz key art - 21 flat-SVG scenes, drawn rather than fetched.
+/* Ellaz key art - flat-SVG scenes, drawn rather than fetched.
    ===========================================================================
 
    WHY DRAWN AND NOT SCREENSHOTS. The home grid ships in the SHELL bundle
@@ -15,6 +15,13 @@
    filters: ids collide when the same SVG is inlined 21 times on one page, and
    flat shapes gzip far better than gradient stops.
 
+   THIS FILE HOLDS ONLY THE SCENES ABOVE THE FOLD. It used to hold all of them,
+   and that made the first visit grow with the catalogue - 163 B gz per game,
+   paid by every child, for cards most of them never scroll to. The rest live in
+   `gameArtRest.ts` and arrive on browser idle; `SHELL_ART_COUNT` below says how
+   the line is drawn and `game-art-split.test.ts` enforces it. Adding a game
+   costs this file nothing, which is the whole point.
+
    THIS FILE IMPORTS NOTHING, on purpose and for the same reason `themes.ts`
    does: `src/build/**` renders the emitted game pages as pure strings with no
    React and no DOM, and it may read this. The app renders the identical markup
@@ -23,13 +30,17 @@
    approved on 2026-08-03, recorded in the plan as "reused, not reinvented",
    and never wired, so every game shipped as one OS emoji on a colour block for
    four days while every gate reported green. None of them looked at pictures.
+   `gameArtRest.ts` imports this one for the palette and nothing else, so the
+   arrow only ever points that way and the leaf stays a leaf.
 
    The palette is warmer and higher-contrast than Flat UI, picked so any two
    adjacent thumbnails in a grid stay distinguishable, and `ink` is a deep plum
    rather than black because black on saturated colour reads harsh at
    thumbnail size. */
 
-const PAL = {
+/* EXPORTED for `gameArtRest.ts`, which draws in the same vocabulary. Nothing
+   else may read it: the palette is the art's own, not a theme. */
+export const PAL = {
   ink:       "#241C3B",
   inkSoft:   "#4A4066",
   paper:     "#FFF7EC",
@@ -43,13 +54,13 @@ const PAL = {
   orchid:    "#A855C9",
   clay:      "#E4572E",
 };
-const I = PAL.ink;
+export const I = PAL.ink;
 
 /* ---------------------------------------------------------------------------
    Background deco. One of four, chosen per game so a scrolled grid has rhythm
    rather than 21 identical colour fields.
 --------------------------------------------------------------------------- */
-type Deco = "circle" | "band" | "arc" | "hill";
+export type Deco = "circle" | "band" | "arc" | "hill";
 
 const DECO: Record<Deco, (c: string) => string> = {
   circle: (c) => `<circle cx="168" cy="24" r="62" fill="${c}"/>`,
@@ -60,14 +71,14 @@ const DECO: Record<Deco, (c: string) => string> = {
 
 /* Sparse confetti, drawn only where a scene leaves room. Kept as a helper so
    the same six marks are reused instead of 21 bespoke ones. */
-const dots = (c: string, o?: number): string =>
+export const dots = (c: string, o?: number): string =>
   `<g fill="${c}" opacity="${o || 0.5}"><circle cx="22" cy="26" r="4"/><circle cx="44" cy="14" r="2.6"/>` +
   `<circle cx="14" cy="52" r="2.6"/><circle cx="182" cy="118" r="3.4"/><circle cx="164" cy="136" r="2.4"/></g>`;
 
 /* ---------------------------------------------------------------------------
-   The 21 scenes. `a` is the ground, `b` the deco shape, `d` which deco.
+   A scene. `a` is the ground, `b` the deco shape, `d` which deco.
 --------------------------------------------------------------------------- */
-interface Scene {
+export interface Scene {
   /** the ground colour - this game's identity, like `meta.color` */
   a: string;
   /** the deco shape's colour */
@@ -78,6 +89,33 @@ interface Scene {
   s: string;
 }
 
+/**
+ * How many of the roster's games keep their scene in the SHELL.
+ *
+ * 16, and it is a MEASUREMENT rather than a round number. Driven in a real
+ * browser against a production build with a fresh profile - the worst case,
+ * since a returning player's keep-playing row pushes the grid further down:
+ *
+ *   390 x 844 phone     3 columns,  6 cards start above the fold, 3 fully visible
+ *   1280 x 800 desktop  8 columns, 16 cards start above the fold, 8 fully visible
+ *
+ * 16 is the largest number of cards anyone was measured to reach without
+ * scrolling, so nothing a visitor can see on first paint waits for a network
+ * request. Erring large costs 163 B gz per extra scene ONCE and nothing per
+ * game after that - the slope is set by which side of the split a NEW game
+ * lands on, and a new game is appended to the roster, so it is always lazy.
+ * Erring small costs a visible emoji-to-art flash on the one screen every
+ * session starts on, which is what the 2026-08-11 ceiling note already refused
+ * to pay for.
+ */
+export const SHELL_ART_COUNT = 16;
+
+/**
+ * The scenes a first visit carries. The rest are in `gameArtRest.ts`.
+ *
+ * A FUNCTION-FREE object literal on purpose, same as before: `src/build/**`
+ * reads this in Node to emit the game pages and the og cards.
+ */
 const ART: Record<string, Scene> = {
   /* two cards, one turned up on a star — the moment the pair matches */
   memory: { a: "#FF4D8D", b: "#FF7FAC", d: "circle", s: `
@@ -140,34 +178,6 @@ const ART: Record<string, Scene> = {
      version's radial rays read as a SUN, which is worse than illegible — it
      looked like a different game. Curved FRAGMENTS flying apart, plus the knot
      left dangling on its string, say "popped" with no ambiguity. */
-  balloons: { a: "#FF4D8D", b: "#FF83B0", d: "arc", s: `
-    <g><path d="M44 92c-15 0-25-12-25-27s11-27 25-27 25 12 25 27-10 27-25 27z" fill="${PAL.lagoon}"/>
-      <path d="M38 90h12l-6 9z" fill="${PAL.lagoon}"/>
-      <ellipse cx="34" cy="52" rx="6" ry="9" fill="${PAL.paper}" opacity=".55" transform="rotate(-20 34 52)"/>
-      <path d="M44 99c-6 7 6 9 0 16s5 9 0 15" stroke="${PAL.paper}" stroke-width="3.4" fill="none" stroke-linecap="round"/></g>
-    <g fill="${PAL.sunflower}">
-      <path d="M104 34c14 2 22 12 20 22-9-4-18-4-26 2 0-9 2-17 6-24z"/>
-      <path d="M78 52c-8 10-7 22 1 28 3-9 9-15 17-18-6-4-12-7-18-10z"/>
-      <path d="M124 66c8 6 10 16 5 24-5-7-12-11-20-11 5-5 10-9 15-13z"/></g>
-    <circle cx="101" cy="82" r="6" fill="${PAL.sunflower}"/>
-    <path d="M101 88c-5 7 6 9 0 16s5 9 0 14" stroke="${PAL.paper}" stroke-width="3.4" fill="none" stroke-linecap="round"/>
-    <g><path d="M158 98c-15 0-25-12-25-27s11-27 25-27 25 12 25 27-10 27-25 27z" fill="${PAL.lime}"/>
-      <path d="M152 96h12l-6 9z" fill="${PAL.lime}"/>
-      <ellipse cx="148" cy="58" rx="6" ry="9" fill="${PAL.paper}" opacity=".55" transform="rotate(-20 148 58)"/>
-      <path d="M158 105c-6 7 6 9 0 16s5 7 0 13" stroke="${PAL.paper}" stroke-width="3.4" fill="none" stroke-linecap="round"/></g>` },
-
-  /* bubbles rising, the near one about to be caught */
-  bubbles: { a: "#26B0E6", b: "#68CDF2", d: "circle", s: `
-    <g fill="${PAL.paper}" opacity=".92">
-      <circle cx="62" cy="94" r="30"/><circle cx="126" cy="60" r="20"/><circle cx="158" cy="112" r="14"/><circle cx="30" cy="42" r="11"/></g>
-    <g fill="${PAL.lagoon}" opacity=".5"><circle cx="62" cy="94" r="20"/><circle cx="126" cy="60" r="13"/></g>
-    <g fill="${PAL.paper}"><circle cx="52" cy="82" r="6"/><circle cx="118" cy="52" r="4"/></g>
-    <circle cx="62" cy="94" r="38" fill="none" stroke="${PAL.sunflower}" stroke-width="5" stroke-dasharray="8 7"/>` },
-
-  /* The same creature at three sizes. Redrawn: the first pass was white discs
-     with 2px eyes, which at 104px became three anonymous blobs. Ears, a snout
-     and eyes big enough to survive the shrink make it read as one animal
-     growing rather than as abstract circles. */
   sortsize: { a: "#E4572E", b: "#F0805B", d: "band", s: `
     <g fill="${PAL.paper}">
       <circle cx="30" cy="116" r="8"/><circle cx="34" cy="120" r="14"/>
@@ -202,57 +212,6 @@ const ART: Record<string, Scene> = {
      had almost no edge at 104px — the pair read as one star and a smudge. The
      shadow now sits on a PALE panel, so it is a hard silhouette against light
      rather than dark-on-dark, which is what makes the pairing legible. */
-  shadows: { a: "#4F5BD5", b: "#7B85EA", d: "hill", s: `
-    <path d="M96 20h96v110H96z" fill="${PAL.paper}" opacity=".9"/>
-    <path d="M56 38l10.5 22 24 3.5-17.5 17 4 24L56 93.5 35 104.5l4-24-17.5-17 24-3.5z" fill="${PAL.sunflower}"/>
-    <path d="M144 38l10.5 22 24 3.5-17.5 17 4 24L144 93.5 123 104.5l4-24-17.5-17 24-3.5z" fill="${I}"/>
-    <ellipse cx="56" cy="122" rx="27" ry="6" fill="${I}" opacity=".3"/>
-    <ellipse cx="144" cy="122" rx="27" ry="6" fill="${I}" opacity=".16"/>` },
-
-  /* four pads, one lit and ringing */
-  echo: { a: "#FFC730", b: "#FFD86E", d: "circle", s: `
-    <path d="M96 30H62a10 10 0 0 0-10 10v34h44z" fill="${PAL.raspberry}"/>
-    <path d="M104 30h34a10 10 0 0 1 10 10v34h-44z" fill="${PAL.lagoon}"/>
-    <path d="M96 82H52v34a10 10 0 0 0 10 10h34z" fill="${PAL.jade}"/>
-    <path d="M104 82h44v34a10 10 0 0 1-10 10h-34z" fill="${PAL.paper}"/>
-    <g stroke="${PAL.paper}" stroke-width="4" fill="none" opacity=".95">
-      <path d="M156 60a22 22 0 0 1 0 36"/><path d="M168 48a38 38 0 0 1 0 60"/></g>` },
-
-  /* honeycomb and the one thing you are allowed to tap */
-  bees: { a: "#FFC730", b: "#FFDA7A", d: "band", s: `
-    <g fill="${PAL.paper}" opacity=".85">
-      <path d="M40 44l16 9v18l-16 9-16-9V53z"/><path d="M40 88l16 9v18l-16 9-16-9V97z"/>
-      <path d="M74 66l16 9v18l-16 9-16-9V75z"/></g>
-    <g transform="rotate(-12 146 80)">
-      <ellipse cx="146" cy="80" rx="30" ry="21" fill="${PAL.sunflower}"/>
-      <path d="M132 60h11v40h-11zM154 60h11v40h-11z" fill="${I}"/>
-      <ellipse cx="146" cy="80" rx="30" ry="21" fill="none" stroke="${I}" stroke-width="3.5"/>
-      <ellipse cx="136" cy="56" rx="18" ry="11" fill="${PAL.paper}" opacity=".92"/>
-      <ellipse cx="160" cy="56" rx="16" ry="10" fill="${PAL.paper}" opacity=".92"/>
-      <circle cx="172" cy="74" r="3.6" fill="${I}"/></g>` },
-
-  /* frog on a pad, mid-blink */
-  frog: { a: "#6FD44E", b: "#98E67D", d: "arc", s: `
-    <ellipse cx="100" cy="126" rx="62" ry="16" fill="${PAL.jade}"/>
-    <path d="M100 110c-32 0-46-16-46-32s20-30 46-30 46 14 46 30-14 32-46 32z" fill="${PAL.lime}"/>
-    <circle cx="76" cy="52" r="16" fill="${PAL.lime}"/><circle cx="124" cy="52" r="16" fill="${PAL.lime}"/>
-    <circle cx="76" cy="50" r="9" fill="${PAL.paper}"/><circle cx="124" cy="50" r="9" fill="${PAL.paper}"/>
-    <circle cx="78" cy="51" r="4.6" fill="${I}"/><circle cx="126" cy="51" r="4.6" fill="${I}"/>
-    <path d="M80 88q20 14 40 0" stroke="${I}" stroke-width="5" fill="none" stroke-linecap="round"/>
-    <circle cx="164" cy="44" r="7" fill="${PAL.paper}" opacity=".8"/>` },
-
-  /* the light turns green and the world lurches forward */
-  reaction: { a: "#3FC46B", b: "#6BD68F", d: "band", s: `
-    <rect x="70" y="20" width="60" height="112" rx="26" fill="${I}"/>
-    <circle cx="100" cy="48" r="15" fill="${PAL.paper}" opacity=".22"/>
-    <circle cx="100" cy="84" r="15" fill="${PAL.paper}" opacity=".22"/>
-    <circle cx="100" cy="114" r="16" fill="${PAL.lime}"/>
-    <g stroke="${PAL.paper}" stroke-width="7" stroke-linecap="round" opacity=".9">
-      <path d="M22 62h30M14 88h38M28 112h24"/></g>
-    <g stroke="${PAL.paper}" stroke-width="7" stroke-linecap="round" opacity=".9">
-      <path d="M148 62h30M148 88h38M156 112h24"/></g>` },
-
-  /* two tiles about to become one */
   "2048": { a: "#FFC730", b: "#FFDD8A", d: "circle", s: `
     <rect x="20" y="52" width="52" height="52" rx="9" fill="${PAL.paper}"/>
     <rect x="128" y="52" width="52" height="52" rx="9" fill="${PAL.paper}"/>
@@ -361,53 +320,130 @@ const ART: Record<string, Scene> = {
      against something that is not competing with them. The other `think` games
      sit on yellow, purple, indigo and jade, so lagoon also keeps two adjacent
      thumbnails apart, which is the one property this palette was chosen for. */
-  sort: { a: "#26B0E6", b: "#5CC8F0", d: "band", s: `
-    <g stroke="${I}" stroke-width="3">
-      <rect x="30" y="36" width="28" height="90" rx="14" fill="${PAL.paper}"/>
-      <rect x="86" y="36" width="28" height="90" rx="14" fill="${PAL.paper}"/>
-      <rect x="142" y="36" width="28" height="90" rx="14" fill="${PAL.paper}"/></g>
-    <g fill="${PAL.raspberry}"><circle cx="44" cy="114" r="10"/><circle cx="44" cy="94" r="10"/>
-      <circle cx="44" cy="74" r="10"/><circle cx="44" cy="54" r="10"/></g>
-    <g><circle cx="100" cy="114" r="10" fill="${PAL.sunflower}"/><circle cx="100" cy="94" r="10" fill="${PAL.lime}"/>
-      <circle cx="100" cy="74" r="10" fill="${PAL.sunflower}"/><circle cx="100" cy="54" r="10" fill="${PAL.lime}"/></g>
-    <g fill="${PAL.orchid}"><circle cx="156" cy="114" r="10"/><circle cx="156" cy="94" r="10"/></g>` },
-
-  /* Two identical caterpillars below, one butterfly above - which is literally
-     what the Hebrew title says, "two make one". Drawn as the RESULT beside the
-     ingredients rather than as a left-to-right ladder, because `evolve` already
-     owns the ladder picture and two cards telling the same visual story is how
-     a grid stops being scannable. */
-  merge: { a: "#FF8A3D", b: "#FFAD6E", d: "hill", s: `
-    <g fill="${PAL.orchid}">
-      <ellipse cx="76" cy="50" rx="21" ry="14" transform="rotate(-22 76 50)"/>
-      <ellipse cx="124" cy="50" rx="21" ry="14" transform="rotate(22 124 50)"/></g>
-    <g fill="${PAL.sunflower}">
-      <ellipse cx="82" cy="74" rx="15" ry="11" transform="rotate(18 82 74)"/>
-      <ellipse cx="118" cy="74" rx="15" ry="11" transform="rotate(-18 118 74)"/></g>
-    <ellipse cx="100" cy="62" rx="5" ry="20" fill="${I}"/>
-    <path d="M98 44c-3-8-9-11-14-12M102 44c3-8 9-11 14-12" fill="none"
-          stroke="${I}" stroke-width="2.5" stroke-linecap="round"/>
-    <g fill="${PAL.lime}" stroke="${I}" stroke-width="3">
-      <circle cx="24" cy="112" r="13"/><circle cx="44" cy="112" r="13"/><circle cx="64" cy="112" r="13"/>
-      <circle cx="136" cy="112" r="13"/><circle cx="156" cy="112" r="13"/><circle cx="176" cy="112" r="13"/></g>
-    <g fill="${I}"><circle cx="68" cy="107" r="3"/><circle cx="132" cy="107" r="3"/></g>` },
 };
 
 /**
- * Every game that has art. Exported so a test can ratchet the count.
+ * The lazy half, by id, with the ground colour it draws on.
  *
- * A FUNCTION, not a `const`. `Object.keys(ART)` at module scope is evaluated
- * when the module loads, which pins the whole 14 KB of scene data into any
- * bundle that touches this file - even one that never draws a single scene.
- * That is not hypothetical: it silently invalidated the first payload control
- * run for this change, which reported the art costing 328 B because the data
- * was present in BOTH arms.
+ * TWO THINGS THIS BUYS, and neither is optional:
+ *
+ *   `hasArt` stays EXACT before the chunk lands. The home grid asks it once,
+ *   per card, to decide whether to render the picture or the emoji-on-a-tint
+ *   branch - and a card that answered "no picture" at first paint would keep
+ *   the emoji for the whole session, because nothing re-renders that decision.
+ *   Answering "yes, shortly" instead means only the INSIDE of the card swaps.
+ *
+ *   `artGround` stays CORRECT. It is read at build time to colour each game
+ *   page's header bar, and a missing entry falls back to one indigo - a
+ *   plausible picture with no error anywhere, which is precisely the failure
+ *   CLAUDE.md records under "--g is not ambient".
+ *
+ * The colours are duplicated from the scenes they describe, so
+ * `game-art-split.test.ts` pins each one against `REST`'s own `a`.
  */
-export function artIds(): string[] {
-  return Object.keys(ART).sort();
+const LAZY_GROUNDS: Record<string, string> = {
+  balloons: "#FF4D8D",
+  bubbles: "#26B0E6",
+  shadows: "#4F5BD5",
+  echo: "#FFC730",
+  bees: "#FFC730",
+  frog: "#6FD44E",
+  reaction: "#3FC46B",
+  sort: "#26B0E6",
+  merge: "#FF8A3D",
+  pet: "#FF4D8D",
+  fit: "#17B98A",
+};
+
+/* ---------------------------------------------------------------------------
+   Loading the rest.
+
+   The dynamic import lives inside a FUNCTION, never at module scope. A
+   module-scope `import()` (or a `lazy(() => import(...))`) keeps the chunk in
+   the production module graph, and Vite then writes a `<link
+   rel="modulepreload">` for it into index.html - an eager download that no
+   globIgnores entry can prevent, because a preload is not the precache. That
+   shipped once already; see .claude/rules/precache-glob-sweeps-new-chunks.md.
+
+   Three changes make this real and they are all in that rule: this import, the
+   NAMED `art-rest` branch in vite.config manualChunks, and the matching
+   `art-rest-*.js` entry in globIgnores. Two of three leaves the payload exactly
+   where it was, behind a green build.
+--------------------------------------------------------------------------- */
+
+let restState: "idle" | "loading" | "ready" = "idle";
+let revision = 0;
+const listeners = new Set<() => void>();
+
+/**
+ * Fold a set of scenes into the registry.
+ *
+ * Exported because `src/build/**` and the share card need EVERY scene
+ * synchronously, and they are free to: neither is in the shell bundle, so a
+ * static import of the lazy half costs a first visit nothing.
+ */
+export function registerArt(more: Record<string, Scene>): void {
+  Object.assign(ART, more);
+  restState = "ready";
+  revision += 1;
+  for (const notify of [...listeners]) notify();
 }
 
+/**
+ * Fetch the below-the-fold scenes. Idempotent, and never throws: a failed
+ * fetch leaves those cards on their emoji, which is a fallback and not a bug.
+ */
+export function loadRestArt(): void {
+  if (restState !== "idle") return;
+  restState = "loading";
+  void import("./gameArtRest")
+    .then((m) => registerArt(m.REST))
+    .catch(() => {
+      // Let a later mount try again. An offline first paint should not cost a
+      // player their pictures for the whole session.
+      restState = "idle";
+    });
+}
+
+/** Re-render when scenes arrive. Paired with `artRevision` for useSyncExternalStore. */
+export function subscribeArt(onChange: () => void): () => void {
+  listeners.add(onChange);
+  return () => {
+    listeners.delete(onChange);
+  };
+}
+
+/** A value that CHANGES when new scenes land, and is stable otherwise. */
+export function artRevision(): number {
+  return revision;
+}
+
+/**
+ * Every game that has art, loaded or not. Exported so a test can ratchet the
+ * count - which is why it must answer for the lazy half too, or the coverage
+ * gate would silently only ever check the shell.
+ *
+ * A FUNCTION, not a `const`. `Object.keys(ART)` at module scope is evaluated
+ * when the module loads, which pins the whole scene data into any bundle that
+ * touches this file - even one that never draws a single scene. That is not
+ * hypothetical: it silently invalidated the first payload control run for the
+ * drawings, which reported the art costing 328 B because the data was present
+ * in BOTH arms.
+ */
+export function artIds(): string[] {
+  return [...new Set([...Object.keys(ART), ...Object.keys(LAZY_GROUNDS)])].sort();
+}
+
+/** Is there a scene for this game - now, or once the lazy half lands? */
 export function hasArt(id: string): boolean {
+  return (
+    Object.prototype.hasOwnProperty.call(ART, id) ||
+    Object.prototype.hasOwnProperty.call(LAZY_GROUNDS, id)
+  );
+}
+
+/** Has a scene ARRIVED - as opposed to being promised by `hasArt`? */
+export function artReady(id: string): boolean {
   return Object.prototype.hasOwnProperty.call(ART, id);
 }
 
@@ -444,7 +480,14 @@ export function gameArt(id: string, cls?: string): string {
   );
 }
 
-/** The ground colour, for chrome that needs to tint with the art. */
+/**
+ * The ground colour, for chrome that needs to tint with the art.
+ *
+ * Answers for the lazy half BEFORE it loads, out of `LAZY_GROUNDS`. Without
+ * that it would fall back to one indigo for ten of the games - and the caller
+ * is the emitted game page's header bar, which would then render a plausible,
+ * wrong colour with no error anywhere.
+ */
 export function artGround(id: string): string {
-  return ART[id] ? ART[id].a : PAL.indigo;
+  return ART[id]?.a ?? LAZY_GROUNDS[id] ?? PAL.indigo;
 }

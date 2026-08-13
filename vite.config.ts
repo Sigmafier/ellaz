@@ -147,6 +147,18 @@ export default defineConfig({
           // should carry it. Precaching it would be the whole point of the lazy
           // import, undone silently and with a green build.
           "**/lab-*.js",
+          // The card art for every game BELOW the fold. The home grid draws the
+          // emoji until it lands, and it lands on browser idle. Without this
+          // entry the glob above precaches it anyway, the first visit is exactly
+          // as heavy as before, and the build is green - which is the entire
+          // reason this list exists.
+          "**/art-rest-*.js",
+          // The share sheet, its card and the rasteriser. Opened from a button
+          // that only appears once a child has played something TODAY, so most
+          // first visits never touch it. Without this entry the glob above
+          // precaches it anyway and the lazy import buys nothing - green build,
+          // unmoved payload, which is the whole failure this list exists for.
+          "**/share-*.js",
           // A dictionary is a whole language of chrome. Precaching eleven of
           // them puts ten languages nobody asked for on a child's first visit,
           // which is the entire reason they are separate chunks at all.
@@ -290,6 +302,21 @@ export default defineConfig({
           // globIgnores entry above is the other half.
           if (path.includes("/src/lab/")) return "lab";
 
+          // Sharing: the payload policy, the card, the browser rasteriser and
+          // the sheet. Same arrangement and same reason as `cloud` and `page`
+          // above, and it MUST be carved out before both catch-alls below -
+          // `share.ts` lives under src/sdk/ and the other three under
+          // src/portal/, so each would otherwise be pinned to the shell and the
+          // dynamic import in Home.tsx would buy nothing.
+          //
+          // `sdk/shareDay.ts` is deliberately NOT here and the `\.ts$` anchor is
+          // what keeps it out. Home has to ask "was this played today?" to
+          // decide whether the button belongs on the page at all, so that one
+          // predicate is shell-side; pulling it in from `share.ts` would drag
+          // the whole payload policy onto a first visit for two functions.
+          if (/\/src\/sdk\/share\.ts$/.test(path)) return "share";
+          if (/\/src\/portal\/(ShareSheet\.tsx|shareCard(Render)?\.ts)$/.test(path)) return "share";
+
           if (/\/src\/portal\/(PageApp|GameHost|Boards)\.tsx$/.test(path)) return "page";
           if (/\/src\/portal\/world\/(World|Backup)\.tsx$/.test(path)) return "page";
 
@@ -323,6 +350,20 @@ export default defineConfig({
           // it has caught exactly this, and the reason the premise is written
           // down rather than assumed.
           if (/\/src\/ui\/GameChrome\.tsx$/.test(path)) return "page";
+
+          // The card art below the fold. It lives under `src/ui/`, so the
+          // catch-all further down would claim it for the shell - which is
+          // where it used to be, at 163 B gz per game paid by every child for
+          // cards most never scroll to. Same trap as `GameChrome.tsx` above.
+          //
+          // NAMING it is half of what makes the deferral real: an unnamed chunk
+          // is emitted as `module-<hash>.js`, which no globIgnores entry can
+          // match, so it lands straight back in the precache and the split buys
+          // nothing. The other half is the `**/art-rest-*.js` entry above.
+          //
+          // `gameArt.ts` itself is deliberately NOT here. It holds the scenes a
+          // first visit draws, plus the palette this chunk imports.
+          if (/\/src\/ui\/gameArtRest\.ts$/.test(path)) return "art-rest";
 
           // The shared GAME helpers, same trap as `GameChrome.tsx` above and
           // `Boards.tsx` before it, one directory over and much larger.

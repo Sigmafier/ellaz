@@ -2,7 +2,18 @@ import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
-import { artIds, artGround, gameArt, hasArt } from "./gameArt";
+import { artIds, artGround, gameArt, hasArt, registerArt } from "./gameArt";
+import { REST } from "./gameArtRest";
+
+// EVERY scene, before a single assertion below runs.
+//
+// `gameArt.ts` now ships only the scenes above the fold and fetches the rest at
+// runtime, so a file that imported it alone would check sixteen games and
+// report full coverage - a coverage gate blind to the half of the catalogue it
+// was written to watch. `game-art-split.test.ts` is what keeps the two halves
+// honest about which scene belongs where; this file's job is unchanged, and it
+// needs all of them.
+registerArt(REST);
 
 /**
  * Every game has a picture, and this is the gate that says so.

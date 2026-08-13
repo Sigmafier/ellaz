@@ -36,8 +36,17 @@ import type { GameMeta } from "@sdk/index";
 import type { Locale } from "../content/types";
 import { dirOf } from "../i18n/locales";
 import { SITE } from "../content/site";
-import { artGround, gameArt } from "../ui/gameArt";
+import { artGround, gameArt, registerArt } from "../ui/gameArt";
+import { REST } from "../ui/gameArtRest";
 import type { Route } from "./routes";
+
+// EVERY scene, synchronously, before a card is drawn. `gameArt.ts` carries only
+// the ones a first visit needs and fetches the rest at runtime; this module
+// runs in Node at build time, is never bundled, and must not draw a blank card
+// for a game whose scene happens to be in the lazy half. A static import of the
+// lazy half costs a visitor nothing precisely because this file never reaches
+// them. Idempotent, so importing this module twice is harmless.
+registerArt(REST);
 
 const bidi = bidiFactory();
 

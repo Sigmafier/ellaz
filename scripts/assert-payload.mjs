@@ -22,9 +22,10 @@
  * `CEILING` here, in a commit, with a reason. That is the whole point: the
  * number becomes a decision with a diff instead of a drift nobody sees.
  */
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, realpathSync } from "node:fs";
 import { gzipSync } from "node:zlib";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const DIST = process.env.DIST_DIR || "dist";
 
@@ -39,17 +40,13 @@ const DIST = process.env.DIST_DIR || "dist";
  * for `ellaz/assets/...` and found nothing. Loudly, which is the one good part -
  * a gate that had quietly counted zero bytes would have passed.
  */
-function distBase() {
+function distBase(dist) {
   try {
-    return JSON.parse(readFileSync(join(DIST, "pages.json"), "utf8")).base;
+    return JSON.parse(readFileSync(join(dist, "pages.json"), "utf8")).base;
   } catch {
     return "/";
   }
 }
-const BASE = distBase();
-
-/** A URL as it appears under `dist/`: no base, no leading slash. */
-const rel = (url) => (url.startsWith(BASE) ? url.slice(BASE.length) : url).replace(/^\//, "");
 
 /**
  * Bytes, gzipped, for a first visit.
@@ -178,53 +175,91 @@ function gzBytes(path) {
   return gzipSync(readFileSync(path)).length;
 }
 
-const indexPath = join(DIST, "index.html");
-if (!existsSync(indexPath)) {
-  console.error(`assert-payload: no ${indexPath} - run the build first.`);
-  process.exit(1);
+/**
+ * What a first visit costs, in gzipped bytes, for the build at `dist`.
+ *
+ * EXPORTED SO THERE IS ONE MEASUREMENT, NOT TWO. `assert-slope.mjs` needs the
+ * same number for each of its two build arms, and a second implementation of
+ * "what does a first visit fetch" is the drift this repo has been bitten by
+ * twice - two implementations of the same quantity agree right up until they do
+ * not, and then one of them is quoted at the other. This one is the answer.
+ *
+ * Throws rather than exiting, so a caller measuring N arms can say WHICH arm was
+ * broken instead of dying anonymously.
+ */
+export function firstVisit(dist) {
+  const base = distBase(dist);
+  /** A URL as it appears under `dist/`: no base, no leading slash. */
+  const rel = (url) => (url.startsWith(base) ? url.slice(base.length) : url).replace(/^\//, "");
+
+  const indexPath = join(dist, "index.html");
+  if (!existsSync(indexPath)) throw new Error(`no ${indexPath} - run the build first.`);
+
+  const html = readFileSync(indexPath, "utf8");
+  const refs = [...html.matchAll(/(?:src|href)="([^"]+\.(?:js|css))"/g)].map((m) => m[1]);
+
+  // A first visit that fetches NOTHING is a broken build, not a tiny one. Without
+  // this the whole gate passes vacuously on an empty index.html - which is the
+  // failure mode of every check that measures an absence.
+  if (refs.length === 0) {
+    throw new Error(`${indexPath} references no js or css. Refusing to measure it.`);
+  }
+
+  const rows = [[gzBytes(indexPath), "index.html"]];
+  let total = rows[0][0];
+
+  for (const ref of refs) {
+    const path = join(dist, rel(ref));
+    if (!existsSync(path)) {
+      throw new Error(`index.html references ${ref}, which is not in ${dist}.`);
+    }
+    const size = gzBytes(path);
+    total += size;
+    rows.push([size, ref]);
+  }
+
+  rows.sort((a, b) => b[0] - a[0]);
+  return { total, rows };
 }
 
-const html = readFileSync(indexPath, "utf8");
-const refs = [...html.matchAll(/(?:src|href)="([^"]+\.(?:js|css))"/g)].map((m) => m[1]);
-
-// A first visit that fetches NOTHING is a broken build, not a tiny one. Without
-// this the whole gate passes vacuously on an empty index.html - which is the
-// failure mode of every check that measures an absence.
-if (refs.length === 0) {
-  console.error("assert-payload: index.html references no js or css. Refusing to pass.");
-  process.exit(1);
-}
-
-const rows = [];
-let total = gzBytes(indexPath);
-rows.push([total, "index.html"]);
-
-for (const ref of refs) {
-  const path = join(DIST, rel(ref));
-  if (!existsSync(path)) {
-    console.error(`assert-payload: index.html references ${ref}, which is not in ${DIST}.`);
+function main() {
+  let measured;
+  try {
+    measured = firstVisit(DIST);
+  } catch (err) {
+    console.error(`assert-payload: ${err.message}`);
     process.exit(1);
   }
-  const size = gzBytes(path);
-  total += size;
-  rows.push([size, ref]);
-}
+  const { total, rows } = measured;
 
-rows.sort((a, b) => b[0] - a[0]);
-for (const [size, name] of rows) {
-  console.log(`  ${String(size).padStart(7)} B gz  ${name}`);
-}
+  for (const [size, name] of rows) {
+    console.log(`  ${String(size).padStart(7)} B gz  ${name}`);
+  }
 
-const pct = Math.round((total / CEILING) * 100);
-console.log(`\nfirst visit: ${total.toLocaleString()} B gz of ${CEILING.toLocaleString()} (${pct}%)`);
-
-if (total > CEILING) {
-  console.error(
-    `\nFAIL  first visit is ${(total - CEILING).toLocaleString()} B gz over the ceiling.\n` +
-      `      Either make it smaller, or raise CEILING in scripts/assert-payload.mjs\n` +
-      `      in this commit with a reason. Do not raise it silently.`,
+  const pct = Math.round((total / CEILING) * 100);
+  console.log(
+    `\nfirst visit: ${total.toLocaleString()} B gz of ${CEILING.toLocaleString()} (${pct}%)`,
   );
-  process.exit(1);
+
+  if (total > CEILING) {
+    console.error(
+      `\nFAIL  first visit is ${(total - CEILING).toLocaleString()} B gz over the ceiling.\n` +
+        `      Either make it smaller, or raise CEILING in scripts/assert-payload.mjs\n` +
+        `      in this commit with a reason. Do not raise it silently.`,
+    );
+    process.exit(1);
+  }
+
+  console.log(
+    `OK  first visit is within budget (${(CEILING - total).toLocaleString()} B gz spare).`,
+  );
 }
 
-console.log(`OK  first visit is within budget (${(CEILING - total).toLocaleString()} B gz spare).`);
+// Run as a CLI, stay quiet as an import. `realpathSync` on both sides because
+// `npm run` invokes this by a relative path while an import resolves a real one,
+// and a guard that gets that wrong makes the gate silently never run - the exact
+// shape .claude/rules/a-diagnostic-that-truncates-what-it-compares.md records
+// costing a false "6 controls survived".
+if (process.argv[1] && pathToFileURL(realpathSync(resolve(process.argv[1]))).href === import.meta.url) {
+  main();
+}

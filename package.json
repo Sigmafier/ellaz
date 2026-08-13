@@ -7,9 +7,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "build:check": "npm run build && node scripts/assert-first-visit.mjs && node scripts/assert-payload.mjs && node scripts/assert-pages.mjs",
+    "build:check": "npm run build && node scripts/assert-first-visit.mjs && node scripts/assert-payload.mjs && node scripts/assert-pages.mjs && node scripts/assert-slope.mjs",
     "assert:first-visit": "node scripts/assert-first-visit.mjs",
     "assert:payload": "node scripts/assert-payload.mjs",
+    "assert:slope": "node scripts/assert-slope.mjs",
     "assert:pages": "node scripts/assert-pages.mjs",
     "preview": "vite preview",
     "test": "vitest run",

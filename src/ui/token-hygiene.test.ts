@@ -66,6 +66,13 @@ const COLOUR_EXEMPT = new Map<string, string>([
       "blocks.",
   ],
   [
+    "ui/gameArtRest.ts",
+    "the same scenes, for the cards below the fold, in their own lazy chunk - " +
+      "the half of the split that keeps a first visit from growing with the " +
+      "catalogue. Identical reasoning to gameArt.ts above; they are one file " +
+      "cut in two, and game-art-split.test.ts is what keeps the cut honest.",
+  ],
+  [
     "juice/effects.ts",
     "the confetti fallback, used when getComputedStyle returns nothing (jsdom, or " +
       "before the stylesheet parses). Confetti with no colours is invisible confetti.",

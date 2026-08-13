@@ -1,4 +1,5 @@
-import { gameArt, hasArt } from "./gameArt";
+import { useEffect, useSyncExternalStore } from "react";
+import { artReady, artRevision, gameArt, hasArt, loadRestArt, subscribeArt } from "./gameArt";
 import { useCardStyle } from "./useCardStyle";
 import type { CardStyle } from "./cardStyle";
 
@@ -14,6 +15,14 @@ import type { CardStyle } from "./cardStyle";
  * Two ways to reach the emoji and they are different facts: the player asked
  * for icons, or this game has no scene yet. Same render either way, which means
  * everyone who uses the toggle is exercising the missing-art fallback too.
+ *
+ * `hasArt` answers for the LAZY half as well, and that is load-bearing here
+ * rather than a nicety. The home grid calls this once per card to choose
+ * between the picture branch and the emoji-on-a-tint branch, and nothing
+ * re-renders that choice when the scenes land - so a card that answered "no"
+ * at first paint would keep the emoji for the whole session. Answering "yes,
+ * shortly" keeps the branch fixed and lets `GameArt` swap only its own
+ * contents, which is also one fewer layout change on the first screen.
  */
 export function showsArt(id: string, style: CardStyle): boolean {
   return style === "art" && hasArt(id);
@@ -52,7 +61,31 @@ export function GameArt({
   height: number | string;
 }) {
   const [style] = useCardStyle();
-  if (!showsArt(id, style)) {
+
+  // Re-render when the lazy scenes arrive. `useSyncExternalStore` and not a
+  // `useState` in an effect because every card on the grid subscribes to the
+  // same one event, and this is the shape React gives for exactly that.
+  useSyncExternalStore(subscribeArt, artRevision, artRevision);
+
+  // Fetch them, from the first card that mounts. On idle rather than
+  // immediately, so it cannot compete with the first paint it exists to
+  // protect; `requestIdleCallback` is missing on Safari, hence the timeout.
+  // Idempotent, so 25 cards asking is one request.
+  useEffect(() => {
+    const idle = (globalThis as { requestIdleCallback?: (cb: () => void) => void })
+      .requestIdleCallback;
+    if (idle) {
+      idle(loadRestArt);
+      return;
+    }
+    const t = setTimeout(loadRestArt, 200);
+    return () => clearTimeout(t);
+  }, []);
+
+  // The emoji stands in for a scene that has not arrived YET as well as for one
+  // that does not exist - the same render, which is why the below-the-fold
+  // cards need no placeholder of their own.
+  if (!showsArt(id, style) || !artReady(id)) {
     return (
       <span
         style={{
