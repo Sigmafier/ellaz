@@ -87,6 +87,30 @@ export function winMoment(ctx: GameContext, o: WinMomentOptions): WinMomentResul
     }
   }
 
+  // 1c. Today's puzzle, still banked rather than decorated - a day a child
+  //     actually played is a fact, and a thrown animation must not cost them a
+  //     streak any more than it can cost them a coin.
+  //
+  //     Reported the same way from every game, because `ctx.daily` alone knows
+  //     which game today's puzzle IS. Nothing here asks, nothing here can claim
+  //     to be the daily, and `complete()` takes no arguments at all - the same
+  //     shape as `grant()` taking a reason instead of a coin amount.
+  //
+  //     Deliberately NOT gated on `reason`. `level_complete` never fires in an
+  //     endless game, so gating on it would mean snake or merge as today's pick
+  //     could almost never count - the streak would break on the game rather
+  //     than on the child. Repeat calls within one day are the same day, and
+  //     `advance` returns the same object for one already counted.
+  //
+  //     Optional-chained for the same reason `ctx.score` is: a hand-built test
+  //     context predates this port, and a missing port must not throw inside a
+  //     win.
+  try {
+    ctx.daily?.complete();
+  } catch (e) {
+    console.error("[ellaz] daily complete failed", e);
+  }
+
   try {
     // 2. Sound + the matching buzz.
     ctx.audio.play("win");

@@ -8,7 +8,16 @@ import { speechPort } from "./speech";
 import { createRewardsPort } from "./wallet";
 import { createScorePort } from "./scoreboard";
 import { createSessionPort } from "./session";
+import { createDailyPort } from "./daily";
 import { publishScore } from "./cloudSync";
+// The ONE portal reference in the SDK, and it is a pure function over the
+// roster rather than portal state. The rotation is a fact about the CATALOGUE,
+// which lives above this layer, so the alternative was either ambient
+// registration (silently inert if nobody registers) or teaching `daily.ts`
+// about the game list. `dailyRotation` imports `@sdk/daily` directly and never
+// the barrel, so this does not close an import cycle; both modules are already
+// in the shell chunk, so it moves no bytes.
+import { dailyGameId } from "../portal/dailyRotation";
 
 // Assembles the GameContext the portal hands to a game on mount. Owns the
 // pause/resume/resize/exit wiring; a game only subscribes to what it needs.
@@ -73,6 +82,16 @@ export function createHostControls(gameId: string, locale: Locale, mount: HTMLEl
     //
     // No per-mount state here either: a snapshot is a position, not a budget.
     session: createSessionPort(storage),
+    // Today's puzzle. NOT built on `storage`, unlike the three ports above: a
+    // streak is one fact about the player across the whole catalogue, so it
+    // lives at `ellaz:daily:v1` beside the profile rather than inside this
+    // game's namespace. A per-game key would give every game its own streak,
+    // which is not what a streak means.
+    //
+    // `dailyGameId` is what makes `complete()` a no-op for a game that is not
+    // today's puzzle — the game reports it was finished either way and never
+    // learns which branch it took.
+    daily: createDailyPort(gameId, { pick: dailyGameId }),
     lifecycle: {
       loadingStart: () => context.analytics.track("game_loading_start"),
       loadingFinished: () => context.analytics.track("game_loading_finished"),

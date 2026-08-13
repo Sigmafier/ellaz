@@ -1,8 +1,16 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { AppLocale } from "@i18n/locales";
 import { makeT, textFor, pageLocaleFor } from "@i18n/index";
 import { CATALOG, CATEGORY_ORDER, findEntry, type CatalogEntry } from "./catalog";
-import { audioPort, speechPort, wallet, type Category, type ProfileV1 } from "@sdk/index";
+import {
+  audioPort,
+  dailyStreak,
+  speechPort,
+  wallet,
+  type Category,
+  type DailyStateV1,
+  type ProfileV1,
+} from "@sdk/index";
 import { boardsHref, gameHref, worldHref } from "./paths";
 import { inkFor } from "@ui/ink";
 import { Icon } from "@ui/icons";
@@ -14,6 +22,17 @@ import { themeById } from "@ui/themes";
 import { attachShellJuice } from "@juice/index";
 import { LanguagePicker } from "@ui/LanguagePicker";
 import { WalletChip } from "./WalletChip";
+// TYPE-ONLY, and that matters: `@sdk/share` is pinned to the lazy `share-*`
+// chunk, and a value import here would put the whole payload policy in the
+// shell. A type import is erased before Rollup ever sees it.
+import type { ShareDay } from "@sdk/share";
+import type { ShareSheetProps } from "./ShareSheet";
+// The runtime half that IS shell-side, and the only reason it is a separate
+// module: this screen has to know whether anything was played today before it
+// can decide whether the button belongs on the page at all.
+import { localDay, playedOn } from "@sdk/shareDay";
+import { DailyChip } from "./DailyChip";
+import { todayKey, todaysGame } from "./dailyRotation";
 import { Scene } from "./world/Scene";
 
 // Home screen. Four moving parts, all of them there because a four-year-old is
@@ -71,6 +90,59 @@ export function Home({
     .map((id) => findEntry(id))
     .filter((e): e is CatalogEntry => Boolean(e))
     .slice(0, RECENT_LIMIT);
+
+  // WHAT HAPPENED TODAY, and nothing else. `sdk/share.ts` takes one day and has
+  // no field a streak, a lifetime total or a history could live in.
+  //
+  // `lastPlayedAt` is the only day-scoped fact this screen holds. `stars` and
+  // `coins` sitting next to it are LIFETIME totals, so neither may travel as
+  // "today" - which is the whole reason this is derived here rather than handed
+  // the profile.
+  //
+  // Memoised on the profile and the locale: a fresh object every render would
+  // restart the card rasterisation inside the sheet on every unrelated
+  // re-render, and the sheet's effect keys on this object.
+  const today = useMemo<ShareDay>(() => {
+    const now = new Date();
+    return {
+      date: localDay(now),
+      plays: CATALOG.filter((e) => playedOn(profile.games[e.meta.id]?.lastPlayedAt, now)).map(
+        (e) => ({ gameId: e.meta.id, title: textFor(e.meta.title, locale), emoji: e.meta.emoji }),
+      ),
+    };
+  }, [profile, locale]);
+
+  // Where the reader actually is, base and all. Read at runtime rather than
+  // hardcoded so it is right on ellaz.fun, on the Pages copy under /ellaz/, and
+  // on a phone pointed at a dev server.
+  const shareUrl =
+    typeof location === "undefined" ? "" : `${location.origin}${import.meta.env.BASE_URL}`;
+
+  const [Sheet, setSheet] = useState<React.ComponentType<ShareSheetProps> | null>(null);
+
+  /**
+   * The sheet's chunk is fetched INSIDE the handler, never at module scope.
+   *
+   * A module-scope `lazy(() => import(...))` keeps the chunk in the production
+   * module graph, so Vite writes a `<link rel="modulepreload">` for it into
+   * index.html and every child downloads it on first paint - with the dynamic
+   * import, the named `manualChunks` branch and the `globIgnores` entry all
+   * correctly in place, and nothing failing. That shipped live once already.
+   * See `.claude/rules/precache-glob-sweeps-new-chunks.md`.
+   */
+  const openShare = async () => {
+    tap();
+    try {
+      const mod = await import("./ShareSheet");
+      // The updater form: React calls a bare function argument, so
+      // `setSheet(mod.ShareSheet)` would invoke the component instead of
+      // storing it.
+      setSheet(() => mod.ShareSheet);
+    } catch {
+      // A failed chunk fetch - an open tab meeting a new deploy is the usual
+      // cause - costs the share and nothing else.
+    }
+  };
 
   const juiceRef = useRef<HTMLDivElement>(null);
 
@@ -188,11 +260,17 @@ export function Home({
             }}
           >
             <WalletChip />
+            {/* Beside the wallet, and only once there is a streak to show. It
+                is the same currency-shaped readout: something you have, not
+                something you owe. */}
+            <DailyChip locale={locale} />
             <CardStyleToggle locale={locale} onTap={tap} />
             <ThemeToggle locale={locale} onTap={tap} />
             <LanguagePicker locale={locale} onPick={onPickLocale} onTap={tap} />
           </div>
         </header>
+
+        <DailyCard locale={locale} onTap={tap} />
 
         <WorldHero profile={profile} locale={locale} onTap={tap} />
 
@@ -224,6 +302,45 @@ export function Home({
           >
             <span aria-hidden="true">🏆</span> {t("boards")}
           </a>
+        )}
+
+        {/* Sharing, and only once there is something that happened TODAY.
+            A button whose card would say "today I played nothing" is worse
+            than no button, so the gate is the payload's own emptiness rule
+            (`buildShare` returns undefined) expressed one layer up, where it
+            can keep the control off the screen instead of opening an empty
+            sheet. */}
+        {today.plays.length > 0 && shareUrl !== "" && (
+          <button
+            onClick={() => void openShare()}
+            style={{
+              display: "block",
+              width: "calc(100% - 8px)",
+              margin: "0 4px 20px",
+              minHeight: "var(--tap)",
+              padding: "11px 14px",
+              border: "none",
+              borderRadius: "var(--radius-3)",
+              background: "var(--surface-2)",
+              boxShadow: "var(--shadow-1)",
+              color: "var(--text)",
+              textAlign: "start",
+              fontWeight: 800,
+              fontSize: 15,
+            }}
+          >
+            <span aria-hidden="true">💌</span> {t("share")}
+          </button>
+        )}
+
+        {Sheet && (
+          <Sheet
+            locale={locale}
+            day={today}
+            url={shareUrl}
+            onTap={tap}
+            onClose={() => setSheet(null)}
+          />
         )}
 
         {recent.length > 0 && (
@@ -369,6 +486,105 @@ function CardStyleToggle({ locale, onTap }: { locale: AppLocale; onTap: () => vo
           drawings", a smiley means "switch back to the icons". */}
       <span aria-hidden="true">{next === "art" ? "🎨" : "🙂"}</span>
     </button>
+  );
+}
+
+/**
+ * Today's puzzle - one game, chosen by the date, the same on every device.
+ *
+ * A REAL LINK to that game's own page, like every other card here, so it is
+ * shareable, middle-clickable and reachable with Back. There is nothing special
+ * about the destination: the game is itself, and `ctx.daily` inside it knows it
+ * is today's puzzle. The alternative - a `?daily=1` route - would give one game
+ * two behaviours and every game a branch to get wrong.
+ *
+ * It shows the game's own ART and its own name rather than hiding them behind a
+ * mystery box. A four-year-old decides whether to tap by looking at the picture,
+ * and "find out what today's game is" is a reading-age idea.
+ */
+function DailyCard({ locale, onTap }: { locale: AppLocale; onTap: () => void }) {
+  const t = makeT(locale);
+  const [daily, setDaily] = useState<DailyStateV1>(() => dailyStreak.read());
+  useEffect(() => dailyStreak.subscribe(setDaily), []);
+
+  // After the hooks, never before them.
+  const meta = todaysGame();
+  if (!meta) return null;
+
+  const done = daily.last === todayKey();
+  const title = textFor(meta.title, locale);
+
+  return (
+    <a
+      href={gameHref(meta.id, pageLocaleFor(locale))}
+      onClick={onTap}
+      aria-label={`${t("dailyPuzzle")}: ${title}${done ? `, ${t("dailyDone")}` : ""}`}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        width: "calc(100% - 8px)",
+        margin: "0 4px 12px",
+        padding: 10,
+        border: "none",
+        borderRadius: "var(--radius-3)",
+        background: "var(--surface)",
+        boxShadow: "var(--shadow-1)",
+        color: "var(--text)",
+        textAlign: "start",
+        textDecoration: "none",
+      }}
+    >
+      <span
+        style={{
+          flex: "0 0 68px",
+          width: 68,
+          height: 68,
+          borderRadius: "var(--radius-2)",
+          overflow: "hidden",
+          display: "block",
+        }}
+        aria-hidden="true"
+      >
+        <GameArt id={meta.id} emoji={meta.emoji} height="100%" />
+      </span>
+      {/* `minWidth: 0` so a long game name ellipses instead of pushing the pill
+          off the card - the same flex trap the header carries a note about. */}
+      <span style={{ flex: 1, minWidth: 0, display: "block" }}>
+        <strong
+          style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 800 }}
+        >
+          <span aria-hidden="true">🔥</span> {t("dailyPuzzle")}
+        </strong>
+        <span
+          style={{
+            display: "block",
+            fontFamily: '"Fredoka", var(--font)',
+            fontSize: 20,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {title}
+        </span>
+      </span>
+      <span
+        style={{
+          flex: "0 0 auto",
+          background: done ? "var(--surface-2)" : "var(--brand)",
+          color: done ? "var(--text-dim)" : undefined,
+          borderRadius: "var(--radius-pill)",
+          padding: "9px 15px",
+          fontWeight: 800,
+          fontSize: 14,
+        }}
+      >
+        {/* Finished today reads as a receipt, not a lock. The card still opens
+            the game - a child who wants to play it again may. */}
+        {done ? t("dailyDone") : t("play")}
+      </span>
+    </a>
   );
 }
 

@@ -6,6 +6,7 @@ import { fitStage } from "./fitStage";
 import { GameHost } from "./GameHost";
 import { World } from "./world/World";
 import { WalletChip } from "./WalletChip";
+import { DailyChip } from "./DailyChip";
 import { homeHref } from "./paths";
 import type { PageContext } from "./pageContext";
 
@@ -57,10 +58,30 @@ function connectionIsStingy(): boolean {
  * bytes.
  */
 
-function mountWallet(slot: HTMLElement | undefined, bare: boolean): Root | null {
+/**
+ * The wallet and the streak, into the one slot the emitter left for them.
+ *
+ * Both, from here, because `#wallet-slot` is the only element on an emitted
+ * page that React owns besides the frame - the header around it is written once
+ * and never reconciled. A second slot would mean a second emitter change and a
+ * second thing to keep in step; a flex row inside this one costs neither.
+ *
+ * `DailyChip` renders null until there is a streak, so on a page belonging to a
+ * player who has never finished a daily puzzle this is exactly what it was.
+ */
+function mountWallet(
+  slot: HTMLElement | undefined,
+  bare: boolean,
+  locale: Locale,
+): Root | null {
   if (!slot) return null;
   const root = createRoot(slot);
-  root.render(<WalletChip bare={bare} />);
+  root.render(
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-3)" }}>
+      <WalletChip bare={bare} />
+      <DailyChip locale={locale} bare={bare} />
+    </span>,
+  );
   return root;
 }
 
@@ -111,7 +132,7 @@ export function bootContentPage(ctx: PageContext): void {
   startCloudSync();
   // Only the game page draws its own pill around the wallet; the room and the
   // boards still float the chip over the scene, where it needs its own.
-  mountWallet(ctx.walletSlot, ctx.kind === "game");
+  mountWallet(ctx.walletSlot, ctx.kind === "game", locale);
   wireFullScreen();
 
   const poster = document.getElementById("game-poster");

@@ -107,6 +107,16 @@ export const he = {
   home: "בית",
   level: "רמה",
   stage: "שלב",
+  share: "שיתוף",
+  shareToday: "היום שיחקתי",
+  shareInvite: "בואו לשחק גם אתם באלז",
+  shareCopy: "העתקת הקישור",
+  shareCopied: "הקישור הועתק",
+  shareLinkOnly: "המכשיר הזה שולח רק את הקישור",
+  shareFailed: "השיתוף לא הצליח",
+  dailyPuzzle: "חידת היום",
+  dailyStreak: "ימים ברצף",
+  dailyDone: "סיימתם היום!",
 } as const;
 
 export type StringKey = keyof typeof he;

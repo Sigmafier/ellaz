@@ -6,10 +6,12 @@ import type { Locale } from "@i18n/index";
 import type { RewardReason, RewardTier } from "./economy";
 import type { ScoreUnit } from "./score";
 import type { SessionPort } from "./session";
+import type { DailyPort } from "./daily";
 
 export type { RewardReason, RewardTier };
 export type { SessionPort, SessionSpec } from "./session";
 export type { ScoreDirection, ScoreUnit } from "./score";
+export type { DailyPort, DailySummary } from "./daily";
 
 export interface SaveStore {
   get<T>(key: string, fallback: T): T;
@@ -232,6 +234,19 @@ export interface GameContext {
    * coins and records between devices and never a board mid-play.
    */
   session: SessionPort;
+  /**
+   * Today's puzzle, and the days-in-a-row behind it.
+   *
+   * NOT optional, for the same reason `session` is not: every game in the
+   * catalogue can be the puzzle of the day, so a game that never touches this
+   * is opting out of drawing attention to it — not out of being it.
+   *
+   * The asymmetry is the point, exactly as it is on `rewards` and `score`:
+   * `complete()` takes no arguments at all, so a game can report that it was
+   * finished and can never say that today counts, how much it counts for, or
+   * that it is the daily. `daily.ts` alone answers all three.
+   */
+  daily: DailyPort;
   /** Portal asks the game to exit back to the home grid. */
   onRequestExit(cb: () => void): void;
   requestExit(): void;

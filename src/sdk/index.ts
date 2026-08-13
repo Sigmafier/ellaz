@@ -26,6 +26,8 @@ export type {
   ScoreDirection,
   SessionPort,
   SessionSpec,
+  DailyPort,
+  DailySummary,
 } from "./types";
 export { createSaveStore } from "./storage";
 export { createAnalyticsPort, analytics } from "./analytics";
@@ -51,6 +53,31 @@ export {
   SESSION_MAX_BYTES,
   createSessionPort,
 } from "./session";
+// The daily puzzle and the streak. `daily.ts` is the pure policy (which game,
+// which day, what a day does to the streak) plus the one key that remembers it.
+// Games only ever see `ctx.daily`, whose `complete()` takes no arguments — so a
+// game cannot tell it that today counts, any more than it can name a payout.
+// `dailyStreak` is the singleton the portal chrome subscribes to.
+export {
+  DAILY_KEY,
+  advance,
+  createDailyPort,
+  createDailyStore,
+  dailyPick,
+  dailyRng,
+  dailySeed,
+  dailyStreak,
+  dayDiff,
+  emptyDaily,
+  isDateKey,
+  localDateKey,
+  migrateDaily,
+  shiftDateKey,
+  type DailyStateV1,
+  type DailyStore,
+  type DailyWrite,
+} from "./daily";
+
 // The name pool — the player's display name, held as word ids so it renders in
 // whichever language the app is in. No child ever types a name.
 export {
