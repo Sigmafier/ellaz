@@ -21,6 +21,22 @@ export interface Picture {
 // Ordered roughly simple -> detailed so stepping through them ramps up.
 export const PICTURES: Picture[] = [
   {
+    id: "blank",
+    name: {
+      he: "דף חלק",
+      en: "Blank page",
+      es: "Página en blanco"
+    },
+    viewBox: "0 0 200 200",
+    regions: [
+      {
+        id: "page",
+        d: "M0 0 H200 V200 H0 Z"
+      }
+    ],
+    outlines: []
+  },
+  {
     id: "sun",
     name: {
       he: "שמש",

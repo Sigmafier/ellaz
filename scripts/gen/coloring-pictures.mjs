@@ -60,6 +60,10 @@ function pic(id, he, en, es, regions, outlines) {
   P.push({ id, name: { he, en, es }, viewBox: "0 0 200 200", regions, outlines });
 }
 
+// 0. BLANK CANVAS — one full-page region so a colour can flood the background,
+// and the brush does the rest. First in the list = most discoverable.
+pic("blank", "דף חלק", "Blank page", "Página en blanco", [{ id: "page", d: full }], []);
+
 // 1. SUN
 pic("sun", "שמש", "Sun", "Sol",
   [

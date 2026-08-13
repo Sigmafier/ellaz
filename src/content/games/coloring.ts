@@ -391,7 +391,7 @@ export const coloring: GameContent = {
 
   provenance: [
     {
-      claim: "15 pictures and a 20-colour palette",
+      claim: "15 pictures plus a blank page, and a 20-colour palette",
       source: "src/games/coloring/pictures.ts",
     },
     {
