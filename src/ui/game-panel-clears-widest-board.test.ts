@@ -56,7 +56,7 @@ function rendererSources(): Array<{ file: string; src: string }> {
  */
 export function pxCeilings(src: string): number[] {
   const out: number[] = [];
-  for (const call of src.match(/min\([^)]*\)/g) ?? []) {
+  for (const call of minCalls(src)) {
     for (const px of call.match(/(\d+(?:\.\d+)?)px/g) ?? []) out.push(parseFloat(px));
     // A computed ceiling: minesweeper sizes on `${state.cols * 42}px`, so the
     // literal alone (42) understates it by the column count. Resolve it against
@@ -67,6 +67,39 @@ export function pxCeilings(src: string): number[] {
       const cols = maxCols(src);
       if (cols) out.push(per * cols);
     }
+  }
+  return out;
+}
+
+/**
+ * Every `min(...)` in the source, with balanced parentheses.
+ *
+ * This used to be `src.match(/min\([^)]*\)/g)`, which stops at the FIRST `)`.
+ * `blocks` writes `min(${(88 / cols).toFixed(2)}vw, …, 30px)` — so that regex
+ * matched only `min(${(88 / cols)` and the `30px` cap, the single thing this
+ * gate exists to read, was invisible to it. Nothing failed, because 30 is far
+ * under the panel cap; and nothing ever would have, whatever that number grew
+ * to. A check that cannot see a value reports green about it forever.
+ *
+ * It had already cost a real workaround: an author computed a vw term into a
+ * variable instead of interpolating it inline, purely to stay visible to the
+ * broken matcher. A documented workaround is an unfixed bug whose comment makes
+ * it read as handled — so the matcher is fixed and the workaround is free to go.
+ *
+ * (Found 2026-08-13 while adding two games. Same family as
+ * `.claude/rules/a-diagnostic-that-truncates-what-it-compares.md`: an instrument
+ * that cannot represent the thing it is looking for.)
+ */
+function minCalls(src: string): string[] {
+  const out: string[] = [];
+  for (const m of src.matchAll(/min\(/g)) {
+    let depth = 1;
+    let i = m.index + m[0].length;
+    for (; i < src.length && depth > 0; i++) {
+      if (src[i] === "(") depth++;
+      else if (src[i] === ")") depth--;
+    }
+    if (depth === 0) out.push(src.slice(m.index, i));
   }
   return out;
 }
@@ -149,6 +182,20 @@ describe("the desktop game panel clears the widest board", () => {
 
     it("ignores px outside a min() - a border is not a board", () => {
       expect(pxCeilings(`borderRadius: "14px", padding: "10px"`)).toEqual([]);
+    });
+
+    /* The one this gate could not read until 2026-08-13. The old matcher was
+       `/min\([^)]*\)/`, which stops at the first `)` - so an interpolated term
+       carrying its own parens swallowed the cap, and the gate reported green
+       about a number it had never seen. `blocks` is the live instance.
+
+       Both halves matter: it must find the cap behind an inner paren, AND it
+       must still stop at the right place on the plain shape, or "balanced"
+       becomes "runs to the end of the file and finds every px after it". */
+    it("finds a cap hidden behind an interpolated term", () => {
+      const blocksShape = "min(${(88 / cols).toFixed(2)}vw, ${(52 / rows).toFixed(2)}vh, 30px)";
+      expect(pxCeilings(blocksShape)).toEqual([30]);
+      expect(pxCeilings(`min(94vw, 60vh, 480px)  borderRadius: "999px"`)).toEqual([480]);
     });
 
     it("reads the cap out of real stylesheet text", () => {
