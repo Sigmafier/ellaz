@@ -1,0 +1,13 @@
+{
+  "name": "@holdem/shared",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./engine/*": "./src/engine/*.ts",
+    "./protocol": "./src/protocol.ts"
+  },
+  "scripts": {
+    "test": "vitest run"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "holdem",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Texas Hold'em for friends — server-authoritative multiplayer NLHE on Cloudflare Workers + Durable Objects",
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "dev": "npm run dev --workspace=server & npm run dev --workspace=client & wait",
+    "build": "npm run build --workspace=client",
+    "typecheck": "tsc --noEmit -p shared && tsc --noEmit -p server && tsc --noEmit -p client"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.2"
+  }
+}
