@@ -352,6 +352,45 @@ const ART: Record<string, Scene> = {
     </g>
     <path d="M29 50v12M45 50v12M71 50v12M87 56v6M155 56v6M171 50v12"
           stroke="${PAL.paper}" stroke-width="4" stroke-linecap="round"/>` },
+
+  /* Three tubes: one already sorted, one still mixed, one part-filled. That is
+     the entire game in one picture and it needs no word of text, which matters
+     because this card is read by four-year-olds in three languages.
+
+     A cool ground on purpose - the balls are the subject, and they only pop
+     against something that is not competing with them. The other `think` games
+     sit on yellow, purple, indigo and jade, so lagoon also keeps two adjacent
+     thumbnails apart, which is the one property this palette was chosen for. */
+  sort: { a: "#26B0E6", b: "#5CC8F0", d: "band", s: `
+    <g stroke="${I}" stroke-width="3">
+      <rect x="30" y="36" width="28" height="90" rx="14" fill="${PAL.paper}"/>
+      <rect x="86" y="36" width="28" height="90" rx="14" fill="${PAL.paper}"/>
+      <rect x="142" y="36" width="28" height="90" rx="14" fill="${PAL.paper}"/></g>
+    <g fill="${PAL.raspberry}"><circle cx="44" cy="114" r="10"/><circle cx="44" cy="94" r="10"/>
+      <circle cx="44" cy="74" r="10"/><circle cx="44" cy="54" r="10"/></g>
+    <g><circle cx="100" cy="114" r="10" fill="${PAL.sunflower}"/><circle cx="100" cy="94" r="10" fill="${PAL.lime}"/>
+      <circle cx="100" cy="74" r="10" fill="${PAL.sunflower}"/><circle cx="100" cy="54" r="10" fill="${PAL.lime}"/></g>
+    <g fill="${PAL.orchid}"><circle cx="156" cy="114" r="10"/><circle cx="156" cy="94" r="10"/></g>` },
+
+  /* Two identical caterpillars below, one butterfly above - which is literally
+     what the Hebrew title says, "two make one". Drawn as the RESULT beside the
+     ingredients rather than as a left-to-right ladder, because `evolve` already
+     owns the ladder picture and two cards telling the same visual story is how
+     a grid stops being scannable. */
+  merge: { a: "#FF8A3D", b: "#FFAD6E", d: "hill", s: `
+    <g fill="${PAL.orchid}">
+      <ellipse cx="76" cy="50" rx="21" ry="14" transform="rotate(-22 76 50)"/>
+      <ellipse cx="124" cy="50" rx="21" ry="14" transform="rotate(22 124 50)"/></g>
+    <g fill="${PAL.sunflower}">
+      <ellipse cx="82" cy="74" rx="15" ry="11" transform="rotate(18 82 74)"/>
+      <ellipse cx="118" cy="74" rx="15" ry="11" transform="rotate(-18 118 74)"/></g>
+    <ellipse cx="100" cy="62" rx="5" ry="20" fill="${I}"/>
+    <path d="M98 44c-3-8-9-11-14-12M102 44c3-8 9-11 14-12" fill="none"
+          stroke="${I}" stroke-width="2.5" stroke-linecap="round"/>
+    <g fill="${PAL.lime}" stroke="${I}" stroke-width="3">
+      <circle cx="24" cy="112" r="13"/><circle cx="44" cy="112" r="13"/><circle cx="64" cy="112" r="13"/>
+      <circle cx="136" cy="112" r="13"/><circle cx="156" cy="112" r="13"/><circle cx="176" cy="112" r="13"/></g>
+    <g fill="${I}"><circle cx="68" cy="107" r="3"/><circle cx="132" cy="107" r="3"/></g>` },
 };
 
 /**

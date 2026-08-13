@@ -26,6 +26,8 @@ import { meta as frog } from "../games/frog/meta";
 import { meta as reaction } from "../games/reaction/meta";
 import { meta as blocks } from "../games/blocks/meta";
 import { meta as wordguess } from "../games/wordguess/meta";
+import { meta as sort } from "../games/sort/meta";
+import { meta as merge } from "../games/merge/meta";
 
 /**
  * The roster, in the order the home grid renders it.
@@ -79,6 +81,14 @@ export const GAMES: ReadonlyArray<GameMeta> = [
   // purpose: there is a single light, it never moves and never expires, and the
   // quantity that matters is a timestamp - none of which the spawner models.
   reaction,
+
+  // Wave 3 - the two mechanics the 2026 market data actually rewards, both
+  // under `think`, both tap-only and both readable without a word of text.
+  // `sort` is a finite puzzle that ends; `merge` is an endless climb, so their
+  // reward shapes differ (`level_complete` vs `milestone` + a latched
+  // `personal_best`) even though they arrived together.
+  sort,
+  merge,
 ];
 
 export function metaFor(id: string): GameMeta | undefined {

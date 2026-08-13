@@ -22,6 +22,8 @@ import { snake } from "./games/snake";
 import { sudoku } from "./games/sudoku";
 import { tictactoe } from "./games/tictactoe";
 import { wordguess } from "./games/wordguess";
+import { sort } from "./games/sort";
+import { merge } from "./games/merge";
 
 export type { GameContent, GameCopy, FaqItem, Titled, Provenance, Locale, PageLocale } from "./types";
 
@@ -64,6 +66,8 @@ export const CONTENT: Record<string, GameContent> = {
   [hidden.id]: hidden,
   [math.id]: math,
   [wordguess.id]: wordguess,
+  [sort.id]: sort,
+  [merge.id]: merge,
 };
 
 /** The ids that have prose today. */
