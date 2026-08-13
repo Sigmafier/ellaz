@@ -142,6 +142,11 @@ export default defineConfig({
           "**/vendor-analytics-*.js",
           "**/cloud-*.js",
           "**/page-*.js",
+          // The sound lab at `#/lab`. Reachable in production on purpose - it
+          // is opened from a phone - but no child who never types that fragment
+          // should carry it. Precaching it would be the whole point of the lazy
+          // import, undone silently and with a green build.
+          "**/lab-*.js",
           // A dictionary is a whole language of chrome. Precaching eleven of
           // them puts ten languages nobody asked for on a child's first visit,
           // which is the entire reason they are separate chunks at all.
@@ -277,6 +282,14 @@ export default defineConfig({
           // the explicit shell rule below would have claimed it and shipped the
           // whole leaderboard screen to every child on first paint. Only
           // `/boards/` ever renders it.
+          // The sound lab at `#/lab`. `src/lab/**` matches none of the rules
+          // below, so WITHOUT this branch it falls through to `return undefined`
+          // and lands in the ENTRY chunk - shipped to every child on first
+          // paint, with no `lab-` name for globIgnores to match and nothing
+          // failing. Naming it is half of what makes the lazy import real; the
+          // globIgnores entry above is the other half.
+          if (path.includes("/src/lab/")) return "lab";
+
           if (/\/src\/portal\/(PageApp|GameHost|Boards)\.tsx$/.test(path)) return "page";
           if (/\/src\/portal\/world\/(World|Backup)\.tsx$/.test(path)) return "page";
 
@@ -310,6 +323,33 @@ export default defineConfig({
           // it has caught exactly this, and the reason the premise is written
           // down rather than assumed.
           if (/\/src\/ui\/GameChrome\.tsx$/.test(path)) return "page";
+
+          // The shared GAME helpers, same trap as `GameChrome.tsx` above and
+          // `Boards.tsx` before it, one directory over and much larger.
+          //
+          // `src/shared/` is imported by the games and by NOTHING on the home
+          // screen. That is measured, not assumed: the only path from the shell
+          // into this directory is `rng.ts`, via `sdk/names.ts` and
+          // `sdk/backupCode.ts` - both of which already import the DIRECT module
+          // path rather than the barrel, for exactly this reason (the comment
+          // above the import in names.ts spells it out: the barrel re-exports
+          // winMoment, which reaches @juice and the portal).
+          //
+          // So everything else here - winMoment, the spawner, the cast, the
+          // shapes, the sequence brain, both "carry on where you left off"
+          // hooks, the game clock, the Prompt chip, and the barrel that
+          // re-exports them - was downloaded by every child BEFORE they had
+          // chosen a game, purely because the catch-all below claims the whole
+          // directory. The game chunks that import them are only ever loaded on
+          // a page that has already fetched `page-*`, so this costs no extra
+          // request.
+          //
+          // `rng.ts` MUST stay on the shell side, and this ordering is the whole
+          // guard: move it and the SHELL imports from the page chunk, which is
+          // the failure `assert-first-visit.mjs` exists to catch and has now
+          // caught three times.
+          if (/\/src\/shared\/rng\.ts$/.test(path)) return "shell";
+          if (path.includes("/src/shared/")) return "page";
 
           // Shared app code, imported by BOTH the shell and the games. Pin it to
           // the shell side explicitly: left unassigned, Rollup folds it into
