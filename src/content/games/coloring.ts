@@ -20,16 +20,16 @@ export const coloring: GameContent = {
     he: {
       metaTitle: "צביעה - דפי צביעה דיגיטליים לילדים | Ellaz",
       metaDescription:
-        "משחק צביעה חינם לילדים בדפדפן. 13 ציורים ו-12 צבעים, בלי ניקוד ובלי דרך לטעות. בלי הרשמה.",
+        "משחק צביעה חינם לילדים בדפדפן. 15 ציורים ו-20 צבעים, בלי ניקוד ובלי דרך לטעות. בלי הרשמה.",
 
       lede: "משחק צביעה חינם לילדים. בוחרים ציור, בוחרים צבע, נוגעים באזור והוא נצבע. אין ניקוד, אין שעון ואי אפשר לצבוע לא נכון.",
 
       body: [
-        "ציור בקווים. 12 צבעים בצד. נוגעים, וזה נצבע.",
+        "ציור בקווים. 20 צבעים בצד. נוגעים, וזה נצבע.",
 
         "זה המשחק היחיד באתר שלא שומר שיא, ולא נשמור לו אחד גם בעתיד. לכל 20 המשחקים האחרים יש שיא, כי אפשר להשוות זמן פתרון או אורך רצף לזמן ולרצף של אתמול. ציור של ילד הוא לא זה. לדרג אותו פירושו לומר לו שהיה יכול לעשות את זה יותר טוב, ובגיל ארבע זה בדיוק המשפט שגורם לילדים להפסיק לצייר. אין פה נכון ולא נכון, אז אין מה לספור.",
 
-        "13 ציורים בסך הכול: בית, דג, פרפר, פרח ועוד. כל אחד מחולק לאזורים סגורים, ואפשר לצבוע כל אזור בכל צבע כמה פעמים שרוצים. שמיים ורודים זו בחירה ולא טעות, ואף הודעה לא תופיע כדי לומר אחרת.",
+        "15 ציורים בסך הכול: בית, דג, פרפר, פרח ועוד. כל אחד מחולק לאזורים סגורים, ואפשר לצבוע כל אזור בכל צבע כמה פעמים שרוצים. שמיים ורודים זו בחירה ולא טעות, ואף הודעה לא תופיע כדי לומר אחרת.",
 
         "אין מברשת ואין גרירה. נוגעים באזור והוא מתמלא, מה שאומר שגם יד קטנה שרועדת מקבלת בדיוק את התוצאה שהתכוונה אליה. זו החלטה מכוונת: כלי ציור חופשי היה נותן שליטה גדולה יותר לילד בן שבע ותסכול לילד בן שלוש.",
 
@@ -37,8 +37,8 @@ export const coloring: GameContent = {
       ],
 
       howToPlay: [
-        { title: "בוחרים ציור", body: "13 ציורים, כולם פתוחים מההתחלה. אין נעילות." },
-        { title: "בוחרים צבע", body: "12 צבעים בסרגל הצד. נגיעה אחת בוחרת." },
+        { title: "בוחרים ציור", body: "15 ציורים, כולם פתוחים מההתחלה. אין נעילות." },
+        { title: "בוחרים צבע", body: "20 צבעים בסרגל הצד. נגיעה אחת בוחרת." },
         { title: "נוגעים באזור", body: "האזור מתמלא בצבע הנבחר. בלי גרירה ובלי דיוק." },
         { title: "משנים דעה", body: "צובעים שוב באותו אזור בצבע אחר. אין הגבלה." },
       ],
@@ -63,7 +63,7 @@ export const coloring: GameContent = {
       ],
 
       teaches: [
-        { title: "שמות צבעים", body: "12 צבעים שחוזרים בכל ציור, וילדים מתחילים לבקש אותם בשם מעצמם." },
+        { title: "שמות צבעים", body: "20 צבעים שחוזרים בכל ציור, וילדים מתחילים לבקש אותם בשם מעצמם." },
         { title: "דיוק בנגיעה", body: "אזורים קטנים דורשים אצבע מכוונת, וזה מתאמן בלי שאף אחד קורא לזה תרגיל." },
         { title: "תכנון", body: "איזה צבע לאן זו החלטה, ורוב הילדים מתחילים לתכנן אחרי הציור השני." },
         {
@@ -83,7 +83,7 @@ export const coloring: GameContent = {
       ],
 
       accessibility:
-        "נגיעה אחת למילוי אזור, בלי גרירה ובלי החזקה, אז יד רועדת או אמצעי קלט חלופי מקבלים בדיוק את התוצאה שהתכוונו אליה. האזורים גדולים והקווים עבים. 12 הצבעים נבדלים גם בבהירות ולא רק בגוון, ולכל אחד יש שם קולי לקוראי מסך, כך שאפשר לבחור צבע גם בלי לראות אותו. אין שעון ואין הבהובים, ואי אפשר להגיע למצב של טעות שדורש הודעה.",
+        "נגיעה אחת למילוי אזור, בלי גרירה ובלי החזקה, אז יד רועדת או אמצעי קלט חלופי מקבלים בדיוק את התוצאה שהתכוונו אליה. האזורים גדולים והקווים עבים. 20 הצבעים נבדלים גם בבהירות ולא רק בגוון, ולכל אחד יש שם קולי לקוראי מסך, כך שאפשר לבחור צבע גם בלי לראות אותו. אין שעון ואין הבהובים, ואי אפשר להגיע למצב של טעות שדורש הודעה.",
 
       together: [
         { title: "ציור אחד, שניים", body: "כל אחד צובע אזור בתורו. הציור יוצא מוזר וזה החלק הטוב." },
@@ -101,7 +101,7 @@ export const coloring: GameContent = {
       faq: [
         {
           q: "משחק הצביעה חינמי?",
-          a: "כן, לגמרי. אין תשלום ואין רכישות. גם ציור שנפתח בכסף אין כאן: כל 13 הציורים פתוחים מהרגע הראשון.",
+          a: "כן, לגמרי. אין תשלום ואין רכישות. גם ציור שנפתח בכסף אין כאן: כל 15 הציורים פתוחים מהרגע הראשון.",
         },
         {
           q: "צריך להוריד או להירשם?",
@@ -126,7 +126,7 @@ export const coloring: GameContent = {
         },
         {
           q: "כמה ציורים וכמה צבעים יש?",
-          a: "13 ציורים ו-12 צבעים. כל ציור מחולק לאזורים סגורים ואפשר לצבוע כל אזור מחדש כמה פעמים שרוצים.",
+          a: "15 ציורים ו-20 צבעים. כל ציור מחולק לאזורים סגורים ואפשר לצבוע כל אזור מחדש כמה פעמים שרוצים.",
         },
         {
           q: "מאיזה גיל זה מתאים?",
@@ -144,16 +144,16 @@ export const coloring: GameContent = {
     en: {
       metaTitle: "Coloring - Free Digital Coloring Pages for Kids | Ellaz",
       metaDescription:
-        "A free coloring game in your browser. 13 pictures and 12 colours, with no score and no way to get it wrong. No signup.",
+        "A free coloring game in your browser. 15 pictures and 20 colours, with no score and no way to get it wrong. No signup.",
 
       lede: "A free coloring game for children. Pick a picture, pick a colour, touch an area and it fills. No score, no clock, and no way to colour something incorrectly.",
 
       body: [
-        "A line drawing. 12 colours down the side. Touch, and it fills.",
+        "A line drawing. 20 colours down the side. Touch, and it fills.",
 
         "This is the only game on the site that keeps no record, and it never will. Every other game has one, because a solve time or a streak length can honestly be compared to yesterday's. A child's drawing is not that. Ranking it means telling them they could have done it better, and at four years old that is the exact sentence that makes children stop drawing. There is no right and wrong here, so there is nothing to count.",
 
-        "13 pictures in total: a house, a fish, a butterfly, a flower and more. Each is divided into closed areas, and any area takes any colour as many times as you like. A pink sky is a choice rather than a mistake, and no message will ever appear to suggest otherwise.",
+        "15 pictures in total: a house, a fish, a butterfly, a flower and more. Each is divided into closed areas, and any area takes any colour as many times as you like. A pink sky is a choice rather than a mistake, and no message will ever appear to suggest otherwise.",
 
         "There is no brush and no dragging. You touch an area and it fills, which means a small unsteady hand gets exactly the result it intended. That is deliberate: a free drawing tool would give a seven-year-old more control and a three-year-old nothing but frustration.",
 
@@ -161,8 +161,8 @@ export const coloring: GameContent = {
       ],
 
       howToPlay: [
-        { title: "Pick a picture", body: "13 of them, all open from the start. Nothing is locked." },
-        { title: "Pick a colour", body: "12 colours in the side bar. One tap selects." },
+        { title: "Pick a picture", body: "15 of them, all open from the start. Nothing is locked." },
+        { title: "Pick a colour", body: "20 colours in the side bar. One tap selects." },
         { title: "Touch an area", body: "It fills with the selected colour. No dragging and no precision needed." },
         { title: "Change your mind", body: "Touch the same area again in another colour. No limit." },
       ],
@@ -187,7 +187,7 @@ export const coloring: GameContent = {
       ],
 
       teaches: [
-        { title: "Colour names", body: "12 colours recurring across every picture, and children start asking for them by name." },
+        { title: "Colour names", body: "20 colours recurring across every picture, and children start asking for them by name." },
         { title: "Touch accuracy", body: "Small areas need an aimed finger, and that practises without anybody calling it an exercise." },
         { title: "Planning", body: "Which colour goes where is a decision, and most children start planning by their second picture." },
         {
@@ -207,7 +207,7 @@ export const coloring: GameContent = {
       ],
 
       accessibility:
-        "One tap fills an area, with no dragging and no holding, so an unsteady hand or an alternative input device gets exactly the intended result. Areas are large and the lines are thick. The 12 colours differ in brightness as well as hue, and each carries a spoken name for screen readers, so a colour can be chosen without seeing it. No clock and nothing flashing, and there is no error state to warn about because one cannot occur.",
+        "One tap fills an area, with no dragging and no holding, so an unsteady hand or an alternative input device gets exactly the intended result. Areas are large and the lines are thick. The 20 colours differ in brightness as well as hue, and each carries a spoken name for screen readers, so a colour can be chosen without seeing it. No clock and nothing flashing, and there is no error state to warn about because one cannot occur.",
 
       together: [
         { title: "One picture, two people", body: "Take turns filling an area each. The result is strange and that is the good part." },
@@ -225,7 +225,7 @@ export const coloring: GameContent = {
       faq: [
         {
           q: "Is the coloring game free?",
-          a: "Completely. Nothing to pay, no purchases, and no pictures unlocked by money. All 13 are open from the first second.",
+          a: "Completely. Nothing to pay, no purchases, and no pictures unlocked by money. All 15 are open from the first second.",
         },
         {
           q: "Do I need to download or sign up?",
@@ -250,7 +250,7 @@ export const coloring: GameContent = {
         },
         {
           q: "How many pictures and colours are there?",
-          a: "13 pictures and 12 colours. Each picture is divided into closed areas and any area can be recoloured as often as you like.",
+          a: "15 pictures and 20 colours. Each picture is divided into closed areas and any area can be recoloured as often as you like.",
         },
         {
           q: "What age is this for?",
@@ -267,16 +267,16 @@ export const coloring: GameContent = {
     es: {
       metaTitle: "Colorear - dibujos para pintar gratis online | Ellaz",
       metaDescription:
-        "Juego de colorear gratis en el navegador. 13 dibujos y 12 colores, sin puntuación y sin forma de hacerlo mal. Sin registro.",
+        "Juego de colorear gratis en el navegador. 15 dibujos y 20 colores, sin puntuación y sin forma de hacerlo mal. Sin registro.",
 
       lede: "Un juego de colorear gratuito para niños. Eliges un dibujo, eliges un color, tocas una zona y se rellena. Sin puntuación, sin reloj, y sin ninguna forma de colorear algo incorrectamente.",
 
       body: [
-        "Un dibujo de líneas. 12 colores al lado. Tocas. Se rellena.",
+        "Un dibujo de líneas. 20 colores al lado. Tocas. Se rellena.",
 
         "Este es el único juego de la web que no guarda ningún récord, y nunca lo hará. Todos los demás tienen uno, porque un tiempo de resolución o una racha se pueden comparar honestamente con los de ayer. El dibujo de un niño no. Puntuarlo significa decirle que podría haberlo hecho mejor, y a los cuatro años esa es exactamente la frase que hace que los niños dejen de dibujar. Aquí no hay bien ni mal, así que no hay nada que contar.",
 
-        "13 dibujos en total: una casa, un pez, una mariposa, una flor y más. Cada uno está dividido en zonas cerradas, y cualquier zona admite cualquier color las veces que quieras. Un cielo rosa es una decisión y no un error, y nunca va a aparecer ningún mensaje sugiriendo lo contrario.",
+        "15 dibujos en total: una casa, un pez, una mariposa, una flor y más. Cada uno está dividido en zonas cerradas, y cualquier zona admite cualquier color las veces que quieras. Un cielo rosa es una decisión y no un error, y nunca va a aparecer ningún mensaje sugiriendo lo contrario.",
 
         "No hay pincel ni hay que arrastrar. Tocas una zona y se rellena, lo que significa que una mano pequeña y poco firme obtiene exactamente el resultado que pretendía. Es a propósito: una herramienta de dibujo libre le daría a un niño de siete años más control y a uno de tres nada más que frustración.",
 
@@ -285,7 +285,7 @@ export const coloring: GameContent = {
 
       howToPlay: [
         { title: "Elige un dibujo", body: "Hay 13, todos abiertos desde el principio. No hay nada bloqueado." },
-        { title: "Elige un color", body: "12 colores en la barra lateral. Un toque lo selecciona." },
+        { title: "Elige un color", body: "20 colores en la barra lateral. Un toque lo selecciona." },
         { title: "Toca una zona", body: "Se rellena con el color elegido. Sin arrastrar y sin necesidad de puntería." },
         { title: "Cambia de idea", body: "Toca la misma zona otra vez con otro color. Sin límite." },
       ],
@@ -310,7 +310,7 @@ export const coloring: GameContent = {
       ],
 
       teaches: [
-        { title: "Nombres de colores", body: "12 colores que se repiten en todos los dibujos, y los niños empiezan a pedirlos por su nombre." },
+        { title: "Nombres de colores", body: "20 colores que se repiten en todos los dibujos, y los niños empiezan a pedirlos por su nombre." },
         { title: "Puntería", body: "Las zonas pequeñas piden un dedo dirigido, y eso se practica sin que nadie lo llame ejercicio." },
         { title: "Planificar", body: "Qué color va dónde es una decisión, y casi todos los niños empiezan a planificar en su segundo dibujo." },
         {
@@ -330,7 +330,7 @@ export const coloring: GameContent = {
       ],
 
       accessibility:
-        "Un toque rellena una zona, sin arrastrar y sin mantener pulsado, así que una mano poco firme o un dispositivo de entrada alternativo obtienen exactamente el resultado pretendido. Las zonas son grandes y las líneas gruesas. Los 12 colores se diferencian en luminosidad además de en tono, y cada uno lleva su nombre hablado para lectores de pantalla, de modo que se puede elegir un color sin verlo. Sin reloj y sin nada que parpadee, y no hay ningún estado de error del que avisar porque no puede producirse.",
+        "Un toque rellena una zona, sin arrastrar y sin mantener pulsado, así que una mano poco firme o un dispositivo de entrada alternativo obtienen exactamente el resultado pretendido. Las zonas son grandes y las líneas gruesas. Los 20 colores se diferencian en luminosidad además de en tono, y cada uno lleva su nombre hablado para lectores de pantalla, de modo que se puede elegir un color sin verlo. Sin reloj y sin nada que parpadee, y no hay ningún estado de error del que avisar porque no puede producirse.",
 
       together: [
         { title: "Un dibujo, dos personas", body: "Turnaos rellenando una zona cada uno. El resultado es raro y esa es la parte buena." },
@@ -348,7 +348,7 @@ export const coloring: GameContent = {
       faq: [
         {
           q: "¿El juego de colorear es gratis?",
-          a: "Del todo. Nada que pagar, ninguna compra, y ningún dibujo desbloqueado con dinero. Los 13 están abiertos desde el primer segundo.",
+          a: "Del todo. Nada que pagar, ninguna compra, y ningún dibujo desbloqueado con dinero. Los 15 están abiertos desde el primer segundo.",
         },
         {
           q: "¿Hay que descargar algo o registrarse?",
@@ -373,7 +373,7 @@ export const coloring: GameContent = {
         },
         {
           q: "¿Cuántos dibujos y colores hay?",
-          a: "13 dibujos y 12 colores. Cada dibujo está dividido en zonas cerradas y cualquier zona se puede recolorear las veces que se quiera.",
+          a: "15 dibujos y 20 colores. Cada dibujo está dividido en zonas cerradas y cualquier zona se puede recolorear las veces que se quiera.",
         },
         {
           q: "¿Para qué edad es?",
@@ -391,7 +391,7 @@ export const coloring: GameContent = {
 
   provenance: [
     {
-      claim: "13 pictures and a 12-colour palette",
+      claim: "15 pictures and a 20-colour palette",
       source: "src/games/coloring/pictures.ts",
     },
     {
