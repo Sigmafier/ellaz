@@ -102,6 +102,15 @@ if (typeof window !== "undefined") {
 
 let chatKey = 0;
 
+// Engine-event tap for the juice layer: fires once per `ev` batch, after the
+// store has been updated, so listeners can read the fresh view.
+type EventsListener = (events: EngineEvent[]) => void;
+const eventListeners = new Set<EventsListener>();
+export function onEngineEvents(l: EventsListener): () => void {
+  eventListeners.add(l);
+  return () => eventListeners.delete(l);
+}
+
 /** The message reducer — called by the socket for every S2C. */
 export function reduceMessage(msg: S2C): void {
   switch (msg.t) {
@@ -143,6 +152,7 @@ export function reduceMessage(msg: S2C): void {
       patch.lastAction = lastAction;
       patch.winners = winners;
       setState(patch);
+      for (const l of eventListeners) l(msg.events);
       break;
     }
     case "timer":

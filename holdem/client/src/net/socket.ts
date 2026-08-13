@@ -69,12 +69,15 @@ class GameSocket {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private wakeListenersAttached = false;
 
-  connect(code: string, relink?: string): void {
+  private spectate = false;
+
+  connect(code: string, opts: { relink?: string; spectate?: boolean } = {}): void {
     this.code = code;
+    this.spectate = opts.spectate ?? false;
     this.closedOnPurpose = false;
     resetState();
     setState({ conn: "connecting", code });
-    this.open(relink);
+    this.open(opts.relink);
     this.attachWakeListeners();
   }
 
@@ -100,8 +103,9 @@ class GameSocket {
         t: "hello",
         v: PROTOCOL_VERSION,
         token: deviceToken(),
-        name: savedName() || undefined,
+        name: this.spectate ? undefined : savedName() || undefined,
         relink,
+        spectate: this.spectate || undefined,
       });
       if (this.heartbeat) clearInterval(this.heartbeat);
       this.heartbeat = setInterval(() => this.sendRaw({ t: "ping", now: Date.now() }), 20_000);

@@ -47,7 +47,12 @@ describe("shared/src is pure", () => {
 
   for (const file of files) {
     it(`${file.slice(ROOT.length + 1)} stays DOM-free and package-local`, () => {
-      const src = readFileSync(file, "utf8");
+      // Scan CODE, not prose: a comment saying "the WebSocket protocol" is not
+      // a WebSocket. Comment-stripping here is crude but errs loud (a banned
+      // token inside a string literal still fails), which is the right bias.
+      const src = readFileSync(file, "utf8")
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/^\s*\/\/.*$/gm, "");
       for (const pattern of BANNED_IMPORTS) {
         expect(src, `banned import ${pattern} in ${file}`).not.toMatch(pattern);
       }
