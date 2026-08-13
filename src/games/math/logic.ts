@@ -21,6 +21,14 @@ export type Op = "+" | "-" | "×";
 
 export type MathLevel = "count" | "match" | "visual" | "up5" | "up10" | "up20" | "mult";
 
+/**
+ * Which operations an arithmetic (addsub) level may draw. `"mixed"` flips a coin
+ * exactly as the game always did; `"add"` / `"sub"` pin every problem to one
+ * operator. It only affects the addsub levels - `count`/`match` are addition by
+ * construction, `mult` is always ×, and `visual` keeps its own random +/-.
+ */
+export type OpMode = "add" | "sub" | "mixed";
+
 /** What the player is being asked to do - the renderer's discriminant. */
 export type MathMode = "arith" | "count" | "match" | "visual";
 
@@ -116,6 +124,7 @@ function distractors(
 export function generateProblem(
   level: MathLevel = "up10",
   rng: () => number = Math.random,
+  opMode: OpMode = "mixed",
 ): Problem {
   const cfg = LEVELS[level];
   let a: number, b: number, op: Op, answer: number;
@@ -169,7 +178,10 @@ export function generateProblem(
     b = randInt(1, 5, rng);
     answer = a * b;
   } else {
-    op = rng() < 0.5 ? "+" : "-";
+    // Honour the chosen operation. "mixed" flips a coin exactly as before, so a
+    // "mixed" draw is byte-identical to the old sequence; a pinned op consumes
+    // no rng, keeping the two forced modes independent of the mixed one.
+    op = opMode === "add" ? "+" : opMode === "sub" ? "-" : rng() < 0.5 ? "+" : "-";
     // Zero is a real number worth meeting, but a run full of "5+0" and "3-0"
     // drills nothing - so keep it rare. Most problems draw operands from
     // 1..max; only about one in six allows a zero operand.

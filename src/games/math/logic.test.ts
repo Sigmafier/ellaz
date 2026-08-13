@@ -86,6 +86,35 @@ describe("math quiz logic", () => {
     }
   });
 
+  // The +/- filter: "add" and "sub" pin every addsub problem to one operator,
+  // "mixed" (the default) draws both. Multiplication is unaffected - it is always ×.
+  it("opMode pins the operator on the arithmetic levels", () => {
+    const ADDSUB: MathLevel[] = ["up5", "up10", "up20"];
+    for (const level of ADDSUB) {
+      const addRng = lcg(level.length * 3 + 1);
+      const subRng = lcg(level.length * 5 + 2);
+      const mixRng = lcg(level.length * 7 + 4);
+      const addOps = new Set<string>();
+      const subOps = new Set<string>();
+      const mixOps = new Set<string>();
+      for (let i = 0; i < 300; i++) {
+        addOps.add(generateProblem(level, addRng, "add").op);
+        subOps.add(generateProblem(level, subRng, "sub").op);
+        mixOps.add(generateProblem(level, mixRng, "mixed").op);
+      }
+      expect([...addOps], `${level} add-only`).toEqual(["+"]);
+      expect([...subOps], `${level} sub-only`).toEqual(["-"]);
+      expect(mixOps.has("+") && mixOps.has("-"), `${level} mixed`).toBe(true);
+    }
+  });
+
+  it("opMode defaults to mixed, matching the coin-flip", () => {
+    const ops = new Set<string>();
+    const rng = lcg(2468);
+    for (let i = 0; i < 300; i++) ops.add(generateProblem("up10", rng).op);
+    expect(ops.has("+") && ops.has("-")).toBe(true);
+  });
+
   it("defaults to up10 when no level is given", () => {
     const p = generateProblem(undefined, lcg(5));
     expect(p.level).toBe("up10");
