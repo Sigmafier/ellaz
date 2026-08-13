@@ -95,6 +95,7 @@ export const en: Record<StringKey, string> = {
   wear: "Wear",
   place: "Place",
   needStars: "Needs stars",
+  needStreak: "Needs a streak",
   catHat: "Hat",
   catOutfit: "Outfit",
   catPet: "Pet",

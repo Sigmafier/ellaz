@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { TIER_COINS, SESSION_COIN_CAP, coinsFor, starsFor } from "./economy";
+import {
+  GAME_REASONS,
+  SESSION_COIN_CAP,
+  STREAK_COINS,
+  TIER_COINS,
+  coinsFor,
+  starsFor,
+} from "./economy";
 import type { RewardReason, RewardTier } from "./economy";
 
 const TIERS: RewardTier[] = ["easy", "medium", "hard"];
@@ -82,5 +89,44 @@ describe("SESSION_COIN_CAP", () => {
     // Sanity: the cap must not be so tight that a normal session of the
     // hardest tier is throttled on the very first grant.
     expect(SESSION_COIN_CAP).toBeGreaterThanOrEqual(TIER_COINS.hard);
+  });
+});
+
+describe("streak — the daily-puzzle payoff", () => {
+  it("pays a flat amount, whatever tier a caller invents", () => {
+    expect(coinsFor({ reason: "streak" })).toBe(STREAK_COINS);
+    for (const tier of TIERS) {
+      expect(coinsFor({ reason: "streak", tier })).toBe(STREAK_COINS);
+    }
+  });
+
+  it("earns a star, which is the half that cannot inflate anything", () => {
+    // A star is never spent and never lost, and `requiresStars` already turns a
+    // star count into ACCESS. That is the whole answer to "what does coming
+    // back every day buy": the premium shelf, through the gate already there.
+    expect(starsFor({ reason: "streak" })).toBe(1);
+  });
+
+  it("is bounded and small — it must not out-earn finishing a hard level", () => {
+    // The shop is the only coin sink in this app. A daily reward that beat a
+    // real win would make playing the game the slow way to earn.
+    expect(STREAK_COINS).toBeGreaterThan(0);
+    expect(STREAK_COINS).toBeLessThan(TIER_COINS.hard);
+    expect(Number.isInteger(STREAK_COINS)).toBe(true);
+  });
+
+  it("is NOT a reason a game may report", () => {
+    // A game knows nothing about days. `daily.ts` decides a milestone is owed
+    // and `wallet.grantStreak` is the only door it comes through;
+    // `wallet.test.ts` proves a game's own port refuses it.
+    expect(GAME_REASONS.has("streak")).toBe(false);
+    for (const reason of REASONS) expect(GAME_REASONS.has(reason)).toBe(true);
+  });
+
+  it("is still priced — refusing it at the port is not the same as pricing it 0", () => {
+    // If this ever became 0 the guard in the wallet would look redundant and
+    // somebody would delete it, and then a game could mint the real amount the
+    // day this number moved back.
+    expect(coinsFor({ reason: "streak" })).toBeGreaterThan(0);
   });
 });

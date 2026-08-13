@@ -91,6 +91,7 @@ export const ru: Record<StringKey, string> = {
   wear: "Надеть",
   place: "Поставить",
   needStars: "Нужны звёзды",
+  needStreak: "Нужны дни подряд",
   catHat: "Шапка",
   catOutfit: "Одежда",
   catPet: "Питомец",

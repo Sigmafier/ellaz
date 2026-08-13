@@ -87,6 +87,7 @@ export const it: Record<StringKey, string> = {
   wear: "Indossa",
   place: "Metti",
   needStars: "Mancano stelle",
+  needStreak: "Mancano giorni di fila",
   catHat: "Cappello",
   catOutfit: "Vestiti",
   catPet: "Animaletto",

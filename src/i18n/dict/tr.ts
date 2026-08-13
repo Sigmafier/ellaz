@@ -93,6 +93,7 @@ export const tr: Record<StringKey, string> = {
   wear: "Giy",
   place: "Yerleştir",
   needStars: "Yıldız gerek",
+  needStreak: "Üst üste gün gerek",
   catHat: "Şapka",
   catOutfit: "Kıyafet",
   catPet: "Hayvan",

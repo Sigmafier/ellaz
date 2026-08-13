@@ -94,6 +94,7 @@ export const ar: Record<StringKey, string> = {
   wear: "البس",
   place: "ضع",
   needStars: "تحتاج نجوماً",
+  needStreak: "يحتاج أياماً متتالية",
   catHat: "قبعة",
   catOutfit: "ملابس",
   catPet: "حيوان أليف",

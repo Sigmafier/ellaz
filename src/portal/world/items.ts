@@ -35,6 +35,26 @@ export interface ShopItem<A extends string = string> {
   price: number;
   /** Locked until the player has earned this many lifetime stars. */
   requiresStars?: number;
+  /**
+   * Locked until the player's LONGEST daily streak has reached this many days.
+   *
+   * Deliberately the same shape as `requiresStars` — a number that must be
+   * reached, checked in one place, absent on everything else — rather than a
+   * parallel mechanism. It reads a different counter, and that is the whole
+   * difference.
+   *
+   * IT IS `longest`, NEVER `current`, AND THAT IS NOT A DETAIL. Gating on the
+   * running streak would take the shelf away again the first morning a child
+   * forgets — an item they could see yesterday, gone today, because they went
+   * to a birthday party. This platform has no fail-punishment anywhere and this
+   * would have been the first. `longest` is a high-water mark that nothing in
+   * `daily.ts` can reduce, so a broken streak costs a child nothing at all.
+   *
+   * A gated item still costs coins. The streak buys ACCESS, never the item —
+   * which is why the shelf cannot inflate anything: it gives the coins already
+   * in the wallet somewhere new to go rather than adding more of them.
+   */
+  requiresStreak?: number;
   art: A;
 }
 
@@ -99,16 +119,57 @@ export const ITEMS = [
 ] as const satisfies readonly ShopItem[];
 
 /**
- * The set of art keys the room can draw. Derived from ITEMS, so `art.tsx`'s
+ * THE STREAK SHELF — the three things only coming back day after day unlocks.
+ *
+ * They are ordinary catalogue rows in every other respect: permanent ids, a
+ * coin price, a category that already exists. What they are not is buyable by
+ * any other route. There is no star count, no amount of play in one sitting and
+ * no number of wins that opens them; the only key is a run of days.
+ *
+ * PRICED, NOT GIVEN, and that is the answer to the inflation question. The shop
+ * is the only coin sink in this app, so the risk of a daily reward was always
+ * that it prints currency into a bucket with a fixed bottom. A shelf does the
+ * opposite: it deepens the bucket. A child with a fortnight's streak has three
+ * new things to want, bought with coins they already had.
+ *
+ * The rungs match `STREAK_MILESTONES` in `daily.ts` on purpose — day 3, day 7,
+ * day 14 — so the day a milestone pays is the day something new appears in the
+ * shop. They are two lists rather than one because they answer different
+ * questions ("when does a streak pay" versus "what does it open"), and
+ * `items.test.ts` pins that the shelf's rungs are real rungs of that ladder.
+ *
+ * SEPARATE FROM `ITEMS` ONLY BECAUSE OF THE ART REGISTRY — see the streak-shelf
+ * block in `Scene.tsx`. It carries no meaning and should be folded in.
+ */
+export const STREAK_ITEMS = [
+  { id: "poster_flame", category: "poster", price: 15, requiresStreak: 3, art: "poster_flame",
+    name: { he: "פוסטר להבה", en: "Flame poster", es: "Póster de llama" } },
+  { id: "outfit_flame", category: "outfit", price: 45, requiresStreak: 7, art: "outfit_flame",
+    name: { he: "בגד להבה", en: "Flame outfit", es: "Ropa de llama" } },
+  { id: "pet_firebird", category: "pet", price: 90, requiresStreak: 14, art: "pet_firebird",
+    name: { he: "ציפור אש", en: "Firebird", es: "Ave de fuego" } },
+] as const satisfies readonly ShopItem[];
+
+/**
+ * The set of art keys `art.tsx` draws. Derived from ITEMS, so its
  * `Record<ArtId, …>` turns a missing or misspelled art key into a `tsc` build
  * failure rather than a blank patch of room at runtime.
+ *
+ * It stays narrow to ITEMS deliberately: widening it would red-build `art.tsx`,
+ * which the streak shelf must not do (see `streakArt.tsx`).
  */
 export type ArtId = (typeof ITEMS)[number]["art"];
 
-/** The catalogue as a plain array — the const tuple is awkward to iterate. */
-export const ALL_ITEMS: readonly ShopItem<ArtId>[] = ITEMS;
+/** The set of art keys `streakArt.tsx` draws, under the same guarantee. */
+export type StreakArtId = (typeof STREAK_ITEMS)[number]["art"];
 
-export function itemById(id: string): ShopItem<ArtId> | undefined {
+/** Anything the room can draw, from either registry. */
+export type AnyArtId = ArtId | StreakArtId;
+
+/** The catalogue as a plain array — the const tuples are awkward to iterate. */
+export const ALL_ITEMS: readonly ShopItem<AnyArtId>[] = [...ITEMS, ...STREAK_ITEMS];
+
+export function itemById(id: string): ShopItem<AnyArtId> | undefined {
   return ALL_ITEMS.find((item) => item.id === id);
 }
 
@@ -116,7 +177,7 @@ export function itemById(id: string): ShopItem<ArtId> | undefined {
  * The free item every category is guaranteed to have. `items.test.ts` pins
  * "exactly one price-0 item per category", which is what makes this total.
  */
-export function defaultFor(category: ItemCategory): ShopItem<ArtId> {
+export function defaultFor(category: ItemCategory): ShopItem<AnyArtId> {
   const found = ALL_ITEMS.find((item) => item.category === category && item.price === 0);
   if (!found) throw new Error(`no free default for category "${category}"`);
   return found;
@@ -127,8 +188,31 @@ export function defaultFor(category: ItemCategory): ShopItem<ArtId> {
  * the equipped id is missing, unknown (an item retired in a later release), or
  * belongs to a different slot — so a stale profile still renders a full room.
  */
-export function artFor(category: ItemCategory, equippedId: string | undefined): ArtId {
+export function artFor(category: ItemCategory, equippedId: string | undefined): AnyArtId {
   const equipped = equippedId ? itemById(equippedId) : undefined;
   const chosen = equipped && equipped.category === category ? equipped : defaultFor(category);
   return chosen.art;
+}
+
+/**
+ * Is this item unlocked for a player with these stars and this longest streak?
+ *
+ * ONE function, so the shop card, the tap handler and any future screen cannot
+ * disagree about what is locked — the same reason `firstBoard()` exists rather
+ * than a `game.boards[0]` written inline. Both gates must pass when both are
+ * present; today no item carries both, and this is what would keep them honest
+ * if one ever did.
+ *
+ * A free default is never locked, which `items.test.ts` also pins from the
+ * other direction: the room has to be complete before a child has earned
+ * anything at all.
+ */
+export function isUnlocked(
+  item: Pick<ShopItem, "price" | "requiresStars" | "requiresStreak">,
+  earned: { stars: number; longestStreak: number },
+): boolean {
+  if (item.price === 0) return true;
+  if (item.requiresStars !== undefined && earned.stars < item.requiresStars) return false;
+  if (item.requiresStreak !== undefined && earned.longestStreak < item.requiresStreak) return false;
+  return true;
 }

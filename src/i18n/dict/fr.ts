@@ -90,6 +90,7 @@ export const fr: Record<StringKey, string> = {
   wear: "Porter",
   place: "Placer",
   needStars: "Il manque des étoiles",
+  needStreak: "Il manque des jours d'affilée",
   catHat: "Chapeau",
   catOutfit: "Vêtements",
   catPet: "Animal",

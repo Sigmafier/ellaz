@@ -1,14 +1,35 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Locale } from "@i18n/index";
 import { backArrow, makeT } from "@i18n/index";
-import { audioPort, nameEmoji, renderName, wallet, type ProfileV1 } from "@sdk/index";
+import {
+  audioPort,
+  dailyStreak,
+  nameEmoji,
+  renderName,
+  wallet,
+  type DailyStateV1,
+  type ProfileV1,
+} from "@sdk/index";
 import { IconButton } from "@ui/components";
 import { Icon } from "@ui/icons";
 import { burst, popEl, shake } from "@juice/index";
 import { WalletChip } from "../WalletChip";
 import { Scene } from "./Scene";
 import { Backup } from "./Backup";
-import { ALL_ITEMS, CATEGORIES, defaultFor, type ItemCategory, type ShopItem } from "./items";
+import {
+  ALL_ITEMS,
+  CATEGORIES,
+  defaultFor,
+  isUnlocked,
+  type ItemCategory,
+  type ShopItem,
+} from "./items";
+
+/** What the two shop gates read: lifetime stars, and the best streak ever run. */
+export interface Earned {
+  stars: number;
+  longestStreak: number;
+}
 
 // "My world" — the screen the coins are FOR.
 //
@@ -49,11 +70,16 @@ const CATEGORY_KEY: Record<ItemCategory, string> = {
 export function World({ locale, onExit }: { locale: Locale; onExit: () => void }) {
   const t = makeT(locale);
   const [profile, setProfile] = useState<ProfileV1>(() => wallet.snapshot());
+  // The streak lives in its own key beside the profile, so the shop reads it
+  // separately. `longest` is what the streak gate keys on — never `current`,
+  // for the reason `requiresStreak` gives: a missed day must cost nothing.
+  const [daily, setDaily] = useState<DailyStateV1>(() => dailyStreak.read());
   const [active, setActive] = useState<ItemCategory>("wall");
   const sceneRef = useRef<HTMLDivElement>(null);
 
   // wallet.subscribe returns its own unsubscribe, so it IS the cleanup.
   useEffect(() => wallet.subscribe(setProfile), []);
+  useEffect(() => dailyStreak.subscribe(setDaily), []);
 
   // Name the player on their first visit HERE, rather than at app boot: a child
   // who only ever plays games needs no name, and this is the first screen that
@@ -63,14 +89,14 @@ export function World({ locale, onExit }: { locale: Locale; onExit: () => void }
   }, []);
 
   const shown = ALL_ITEMS.filter((item) => item.category === active);
+  const earned: Earned = { stars: profile.stars, longestStreak: daily.longest };
 
   const equippedId = (category: ItemCategory): string =>
     profile.equipped[category] ?? defaultFor(category).id;
 
   const tap = (item: ShopItem, card: HTMLElement) => {
     if (!wallet.owns(item.id)) {
-      const starLocked = item.requiresStars !== undefined && profile.stars < item.requiresStars;
-      if (starLocked || !wallet.canAfford(item.price)) {
+      if (!isUnlocked(item, earned) || !wallet.canAfford(item.price)) {
         // The whole refusal: a gentle wiggle. Nothing is said, nothing is lost.
         shake(card, 5, 220);
         return;
@@ -169,6 +195,7 @@ export function World({ locale, onExit }: { locale: Locale; onExit: () => void }
               key={item.id}
               item={item}
               profile={profile}
+              earned={earned}
               equipped={equippedId(item.category) === item.id}
               locale={locale}
               t={t}
@@ -262,6 +289,7 @@ function NamePlate({
 function ItemCard({
   item,
   profile,
+  earned,
   equipped,
   locale,
   t,
@@ -269,6 +297,7 @@ function ItemCard({
 }: {
   item: ShopItem;
   profile: ProfileV1;
+  earned: Earned;
   equipped: boolean;
   locale: Locale;
   t: (key: string) => string;
@@ -278,10 +307,19 @@ function ItemCard({
   // player has ever tapped it — otherwise the room's starting look would read
   // as something they still have to buy.
   const owned = item.price === 0 || profile.owned.includes(item.id);
+  // Which gate is shut decides what the badge SAYS, so the two are read
+  // separately here even though `isUnlocked` answers the yes/no. An item held
+  // by both would show the stars, which is the older and better-understood of
+  // the two; nothing carries both today.
   const starLocked =
-    !owned && item.requiresStars !== undefined && profile.stars < item.requiresStars;
+    !owned && item.requiresStars !== undefined && earned.stars < item.requiresStars;
+  const streakLocked =
+    !owned &&
+    !starLocked &&
+    item.requiresStreak !== undefined &&
+    earned.longestStreak < item.requiresStreak;
   const affordable = profile.coins >= item.price;
-  const dim = !owned && (starLocked || !affordable);
+  const dim = !owned && (starLocked || streakLocked || !affordable);
 
   // The thumbnail is the whole room with THIS slot swapped in, so the picture
   // on the card is exactly the picture the tap produces.
@@ -300,6 +338,12 @@ function ItemCard({
     <>
       <Icon name="star" filled /> {item.requiresStars}
     </>
+  ) : streakLocked ? (
+    // The same flame the streak chip shows, so a child who has seen one knows
+    // what the other is asking for without reading a word.
+    <>
+      <span aria-hidden="true">🔥</span> {item.requiresStreak}
+    </>
   ) : (
     <>
       <Icon name="coin" /> {item.price}
@@ -312,7 +356,9 @@ function ItemCard({
     ? `${item.name[locale]}, ${equipped ? t("place") : t("owned")}`
     : starLocked
       ? `${item.name[locale]}, ${t("needStars")} ${item.requiresStars}`
-      : `${item.name[locale]}, ${t("buy")} ${item.price} ${t("coins")}`;
+      : streakLocked
+        ? `${item.name[locale]}, ${t("needStreak")} ${item.requiresStreak}`
+        : `${item.name[locale]}, ${t("buy")} ${item.price} ${t("coins")}`;
 
   return (
     <button
@@ -342,7 +388,13 @@ function ItemCard({
         style={{
           fontSize: 14,
           fontWeight: 800,
-          color: owned ? "var(--green)" : starLocked ? "var(--yellow)" : "var(--text-dim)",
+          color: owned
+            ? "var(--green)"
+            : starLocked
+              ? "var(--yellow)"
+              : streakLocked
+                ? "var(--orange-ink)"
+                : "var(--text-dim)",
           // The glyph is an SVG block now, so the row has to be a flex line or
           // the icon and the number sit on different baselines.
           display: "inline-flex",

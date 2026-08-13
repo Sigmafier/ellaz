@@ -249,8 +249,51 @@ export function dailyPick(ids: readonly string[], dateKey: string): string | und
   return topScorer(pool.length > 0 ? pool : usable, dateKey);
 }
 
+// ───────────────────────────────────────────────────────────────────────────
+// WHEN a streak pays — the schedule. `economy.ts` owns how MUCH.
+// ───────────────────────────────────────────────────────────────────────────
+
 /**
- * The streak, as it reaches the disk. Four numbers and a date.
+ * The explicit early rungs. After the last one the ladder continues every
+ * `STREAK_MILESTONE_EVERY` days forever.
+ *
+ * WHY A LADDER AND NOT A DAILY REWARD. The shop is the only coin sink in this
+ * app, so anything paying out once a day is a faucet that eventually drowns
+ * every price in it. Rungs make the lifetime payout roughly logarithmic in the
+ * early weeks and then linear-but-rare: 3, 7, 14, 30, 60, 90… A child who plays
+ * every single day for a year is paid about seventeen times.
+ *
+ * They are close together at the start because that is where a habit is either
+ * formed or not — day 3 is the whole point of the feature — and far apart later
+ * because by then the child is coming back for the game rather than the coin.
+ */
+export const STREAK_MILESTONES: readonly number[] = [3, 7, 14, 30];
+
+/** Beyond the explicit rungs, one milestone per this many days. */
+export const STREAK_MILESTONE_EVERY = 30;
+
+/**
+ * The highest milestone a streak of `current` days has reached, or 0 for none.
+ *
+ * PURE and TOTAL: junk answers 0, which is the same answer as "not there yet",
+ * so a corrupt count under-pays rather than over-pays. Same direction as the
+ * omitted-tier default in `economy.ts`.
+ */
+export function milestoneFor(current: number): number {
+  if (typeof current !== "number" || !Number.isFinite(current)) return 0;
+  const n = Math.floor(current);
+  if (n >= STREAK_MILESTONE_EVERY) {
+    return Math.floor(n / STREAK_MILESTONE_EVERY) * STREAK_MILESTONE_EVERY;
+  }
+  let best = 0;
+  for (const rung of STREAK_MILESTONES) {
+    if (rung <= n && rung > best) best = rung;
+  }
+  return best;
+}
+
+/**
+ * The streak, as it reaches the disk. Five numbers and a date.
  *
  * There is deliberately no `brokenAt`, no `lapsed`, no `missedDays` — nothing a
  * screen could read back as an accusation. A child who stopped for a week
@@ -267,10 +310,52 @@ export interface DailyStateV1 {
   days: number;
   /** The last day played, or "" for never. */
   last: string;
+  /**
+   * The highest streak milestone this device has EVER been rewarded for. Only
+   * ever goes up, exactly like `longest`.
+   *
+   * THIS FIELD IS THE ANTI-DOUBLE-PAY GUARANTEE, and it is on the DISK rather
+   * than in a ref or a closure for the reason `session-snapshot-convention.md`
+   * gives about reward latches: a latch that a reload can clear is not a latch.
+   * `2048`'s `won` flag had to be carried into its snapshot or leaving the game
+   * and coming back paid the win again, once per resume, forever — this is the
+   * same failure with a day on the clock instead of a board on the screen.
+   *
+   * It is ADDITIVE: a record written before it existed simply has no key, so
+   * `ellaz:daily:v1` stays v1 and `migrateDaily` seeds it (see there).
+   */
+  paid: number;
 }
 
 export function emptyDaily(): DailyStateV1 {
-  return { v: 1, current: 0, longest: 0, days: 0, last: "" };
+  return { v: 1, current: 0, longest: 0, days: 0, last: "", paid: 0 };
+}
+
+/**
+ * The milestone this state is OWED, or 0 for none. PURE — reads, never writes.
+ *
+ * Two conditions, and both are load-bearing. It must be a real rung of the
+ * ladder for the CURRENT run, and it must be higher than anything ever paid.
+ * The second is what makes a broken-and-rebuilt streak free rather than
+ * farmable: a child who reaches 7, lapses, and climbs back to 7 is owed
+ * nothing, because 7 was already bought. They lose nothing either — `paid`
+ * never falls, so the milestones already reached stay reached.
+ */
+export function dueMilestone(state: DailyStateV1): number {
+  const reached = milestoneFor(state.current);
+  return reached > state.paid ? reached : 0;
+}
+
+/**
+ * Record that a milestone has been rewarded. PURE, and returns the SAME OBJECT
+ * when it would change nothing — the idiom `advance` uses, and what lets the
+ * store skip a write.
+ */
+export function markPaid(state: DailyStateV1, milestone: number): DailyStateV1 {
+  if (typeof milestone !== "number" || !Number.isFinite(milestone)) return state;
+  const next = Math.floor(milestone);
+  if (next <= state.paid) return state;
+  return { ...state, paid: next };
 }
 
 /** A non-negative whole number, or 0 for anything that isn't one. Same rule as profile.ts. */
@@ -283,7 +368,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/** A day was played: set the run to `current` and pull the high-water marks up behind it. */
+/**
+ * A day was played: set the run to `current` and pull the high-water marks up
+ * behind it.
+ *
+ * `paid` is carried through UNCHANGED and never reset. A new run does not
+ * re-open milestones the device has already been rewarded for — that is the
+ * difference between a streak and a coin printer with a four-day cycle.
+ */
 function played(state: DailyStateV1, current: number, dateKey: string): DailyStateV1 {
   return {
     v: 1,
@@ -291,6 +383,7 @@ function played(state: DailyStateV1, current: number, dateKey: string): DailySta
     longest: Math.max(state.longest, current),
     days: state.days + 1,
     last: dateKey,
+    paid: state.paid,
   };
 }
 
@@ -382,7 +475,26 @@ export function migrateDaily(raw: unknown): DailyStateV1 {
     // than your longest run of them, and an anchor day means at least one.
     const days = Math.max(count(value.days), longest, last === "" ? 0 : 1);
 
-    return { v: 1, current, longest, days, last };
+    // THE SEED, AND WHY IT IS KEYED ON THE KEY BEING ABSENT.
+    //
+    // A record written before this field existed belongs to a child who may
+    // already have a 40-day streak. Reading a missing `paid` as 0 would hand
+    // them every milestone up to 30 in one go, on the next puzzle they finish —
+    // a retroactive shower of coins for days nobody was promising anything for.
+    // So an ABSENT key seeds to the milestone their `longest` already implies:
+    // no back-pay, and the next NEW milestone still pays.
+    //
+    // A PRESENT key is honoured exactly as stored, because a live record can
+    // legitimately sit below its own longest — the moment between `advance`
+    // writing day 7 and `claim` latching it is exactly that state, and seeding
+    // over it would swallow the day-7 payout on any reload landing in between.
+    //
+    // It is deliberately NOT clamped to `longest`. A hand-edited `paid` of
+    // 9999 simply means no further payouts, which is the fail-closed direction:
+    // a tampered file can cost a child rewards, never mint them.
+    const paid = "paid" in value ? count(value.paid) : milestoneFor(longest);
+
+    return { v: 1, current, longest, days, last, paid };
   } catch {
     return emptyDaily();
   }
@@ -406,11 +518,34 @@ export interface DailyWrite {
  * `ScorePort`. Nothing in this app can take a day back, so no screen and no
  * game can be the thing that does.
  */
+/**
+ * What a `claim()` did. `milestone` is 0 when nothing was owed — and ALSO when
+ * something was owed but the latch could not be written (see `claim`).
+ */
+export interface StreakClaim {
+  /** The milestone length now owed a reward, or 0 for none. */
+  milestone: number;
+  /** The streak after the call. */
+  state: DailyStateV1;
+}
+
 export interface DailyStore {
   /** The streak as it stands. Never throws. */
   read(): DailyStateV1;
   /** Record that the daily puzzle was finished on `dateKey`. Never throws. */
   complete(dateKey: string): DailyWrite;
+  /**
+   * Take the milestone reward this streak is owed, ONCE. Never throws.
+   *
+   * The whole anti-double-pay mechanism, and it is deliberately here rather
+   * than at the call site: a caller cannot be trusted to hold a latch, and
+   * there is now more than one caller. Ten calls in a row, two screens mounted
+   * at once, a reload mid-payout, the same day reported by three games — every
+   * one of those yields at most one non-zero answer per milestone, forever,
+   * because the latch is on the disk before this function admits anything is
+   * owed.
+   */
+  claim(): StreakClaim;
   /** Called on every change. Returns an unsubscribe. */
   subscribe(cb: (state: DailyStateV1) => void): () => void;
 }
@@ -424,6 +559,27 @@ export function createDailyStore(backend: KeyValueBackend): DailyStore {
   let state = migrateDaily(backend.read(DAILY_KEY));
   const subs = new Set<(s: DailyStateV1) => void>();
 
+  /** Tell every screen. A subscriber that throws must cost nobody anything. */
+  const notify = (): void => {
+    for (const cb of subs) {
+      try {
+        cb(state);
+      } catch {
+        // A subscriber is a screen. A screen that throws must not cost a child
+        // the day they just earned, nor stop the next screen updating.
+      }
+    }
+  };
+
+  /** One write, total. Returns whether it actually reached the disk. */
+  const persist = (next: DailyStateV1): boolean => {
+    try {
+      return backend.write(DAILY_KEY, JSON.stringify(next));
+    } catch {
+      return false;
+    }
+  };
+
   return {
     read: () => state,
 
@@ -434,12 +590,7 @@ export function createDailyStore(backend: KeyValueBackend): DailyStore {
       // play — no write, no notification, no second entry in `days`.
       if (next === state) return { state, persisted: true };
 
-      let persisted = false;
-      try {
-        persisted = backend.write(DAILY_KEY, JSON.stringify(next));
-      } catch {
-        persisted = false;
-      }
+      const persisted = persist(next);
 
       // The in-memory streak advances EVEN IF THE DISK REFUSED, and that is the
       // scoreboard's answer rather than the wallet's. A coin the device will
@@ -448,15 +599,40 @@ export function createDailyStore(backend: KeyValueBackend): DailyStore {
       // did not happen is the bigger lie. `persisted` is returned so a caller
       // that wants to say so can.
       state = next;
-      for (const cb of subs) {
-        try {
-          cb(state);
-        } catch {
-          // A subscriber is a screen. A screen that throws must not cost a
-          // child the day they just earned, nor stop the next screen updating.
-        }
-      }
+      notify();
       return { state, persisted };
+    },
+
+    claim(): StreakClaim {
+      const milestone = dueMilestone(state);
+      if (milestone === 0) return { milestone: 0, state };
+
+      const next = markPaid(state, milestone);
+      // `markPaid` returns the same object when it would change nothing, which
+      // `dueMilestone` has already ruled out — belt and braces, and it keeps
+      // the "no needless write" property the rest of this store has.
+      if (next === state) return { milestone: 0, state };
+
+      // LATCH FIRST, PAY SECOND, and the order is the whole design.
+      //
+      // The two orderings fail in opposite directions and they are not
+      // symmetric. Pay-then-latch, on a device whose storage refuses writes,
+      // re-pays the same milestone on every single reload — an unbounded faucet
+      // triggered by the one condition nobody can see. Latch-then-pay, on that
+      // same device, costs the child one milestone. So this refuses to admit a
+      // reward is owed until the record saying it has been paid is durably on
+      // the disk, and a device that cannot store the latch is told nothing is
+      // owed. That is the same fail-closed direction as the wallet rolling back
+      // a coin the disk would not keep.
+      //
+      // The in-memory state is deliberately NOT advanced on a refused write —
+      // unlike `complete`, where the day is a fact worth keeping. A latch that
+      // exists only in memory is not a latch (see `paid`).
+      if (!persist(next)) return { milestone: 0, state };
+
+      state = next;
+      notify();
+      return { milestone, state };
     },
 
     subscribe(cb) {

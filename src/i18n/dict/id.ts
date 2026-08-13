@@ -95,6 +95,7 @@ export const id: Record<StringKey, string> = {
   wear: "Pakai",
   place: "Taruh",
   needStars: "Perlu bintang",
+  needStreak: "Perlu main beruntun",
   catHat: "Topi",
   catOutfit: "Baju",
   catPet: "Peliharaan",

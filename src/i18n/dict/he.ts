@@ -93,6 +93,7 @@ export const he = {
   wear: "לבשו",
   place: "הניחו",
   needStars: "צריך כוכבים",
+  needStreak: "צריך ימים ברצף",
   catHat: "כובע",
   catOutfit: "בגדים",
   catPet: "חיית מחמד",

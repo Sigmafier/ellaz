@@ -17,7 +17,7 @@ import {
   type KeyValueBackend,
   type ProfileV1,
 } from "./profile";
-import { SESSION_COIN_CAP, coinsFor, starsFor } from "./economy";
+import { GAME_REASONS, SESSION_COIN_CAP, coinsFor, starsFor } from "./economy";
 import { pickName, rerollName as rollDifferentName, type PlayerName } from "./names";
 import type { RewardGrant, RewardResult, RewardsPort } from "./types";
 
@@ -139,6 +139,24 @@ export interface Wallet {
    * passing `limit` here can hand back fewer live ids than expected.
    */
   recentlyPlayed(limit?: number): string[];
+  /**
+   * Pay out one DAILY-STREAK milestone. The only door `reason: "streak"` has.
+   *
+   * It is a method on the wallet rather than a reason a game may report,
+   * because a game knows nothing about days: `daily.ts` decides that a day
+   * counted and that a milestone is owed, and its on-disk latch decides that it
+   * has not been paid before. No game holds a reference to the wallet, so this
+   * is unreachable from `src/games/**` by construction — the same asymmetry
+   * that keeps `spend()` off `RewardsPort`.
+   *
+   * ADD-ONLY, like everything else here. There is no way to take a milestone
+   * back, and a lapsed streak never reaches this function at all.
+   *
+   * The amount is NOT this function's to choose: `economy.ts` prices it from
+   * the reason, exactly as it does for a game's win. The milestone LENGTH is
+   * passed for the analytics label only, and `coinsFor` never sees it.
+   */
+  grantStreak(milestone: number): RewardResult;
   /** One port per game MOUNT — it carries that mount's session coin budget. */
   createRewardsPort(gameId: string): RewardsPort;
 }
@@ -401,6 +419,68 @@ class EllazWallet implements Wallet {
     return ids.slice(0, Math.floor(limit));
   }
 
+  grantStreak(milestone: number): RewardResult {
+    const nothing: RewardResult = {
+      coins: 0,
+      stars: 0,
+      totalCoins: this.profile.coins,
+      totalStars: this.profile.stars,
+      capped: false,
+      persisted: false,
+    };
+    // Fail closed on a milestone that cannot be one. Nothing upstream can
+    // produce this today — `dueMilestone` only ever returns a rung — but this
+    // is the function that turns a number into money, so it checks.
+    if (typeof milestone !== "number" || !Number.isFinite(milestone) || milestone <= 0) {
+      return nothing;
+    }
+
+    const coins = Math.max(0, coinsFor({ reason: "streak" }));
+    const stars = Math.max(0, starsFor({ reason: "streak" }));
+
+    const persisted = this.mutate(() => {
+      this.profile.coins += coins;
+      this.profile.stars += stars;
+      // NO per-game record is written, and that is deliberate rather than an
+      // omission. `profile.games` is keyed by game id and read back by
+      // `recentlyPlayed` and the boards; inventing a "daily" pseudo-game there
+      // would put a game nobody can open into screens that list games. A streak
+      // is a fact about the PLAYER, so it lands only on the player's totals.
+      //
+      // It also means a streak never inflates `wins`, which is the count of
+      // games actually finished.
+    });
+    if (!persisted) return nothing;
+
+    // Anonymous + kid-safe: a milestone length and two counts, no PII. The
+    // length rides `level`, which is a label everywhere else too and has never
+    // been allowed to affect a payout.
+    analytics.track("reward_grant", {
+      game: "daily",
+      reason: "streak",
+      tier: "easy",
+      level: `day-${Math.floor(milestone)}`,
+      coins,
+      stars,
+      capped: false,
+    });
+
+    return {
+      coins,
+      stars,
+      totalCoins: this.profile.coins,
+      totalStars: this.profile.stars,
+      // SESSION_COIN_CAP is deliberately not consulted. It is a per-MOUNT brake
+      // on an endless game minting coins in one long sitting, and a streak has
+      // no mount and cannot be ground: `paid` in `daily.ts` bounds it to one
+      // payout per milestone per device, forever, which is a far harder ceiling
+      // than the cap could ever be. Charging a streak against a game's budget
+      // would also silently throttle the game the child then plays.
+      capped: false,
+      persisted: true,
+    };
+  }
+
   createRewardsPort(gameId: string): RewardsPort {
     // The session budget lives in this closure, so it is scoped to the mount
     // that asked for the port. Remounting the game starts a fresh budget.
@@ -415,9 +495,17 @@ class EllazWallet implements Wallet {
         return wallet.stars;
       },
       grant(g: RewardGrant): RewardResult {
+        // A GAME may only report the things a game can know. `streak` is priced
+        // in economy.ts like any other reason, but it is not a game's to claim:
+        // a game has no idea what day it is, and one reporting it on every
+        // frame would mint coins to the session cap. Refusing here rather than
+        // trusting the union is the same discipline as KNOWN_REASONS checking a
+        // value TypeScript already promised — a promise is not a runtime check.
+        const allowed = GAME_REASONS.has(g.reason);
+
         // Payout comes from economy.ts, never from anything the caller passed.
-        const wantedCoins = Math.max(0, coinsFor(g));
-        const stars = Math.max(0, starsFor(g));
+        const wantedCoins = allowed ? Math.max(0, coinsFor(g)) : 0;
+        const stars = allowed ? Math.max(0, starsFor(g)) : 0;
 
         const budgetLeft = Math.max(0, SESSION_COIN_CAP - spentThisSession);
         const coins = Math.min(wantedCoins, budgetLeft);

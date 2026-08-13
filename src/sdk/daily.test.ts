@@ -8,11 +8,15 @@ import {
   dailyRng,
   dailySeed,
   dayDiff,
+  dueMilestone,
   emptyDaily,
   isDateKey,
   localDateKey,
+  markPaid,
   migrateDaily,
+  milestoneFor,
   shiftDateKey,
+  STREAK_MILESTONES,
 } from "./daily";
 import type { DailyStateV1, DailyStore } from "./daily";
 import { memoryBackend, type KeyValueBackend } from "./profile";
@@ -20,7 +24,7 @@ import { mulberry32 } from "@shared/rng";
 
 // The exact keys the state carries. Named here rather than inline so the
 // "no punishment field" test below reads as the product rule it is.
-const STATE_KEYS = ["v", "current", "longest", "days", "last"];
+const STATE_KEYS = ["v", "current", "longest", "days", "last", "paid"];
 
 /**
  * Run a describe under a real timezone, and put the process back afterwards.
@@ -251,6 +255,7 @@ describe("advance — the first play", () => {
       longest: 1,
       days: 1,
       last: "2026-08-13",
+      paid: 0,
     });
   });
 
@@ -438,7 +443,7 @@ describe("migrateDaily — salvage", () => {
   it("salvages by name from a shape a future build wrote", () => {
     expect(
       migrateDaily({ v: 9, current: 4, longest: 11, days: 30, last: "2026-08-13", theme: "gold" }),
-    ).toEqual({ v: 1, current: 4, longest: 11, days: 30, last: "2026-08-13" });
+    ).toEqual({ v: 1, current: 4, longest: 11, days: 30, last: "2026-08-13", paid: 7 });
   });
 
   it("coerces a count that cannot be one", () => {
@@ -482,7 +487,7 @@ describe("migrateDaily — salvage", () => {
 
 describe("the record itself", () => {
   it("starts empty", () => {
-    expect(emptyDaily()).toEqual({ v: 1, current: 0, longest: 0, days: 0, last: "" });
+    expect(emptyDaily()).toEqual({ v: 1, current: 0, longest: 0, days: 0, last: "", paid: 0 });
   });
 
   it("is a fresh object every time, so no two callers share one", () => {
@@ -711,7 +716,14 @@ function throwingBackend(): KeyValueBackend {
 
 describe("createDailyStore", () => {
   it("starts from whatever was on the disk", () => {
-    const stored: DailyStateV1 = { v: 1, current: 4, longest: 9, days: 30, last: "2026-08-12" };
+    const stored: DailyStateV1 = {
+      v: 1,
+      current: 4,
+      longest: 9,
+      days: 30,
+      last: "2026-08-12",
+      paid: 7,
+    };
     const store = createDailyStore(memoryBackend({ [DAILY_KEY]: JSON.stringify(stored) }));
     expect(store.read()).toEqual(stored);
   });
@@ -799,7 +811,7 @@ describe("createDailyStore", () => {
 
   it("is ADD-ONLY — there is no clear, no reset and no setter on it", () => {
     const store: DailyStore = createDailyStore(memoryBackend());
-    expect(Object.keys(store).sort()).toEqual(["complete", "read", "subscribe"]);
+    expect(Object.keys(store).sort()).toEqual(["claim", "complete", "read", "subscribe"]);
   });
 });
 
@@ -1020,5 +1032,240 @@ describe("createDailyPort — nothing it is handed may reach a game", () => {
     expect(after.persisted).toBe(false);
     // A plain read makes no claim about a write it did not attempt.
     expect(port.read().persisted).toBe(true);
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// The streak PAYOFF — the ladder, and the latch that makes it payable once
+// ───────────────────────────────────────────────────────────────────────────
+
+describe("milestoneFor — the ladder", () => {
+  it("pays nothing before the first rung", () => {
+    for (const n of [0, 1, 2]) expect(milestoneFor(n)).toBe(0);
+  });
+
+  it("answers the highest rung reached, not the next one", () => {
+    expect(milestoneFor(3)).toBe(3);
+    expect(milestoneFor(6)).toBe(3);
+    expect(milestoneFor(7)).toBe(7);
+    expect(milestoneFor(13)).toBe(7);
+    expect(milestoneFor(14)).toBe(14);
+    expect(milestoneFor(29)).toBe(14);
+  });
+
+  it("continues every 30 days once the explicit rungs run out", () => {
+    expect(milestoneFor(30)).toBe(30);
+    expect(milestoneFor(59)).toBe(30);
+    expect(milestoneFor(60)).toBe(60);
+    expect(milestoneFor(365)).toBe(360);
+  });
+
+  it("never falls as the streak grows", () => {
+    let seen = 0;
+    for (let n = 0; n <= 400; n++) {
+      const m = milestoneFor(n);
+      expect(m).toBeGreaterThanOrEqual(seen);
+      expect(m).toBeLessThanOrEqual(n);
+      seen = m;
+    }
+  });
+
+  it("under-pays rather than over-pays on junk", () => {
+    for (const junk of [Number.NaN, Number.POSITIVE_INFINITY, -5, "7" as unknown as number]) {
+      expect(milestoneFor(junk)).toBe(0);
+    }
+    // A fraction is floored, so 6.9 days is not 7 days.
+    expect(milestoneFor(6.9)).toBe(3);
+  });
+
+  it("is exactly the ladder the shop shelf is gated on", () => {
+    // `items.test.ts` checks the other direction. Both exist because the two
+    // lists answer different questions and are allowed to drift apart only
+    // deliberately.
+    for (const rung of STREAK_MILESTONES) expect(milestoneFor(rung)).toBe(rung);
+  });
+});
+
+describe("dueMilestone / markPaid — pure", () => {
+  const at = (current: number, paid: number): DailyStateV1 => ({
+    ...emptyDaily(),
+    current,
+    longest: Math.max(current, paid),
+    days: current,
+    last: "2026-08-13",
+    paid,
+  });
+
+  it("owes the rung a fresh streak just reached", () => {
+    expect(dueMilestone(at(3, 0))).toBe(3);
+    expect(dueMilestone(at(7, 3))).toBe(7);
+  });
+
+  it("owes nothing between rungs, or for a rung already bought", () => {
+    expect(dueMilestone(at(2, 0))).toBe(0);
+    expect(dueMilestone(at(5, 3))).toBe(0);
+    expect(dueMilestone(at(3, 3))).toBe(0);
+    expect(dueMilestone(at(7, 7))).toBe(0);
+  });
+
+  it("owes nothing to a streak rebuilt to a length already paid for", () => {
+    // Reached 7, lapsed, climbed back to 7. `paid` never fell, so nothing is
+    // owed — and nothing was taken away either.
+    expect(dueMilestone(at(7, 14))).toBe(0);
+    expect(dueMilestone(at(1, 14))).toBe(0);
+  });
+
+  it("markPaid only ever raises, and returns the same object otherwise", () => {
+    const s = at(7, 7);
+    expect(markPaid(s, 3)).toBe(s);
+    expect(markPaid(s, 7)).toBe(s);
+    expect(markPaid(s, Number.NaN)).toBe(s);
+    expect(markPaid(s, 14).paid).toBe(14);
+    // Pure: the original is untouched.
+    expect(s.paid).toBe(7);
+  });
+});
+
+describe("migrateDaily — the paid latch", () => {
+  it("seeds an ABSENT latch from longest, so nothing is back-paid", () => {
+    // A record written before the payoff existed. This child already has 40
+    // days; they must not be handed every rung up to 30 at once.
+    const s = migrateDaily({ current: 40, longest: 40, days: 40, last: "2026-08-13" });
+    expect(s.paid).toBe(30);
+    expect(dueMilestone(s)).toBe(0);
+  });
+
+  it("honours a PRESENT latch exactly, even below its own longest", () => {
+    // The live window between `advance` writing day 7 and `claim` latching it.
+    // Seeding over it here would swallow the day-7 payout on a reload.
+    const s = migrateDaily({ current: 7, longest: 7, days: 7, last: "2026-08-13", paid: 3 });
+    expect(s.paid).toBe(3);
+    expect(dueMilestone(s)).toBe(7);
+  });
+
+  it("honours a present zero on a brand-new record", () => {
+    const s = migrateDaily({ current: 3, longest: 3, days: 3, last: "2026-08-13", paid: 0 });
+    expect(s.paid).toBe(0);
+    expect(dueMilestone(s)).toBe(3);
+  });
+
+  it("fails CLOSED on a tampered latch — it can cost rewards, never mint them", () => {
+    const s = migrateDaily({ current: 40, longest: 40, days: 40, last: "2026-08-13", paid: 9999 });
+    expect(s.paid).toBe(9999);
+    expect(dueMilestone(s)).toBe(0);
+  });
+
+  it("coerces a latch that cannot be a count", () => {
+    for (const junk of [Number.NaN, -12, "seven", null]) {
+      expect(migrateDaily({ last: "2026-08-13", current: 3, paid: junk }).paid).toBe(0);
+    }
+  });
+
+  it("round-trips the latch through JSON, which is how it reaches the disk", () => {
+    const s = markPaid(advance(emptyDaily(), "2026-08-13"), 3);
+    expect(migrateDaily(JSON.stringify(s))).toEqual(s);
+  });
+});
+
+describe("DailyStore.claim — pays each milestone exactly once, ever", () => {
+  /** Play `days` consecutive days from 2026-08-01 through a store. */
+  function playRun(store: DailyStore, days: number): void {
+    for (const key of calendar("2026-08-01", days)) store.complete(key);
+  }
+
+  it("pays nothing until the first rung", () => {
+    const store = createDailyStore(memoryBackend());
+    playRun(store, 2);
+    expect(store.claim().milestone).toBe(0);
+  });
+
+  it("pays day 3 once, and then never again however hard it is asked", () => {
+    const store = createDailyStore(memoryBackend());
+    playRun(store, 3);
+    expect(store.claim().milestone).toBe(3);
+    // THE PROPERTY. Without the latch every one of these pays 3 again.
+    for (let i = 0; i < 50; i++) expect(store.claim().milestone).toBe(0);
+  });
+
+  it("pays each rung of a long run once, in order", () => {
+    const backend = memoryBackend();
+    const store = createDailyStore(backend);
+    const paid: number[] = [];
+    for (const key of calendar("2026-08-01", 40)) {
+      store.complete(key);
+      // Claimed after EVERY day, the way a screen would.
+      const { milestone } = store.claim();
+      if (milestone > 0) paid.push(milestone);
+      expect(store.claim().milestone).toBe(0);
+    }
+    expect(paid).toEqual([3, 7, 14, 30]);
+  });
+
+  it("SURVIVES A RELOAD — a fresh store off the same disk owes nothing", () => {
+    // The reason `paid` is on the disk rather than in a ref. A latch a reload
+    // can clear is not a latch: this is 2048's `won` flag, with a day on the
+    // clock instead of a board on the screen.
+    const backend = memoryBackend();
+    const first = createDailyStore(backend);
+    playRun(first, 3);
+    expect(first.claim().milestone).toBe(3);
+
+    for (let reload = 0; reload < 5; reload++) {
+      const later = createDailyStore(backend);
+      expect(later.claim().milestone).toBe(0);
+    }
+  });
+
+  it("does not re-open a rung when a streak breaks and is rebuilt", () => {
+    const backend = memoryBackend();
+    const store = createDailyStore(backend);
+    playRun(store, 3);
+    expect(store.claim().milestone).toBe(3);
+
+    // A week off, then three more days in a row.
+    for (const key of calendar("2026-08-12", 3)) store.complete(key);
+    expect(store.read().current).toBe(3);
+    expect(store.claim().milestone).toBe(0);
+    // And nothing was taken away: the record still stands.
+    expect(store.read().longest).toBe(3);
+    expect(store.read().paid).toBe(3);
+  });
+
+  it("REFUSES TO PAY when the latch cannot be stored", () => {
+    // Latch first, pay second. A device that cannot keep the latch is told
+    // nothing is owed, because paying it would re-pay on every reload forever.
+    const store = createDailyStore(refusingBackend());
+    playRun(store, 3);
+    expect(store.read().current).toBe(3);
+    expect(store.claim().milestone).toBe(0);
+    expect(store.read().paid).toBe(0);
+  });
+
+  it("never throws, even when the backend does", () => {
+    const store = createDailyStore(throwingBackend());
+    playRun(store, 3);
+    expect(() => store.claim()).not.toThrow();
+    expect(store.claim().milestone).toBe(0);
+  });
+
+  it("tells its subscribers when a claim lands, and not when it does not", () => {
+    const store = createDailyStore(memoryBackend());
+    playRun(store, 3);
+    const seen: number[] = [];
+    store.subscribe((s) => seen.push(s.paid));
+    store.claim();
+    store.claim();
+    store.claim();
+    expect(seen).toEqual([3]);
+  });
+
+  it("is a pure read when nothing is owed — no write, no new object", () => {
+    const backend = memoryBackend();
+    const store = createDailyStore(backend);
+    playRun(store, 2);
+    const before = backend.read(DAILY_KEY);
+    const { state } = store.claim();
+    expect(state).toBe(store.read());
+    expect(backend.read(DAILY_KEY)).toBe(before);
   });
 });
