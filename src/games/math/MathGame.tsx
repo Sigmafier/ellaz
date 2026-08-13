@@ -210,6 +210,9 @@ export function MathGame({ ctx }: { ctx: GameContext }) {
               fontWeight: 800,
               lineHeight: 1.1,
               letterSpacing: 2,
+              // The card ground is a hard navy gradient, so pin the numerals to
+              // white rather than inheriting the app's dark ink (dark-on-dark).
+              color: "#fff",
             }}
           >
             {problem.a} {problem.op} {problem.b} = <span style={{ color: "var(--yellow)" }}>?</span>
@@ -247,6 +250,8 @@ export function MathGame({ ctx }: { ctx: GameContext }) {
               fontSize: "clamp(28px, 9vw, 46px)",
               fontWeight: 800,
               lineHeight: 1.1,
+              // Same navy card - keep the + / - / = signs light, not dark ink.
+              color: "#fff",
             }}
           >
             <GlyphGroup n={problem.a} glyph={problem.glyph} size="clamp(24px, 7vw, 40px)" />
