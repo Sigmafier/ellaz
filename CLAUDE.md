@@ -55,7 +55,7 @@ src/
 │            (mount/unmount bridge), WalletChip, games (the ordered roster),
 │            catalog (roster + lazy loaders), paths/pageContext/legacyHash,
 │            world/ (the room + shop)
-├─ build/    BUILD-TIME ONLY - the 52 emitted pages. Pure strings, no DOM, no
+├─ build/    BUILD-TIME ONLY - the 84 emitted pages. Pure strings, no DOM, no
 │            React. Nothing in the app may import it (it reads src/content)
 └─ games/<id>/
    ├─ meta.ts         DOM-free GameMeta - catalog.ts imports it statically
@@ -64,10 +64,10 @@ src/
    └─ <Renderer>      React component (DOM) or Phaser scene (canvas)
 ```
 
-**Games (23)** — 16 `ageBand: "kids"` (balloons, bees, bubbles, coloring, echo,
-evolve, finddiff, frog, hidden, math, memory, reaction, sequence, shadows,
-sortsize, vanish) and 7 `"all"` (blocks, minesweeper, n2048, snake, sudoku,
-tictactoe, wordguess).
+**Games (25)** — 18 `ageBand: "kids"` (balloons, bees, bubbles, coloring, echo,
+evolve, finddiff, frog, hidden, math, memory, merge, reaction, sequence,
+shadows, sort, sortsize, vanish) and 7 `"all"` (blocks, minesweeper, n2048,
+snake, sudoku, tictactoe, wordguess).
 Counts here go stale fast — `src/portal/catalog.ts` is the source of truth and
 `catalog.test.ts` ratchets the count. Every game offers a **difficulty selector**
 and/or endless levels: 20 declare their `levels` to `<GameChrome>`, which owns
@@ -527,22 +527,39 @@ languages of prose does not compile, and a game with none does not pass tests.
 That is the whole "every new game is multilingual by construction" guarantee,
 and it costs a new game exactly one more `es:` arm.
 
-The SDK, UI, juice, i18n, PWA, rewards, and analytics come for free. Phaser lives in
-a shared vendor chunk (`vite.config` `manualChunks`) cached across all canvas games.
+The SDK, UI, juice, i18n, PWA, rewards, and analytics come for free. **A new game
+almost certainly needs no engine**: 22 of the 23 render as React over a pure
+`logic.ts`, and snake is the only one importing Phaser (`SnakeScene.ts`, the sole
+hit for `from "phaser"` in `src/`, re-verified 2026-08-13). Phaser sits in its own
+lazy `vendor-phaser` chunk - "cached across all canvas games" was never true,
+because snake is the only canvas game.
 **Two web pages come for free as well** - the route table is derived from the
 roster, so `/games/<id>/` and `/en/games/<id>/` are emitted, sitemapped and gated
 the moment step 5 lands. Missing step 6 is a red build, not a thin page.
 
+**Two gates key on a DIRECTORY CONTAINING `meta.ts`, not on registration**, so
+"I haven't registered it yet" does not keep a half-built game out of their
+population: `src/ui/game-art.test.ts` wants a scene in `src/ui/gameArt.ts` and
+`src/ui/game-panel-clears-widest-board.test.ts` wants a renderer contributing a
+board-sizing expression. Both go red the moment `src/games/<id>/meta.ts` exists.
+
+That is the gates working rather than a nuisance - a game with no picture is not
+finished, and the art gate exists *because* 21 games once shipped as one OS emoji
+on a colour block while every other gate reported green. But it does mean **a
+game cannot be built in parallel slices that each keep the suite green.** Either
+land `meta.ts`, the art scene and the renderer together, or expect those two red
+until the set is complete. Discovered 2026-08-13, building two games at once.
+
 ## Every game has a real web address
 
-The site used to be one document. It is now 53: `dist/index.html` (still the app,
-unchanged) plus **52 emitted pages** built by `src/build/**` inside a Vite plugin,
+The site used to be one document. It is now 85: `dist/index.html` (still the app,
+unchanged) plus **84 emitted pages** built by `src/build/**` inside a Vite plugin,
 so `npm run build` cannot skip them and neither deploy workflow can forget.
 
 | URL | What it is |
 |---|---|
 | `/` | the application, and now also a document. The emitter adds head tags AND the Hebrew home body; it never overwrites the file |
-| `/games/<id>/` · `/en/games/<id>/` | 23 games x 2 languages, ~900 words each |
+| `/games/<id>/` · `/en/games/<id>/` · `/es/games/<id>/` | 25 games x 3 languages, ~900 words each |
 | `/en/` | the English home index, with 22 real links |
 | `/world/` · `/en/world/` | the room |
 | `/boards/` · `/en/boards/` | the leaderboards (two screens - see below) |
@@ -690,8 +707,9 @@ import is not possible; the pages simply do not state them yet. Deriving them me
 declaring `levels` in each DOM-free `meta.ts` with a test that pins it to the
 renderer's own `DifficultySelector` options.
 
-**The content-page runtime is a lazy `page-*` chunk** - the game host and the
-whole room, 8.8 KB gz, which `/` never needs. Adding it caught the documented
+**The content-page runtime is a lazy `page-*` chunk** - the game host, the whole
+room, and (since 2026-08-13) every shared game helper except `rng.ts`. 12.3 KB gz,
+which `/` never needs. Adding it caught the documented
 three-change trap live: the dynamic import and the chunk name were right, and
 `WalletChip`, `catalog` and `world/Scene` (imported by BOTH the home grid and
 the page runtime) were left unassigned, so Rollup folded them into `page-*` and
@@ -1006,10 +1024,88 @@ Full rule: [`.claude/rules/game-content-template.md`](.claude/rules/game-content
 
 ## How the app FEELS — the sounds, and the lab that chose them
 
-**The Juice Lab is gone.** It was a dev-only `#/lab` tournament — 45
-physics-synthesised sound characters, six blind ranking rounds — and it always
-carried a kill date: the winners land, `src/juice/lab/` is deleted in that same
-commit. That happened on 2026-08-08 in `ae4df64`. Do not look for it.
+**The sound lab is at `#/lab`, and it is reachable in production** —
+`https://ellaz.fun/#/lab`, or `http://localhost:5180/#/lab` under `npm run dev`.
+It is the gallery: every sound the app plays beside the alternatives, the win
+moment playable end to end, and every visual effect and haptic on a button.
+`docs/juice-map.md` is the written inventory — what each sound is, where it
+fires, and the honest list of what was never judged.
+
+**Tapping a candidate PICKS it and plays it through the real `audioPort`**, so
+what you hear is what a game will play — not a preview that can disagree.
+The pick is a whole `VoiceSpec` in `localStorage` (`ellaz:voice:v1`), because
+the candidate specs live in the lab's own chunk that a child's device never
+downloads. `src/sdk/voiceOverride.ts` is the gate on the way back in, and it is
+the strictest one in this app: every other stored blob decides what a screen
+SHOWS, this one decides what a synthesiser DOES next to a child's ear. It
+validates rather than coerces — unlike `migrateProfile`, which salvages junk on
+purpose — and anything it does not fully like is DROPPED, falling back to the
+built-in, which is the same answer as "nothing was ever picked". Gain is the one
+exception: it is scaled down as a whole rather than refused, so a slightly-loud
+pick stays picked and stays safe.
+
+Measured on the artifact 2026-08-13: the lab is **9,465 B gz in its own
+`lab-*` chunk**, referenced 0 times in `index.html` and absent from the precache
+manifest, while sibling `.js` chunks are precached — which is the positive
+control proving the `globIgnores` entry is doing the work rather than the glob
+missing it. First visit **86,463 B gz of 90,000**, 3,537 spare. Adding it was the
+documented three changes: the dynamic import, the named `manualChunks` branch,
+the `globIgnores` entry. `src/lab/**` matches none of the other `manualChunks`
+rules, so without its own branch it falls to `return undefined` and lands in the
+ENTRY chunk, shipped to every child with no `lab-` name for anything to match.
+
+**`pop` is now "Cork", and it was PICKED rather than blind-judged.** Until
+2026-08-13 it was one 320 Hz square wave — no transient, no room, no glide — and
+it is the second most-played sound in the app: the balloon, the bee, the block,
+the brush, the frog, the flag and every shop purchase. Cork is a 6 ms transient
+at 1.5 kHz over a sine gliding UP nine semitones. **The distinction between
+"picked" and "blind" is load-bearing** and `VERDICT` in `src/lab/voices.ts`
+records it per sound, because the six tournament winners beat 4–5 alternatives
+each with the names hidden while Cork was chosen with them showing. Collapsing
+the two is how a preference gets remembered as a result — the exact mistake
+`docs/juice-lab.md` records. `flip` is the last never-judged sound. The old
+square is still in the strip as the control arm, holding **its own literal copy**
+of the spec: it used to import `POP`, which was correct only while `POP` *was*
+the square, and would have silently become a second copy of Cork on promotion.
+
+**The streak ladder exists, is playable, and nothing calls it.**
+`src/sdk/streak.ts` is the third policy port after `economy.ts` and `score.ts` —
+a game reports how many correct in a row and never picks a pitch. First rung on
+the **3rd**, C major pentatonic (`0 2 4 7 9 12 14 16 19 21`), and it **caps** at
+the top rather than resetting, because dropping a long run back to the bottom
+tells a child who is doing well that they are suddenly a beginner again.
+Pentatonic and not diatonic on purpose: a leading tone makes an ascending line
+*beg* for the next step, and building that pull deliberately for five-year-olds
+is not something this platform does. `streakStep` returns **`undefined`, never
+0**, for "too short to count" — 0 is a real rung, so the two must not be
+spellable the same way or the ladder fires on every correct answer. Measured in a
+browser at the audio layer: 523 Hz for the first two taps (that is `success`),
+then the climb to 1745, and 1749 on the thirteenth — the same rung, jittered.
+`streakTier()` returns `good`/`great`/`amazing` and **nothing speaks them**.
+
+**Confetti, shake and burst spread are tunable from the lab** (`ellaz:juice:v1`,
+`src/juice/tuning.ts`), and the honest limit is worth knowing: **burst COUNT is
+not**, because 20 sites pass their own hand-authored 5–16 and an explicit
+argument beats a default. Unlike `voiceOverride` this store **clamps rather than
+drops** — the worst a bad number here does is draw odd confetti. Proven in a
+browser with the control both ways: with 24 picked a win drew 24 pieces; after
+"back to shipped" the same button drew 60.
+
+**Level-matching now keys on CONTENT, not object identity.** `voiceEngine`'s
+trim cache was a `WeakMap<VoiceSpec, number>`, which is right for eight module
+constants and wrong for a voice read from storage: every parse mints a fresh
+object, so the trim was missed on every re-read and the picked voice played
+unmatched against the palette it was being compared to — ruining the one
+comparison the lab exists to make.
+
+**The Juice Lab that came before it is gone.** It was a dev-only `#/lab`
+tournament — 45 physics-synthesised sound characters, six blind ranking rounds —
+and it always carried a kill date: the winners land, `src/juice/lab/` is deleted
+in that same commit. That happened on 2026-08-08 in `ae4df64`. Its four unused
+partial tables (bell, bar, wood, soft) were recovered into `src/lab/modes.ts`
+rather than into `@sdk/voice`, since a mode nothing plays yet must not be paid
+for by a first visit; `struck()` takes a partial set directly so the lab reaches
+the SAME damping law instead of keeping a second copy of the physics.
 
 **`src/sdk/voice.ts` holds the eight voices it chose**, as pure data (no
 WebAudio, so it unit-tests in node), and `voiceEngine.ts` is the only place that
@@ -1194,26 +1290,48 @@ has never had data to tune against.
 
 Setting the secret is safe at any time: `build:check` fails the deploy if the
 PostHog chunk would land in the precache, rather than shipping it behind a green
-checkmark. **First visit is 85,770 B gz of the 86,000 ceiling** in
-`scripts/assert-payload.mjs` — **230 B spare**, measured on the artifact
-2026-08-09. (It was 69,624 on 2026-08-02, down from 143,234; the ceiling has
-moved since.) **Adding a game costs the SHELL about 300 B gz** even though its
-code is lazy: its `meta.ts` is in the statically-imported roster and its
-`gameArt` scene is in the grid. Falling Blocks cost 306 B, measured against a
-clean `main` build.
+checkmark. **First visit is 86,463 B gz of the 90,000 ceiling** in
+`scripts/assert-payload.mjs` — **3,537 B spare**, measured on the artifact
+2026-08-13, with Colour Sort and Merge landed. (It was 69,624 on 2026-08-02, down from 143,234; the ceiling has
+moved more than once since, so read `CEILING` in the script rather than trusting
+this line.) **Adding a game costs the SHELL about 300 B gz** even though its code
+is lazy: its `meta.ts` is in the statically-imported roster and its `gameArt`
+scene is in the grid. Falling Blocks cost 306 B, measured against a clean `main`
+build.
 
-**At 230 B spare the ceiling now binds: the NEXT GAME does not fit.** It went
-from 774 B when blocks shipped to 230 B when session persistence did — that
-feature cost the shell **546 B gz**, because `src/sdk/session.ts` and both
-`@shared` hooks land there under the existing `src/{sdk,ui,juice,i18n,shared}`
-pinning rule in `vite.config.ts`. So the next change either raises the ceiling
-deliberately or pays for itself.
+**But 300 is a floor, not a rate.** Colour Sort and Merge together cost **1,489 B
+gz**, about **745 each** — two and a half times Blocks. The variable is the ART:
+a `gameArt` scene is inlined into the shell, so a scene with fourteen shapes
+costs more than one with six. Budget a new game at ~750 B unless its scene is
+deliberately simple, and measure rather than assume.
 
-**There is one identified way to pay for it**, unshipped and written down here so
-it is not re-derived: carve `useGameSession` and `useRememberedLevel` into the
-`page` chunk, the way `GameChrome` already is and for the same reason — every
-game imports them and NOTHING on the home screen does. The obstacle is that they
-reach games through the `@shared` barrel, which is pinned to the shell, so the
-carve needs those 20 games importing the direct module path (`@shared/useGameSession`)
-first — snake already does. Do it as its own change with `build:check` watching,
-because an unassigned shared module is not neutral, it picks a side.
+**The ceiling stopped binding on 2026-08-13**, and how it stopped matters more
+than the number, because the fix written down here was wrong about its own size
+by a factor of eight and wrong about what was blocking it.
+
+This file used to say the carve was worth ~546 B and needed 20 games to move off
+the `@shared` barrel onto direct module paths first. Neither held. **The barrel
+was never the blocker** — `manualChunks` assigns by module PATH, so who imports
+what changes nothing; `src/shared/` was pinned to the shell wholesale by the
+`src/{sdk,ui,juice,i18n,shared}` catch-all. And the only module in there the
+shell genuinely reaches is **`rng.ts`**, via `sdk/names.ts` and
+`sdk/backupCode.ts`, both of which already import the direct path for exactly
+this reason. Everything else — `winMoment`, the spawner, the cast, the shapes,
+the sequence brain, the game clock, the `Prompt` chip, both session hooks, and
+the barrel itself — was downloaded by every child before they had chosen a game.
+
+**One ordering rule in `manualChunks` moved all of it: 89,561 → 84,974 B gz,
+4,587 B saved, headroom 439 B → 5,026 B**, which is roughly sixteen more games
+rather than one. `rng.ts` is matched FIRST and returned to the shell, and that
+ordering IS the guard: move it and the shell imports from the page chunk, which
+is the failure `assert-first-visit.mjs` exists to catch and has now caught three
+times. It passed with its negative control rejecting 9 of 9 planted entries, so
+that green is a real one rather than a vacuous one.
+
+**The transferable half is the measurement, not the bytes.** Two numbers in this
+file were confidently wrong at the same moment: a ceiling of 86,000 that the live
+gate had read `90_000` since a parallel lane raised it, and a 546 B estimate for
+work nobody had ever measured. Both were written by someone who had measured
+something true at the time. **Re-measure before quoting any payload figure here**
+— the gate is one command, and this prose has now gone stale twice. See
+[`.claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md`](.claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md).
