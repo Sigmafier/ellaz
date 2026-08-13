@@ -31,6 +31,16 @@ report**. Ask of any probe: *could this even express the failure I am looking fo
 | 2026-08-12 stamp message | `.slice(0, 16)` on both sides | the `-dirty` suffix at char 41 |
 | 2026-08-11 webfont matcher | a regex written from `global.css` | minified CSS emits `@import"…;…"` — no space, semicolons inside |
 | 2026-08-12 fix verification | `grep -E` with a `\1` backreference | **ugrep rejected the pattern**; the script read the parse error as "no match" and printed FIXED |
+| 2026-08-13 mutation harness | a verdict read from the ABSENCE of a message | the mutated copies were named `base.mjs`/`m.mjs`, and the script only runs `main()` when `argv[1]` ends in its own basename — so node loaded them, ran **nothing**, exited 0, and six controls read as SURVIVED |
+
+The fourth is the third one wearing a harness instead of a script, and it fired the
+very next day: **when a verdict is derived from the absence of a signal, a run that
+never happened is indistinguishable from a run that passed.** The guard is cheap and
+positive — assert the run PRODUCED its summary line, and assert the mutation actually
+landed (checksum), before interpreting anything. Both guards were added after the
+false SURVIVED above, and both immediately caught real harness faults (a `|` sed
+delimiter colliding with `||`, and a missing `s` prefix) that would otherwise have
+read as six more false survivors.
 
 The third is the sharpest: **a check that errors and a check that passes are
 indistinguishable if you only look at whether the branch was taken.** It reported success

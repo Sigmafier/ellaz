@@ -148,9 +148,57 @@ reasons. Mutation-proven against the **verbatim** challenge page captured during
 incident: sitemap challenged, a page challenged, robots blocking everything, plus a
 positive control that must still pass.
 
+## The same shape one level down: crawler vs CRAWLER (2026-08-13)
+
+Everything above is browser-vs-crawler. **It happens between two crawlers too, and
+the gate written for the first case was blind to the second** — because it walked
+as Googlebot only, and walking as one agent cannot express a block keyed on
+another.
+
+Measured live, 11 agents x 5 targets x 3 samples:
+
+```
+BLOCKED  GPTBot               / 429   /es/games/snake/ 429   /en/games/snake/ 429
+BLOCKED  meta-externalagent   / 429   (same)
+ok       Googlebot · Bingbot · OAI-SearchBot · ChatGPT-User · ClaudeBot
+         Claude-SearchBot · PerplexityBot · Perplexity-User · Applebot-Extended
+```
+
+`server: LiteSpeed`, nothing about user agents in `deploy/hostinger.htaccess`, CDN
+off. **Hostinger's own infrastructure refuses two agents by name**, while our
+emitted `robots.txt` grants GPTBot `Allow: /`. The file promises what the host
+will not serve, and nothing in git can see it.
+
+Four things worth keeping, each measured rather than reasoned:
+
+- **The control is what makes it evidence.** The agents ran INTERLEAVED, so an IP
+  rate limit would have failed everything after Googlebot's 15 requests.
+  OAI-SearchBot ran immediately after GPTBot and returned 200. It is the NAME.
+- **The bare token is not a probe.** UA `GPTBot` returns **200** from the same
+  server that 429s `Mozilla/5.0 (compatible; GPTBot/1.0; +…)`. A gate built on the
+  token alone reports green over the defect it exists for. Send a crawler SHAPE.
+- **Pick an HTML target.** `sitemap.xml` and `llms.txt` returned 200 for both
+  blocked agents throughout — a check pointed at either is green during the block.
+- **Scope it before alarming anyone.** Both refused agents are *training*
+  crawlers; every *citation* crawler is served, so ChatGPT, Claude and Perplexity
+  citations were never affected. The alarming reading is the wrong one.
+
+**It is not fixable from this repo.** Hostinger's bot protection sits above the
+site, the CDN and any plugin; support has confirmed to other customers that the
+opt-out exists only on VPS plans. **Do not turn the CDN on to reach its AI Audit
+panel** — that is what caused the outage this rule is named after. `robots.txt` is
+already correct; the honest options are to leave it, make the file agree with the
+host, or change hosting.
+
+`assert-crawlable.mjs` now walks as every crawler `robots.txt` NAMES, parsing the
+list out of the SERVED file so there is exactly one list. Advisory until
+`CRAWL_BOT_ACCESS=1`, for the reason the content floor is.
+
 ## When to Apply
 
 - Search Console says "could not be read", "couldn't fetch", or a 403 on any URL
+- **Any gate that fetches as a client identity** — a user agent, an API key, a role,
+  a tenant. It samples ONE identity and is blind to every other by construction
 - Traffic or indexed-page count falls with no deploy to explain it
 - Any report of "Google cannot see the site" while it loads fine for you
 - Before enabling any CDN, WAF, DDoS or bot-protection feature on any host
