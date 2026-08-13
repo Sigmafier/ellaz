@@ -2,10 +2,10 @@ import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPoi
 import { textFor, type Locale } from "@i18n/index";
 import type { GameContext } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
-import { type DifficultyOption } from "@ui/DifficultySelector";
+import { DifficultySelector, type DifficultyOption } from "@ui/DifficultySelector";
 import { burst, shake, haptic } from "@juice/index";
 import { winMoment, useRememberedLevel } from "@shared/index";
-import { generateProblem, isCorrect, type MathLevel, type Problem } from "./logic";
+import { generateProblem, isCorrect, LEVELS, type MathLevel, type OpMode, type Problem } from "./logic";
 
 // Two rows, because the seven levels are two different games for two different
 // ages. The pre-arithmetic row asks nothing a four-year-old cannot answer by
@@ -26,6 +26,16 @@ const LEVEL_OPTIONS: DifficultyOption<MathLevel>[] = [
   { id: "up20", label: { he: "עד 20", en: "Up to 20", es: "Hasta 20" } },
   { id: "mult", label: { he: "כפל", en: "Times ×", es: "Por ×" } },
 ];
+
+// The operation filter for the arithmetic levels, shown as three labels to pick
+// from rather than one button that cycles. Emoji ride the words so a pre-reader
+// can tell them apart. "mixed" is the default and matches the game's old coin-flip.
+const OP_OPTIONS: DifficultyOption<OpMode>[] = [
+  { id: "add", label: { he: "חיבור ➕", en: "Add ➕", es: "Sumar ➕" } },
+  { id: "sub", label: { he: "חיסור ➖", en: "Subtract ➖", es: "Restar ➖" } },
+  { id: "mixed", label: { he: "מעורב ➕➖", en: "Mixed ➕➖", es: "Mixto ➕➖" } },
+];
+const OP_IDS = OP_OPTIONS.map((o) => o.id);
 
 // Bottom-of-screen hint, per mode.
 const HINTS: Record<Problem["mode"], Record<Locale, string>> = {
@@ -72,7 +82,13 @@ export function MathGame({ ctx }: { ctx: GameContext }) {
     ctx.locale,
   );
   const [level, setLevel] = useRememberedLevel(ctx, LEVEL_OPTIONS.map((o) => o.id), "up10");
-  const [problem, setProblem] = useState<Problem>(() => generateProblem(level));
+  // The chosen operation filter, remembered across mounts and validated on read
+  // (an unknown stored value falls back to "mixed"), mirroring useRememberedLevel.
+  const [opMode, setOpModeState] = useState<OpMode>(() => {
+    const stored = ctx.storage.get<unknown>("opMode", null);
+    return typeof stored === "string" && OP_IDS.includes(stored as OpMode) ? (stored as OpMode) : "mixed";
+  });
+  const [problem, setProblem] = useState<Problem>(() => generateProblem(level, undefined, opMode));
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
   const [best, setBest] = useState(() => ctx.score?.best() ?? 0);
@@ -95,20 +111,33 @@ export function MathGame({ ctx }: { ctx: GameContext }) {
   }, [ctx]);
 
   const next = useCallback(() => {
-    setProblem(generateProblem(level));
+    setProblem(generateProblem(level, undefined, opMode));
     setWrongChoice(null);
-  }, [level]);
+  }, [level, opMode]);
 
-  // Switching difficulty starts a clean run at the new level.
-  const chooseLevel = useCallback((lvl: MathLevel) => {
-    setLevel(lvl);
+  // Both a difficulty change and an operation change start a clean run - the
+  // problems are a different shape, so carrying a streak across them is dishonest.
+  const startRun = useCallback((lvl: MathLevel, op: OpMode) => {
     streakRef.current = 0;
     bestFiredRef.current = false;
     setScore(0);
     setStreak(0);
     setWrongChoice(null);
-    setProblem(generateProblem(lvl));
+    setProblem(generateProblem(lvl, undefined, op));
   }, []);
+
+  const chooseLevel = useCallback((lvl: MathLevel) => {
+    setLevel(lvl);
+    startRun(lvl, opMode);
+  }, [setLevel, opMode, startRun]);
+
+  const chooseOp = useCallback((op: OpMode) => {
+    setOpModeState(op);
+    // Write through from the tap handler, not an effect - the same reason
+    // useRememberedLevel persists inline.
+    ctx.storage.set("opMode", op);
+    startRun(level, op);
+  }, [ctx, level, startRun]);
 
   const answer = useCallback(
     (choice: number, e: ReactPointerEvent) => {
@@ -165,23 +194,47 @@ export function MathGame({ ctx }: { ctx: GameContext }) {
       onLevel={chooseLevel}
       onRestart={() => chooseLevel(level)}
       footer={
-        <div
-          style={{
-            background: "var(--surface)",
-            borderRadius: "var(--radius-2)",
-            boxShadow: "var(--shadow-1)",
-            padding: "13px 12px",
-            minHeight: 60,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            textAlign: "center",
-          }}
-        >
-          <b style={{ fontSize: 17, fontFamily: "Fredoka, inherit" }}>
-            {HINTS[problem.mode][ctx.locale]}{" "}
-            {problem.mode === "arith" ? (level === "mult" ? "✖️" : "➕➖") : problem.glyph}
-          </b>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {/* The +/- filter, only where there is a choice to make: the addsub
+              levels. count/match are addition, mult is ×, and the picture level
+              keeps its own mix. Three labels to pick, not one cycling button. */}
+          {LEVELS[level].kind === "addsub" && (
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <DifficultySelector
+                options={OP_OPTIONS}
+                value={opMode}
+                onChange={chooseOp}
+                locale={ctx.locale}
+                kids
+              />
+            </div>
+          )}
+          <div
+            style={{
+              background: "var(--surface)",
+              borderRadius: "var(--radius-2)",
+              boxShadow: "var(--shadow-1)",
+              padding: "13px 12px",
+              minHeight: 60,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              textAlign: "center",
+            }}
+          >
+            <b style={{ fontSize: 17, fontFamily: "Fredoka, inherit" }}>
+              {HINTS[problem.mode][ctx.locale]}{" "}
+              {problem.mode === "arith"
+                ? level === "mult"
+                  ? "✖️"
+                  : opMode === "add"
+                    ? "➕"
+                    : opMode === "sub"
+                      ? "➖"
+                      : "➕➖"
+                : problem.glyph}
+            </b>
+          </div>
         </div>
       }
     >
