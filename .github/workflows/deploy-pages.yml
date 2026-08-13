@@ -3,6 +3,10 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+    # See deploy-hostinger.yml: holdem/ cannot affect dist/, so it must not
+    # publish this site either.
+    paths-ignore:
+      - "holdem/**"
   workflow_dispatch:
 
 # Allow the workflow to publish to Pages.

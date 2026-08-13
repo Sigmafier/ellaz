@@ -3,6 +3,13 @@ name: Deploy to Hostinger (ellaz.fun)
 on:
   push:
     branches: [main]
+    # holdem/ is the poker sub-project: its own workspace, its own host
+    # (Cloudflare), its own workflow. Nothing under it can reach dist/, so a
+    # poker commit publishing ellaz.fun would be a deploy with an empty diff -
+    # and every such deploy is a chance for the FTP step to go wrong for
+    # nothing. See .github/workflows/holdem.yml for the mirror filter.
+    paths-ignore:
+      - "holdem/**"
   workflow_dispatch:
 
 # ellaz.fun is a different host from the Pages site, so this gets its own lane:
