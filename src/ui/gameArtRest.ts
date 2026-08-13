@@ -198,4 +198,54 @@ export const REST: Record<string, Scene> = {
     <rect x="67" y="111" width="14" height="14" rx="4" fill="${PAL.orchid}"/>
     <path d="M170 62l7 7 13-15" fill="none" stroke="${PAL.paper}" stroke-width="6"
           stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>` },
+
+  // A tune half-written: four squares lit on a grid of twelve, and a play
+  // triangle beside it.
+  //
+  // The EMPTY squares are the subject as much as the lit ones - this is the
+  // only game in the catalogue with nothing to solve, so the card has to say
+  // "there is room here for whatever you want" rather than "here is a puzzle".
+  // A grid of all-lit squares would read as a finished thing.
+  //
+  // Deliberately not `echo`'s card, for the reason written into the head of
+  // `music/logic.ts`: there the app plays and the child copies, and the notes
+  // are the QUESTION. Here the notes are the answer.
+  music: { a: "#A855C9", b: "#C079DC", d: "hill", s: `
+    <g stroke="${I}" stroke-width="3">
+      <rect x="24" y="46" width="26" height="26" rx="6" fill="${PAL.raspberry}"/>
+      <rect x="56" y="46" width="26" height="26" rx="6" fill="${PAL.paper}" opacity="0.42"/>
+      <rect x="88" y="46" width="26" height="26" rx="6" fill="${PAL.lagoon}"/>
+      <rect x="120" y="46" width="26" height="26" rx="6" fill="${PAL.paper}" opacity="0.42"/>
+      <rect x="24" y="78" width="26" height="26" rx="6" fill="${PAL.paper}" opacity="0.42"/>
+      <rect x="56" y="78" width="26" height="26" rx="6" fill="${PAL.sunflower}"/>
+      <rect x="88" y="78" width="26" height="26" rx="6" fill="${PAL.paper}" opacity="0.42"/>
+      <rect x="120" y="78" width="26" height="26" rx="6" fill="${PAL.lime}"/></g>
+    <g fill="${PAL.paper}">
+      <ellipse cx="60" cy="26" rx="8" ry="6" transform="rotate(-18 60 26)"/>
+      <rect x="66" y="6" width="3.4" height="18" rx="1.7"/>
+      <ellipse cx="104" cy="20" rx="7" ry="5.4" transform="rotate(-18 104 20)"/>
+      <rect x="109" y="3" width="3.2" height="16" rx="1.6"/></g>
+    <path d="M158 60l26 15-26 15z" fill="${PAL.paper}" stroke="${I}" stroke-width="3" stroke-linejoin="round"/>` },
+
+  // A mouse, one crumb, and the burrow it is heading for - the whole errand in
+  // one picture, which is the game: everything is visible from the first frame
+  // and the only question is the ORDER you do it in.
+  //
+  // Walls are drawn as thick ink strokes rather than as filled hedge blocks,
+  // because at grid size a filled maze reads as a texture and a stroked one
+  // still reads as a route. Nothing here is `snake`: nothing moves until a tap
+  // and a wall cannot kill anybody, so there is no speed or danger to show.
+  maze: { a: "#6FD44E", b: "#93E378", d: "band", s: `
+    <rect x="18" y="16" width="164" height="118" rx="9" fill="${PAL.paper}" stroke="${I}" stroke-width="3.5"/>
+    <g stroke="${I}" stroke-width="7" stroke-linecap="round" fill="none">
+      <path d="M58 16v46M98 134V90M138 16v58M18 98h38M98 62h58"/></g>
+    <circle cx="122" cy="40" r="7" fill="${PAL.sunflower}" stroke="${I}" stroke-width="3"/>
+    <g><path d="M148 134c0-18 12-30 26-30v30z" fill="${I}"/>
+      <path d="M156 134c0-11 7-19 15-19v19z" fill="${PAL.inkSoft}"/></g>
+    <g><path d="M37 68c-9 5-13 12-11 20" stroke="${I}" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+      <circle cx="40" cy="46" r="6" fill="${PAL.paper}" stroke="${I}" stroke-width="3"/>
+      <circle cx="58" cy="46" r="6" fill="${PAL.paper}" stroke="${I}" stroke-width="3"/>
+      <circle cx="49" cy="58" r="15" fill="${PAL.paper}" stroke="${I}" stroke-width="3"/>
+      <circle cx="45" cy="55" r="2.6" fill="${I}"/><circle cx="55" cy="55" r="2.6" fill="${I}"/>
+      <circle cx="50" cy="63" r="2.6" fill="${PAL.raspberry}"/></g>` },
 };

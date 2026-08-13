@@ -30,6 +30,8 @@ import { meta as sort } from "../games/sort/meta";
 import { meta as merge } from "../games/merge/meta";
 import { meta as pet } from "../games/pet/meta";
 import { meta as fit } from "../games/fit/meta";
+import { meta as music } from "../games/music/meta";
+import { meta as maze } from "../games/maze/meta";
 
 /**
  * The roster, in the order the home grid renders it.
@@ -108,6 +110,17 @@ export const GAMES: ReadonlyArray<GameMeta> = [
   // game no longer costs the first visit its picture.
   pet,
   fit,
+
+  // Wave 5. `music` is the FIRST game ever in the `create` category - that
+  // section has been declared in CATEGORY_ORDER since the beginning and has
+  // never rendered, because nothing was in it. `maze` is the first game about
+  // planning a route: a tap names a DESTINATION and the mouse walks it, so the
+  // difficulty is choosing an order rather than hitting a small square.
+  //
+  // Appended like every wave before it, so both land in the lazy half of the
+  // card art and neither costs the first visit its picture.
+  music,
+  maze,
 ];
 
 export function metaFor(id: string): GameMeta | undefined {

@@ -353,6 +353,8 @@ const LAZY_GROUNDS: Record<string, string> = {
   merge: "#FF8A3D",
   pet: "#FF4D8D",
   fit: "#17B98A",
+  music: "#A855C9",
+  maze: "#6FD44E",
 };
 
 /* ---------------------------------------------------------------------------
