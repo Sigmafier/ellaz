@@ -39,6 +39,9 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // Dev-only: lets a tunnel hostname (e.g. *.trycloudflare.com) reach the
+    // dev server for live demos. Irrelevant to production builds.
+    allowedHosts: true,
     proxy: {
       "/api": { target: "http://localhost:8787", changeOrigin: true },
       "/ws": { target: "ws://localhost:8787", ws: true },
