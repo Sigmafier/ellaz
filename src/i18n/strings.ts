@@ -13,16 +13,19 @@
 // chunk.
 //
 // `he` and `en` are STATIC. They are the two the shell has always carried, so
-// the split costs the first visit nothing, and Hebrew — the default — must
-// render on the first frame with nothing to await. Every other language is a
+// the split costs the first visit nothing, and English — the default since
+// 2026-08-14 — must render on the first frame with nothing to await. Hebrew
+// stays static beside it: it is the other language with pages, and it was the
+// default long enough that most returning players still have it stored. Every
+// other language is a
 // `locale-<xx>` chunk fetched only by somebody who asked for it, PAGE
 // LANGUAGES INCLUDED: see the note on `STATIC_LOCALES` for why that stopped
 // being "make it static" and became "make the page fetch it".
 //
 // Until that chunk arrives, a string resolves through ENGLISH rather than
-// through Hebrew: English is the x-default for exactly this reason. A Turkish
-// visitor seeing English for 200ms is reading a language they may know; seeing
-// Hebrew is reading an alphabet they do not.
+// through Hebrew: English is the x-default and the root for exactly this
+// reason. A Turkish visitor seeing English for 200ms is reading a language
+// they may know; seeing Hebrew is reading an alphabet they do not.
 import type { AppLocale, PageLocale } from "./locales";
 import { APP_LOCALES, DEFAULT_LOCALE, dirOf } from "./locales";
 import { he } from "./dict/he";

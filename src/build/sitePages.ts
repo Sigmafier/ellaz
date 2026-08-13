@@ -251,22 +251,26 @@ export function notFoundPage(base: string): string {
   const he = SITE.he;
   const en = SITE.en;
 
+  // English on top and Hebrew in the sub-block, mirroring which language holds
+  // the root. The nested block carries its OWN `dir` and `lang`, so the one
+  // that flips is always the inner one - the document's direction belongs to
+  // its own language and the second language is the guest.
   const body = html`
-    <h1>${he.notFound.h1}</h1>
-    <p class="lede">${he.notFound.body}</p>
-    <p><a href="${href(homePath("he"), base)}">${he.notFound.back}</a></p>
+    <h1>${en.notFound.h1}</h1>
+    <p class="lede">${en.notFound.body}</p>
+    <p><a href="${href(homePath("en"), base)}">${en.notFound.back}</a></p>
     <hr />
-    <div dir="ltr" lang="en">
-      <h2>${en.notFound.h1}</h2>
-      <p>${en.notFound.body}</p>
-      <p><a href="${href(homePath("en"), base)}">${en.notFound.back}</a></p>
+    <div dir="rtl" lang="he">
+      <h2>${he.notFound.h1}</h2>
+      <p>${he.notFound.body}</p>
+      <p><a href="${href(homePath("he"), base)}">${he.notFound.back}</a></p>
     </div>
   `;
 
   return renderDocument({
-    locale: "he",
-    title: he.notFound.title,
-    description: he.notFound.body,
+    locale: "en",
+    title: en.notFound.title,
+    description: en.notFound.body,
     path: "/404.html",
     schema: undefined,
     body,

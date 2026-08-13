@@ -10,6 +10,7 @@ import {
   PAGE_LOCALES,
   SCRIPT,
   dirOf,
+  type PageLocale,
 } from "../i18n/locales";
 import { LOCALES, ROUTES, canonicalUrl, gamePath, homePath, type Route } from "./routes";
 import { gamePage } from "./gamePage";
@@ -133,6 +134,31 @@ function escapeAttr(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 }
 
+/**
+ * Stamp the app shell's `<html>` with the canonical language and its direction.
+ *
+ * Exported so `build.test.ts` can drive it on the real `index.html` and on the
+ * shapes that must throw. It matches the OPENING TAG ONLY - `[^>]*` cannot
+ * cross a `>`, so a stray `<html` inside a comment further down the file is
+ * unreachable and the replacement cannot run away with the document.
+ *
+ * It THROWS rather than returning the input unchanged, because the failure it
+ * is guarding against is silent by nature: a no-op leaves a perfectly valid
+ * document carrying the previous language, which is the exact defect. A build
+ * that stops is recoverable in a minute; a page that ranks in the wrong
+ * language is not noticed for weeks.
+ */
+export function replaceHtmlLangDir(html: string, locale: PageLocale): string {
+  const open = /<html\b[^>]*>/i;
+  if (!open.test(html)) {
+    throw new Error(
+      "page emitter: index.html has no <html> opening tag to stamp lang/dir on. " +
+        "The shell's shape changed - update replaceHtmlLangDir and build.test.ts together.",
+    );
+  }
+  return html.replace(open, `<html lang="${locale}" dir="${dirOf(locale)}">`);
+}
+
 export interface EmittedFile {
   fileName: string;
   source: string;
@@ -223,8 +249,23 @@ export function pagesPlugin(base: string): Plugin {
       // `/index.html` is the path in BOTH environments - measured, not assumed:
       // dev normalises `/` to it, and the build reports it under either base.
       if (ctx.path !== "/index.html") return html;
-      const withHead = html.replace("</head>", `  ${indexHeadTags(base)}\n  </head>`);
-      // The Hebrew home, as a document, ahead of the app's mount point.
+      // `lang` and `dir` DERIVED, never trusted from the file.
+      //
+      // index.html cannot import anything, so its two attributes were a
+      // literal that only a person could keep in step with CANONICAL_LOCALE -
+      // and the day the root changed language they would have kept claiming
+      // the old one. That is a document whose prose is English and whose
+      // `lang` says Hebrew: it renders perfectly, ranks in the wrong language,
+      // and reverses the layout of a page nobody thought to look at. The same
+      // class of drift as the theme-color literal beside them, which needed
+      // its own test for exactly this reason.
+      //
+      // Rewritten rather than asserted, so there is one owner instead of two
+      // that agree. The throw covers the only way this can silently no-op.
+      const withLang = replaceHtmlLangDir(html, CANONICAL_LOCALE);
+      const withHead = withLang.replace("</head>", `  ${indexHeadTags(base)}\n  </head>`);
+      // The canonical language's home, as a document, ahead of the app's mount
+      // point.
       //
       // SIBLING, never a child. A node React does not know about, inside a tree
       // it reconciles, is the nested-root teardown crash in a different costume -

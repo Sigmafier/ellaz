@@ -16,6 +16,54 @@
 # missing page it was covering for. A real 404 is the honest answer.
 ErrorDocument 404 /404.html
 
+# --- The 2026-08-14 language flip -------------------------------------------
+# English took the bare URLs and Hebrew moved to /he/. Two consequences, and
+# only ONE of them can be answered with a redirect:
+#
+#   /en/games/snake/  ->  /games/snake/     301, below. The English pages moved
+#                                           to a new address and the old one is
+#                                           indexed, so it has to point at the
+#                                           new one or ~31 URLs become 404s and
+#                                           lose everything they had earned.
+#                                           (1 home + one per game + world +
+#                                           boards. The exact number MOVES with
+#                                           the roster and was 31 on 2026-08-14
+#                                           - re-derive it from dist/pages.json
+#                                           rather than trusting this line.)
+#
+#   /games/snake/     ->  (nothing)         NOT redirectable, and it must not
+#                                           be attempted. That URL still exists
+#                                           and still answers 200 - it is the
+#                                           ENGLISH page now. Hebrew's new home
+#                                           at /he/games/snake/ has no old
+#                                           address to inherit; Google simply
+#                                           recrawls the bare URL, finds English
+#                                           where Hebrew was, and follows the
+#                                           hreflang cluster to the Hebrew one.
+#                                           That is the accepted cost of the
+#                                           flip, written down so nobody later
+#                                           "fixes" it with a rule that would
+#                                           send every English reader to /he/.
+#
+# 301 rather than 302: this is permanent, and only a 301 passes the ranking the
+# old URLs had. It is also the one thing here that is expensive to get wrong -
+# browsers and crawlers cache a 301 aggressively, so a bad one outlives its fix.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Anchored at the start and requiring the boundary slash, so it matches the
+  # /en/ DIRECTORY and nothing that merely begins with those letters. Without
+  # the `/` a future /english-rules/ page would be swept into it silently.
+  # `$1` may be empty, which is what turns /en/ itself into /.
+  RewriteRule ^en/(.*)$ /$1 [R=301,L]
+
+  # The slashless form, which used to be handled for free. DirectorySlash 301s
+  # /en to /en/ only while `dist/en/` exists on disk - and it does not any more,
+  # so without this line the shortest and most-typed of the old URLs is the one
+  # that 404s. `^en$` is exact: it cannot reach /english or /en-us.
+  RewriteRule ^en$ / [R=301,L]
+</IfModule>
+
 # MultiViews would let Apache guess: a request for /games/2048 could be answered
 # with some other file whose name it liked, before DirectorySlash ever got the
 # chance to redirect. Off.

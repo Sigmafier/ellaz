@@ -5,6 +5,7 @@ import { boardsHref, gameHref, homeHref, worldHref } from "./paths";
 import { readPageContext } from "./pageContext";
 import { redirectLegacyHash } from "./legacyHash";
 import { boardsPath, gamePath, homePath, worldPath } from "../build/routes";
+import { CANONICAL_LOCALE, PAGE_LOCALES } from "@i18n/locales";
 
 /**
  * The app's link generator and the page emitter's route table are two
@@ -28,8 +29,9 @@ describe("the app links to the pages the emitter actually writes", () => {
   });
 
   it("uses the game id, not the directory name", () => {
-    // src/games/n2048/ has meta.id "2048".
-    expect(gameHref("2048", "he")).toBe("/games/2048/");
+    // src/games/n2048/ has meta.id "2048". The canonical language, so this
+    // stays a test about the SLUG rather than about who owns the bare URL.
+    expect(gameHref("2048", CANONICAL_LOCALE)).toBe("/games/2048/");
   });
 });
 
@@ -143,8 +145,18 @@ describe("old hash links keep working", () => {
   });
 
   it("carries the requested language through", () => {
+    // A NON-canonical language on purpose. Asked in the canonical one the
+    // answer is the bare URL, which is also what a wrong or ignored argument
+    // produces - so the test would pass without carrying anything through.
+    const other = PAGE_LOCALES.find((l) => l !== CANONICAL_LOCALE)!;
     const loc = { ...spy(), hash: "#/game/sudoku" };
-    redirectLegacyHash(loc, "en");
-    expect(loc.calls).toEqual(["/en/games/sudoku/"]);
+    redirectLegacyHash(loc, other);
+    expect(loc.calls).toEqual([`/${other}/games/sudoku/`]);
+  });
+
+  it("defaults to the bare URL, so an old link needs no second hop", () => {
+    const loc = { ...spy(), hash: "#/game/sudoku" };
+    redirectLegacyHash(loc);
+    expect(loc.calls).toEqual(["/games/sudoku/"]);
   });
 });

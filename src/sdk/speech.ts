@@ -35,14 +35,21 @@
  * 5. Nothing here throws or rejects. Ever. Speech failing must not be a bug
  *    report — it must be silence.
  */
-import type { Locale } from "@i18n/index";
+import { DEFAULT_LOCALE as APP_DEFAULT_LOCALE, type Locale } from "@i18n/index";
 import type { SpeakOptions, SpeechPort } from "./types";
 import { audioPort } from "./audio";
 import { analytics } from "./analytics";
 
 const DEFAULT_RATE = 0.85; // much clearer for a 5-year-old than the 1.0 default
 const DEFAULT_PITCH = 1.05;
-const DEFAULT_LOCALE: Locale = "he";
+// Which language a caller that names none is read aloud in. It follows the
+// app's own default rather than restating it, so the two can never disagree
+// about what "no language given" means - it moved to English on 2026-08-14
+// with the root, and nothing here had to be found and edited.
+//
+// Games that care pass `locale` explicitly, so this is the fallback for a
+// call site that genuinely does not know, not a policy every game inherits.
+const DEFAULT_LOCALE: Locale = APP_DEFAULT_LOCALE;
 
 /** How long to wait for a `voiceschanged` that may never come, before reporting. */
 const SETTLE_MS = 3000;

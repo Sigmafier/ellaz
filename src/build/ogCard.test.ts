@@ -10,6 +10,7 @@ import {
   toVisualOrder,
 } from "./ogCard";
 import { OG_ROUTES, ROUTES } from "./routes";
+import { CANONICAL_LOCALE } from "../i18n/locales";
 
 /**
  * These tests exist because BOTH renderers in the share-card pipeline get
@@ -91,10 +92,10 @@ describe("card files", () => {
     expect(OG_ROUTES.some((r) => r.kind === "notFound")).toBe(false);
   });
 
-  it("includes the Hebrew home page even though it does not emit a document", () => {
+  it("includes the bare-URL home page even though it does not emit a document", () => {
     // `/` is the app shell rather than a generated page, and it is also the
     // most-shared URL on the site. Filtering on `emit` would silently drop it.
-    const home = OG_ROUTES.find((r) => r.kind === "home" && r.locale === "he");
+    const home = OG_ROUTES.find((r) => r.kind === "home" && r.locale === CANONICAL_LOCALE);
     expect(home).toBeDefined();
     expect(home!.emit).toBe(false);
   });

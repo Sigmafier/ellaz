@@ -11,9 +11,10 @@ import { registerSW } from "virtual:pwa-register";
 
 // One bundle, two shapes of page.
 //
-//   /  /en/  /es/        the app shell. React owns #root and the whole viewport.
-//                        `/` is Vite's own index.html; the other two are emitted
-//                        with the same arrangement and a `data-locale`.
+//   /  /he/  /es/        the app shell. React owns #root and the whole viewport.
+//                        `/` is Vite's own index.html and is ENGLISH; the other
+//                        two are emitted with the same arrangement and a
+//                        `data-locale`.
 //   /games/<id>/         a document. React owns #game-frame and #wallet-slot,
 //   /world/              and nothing else on the page is ever reconciled.
 //
@@ -64,7 +65,8 @@ if (!redirectLegacyHash()) {
       // before mounting, exactly as `bootContentPage` does and for the same
       // reason: `es` is not one of the two static dictionaries, so mounting
       // first paints an ENGLISH home over a Spanish document for a network
-      // round trip. There is no flash to trade against - the emitted home is
+      // round trip. (`/he/` is static and takes the fast path; Spanish is the
+      // one that waits.) There is no flash to trade against - the emitted home is
       // still on screen and React has not rendered a thing. `/` passes no
       // locale and takes this branch's `else`, so its first paint is untouched.
       if (page.locale && !isLoaded(page.locale)) void loadDict(page.locale).then(mount);

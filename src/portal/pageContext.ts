@@ -25,9 +25,9 @@ export interface PageContext {
    * The page's own language, from what the emitter stamped.
    *
    * `/` deliberately has none: it is the canonical entry and it keeps the
-   * player's stored preference and its in-app toggle. `/en/` and `/es/` are
+   * player's stored preference and its in-app toggle. `/he/` and `/es/` are
    * app shells too, and they DO have one - somebody asking for that URL has
-   * said which language they want, and answering in Hebrew because a previous
+   * said which language they want, and answering in English because a previous
    * visit stored it is the thing that would read as broken.
    */
   locale?: Locale;
@@ -59,11 +59,13 @@ export function readPageContext(doc: Document = document): PageContext {
   // rather than by the data attribute, so a hand-edited or half-deployed
   // document still boots the app rather than silently mounting nothing.
   //
-  // `data-locale` ONLY here, never `documentElement.lang`. `index.html` is
-  // `lang="he"` and always has been, so reading the attribute would pin `/` to
-  // Hebrew and silently override the stored preference of every player who
-  // chose one of the other ten languages. The emitted shells carry
-  // `data-locale`; `/` carries none, and that absence is the signal.
+  // `data-locale` ONLY here, never `documentElement.lang`. `index.html` always
+  // carries a `lang` - `he` until 2026-08-14 and `en` since - so reading the
+  // attribute would pin `/` to whichever language holds the root and silently
+  // override the stored preference of every player who chose one of the other
+  // ten. The emitted shells carry `data-locale`; `/` carries none, and that
+  // absence is the signal. The flip did not change this line and could not:
+  // the bug it prevents is "the root's language wins", not "Hebrew wins".
   if (root || !frame) return { kind: "app", locale: asLocale(doc.body?.dataset.locale) };
 
   const locale = asLocale(doc.documentElement.lang) ?? asLocale(doc.body.dataset.locale);

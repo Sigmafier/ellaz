@@ -5,7 +5,7 @@ Guidance for Claude Code (and humans) working in this repo.
 ## What this is
 
 Ellaz is a **cross-device casual-games PWA** — one website where kids and adults
-play our games on phone, tablet, and PC. Hebrew (default, RTL) + English (LTR).
+play our games on phone, tablet, and PC. English (default, LTR) + Hebrew (RTL).
 Anonymous play, on-device saves, anonymous kid-safe analytics. No backend.
 
 **What shipped, in order, with the measured numbers and the traps each one
@@ -207,8 +207,12 @@ its reader to ignore the daily email. Arming is one line in `crawlable.yml`, in 
 same change that makes the last offender pass.
 
 **60 and not 120**, and that number moved for a reason worth keeping: the emitted
-Hebrew home is deliberately compact at 130 words, so at 120 it cleared the floor by
-ten words and one trimmed sentence would have reded a correct page. See
+home is deliberately compact, and at 120 the Hebrew one (130 words, when Hebrew
+held `/`) cleared the floor by ten words — one trimmed sentence would have reded
+a correct page. The English home that replaced it measures 181 words, which is
+more headroom by accident rather than by design, and is exactly why the floor
+stays at 60: the distance a floor must see is empty-vs-real, and that gap is a
+chasm at any sane value. See
 [`.claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md`](.claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md).
 
 The body scan uses `indexOf`/`lastIndexOf` rather than a regex, and that is a fix
@@ -539,9 +543,9 @@ almost certainly needs no engine**: 22 of the 23 render as React over a pure
 hit for `from "phaser"` in `src/`, re-verified 2026-08-13). Phaser sits in its own
 lazy `vendor-phaser` chunk - "cached across all canvas games" was never true,
 because snake is the only canvas game.
-**Two web pages come for free as well** - the route table is derived from the
-roster, so `/games/<id>/` and `/en/games/<id>/` are emitted, sitemapped and gated
-the moment step 5 lands. Missing step 6 is a red build, not a thin page.
+**Three web pages come for free as well** - the route table is derived from the
+roster and `PAGE_LOCALES`, so `/games/<id>/`, `/he/games/<id>/` and
+`/es/games/<id>/` are emitted, sitemapped and gated the moment step 5 lands. Missing step 6 is a red build, not a thin page.
 
 **Two gates key on a DIRECTORY CONTAINING `meta.ts`, not on registration**, so
 "I haven't registered it yet" does not keep a half-built game out of their
@@ -564,15 +568,46 @@ so `npm run build` cannot skip them and neither deploy workflow can forget.
 
 | URL | What it is |
 |---|---|
-| `/` | the application, and now also a document. The emitter adds head tags AND the Hebrew home body; it never overwrites the file |
-| `/games/<id>/` · `/en/games/<id>/` · `/es/games/<id>/` | 25 games x 3 languages, ~900 words each |
-| `/en/` · `/es/` | the home screen in that language — **the app**, emitted as a shell (see below) |
-| `/world/` · `/en/world/` | the room |
-| `/boards/` · `/en/boards/` | the leaderboards (two screens - see below) |
+| `/` | the application, and now also a document. **ENGLISH since 2026-08-14.** The emitter adds head tags AND the English home body; it never overwrites the file |
+| `/games/<id>/` · `/he/games/<id>/` · `/es/games/<id>/` | every game x 3 languages, ~900 words each (28 on 2026-08-14 — read the count off the roster, not off this line) |
+| `/he/` · `/es/` | the home screen in that language — **the app**, emitted as a shell (see below) |
+| `/world/` · `/he/world/` · `/es/world/` | the room |
+| `/boards/` · `/he/boards/` · `/es/boards/` | the leaderboards (two screens - see below) |
 | `/404.html` | bilingual, `noindex`, and `ErrorDocument`-wired on Hostinger |
 | `robots.txt` · `sitemap.xml` · `llms.txt` | emitted, not in `public/` (see below) |
 
-**`/` carries the Hebrew home as real markup, because no answer engine runs
+**English took the bare URLs on 2026-08-14, and Hebrew moved to `/he/`.** One
+constant did it — `CANONICAL_LOCALE` in `src/i18n/locales.ts` — because
+`localePrefix` gives the canonical language the bare path and every other
+language a directory. Moving it moved every English document up to `/…` and
+every Hebrew one down to `/he/…` — 31 each on the day, and that number moves
+with the roster — and rewrote every canonical, `og:locale`,
+JSON-LD `inLanguage`, sitemap row and share card with them. `DEFAULT_LOCALE`
+was already English, so `x-default` did not move; the two constants are now
+the same language and both are kept, because they answer different questions
+and were different for months.
+
+**Only ONE side of that could be redirected, and the asymmetry is the whole
+SEO cost.** `/en/*` → `/*` is a 301 in `deploy/hostinger.htaccess` (plus the
+slashless `^en$`, which used to be free from `DirectorySlash` and is not any
+more, `dist/en/` being gone). The Hebrew side has no such rule and must never
+get one: `/games/snake/` still answers 200 — it is the *English* page now — so
+a redirect there would send every English reader to `/he/`. Hebrew's new
+addresses simply have no history to inherit; Google recrawls the bare URL,
+finds English, and follows the hreflang cluster. That is written down in the
+`.htaccess` beside the rule so nobody later "fixes" the missing half.
+
+Three runtime fallbacks moved with it and none is a literal any more:
+`storedLocale()` (a first-time visitor), `redirectLegacyHash`'s default (an old
+`#/game/snake` link now lands on the bare URL, so it needs no second hop), and
+`speech.ts`'s unnamed-locale default. `index.html`'s `lang`/`dir` are **rewritten
+at build time** from `CANONICAL_LOCALE` rather than reviewed — the file cannot
+import anything, so a stale literal there is a document whose prose is English,
+whose `lang` says Hebrew and whose layout is mirrored, all while rendering
+perfectly. Cost on the artifact: **89,454 B gz of 90,000**, up 132 B, because
+the same home screen is more bytes in English than in Hebrew.
+
+**`/` carries the English home as real markup, because no answer engine runs
 JavaScript.** It used to ship a 29-byte body - `<div id="root"></div>` and
 nothing else. Googlebot renders JS so it saw the grid eventually, but GPTBot,
 ClaudeBot and PerplexityBot fetch raw HTML and move on, so the site's canonical
@@ -592,7 +627,10 @@ on the artifact, served and curled as Googlebot: **0 words -> 132, 0 links ->
 from the roster, so a new game joins it without an edit.
 [`.claude/rules/a-spa-shell-is-invisible-to-ai-crawlers.md`](.claude/rules/a-spa-shell-is-invisible-to-ai-crawlers.md).
 
-**EVERY home page is the app now, not only `/` (2026-08-13).** `/en/` and `/es/`
+**EVERY home page is the app now, not only `/` (2026-08-13).** The URLs in this
+paragraph are the ones that existed then: English was still at `/en/` and moved
+to `/` on 2026-08-14. The mechanism is unchanged and applies to whichever
+languages hold the directories. `/en/` and `/es/`
 were pure documents — a heading, a fact list, emoji links and prose, with no
 runtime at all. That is the correct shape for an article and the wrong shape for
 the **home screen**, and it was reported by a person rather than caught by
@@ -611,11 +649,13 @@ locale** — hardcoded to Hebrew it would have emitted the Hebrew home under
 `lang="en"`, a page that renders, links correctly, clears every floor and is in
 the wrong language (the script gate in `assert-pages.mjs` is the control).
 And `readPageContext` reads **`data-locale` only, never `documentElement.lang`**,
-on the app branch: `index.html` has said `lang="he"` since long before any of
-this, so reading the attribute would pin `/` to Hebrew over the stored choice of
-every player using one of the other ten languages. `/` carries no `data-locale`,
-and that absence is the signal. The URL wins on `/en/` and `/es/` and is **not
-persisted** — following one English link must not repaint `/` for a Hebrew
+on the app branch: `index.html` always carries a `lang` — `he` until 2026-08-14
+and `en` since — so reading the attribute would pin `/` to whichever language
+holds the root, over the stored choice of every player using one of the other
+ten. `/` carries no `data-locale`, and that absence is the signal. The flip did
+not change that line and could not: the bug it prevents is "the root's language
+wins", not "Hebrew wins". The URL wins on `/he/` and `/es/` and is **not
+persisted** — following one Hebrew link must not repaint `/` for an English
 speaker. Spanish waits for its dictionary before mounting, exactly as
 `bootContentPage` does, so there is no flash of English over Spanish prose.
 
@@ -971,7 +1011,13 @@ the neighbouring page is the worst shape available.**
 `x-default` is **English, not Hebrew** — it answers "we have no page in your
 language", and Hebrew is the wrong answer to that for everyone except Hebrew
 speakers, who are matched by their own `hreflang` long before `x-default` is
-consulted. `/` is still the Hebrew home and still ranks as Hebrew.
+consulted. Since 2026-08-14 it points at `/`, which is the English home, so
+`x-default` and the canonical language are now the SAME. That is legal and
+correct — Google's own examples do it — and both constants are kept rather
+than collapsed into one, because they answer different questions and were
+different for months. The test on them asserts English rather than
+`!== CANONICAL`, so it stayed meaningful through the flip instead of
+inverting with it.
 
 Full rule, including why the picker carries autonyms and never flags:
 [`.claude/rules/a-locale-page-without-a-translated-body-is-a-duplicate.md`](.claude/rules/a-locale-page-without-a-translated-body-is-a-duplicate.md).

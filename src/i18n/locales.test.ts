@@ -36,11 +36,14 @@ describe("the two locale lists", () => {
     expect(isPageLocale(CANONICAL_LOCALE)).toBe(true);
   });
 
-  it("x-default is NOT the canonical language", () => {
-    // If these were the same, x-default would be answering "we have no page in
-    // your language" with Hebrew, which is the wrong answer for everyone on
-    // earth except Hebrew speakers - and they are matched by hreflang first.
-    expect(DEFAULT_LOCALE).not.toBe(CANONICAL_LOCALE);
+  it("x-default is a language somebody unmatched can actually read", () => {
+    // These two were DIFFERENT for months - Hebrew at `/`, English as
+    // x-default - and are the same now that English took the root. Both
+    // states are legal, so the assertion is on the property that has to hold
+    // either way: x-default must never be the language nobody outside one
+    // country reads. Pinning it to English rather than to `!== CANONICAL`
+    // keeps the test meaningful after the flip instead of inverting with it.
+    expect(DEFAULT_LOCALE).toBe("en");
   });
 });
 
@@ -122,12 +125,22 @@ describe("guards", () => {
 });
 
 describe("URL prefixes", () => {
-  it("Hebrew is bare and every other language has a directory", () => {
-    expect(localePrefix("he")).toBe("");
+  it("the canonical language is bare and every other language has a directory", () => {
+    // Derived, not literal. Written as `localePrefix("he") === ""` this test
+    // passed for the wrong reason the moment the root changed language, and
+    // would have had to be edited by whoever moved it - which is exactly the
+    // hand-edit that lets a real drift through.
+    expect(localePrefix(CANONICAL_LOCALE)).toBe("");
     for (const l of PAGE_LOCALES) {
       if (l === CANONICAL_LOCALE) continue;
       expect(localePrefix(l)).toBe(`/${l}`);
     }
+  });
+
+  it("exactly one page language is bare", () => {
+    // Two bare languages would mean two documents claiming the same file, and
+    // the second would overwrite the first with no error anywhere.
+    expect(PAGE_LOCALES.filter((l) => localePrefix(l) === "")).toEqual([CANONICAL_LOCALE]);
   });
 
   it("never emits a trailing slash, so callers can concatenate freely", () => {

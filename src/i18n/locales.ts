@@ -51,14 +51,15 @@
 /**
  * Every language the interface speaks.
  *
- * Order is display order in the picker: Hebrew and English first because they
- * are ours, then the rest by rough audience size. Adding one here costs the
- * translation of ~341 strings and NOTHING else - no route, no page, no sitemap
- * entry, no share card.
+ * Order is display order in the picker: English first because it is the
+ * default the site answers in, Hebrew second because it is ours, then the rest
+ * by rough audience size. Adding one here costs the translation of ~341
+ * strings and NOTHING else - no route, no page, no sitemap entry, no share
+ * card.
  */
 export const APP_LOCALES = [
-  "he",
   "en",
+  "he",
   "es",
   "pt",
   "fr",
@@ -78,7 +79,7 @@ export type AppLocale = (typeof APP_LOCALES)[number];
  * Read the file header before adding to this list. The short version: prose
  * first, this list second, or the build goes red.
  */
-export const PAGE_LOCALES = ["he", "en", "es"] as const;
+export const PAGE_LOCALES = ["en", "he", "es"] as const;
 
 export type PageLocale = (typeof PAGE_LOCALES)[number];
 
@@ -96,16 +97,17 @@ void _pageLocalesAreAppLocales;
 /**
  * Which page a visitor reading the app in `locale` should be sent to.
  *
- * The app speaks eleven languages; pages exist in two. So a Spanish-speaking
- * player tapping a game card goes to the ENGLISH page, because the Spanish one
+ * The app speaks eleven languages; pages exist in three. So a French-speaking
+ * player tapping a game card goes to the ENGLISH page, because the French one
  * does not exist and will not until somebody writes it.
  *
  * That is not a compromise, it is the same answer `x-default` gives a crawler,
  * and making it a function rather than an inline `?:` is what stops it drifting:
- * the day Spanish is promoted to a PAGE locale this returns `"es"` on its own,
- * with no call site to find.
+ * the day French is promoted to a PAGE locale this returns `"fr"` on its own,
+ * with no call site to find. Spanish already made that trip, and nothing here
+ * was edited for it.
  *
- * The alternative - emitting a Spanish route because the app has a Spanish
+ * The alternative - emitting a French route because the app has a French
  * dictionary - is the exact duplicate-content anti-pattern the two locale sets
  * exist to prevent. A translated BUTTON is not a translated ARTICLE.
  */
@@ -228,20 +230,35 @@ export const ENGLISH_NAME: Record<AppLocale, string> = {
 };
 
 /**
- * The language a visitor gets when nothing matches theirs - `x-default`, and
- * the fallback the picker offers.
+ * The language a visitor gets when nothing matches theirs - `x-default`, the
+ * fallback the picker offers, and the language a first-time visitor is
+ * answered in before they have chosen anything.
  *
- * ENGLISH, not Hebrew, and that is a change from what this site shipped for
- * months. `/` is still the Hebrew home and still ranks as Hebrew; x-default is
- * a different question, and it asks what to serve a Turkish speaker we have no
- * Turkish page for. English is a better answer than Hebrew for everyone on
- * earth except Hebrew speakers, who are matched by hreflang before x-default is
+ * English. It asks what to serve a Turkish speaker we have no Turkish page
+ * for, and English is a better answer than Hebrew for everyone on earth except
+ * Hebrew speakers, who are matched by `hreflang="he"` long before x-default is
  * ever consulted.
  */
 export const DEFAULT_LOCALE: PageLocale = "en";
 
-/** The language `/` itself is written in. Hebrew is canonical and always has been. */
-export const CANONICAL_LOCALE: PageLocale = "he";
+/**
+ * The language `/` itself is written in.
+ *
+ * ENGLISH since 2026-08-14. It was Hebrew from the beginning, and the flip is
+ * the reason `/he/` exists at all: `localePrefix` gives the canonical language
+ * the bare URLs and every other language a directory, so moving this constant
+ * moved 27 Hebrew documents to `/he/...` and 27 English ones up to `/...`.
+ *
+ * The two constants are now the SAME language, and that is correct rather than
+ * a redundancy to collapse. They answer different questions - "what language
+ * is this URL written in" and "what do we serve someone we cannot match" - and
+ * they were different for months. Keeping both means the day a fourth language
+ * takes the root, or x-default moves, is a one-line change rather than a hunt.
+ *
+ * Anything that moves this must ship the redirects with it: the old addresses
+ * are indexed, and `deploy/hostinger.htaccess` is where they are answered.
+ */
+export const CANONICAL_LOCALE: PageLocale = "en";
 
 export function isAppLocale(value: unknown): value is AppLocale {
   return typeof value === "string" && (APP_LOCALES as readonly string[]).includes(value);
@@ -252,8 +269,9 @@ export function isPageLocale(value: unknown): value is PageLocale {
 }
 
 /**
- * The URL prefix for a language. Hebrew is bare because `/` is the Hebrew home;
- * everything else lives under its own directory.
+ * The URL prefix for a language. The canonical language is bare because `/` is
+ * its home; everything else lives under its own directory. English is bare
+ * today and Hebrew reads `/he`.
  *
  * Subdirectories rather than subdomains or country domains, deliberately: they
  * inherit the domain's authority, they need no extra DNS or certificate, and

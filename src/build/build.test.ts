@@ -5,9 +5,15 @@ import { SITE } from "../content/site";
 import { GAMES } from "../portal/games";
 import { CATALOG } from "../portal/catalog";
 import { escapeHtml, html, jsonLd, raw, toHtml } from "./html";
-import { ENGLISH_NAME } from "../i18n/locales";
+import { CANONICAL_LOCALE, ENGLISH_NAME, dirOf } from "../i18n/locales";
 import { LOCALES, ROUTES, canonicalUrl, gamePath, homePath, href } from "./routes";
-import { allEmittedFiles, indexHeadTags, pagesPlugin, renderRoute } from "./pages";
+import {
+  allEmittedFiles,
+  indexHeadTags,
+  pagesPlugin,
+  renderRoute,
+  replaceHtmlLangDir,
+} from "./pages";
 import { headingFor, relatedTo } from "./gamePage";
 import { llmsTxt, robotsTxt, sitemapXml } from "./siteFiles";
 import { DEV_HEAD_ASSETS, chunkNameFor, resolveLazyChunks, type HeadAssets } from "./assets";
@@ -67,7 +73,9 @@ describe("the route table", () => {
   it("uses the game's own id as the slug, not its directory name", () => {
     // The trap: src/games/n2048/ has meta.id "2048". A hand-written
     // /games/n2048/ is a 404 nothing else would catch.
-    expect(gamePath("2048", "he")).toBe("/games/2048/");
+    // The canonical language, so the assertion stays about the SLUG rather
+    // than about which language holds the bare URL.
+    expect(gamePath("2048", CANONICAL_LOCALE)).toBe("/games/2048/");
     expect(ROUTES.some((r) => r.path.includes("n2048"))).toBe(false);
   });
 
@@ -81,9 +89,14 @@ describe("the route table", () => {
   it("does not emit over the application", () => {
     // `/` is the app shell. The emitter enhances its head; overwriting it with
     // a document would delete the app.
-    const home = ROUTES.find((r) => r.kind === "home" && r.locale === "he")!;
+    const home = ROUTES.find((r) => r.kind === "home" && r.locale === CANONICAL_LOCALE)!;
     expect(home.file).toBe("index.html");
     expect(home.emit).toBe(false);
+    // And exactly one home is exempt. Two would mean two routes claiming
+    // `index.html`, which the duplicate-file check above would catch - but
+    // ZERO would mean the emitter writes a document over the application, and
+    // nothing else here is looking for that.
+    expect(ROUTES.filter((r) => r.kind === "home" && !r.emit)).toHaveLength(1);
   });
 
   it("keeps the canonical free of the base on every host", () => {
@@ -653,13 +666,17 @@ describe("robots, sitemap and llms", () => {
 describe("the head injected into the application's own index.html", () => {
   it("carries a canonical, both alternates and the list of every game", () => {
     const tags = indexHeadTags("/");
-    expect(tags).toContain(`<link rel="canonical" href="${canonicalUrl(homePath("he"))}" />`);
-    expect(tags).toContain(`hreflang="en"`);
+    expect(tags).toContain(
+      `<link rel="canonical" href="${canonicalUrl(homePath(CANONICAL_LOCALE))}" />`,
+    );
+    // Every page language advertised, and x-default pointing at the bare URL.
+    for (const l of LOCALES) expect(tags).toContain(`hreflang="${l}"`);
+    expect(tags).toContain(`<link rel="alternate" hreflang="x-default" href="https://ellaz.fun/" />`);
     const graph = JSON.parse(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(tags)![1]);
     const list = graph["@graph"].find((n: { "@type": string }) => n["@type"] === "ItemList");
     expect(list.numberOfItems).toBe(GAMES.length);
     expect(list.itemListElement.map((i: { url: string }) => i.url)).toContain(
-      canonicalUrl(gamePath("2048", "he")),
+      canonicalUrl(gamePath("2048", CANONICAL_LOCALE)),
     );
   });
 
@@ -669,7 +686,7 @@ describe("the head injected into the application's own index.html", () => {
   });
 });
 
-describe("the Hebrew home is a document, not an empty shell", () => {
+describe("the bare-URL home is a document, not an empty shell", () => {
   // 2026-08-11. `/` served `<div id="root"></div>` and nothing else: 29 bytes,
   // zero words, zero headings, zero links. Googlebot renders JavaScript so it
   // saw the grid eventually; GPTBot, ClaudeBot and PerplexityBot do not render,
@@ -677,7 +694,14 @@ describe("the Hebrew home is a document, not an empty shell", () => {
   // answer engine. `/en/`, an emitted document, was fine the whole time - which
   // is why nothing caught it.
 
-  /** The app shell as Vite hands it over: a mount point and nothing else. */
+  /**
+   * The app shell as Vite hands it over: a mount point and nothing else.
+   *
+   * Deliberately stamped with the WRONG language - `he`/`rtl`, what the real
+   * file said before 2026-08-14. A fixture already carrying `en`/`ltr` would
+   * pass whether or not the emitter rewrites anything, which is the whole
+   * failure this fixture exists to make impossible.
+   */
   const SHELL = `<!doctype html><html lang="he" dir="rtl"><head></head>
     <body class="app-shell"><div id="root"></div>
     <script type="module" src="/src/main.tsx"></script></body></html>`;
@@ -697,6 +721,40 @@ describe("the Hebrew home is a document, not an empty shell", () => {
   };
 
   const transform = (base: string): string => runTransform(base, SHELL);
+
+  it("stamps the shell's lang and dir from CANONICAL_LOCALE", () => {
+    // index.html cannot import anything, so its `lang`/`dir` were a literal
+    // only a person could keep in step with the root's language - and a stale
+    // one is a document whose prose is English, whose `lang` says Hebrew, and
+    // whose layout is mirrored. It renders perfectly and is wrong in three
+    // ways at once, which is why this is rewritten rather than reviewed.
+    const out = transform("/");
+    expect(out).toContain(`<html lang="${CANONICAL_LOCALE}" dir="${dirOf(CANONICAL_LOCALE)}">`);
+    // The fixture went in as he/rtl, so this proves a REWRITE rather than a
+    // fixture that already agreed.
+    expect(out).not.toContain('lang="he" dir="rtl"');
+  });
+
+  it("refuses a shell with no <html> tag rather than emitting the old language", () => {
+    // The only way the rewrite can silently no-op is if it stops matching, and
+    // a no-op leaves a valid document carrying the previous language - exactly
+    // the defect. So it throws, and this is the control proving it does.
+    expect(() => replaceHtmlLangDir("<body><div id=\"root\"></div></body>", "en")).toThrow(
+      /no <html> opening tag/,
+    );
+  });
+
+  it("stamps the opening tag only, never a later mention of <html", () => {
+    // `[^>]*` cannot cross a `>`, so the match is bounded to one tag. Without
+    // that the replacement could run away across the document - a corruption
+    // that would still parse, and so would still look fine.
+    const out = replaceHtmlLangDir(
+      `<html lang="he" dir="rtl"><head></head><body><!-- <html lang="zz"> --></body></html>`,
+      "en",
+    );
+    expect(out).toContain(`<html lang="en" dir="ltr"><head>`);
+    expect(out).toContain(`<!-- <html lang="zz"> -->`);
+  });
 
   it("carries an h1 and every game as a real link", () => {
     const out = transform("/");

@@ -48,12 +48,17 @@ function storedLocale(): AppLocale {
     const saved = localStorage.getItem(LOCALE_KEY);
     // Validated against the list rather than trusted. A stored locale this
     // build no longer speaks - a language removed, or a hand-edited value -
-    // must fall back to Hebrew, not render a screen of raw key names.
+    // must fall back to the default, not render a screen of raw key names.
     if (saved && (APP_LOCALES as readonly string[]).includes(saved)) return saved as AppLocale;
   } catch {
     /* ignore */
   }
-  return "he";
+  // ENGLISH, not Hebrew, since 2026-08-14. This is what a first-time visitor
+  // is answered in, and English is the language the largest number of them can
+  // read - the same argument x-default makes to a crawler. A returning player
+  // who picked a language still gets theirs: the stored value is read first
+  // and only an unusable one reaches this line.
+  return DEFAULT_LOCALE;
 }
 
 // Root shell for `/`, and ONLY for `/`.

@@ -1,6 +1,7 @@
 import { parseHash } from "./route";
 import { boardsHref, gameHref, worldHref } from "./paths";
 import type { Locale } from "@i18n/index";
+import { CANONICAL_LOCALE } from "@i18n/locales";
 
 /**
  * Old links keep working.
@@ -19,7 +20,13 @@ import type { Locale } from "@i18n/index";
  */
 export function redirectLegacyHash(
   loc: Pick<Location, "hash" | "replace"> = window.location,
-  locale: Locale = "he",
+  // CANONICAL rather than the player's stored preference, and rather than a
+  // literal. An old `#/game/snake` link carries no language, so the honest
+  // landing is the bare URL - which is the canonical language's by definition,
+  // and needs no redirect after it. A literal here would have kept sending
+  // these to Hebrew after English took the root, quietly bouncing every legacy
+  // bookmark through /he/.
+  locale: Locale = CANONICAL_LOCALE,
 ): boolean {
   if (!loc.hash || loc.hash === "#" || loc.hash === "#/") return false;
 

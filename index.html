@@ -1,7 +1,12 @@
 <!doctype html>
-<html lang="he" dir="rtl">
+<html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
+    <!-- The `lang` and `dir` above are REWRITTEN at build time from
+         CANONICAL_LOCALE by the page emitter (src/build/pages.ts), so the two
+         literals are what a source reader and the dev server see, never a
+         second source of truth. They said `he`/`rtl` until 2026-08-14, when
+         English took the root and Hebrew moved to /he/. -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <!-- NO `user-scalable=no`. Blocking pinch-zoom fails WCAG 1.4.4 (resize to
          200%), and the 48 emitted content pages have always allowed zoom - so
@@ -13,7 +18,7 @@
          src/ui/theme-sync.test.ts, because this is a literal that cannot
          import anything and drifted silently for exactly that reason. -->
     <meta name="theme-color" content="#ff4d8d" />
-    <title>Ellaz — משחקים / Games</title>
+    <title>Ellaz — Games / משחקים</title>
   </head>
   <body class="app-shell">
     <div id="root"></div>

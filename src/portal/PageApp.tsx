@@ -1,5 +1,5 @@
 import { createRoot, type Root } from "react-dom/client";
-import { loadDict, type Locale } from "@i18n/index";
+import { DEFAULT_LOCALE, loadDict, type Locale } from "@i18n/index";
 import { analytics, startCloudSync } from "@sdk/index";
 import { Boards } from "./Boards";
 import { fitStage } from "./fitStage";
@@ -123,7 +123,11 @@ function exitTo(locale: Locale): () => void {
 }
 
 export function bootContentPage(ctx: PageContext): void {
-  const locale: Locale = ctx.locale ?? "he";
+  // Every emitted page stamps its own language, so this fallback is only ever
+  // reached by a hand-edited or half-deployed document. DEFAULT_LOCALE rather
+  // than a literal: the answer to "we could not tell" is the same everywhere,
+  // and it moved to English with the root.
+  const locale: Locale = ctx.locale ?? DEFAULT_LOCALE;
   const frame = ctx.frame;
   if (!frame) return;
 

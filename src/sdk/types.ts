@@ -91,7 +91,12 @@ export type SfxName =
   | "streak";
 
 export interface SpeakOptions {
-  /** Which language to speak in. Default "he" (the app's default locale). */
+  /**
+   * Which language to speak in. Omitted, it follows the app's own
+   * `DEFAULT_LOCALE` — deliberately not restated here, because a second copy
+   * of that value is a second thing to remember to change. It said `"he"` and
+   * went stale within hours of the root moving to English on 2026-08-14.
+   */
   locale?: Locale;
   /** Default 0.85 — measurably clearer for a 5-year-old than the 1.0 default. */
   rate?: number;

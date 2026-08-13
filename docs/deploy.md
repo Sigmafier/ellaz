@@ -104,9 +104,27 @@ but the FTP login is chrooted there, so from FTP's point of view it is `/`.
 Overrides, if any of this changes, are repo **variables** (not secrets), so no
 code edit is needed: `FTP_SERVER_DIR`, `FTP_PROTOCOL`.
 
-## Cache headers (`deploy/hostinger.htaccess`)
+## Redirects and cache headers (`deploy/hostinger.htaccess`)
 
 Ships to Hostinger only — Pages runs nginx and ignores `.htaccess`. It sets:
+
+- **`301 /en/* → /*`** (and `^en$`, for the slashless form). English took the
+  bare URLs on 2026-08-14 and Hebrew moved to `/he/`, so every indexed `/en/…`
+  address (the home, one per game, the room, the boards — 31 of them that day,
+  and it moves with the roster) has to point at its new one or they become
+  404s and lose what they had earned. Count them with
+  `python3 -c "import json;d=json.load(open('dist/pages.json'));print(sum(1 for p in d['pages'] if p['locale']=='en')-1)"`.
+
+  **There is deliberately no rule for the other side, and adding one would be
+  a serious bug.** `/games/snake/` still answers 200 — it is the *English*
+  page now — so a `→ /he/…` redirect there would send every English reader to
+  Hebrew. Hebrew's new addresses simply have no old ones to inherit: Google
+  recrawls the bare URL, finds English, and follows the hreflang cluster to
+  `/he/`. Verify after a deploy with
+  `curl -sI https://ellaz.fun/en/games/snake/ | head -2` — want `301` and a
+  `location:` of `/games/snake/` — and confirm `curl -s https://ellaz.fun/ |
+  grep -o 'lang="[a-z]*"'` reads `en`.
+
 
 - **Hashed build output** (`/assets/*.js|css|woff2`) → `max-age=31536000, immutable`.
   Safe because the filename changes whenever the content does.
