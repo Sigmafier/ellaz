@@ -147,6 +147,30 @@ the same hour — the one step nobody looked at was the one that was wrong, and 
 travelled inside a paragraph of genuinely verified evidence, which is what made it
 credible.)
 
+### The inverse: an UNTRACKED file makes the local check green and CI red
+
+Above, the working tree had LESS than the world. It can also have MORE, and that
+direction is louder but easier to ship: a module that exists only in your tree
+satisfies every local `tsc`, test and build, and a fresh clone cannot compile.
+
+2026-08-13: `DailyChip` imported `src/sdk/streakPayout.ts`, which was never
+committed. Locally: 96 files, 2,572 tests, four build gates, all green. In CI:
+`error TS2307: Cannot find module '@sdk/streakPayout'`, and the deploy refused
+before touching the site. The blast radius was zero only because that ordering was
+already right.
+
+**A green measured in your working tree is a claim about YOUR TREE.** The cheap
+check that would have caught it is one line, and it is the same thing CI does:
+
+```bash
+git status --porcelain | awk '/^\?\?/ {print $2}' | grep -E '^src/.*\.tsx?$'
+```
+
+Anything listed that committed code imports is a red build waiting. To be certain
+rather than suspicious, compile HEAD itself — `git archive HEAD | tar -x -C <tmp>`,
+symlink `node_modules`, run the type-check there. It costs seconds and it is the
+only local check that answers the question CI is actually asking.
+
 ## Related
 
 - [`precache-glob-sweeps-new-chunks.md`](precache-glob-sweeps-new-chunks.md) - the

@@ -32,6 +32,7 @@ report**. Ask of any probe: *could this even express the failure I am looking fo
 | 2026-08-11 webfont matcher | a regex written from `global.css` | minified CSS emits `@import"…;…"` — no space, semicolons inside |
 | 2026-08-12 fix verification | `grep -E` with a `\1` backreference | **ugrep rejected the pattern**; the script read the parse error as "no match" and printed FIXED |
 | 2026-08-13 mutation harness | a verdict read from the ABSENCE of a message | the mutated copies were named `base.mjs`/`m.mjs`, and the script only runs `main()` when `argv[1]` ends in its own basename — so node loaded them, ran **nothing**, exited 0, and six controls read as SURVIVED |
+| 2026-08-13 FTP liveness probe | `exec 3<>/dev/tcp/host/21 && head -c 120 <&3` under a 12 s timeout | the BANNER, not the connection. A slow greeting read as a dead port, and I reported "Hostinger's FTP is down, verified from my machine". A connect-only check succeeded on its FIRST attempt seconds later |
 
 The fourth is the third one wearing a harness instead of a script, and it fired the
 very next day: **when a verdict is derived from the absence of a signal, a run that
@@ -46,6 +47,13 @@ The third is the sharpest: **a check that errors and a check that passes are
 indistinguishable if you only look at whether the branch was taken.** It reported success
 about something it never evaluated. It was caught only by re-running the same question in
 Python, where before came back `differ=False` and after `differ=True`.
+
+The fifth adds the variant that reaches the OPERATOR rather than a log: **a probe measures a
+weaker claim than the sentence you report.** "The TCP connection was accepted" and "the
+service answered" are two different measurements, and only one of them was taken — but the
+report said the stronger one, with the word *verified* attached. Ask of any liveness claim
+which of the two you actually observed, and if the answer is "the probe timed out", the
+honest report is "no answer within N seconds", never "it is down".
 
 The machine-wide sibling carries two more of these — a column-aligned `printf "%-8s"` whose
 padding absorbed the leading whitespace it was measuring, and the same source-vs-artifact

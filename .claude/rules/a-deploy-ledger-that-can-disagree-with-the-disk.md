@@ -181,6 +181,36 @@ time, with the warm arm proving the detector fires at all.
 > OPPOSITE reading - not merely a passing one. Re-reading the probe will not find
 > this; a stable, confident, wrong value looks identical to a correct one.
 
+## It is also just the host, and the second shape is worse than the first
+
+Twice on 2026-08-13, hours apart, with no change to this workflow between them.
+Both times a plain re-run fixed it. **So the first response to a red deploy here
+is one re-run, and a SECOND failure is what changes the diagnosis** — at that
+point stop retrying and look at the host.
+
+The two shapes are not equally bad, and the difference decides how urgent it is:
+
+| Which step failed | What the site is doing | Why |
+|---|---|---|
+| **verify** (upload said OK) | new HTML, 404 JS — **blank** | the transfer was announced and did not land |
+| **upload** | **blank, and unrecoverable until an upload succeeds** | `mirror` DELETES before it writes, so the previous assets are gone too |
+
+That second row is the one to plan for. The morning's outage still had the old
+shell on disk; the evening's did not — `assets/shell-ZptedwKq.js` 404'd alongside
+its replacement, so there was no stale-but-working version to fall back to and no
+rollback either, because **a rollback needs the same upload that is failing.**
+
+The upload's own error was `cd: Fatal error: max-retries exceeded`, three times
+over 13 minutes, and the workflow says the right thing about it: *"this is the
+host, not the build"*. The web server was serving 200s throughout — LiteSpeed was
+never down. Only the FTP door was refusing, and it accepted again ~15 minutes
+later with nothing changed.
+
+**Do not conclude the port is dead from a timing-out probe** — that mistake is
+recorded in [`a-diagnostic-that-truncates-what-it-compares.md`](a-diagnostic-that-truncates-what-it-compares.md),
+because it happened here: a probe that waited for the FTP banner reported "down,
+verified" for a port that was accepting connections.
+
 ## The lesson that was already written down
 
 `verify-the-deploy-target-not-just-the-run.md` has said "verify the artifact, not the

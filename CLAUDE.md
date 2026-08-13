@@ -55,7 +55,7 @@ src/
 │            (mount/unmount bridge), WalletChip, games (the ordered roster),
 │            catalog (roster + lazy loaders), paths/pageContext/legacyHash,
 │            world/ (the room + shop)
-├─ build/    BUILD-TIME ONLY - the 84 emitted pages. Pure strings, no DOM, no
+├─ build/    BUILD-TIME ONLY - the 90 emitted pages. Pure strings, no DOM, no
 │            React. Nothing in the app may import it (it reads src/content)
 └─ games/<id>/
    ├─ meta.ts         DOM-free GameMeta - catalog.ts imports it statically
@@ -64,12 +64,18 @@ src/
    └─ <Renderer>      React component (DOM) or Phaser scene (canvas)
 ```
 
-**Games (25)** — 18 `ageBand: "kids"` (balloons, bees, bubbles, coloring, echo,
-evolve, finddiff, frog, hidden, math, memory, merge, reaction, sequence,
-shadows, sort, sortsize, vanish) and 7 `"all"` (blocks, minesweeper, n2048,
-snake, sudoku, tictactoe, wordguess).
+**Games (29)** — 21 `ageBand: "kids"` (balloons, bees, bubbles, coloring, echo,
+evolve, finddiff, frog, hidden, maze, math, memory, merge, music, pet, reaction,
+sequence, shadows, sort, sortsize, vanish) and 8 `"all"` (blocks, fit,
+minesweeper, n2048, snake, sudoku, tictactoe, wordguess).
 Counts here go stale fast — `src/portal/catalog.ts` is the source of truth and
-`catalog.test.ts` ratchets the count. Every game offers a **difficulty selector**
+`catalog.test.ts` ratchets the count. This line said 25 for about six hours on
+2026-08-13 while four more games shipped, which is the ordinary rate of decay:
+read it off the roster rather than off this sentence.
+
+**`create` is no longer empty.** It was declared in `CATEGORY_ORDER` from the
+beginning and held zero games, so that heading never rendered once. `music` is
+the first thing in it. Every game offers a **difficulty selector**
 and/or endless levels: 20 declare their `levels` to `<GameChrome>`, which owns
 the level toggle (the two exceptions are finddiff, which is endless, and evolve,
 which gets its levels from the n2048 renderer it borrows). Only **math and
@@ -553,7 +559,7 @@ until the set is complete. Discovered 2026-08-13, building two games at once.
 ## Every game has a real web address
 
 The site used to be one document. It is now 85: `dist/index.html` (still the app,
-unchanged) plus **84 emitted pages** built by `src/build/**` inside a Vite plugin,
+unchanged) plus **90 emitted pages** built by `src/build/**` inside a Vite plugin,
 so `npm run build` cannot skip them and neither deploy workflow can forget.
 
 | URL | What it is |
@@ -1407,7 +1413,8 @@ is the failure `assert-first-visit.mjs` exists to catch and has now caught three
 times. It passed with its negative control rejecting 9 of 9 planted entries, so
 that green is a real one rather than a vacuous one.
 
-**Latest reading: 89,164 B gz, 836 spare** (2026-08-13, after the nine voices
+**Latest reading: 89,322 B gz, 678 spare** (2026-08-14, 29 games; supersedes
+the 89,164 below) (2026-08-13, after the nine voices
 were re-picked). That is **tight**, and the tree it was measured on is not the
 one the previous line describes: `daily` and `share` are now static in the shell
 (15 and 17 occurrences in the shell chunk), and a peer has all eleven locale
