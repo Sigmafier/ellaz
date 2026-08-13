@@ -39,7 +39,11 @@ function useHash(): string {
   return hash;
 }
 
-function initialLocale(): AppLocale {
+// Renamed from `initialLocale`, because that name is now the PROP: an emitted
+// shell (`/en/`, `/es/`) passes the page's own language and it wins over the
+// stored one. Two things called `initialLocale` in one file is how the prop
+// silently shadows the function.
+function storedLocale(): AppLocale {
   try {
     const saved = localStorage.getItem(LOCALE_KEY);
     // Validated against the list rather than trusted. A stored locale this
@@ -64,8 +68,18 @@ function initialLocale(): AppLocale {
 // What that buys, and none of it needed code: Back works, a game URL is
 // shareable, middle-click opens a game in a new tab, and a crawler that lands
 // here finds twenty-one links instead of twenty-one buttons.
-export function App() {
-  const [locale, setLocale] = useState<AppLocale>(initialLocale);
+export function App({ initialLocale }: { initialLocale?: AppLocale } = {}) {
+  // The URL wins over the stored preference, and only ever on `/en/` and
+  // `/es/`. Those addresses are an explicit request for a language - every
+  // link to them is in that language - so honouring a preference stored on an
+  // earlier visit is what would look wrong. `/` passes nothing and is
+  // unchanged: it keeps the player's own choice.
+  //
+  // Not persisted. Arriving on an English page is not the same as choosing
+  // English for the app, and writing it here would silently repaint `/` for a
+  // Hebrew-speaking player who followed one English link. `pickLocale` still
+  // persists, because that IS a choice.
+  const [locale, setLocale] = useState<AppLocale>(() => initialLocale ?? storedLocale());
   // Bumped when a lazy dictionary arrives, purely to re-render. `loaded` lives
   // in the i18n module rather than in React state because it is shared by every
   // screen and must survive a remount; this is the one line that tells React

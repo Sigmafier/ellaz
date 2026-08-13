@@ -22,9 +22,13 @@ export interface PageContext {
   /** The game id, for `kind === "game"`. */
   gameId?: string;
   /**
-   * On a content page the language is the page's own, from what the emitter
-   * stamped. The app shell (`/`) has no language of its own - it keeps the
-   * stored preference and its in-app toggle.
+   * The page's own language, from what the emitter stamped.
+   *
+   * `/` deliberately has none: it is the canonical entry and it keeps the
+   * player's stored preference and its in-app toggle. `/en/` and `/es/` are
+   * app shells too, and they DO have one - somebody asking for that URL has
+   * said which language they want, and answering in Hebrew because a previous
+   * visit stored it is the thing that would read as broken.
    */
   locale?: Locale;
   /** Where the game or the room mounts. Absent on the app shell. */
@@ -54,7 +58,13 @@ export function readPageContext(doc: Document = document): PageContext {
   // The app shell is the page that has #root. Checked FIRST and by element
   // rather than by the data attribute, so a hand-edited or half-deployed
   // document still boots the app rather than silently mounting nothing.
-  if (root || !frame) return { kind: "app" };
+  //
+  // `data-locale` ONLY here, never `documentElement.lang`. `index.html` is
+  // `lang="he"` and always has been, so reading the attribute would pin `/` to
+  // Hebrew and silently override the stored preference of every player who
+  // chose one of the other ten languages. The emitted shells carry
+  // `data-locale`; `/` carries none, and that absence is the signal.
+  if (root || !frame) return { kind: "app", locale: asLocale(doc.body?.dataset.locale) };
 
   const locale = asLocale(doc.documentElement.lang) ?? asLocale(doc.body.dataset.locale);
   const walletSlot = doc.getElementById("wallet-slot") ?? undefined;

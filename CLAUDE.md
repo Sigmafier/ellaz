@@ -560,7 +560,7 @@ so `npm run build` cannot skip them and neither deploy workflow can forget.
 |---|---|
 | `/` | the application, and now also a document. The emitter adds head tags AND the Hebrew home body; it never overwrites the file |
 | `/games/<id>/` · `/en/games/<id>/` · `/es/games/<id>/` | 25 games x 3 languages, ~900 words each |
-| `/en/` | the English home index, with 22 real links |
+| `/en/` · `/es/` | the home screen in that language — **the app**, emitted as a shell (see below) |
 | `/world/` · `/en/world/` | the room |
 | `/boards/` · `/en/boards/` | the leaderboards (two screens - see below) |
 | `/404.html` | bilingual, `noindex`, and `ErrorDocument`-wired on Hostinger |
@@ -586,6 +586,33 @@ on the artifact, served and curled as Googlebot: **0 words -> 132, 0 links ->
 from the roster, so a new game joins it without an edit.
 [`.claude/rules/a-spa-shell-is-invisible-to-ai-crawlers.md`](.claude/rules/a-spa-shell-is-invisible-to-ai-crawlers.md).
 
+**EVERY home page is the app now, not only `/` (2026-08-13).** `/en/` and `/es/`
+were pure documents — a heading, a fact list, emoji links and prose, with no
+runtime at all. That is the correct shape for an article and the wrong shape for
+the **home screen**, and it was reported by a person rather than caught by
+anything here: every wordmark and back link on an English page (the header of
+all 25 English game pages, the room, the boards, and `exitTo`'s floor in
+`PageApp`) lands on `/en/`, and what arrived was a static article. No grid, no
+wallet, no world, no daily. `homePage()` now emits the same arrangement
+`transformIndexHtml` gives `/` — `homeShellBody(locale, …)` inside `#home-doc`,
+an empty `#root` beside it, `class="app-shell"`, and the app's own head tags —
+so all three home pages boot one bundle. **No prose is lost**: the shell body
+carries the whole page (`/en/` 252 → 176 words, 26 → 31 links, still one `h1`),
+and what went is the document chrome the app draws for itself.
+
+Two things that look like details and are not. `homeShellBody` **takes a
+locale** — hardcoded to Hebrew it would have emitted the Hebrew home under
+`lang="en"`, a page that renders, links correctly, clears every floor and is in
+the wrong language (the script gate in `assert-pages.mjs` is the control).
+And `readPageContext` reads **`data-locale` only, never `documentElement.lang`**,
+on the app branch: `index.html` has said `lang="he"` since long before any of
+this, so reading the attribute would pin `/` to Hebrew over the stored choice of
+every player using one of the other ten languages. `/` carries no `data-locale`,
+and that absence is the signal. The URL wins on `/en/` and `/es/` and is **not
+persisted** — following one English link must not repaint `/` for a Hebrew
+speaker. Spanish waits for its dictionary before mounting, exactly as
+`bootContentPage` does, so there is no flash of English over Spanish prose.
+
 **Adding a page kind means finding every list that says which pages boot the app.**
 There were three, and they do not live together: `build.test.ts`'s `boots`
 predicate, `scripts/assert-pages.mjs`'s, and the runtime's own switch in
@@ -594,7 +621,12 @@ so it fails the build for a reason that has nothing to do with what is wrong -
 which is what happened, and is the gate working. The runtime one is worse: a
 missing branch there falls through to the game arm and mounts a `GameHost` with
 an empty id, so the page renders its prose perfectly and shows "we couldn't find
-that game" where the screen should be.
+that game" where the screen should be. Promoting `/en/` and `/es/` to app shells
+walked the same three lists again, and the fourth failure shape is worth naming:
+the first predicate written for "which files are homes" was
+`fileName.split("/").length === 2`, which is right about `en/index.html` and
+also matches `world/index.html`. It is `ROUTES.filter(r => r.kind === "home")`
+now — the route table cannot be wrong about which pages are homes.
 
 **The slug is `meta.id`, never the directory name.** `src/games/n2048/` publishes at
 `/games/2048/`, so a hand-written `/games/n2048/` is a 404 that only the link

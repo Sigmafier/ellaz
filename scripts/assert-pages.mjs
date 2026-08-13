@@ -407,7 +407,14 @@ function main() {
     // between the route table and this gate. A page kind missing here is not a
     // soft failure: it gets held to the DOCUMENT rules instead and fails for a
     // reason that has nothing to do with what is wrong.
-    const boots = page.kind === "game" || page.kind === "world" || page.kind === "boards";
+    //
+    // An emitted HOME page is the app shell rather than a content page: it
+    // mounts into `#root` over its own emitted home document, the way `/`
+    // does, so it boots the same bundle and owns none of the content-page
+    // furniture. Held to the content-page rules it would fail on four checks
+    // that have nothing to do with what a home page is.
+    const shell = page.kind === "home";
+    const boots = shell || page.kind === "game" || page.kind === "world" || page.kind === "boards";
     const eager = eagerAssets(html).map(norm).sort();
     if (boots) {
       // A booting page must load everything index.html loads - the names carry a
@@ -426,8 +433,16 @@ function main() {
       const pageChunks = extra.filter((a) => /^assets\/page-[\w-]+\.js$/.test(a));
       const gameChunks = extra.filter((a) => /^assets\/game-[\w-]+\.js$/.test(a));
       const other = extra.filter((a) => !pageChunks.includes(a) && !gameChunks.includes(a));
-      if (pageChunks.length !== 1) {
-        fail(`${where} preloads ${pageChunks.length} page runtime chunks, expected exactly 1`);
+      // A content page preloads the runtime it is about to import. The shell
+      // must NOT: the home grid never mounts a game or the room, so naming
+      // `page-*` here would put the whole content-page runtime on the first
+      // visit of every English and Spanish player - the exact bytes
+      // `assert-first-visit.mjs` keeps off `/`.
+      const wantPage = shell ? 0 : 1;
+      if (pageChunks.length !== wantPage) {
+        fail(
+          `${where} preloads ${pageChunks.length} page runtime chunks, expected ${wantPage}`,
+        );
       }
       const wantGames = page.kind === "game" ? 1 : 0;
       if (gameChunks.length !== wantGames) {
@@ -441,19 +456,54 @@ function main() {
       if (localStylesheets(html).length === 0) {
         fail(`${where} boots the app with no app stylesheet — the game renders unstyled`);
       }
-      if (!/<div id="game-frame"[^>]*>/.test(html)) {
-        fail(`${where} boots the app but has no #game-frame to mount into`);
-      }
-      // React owns the CHILDREN of #game-frame. Anything emitted inside it is a
-      // node React does not know about sitting in a tree it reconciles - the
-      // nested-root teardown bug in a different costume.
-      const inside = frameContents(html);
-      if (inside) fail(`${where} emits markup inside #game-frame: ${inside.slice(0, 60)}`);
-      if (!/id="game-poster"/.test(html)) {
-        fail(`${where} has no poster — the frame is a black box until the game arrives`);
-      }
-      if (page.kind === "game" && !/id="wallet-slot"/.test(html)) {
-        fail(`${where} has no #wallet-slot`);
+      if (shell) {
+        // The shell's own three, and each one is a way the page renders
+        // perfectly and is still wrong.
+        //
+        // No `#root`: the emitted home sits there forever and nothing the
+        // player taps does anything - the defect this whole arm was written
+        // for, reported by a person after every gate here reported green.
+        // No `#home-doc`: `/en/` goes back to a 29-byte body for every AI
+        // crawler, which is `a-spa-shell-is-invisible-to-ai-crawlers.md`.
+        // Wrong order: a node React does not know about, inside the container
+        // it reconciles, is the nested-root teardown crash in a new costume.
+        const hasRoot = /<div id="root"><\/div>/.test(html);
+        const hasDoc = /id="home-doc"/.test(html);
+        if (!hasRoot) fail(`${where} is an app shell with no empty #root to mount into`);
+        if (!hasDoc) {
+          fail(`${where} has no #home-doc — the shell serves a blank page to every AI crawler`);
+        }
+        // Only when BOTH are present. `indexOf` answers -1 for a missing
+        // marker, so `a < b` on an absent node reports a confident ordering
+        // verdict about a document that has no order — the exact false reading
+        // the mutation control for this gate produced on its first run, and
+        // the one already written up in
+        // a-spa-shell-is-invisible-to-ai-crawlers.md. A second failure line
+        // blaming the ordering sends the reader to the wrong repair.
+        if (hasRoot && hasDoc && html.indexOf('id="home-doc"') > html.indexOf('id="root"')) {
+          fail(`${where} emits #home-doc after #root — it must be the sibling BEFORE it`);
+        }
+        if (!/<body[^>]*class="app-shell"/.test(html)) {
+          fail(`${where} is an app shell without class="app-shell" — the app cannot own the viewport`);
+        }
+        if (/id="game-frame"/.test(html)) {
+          fail(`${where} carries #game-frame — a home page mounts the grid, not a game host`);
+        }
+      } else {
+        if (!/<div id="game-frame"[^>]*>/.test(html)) {
+          fail(`${where} boots the app but has no #game-frame to mount into`);
+        }
+        // React owns the CHILDREN of #game-frame. Anything emitted inside it is a
+        // node React does not know about sitting in a tree it reconciles - the
+        // nested-root teardown bug in a different costume.
+        const inside = frameContents(html);
+        if (inside) fail(`${where} emits markup inside #game-frame: ${inside.slice(0, 60)}`);
+        if (!/id="game-poster"/.test(html)) {
+          fail(`${where} has no poster — the frame is a black box until the game arrives`);
+        }
+        if (page.kind === "game" && !/id="wallet-slot"/.test(html)) {
+          fail(`${where} has no #wallet-slot`);
+        }
       }
       if (!/<body[^>]+data-page="/.test(html)) {
         fail(`${where} carries no data-page — the runtime cannot tell what page it is on`);
@@ -461,7 +511,7 @@ function main() {
     } else if (eager.length > 0) {
       fail(`${where} is a document and should fetch nothing eagerly: ${eager.join(", ")}`);
     }
-    if (/id="root"/.test(html)) {
+    if (!shell && /id="root"/.test(html)) {
       fail(`${where} contains #root — the app shell would boot over the prose`);
     }
 

@@ -127,6 +127,16 @@ describe("related games", () => {
 });
 
 describe("every page renders", () => {
+  /**
+   * The emitted app shells, by filename, off the route table itself.
+   *
+   * NOT `fileName.split("/").length === 2`, which was the first version and
+   * matched `world/index.html` as well - a predicate that is right about `en/`
+   * and `es/` and wrong about the two pages that sit beside them. Asking the
+   * route table which pages are homes cannot be wrong about it.
+   */
+  const HOME_FILES = new Set(ROUTES.filter((r) => r.kind === "home" && r.emit).map((r) => r.file));
+
   it.each(BASES)("base %s: all 48 documents, and none of them empty", (base) => {
     const files = allEmittedFiles(base);
     const pages = files.filter((f) => f.fileName.endsWith(".html"));
@@ -137,12 +147,20 @@ describe("every page renders", () => {
     }
   });
 
-  it.each(BASES)("base %s: no page carries #root", (base) => {
+  it.each(BASES)("base %s: only a home page carries #root", (base) => {
     // #root is the app SHELL's mount point. On a content page it would boot the
-    // full-viewport application straight over the prose.
+    // full-viewport application straight over the prose. On a HOME page it is
+    // the whole point: every home page is the app, so `/en/` and `/es/` carry
+    // it exactly the way `/` does.
+    let shells = 0;
     for (const f of allEmittedFiles(base).filter((x) => x.fileName.endsWith(".html"))) {
-      expect(f.source.includes('id="root"'), f.fileName).toBe(false);
+      const isHome = HOME_FILES.has(f.fileName);
+      expect(f.source.includes('id="root"'), f.fileName).toBe(isHome);
+      if (isHome) shells += 1;
     }
+    // A count, not just a per-file assertion: `isHome` matching nothing would
+    // turn the line above into "no page carries #root" and pass in silence.
+    expect(shells, "one emitted shell per non-canonical page locale").toBe(LOCALES.length - 1);
   });
 
   it("gives the runtime only the two elements it is allowed to own", () => {
@@ -151,17 +169,69 @@ describe("every page renders", () => {
       scripts: ['<script type="module" src="/assets/index-abc.js"></script>'],
     };
     for (const f of allEmittedFiles("/", assets).filter((x) => x.fileName.endsWith(".html"))) {
+      const shell = HOME_FILES.has(f.fileName);
       const boots =
+        shell ||
         /(^|\/)games\//.test(f.fileName) ||
         f.fileName.includes("world/") ||
         f.fileName.includes("boards/");
       expect(f.source.includes("/assets/index-abc.js"), f.fileName).toBe(boots);
       if (!boots) continue;
+      if (shell) {
+        // A home page is the app shell, not a content page: it mounts the grid
+        // into #root over its own emitted document and owns no game host.
+        expect(f.source, f.fileName).toContain('<div id="root"></div>');
+        expect(f.source, f.fileName).toContain('id="home-doc"');
+        expect(f.source.indexOf('id="home-doc"')).toBeLessThan(f.source.indexOf('id="root"'));
+        expect(f.source, f.fileName).toMatch(/<body[^>]*class="app-shell"/);
+        expect(f.source, f.fileName).not.toContain('id="game-frame"');
+        continue;
+      }
       // The frame is emitted EMPTY. Markup inside it would be a node React does
       // not know about, inside a tree it reconciles.
       expect(f.source, f.fileName).toContain('<div id="game-frame"></div>');
       expect(f.source, f.fileName).toContain('id="game-poster"');
       expect(f.source, f.fileName).toMatch(/<body[^>]+data-page="(game|world|boards)"/);
+    }
+  });
+
+  it("stamps its own language on every emitted shell", () => {
+    // `data-locale` is the ONLY thing that tells the runtime an app shell has a
+    // language of its own - `readPageContext` deliberately ignores
+    // `documentElement.lang` on the app branch, because `index.html` has said
+    // `lang="he"` since before any of this and reading it would pin `/` to
+    // Hebrew over every player's stored choice. So without this attribute
+    // `/en/` opens in whatever they last picked: the Hebrew home under an
+    // English URL, with correct English prose underneath it for one frame.
+    let seen = 0;
+    for (const base of BASES) {
+      for (const f of allEmittedFiles(base)) {
+        if (!HOME_FILES.has(f.fileName)) continue;
+        const locale = ROUTES.find((r) => r.file === f.fileName)!.locale;
+        expect(f.source, f.fileName).toContain(`data-locale="${locale}"`);
+        expect(f.source, f.fileName).toContain(`<html lang="${locale}"`);
+        seen += 1;
+      }
+    }
+    expect(seen).toBe(BASES.length * (LOCALES.length - 1));
+  });
+
+  it("writes each shell's home in its OWN language", () => {
+    // `homeShellBody` was hardcoded to Hebrew for as long as it only served
+    // `/`. Handed a locale it now serves all three, and the failure mode of
+    // getting that wrong is a page that renders, links correctly, clears every
+    // word floor, and is in the wrong language.
+    for (const locale of LOCALES) {
+      const route = ROUTES.find((r) => r.kind === "home" && r.locale === locale && r.emit);
+      if (!route) continue;
+      const out = renderRoute(route, "/");
+      expect(out, locale).toContain(href(gamePath(GAMES[0].id, locale), "/"));
+      expect(out, locale).toContain(SITE[locale].worldPage.h1);
+      for (const other of LOCALES.filter((l) => l !== locale)) {
+        expect(out, `${locale} should not carry ${other} home copy`).not.toContain(
+          SITE[other].worldPage.h1,
+        );
+      }
     }
   });
 
@@ -216,8 +286,13 @@ describe("every page renders", () => {
     const others = LOCALES.length - 1;
     const offenders: string[] = [];
     for (const f of allEmittedFiles("/").filter((x) => x.fileName.endsWith(".html"))) {
-      const footer = f.source.match(/<footer>[\s\S]*?<\/footer>/)?.[0] ?? "";
-      const links = [...footer.matchAll(/<a href="([^"]+)"[^>]*hreflang="([^"]+)"/g)];
+      // The footer on a document; `#home-doc` on an app shell, which has no
+      // emitted footer because the app draws its own. Same links, same rule -
+      // they just belong to the page's content rather than to its chrome.
+      const block = HOME_FILES.has(f.fileName)
+        ? (f.source.match(/<div id="home-doc">[\s\S]*?<\/div>\s*<div id="root"/)?.[0] ?? "")
+        : (f.source.match(/<footer>[\s\S]*?<\/footer>/)?.[0] ?? "");
+      const links = [...block.matchAll(/<a href="([^"]+)"[^>]*hreflang="([^"]+)"/g)];
       if (links.length !== others) {
         offenders.push(`${f.fileName}: ${links.length} language links, want ${others}`);
         continue;

@@ -48,13 +48,15 @@ function isPrimaryHost(base: string): boolean {
 export function renderRoute(route: Route, base: string, headAssets?: HeadAssets): string {
   const indexable = route.indexable && isPrimaryHost(base);
 
-  // The 404 and the English home index are pure documents. They carry no
-  // runtime because there is nothing on them to run - and the 404 in
-  // particular is served for URLs that do not exist, where booting an app
-  // would be a download nobody asked for.
+  // The 404 is the one pure document left. It is served for URLs that do not
+  // exist, where booting an app would be a download nobody asked for.
   if (route.kind === "notFound") return notFoundPage(base);
+  // A home page IS the app, in every language. `/` is head-enhanced in place
+  // (see `transformIndexHtml`); `/en/` and `/es/` are emitted here as the same
+  // shape - the home page as markup, an empty `#root` beside it, and the app's
+  // own head tags so they boot the identical bundle.
   if (route.kind === "home") {
-    return homePage({ locale: route.locale, games: GAMES, base, indexable });
+    return homePage({ locale: route.locale, games: GAMES, base, indexable, headAssets });
   }
   if (route.kind === "world") {
     return worldPage({ locale: route.locale, games: GAMES, base, indexable, headAssets });
@@ -239,7 +241,10 @@ export function pagesPlugin(base: string): Plugin {
             "The app's mount point moved - update this marker and build.test.ts together.",
         );
       }
-      return withHead.replace(marker, `${homeShellBody(GAMES, base)}\n    ${marker}`);
+      return withHead.replace(
+        marker,
+        `${homeShellBody(CANONICAL_LOCALE, GAMES, base)}\n    ${marker}`,
+      );
     },
 
     async generateBundle(_options, bundle) {

@@ -1045,6 +1045,79 @@ to their union so the door stays open, which is not the same as walking through 
 Full rule, including the case-sensitivity trap that passes on `/mnt/c` and 404s on their
 CDN: [`a-second-published-artifact-needs-its-own-gate.md`](../.claude/rules/a-second-published-artifact-needs-its-own-gate.md).
 
+## The English home was not the home screen (2026-08-13)
+
+Reported by a person, in one sentence: *"I still see buttons leading to this page which
+should be homepage but appears broken: https://ellaz.fun/en/"*. They were right, and no
+gate in this repo could have told them so.
+
+`/en/` and `/es/` were **pure documents**. `homePage()` built a heading, a fact list, a
+grid of emoji-and-title links and four paragraphs of prose, with `headAssets` deliberately
+withheld — the comment in `pages.ts` said, in as many words, that they *"carry no runtime
+because there is nothing on them to run"*. That is exactly right for an article and exactly
+wrong for the **home screen**, which is what that URL is. Every wordmark and back link on
+an English page points at it: the header of all 25 English game pages, the room, the
+boards, and `exitTo`'s floor in `PageApp`. So a player who finished a game tapped back and
+landed on a static article — no grid art, no wallet, no world, no daily, nothing to press.
+
+**Why nothing here saw it.** The same shape as every other outage in this file: correct
+everywhere you look, wrong for a population you are not in.
+
+| Check | Result while `/en/` was a dead end |
+|---|---|
+| `assert-pages.mjs` | green — and it **asserted the defect**: `if (/id="root"/) fail(…)` on every page whose kind was not game/world/boards |
+| `build.test.ts` | green — "no page carries `#root`" was a test |
+| `assert-crawlable.mjs` | green — 252 words, 26 links, one `h1`, all true |
+| `assert-live.mjs` | green — the page and its assets were fetchable |
+| a browser | a perfectly rendered, perfectly useless page |
+
+Two of those gates were not merely blind. They were **pinning it in place**, because
+"a home page is a document" had been true since the pages work shipped and both had been
+written to defend it.
+
+**The fix** is the arrangement `/` has had since the AI-crawler work: `homeShellBody` inside
+`#home-doc`, an empty `#root` as its **sibling**, `class="app-shell"`, the app's own head
+tags, and `main.tsx` removing the document once React commits. There was never a reason for
+the other two languages to get only the first half of that.
+
+Measured on the artifact and driven in a fresh browser context per language:
+
+| | before | after |
+|---|---|---|
+| `/en/` words · links · h1 | 252 · 26 · 1 | **176 · 31 · 1** |
+| `/en/` mounts the grid | no | **yes**, `lang="en" dir="ltr"` |
+| `/es/` mounts the grid | no | **yes**, Spanish chrome, no English flash |
+| back from `/en/games/snake/` | a static article | **the English home screen** |
+| first visit | — | 86,483 B gz of 90,000 |
+
+The prose loss is document chrome, not content: the shell body carries the whole page and
+the app draws its own header, footer and language links.
+
+**Three things that would each have shipped a plausible wrong page.**
+
+`homeShellBody` had been hardcoded to Hebrew for as long as it only served `/`. Left that
+way it would have emitted the **Hebrew home under `lang="en"`** — a page that renders,
+links correctly and clears every word floor. `assert-pages.mjs`'s script-dominance gate is
+the control that catches it.
+
+`readPageContext` reads **`data-locale` and never `documentElement.lang`** on the app
+branch. `index.html` has said `lang="he"` since before any of this existed, so reading the
+attribute would have pinned `/` to Hebrew and silently overridden the stored preference of
+every player using one of the other ten languages — a regression on the one page that was
+never broken, introduced by the fix for the pages that were.
+
+And the predicate for "which emitted files are homes" was first written as
+`fileName.split("/").length === 2`, which is true of `en/index.html` and equally true of
+`world/index.html`. It reads off `ROUTES` now. A list that already knows the answer cannot
+be wrong about it, and this is the third time in this file that a derived predicate has
+replaced a shape-matching one for the same reason.
+
+The URL wins over the stored preference on `/en/` and `/es/`, and is **not persisted**:
+arriving on an English page is not the same as choosing English, and writing it would
+repaint `/` for a Hebrew speaker who followed one link. Spanish awaits its dictionary
+before mounting, exactly as `bootContentPage` does — there is no flash to trade, since the
+emitted home is still on screen and React has not rendered a thing.
+
 ## Still open
 
 - **Wave C step 2b** — live two-way sync. Needs the profile to carry per-device

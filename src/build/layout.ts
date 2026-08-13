@@ -373,9 +373,24 @@ export interface DocumentOptions {
   /**
    * The app's own head tags, lifted verbatim off `index.html` (see `assets.ts`).
    * A page that carries them boots the same bundle the app does; a page that
-   * does not - the 404, and the English index - stays a pure document.
+   * does not - the 404 - stays a pure document.
    */
   headAssets?: HeadAssets;
+  /**
+   * This document IS the application, the way `index.html` is.
+   *
+   * True for the emitted home pages and nothing else. It changes three things,
+   * and each one is a rule that is right for a document and wrong for an app:
+   *
+   * - `class="app-shell"` on `<body>`, which is what scopes the full-viewport
+   *   rules in `global.css` (and, with `#home-doc` present, the `:has()`
+   *   overrides that let a no-JavaScript visitor scroll the page).
+   * - No `DOCUMENT_CSS`. ~300 lines styling a header, a footer and a card grid
+   *   that this page does not have - the app draws all three itself.
+   * - No emitted header, `<main>` or footer. The app owns the whole viewport,
+   *   and a second wordmark row above its own reads as a bug.
+   */
+  shell?: boolean;
   /**
    * `<link rel="modulepreload">` for the chunks THIS page will go on to fetch
    * by itself - the content-page runtime, and on a game page that one game.
@@ -536,6 +551,50 @@ export function renderDocument(opts: DocumentOptions): string {
     alternates.length > 0 ? alternates : LOCALES.map((l) => ({ locale: l, path: homePath(l) }));
   const otherLocales = siblings.filter((a) => a.locale !== locale);
 
+  /**
+   * The document's own chrome: wordmark row, `<main>`, footer.
+   *
+   * An app shell gets none of it. It renders the home page as bare markup that
+   * the runtime removes, and the app draws its own header, its own wallet and
+   * its own language picker over the top - so an emitted header here would be a
+   * second wordmark that only a visitor with no JavaScript ever stops seeing.
+   * The footer's language links are not lost with it: `homeShellBody` carries
+   * them inside `#home-doc`, where they belong to the page's own content.
+   */
+  const chrome = html`
+    <header class="top" ${raw(groundStyle(opts.headerChrome))}>
+      <div class="in">
+        ${opts.headerChrome
+          ? gameChrome(opts.headerChrome, href(homePath(locale), base), site.brand, opts.headerSlot)
+          : html`<a class="brand" href="${href(homePath(locale), base)}">${site.brand}</a>
+              <span class="tagline">${site.tagline}</span>
+              ${opts.headerSlot}`}
+      </div>
+    </header>
+    <main>${opts.body}</main>
+    <footer>
+      <div class="in">
+        <span>${site.footer}</span>
+        ${otherLocales.map(
+          (a) =>
+            // The autonym, never a flag: Spanish is not Spain, Arabic is
+            // twenty-odd countries, and a flag beside a language is a claim
+            // about nationality this site has no business making.
+            //
+            // It links to THIS page in that language rather than to that
+            // language's home, so a reader who wants the snake article in
+            // English gets the snake article. Only the languages that actually
+            // have this page appear, so a crawlable link can never promise a
+            // document nobody wrote.
+            // One line on purpose. A line break inside the tag is emitted
+            // verbatim into all 52 documents - `</a\n>` is legal HTML and
+            // still noise in every page on the site.
+            html`<a href="${href(a.path, base)}" hreflang="${a.locale}" lang="${a.locale}">${AUTONYM[a.locale]}</a>`,
+        )}
+      </div>
+    </footer>
+  `;
+
   return (
     "<!doctype html>\n" +
     toHtml(html`<html lang="${locale}" dir="${dir}">
@@ -578,9 +637,10 @@ export function renderDocument(opts: DocumentOptions): string {
         <link rel="icon" type="image/svg+xml" href="${base}favicon.svg" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link rel="stylesheet" href="${FONTS}" />
-        <style>
+        ${!opts.shell &&
+        html`<style>
           ${raw(DOCUMENT_CSS)}
-        </style>
+        </style>`}
         ${opts.schema &&
         html`<script type="application/ld+json">
           ${jsonLd(opts.schema)}
@@ -588,38 +648,8 @@ export function renderDocument(opts: DocumentOptions): string {
         ${(opts.headAssets?.tags ?? []).map((t) => raw(t))}
         ${(opts.preloads ?? []).map((t) => raw(t))}
       </head>
-      <body ${raw(bodyAttrs(opts.bodyData))}>
-        <header class="top" ${raw(groundStyle(opts.headerChrome))}>
-          <div class="in">
-            ${opts.headerChrome
-              ? gameChrome(opts.headerChrome, href(homePath(locale), base), site.brand, opts.headerSlot)
-              : html`<a class="brand" href="${href(homePath(locale), base)}">${site.brand}</a>
-                  <span class="tagline">${site.tagline}</span>
-                  ${opts.headerSlot}`}
-          </div>
-        </header>
-        <main>${opts.body}</main>
-        <footer>
-          <div class="in">
-            <span>${site.footer}</span>
-            ${otherLocales.map(
-              (a) =>
-                // The autonym, never a flag: Spanish is not Spain, Arabic is
-                // twenty-odd countries, and a flag beside a language is a
-                // claim about nationality this site has no business making.
-                //
-                // It links to THIS page in that language rather than to that
-                // language's home, so a reader who wants the snake article in
-                // English gets the snake article. Only the languages that
-                // actually have this page appear, so a crawlable link can
-                // never promise a document nobody wrote.
-                // One line on purpose. A line break inside the tag is emitted
-                // verbatim into all 52 documents - `</a\n>` is legal HTML and
-                // still noise in every page on the site.
-                html`<a href="${href(a.path, base)}" hreflang="${a.locale}" lang="${a.locale}">${AUTONYM[a.locale]}</a>`,
-            )}
-          </div>
-        </footer>
+      <body ${raw(opts.shell ? 'class="app-shell"' : "")}${raw(bodyAttrs(opts.bodyData))}>
+        ${opts.shell ? opts.body : chrome}
       </body>
     </html>`)
   );
