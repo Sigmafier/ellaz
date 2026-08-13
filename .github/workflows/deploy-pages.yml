@@ -49,6 +49,13 @@ jobs:
           # Optional. Unset, Vite substitutes undefined, the init is
           # dead-code-eliminated and no analytics ships at all.
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
+          # The REGION. Passed for the same reason as on the Hostinger job —
+          # without it `analytics.ts` silently falls back to the US host and the
+          # setting is unreachable rather than merely unset. Kept on BOTH jobs
+          # deliberately: the two hosts must not disagree about where a child's
+          # events go, and this copy being absent is exactly the kind of drift
+          # that produces one compliant host and one that is not.
+          VITE_POSTHOG_HOST: ${{ secrets.VITE_POSTHOG_HOST }}
       # NO `cp dist/index.html dist/404.html` HERE.
       #
       # It used to live here, from when every route was a hash fragment and the

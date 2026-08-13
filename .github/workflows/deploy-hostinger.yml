@@ -70,6 +70,16 @@ jobs:
           # Optional. Unset, Vite substitutes undefined, the init is
           # dead-code-eliminated and no analytics ships at all.
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
+          # The REGION, and it has to be passed here or it cannot be chosen at
+          # all: `analytics.ts` falls back to us.i.posthog.com, so a build that
+          # never sees this var sends a child's events to the United States no
+          # matter what is configured anywhere else. That is an inert knob —
+          # you would set the secret, nothing would change, and every config
+          # you could read would look correct. Unset it stays US, which is the
+          # honest default; set it to https://eu.i.posthog.com to keep the data
+          # in the EU, which is the defensible answer for a kids' platform
+          # serving Israel and Europe.
+          VITE_POSTHOG_HOST: ${{ secrets.VITE_POSTHOG_HOST }}
 
       - name: Add the Apache config (404 document + cache headers)
         if: steps.creds.outputs.ready == 'true'
