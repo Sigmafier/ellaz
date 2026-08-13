@@ -56,6 +56,25 @@ describe("math quiz logic", () => {
     });
   }
 
+  // "Up to 5" means each addend can reach 5, so 5 + 5 = 10 is a real problem -
+  // both operands stay within 0..5 while the sum ranges up to 10.
+  it("up5 caps each operand at 5 while letting the sum reach 10", () => {
+    const rng = lcg(4242);
+    let sawSumOver5 = false;
+    let sawOperand5 = false;
+    for (let i = 0; i < 2000; i++) {
+      const p = generateProblem("up5", rng);
+      expect(p.a).toBeGreaterThanOrEqual(0);
+      expect(p.a).toBeLessThanOrEqual(5);
+      expect(p.b).toBeGreaterThanOrEqual(0);
+      expect(p.b).toBeLessThanOrEqual(5);
+      if (p.op === "+" && p.a + p.b > 5) sawSumOver5 = true;
+      if (p.a === 5 || p.b === 5) sawOperand5 = true;
+    }
+    expect(sawSumOver5, "an addition sum should be able to exceed 5").toBe(true);
+    expect(sawOperand5, "an operand should be able to reach 5").toBe(true);
+  });
+
   it("mult keeps operands within 1..5", () => {
     const rng = lcg(99);
     for (let i = 0; i < 300; i++) {
@@ -85,7 +104,7 @@ describe("math quiz logic", () => {
   // `mult` never draws a zero and is unchanged from the pre-widening output.
   it("arithmetic levels are byte-stable for a fixed seed", () => {
     const golden: Record<string, string[]> = {
-      up5: ["0+3=3[1,3,5]", "1-1=0[2,0,1]", "3+2=5[3,5,4]", "5-5=0[2,1,0]", "1+2=3[3,1,4]", "3+2=5[3,4,5]"],
+      up5: ["0+3=3[1,3,5]", "5-1=4[6,5,4]", "5+2=7[6,9,7]", "4+2=6[7,4,6]", "5-3=2[1,0,2]", "1-1=0[2,1,0]"],
       up10: ["0+7=7[5,7,9]", "10-2=8[10,9,8]", "8+1=9[10,8,9]", "6+2=8[9,6,8]", "10-6=4[3,2,4]", "2-1=1[3,0,1]"],
       up20: ["0+13=13[15,11,13]", "5-4=1[1,2,3]", "16-3=13[12,13,14]", "12+7=19[19,17,20]", "12+5=17[16,15,17]", "9-9=0[1,0,2]"],
       mult: ["1×1=1[3,1,2]", "2×4=8[10,8,7]", "1×1=1[1,2,3]", "5×3=15[15,16,13]", "5×3=15[13,16,15]", "4×1=4[4,6,5]"],
