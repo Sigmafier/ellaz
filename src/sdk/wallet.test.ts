@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { createWallet } from "./wallet";
 import { PROFILE_KEY, memoryBackend, migrateProfile } from "./profile";
-import { SESSION_COIN_CAP, TIER_COINS } from "./economy";
+import { SESSION_COIN_CAP, STREAK_COINS, TIER_COINS } from "./economy";
 import type { KeyValueBackend } from "./profile";
 import { renderName, resolveName } from "./names";
 import { mulberry32 } from "@shared/rng";
@@ -707,5 +707,126 @@ describe("restoring from a backup code is undoable", () => {
     expect(wallet.canUndoRestore()).toBe(true);
     expect(() => wallet.undoRestore()).not.toThrow();
     expect(wallet.coins).toBe(0);
+  });
+});
+
+describe("grantStreak — the one door a daily-streak reward comes through", () => {
+  it("banks the priced amount and persists it before returning", () => {
+    const { backend, wallet } = freshWallet();
+
+    const res = wallet.grantStreak(3);
+
+    expect(res.coins).toBe(STREAK_COINS);
+    expect(res.stars).toBe(1);
+    expect(res.persisted).toBe(true);
+    const stored = migrateProfile(backend.read(PROFILE_KEY));
+    expect(stored.coins).toBe(STREAK_COINS);
+    expect(stored.stars).toBe(1);
+  });
+
+  it("pays the same for day 3 and for day 360 — the LADDER shapes the payout", () => {
+    // `daily.ts` decides how often; this file decides how much. Splitting them
+    // means tuning the rungs never touches an amount.
+    const a = freshWallet().wallet.grantStreak(3);
+    const b = freshWallet().wallet.grantStreak(360);
+    expect(a.coins).toBe(b.coins);
+    expect(a.stars).toBe(b.stars);
+  });
+
+  it("writes NO per-game record, so no pseudo-game reaches the boards", () => {
+    const { wallet } = freshWallet();
+    wallet.markPlayed("snake");
+    wallet.grantStreak(7);
+    const profile = wallet.snapshot();
+    expect(Object.keys(profile.games)).toEqual(["snake"]);
+    expect(profile.games.snake.wins).toBe(0);
+    expect(wallet.recentlyPlayed()).toEqual(["snake"]);
+  });
+
+  it("ignores the session coin cap — the milestone latch is the real ceiling", () => {
+    const { wallet } = freshWallet();
+    const rewards = wallet.createRewardsPort("snake");
+    // Burn the whole per-mount budget on a game first.
+    for (let i = 0; i < 20; i++) rewards.grant({ reason: "level_complete", tier: "hard" });
+    expect(wallet.coins).toBe(SESSION_COIN_CAP);
+
+    const res = wallet.grantStreak(3);
+    expect(res.coins).toBe(STREAK_COINS);
+    expect(res.capped).toBe(false);
+    expect(wallet.coins).toBe(SESSION_COIN_CAP + STREAK_COINS);
+  });
+
+  it("rolls back and reports nothing when the device refuses the write", () => {
+    const backend: KeyValueBackend = { read: () => null, write: () => false };
+    const wallet = createWallet(backend);
+    const res = wallet.grantStreak(3);
+    expect(res).toEqual({
+      coins: 0,
+      stars: 0,
+      totalCoins: 0,
+      totalStars: 0,
+      capped: false,
+      persisted: false,
+    });
+    expect(wallet.coins).toBe(0);
+    expect(wallet.stars).toBe(0);
+  });
+
+  it("fails closed on a milestone that cannot be one", () => {
+    const { wallet } = freshWallet();
+    for (const junk of [0, -3, Number.NaN, Number.POSITIVE_INFINITY, "7" as unknown as number]) {
+      expect(wallet.grantStreak(junk).coins).toBe(0);
+    }
+    expect(wallet.coins).toBe(0);
+  });
+
+  it("is ADD-ONLY — every call only ever raises both totals", () => {
+    const { wallet } = freshWallet();
+    let coins = 0;
+    let stars = 0;
+    for (const m of [3, 7, 14, 30, 60]) {
+      wallet.grantStreak(m);
+      expect(wallet.coins).toBeGreaterThan(coins);
+      expect(wallet.stars).toBeGreaterThan(stars);
+      coins = wallet.coins;
+      stars = wallet.stars;
+    }
+  });
+});
+
+describe("a GAME cannot claim a streak", () => {
+  it("pays nothing for reason: streak through a game's own port", () => {
+    // A game has no idea what day it is. Without this the union would let one
+    // report `streak` on every frame and mint coins to the session cap — the
+    // same class of hole as a game asking for 500 coins.
+    const { backend, wallet } = freshWallet();
+    const rewards = wallet.createRewardsPort("snake");
+
+    const res = rewards.grant({ reason: "streak" } as never);
+
+    expect(res.coins).toBe(0);
+    expect(res.stars).toBe(0);
+    expect(wallet.coins).toBe(0);
+    expect(wallet.stars).toBe(0);
+    expect(migrateProfile(backend.read(PROFILE_KEY)).coins).toBe(0);
+  });
+
+  it("does not count it as a win, or spend the session budget on it", () => {
+    const { wallet } = freshWallet();
+    const rewards = wallet.createRewardsPort("snake");
+    for (let i = 0; i < 100; i++) rewards.grant({ reason: "streak" } as never);
+    expect(wallet.snapshot().games.snake?.wins ?? 0).toBe(0);
+    // The budget is untouched, so a real win still pays in full afterwards.
+    expect(rewards.grant({ reason: "level_complete", tier: "hard" }).coins).toBe(TIER_COINS.hard);
+  });
+
+  it("still lets every reason a game IS allowed to report through", () => {
+    const { wallet } = freshWallet();
+    const rewards = wallet.createRewardsPort("snake");
+    expect(rewards.grant({ reason: "level_complete", tier: "easy" }).coins).toBe(TIER_COINS.easy);
+    expect(rewards.grant({ reason: "milestone" }).coins).toBe(1);
+    expect(rewards.grant({ reason: "personal_best", tier: "medium" }).coins).toBe(
+      TIER_COINS.medium,
+    );
   });
 });
