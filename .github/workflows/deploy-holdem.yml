@@ -122,6 +122,16 @@ jobs:
           VITE_SERVER_URL: ${{ steps.worker.outputs.url }}
         run: npm run build --workspace=client
 
+      # What a player downloads before they can play a hand. The sound lab is a
+      # tuning tool and must not be in it — which takes three settings in three
+      # files plus one thing (a modulepreload) that is invisible from all of
+      # them. Two of the five failure modes this catches shipped green during
+      # the commit that added the lab, so this runs on the artifact, here,
+      # rather than being something a person remembers to check.
+      - name: The first visit holds no lab
+        if: steps.creds.outputs.have == 'true'
+        run: node scripts/assert-first-visit.mjs
+
       # `wrangler pages deploy` does NOT create a missing project — it fails
       # with "Project not found [code: 8000007]", which reads like a typo in
       # the name rather than a thing that has never existed. Non-interactive

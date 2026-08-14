@@ -53,6 +53,7 @@ export const en: Record<StringKey, string> = {
   menu: "Menu",
   soundOn: "Sound on",
   soundOff: "Sound off",
+  pickSounds: "Choose sounds",
   net: "Net",
   hands: "Hands",
   copyCode: "Copy code",

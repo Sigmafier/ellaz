@@ -52,6 +52,7 @@ export const he = {
   menu: "תפריט",
   soundOn: "קול פועל",
   soundOff: "קול כבוי",
+  pickSounds: "בחירת צלילים",
   net: "מאזן",
   hands: "ידיים",
   copyCode: "העתקת קוד",

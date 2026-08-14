@@ -14,7 +14,9 @@
     "build": "npm run build --workspace=client",
     "typecheck": "tsc --noEmit -p shared && tsc --noEmit -p server && tsc --noEmit -p client && tsc --noEmit -p scripts",
     "bots": "vite-node scripts/bots.ts --",
-    "assert:domain": "node scripts/assert-custom-domain.mjs"
+    "assert:domain": "node scripts/assert-custom-domain.mjs",
+    "assert:first-visit": "node scripts/assert-first-visit.mjs",
+    "build:check": "npm run build && node scripts/assert-first-visit.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

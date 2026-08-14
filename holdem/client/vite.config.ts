@@ -17,6 +17,13 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "icon-192.png", "icon-512.png"],
+      // The sound lab is a tuning tool. Precaching everything is right for the
+      // game itself, and wrong for a screen most players will never open — and
+      // the precache glob sweeps `**/*.js`, so the ONLY thing keeping it off a
+      // first load is this line. It pairs with the `lab` branch in
+      // manualChunks below: rename one without the other and the whole lab
+      // ships to every player behind a perfectly green build.
+      workbox: { globIgnores: ["**/lab-*.js"] },
       manifest: {
         name: "Hold'em — poker with friends",
         short_name: "Hold'em",
@@ -40,6 +47,50 @@ export default defineConfig({
   resolve: {
     alias: {
       "@shared": resolve(__dirname, "../shared/src"),
+    },
+  },
+  build: {
+    // A `<link rel="modulepreload">` is a DOWNLOAD, not a hint, and Vite
+    // writes one into index.html for a lazily-imported chunk. So the two
+    // things above — the lazy import and the precache exclusion — are not
+    // enough on their own: measured before this line, every player fetched
+    // the whole lab (10.8 KB gz) on first paint while the precache manifest
+    // correctly did not list it. Both facts were true at once, which is why
+    // reading the config proves nothing here and `grep lab- dist/index.html`
+    // proves everything.
+    modulePreload: {
+      resolveDependencies: (_from, deps) => deps.filter((d) => !d.includes("lab-")),
+    },
+    rollupOptions: {
+      output: {
+        // The lab chunk is NAMED here rather than declared as a manualChunk,
+        // and that distinction is the whole fix.
+        //
+        // `globIgnores` above needs a stable name to match on, so the chunk
+        // cannot be left as `index-<hash>.js`. The obvious way to get one is
+        // `manualChunks: id => id.includes("/src/lab/") && "lab"` — and A
+        // MANUAL CHUNK IS A MAGNET. Measured, twice:
+        //
+        //   with only a `lab` branch  →  React landed INSIDE the lab chunk and
+        //     the shell opened with `import{r as L,...}from"./lab-*.js"` at
+        //     byte 229 — a STATIC import, so the lab was mandatory to run the
+        //     app and excluded from the precache at the same time.
+        //   adding a `vendor` branch  →  React moved out, and four functions
+        //     from src/audio/audio.ts took its place. Same bug, smaller.
+        //
+        // The tell both times was a precache that got SMALLER after a whole
+        // screen was added. An unassigned shared module is not neutral: it
+        // picks a side, and it picks the manual chunk.
+        //
+        // Rollup already isolates a dynamic import into its own chunk without
+        // being asked. Naming it by its entry module leaves that natural
+        // splitting alone — shared modules stay where the dependency graph
+        // puts them, which is the shell.
+        chunkFileNames: (chunk) =>
+          chunk.facadeModuleId?.includes("/src/lab/")
+            ? "assets/lab-[hash].js"
+            : "assets/[name]-[hash].js",
+      },
     },
   },
   server: {

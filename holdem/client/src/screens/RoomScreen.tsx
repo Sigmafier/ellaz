@@ -161,6 +161,20 @@ export function RoomScreen({
           >
             {muted ? <IconSoundOff size={16} /> : <IconSoundOn size={16} />} {muted ? t("soundOn") : t("soundOff")}
           </button>
+          {/* Next to the mute toggle on purpose — "I do not like this sound"
+              and "turn the sound off" are the same thought arriving one step
+              apart, and the second is what people reach for when the first has
+              nowhere to go. */}
+          <button
+            className="btn ghost"
+            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+            onClick={() => {
+              setPanel("none");
+              location.hash = "#/lab";
+            }}
+          >
+            <IconSoundOn size={16} /> {t("pickSounds")}
+          </button>
           {me && !me.sittingOut && (
             <button
               className="btn ghost"

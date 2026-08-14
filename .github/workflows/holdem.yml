@@ -67,3 +67,18 @@ jobs:
             echo "::error::only $COUNT tests ran, expected at least 60. Did the vitest include stop matching?"
             exit 1
           fi
+
+      # The payload question, which no test can answer because it is a property
+      # of the ARTIFACT. Built here without a server URL on purpose: this gate
+      # reads the chunk graph and the precache manifest, neither of which cares
+      # what the client will talk to. Deploy runs the same check on the real
+      # build.
+      - name: Build, and prove the first visit holds no lab
+        run: |
+          npm run build --workspace=client
+          node scripts/assert-first-visit.mjs
+
+      # The gate's own controls, so a change that quietly makes it stop
+      # detecting anything fails here rather than the next time it matters.
+      - name: The gate can still fail
+        run: node scripts/assert-first-visit.mjs --control
