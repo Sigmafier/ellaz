@@ -26,7 +26,11 @@ const EMOTE_GLYPHS: Record<EmoteId, string> = {
 
 /** The felt: seats on an ellipse, board and pot in the middle. Pinned LTR. */
 export function Table({ locale, spectator = false }: { locale: Locale; spectator?: boolean }) {
-  const { view, you, chats, shownBoard } = useApp();
+  const { view, you, chats, handBoard, shownCount } = useApp();
+  // The pacer says HOW MANY; the server says WHICH. Slicing rather than
+  // keeping a second copy of the cards is what makes a six-card board
+  // unrepresentable instead of merely unlikely — see the note on `handBoard`.
+  const shownBoard = handBoard.slice(0, shownCount);
   const t = makeT(locale);
   const [buyInFor, setBuyInFor] = useState<number | null>(null);
   const [emotesOpen, setEmotesOpen] = useState(false);
@@ -159,9 +163,12 @@ export function Table({ locale, spectator = false }: { locale: Locale; spectator
                   size={u(42)}
                   // Only the flop is a group, so only the flop staggers. The
                   // turn and the river are single cards arriving on their own
-                  // beat — giving them index*90 would delay them behind a
-                  // stagger that has nothing to stagger against.
-                  delay={i < 3 ? i * 90 : 0}
+                  // beat — giving them a stagger would delay them behind
+                  // nothing to stagger against.
+                  //
+                  // 150ms apart, up from 90: three cards used to land inside
+                  // a fifth of a second, which is one event rather than three.
+                  delay={i < 3 ? i * 150 : 0}
                 />
               ))}
             </div>

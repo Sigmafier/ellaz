@@ -50,8 +50,8 @@ export interface AppState {
   /** Cards revealed at the current showdown, cleared on the next HandStarted. */
   reveals: Record<number, readonly [Card, Card] | "muck">;
   /**
-   * The community cards the FELT is showing, which is not the same thing as
-   * the community cards that exist.
+   * The community cards of the hand in progress, which is not the same thing
+   * as the community cards the FELT is showing.
    *
    * `view.hand` becomes null the instant a hand ends, so a board read straight
    * out of the view vanishes at exactly the moment everybody wants to look at
@@ -60,13 +60,30 @@ export interface AppState {
    * the next `HandStarted`, so the board a hand finished on stays up through
    * the whole inter-hand pause.
    *
-   * It is built from `StreetDealt` events, which is what lets the pacer deal a
-   * run-out street by street. `room` seeds it only when it is empty and the
-   * view already has a board — that is somebody joining or reconnecting
-   * mid-hand, who must be shown the board immediately rather than have four
-   * seconds of cards dealt to them for a hand that is already on the river.
+   * EVERY `room` REPLACES IT OUTRIGHT while a hand is live. That is not
+   * belt-and-braces, it is the fix for a real bug: this used to be an
+   * accumulator fed only by `StreetDealt`, with no way back to the truth, and
+   * a reconnect that ate a `HandStarted` left the previous hand's cards in
+   * place for the next street to append to. The operator saw SIX cards on the
+   * board. `resetPacer()` runs on every reconnect and throws away whatever is
+   * queued, so eating a `HandStarted` is not exotic — backgrounding a tab is
+   * enough.
+   *
+   * Between snapshots `StreetDealt` extends it, which is what lets the pacer
+   * deal a run-out street by street: a batch that ends a hand carries every
+   * street AND the `room` that follows says `hand: null`, so the events are
+   * the only source for those cards until the next hand begins.
    */
-  shownBoard: Card[];
+  handBoard: Card[];
+  /**
+   * How many of `handBoard` the felt has actually dealt.
+   *
+   * The pacer owns this number and nothing else. Splitting "which cards" from
+   * "how many are visible" is what makes a wrong board unrepresentable rather
+   * than merely unlikely — the cards always come from the server, and the
+   * worst a desync can now do is show too few of the RIGHT ones for a moment.
+   */
+  shownCount: number;
   /** Last visible action per seat this street (badges). */
   lastAction: Record<number, string>;
   winners: number[];
@@ -106,7 +123,8 @@ const initial: AppState = {
   you: null,
   timer: null,
   reveals: {},
-  shownBoard: [],
+  handBoard: [],
+  shownCount: 0,
   lastAction: {},
   winners: [],
   lastPot: null,
@@ -184,14 +202,34 @@ export function reduceMessage(msg: S2C): void {
       saveName(msg.name);
       break;
     case "room": {
-      // Seed the felt's board ONLY for somebody arriving mid-hand. During
-      // normal play `shownBoard` is ahead of nothing and behind nothing —
-      // it is built from the events the pacer is releasing, and copying the
-      // view's board here would undo the pacing by handing over all five
-      // cards the moment the snapshot that follows a run-out arrives.
-      const board = msg.view.hand?.board ?? [];
-      const seed = state.shownBoard.length === 0 && board.length > 0 ? [...board] : state.shownBoard;
-      setState({ view: msg.view, seatNames: msg.names, shownBoard: seed });
+      const hand = msg.view.hand;
+      let handBoard = state.handBoard;
+      let shownCount = state.shownCount;
+
+      if (hand) {
+        // THE SERVER'S BOARD WINS, always. A snapshot is the whole truth about
+        // a live hand, so there is no case in which our copy is more right
+        // than this one — and re-deriving here is what heals a client that
+        // missed a HandStarted, instead of leaving it wrong until a reload.
+        handBoard = hand.board;
+        // There is deliberately NO clamp of `shownCount` here. One was
+        // written, and then removed for being unprovable: with the line above
+        // in place, `slice(0, shownCount)` at render time already cannot show
+        // a card that does not exist, and deleting the clamp changed the
+        // outcome of not one of the seventeen tests. A stale-high count is
+        // harmless because `handBoard` grows with the events beside it, so the
+        // pacing survives too. If you are about to add it back, write the test
+        // that fails without it first.
+        //
+        // Somebody arriving or reconnecting mid-hand must be shown the board
+        // at once. Dealing it to them a street at a time would be pacing a
+        // story that finished before they sat down.
+        if (shownCount === 0 && handBoard.length > 0) shownCount = handBoard.length;
+      }
+      // When `hand` is null the board is NOT touched: the hand has ended and
+      // the cards it was won on stay on the felt until the next one starts.
+
+      setState({ view: msg.view, seatNames: msg.names, handBoard, shownCount });
       break;
     }
     // What the server SETTLED ON after a reroll, which is not always what was
@@ -210,7 +248,8 @@ export function reduceMessage(msg: S2C): void {
       let lastAction = state.lastAction;
       let winners = state.winners;
       let lastPot = state.lastPot;
-      let shownBoard = state.shownBoard;
+      let handBoard = state.handBoard;
+      let shownCount = state.shownCount;
       for (const e of msg.events) {
         if (e.type === "HandStarted") {
           reveals = {};
@@ -219,18 +258,26 @@ export function reduceMessage(msg: S2C): void {
           lastPot = null;
           // The previous hand's board has been on the felt for the whole
           // inter-hand pause. THIS is where it goes, not at HandEnded.
-          shownBoard = [];
+          handBoard = [];
+          shownCount = 0;
         } else if (e.type === "ShowdownReveal") {
           reveals = { ...reveals, [e.seat]: e.mucked ? "muck" : e.cards! };
         } else if (e.type === "ActionTaken") {
           lastAction = { ...lastAction, [e.seat]: e.kind };
         } else if (e.type === "StreetDealt") {
           lastAction = {};
+          // Extending BETWEEN snapshots, not instead of them. The batch that
+          // ends a hand carries every remaining street and is followed by a
+          // `room` saying `hand: null`, so these events are the only source
+          // for those cards — but the next live snapshot still overrules us.
+          //
           // `?? []` because everything in this switch arrived over a socket.
           // A street with no cards is not a thing the engine emits, but this
           // reducer is the boundary, and a board is not worth a thrown
           // exception that takes the whole table down with it.
-          shownBoard = [...shownBoard, ...(e.cards ?? [])];
+          const dealt = e.cards ?? [];
+          handBoard = [...handBoard, ...dealt];
+          shownCount += dealt.length;
         } else if (e.type === "PotAwarded") {
           winners = [...new Set([...winners, ...e.winners])];
           // Side pots arrive as several PotAwarded events for one hand, so the
@@ -249,7 +296,7 @@ export function reduceMessage(msg: S2C): void {
           lastPot = {
             winners: [...new Set([...(lastPot?.winners ?? []), ...e.winners])],
             amount: (lastPot?.amount ?? 0) + e.amount,
-            board: lastPot?.board ?? [...shownBoard],
+            board: lastPot?.board ?? [...handBoard],
             at: Date.now(),
           };
         }
@@ -258,7 +305,8 @@ export function reduceMessage(msg: S2C): void {
       patch.lastAction = lastAction;
       patch.winners = winners;
       patch.lastPot = lastPot;
-      patch.shownBoard = shownBoard;
+      patch.handBoard = handBoard;
+      patch.shownCount = shownCount;
       setState(patch);
       for (const l of eventListeners) l(msg.events);
       break;

@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { EngineEvent } from "@shared/engine/types";
 import type { S2C } from "@shared/protocol";
-import { planBeats } from "./pacer";
+import { deliver, pacerDepth, planBeats, resetPacer } from "./pacer";
+import { getState, resetState } from "./store";
 
 const ev = (events: EngineEvent[]): Extract<S2C, { t: "ev" }> => ({ t: "ev", seq: 1, events });
 
@@ -88,5 +89,70 @@ describe("planBeats", () => {
     const beats = planBeats(ev([street("river", [5])]));
     expect(beats).toHaveLength(1);
     expect(beats[0].delayMs).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The hold after a result.
+//
+// The server deals again on ITS clock and cannot see this queue. Slowing the
+// run-out without this would have made the winner banner appear and be wiped
+// in the same frame — the operator asked for "a little bit slower" and the
+// naive version of that makes the best moment in the game invisible.
+
+const awarded = (): EngineEvent =>
+  ({ type: "PotAwarded", potIndex: 0, amount: 40, winners: [1], shares: { 1: 40 } }) as EngineEvent;
+const startHand = (handNo: number): EngineEvent =>
+  ({ type: "HandStarted", handNo, buttonSeat: 0, smallBlindSeat: 0, sbPosted: true,
+     bigBlindSeat: 1, dealtSeats: [0, 1], stacks: {} }) as EngineEvent;
+
+describe("the queue holds a new hand off the last result", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    resetPacer();
+    resetState();
+  });
+  afterEach(() => {
+    resetPacer();
+    vi.useRealTimers();
+  });
+
+  it("does not let a HandStarted land on top of the banner", () => {
+    deliver(ev([awarded()]));
+    vi.advanceTimersByTime(50);
+    expect(getState().winners).toEqual([1]);
+
+    // The server's pause is over and it has dealt again.
+    deliver(ev([startHand(2)]));
+
+    // Half a second later the banner must still be up.
+    vi.advanceTimersByTime(500);
+    expect(getState().winners).toEqual([1]);
+    expect(pacerDepth()).toBeGreaterThan(0);
+
+    // And it must arrive on its own — held, not dropped.
+    vi.advanceTimersByTime(5_000);
+    expect(getState().winners).toEqual([]);
+    expect(pacerDepth()).toBe(0);
+  });
+
+  it("does not hold a hand that follows no result at all", () => {
+    // The first hand of a session, and every hand after a fold-out that
+    // awarded before this client connected. Nothing to protect, no delay.
+    deliver(ev([startHand(1)]));
+    vi.advanceTimersByTime(50);
+    expect(pacerDepth()).toBe(0);
+  });
+
+  it("forgets the hold when the table is left", () => {
+    deliver(ev([awarded()]));
+    vi.advanceTimersByTime(50);
+    resetPacer();
+    resetState();
+
+    // A new table. Its first hand must not wait out a banner from the old one.
+    deliver(ev([startHand(1)]));
+    vi.advanceTimersByTime(50);
+    expect(pacerDepth()).toBe(0);
   });
 });

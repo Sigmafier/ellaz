@@ -126,3 +126,91 @@ describe("chat", () => {
     expect(new Set(keys).size).toBe(keys.length);
   });
 });
+
+// ---------------------------------------------------------------------------
+// The board.
+//
+// The operator saw SIX cards on the felt. This was an accumulator fed only by
+// StreetDealt with no way back to the truth, so any lost HandStarted left the
+// previous hand's cards in place for the next street to append to — and
+// `resetPacer()` throws away everything queued on EVERY reconnect, which a
+// backgrounded tab is enough to cause.
+//
+// Nothing here tested the board before, which is exactly why it shipped.
+
+const flop = (a: number, b: number, c: number) =>
+  ({ type: "StreetDealt", street: "flop", cards: [a, b, c] }) as unknown as EngineEvent;
+const single = (s: string, c: number) =>
+  ({ type: "StreetDealt", street: s, cards: [c] }) as unknown as EngineEvent;
+const room = (board: number[] | null): S2C =>
+  ({
+    t: "room",
+    view: { seats: [], hand: board === null ? null : { board, potTotal: 0, betTo: 0 } },
+    names: {},
+    seq: 1,
+  }) as unknown as S2C;
+
+/** What the felt is actually showing — the same slice Table.tsx renders. */
+const felt = () => getState().handBoard.slice(0, getState().shownCount);
+
+describe("the board on the felt", () => {
+  it("is dealt one street at a time", () => {
+    reduceMessage(ev(started));
+    reduceMessage(ev(flop(1, 2, 3)));
+    expect(felt()).toHaveLength(3);
+    reduceMessage(ev(single("turn", 4)));
+    expect(felt()).toHaveLength(4);
+    reduceMessage(ev(single("river", 5)));
+    expect(felt()).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("outlives the hand it belongs to", () => {
+    reduceMessage(ev(started));
+    reduceMessage(ev(flop(1, 2, 3), single("turn", 4), single("river", 5)));
+    // `hand: null` — the hand is over and the winner is being announced.
+    reduceMessage(room(null));
+    expect(felt()).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("NEVER shows six cards, even when a reconnect eats the HandStarted", () => {
+    // Hand one, played out to the river.
+    reduceMessage(ev(started));
+    reduceMessage(ev(flop(1, 2, 3), single("turn", 4), single("river", 5)));
+    reduceMessage(room(null));
+    expect(felt()).toHaveLength(5);
+
+    // The socket drops. resetPacer() discards the queue, and hand two's
+    // HandStarted is in it. No event ever arrives to clear the old board.
+    // The reconnect's snapshot is the first thing we hear.
+    reduceMessage(room([]));
+    expect(felt()).toEqual([]); // healed by the snapshot, not by an event
+
+    reduceMessage(ev(flop(6, 7, 8)));
+    expect(felt()).toEqual([6, 7, 8]); // was [1,2,3,4,5,6,7,8]
+    expect(felt().length).toBeLessThanOrEqual(5);
+  });
+
+  it("shows a mid-hand joiner the whole board at once", () => {
+    // No pacing for somebody who sat down on the river: the story finished
+    // before they arrived, and dealing it to them slowly is a lie about when.
+    reduceMessage(room([1, 2, 3, 4]));
+    expect(felt()).toEqual([1, 2, 3, 4]);
+  });
+
+  it("does not let a snapshot leap ahead of a run-out being dealt", () => {
+    // The pacer holds the trailing snapshot until its beats are done, so this
+    // is the ordering the reducer actually sees. If a `room` carrying all five
+    // cards did arrive mid-run-out, the felt must still show only what has
+    // been dealt — the count is the pacer's, and a snapshot may not raise it.
+    reduceMessage(ev(started));
+    reduceMessage(ev(flop(1, 2, 3)));
+    reduceMessage(room([1, 2, 3, 4, 5]));
+    expect(felt()).toEqual([1, 2, 3]);
+  });
+
+  it("keeps the winning hand's own board on the banner", () => {
+    reduceMessage(ev(started));
+    reduceMessage(ev(flop(1, 2, 3), single("turn", 4), single("river", 5), awarded(2)));
+    expect(getState().lastPot?.board).toEqual([1, 2, 3, 4, 5]);
+  });
+});

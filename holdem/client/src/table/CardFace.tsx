@@ -78,7 +78,10 @@ export function CardFace({ card, size = 44, delay = 0 }: { card: Card; size?: nu
         color: red ? "var(--card-red)" : "var(--card-black)",
         boxShadow: "0 2px 6px rgba(0,0,0,.45)",
         overflow: "hidden",
-        animation: `holdem-flip-in 240ms var(--ease) both`,
+        // 380ms, up from 240. A card turning over is the single most-watched
+        // thing on this screen and it was arriving faster than the eye tracks
+        // it — the operator's word for the whole felt was "too fast".
+        animation: `holdem-flip-in 380ms var(--ease) both`,
         animationDelay: `${delay}ms`,
       }}
     >

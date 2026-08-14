@@ -189,7 +189,7 @@ export function WinMoment({
             `view.hand` went null the moment the hand ended and the felt's
             board disappeared with it — so the copy was the only way to see
             what the pot was won on. That was a workaround for a bug that is
-            now fixed at the source: `shownBoard` outlives the hand and the
+            now fixed at the source: `handBoard` outlives the hand and the
             real board stays on the cloth, where the pot and the players'
             revealed hands are. Keeping the copy meant two nearly identical
             rows of five cards stacked on top of each other, and the one that

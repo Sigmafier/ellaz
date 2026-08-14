@@ -346,7 +346,10 @@ for (const b of bots) {
 await sleep(600);
 
 console.log("");
-console.log(`  table ${code}${LISTED ? "" : "  (private — not in the lobby)"}`);
+// The privacy note belongs to a table we CREATED. Printing it on a --join
+// stated something false about somebody else's table: RG90D was in the lobby
+// the whole time, and the header said it was not.
+console.log(`  table ${code}${JOIN ? "  (joined)" : LISTED ? "" : "  (private — not in the lobby)"}`);
 console.log(`  play    ${SITE}/#/room/${code}`);
 console.log(`  watch   ${SITE}/#/tv/${code}`);
 console.log(`  server  ${BASE}`);

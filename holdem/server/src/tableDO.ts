@@ -135,7 +135,16 @@ function displayName(name: PlayerName | undefined): string {
   return renderName(name) ?? "Player";
 }
 
-const INTER_HAND_MS = 4_000;
+// 6.5s, up from 4. The client PACES a run-out — an all-in deals the flop,
+// turn and river as separate beats over about six seconds — and this pause is
+// measured from the server's clock, which cannot see that queue. At 4s the
+// next hand was already arriving while the felt was still dealing the last
+// one, so the winner banner had no time to exist at all.
+//
+// The client holds a HandStarted as well (`AFTER_AWARD_MS` in pacer.ts). Both
+// halves are needed: this one keeps every client honest about the same pause,
+// and that one is the floor for the slowest story the felt can be telling.
+const INTER_HAND_MS = 6_500;
 const HISTORY_CAP = 500;
 const RELINK_TTL_MS = 10 * 60_000;
 
