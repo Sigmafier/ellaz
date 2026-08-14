@@ -18,11 +18,38 @@ cannot spell.
 If a future feature wants "let them personalise it", the answer is **more
 words**, not a keyboard.
 
-## Store ids, never a rendered string
+## Store ids, never a rendered string — EXCEPT in an archive
 
 `profile.name` is `{ adj, noun }`. A stored `"נמר זריז"` would still say
 נמר זריז after the child switches the app to English. One player has one name in
 two languages, and the language is decided at render time by `renderName()`.
+
+**The exception is a record of something that already happened.** Ids are right
+for LIVE state, which must follow the player's current language and survive the
+pool being edited. They are wrong for an ARCHIVE, which must not.
+
+A finished hand, a completed game, a receipt: those say who was there at the
+time, and that answer must not change afterwards. Store ids in one and the row
+re-renders in whatever language is current — so a Hebrew player reading their
+own history sees names that were English when they played. Worse, a word id
+retired later resolves to `undefined` and the archive loses a participant, in a
+record whose entire job is to remember them.
+
+So `HandSummary.names` in `holdem/shared/src/protocol.ts` is deliberately
+`Record<number, string>` — rendered at send time — while the live `room` message
+beside it carries `names: Record<number, PlayerName>` as ids. Two shapes, one
+file, and the comment above the archive one says why, because the natural
+instinct on reading it is to "fix" the inconsistency.
+
+The test to apply: **can this row's meaning change after it is written?** If no,
+it is an archive and it takes the rendered string.
+
+## There are two implementations of this pool now
+
+`src/sdk/names.ts` (ellaz, he+en, gendered) and `holdem/shared/src/names.ts`
+(poker, English only, 16 × 20, one distinct emoji per animal). They are separate
+on purpose — poker is a different site with a different word list — and they
+share every rule in this file. A change to the invariants belongs in both.
 
 ## Hebrew adjectives agree with their noun, and follow it
 

@@ -33,6 +33,7 @@ report**. Ask of any probe: *could this even express the failure I am looking fo
 | 2026-08-12 fix verification | `grep -E` with a `\1` backreference | **ugrep rejected the pattern**; the script read the parse error as "no match" and printed FIXED |
 | 2026-08-13 mutation harness | a verdict read from the ABSENCE of a message | the mutated copies were named `base.mjs`/`m.mjs`, and the script only runs `main()` when `argv[1]` ends in its own basename — so node loaded them, ran **nothing**, exited 0, and six controls read as SURVIVED |
 | 2026-08-13 FTP liveness probe | `exec 3<>/dev/tcp/host/21 && head -c 120 <&3` under a 12 s timeout | the BANNER, not the connection. A slow greeting read as a dead port, and I reported "Hostinger's FTP is down, verified from my machine". A connect-only check succeeded on its FIRST attempt seconds later |
+| 2026-08-14 holdem purity gate | `/^\s*\/\/.*$/gm` to strip comments before scanning for banned imports | every comment NOT at the start of a line. `export const X = 1; // sent over the WebSocket` fired the gate on the word in its own comment. A false POSITIVE, so it announced itself — the same regex pointed the other way is a purity gate that silently stops checking |
 
 The fourth is the third one wearing a harness instead of a script, and it fired the
 very next day: **when a verdict is derived from the absence of a signal, a run that
