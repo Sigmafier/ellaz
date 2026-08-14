@@ -4,7 +4,7 @@
 export const he = {
   appName: "הולדעם",
   tagline: "פוקר עם החברים. בלי כסף אמיתי, בלי חשבונות.",
-  yourName: "איך קוראים לך?",
+  yourName: "השם שלך",
   createRoom: "פתיחת שולחן",
   joinRoom: "הצטרפות לשולחן",
   roomCode: "קוד שולחן",
@@ -58,7 +58,7 @@ export const he = {
   back: "חזרה",
   language: "English",
   roomNotFound: "אין שולחן כזה — בדקו את הקוד",
-  nameRequired: "צריך שם קודם",
+  rerollName: "תן לי שם אחר",
   seatTaken: "המקום תפוס",
   notYourTurn: "לא תורך",
   badAmount: "סכום לא חוקי",

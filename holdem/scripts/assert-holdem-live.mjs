@@ -29,10 +29,8 @@
 
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
-import { fileURLToPath } from "node:url";
-
-const HERE = dirname(fileURLToPath(import.meta.url));
+import { join, relative } from "node:path";
+import { protocolVersion } from "./protocolVersion.mjs";
 
 const [, , WORKER, PAGES, DIST = "client/dist"] = process.argv;
 if (!WORKER || !PAGES) {
@@ -59,22 +57,16 @@ function walk(dir) {
   return out;
 }
 
-// The version is READ OUT OF THE SOURCE, not written here. A constant copied
-// into this file is correct until somebody bumps the protocol, at which point
-// the gate either fails on a good deploy or — worse, if it were written as a
-// floor — passes a server the client cannot speak to. There is one number and
-// this reads it.
-function protocolVersion() {
-  const src = readFileSync(join(HERE, "..", "shared", "src", "protocol.ts"), "utf8");
-  const m = src.match(/export const PROTOCOL_VERSION\s*=\s*(\d+)/);
-  if (!m) {
-    bad("could not read PROTOCOL_VERSION out of shared/src/protocol.ts");
-    return null;
-  }
-  return Number(m[1]);
+// The version is READ OUT OF THE SOURCE, never written here — see
+// protocolVersion.mjs. A copy is correct until somebody bumps the protocol, at
+// which point the gate either fails on a good deploy or, written as a floor,
+// passes a server the client cannot speak to.
+let WANT_V = null;
+try {
+  WANT_V = protocolVersion();
+} catch (e) {
+  bad(e.message);
 }
-
-const WANT_V = protocolVersion();
 
 // ---------------------------------------------------------------- the worker
 

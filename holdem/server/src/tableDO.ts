@@ -23,6 +23,7 @@ import {
   type TableState,
 } from "../../shared/src/engine/types";
 import { publicView, redactEvent, redactHistory } from "../../shared/src/engine/view";
+import { pickName, type PlayerName, renderName, resolveName } from "../../shared/src/names";
 import {
   type C2S,
   EMOTES,
@@ -42,7 +43,12 @@ interface Meta {
 
 interface PlayerRec {
   playerId: string;
-  name: string;
+  /**
+   * Two word ids, never text. The rendered string is derived on the way out,
+   * which is what makes it impossible for a client to put arbitrary characters
+   * on another player's screen: nothing a client sends is ever displayed.
+   */
+  name: PlayerName;
 }
 
 interface TimerRec {
@@ -54,7 +60,19 @@ interface TimerRec {
 }
 
 interface LedgerRec {
+  /** Rendered at write time — the ledger is a record of the session as played. */
   name: string;
+  /**
+   * And the ids, so a row can show the player's animal beside the figure.
+   *
+   * OPTIONAL, and not out of laziness: the leave path in postProcess creates a
+   * row from the ENGINE's seat, which holds an opaque rendered string and knows
+   * nothing about the pool. That path is only reachable for a player who left
+   * without ever having bought in — the sit path always writes both — but it is
+   * reachable, and a required field there would have to be filled with a lie.
+   * Rows written before this field existed are the same case.
+   */
+  nameIds?: PlayerName;
   buyIn: number;
   cashedOut: number;
   handsPlayed: number;
@@ -63,6 +81,41 @@ interface LedgerRec {
 interface Attachment {
   playerId: string | null;
   spectate: boolean;
+}
+
+/**
+ * The name this server will actually use, which is not always the one asked for.
+ *
+ * THE POOL IS THE ALLOWLIST. An id that does not resolve never reaches storage,
+ * so `PlayerRec.name` holds only words this build can render — which is what
+ * lets every render site treat rendering as infallible.
+ *
+ * An unknown id is answered with a name rather than an error, and that is the
+ * load-bearing choice. The realistic way to send one is to be a build ahead or
+ * behind, and refusing the socket over a word would turn a cosmetic mismatch
+ * into "you cannot join this table". A player who asked for something this
+ * build has never heard of gets a real name and sees it come back; the `name`
+ * message exists so they see WHICH.
+ */
+function acceptName(asked: PlayerName | undefined, current?: PlayerName): PlayerName {
+  if (asked && resolveName(asked)) return asked;
+  if (current && resolveName(current)) return current;
+  return pickName();
+}
+
+function sameName(a: PlayerName | undefined, b: PlayerName | undefined): boolean {
+  return !!a && !!b && a.adj === b.adj && a.noun === b.noun;
+}
+
+/**
+ * The rendered string, for the places that need one: the engine's seat label,
+ * the ledger, and saved hand history.
+ *
+ * The fallback can only fire on a record written by a build that knew a word
+ * this one does not — `acceptName` makes it unreachable from the wire.
+ */
+function displayName(name: PlayerName | undefined): string {
+  return renderName(name) ?? "Player";
 }
 
 const INTER_HAND_MS = 4_000;
@@ -186,15 +239,18 @@ export class TableDO implements DurableObject {
           }
         }
         const players = (await this.ctx.storage.get<Record<string, PlayerRec>>("players")) ?? {};
-        const name = Object.values(players).find((p) => p.playerId === att.playerId)?.name ?? "?";
+        const ids = Object.values(players).find((p) => p.playerId === att.playerId)?.name;
+        // The engine's seat label is an opaque string and stays that way — it
+        // must not learn about the word pool, which is why `room` carries the
+        // ids alongside the view rather than inside it.
         await this.applyAndCommit(ws, {
           type: "sit",
           seat: msg.seatIdx,
           playerId: att.playerId,
-          name,
+          name: displayName(ids),
           buyIn,
         });
-        await this.bumpLedger(att.playerId, name, (row) => (row.buyIn += buyIn));
+        await this.bumpLedger(att.playerId, ids, (row) => (row.buyIn += buyIn));
         return;
       }
       case "leaveSeat": {
@@ -212,8 +268,26 @@ export class TableDO implements DurableObject {
         if (seatIdx < 0) return;
         await this.applyAndCommit(ws, { type: "rebuy", seat: seatIdx, amount: msg.amount });
         const players = (await this.ctx.storage.get<Record<string, PlayerRec>>("players")) ?? {};
-        const name = Object.values(players).find((p) => p.playerId === att.playerId)?.name ?? "?";
-        await this.bumpLedger(att.playerId, name, (row) => (row.buyIn += msg.amount));
+        const ids = Object.values(players).find((p) => p.playerId === att.playerId)?.name;
+        await this.bumpLedger(att.playerId, ids, (row) => (row.buyIn += msg.amount));
+        return;
+      }
+      case "setName": {
+        const players = (await this.ctx.storage.get<Record<string, PlayerRec>>("players")) ?? {};
+        const entry = Object.entries(players).find(([, p]) => p.playerId === att.playerId);
+        if (!entry) return;
+        const [token, rec] = entry;
+        rec.name = acceptName(msg.name, rec.name);
+        players[token] = rec;
+        await this.ctx.storage.put("players", players);
+        // Answer with what was SETTLED ON, not what was asked for — an id this
+        // build does not know comes back as a different, real name, and the
+        // client must render the reply rather than its own request.
+        this.send(ws, { t: "name", name: rec.name });
+        // A seated player's name is on everyone's felt, so the whole room needs
+        // the new one. The engine's own seat label is set at sit time and is
+        // not worth re-deriving mid-hand; `names` is what clients render.
+        this.broadcast(this.roomMsg(players));
         return;
       }
       case "act": {
@@ -329,7 +403,9 @@ export class TableDO implements DurableObject {
       const hit = relinks[msg.relink.toUpperCase()];
       if (hit && hit.expires > Date.now()) {
         const existing = Object.entries(players).find(([, p]) => p.playerId === hit.playerId);
-        rec = { playerId: hit.playerId, name: existing?.[1].name ?? msg.name ?? "?" };
+        // The relinked player keeps the name the table already knows them by;
+        // only if that record is gone does the new device's request count.
+        rec = { playerId: hit.playerId, name: acceptName(existing?.[1].name ?? msg.name) };
         // The new device replaces the old one.
         for (const [token, p] of Object.entries(players)) {
           if (p.playerId === hit.playerId) delete players[token];
@@ -343,19 +419,17 @@ export class TableDO implements DurableObject {
     if (!rec) {
       if (msg.spectate) {
         ws.serializeAttachment({ playerId: null, spectate: true } satisfies Attachment);
-        this.send(ws, { t: "room", view: publicView(this.table!), seq: this.seq });
+        this.send(ws, this.roomMsg(players));
         return;
       }
-      const name = (msg.name ?? "").trim().slice(0, 24);
-      if (!name) {
-        this.send(ws, { t: "err", code: "NAME_REQUIRED", msg: "first visit needs a name" });
-        return;
-      }
-      rec = { playerId: crypto.randomUUID(), name };
+      // No NAME_REQUIRED any more. A name is drawn rather than typed, so
+      // "arrived without one" is not a client error to report — it is a name
+      // this side has not assigned yet.
+      rec = { playerId: crypto.randomUUID(), name: acceptName(msg.name) };
       players[msg.token] = rec;
       await this.ctx.storage.put("players", players);
-    } else if (msg.name && msg.name.trim() && msg.name.trim() !== rec.name) {
-      rec.name = msg.name.trim().slice(0, 24);
+    } else if (msg.name && !sameName(msg.name, rec.name)) {
+      rec.name = acceptName(msg.name, rec.name);
       players[msg.token] = rec;
       await this.ctx.storage.put("players", players);
     }
@@ -378,7 +452,7 @@ export class TableDO implements DurableObject {
       serverNow: Date.now(),
       chipsMode: table.config.chipsMode,
     });
-    this.send(ws, { t: "room", view: publicView(table), seq: this.seq });
+    this.send(ws, this.roomMsg(players));
     this.send(ws, { t: "you", you: this.youFor(rec.playerId) });
     await this.sendTimer(ws);
   }
@@ -423,6 +497,9 @@ export class TableDO implements DurableObject {
     // is always THIS, never a client-side event fold — events exist for
     // animation and history), and fresh private views.
     const view = publicView(this.table);
+    const names = this.seatNames(
+      (await this.ctx.storage.get<Record<string, PlayerRec>>("players")) ?? {},
+    );
     const sockets = this.ctx.getWebSockets();
     for (const sock of sockets) {
       const att = safeAttachment(sock);
@@ -434,7 +511,7 @@ export class TableDO implements DurableObject {
         .map((e) => redactEvent(e, forSeat))
         .filter((e): e is EngineEvent => e !== null);
       this.send(sock, { t: "ev", seq: this.seq, events });
-      this.send(sock, { t: "room", view, seq: this.seq });
+      this.send(sock, { t: "room", view, names, seq: this.seq });
       if (att.playerId) this.send(sock, { t: "you", you: this.youFor(att.playerId) });
     }
     await this.armNext();
@@ -507,12 +584,15 @@ export class TableDO implements DurableObject {
 
   private async bumpLedger(
     playerId: string,
-    name: string,
+    ids: PlayerName | undefined,
     fn: (row: LedgerRec) => void,
   ): Promise<void> {
     const ledger = (await this.ctx.storage.get<Record<string, LedgerRec>>("ledger")) ?? {};
-    const row = (ledger[playerId] ??= { name, buyIn: 0, cashedOut: 0, handsPlayed: 0 });
+    const name = displayName(ids);
+    const nameIds = ids ?? { adj: "", noun: "" };
+    const row = (ledger[playerId] ??= { name, nameIds, buyIn: 0, cashedOut: 0, handsPlayed: 0 });
     row.name = name;
+    row.nameIds = nameIds;
     fn(row);
     await this.ctx.storage.put("ledger", ledger);
   }
@@ -529,6 +609,7 @@ export class TableDO implements DurableObject {
         return {
           playerId,
           name: row.name,
+          nameIds: row.nameIds ?? { adj: "", noun: "" },
           net: row.cashedOut + live + banked - row.buyIn,
           buyIn: row.buyIn,
           handsPlayed: row.handsPlayed,
@@ -654,6 +735,34 @@ export class TableDO implements DurableObject {
   private requireHost(playerId: string): void {
     if (this.meta.hostPlayerId !== playerId)
       throw new EngineError("BAD_STATE", "host only");
+  }
+
+  /**
+   * Seat index → the two word ids, for the seats that are occupied.
+   *
+   * Keyed by seat rather than by playerId because that is what a client
+   * renders, and it carries no playerId for seats it looks up — a spectator
+   * receives this too.
+   */
+  private seatNames(players: Record<string, PlayerRec>): Record<number, PlayerName> {
+    const byId = new Map<string, PlayerName>();
+    for (const p of Object.values(players)) byId.set(p.playerId, p.name);
+    const out: Record<number, PlayerName> = {};
+    this.table?.seats.forEach((seat, idx) => {
+      const n = seat.playerId ? byId.get(seat.playerId) : undefined;
+      if (n) out[idx] = n;
+    });
+    return out;
+  }
+
+  /** The public snapshot plus the names that go with it — always sent together. */
+  private roomMsg(players: Record<string, PlayerRec>): S2C {
+    return {
+      t: "room",
+      view: publicView(this.table!),
+      names: this.seatNames(players),
+      seq: this.seq,
+    };
   }
 
   private send(ws: WebSocket, msg: S2C): void {

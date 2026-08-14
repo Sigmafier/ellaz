@@ -4,9 +4,11 @@
 
 import { useSyncExternalStore } from "react";
 import type { Card } from "@shared/engine/cards";
+import type { PlayerName } from "@shared/names";
 import type { HandSummary, LedgerRow, S2C, YouView } from "@shared/protocol";
 import type { PublicTableView } from "@shared/engine/view";
 import type { EngineEvent } from "@shared/engine/types";
+import { saveName } from "../net/nameStore";
 
 export type ConnState = "idle" | "connecting" | "open" | "reconnecting";
 
@@ -21,10 +23,17 @@ export interface AppState {
   conn: ConnState;
   code: string | null;
   playerId: string | null;
-  myName: string | null;
+  /**
+   * The name the SERVER settled on, not the one this device asked for. An id a
+   * newer build introduced comes back as something else entirely, so rendering
+   * the request would show a name nobody else at the table can see.
+   */
+  myName: PlayerName | null;
   isHost: boolean;
   chipsMode: string;
   view: PublicTableView | null;
+  /** Seat → word ids, so a seat can wear its animal. Arrives with every view. */
+  seatNames: Record<number, PlayerName>;
   you: YouView | null;
   timer: { seatIdx: number; deadlineEpochMs: number; receivedAt: number; serverNow: number; timeBank: boolean } | null;
   /** Cards revealed at the current showdown, cleared on the next HandStarted. */
@@ -49,6 +58,7 @@ const initial: AppState = {
   isHost: false,
   chipsMode: "fresh",
   view: null,
+  seatNames: {},
   you: null,
   timer: null,
   reveals: {},
@@ -121,9 +131,21 @@ export function reduceMessage(msg: S2C): void {
         isHost: msg.isHost,
         chipsMode: msg.chipsMode,
       });
+      // Persist it here, not only on `name`: a first visit sends no name at
+      // all and the server assigns one, so this is the only message that
+      // carries it. Without this the same device draws a different name on
+      // every load and the table never learns who is who.
+      saveName(msg.name);
       break;
     case "room":
-      setState({ view: msg.view });
+      setState({ view: msg.view, seatNames: msg.names });
+      break;
+    // What the server SETTLED ON after a reroll, which is not always what was
+    // asked for. Rendering the request instead would show this player a name
+    // nobody else at the table sees.
+    case "name":
+      setState({ myName: msg.name });
+      saveName(msg.name);
       break;
     case "you":
       setState({ you: msg.you });

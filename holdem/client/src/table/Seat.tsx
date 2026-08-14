@@ -2,6 +2,7 @@ import type { PublicSeatView } from "@shared/engine/view";
 import type { Card } from "@shared/engine/cards";
 import { CardBack, CardFace } from "./CardFace";
 import { TimerBar } from "./TimerBar";
+import { nameEmoji } from "@shared/names";
 import { useApp } from "../state/store";
 import type { Locale } from "../i18n";
 import { makeT } from "../i18n";
@@ -21,7 +22,7 @@ export function Seat({
   locale: Locale;
   onSitHere: (() => void) | null;
 }) {
-  const { view, you, reveals, lastAction, winners } = useApp();
+  const { view, you, reveals, lastAction, winners, seatNames } = useApp();
   const t = makeT(locale);
   const hand = view?.hand ?? null;
   const isButton = view?.buttonSeat === seat.seat;
@@ -94,6 +95,10 @@ export function Seat({
         }}
       >
         <div style={{ fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", maxWidth: 110, overflow: "hidden", textOverflow: "ellipsis" }}>
+          {/* The animal is the seat's face. It comes from `names` beside the
+              view, never from the engine's seat label — the engine holds an
+              opaque string and must not learn about the word pool. */}
+          <span aria-hidden>{nameEmoji(seatNames[seat.seat])}</span>{" "}
           <bdi>{seat.name}</bdi> {isMe ? `(${t("you")})` : ""}
         </div>
         <div style={{ fontSize: 13, color: "var(--gold)", fontWeight: 800 }}>{seat.stack}</div>

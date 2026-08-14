@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { savedName, saveName, socket } from "../net/socket";
+import { renderName, rerollName } from "@shared/names";
+import { socket } from "../net/socket";
 import { attachJuice } from "../juice/moments";
 import { isMuted, setMuted } from "../audio/audio";
 import { useApp } from "../state/store";
@@ -22,46 +23,20 @@ export function RoomScreen({
   const t = makeT(locale);
   const [panel, setPanel] = useState<"none" | "history" | "league" | "menu">("none");
   const [copied, setCopied] = useState(false);
-  // A shared link can land here with no saved name — gate the connection on
-  // one, or the server would answer hello with NAME_REQUIRED forever.
-  const [hasName, setHasName] = useState(() => savedName().length > 0);
-  const [nameDraft, setNameDraft] = useState("");
-
+  // No name gate. A shared link used to land on an interstitial asking for a
+  // name before it would even connect, because hello answered NAME_REQUIRED
+  // without one. A name is drawn now — the server assigns one if this device
+  // has none — so the link goes straight to the felt and the player can reroll
+  // from the menu once they are looking at the table.
   useEffect(() => {
-    if (!hasName) return;
     socket.connect(code);
     const offJuice = attachJuice();
     return () => {
       offJuice();
       socket.disconnect();
     };
-  }, [code, hasName]);
+  }, [code]);
   const [muted, setMutedUi] = useState(isMuted());
-
-  if (!hasName) {
-    return (
-      <Center>
-        <strong style={{ fontSize: 18 }}>{t("yourName")}</strong>
-        <input
-          className="field"
-          style={{ maxWidth: 260 }}
-          maxLength={24}
-          value={nameDraft}
-          onChange={(e) => setNameDraft(e.target.value)}
-        />
-        <button
-          className="btn primary"
-          disabled={!nameDraft.trim()}
-          onClick={() => {
-            saveName(nameDraft.trim());
-            setHasName(true);
-          }}
-        >
-          {t("join")}
-        </button>
-      </Center>
-    );
-  }
 
   const mySeat = app.you?.seatIdx ?? -1;
   const me = mySeat >= 0 && app.view ? app.view.seats[mySeat] : null;
@@ -145,6 +120,15 @@ export function RoomScreen({
       {panel === "league" && <LeaguePanel locale={locale} onClose={() => setPanel("none")} />}
       {panel === "menu" && (
         <Sheet onClose={() => setPanel("none")}>
+          {/* The reroll the shared-link player never got on the way in. The
+              server answers with the name it SETTLED on, so the store updates
+              from the reply rather than optimistically from the request. */}
+          <button
+            className="btn ghost"
+            onClick={() => app.myName && socket.setName(rerollName(app.myName))}
+          >
+            🎲 {app.myName ? renderName(app.myName) : t("rerollName")}
+          </button>
           <button className="btn ghost" onClick={onToggleLocale}>
             {t("language")}
           </button>
@@ -205,7 +189,7 @@ export function RoomScreen({
       )}
 
       {/* transient error toast */}
-      {app.lastError && Date.now() - app.lastError.at < 4000 && app.lastError.code !== "NAME_REQUIRED" && (
+      {app.lastError && Date.now() - app.lastError.at < 4000 && (
         <div
           style={{
             position: "fixed",

@@ -9,6 +9,20 @@
 //   seat <n> <buyIn> · out · in · rebuy <n> · start · hist · ledger · q
 
 import { createInterface } from "node:readline";
+import { protocolVersion } from "./protocolVersion.mjs";
+
+const PROTOCOL_VERSION = protocolVersion();
+
+/**
+ * Ids → something readable, for a debug harness that cannot import the TS pool.
+ *
+ * NOT renderName(): it capitalises the ID rather than reading the pool's own
+ * `en` field, so a word whose display form is not just its id capitalised
+ * ("mcfly" → "McFly") would print wrong HERE and right everywhere else. That is
+ * acceptable in a console harness and would not be in the client.
+ */
+const renderName = (n) => (n && n.adj && n.noun ? `${cap(n.adj)} ${cap(n.noun)}` : "?");
+const cap = (w) => w.charAt(0).toUpperCase() + w.slice(1);
 
 const BASE = process.env.HOLDEM_URL ?? "http://localhost:8787";
 const WS_BASE = BASE.replace(/^http/, "ws");
@@ -16,6 +30,8 @@ const RANKS = "23456789TJQKA";
 const SUITS = ["♣", "♦", "♥", "♠"];
 const card = (c) => RANKS[(c / 4) | 0] + SUITS[c % 4];
 
+// `name` is now only a LABEL for this process and its token — the table
+// name comes from the server's pool and cannot be chosen from here.
 let [, , codeArg, name = "Player", seatArg] = process.argv;
 if (!codeArg) {
   console.error("usage: cli-client.mjs <create|CODE> <name> [seat]");
@@ -41,7 +57,7 @@ const ws = new WebSocket(`${WS_BASE}/ws/${code}`);
 const send = (m) => ws.send(JSON.stringify(m));
 
 ws.onopen = () => {
-  send({ t: "hello", v: 1, token, name });
+  send({ t: "hello", v: PROTOCOL_VERSION, token });
   if (seatArg !== undefined) setTimeout(() => send({ t: "takeSeat", seatIdx: Number(seatArg), buyIn: 200 }), 300);
 };
 ws.onclose = () => {
@@ -52,7 +68,7 @@ ws.onmessage = (ev) => {
   const m = JSON.parse(ev.data);
   switch (m.t) {
     case "welcome":
-      console.log(`hello ${m.name}${m.isHost ? " (host)" : ""} — room ${code}`);
+      console.log(`hello ${renderName(m.name)}${m.isHost ? " (host)" : ""} — room ${code}`);
       break;
     case "room":
       view = m.view;

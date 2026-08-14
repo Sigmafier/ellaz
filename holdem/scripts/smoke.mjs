@@ -11,6 +11,9 @@
 //   - a mid-run reconnect gets a snapshot and can keep playing
 // Exits 0 on success, 1 with a reason on failure. Node builtins only.
 
+import { protocolVersion } from "./protocolVersion.mjs";
+
+const PROTOCOL_VERSION = protocolVersion();
 const BASE = process.argv[2] ?? "http://localhost:8787";
 const WS_BASE = BASE.replace(/^http/, "ws");
 const HANDS = Number(process.env.SMOKE_HANDS ?? 5);
@@ -52,7 +55,7 @@ class Player {
     return new Promise((resolve, reject) => {
       this.ws = new WebSocket(`${WS_BASE}/ws/${code}`);
       this.ws.onopen = () => {
-        this.sendMsg({ t: "hello", v: 1, token: this.token, name: this.name });
+        this.sendMsg({ t: "hello", v: PROTOCOL_VERSION, token: this.token });
         resolve();
       };
       this.ws.onerror = (e) => reject(new Error(`${this.name} ws error: ${e.message ?? e}`));

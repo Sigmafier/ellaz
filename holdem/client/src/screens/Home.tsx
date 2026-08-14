@@ -1,11 +1,16 @@
 import { useState } from "react";
-import { createRoom, savedName, saveName } from "../net/socket";
+import { nameEmoji, pickName, renderName, rerollName } from "@shared/names";
+import { createRoom } from "../net/socket";
+import { savedName, saveName } from "../net/nameStore";
 import type { Locale } from "../i18n";
 import { makeT } from "../i18n";
 
 export function Home({ locale, onToggleLocale }: { locale: Locale; onToggleLocale: () => void }) {
   const t = makeT(locale);
-  const [name, setName] = useState(savedName());
+  // Drawn, never typed. A first visit already HAS a name, so nothing on this
+  // screen can be blocked on one — which is why `requireName` is gone and both
+  // buttons act immediately.
+  const [name, setName] = useState(() => savedName() ?? pickName());
   const [joinCode, setJoinCode] = useState("");
   const [creating, setCreating] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
@@ -16,18 +21,21 @@ export function Home({ locale, onToggleLocale }: { locale: Locale; onToggleLocal
   const [actionSecs, setActionSecs] = useState(25);
   const [error, setError] = useState("");
 
-  const requireName = (): boolean => {
-    if (!name.trim()) {
-      setError(t("nameRequired"));
-      return false;
-    }
-    saveName(name.trim());
+  // A name always exists, so this only persists the current one. It cannot
+  // fail and it cannot refuse, which is the whole point of a pool.
+  const keepName = (): void => {
+    saveName(name);
     setError("");
-    return true;
+  };
+
+  const doReroll = (): void => {
+    const next = rerollName(name);
+    setName(next);
+    saveName(next);
   };
 
   const doCreate = async () => {
-    if (!requireName()) return;
+    keepName();
     setCreating(true);
     const code = await createRoom({
       maxSeats: seats,
@@ -48,7 +56,7 @@ export function Home({ locale, onToggleLocale }: { locale: Locale; onToggleLocal
   };
 
   const doJoin = () => {
-    if (!requireName()) return;
+    keepName();
     const code = joinCode.trim().toUpperCase().replace(/[\s-]/g, "");
     if (code.length < 4) return;
     location.hash = `#/room/${code}`;
@@ -66,10 +74,27 @@ export function Home({ locale, onToggleLocale }: { locale: Locale; onToggleLocal
       </div>
       <p style={{ margin: 0, color: "var(--ink-dim)" }}>{t("tagline")}</p>
 
-      <label style={{ display: "flex", flexDirection: "column", gap: 6, fontWeight: 700 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, fontWeight: 700 }}>
         {t("yourName")}
-        <input className="field" value={name} maxLength={24} onChange={(e) => setName(e.target.value)} />
-      </label>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div
+            className="field"
+            style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, fontWeight: 800 }}
+          >
+            <span aria-hidden style={{ fontSize: 24, lineHeight: 1 }}>{nameEmoji(name)}</span>
+            <span>{renderName(name)}</span>
+          </div>
+          <button
+            className="btn ghost"
+            style={{ minWidth: 52 }}
+            aria-label={t("rerollName")}
+            title={t("rerollName")}
+            onClick={doReroll}
+          >
+            🎲
+          </button>
+        </div>
+      </div>
 
       <div style={{ background: "var(--surface)", borderRadius: "var(--radius-2)", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
         <strong>{t("joinRoom")}</strong>

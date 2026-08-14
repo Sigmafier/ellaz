@@ -5,12 +5,13 @@
 // online. Every (re)connect replays hello; the server answers with a full
 // snapshot, which is the whole resync story.
 
+import type { PlayerName } from "@shared/names";
 import type { C2S, EmoteId, S2C } from "@shared/protocol";
 import { PROTOCOL_VERSION } from "@shared/protocol";
 import { getState, reduceMessage, resetState, setState } from "../state/store";
+import { savedName } from "./nameStore";
 
 const TOKEN_KEY = "holdem:token";
-const NAME_KEY = "holdem:name";
 
 export function deviceToken(): string {
   try {
@@ -22,22 +23,6 @@ export function deviceToken(): string {
     return t;
   } catch {
     return `mem-${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
-  }
-}
-
-export function savedName(): string {
-  try {
-    return localStorage.getItem(NAME_KEY) ?? "";
-  } catch {
-    return "";
-  }
-}
-
-export function saveName(name: string): void {
-  try {
-    localStorage.setItem(NAME_KEY, name);
-  } catch {
-    /* incognito */
   }
 }
 
@@ -103,7 +88,7 @@ class GameSocket {
         t: "hello",
         v: PROTOCOL_VERSION,
         token: deviceToken(),
-        name: this.spectate ? undefined : savedName() || undefined,
+        name: this.spectate ? undefined : savedName(),
         relink,
         spectate: this.spectate || undefined,
       });
@@ -158,6 +143,15 @@ class GameSocket {
     this.sendRaw({ t: "act", handNo: you.handNo, actionSeq: you.actionSeq, action, amount });
   }
 
+  /**
+   * Ask for a name. NOT a local rename — nothing is persisted here, because
+   * the server decides and answers with `name`, which the store then saves.
+   * Writing it optimistically would leave this device showing a name the rest
+   * of the table cannot see when the two disagree.
+   */
+  setName(name: PlayerName): void {
+    this.sendRaw({ t: "setName", name });
+  }
   takeSeat(seatIdx: number, buyIn: number): void {
     this.sendRaw({ t: "takeSeat", seatIdx, buyIn });
   }

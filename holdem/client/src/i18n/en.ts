@@ -5,7 +5,7 @@ import type { StringKey } from "./he";
 export const en: Record<StringKey, string> = {
   appName: "Hold'em",
   tagline: "Poker with your friends. No real money, no accounts.",
-  yourName: "What's your name?",
+  yourName: "Your name",
   createRoom: "Create a table",
   joinRoom: "Join a table",
   roomCode: "Table code",
@@ -59,7 +59,7 @@ export const en: Record<StringKey, string> = {
   back: "Back",
   language: "עברית",
   roomNotFound: "No such table — check the code",
-  nameRequired: "Pick a name first",
+  rerollName: "Give me another name",
   seatTaken: "That seat is taken",
   notYourTurn: "Not your turn",
   badAmount: "Bad amount",
