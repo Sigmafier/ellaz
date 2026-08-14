@@ -75,6 +75,37 @@ an idle practice table costs literally nothing. It wakes on the first `hello`.
 **The table is always THERE; it is not always playing, and those are different
 promises.**
 
+**A seat holding 0 chips does not sit at the table** (`server/src/busted.ts`).
+Not tidiness: `blinds.ts` counts only seats with chips, so every busted seat
+left in place is one player closer to a table that cannot deal — and the way
+THAT ends is a room full of faces where nothing happens and no error is printed
+anywhere. Measured on the live practice table before the fix: three of five
+seats at 0 and every chip pooled in a fourth, because the only thing that ever
+staked a bot back was `hello`, which fires once when somebody arrives and never
+again however long they play.
+
+Two answers, because the two seats mean different things. **The house is
+restaked** — it cannot decide to rebuy and there is nobody to ask, so a busted
+bot is just a dead chair and its chips were never real. **A person is stood
+up**, keeping everything a leave normally gives them; their seat goes back to
+"sit here", the same door they came in by. Deciding for them would be inventing
+money for somebody entitled to decide they are done. The rule is pure and lives
+beside `reap.ts` for the same reason — no test here can drive a Durable Object,
+so anything with a decision in it moves where a test can hold it still. The
+sweep runs LAST in a commit: sweeping first would send the tidied table before
+the events that busted somebody, so the client would show the seat already gone
+while the pacer was still animating the pot that emptied it.
+
+**The time bank spends itself, and there is no button for it.** There was an
+hourglass in the action bar and the operator could not tell what it did — the
+correct reaction to a control that asks you, mid-decision, to notice a clock
+and spend a reserve you were never told you had. A reserve of extra time has
+exactly one moment worth spending: the moment you would otherwise be folded. So
+the server spends it there, once per player per hand, and the timer bar simply
+grows. **Only for somebody actually connected** — banking time for a closed
+laptop delays every hand at the table by the full reserve to reach the same
+fold.
+
 Three things that each had to be closed for that to hold, and every one of them
 would have looked fine:
 
@@ -246,6 +277,68 @@ heartbeat immediately exposed the cost of not doing that: `alarm()`'s
 interHand branch started the next hand on ANY alarm, which was correct only
 while the inter-hand deadline was the sole thing that could wake an occupied
 table. It checks its deadline now.
+
+## The sound lab
+
+**<https://poker.ellaz.fun/#/lab>**, or the room menu → *Choose sounds*. Eight
+strips, one per sound the table plays, five candidates each. Tapping a
+candidate **picks it and plays it through the real audio port** — not a preview
+path that could disagree with what a hand actually sounds like. That is the
+whole design rule: the thing being judged has to be the thing that ships.
+
+A pick persists as a complete `VoiceSpec` under `holdem:voice:v1`, so a sound
+chosen on a phone plays on a laptop that has never opened this screen.
+`audio/voiceOverride.ts` is the gate on the way back in and is the strictest
+reader in this app — every other stored blob decides what a screen SHOWS, this
+one decides what a synthesiser DOES next to somebody's ear. It validates rather
+than coerces and drops anything it does not fully like, falling back to the
+built-in, which is the same answer as "nothing was ever picked".
+
+**The control arm in every strip is a hand-written literal, never an import of
+the shipped constant.** An imported control silently becomes a second copy of
+whatever replaces it — two buttons playing the same sound, one labelled with
+the old name, and every test still green. `candidates.test.ts` fails on any two
+arms in a strip being byte-identical, and separately on a control drifting from
+`pokerVoices.ts`.
+
+**Loudness is not policed by arithmetic.** The first version of the gate capped
+the SUM of layer gains at 1.2; shipped `potSlide` sums to 1.287, so it would
+have quietly attenuated a sound the table already plays. It was also the wrong
+quantity — `run()` staggers its notes in time, so summing a 25-layer cascade
+measures nothing anybody can hear. `warmVoices` already renders each voice
+offline and trims it to a measured peak, so the gate polices shape and cost and
+leaves loudness to the thing that can measure it.
+
+**`npm run assert:first-visit` is why the lab does not reach a player.** Keeping
+it off a first load takes three settings in three files — the lazy `import()`,
+the chunk name, the `globIgnores` entry — plus one thing invisible from all
+three: a `<link rel="modulepreload">` is a DOWNLOAD, not a hint, and Vite writes
+one for a lazy chunk. Two further traps fired while this was being built:
+
+- **A manual chunk is a magnet.** Declaring `manualChunks` for `src/lab` pulled
+  REACT into the lab chunk, so the shell opened with
+  `import{r as L,…}from"./lab-*.js"` at byte 229 — a static import, making the
+  lab mandatory to run the app while still being excluded from the precache.
+  Adding a `vendor` branch moved React out and four functions from `audio.ts`
+  took its place. The tell both times was **a precache that got 13.5 KiB
+  smaller after a whole screen was added.** The chunk is named through
+  `chunkFileNames` now; Rollup already isolates a dynamic import, it only
+  needed a stable name for the exclusion to match.
+- **The precache matcher must be unquoted.** Minified workbox writes
+  `url:"index.html"`, a bare identifier key — a `"url":"` matcher finds zero
+  entries and every absence assertion under it passes over an empty list.
+
+The gate carries five planted controls (`--control`) and both it and its
+controls run in CI. Measured on the artifact: lab 13,600 B in its own chunk,
+zero references in `index.html`, absent from the precache while the shell chunk
+is present.
+
+Verified on production by A/B: with no override the chip sound fired 3
+oscillators at 2400 Hz and none at 2900; with Ceramic picked, none at 2400 and
+3 at 2900. **The probe took two attempts to become capable of that** — reading
+`frequency.value` at `start()` returns the 440 Hz default, because the engine
+schedules pitch with `setValueAtTime`. Every reading was 440 and looked like
+data. Ask of any probe whether it can represent the thing you are looking for.
 
 ## Every glyph is drawn — except the chat emotes
 
