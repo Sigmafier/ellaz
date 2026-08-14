@@ -26,7 +26,7 @@ const EMOTE_GLYPHS: Record<EmoteId, string> = {
 
 /** The felt: seats on an ellipse, board and pot in the middle. Pinned LTR. */
 export function Table({ locale, spectator = false }: { locale: Locale; spectator?: boolean }) {
-  const { view, you, chats } = useApp();
+  const { view, you, chats, shownBoard } = useApp();
   const t = makeT(locale);
   const [buyInFor, setBuyInFor] = useState<number | null>(null);
   const [emotesOpen, setEmotesOpen] = useState(false);
@@ -116,40 +116,56 @@ export function Table({ locale, spectator = false }: { locale: Locale; spectator
           }}
         >
           {hand ? (
-            <>
-              {/* The pot is CHIPS ON THE TABLE, not a badge.
-                  It was a pill with the pile squeezed inside it, and a pill
-                  has a fixed height — so a five-chip column overflowed it and
-                  read as a coloured bar. Chips sit on the cloth; the label
-                  goes beside them with a shadow to lift it off the felt. */}
-              <div
-                id="pot-chip"
-                style={{ display: "flex", alignItems: "flex-end", gap: u(9), filter: "drop-shadow(0 3px 4px rgba(0,0,0,.55))" }}
+            /* The pot is CHIPS ON THE TABLE, not a badge.
+               It was a pill with the pile squeezed inside it, and a pill
+               has a fixed height — so a five-chip column overflowed it and
+               read as a coloured bar. Chips sit on the cloth; the label
+               goes beside them with a shadow to lift it off the felt. */
+            <div
+              id="pot-chip"
+              style={{ display: "flex", alignItems: "flex-end", gap: u(9), filter: "drop-shadow(0 3px 4px rgba(0,0,0,.55))" }}
+            >
+              <ChipStack amount={hand.potTotal} scale={scale} size={20} maxColumns={4} maxPerColumn={4} showNumber={false} />
+              <span
+                style={{
+                  fontSize: u(17),
+                  fontWeight: 900,
+                  color: "var(--gold)",
+                  letterSpacing: 0.3,
+                  whiteSpace: "nowrap",
+                  textShadow: "0 2px 4px rgba(0,0,0,.75)",
+                  lineHeight: 1.1,
+                }}
               >
-                <ChipStack amount={hand.potTotal} scale={scale} size={20} maxColumns={4} maxPerColumn={4} showNumber={false} />
-                <span
-                  style={{
-                    fontSize: u(17),
-                    fontWeight: 900,
-                    color: "var(--gold)",
-                    letterSpacing: 0.3,
-                    whiteSpace: "nowrap",
-                    textShadow: "0 2px 4px rgba(0,0,0,.75)",
-                    lineHeight: 1.1,
-                  }}
-                >
-                  {t("pot")} {hand.potTotal}
-                </span>
-              </div>
-              <div style={{ display: "flex", gap: u(5), minHeight: u(62) }}>
-                {hand.board.map((c, i) => (
-                  <CardFace key={`${hand.handNo}-${i}`} card={c} size={u(42)} delay={i * 90} />
-                ))}
-              </div>
-            </>
-          ) : view.phase === "waiting" ? (
+                {t("pot")} {hand.potTotal}
+              </span>
+            </div>
+          ) : view.phase === "waiting" && shownBoard.length === 0 ? (
             <div style={{ color: "var(--ink-dim)", fontSize: u(15), fontWeight: 600 }}>{t("waitingForPlayers")}</div>
           ) : null}
+
+          {/* The BOARD, outside the `hand` branch on purpose.
+              `view.hand` goes null the instant the hand ends, so a board
+              rendered inside that branch disappeared at exactly the moment
+              everyone wanted to look at it — the winner was announced over
+              bare cloth. `shownBoard` is the paced copy and outlives the
+              hand; it is cleared by the next HandStarted. */}
+          {(hand || shownBoard.length > 0) && (
+            <div id="board" style={{ display: "flex", gap: u(5), minHeight: u(62) }}>
+              {shownBoard.map((c, i) => (
+                <CardFace
+                  key={`${view.hand?.handNo ?? "end"}-${i}-${c}`}
+                  card={c}
+                  size={u(42)}
+                  // Only the flop is a group, so only the flop staggers. The
+                  // turn and the river are single cards arriving on their own
+                  // beat — giving them index*90 would delay them behind a
+                  // stagger that has nothing to stagger against.
+                  delay={i < 3 ? i * 90 : 0}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* seats */}

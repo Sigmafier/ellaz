@@ -83,16 +83,23 @@ export function Seat({
     <div id={`seat-${seat.seat}`} style={{ ...box, opacity: dim ? 0.45 : 1 }}>
       {/* cards */}
       <div style={{ display: "flex", gap: u(3), minHeight: u(40), alignItems: "flex-end" }}>
-        {hand && seat.inHand && !seat.folded ? (
+        {/* A REVEAL OUTLIVES THE HAND, and is therefore tested first.
+            `view.hand` goes null the instant the pot is awarded, so gating
+            every card on it meant the cards a player turned over were on
+            screen for one frame and then gone — at an all-in, where the
+            showdown and the end of the hand arrive in the same batch, nobody
+            ever saw an opponent's hand at all. The reveal is cleared by the
+            next HandStarted, so a shown hand stays up for the whole pause. */}
+        {revealed && revealed !== "muck" ? (
+          <>
+            <CardFace card={revealed[0] as Card} size={holeSize} />
+            <CardFace card={revealed[1] as Card} size={holeSize} delay={80} />
+          </>
+        ) : hand && seat.inHand && !seat.folded ? (
           isMe && you?.hole ? (
             <>
               <CardFace card={you.hole[0]} size={holeSize} />
               <CardFace card={you.hole[1]} size={holeSize} delay={80} />
-            </>
-          ) : revealed && revealed !== "muck" ? (
-            <>
-              <CardFace card={revealed[0] as Card} size={holeSize} />
-              <CardFace card={revealed[1] as Card} size={holeSize} delay={80} />
             </>
           ) : (
             <>

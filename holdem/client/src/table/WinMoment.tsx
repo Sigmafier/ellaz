@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import type { Card } from "@shared/engine/cards";
-import { CardFace } from "./CardFace";
 import { nameEmoji } from "@shared/names";
 import { useApp } from "../state/store";
 import { handName } from "./handName";
@@ -117,11 +116,17 @@ export function WinMoment({
           exactly right, while the computed transform read `matrix(1.0059, …)`
           — a scale, with the translate gone.
           Outer element positions. Inner element animates. */}
+      {/* ABOVE the board, never on it.
+          At `top: 50%` this banner sat exactly where the community cards are —
+          so the one moment a player most wants to see the board is the moment
+          it was covered by a box telling them about it. The board block is
+          centred at 44% (tall) / 50% (wide) and the cards hang below that, so
+          26% clears them in both shapes while staying inside the felt. */}
       <div
         style={{
           position: "absolute",
           left: "50%",
-          top: "50%",
+          top: "26%",
           transform: "translate(-50%, -50%)",
           maxWidth: "86%",
           zIndex: 25,
@@ -165,20 +170,18 @@ export function WinMoment({
           <div style={{ fontSize: u(13), color: "var(--ink-dim)" }}>{t("winsUncontested")}</div>
         )}
 
-        {/* The board the hand was won on.
-            The server pauses 4 seconds between hands, and the whole point of a
-            pause is that people can look at what happened — but `view.hand`
-            goes null the moment the hand ends, so the board disappeared with
-            it and the pause showed an empty felt. Measured before this: zero
-            cards on screen while the banner was up. This is the copy taken at
-            PotAwarded, which is why the store keeps one. */}
-        {lastPot.board.length > 0 && (
-          <div style={{ display: "flex", gap: u(4), marginTop: u(6) }}>
-            {lastPot.board.map((c, i) => (
-              <CardFace key={`won-${lastPot.at}-${i}`} card={c} size={u(30)} delay={i * 40} />
-            ))}
-          </div>
-        )}
+        {/* No cards here, deliberately.
+            This banner used to carry its own copy of the board, because
+            `view.hand` went null the moment the hand ended and the felt's
+            board disappeared with it — so the copy was the only way to see
+            what the pot was won on. That was a workaround for a bug that is
+            now fixed at the source: `shownBoard` outlives the hand and the
+            real board stays on the cloth, where the pot and the players'
+            revealed hands are. Keeping the copy meant two nearly identical
+            rows of five cards stacked on top of each other, and the one that
+            mattered was the one nobody was looking at.
+            `lastPot.board` is still the right thing to NAME the hand from —
+            see `shown` above — it just is not drawn twice. */}
       </div>
       </div>
     </>

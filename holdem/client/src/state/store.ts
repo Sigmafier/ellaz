@@ -49,6 +49,24 @@ export interface AppState {
   timer: TimerState | null;
   /** Cards revealed at the current showdown, cleared on the next HandStarted. */
   reveals: Record<number, readonly [Card, Card] | "muck">;
+  /**
+   * The community cards the FELT is showing, which is not the same thing as
+   * the community cards that exist.
+   *
+   * `view.hand` becomes null the instant a hand ends, so a board read straight
+   * out of the view vanishes at exactly the moment everybody wants to look at
+   * it — the winner is announced over an empty table, and the cards the pot
+   * was won on are gone. This survives the end of the hand and is cleared by
+   * the next `HandStarted`, so the board a hand finished on stays up through
+   * the whole inter-hand pause.
+   *
+   * It is built from `StreetDealt` events, which is what lets the pacer deal a
+   * run-out street by street. `room` seeds it only when it is empty and the
+   * view already has a board — that is somebody joining or reconnecting
+   * mid-hand, who must be shown the board immediately rather than have four
+   * seconds of cards dealt to them for a hand that is already on the river.
+   */
+  shownBoard: Card[];
   /** Last visible action per seat this street (badges). */
   lastAction: Record<number, string>;
   winners: number[];
@@ -88,6 +106,7 @@ const initial: AppState = {
   you: null,
   timer: null,
   reveals: {},
+  shownBoard: [],
   lastAction: {},
   winners: [],
   lastPot: null,
@@ -164,9 +183,17 @@ export function reduceMessage(msg: S2C): void {
       // every load and the table never learns who is who.
       saveName(msg.name);
       break;
-    case "room":
-      setState({ view: msg.view, seatNames: msg.names });
+    case "room": {
+      // Seed the felt's board ONLY for somebody arriving mid-hand. During
+      // normal play `shownBoard` is ahead of nothing and behind nothing —
+      // it is built from the events the pacer is releasing, and copying the
+      // view's board here would undo the pacing by handing over all five
+      // cards the moment the snapshot that follows a run-out arrives.
+      const board = msg.view.hand?.board ?? [];
+      const seed = state.shownBoard.length === 0 && board.length > 0 ? [...board] : state.shownBoard;
+      setState({ view: msg.view, seatNames: msg.names, shownBoard: seed });
       break;
+    }
     // What the server SETTLED ON after a reroll, which is not always what was
     // asked for. Rendering the request instead would show this player a name
     // nobody else at the table sees.
@@ -183,18 +210,27 @@ export function reduceMessage(msg: S2C): void {
       let lastAction = state.lastAction;
       let winners = state.winners;
       let lastPot = state.lastPot;
+      let shownBoard = state.shownBoard;
       for (const e of msg.events) {
         if (e.type === "HandStarted") {
           reveals = {};
           lastAction = {};
           winners = [];
           lastPot = null;
+          // The previous hand's board has been on the felt for the whole
+          // inter-hand pause. THIS is where it goes, not at HandEnded.
+          shownBoard = [];
         } else if (e.type === "ShowdownReveal") {
           reveals = { ...reveals, [e.seat]: e.mucked ? "muck" : e.cards! };
         } else if (e.type === "ActionTaken") {
           lastAction = { ...lastAction, [e.seat]: e.kind };
         } else if (e.type === "StreetDealt") {
           lastAction = {};
+          // `?? []` because everything in this switch arrived over a socket.
+          // A street with no cards is not a thing the engine emits, but this
+          // reducer is the boundary, and a board is not worth a thrown
+          // exception that takes the whole table down with it.
+          shownBoard = [...shownBoard, ...(e.cards ?? [])];
         } else if (e.type === "PotAwarded") {
           winners = [...new Set([...winners, ...e.winners])];
           // Side pots arrive as several PotAwarded events for one hand, so the
@@ -205,10 +241,15 @@ export function reduceMessage(msg: S2C): void {
           // The board is copied here rather than read at render time: the next
           // deal replaces view.hand, and a banner reading the live view would
           // name a hand from the board of the hand AFTER the one it describes.
+          //
+          // Copied from the PACED board, not from the view. On a run-out the
+          // view is holding all five cards from the moment the batch arrives,
+          // so reading it here would name a hand off cards the felt has not
+          // dealt yet — the banner would say "flush" over a visible flop.
           lastPot = {
             winners: [...new Set([...(lastPot?.winners ?? []), ...e.winners])],
             amount: (lastPot?.amount ?? 0) + e.amount,
-            board: lastPot?.board ?? [...(state.view?.hand?.board ?? [])],
+            board: lastPot?.board ?? [...shownBoard],
             at: Date.now(),
           };
         }
@@ -217,6 +258,7 @@ export function reduceMessage(msg: S2C): void {
       patch.lastAction = lastAction;
       patch.winners = winners;
       patch.lastPot = lastPot;
+      patch.shownBoard = shownBoard;
       setState(patch);
       for (const l of eventListeners) l(msg.events);
       break;

@@ -8,7 +8,8 @@
 import type { PlayerName } from "@shared/names";
 import type { C2S, EmoteId, S2C } from "@shared/protocol";
 import { PROTOCOL_VERSION } from "@shared/protocol";
-import { getState, reduceMessage, resetState, setState } from "../state/store";
+import { getState, resetState, setState } from "../state/store";
+import { deliver, resetPacer } from "../state/pacer";
 import { savedName } from "./nameStore";
 
 const TOKEN_KEY = "holdem:token";
@@ -91,6 +92,7 @@ class GameSocket {
     this.code = code;
     this.spectate = opts.spectate ?? false;
     this.closedOnPurpose = false;
+    resetPacer();
     resetState();
     setState({ conn: "connecting", code });
     this.open(opts.relink);
@@ -103,6 +105,7 @@ class GameSocket {
     if (this.heartbeat) clearInterval(this.heartbeat);
     this.ws?.close(1000, "bye");
     this.ws = null;
+    resetPacer();
     resetState();
   }
 
@@ -128,7 +131,7 @@ class GameSocket {
     };
     ws.onmessage = (ev) => {
       try {
-        reduceMessage(JSON.parse(ev.data as string) as S2C);
+        deliver(JSON.parse(ev.data as string) as S2C);
       } catch {
         /* garbage frame */
       }
