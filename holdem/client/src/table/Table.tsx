@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { CardFace } from "./CardFace";
+import { ChipStack } from "./ChipStack";
 import { Seat } from "./Seat";
 import { ActionBar } from "./ActionBar";
 import { WinMoment } from "./WinMoment";
@@ -75,9 +76,26 @@ export function Table({ locale, spectator = false }: { locale: Locale; spectator
             position: "absolute",
             inset: wide ? "7% 4%" : "7% 4% 12% 4%",
             borderRadius: "48% / 40%",
-            background: "radial-gradient(ellipse at 50% 38%, var(--felt-hi) 0%, var(--felt) 55%, var(--felt-edge) 100%)",
+            // Cloth, then light. Two 45-degree hatches at a 3px period read as
+            // a weave at any size and cost nothing — where a texture IMAGE
+            // would be an external request, which a game may not make, and a
+            // data URI would be more bytes than the rest of this file.
+            // Listed first so it sits ON TOP of the lighting gradient.
+            background: [
+              "repeating-linear-gradient(45deg, var(--cloth) 0 1px, transparent 1px 3px)",
+              "repeating-linear-gradient(-45deg, var(--cloth) 0 1px, transparent 1px 3px)",
+              "radial-gradient(ellipse at 50% 38%, var(--felt-hi) 0%, var(--felt) 55%, var(--felt-edge) 100%)",
+            ].join(", "),
             border: `${Math.max(6, u(10))}px solid var(--rail)`,
-            boxShadow: "inset 0 0 60px rgba(0,0,0,.5), 0 8px 30px rgba(0,0,0,.5)",
+            // Four layers make the rail read as padded rather than as a line:
+            // the vignette, a dark ring just inside it, a lit ring just
+            // outside it, and the table's own drop shadow.
+            boxShadow: [
+              "inset 0 0 60px rgba(0,0,0,.5)",
+              "inset 0 0 0 2px var(--rail-lo)",
+              "0 0 0 2px var(--rail-hi)",
+              "0 8px 30px rgba(0,0,0,.5)",
+            ].join(", "),
           }}
         />
 
@@ -99,21 +117,29 @@ export function Table({ locale, spectator = false }: { locale: Locale; spectator
         >
           {hand ? (
             <>
+              {/* The pot is CHIPS ON THE TABLE, not a badge.
+                  It was a pill with the pile squeezed inside it, and a pill
+                  has a fixed height — so a five-chip column overflowed it and
+                  read as a coloured bar. Chips sit on the cloth; the label
+                  goes beside them with a shadow to lift it off the felt. */}
               <div
                 id="pot-chip"
-                style={{
-                  background: "var(--pot-bg)",
-                  border: `1px solid var(--gold)`,
-                  borderRadius: "var(--radius-pill)",
-                  padding: `${u(4)}px ${u(16)}px`,
-                  fontSize: u(17),
-                  fontWeight: 900,
-                  color: "var(--gold)",
-                  whiteSpace: "nowrap",
-                  letterSpacing: 0.3,
-                }}
+                style={{ display: "flex", alignItems: "flex-end", gap: u(9), filter: "drop-shadow(0 3px 4px rgba(0,0,0,.55))" }}
               >
-                {t("pot")} {hand.potTotal}
+                <ChipStack amount={hand.potTotal} scale={scale} size={20} maxColumns={4} maxPerColumn={4} showNumber={false} />
+                <span
+                  style={{
+                    fontSize: u(17),
+                    fontWeight: 900,
+                    color: "var(--gold)",
+                    letterSpacing: 0.3,
+                    whiteSpace: "nowrap",
+                    textShadow: "0 2px 4px rgba(0,0,0,.75)",
+                    lineHeight: 1.1,
+                  }}
+                >
+                  {t("pot")} {hand.potTotal}
+                </span>
               </div>
               <div style={{ display: "flex", gap: u(5), minHeight: u(62) }}>
                 {hand.board.map((c, i) => (

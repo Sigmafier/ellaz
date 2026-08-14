@@ -73,6 +73,14 @@
   --banner-bg: rgba(8, 18, 14, 0.9);
   --glow: rgba(232, 182, 76, 0.55);
   --glow-pulse: rgba(232, 182, 76, 0.7);
+  --chip-1: #f2efe6;
+  --chip-5: #c2372c;
+  --chip-25: #2f8f5b;
+  --chip-100: #23262e;
+  --chip-edge: rgba(255, 255, 255, 0.82);
+  --cloth: rgba(255, 255, 255, 0.035);
+  --rail-hi: rgba(255, 226, 178, 0.22);
+  --rail-lo: rgba(0, 0, 0, 0.45);
   --confetti-colors: #e8b64c, #58b98a, #faf7ef, #c2372c;
 }
 
@@ -106,6 +114,14 @@
   --banner-bg: rgba(255, 253, 248, 0.95);
   --glow: rgba(194, 24, 91, 0.45);
   --glow-pulse: rgba(194, 24, 91, 0.6);
+  --chip-1: #f2efe6;
+  --chip-5: #c2372c;
+  --chip-25: #2f8f5b;
+  --chip-100: #3a2f4d;
+  --chip-edge: rgba(255, 255, 255, 0.82);
+  --cloth: rgba(255, 255, 255, 0.07);
+  --rail-hi: rgba(255, 255, 255, 0.34);
+  --rail-lo: rgba(120, 60, 10, 0.35);
   --confetti-colors: #ff4d8d, #12b5ad, #ffc730, #3cb46a;
 }
 
@@ -139,5 +155,13 @@
   --banner-bg: rgba(11, 13, 16, 0.9);
   --glow: rgba(106, 168, 255, 0.5);
   --glow-pulse: rgba(106, 168, 255, 0.65);
+  --chip-1: #f2efe6;
+  --chip-5: #c2372c;
+  --chip-25: #2f8f5b;
+  --chip-100: #23262e;
+  --chip-edge: rgba(255, 255, 255, 0.7);
+  --cloth: rgba(255, 255, 255, 0.028);
+  --rail-hi: rgba(160, 190, 230, 0.16);
+  --rail-lo: rgba(0, 0, 0, 0.5);
   --confetti-colors: #6aa8ff, #4ad4a0, #f4f6f8, #ff6b6b;
 }

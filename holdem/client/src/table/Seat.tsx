@@ -1,6 +1,7 @@
 import type { PublicSeatView } from "@shared/engine/view";
 import type { Card } from "@shared/engine/cards";
 import { CardBack, CardFace } from "./CardFace";
+import { ChipStack } from "./ChipStack";
 import { TimerBar } from "./TimerBar";
 import { nameEmoji } from "@shared/names";
 import { useApp } from "../state/store";
@@ -177,16 +178,15 @@ export function Seat({
             left: "50%",
             transform: "translateX(-50%)",
             marginTop: u(3),
-            background: "rgba(0,0,0,.4)",
-            borderRadius: "var(--radius-pill)",
-            padding: `${u(2)}px ${u(9)}px`,
-            fontSize: u(12),
-            fontWeight: 800,
-            color: "var(--chip)",
             whiteSpace: "nowrap",
+            filter: "drop-shadow(0 2px 3px rgba(0,0,0,.6))",
           }}
         >
-          ● {seat.committed}
+          {/* No pill here either — a bet in front of a seat is chips on the
+              cloth. Two columns and three high, because this sits between a
+              seat and the board and every pixel of height is contended.
+              The exact number rides beside it. */}
+          <ChipStack amount={seat.committed} scale={scale} size={11} maxColumns={2} maxPerColumn={3} />
         </div>
       )}
 
