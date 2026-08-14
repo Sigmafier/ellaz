@@ -9,8 +9,16 @@
 // Timers: ONE alarm, always armed through armNext(); the stored `timer`
 // record says what the alarm means. Deadlines are epoch ms; clients receive
 // {deadlineEpochMs, serverNow} and compute the offset themselves.
+//
+// The reaper shares that one alarm. `armNext` arms the EARLIER of the game
+// clock and the reap deadline, and `alarm()` re-derives which it was rather
+// than trusting which it set — the two can only both be right if neither of
+// them owns the slot exclusively.
 
 import { computeLegal } from "../../shared/src/engine/betting";
+import type { Env } from "./env";
+import { LOBBY_NAME, type LobbyEntry } from "./lobby";
+import { nextCheckAt, type TableSnapshot, verdict } from "./reap";
 import { secureRng } from "../../shared/src/engine/rng";
 import { apply } from "../../shared/src/engine/table";
 import {
@@ -39,6 +47,15 @@ interface Meta {
   claimed: boolean;
   hostPlayerId: string | null;
   createdAt: number;
+  /**
+   * The last moment a socket was attached to this table. Written on every
+   * hello and every close, and read by the reaper. Optional because tables
+   * created before the lobby existed have no value for it — `?? 0` there means
+   * "nobody ever arrived", and the reaper falls back to `createdAt`.
+   */
+  lastSeenAt?: number;
+  /** The host asked not to be listed. Never affects when the table is reaped. */
+  isPrivate?: boolean;
 }
 
 interface PlayerRec {
@@ -128,10 +145,16 @@ export class TableDO implements DurableObject {
   private seq = 0;
   private curHandEvents: EngineEvent[] = [];
   private lastEmoteAt = new Map<string, number>();
+  /**
+   * The last shape reported to the lobby. In memory only, and deliberately —
+   * losing it on hibernation costs one redundant write on the next action,
+   * which is cheaper than a storage round-trip on every action to avoid it.
+   */
+  private lastLobbySig = "";
 
   constructor(
     private ctx: DurableObjectState,
-    _env: unknown,
+    private env: Env,
   ) {
     this.ctx.blockConcurrencyWhile(async () => {
       this.meta = (await this.ctx.storage.get<Meta>("meta")) ?? this.meta;
@@ -146,7 +169,10 @@ export class TableDO implements DurableObject {
 
     if (url.pathname === "/init" && request.method === "POST") {
       if (this.meta.claimed) return new Response(JSON.stringify({ error: "claimed" }), { status: 409 });
-      const body = (await request.json()) as Partial<TableConfig> & { code: string };
+      const body = (await request.json()) as Partial<TableConfig> & {
+        code: string;
+        isPrivate?: boolean;
+      };
       const config: TableConfig = {
         code: body.code,
         maxSeats: clampInt(body.maxSeats, 2, 9, DEFAULT_CONFIG.maxSeats),
@@ -162,8 +188,19 @@ export class TableDO implements DurableObject {
       if (config.bb < config.sb) config.bb = config.sb * 2;
       if (config.maxBuyIn < config.minBuyIn) config.maxBuyIn = config.minBuyIn;
       this.table = createTable(config);
-      this.meta = { claimed: true, hostPlayerId: null, createdAt: Date.now() };
+      this.meta = {
+        claimed: true,
+        hostPlayerId: null,
+        createdAt: Date.now(),
+        lastSeenAt: 0,
+        isPrivate: body.isPrivate === true,
+      };
       await this.ctx.storage.put({ meta: this.meta, table: this.table, seq: 0 });
+      // Report at birth, so the room a host is about to share is already in
+      // the lobby when their friends look — and arm the reaper, so a room
+      // created and abandoned in the same minute still gets collected.
+      await this.reportToLobby();
+      await this.armNext();
       return new Response(JSON.stringify({ ok: true }), { status: 200 });
     }
 
@@ -202,9 +239,129 @@ export class TableDO implements DurableObject {
     }
   }
 
-  async webSocketClose(): Promise<void> {
+  async webSocketClose(ws: WebSocket): Promise<void> {
     // Nothing to tear down: identity is in attachments, state in storage.
     // The seat stays; the action timer will check/fold a vanished player.
+    //
+    // But this is the moment a table can become empty, and an empty table that
+    // never wakes up is one nothing can ever collect — so it is also the only
+    // place the reaper's clock can start. `touch` stamps the departure and
+    // `armNext` picks up the reap deadline the game clock no longer covers.
+    //
+    // `ws` is passed through because it is STILL in getWebSockets() here —
+    // see connectedCount.
+    await this.touch(ws);
+    await this.armNext(ws);
+  }
+
+  /**
+   * How many sockets are attached, not counting one that is on its way out.
+   *
+   * `getWebSockets()` still contains the closing socket during
+   * `webSocketClose`, and drops it at the first await — so the same expression
+   * returns 1 and then 0 within one handler, depending only on whether
+   * anything yielded in between. Measured: `[CLOSE] sockets=1`, then after a
+   * cross-object fetch, `conn=0`.
+   *
+   * Read naively, the last player to leave is reported to the lobby as still
+   * present, and the row then says "somebody is here" about an empty room —
+   * which `shouldList` believes, so the table is advertised until something
+   * else happens to correct it. Excluding the departing socket explicitly
+   * makes the answer independent of where the awaits happen to fall.
+   */
+  private connectedCount(excluding?: WebSocket): number {
+    const all = this.ctx.getWebSockets();
+    return excluding ? all.filter((s) => s !== excluding).length : all.length;
+  }
+
+  /**
+   * Record that somebody was here, and tell the lobby.
+   *
+   * Called on arrival and on departure. On arrival the stamp is redundant
+   * (a connected table is never idle) and on departure it is everything: it
+   * is the instant the emptiness began.
+   */
+  private async touch(leaving?: WebSocket): Promise<void> {
+    this.meta.lastSeenAt = Date.now();
+    await this.ctx.storage.put("meta", this.meta);
+    await this.reportToLobby(leaving);
+  }
+
+  /** This table, as the reaper sees it. */
+  private snapshot(leaving?: WebSocket): TableSnapshot {
+    return {
+      connected: this.connectedCount(leaving),
+      createdAt: this.meta.createdAt,
+      lastSeenAt: this.meta.lastSeenAt ?? 0,
+      handsPlayed: this.table?.handCounter ?? 0,
+      chipsMode: this.table?.config.chipsMode === "league" ? "league" : "fresh",
+    };
+  }
+
+  /**
+   * Push a row to the lobby. Fire and forget, and swallow everything.
+   *
+   * The lobby is a convenience; the table is the product. A registry that is
+   * slow, full, or simply not deployed yet must not be able to stop a hand,
+   * so there is no error path out of here on purpose — the worst outcome is a
+   * table that is playable by code and missing from a list.
+   */
+  private async reportToLobby(leaving?: WebSocket): Promise<void> {
+    const table = this.table;
+    if (!table) return;
+    const s = this.snapshot(leaving);
+    const entry: LobbyEntry = {
+      code: table.config.code,
+      seated: table.seats.filter((seat) => seat.playerId).length,
+      maxSeats: table.config.maxSeats,
+      sb: table.config.sb,
+      bb: table.config.bb,
+      playing: !!table.hand,
+      chipsMode: s.chipsMode,
+      createdAt: s.createdAt,
+      lastSeenAt: s.lastSeenAt,
+      connected: s.connected,
+      handsPlayed: s.handsPlayed,
+      isPrivate: this.meta.isPrivate === true,
+    };
+    try {
+      const stub = this.env.LOBBY.get(this.env.LOBBY.idFromName(LOBBY_NAME));
+      await stub.fetch("https://do/report", { method: "POST", body: JSON.stringify(entry) });
+    } catch {
+      /* a lobby outage is not a table outage */
+    }
+  }
+
+  /**
+   * The table is over. Delete everything it owns.
+   *
+   * The only destructive act in this server, and it is deliberately total: the
+   * state, the history, the ledger, the bankrolls, the relink codes. Half a
+   * table is worse than none — a room that answers a socket with no seats and
+   * no chips looks like a bug to whoever walks into it.
+   *
+   * `claimed` going back to false is the useful side effect: the code becomes
+   * allocatable again, so five characters are not spent forever on a room
+   * somebody abandoned.
+   */
+  private async collect(): Promise<void> {
+    const code = this.table?.config.code;
+    await this.ctx.storage.deleteAlarm();
+    await this.ctx.storage.deleteAll();
+    this.table = null;
+    this.meta = { claimed: false, hostPlayerId: null, createdAt: 0 };
+    this.seq = 0;
+    this.curHandEvents = [];
+    if (code) await this.dropFromLobby(code);
+  }
+
+  private async dropFromLobby(code: string): Promise<void> {
+    try {
+      const stub = this.env.LOBBY.get(this.env.LOBBY.idFromName(LOBBY_NAME));
+      await stub.fetch("https://do/drop", { method: "POST", body: JSON.stringify({ code }) });
+    } catch {
+      /* the lobby drops stale rows at read time anyway */
+    }
   }
 
   private async dispatch(ws: WebSocket, msg: C2S): Promise<void> {
@@ -455,6 +612,9 @@ export class TableDO implements DurableObject {
     this.send(ws, this.roomMsg(players));
     this.send(ws, { t: "you", you: this.youFor(rec.playerId) });
     await this.sendTimer(ws);
+    // Somebody is here: stop the reaper's clock and refresh the lobby row.
+    await this.touch();
+    await this.armNext();
   }
 
   // -------------------------------------------------------------------------
@@ -516,6 +676,25 @@ export class TableDO implements DurableObject {
     }
     await this.armNext();
     await this.broadcastTimer();
+    await this.reportIfChanged();
+  }
+
+  /**
+   * Tell the lobby, but only when the lobby's own view of us moved.
+   *
+   * Every call, check and fold runs through applyAndCommit, so reporting from
+   * there unconditionally would put a cross-object write on the critical path
+   * of every action in every hand. The lobby renders four things; this is a
+   * signature of exactly those four, and nothing else can trigger a write.
+   */
+  private async reportIfChanged(): Promise<void> {
+    const t = this.table;
+    if (!t) return;
+    const seated = t.seats.filter((s) => s.playerId).length;
+    const sig = `${seated}/${t.hand ? 1 : 0}/${t.handCounter}`;
+    if (sig === this.lastLobbySig) return;
+    this.lastLobbySig = sig;
+    await this.reportToLobby();
   }
 
   /**
@@ -622,7 +801,7 @@ export class TableDO implements DurableObject {
   // -------------------------------------------------------------------------
   // Timers
 
-  private async armNext(): Promise<void> {
+  private async armNext(leaving?: WebSocket): Promise<void> {
     const table = this.table!;
     let next: TimerRec = { kind: "none", seat: -1, actionSeq: -1, deadline: 0, timeBank: false };
 
@@ -662,16 +841,49 @@ export class TableDO implements DurableObject {
     }
 
     await this.ctx.storage.put("timer", next);
-    if (next.kind === "none") {
+
+    // The reaper shares this alarm. It only ever has a deadline when nobody is
+    // connected, and the game clock only ever has one when somebody is — so in
+    // practice they never compete. `Math.min` rather than an assumption
+    // because "in practice" is not a guarantee, and the failure of getting it
+    // wrong is a game clock that never fires.
+    const reapAt = nextCheckAt(this.snapshot(leaving), Date.now());
+    const deadlines = [
+      next.kind === "none" ? null : next.deadline,
+      reapAt,
+    ].filter((d): d is number => d !== null);
+
+    if (!deadlines.length) {
       await this.ctx.storage.deleteAlarm();
     } else {
-      await this.ctx.storage.setAlarm(next.deadline);
+      await this.ctx.storage.setAlarm(Math.min(...deadlines));
     }
   }
 
   async alarm(): Promise<void> {
-    const timer = await this.ctx.storage.get<TimerRec>("timer");
     const table = this.table;
+
+    // The reaper goes first, and re-derives its own verdict rather than
+    // trusting which deadline armed the alarm. Two clocks share one slot; the
+    // only safe way to read it is to ask both what they think NOW.
+    if (table) {
+      const now = Date.now();
+      const v = verdict(this.snapshot(), now);
+      if (v === "delete") {
+        await this.collect();
+        return;
+      }
+      if (v === "unlist") {
+        // Still alive, just quiet. Refresh the lobby row so its read-time
+        // staleness check has current numbers, then re-arm for the delete
+        // boundary. Nothing else on this table needs to happen.
+        await this.reportToLobby();
+        await this.armNext();
+        return;
+      }
+    }
+
+    const timer = await this.ctx.storage.get<TimerRec>("timer");
     if (!timer || !table) return;
     if (timer.kind === "action") {
       const hand = table.hand;

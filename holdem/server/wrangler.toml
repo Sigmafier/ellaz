@@ -9,9 +9,19 @@ compatibility_date = "2024-11-01"
 tag = "v1"
 new_sqlite_classes = ["TableDO"]
 
+# The lobby registry. Durable Objects cannot be enumerated, so "which tables
+# are open" has to be reported into something — this is that something.
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["LobbyDO"]
+
 [[durable_objects.bindings]]
 name = "TABLE"
 class_name = "TableDO"
+
+[[durable_objects.bindings]]
+name = "LOBBY"
+class_name = "LobbyDO"
 
 [vars]
 # Comma-separated list of allowed browser origins for WS/API calls.

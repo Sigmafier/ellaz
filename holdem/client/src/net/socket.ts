@@ -30,6 +30,37 @@ export function serverBase(): string {
   return (import.meta.env.VITE_SERVER_URL as string | undefined) ?? "";
 }
 
+/** One row of the lobby. Mirrors the server's LobbyRow. */
+export interface OpenTable {
+  code: string;
+  seated: number;
+  maxSeats: number;
+  sb: number;
+  bb: number;
+  playing: boolean;
+  league: boolean;
+}
+
+/**
+ * The open tables.
+ *
+ * Returns an empty list rather than throwing on any failure, because every
+ * caller of this would do exactly that: the lobby is a convenience on a screen
+ * whose Join-by-code and Create buttons work regardless. A home screen that
+ * shows an error because a list is unreachable is worse than one that shows no
+ * list.
+ */
+export async function listTables(): Promise<OpenTable[]> {
+  try {
+    const res = await fetch(`${serverBase()}/api/tables`);
+    if (!res.ok) return [];
+    const data = (await res.json()) as { tables?: OpenTable[] };
+    return Array.isArray(data.tables) ? data.tables : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function createRoom(config: Record<string, unknown>): Promise<string | null> {
   try {
     const res = await fetch(`${serverBase()}/api/create`, {

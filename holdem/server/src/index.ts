@@ -5,11 +5,12 @@
 // /api/create and refuses sockets to phantom rooms.
 
 export { TableDO } from "./tableDO";
+export { LobbyDO } from "./lobby";
 
-export interface Env {
-  TABLE: DurableObjectNamespace;
-  ALLOWED_ORIGINS: string;
-}
+import { LOBBY_NAME } from "./lobby";
+import type { Env } from "./env";
+
+export type { Env };
 
 // Crockford-style base32, the ellaz backupCode.ts alphabet: I/L/O/U removed
 // (handwriting confuses them with 1/1/0; U keeps random codes from spelling
@@ -85,6 +86,21 @@ export default {
         if (res.status !== 409) return json(await res.json(), res.status, origin, env);
       }
       return json({ error: "could not allocate a room code" }, 500, origin, env);
+    }
+
+    // The lobby. Read-only and unauthenticated: it lists the tables whose
+    // hosts asked to be listed, which is the entire point of a lobby.
+    if (url.pathname === "/api/tables" && request.method === "GET") {
+      try {
+        const stub = env.LOBBY.get(env.LOBBY.idFromName(LOBBY_NAME));
+        const res = await stub.fetch("https://do/list");
+        return json(await res.json(), 200, origin, env);
+      } catch {
+        // An empty lobby is an honest answer to "the registry is unreachable".
+        // A 500 here would make the home screen look broken when every table
+        // on it is perfectly playable by code.
+        return json({ tables: [] }, 200, origin, env);
+      }
     }
 
     const wsMatch = url.pathname.match(/^\/ws\/([A-Za-z0-9-]+)$/);
