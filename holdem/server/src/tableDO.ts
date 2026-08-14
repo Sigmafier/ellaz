@@ -17,6 +17,7 @@
 
 import { computeLegal } from "../../shared/src/engine/betting";
 import { botCommand, botId, isBot, personaFor, pickDistinctName, thinkMs } from "./botSeats";
+import { bustedSeats } from "./busted";
 import type { Env } from "./env";
 import { LOBBY_NAME, type LobbyEntry } from "./lobby";
 import { HEARTBEAT_MS, nextCheckAt, type TableSnapshot, verdict } from "./reap";
@@ -199,6 +200,13 @@ export class TableDO implements DurableObject {
    * which is cheaper than a storage round-trip on every action to avoid it.
    */
   private lastLobbySig = "";
+  /**
+   * Re-entry guard for `sweepBusted`, which commits through the same
+   * `applyAndCommit` that calls it. In memory only, and safe to lose: the
+   * sweep is idempotent, so a hibernation between two of its commits costs
+   * nothing but the next commit noticing the same seat again.
+   */
+  private sweeping = false;
 
   constructor(
     private ctx: DurableObjectState,
@@ -545,6 +553,44 @@ export class TableDO implements DurableObject {
       if (isBot(seat.playerId) && seat.status === "active") {
         await this.applyAndCommit(null, { type: "sitOut", seat: i });
       }
+    }
+  }
+
+  /**
+   * Clear the busted seats. The rule itself lives in `busted.ts`; this is the
+   * plumbing that commits it.
+   *
+   * The defect it closes, measured on the live practice table 2026-08-15:
+   * three of five seats at 0 chips and every chip pooled in a fourth, because
+   * the only thing that ever staked a bot back was `hello` — which fires once
+   * when somebody arrives and never again however long they play.
+   *
+   * Runs at the END of a commit, never during a hand.
+   */
+  private async sweepBusted(): Promise<void> {
+    if (!this.table || this.sweeping) return;
+    const fixes = bustedSeats(this.table.seats, {
+      handInProgress: this.table.hand !== null,
+      isBot,
+    });
+    if (!fixes.length) return;
+
+    this.sweeping = true;
+    try {
+      for (const { seat, action } of fixes) {
+        // Re-read: each commit below runs the whole pipeline, and a seat can
+        // move under us between iterations.
+        const s = this.table!.seats[seat];
+        if (!s.playerId || s.stack > 0 || s.pendingRebuy > 0) continue;
+        await this.applyAndCommit(
+          null,
+          action === "rebuy"
+            ? { type: "rebuy", seat, amount: this.table!.config.startingStack }
+            : { type: "leave", seat },
+        );
+      }
+    } finally {
+      this.sweeping = false;
     }
   }
 
@@ -930,6 +976,12 @@ export class TableDO implements DurableObject {
     await this.armNext();
     await this.broadcastTimer();
     await this.reportIfChanged();
+
+    // LAST, and the position is the whole design. Sweeping before the
+    // broadcast above would send the tidied table first and the events that
+    // busted somebody second — so the client would show the seat already gone
+    // while the pacer was still animating the pot that emptied it.
+    await this.sweepBusted();
   }
 
   /**
@@ -1183,6 +1235,35 @@ export class TableDO implements DurableObject {
         hand.actionSeq === timer.actionSeq &&
         Date.now() >= timer.deadline
       ) {
+        // THE TIME BANK SPENDS ITSELF, and nobody is asked to understand it.
+        //
+        // It used to be an hourglass button in the action bar, which the
+        // operator reported as the one control they could not read — fair,
+        // because it asks a player mid-decision to notice a clock, know that
+        // a reserve exists, and spend it before it is too late. A reserve of
+        // extra time has exactly one moment worth spending it: the moment you
+        // would otherwise be folded. So it is spent there, by the server,
+        // once per player per hand, and the timer bar simply grows.
+        //
+        // Bots are excluded by the branch order below rather than by a test:
+        // the house always has a command ready, so it never reaches here.
+        const hand2 = table.hand;
+        const seatRec = table.seats[timer.seat];
+        if (
+          !timer.timeBank &&
+          hand2 &&
+          !hand2.timeBankUsed[timer.seat] &&
+          table.config.timeBankMs > 0 &&
+          this.botToAct() !== timer.seat &&
+          seatRec?.playerId &&
+          // Only for somebody who is actually there. Banking time for a
+          // closed laptop delays every hand at the table by the full reserve
+          // to reach the same fold.
+          this.ctx.getWebSockets().some((s) => safeAttachment(s)?.playerId === seatRec.playerId)
+        ) {
+          await this.applyAndCommit(null, { type: "useTimeBank", seat: timer.seat });
+          return;
+        }
         // The house decides; everyone else runs out of time. Same branch
         // because it is the same event — the clock reached a seat that has
         // not acted — and only the answer differs.

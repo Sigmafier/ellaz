@@ -19,7 +19,7 @@ import { makeT } from "../i18n";
  * thumb rests at the bottom, not at the side.
  */
 export function ActionBar({ locale, scale, shape }: { locale: Locale; scale: number; shape: Shape }) {
-  const { you, view, timer } = useApp();
+  const { you, view } = useApp();
   const t = makeT(locale);
   const [sentSeq, setSentSeq] = useState(-1);
   const [raiseTo, setRaiseTo] = useState(0);
@@ -60,7 +60,6 @@ export function ActionBar({ locale, scale, shape }: { locale: Locale; scale: num
   const u = (n: number) => Math.round(n * scale);
   const pot = view?.hand?.potTotal ?? 0;
   const callAmt = legal.callAmount ?? 0;
-  const canTimeBank = you!.timeBankAvailable && timer && !timer.timeBank && timer.seatIdx === mySeatIdx;
 
   const presets = bounds
     ? [
@@ -139,11 +138,13 @@ export function ActionBar({ locale, scale, shape }: { locale: Locale; scale: num
             {t(bounds.kind === "bet" ? "bet" : "raise")}
           </button>
         ))}
-      {canTimeBank && (
-        <button className="btn ghost" style={{ ...btn, ...(wide ? {} : { flex: "0 0 auto", minWidth: 56 }) }} onClick={() => socket.useTimeBank()}>
-          ⏳
-        </button>
-      )}
+      {/* NO TIME-BANK BUTTON. There was an hourglass here and the operator
+          could not tell what it did — which is the correct reaction to a
+          control that asks you, mid-decision, to notice a clock and spend a
+          reserve you were never told you had. The reserve still exists; the
+          server spends it for you at the only moment it is worth spending
+          (see the alarm branch in tableDO.ts), and the timer bar just grows.
+          Fewer buttons at the exact moment the player is trying to think. */}
     </>
   );
 
