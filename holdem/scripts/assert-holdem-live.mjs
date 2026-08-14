@@ -146,13 +146,57 @@ if (code && WANT_V !== null) {
 
 console.log(`pages  ${PAGES}`);
 
+/**
+ * Wait for the Pages origin to start answering, up to ~90s.
+ *
+ * A pages.dev hostname created moments ago is not resolvable yet — the FIRST
+ * deploy of a new project answers 522 for a minute or two while the edge
+ * catches up, and everything downstream then fails as a cascade: no HTML means
+ * "does not reference this build" and every asset reads as not served. Three
+ * red lines, one cause, none of them a defect.
+ *
+ * Reporting that as a failed deploy is how a gate earns a reputation for crying
+ * wolf, and a gate people ignore protects nothing. So: retry, but BOUNDED and
+ * LOUD — it prints each attempt, and if the wait was needed it says so, because
+ * "the site took 40s to come up" is information rather than noise.
+ *
+ * 522/523/524 and a connection error are the only retryable answers. A 404 or a
+ * 500 is the site telling us something true, and waiting will not change it.
+ */
+async function fetchWhenWarm(url, budgetMs = 90_000) {
+  const RETRYABLE = new Set([521, 522, 523, 524]);
+  const started = Date.now();
+  let attempt = 0;
+  for (;;) {
+    attempt += 1;
+    try {
+      const res = await fetch(url);
+      if (!RETRYABLE.has(res.status)) return { res, attempt, waitedMs: Date.now() - started };
+      if (Date.now() - started >= budgetMs) return { res, attempt, waitedMs: Date.now() - started };
+      console.log(`  ...  HTTP ${res.status}, the edge is still coming up (attempt ${attempt})`);
+    } catch (e) {
+      if (Date.now() - started >= budgetMs) return { err: e, attempt, waitedMs: Date.now() - started };
+      console.log(`  ...  ${e.message}, retrying (attempt ${attempt})`);
+    }
+    await new Promise((r) => setTimeout(r, 5_000));
+  }
+}
+
 let html = "";
-try {
-  const res = await fetch(PAGES);
-  html = await res.text();
-  res.ok ? ok(`the site answers (HTTP ${res.status})`) : bad(`the site returned HTTP ${res.status}`);
-} catch (e) {
-  bad(`the site is unreachable: ${e.message}`);
+{
+  const { res, err, attempt, waitedMs } = await fetchWhenWarm(PAGES);
+  if (err) {
+    bad(`the site is unreachable after ${Math.round(waitedMs / 1000)}s: ${err.message}`);
+  } else if (res.ok) {
+    html = await res.text();
+    ok(
+      attempt === 1
+        ? `the site answers (HTTP ${res.status})`
+        : `the site answers (HTTP ${res.status}) after ${Math.round(waitedMs / 1000)}s and ${attempt} attempts — a cold pages.dev hostname`,
+    );
+  } else {
+    bad(`the site returned HTTP ${res.status} after ${Math.round(waitedMs / 1000)}s`);
+  }
 }
 
 // Every built artifact must be SERVED and byte-identical. Not "referenced by
