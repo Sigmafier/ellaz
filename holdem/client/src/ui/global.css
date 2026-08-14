@@ -1,4 +1,10 @@
 @import "./tokens.css";
+/* Every art decision on the felt — the shape of the table, the face and back
+   of a card, what a seat looks like, how a card is dealt and how a fold
+   leaves. It ships in the SHELL on purpose: a player's picks have to paint on
+   the very first frame, and the lab that chooses between them is a separate
+   lazy chunk they may never download. See look/lookStore.ts. */
+@import "../look/look.css";
 
 *,
 *::before,
@@ -111,11 +117,6 @@ select {
   }
 }
 
-@keyframes holdem-flip-in {
-  from {
-    transform: rotateY(90deg);
-  }
-  to {
-    transform: rotateY(0);
-  }
-}
+/* `holdem-flip-in` used to live here. It is `hm-flip-in` in look/look.css
+   now — the default arm of the `deal` axis, beside the four alternatives, so
+   that how a card arrives is stated in exactly one place. */

@@ -53,6 +53,7 @@ export const he = {
   soundOn: "קול פועל",
   soundOff: "קול כבוי",
   pickSounds: "בחירת צלילים",
+  pickLook: "בחירת המראה",
   net: "מאזן",
   hands: "ידיים",
   copyCode: "העתקת קוד",

@@ -9,7 +9,7 @@ import { HistoryPanel } from "./HistoryPanel";
 import { LeaguePanel } from "./LeaguePanel";
 import type { Locale } from "../i18n";
 import { makeT } from "../i18n";
-import { IconDice, IconHistory, IconMore, IconSoundOff, IconSoundOn, IconTrophy } from "../ui/icons";
+import { IconDice, IconEye, IconHistory, IconMore, IconSoundOff, IconSoundOn, IconTrophy } from "../ui/icons";
 
 export function RoomScreen({
   code,
@@ -174,6 +174,21 @@ export function RoomScreen({
             }}
           >
             <IconSoundOn size={16} /> {t("pickSounds")}
+          </button>
+          {/* Beside the sounds, because they are the same thought: this table
+              does not look/sound the way I want. The look lab runs its own
+              demo hand rather than restyling the felt behind this sheet — a
+              live table is not dealing while you are looking at it, so the
+              axes that are about MOTION would have nothing to show. */}
+          <button
+            className="btn ghost"
+            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+            onClick={() => {
+              setPanel("none");
+              location.hash = "#/look";
+            }}
+          >
+            <IconEye size={16} /> {t("pickLook")}
           </button>
           {me && !me.sittingOut && (
             <button

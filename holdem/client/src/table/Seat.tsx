@@ -48,11 +48,18 @@ export function Seat({
    */
   const wide = shape === "wide";
 
+  /**
+   * NO `transform` AND NO `opacity` HERE, deliberately. Both are things the
+   * look axes move (a seat that lifts on its turn, a seat that fades when it
+   * folds), and an inline style beats a stylesheet rule — so an arm written
+   * against a seat carrying its own inline transform would silently do
+   * nothing. They live on `.hm-seat` in look.css. Only the two numbers that
+   * are genuinely per-seat, `left` and `top`, are inline.
+   */
   const box: React.CSSProperties = {
     position: "absolute",
     left: `${x}%`,
     top: `${y}%`,
-    transform: "translate(-50%, -50%)",
     display: "flex",
     flexDirection: wide ? "row" : "column",
     alignItems: "center",
@@ -61,9 +68,9 @@ export function Seat({
   };
 
   if (seat.status === "empty") {
-    if (!onSitHere) return <div id={`seat-${seat.seat}`} style={box} />;
+    if (!onSitHere) return <div id={`seat-${seat.seat}`} className="hm-seat" style={box} />;
     return (
-      <div id={`seat-${seat.seat}`} style={box}>
+      <div id={`seat-${seat.seat}`} className="hm-seat" style={box}>
         <button
           className="btn ghost"
           style={{ minHeight: Math.max(44, u(40)), fontSize: u(13), padding: `0 ${u(12)}px`, opacity: 0.8 }}
@@ -75,14 +82,23 @@ export function Seat({
     );
   }
 
-  const dim = seat.folded || seat.sittingOut;
   const holeSize = u(38);
   const backSize = u(30);
 
+  // Folded and sitting-out are one dim in every arm that ships, and two
+  // different states to the look system: only a FOLD is a moment, so only a
+  // fold can carry the cards-away animation. Sitting out is a condition, and a
+  // condition that animated every time the seat re-rendered would be a tic.
+  const cls = ["hm-seat"];
+  if (seat.folded) cls.push("is-folded");
+  if (seat.sittingOut) cls.push("is-out");
+  if (toAct) cls.push("hm-seat-active");
+  if (won) cls.push("hm-seat-won");
+
   return (
-    <div id={`seat-${seat.seat}`} style={{ ...box, opacity: dim ? 0.45 : 1 }}>
+    <div id={`seat-${seat.seat}`} className={cls.join(" ")} style={box}>
       {/* cards */}
-      <div style={{ display: "flex", gap: u(3), minHeight: u(40), alignItems: "flex-end" }}>
+      <div className="hm-cards" style={{ display: "flex", gap: u(3), minHeight: u(40), alignItems: "flex-end" }}>
         {/* A REVEAL OUTLIVES THE HAND, and is therefore tested first.
             `view.hand` goes null the instant the pot is awarded, so gating
             every card on it meant the cards a player turned over were on
@@ -115,19 +131,18 @@ export function Seat({
           64px timer bar out to the side of the nameplate, where it read as a
           gold wire connecting the seat to the dealer button. */}
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: u(3) }}>
+      {/* The plate's LOOK is entirely in look.css — background, border,
+          radius, the to-act pulse, and the glow when the chips land. Every one
+          of those was inline and every one of them is something a look axis
+          moves, so leaving them here would mean nine `!important`s in the
+          stylesheet or nine props threaded down from a picker. What stays
+          inline is what the table's own scaling owns: padding and width. */}
       <div
+        className="hm-plate"
         style={{
-          background: toAct ? "var(--seat-active)" : "var(--seat-bg)",
-          border: won ? `${Math.max(2, u(2))}px solid var(--gold)` : "1px solid var(--line)",
-          borderRadius: "var(--radius-1)",
           padding: `${u(4)}px ${u(10)}px`,
           textAlign: "center",
           minWidth: u(76),
-          animation: toAct ? "holdem-pulse 1.6s infinite" : undefined,
-          // The chips landing. `won` is set by PotAwarded and cleared by the
-          // next HandStarted, so this runs exactly once per hand won and needs
-          // no timer of its own to take it away.
-          boxShadow: won ? `0 0 ${u(18)}px var(--glow)` : undefined,
         }}
       >
         <div
@@ -147,7 +162,7 @@ export function Seat({
           {/* The animal is the seat's face. It comes from `names` beside the
               view, never from the engine's seat label — the engine holds an
               opaque string and must not learn about the word pool. */}
-          <span style={{ display: "inline-flex", verticalAlign: "-2px", marginInlineEnd: 4 }}>
+          <span className="hm-avatar" style={{ display: "inline-flex", verticalAlign: "-2px", marginInlineEnd: 4 }}>
             <Animal id={seatNames[seat.seat]?.noun} size={Math.max(12, u(14))} />
           </span>
           <bdi>{seat.name}</bdi>
@@ -201,6 +216,7 @@ export function Seat({
 
       {isButton && (
         <div
+          className="hm-dealer"
           style={{
             position: "absolute",
             insetInlineEnd: u(-10),

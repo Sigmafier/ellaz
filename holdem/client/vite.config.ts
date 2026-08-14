@@ -86,8 +86,18 @@ export default defineConfig({
         // being asked. Naming it by its entry module leaves that natural
         // splitting alone — shared modules stay where the dependency graph
         // puts them, which is the shell.
+        //
+        // BOTH labs share the `lab-` name, and deliberately: `globIgnores`,
+        // `resolveDependencies` and assert-first-visit.mjs each hold one
+        // pattern, so a second tuning screen that invented a second prefix
+        // would need all three edited and would ship to every player if any
+        // one of them were missed. `src/look/LookLab.tsx` is the look lab's
+        // entry; `src/look/lookStore.ts` and `look.css` are NOT matched here
+        // and must not be — they are what paints a player's picks on the
+        // first frame, so they belong in the shell.
         chunkFileNames: (chunk) =>
-          chunk.facadeModuleId?.includes("/src/lab/")
+          chunk.facadeModuleId?.includes("/src/lab/") ||
+          chunk.facadeModuleId?.includes("/src/look/LookLab")
             ? "assets/lab-[hash].js"
             : "assets/[name]-[hash].js",
       },

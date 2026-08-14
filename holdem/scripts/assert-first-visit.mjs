@@ -34,6 +34,14 @@ import { tmpdir } from "node:os";
 
 const DIST = process.env.DIST_DIR ?? "client/dist";
 
+/**
+ * How many `lab-*.js` chunks this build should emit: the sound lab and the
+ * look lab. Both are named into the same prefix on purpose (see the note in
+ * vite.config.ts) so that one precache exclusion, one modulepreload filter and
+ * one gate cover every tuning screen there will ever be.
+ */
+const LABS_EXPECTED = 2;
+
 /** Every check, as data, so --control can plant a failure per check. */
 function inspect(dist) {
   const assets = join(dist, "assets");
@@ -59,7 +67,22 @@ function check(dist) {
   // it means something.
   if (s.precached.length === 0) fail.push("the precache manifest parsed as EMPTY — the matcher is broken, not the build");
   if (s.shells.length === 0) fail.push("no index-*.js shell chunk found at all");
-  if (s.labs.length === 0) fail.push("no lab-*.js chunk — the chunk name changed, so every exclusion below silently matches nothing");
+  // A COUNT, not `> 0`, and that distinction was a live regression rather
+  // than a precaution. `length === 0` was correct while there was one lab; the
+  // day a second one landed, the "lab chunk renamed away" control started
+  // SURVIVING — deleting one chunk still left one, so the gate reported green
+  // over exactly the failure it exists to catch, and the only thing that said
+  // so was `--control`.
+  //
+  // Adding a third tuning screen means bumping this number in the same commit.
+  // That is the point: a ratchet somebody has to walk past, rather than a
+  // threshold that quietly stops meaning anything as the tree grows.
+  if (s.labs.length !== LABS_EXPECTED)
+    fail.push(
+      `expected ${LABS_EXPECTED} lab-*.js chunks and found ${s.labs.length} (${s.labs.join(", ") || "none"}) — ` +
+        `either a chunk name changed, so every exclusion below silently matches nothing, or a lab was added ` +
+        `without updating LABS_EXPECTED`,
+    );
 
   for (const lab of s.labs) {
     if (s.precached.includes(`assets/${lab}`)) fail.push(`${lab} is PRECACHED — every player downloads the lab`);

@@ -74,32 +74,27 @@ export function Table({ locale, spectator = false }: { locale: Locale; spectator
       <div style={{ position: "relative", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
         {/* the felt. The insets here MUST match INSET_X / INSET_Y in scale.ts,
             which is how the scale arithmetic knows the felt's real box. */}
+        {/* THE FELT CARRIES ALMOST NO INLINE STYLE, and that is load-bearing
+            rather than tidy. Its shape, its cloth and its rail are three of
+            the look axes, and an inline style beats a stylesheet rule — so
+            while `borderRadius`, `background`, `border` and `boxShadow` were
+            written here, fourteen arms across those three axes set their
+            attribute on <html>, changed nothing at all, and looked to whoever
+            was choosing like fourteen boring options rather than a bug.
+            Measured: `border-radius` read `48% / 40%` and the rail read wood
+            with `data-look-table="circle"` and `data-look-rail="leather"` both
+            live on the document. See look/look.css §§ 1-3.
+
+            What stays here is what only this component can know: the inset,
+            which depends on the measured layout, and the rail's WIDTH, which
+            scales with the felt. Both are handed over as values the stylesheet
+            reads. The insets MUST match INSET_X / INSET_Y in scale.ts, which
+            is how the scale arithmetic knows the felt's real box. */}
         <div
           id="felt"
           style={{
-            position: "absolute",
-            inset: wide ? "7% 4%" : "7% 4% 12% 4%",
-            borderRadius: "48% / 40%",
-            // Cloth, then light. Two 45-degree hatches at a 3px period read as
-            // a weave at any size and cost nothing — where a texture IMAGE
-            // would be an external request, which a game may not make, and a
-            // data URI would be more bytes than the rest of this file.
-            // Listed first so it sits ON TOP of the lighting gradient.
-            background: [
-              "repeating-linear-gradient(45deg, var(--cloth) 0 1px, transparent 1px 3px)",
-              "repeating-linear-gradient(-45deg, var(--cloth) 0 1px, transparent 1px 3px)",
-              "radial-gradient(ellipse at 50% 38%, var(--felt-hi) 0%, var(--felt) 55%, var(--felt-edge) 100%)",
-            ].join(", "),
-            border: `${Math.max(6, u(10))}px solid var(--rail)`,
-            // Four layers make the rail read as padded rather than as a line:
-            // the vignette, a dark ring just inside it, a lit ring just
-            // outside it, and the table's own drop shadow.
-            boxShadow: [
-              "inset 0 0 60px rgba(0,0,0,.5)",
-              "inset 0 0 0 2px var(--rail-lo)",
-              "0 0 0 2px var(--rail-hi)",
-              "0 8px 30px rgba(0,0,0,.5)",
-            ].join(", "),
+            ["--felt-inset" as string]: wide ? "7% 4%" : "7% 4% 12% 4%",
+            ["--rail-w" as string]: `${Math.max(6, u(10))}px`,
           }}
         />
 

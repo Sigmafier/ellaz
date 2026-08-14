@@ -59,7 +59,15 @@ export function ChipStack({
               // selector written from the source silently matches nothing,
               // which reads exactly like "no chips were drawn".
               data-chip={c.value}
+              // `hm-chip` is the look system's handle (see look/look.css § 10).
+              // The chip's own height stays INLINE because it is derived from
+              // the measured felt, so the arms that change it use !important —
+              // the one place in the look system that does, and it is the
+              // scaling that forces it rather than a shortcut.
+              className="hm-chip"
               style={{
+                position: "relative",
+                ["--chip-h" as string]: `${chipH}px`,
                 width: d,
                 // A chip is drawn as a FLATTENED ELLIPSE, not a circle.
                 //

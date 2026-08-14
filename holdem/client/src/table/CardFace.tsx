@@ -27,12 +27,22 @@ const SUIT_CHAR = ["♣", "♦", "♥", "♠"];
  * what makes a rectangle read as a playing card rather than as a tile with a
  * letter on it.
  *
+ * EVERY PART IS RENDERED, AND look.css DECIDES WHICH ARE SHOWN. Two of the
+ * four corner indices and the big centre rank are display:none by default and
+ * belong to other arms of the `cardface` axis. That costs four empty spans and
+ * buys a card whose whole layout is restylable from one attribute on <html> —
+ * where the alternative is a `variant` prop threaded through Table, Seat and
+ * WinMoment, and a second copy of "what a card looks like" in TypeScript.
+ *
+ * Size, shape, corner radius, suit colour and the dealing animation are all
+ * CSS now, driven by `--card-w`. Only that one number comes from JS, because
+ * only that one number depends on the measured felt (see table/scale.ts).
+ *
  * `dir="ltr"` on the card, always. A rank belongs at the top-LEFT corner in
  * every language — a Hebrew page must not mirror the deck.
  */
 export function CardFace({ card, size = 44, delay = 0 }: { card: Card; size?: number; delay?: number }) {
   const suit = suitOf(card);
-  const red = suit === 1 || suit === 2;
   const rank = RANKS[rankOf(card)];
   const pip = SUIT_CHAR[suit];
   const Suit = SUIT_ICON[suit];
@@ -45,6 +55,7 @@ export function CardFace({ card, size = 44, delay = 0 }: { card: Card; size?: nu
 
   const index = (
     <span
+      className="hm-card-idx"
       aria-hidden
       style={{
         display: "flex",
@@ -66,32 +77,67 @@ export function CardFace({ card, size = 44, delay = 0 }: { card: Card; size?: nu
 
   return (
     <div
+      className="hm-card"
       dir="ltr"
       data-card-rank={rank}
       data-card-suit={pip}
+      data-suit={suit}
       style={{
         position: "relative",
-        width: size,
-        height: size * 1.4,
-        borderRadius: size * 0.14,
+        // The ONE number from JS. Height, radius, colour and the deal
+        // animation are all derived from it in look.css.
+        ["--card-w" as string]: `${size}px`,
         background: "var(--card-face)",
-        color: red ? "var(--card-red)" : "var(--card-black)",
         boxShadow: "0 2px 6px rgba(0,0,0,.45)",
         overflow: "hidden",
         // 380ms, up from 240. A card turning over is the single most-watched
         // thing on this screen and it was arriving faster than the eye tracks
-        // it — the operator's word for the whole felt was "too fast".
-        animation: `holdem-flip-in 380ms var(--ease) both`,
+        // it — the operator's word for the whole felt was "too fast". The
+        // duration itself now lives in look.css so the `pace` axis can scale
+        // every animation on the table with one number.
         animationDelay: `${delay}ms`,
       }}
     >
-      <div style={{ position: "absolute", top: pad, left: pad }}>{index}</div>
-      {/* The same corner, rotated — which is what the real card does, and why
-          a card is readable whichever way up it is picked up. */}
-      <div style={{ position: "absolute", bottom: pad, right: pad, transform: "rotate(180deg)" }}>
+      <div className="hm-card-idx-1" style={{ position: "absolute", top: pad, left: pad }}>
         {index}
       </div>
+      {/* The same corner, rotated — which is what the real card does, and why
+          a card is readable whichever way up it is picked up. */}
+      <div
+        className="hm-card-idx-2"
+        style={{ position: "absolute", bottom: pad, right: pad, transform: "rotate(180deg)" }}
+      >
+        {index}
+      </div>
+      {/* The other two corners. Hidden unless the `quad` arm is picked. */}
+      <div className="hm-card-idx-3" style={{ position: "absolute", top: pad, right: pad }}>
+        {index}
+      </div>
+      <div
+        className="hm-card-idx-4"
+        style={{ position: "absolute", bottom: pad, left: pad, transform: "rotate(180deg)" }}
+      >
+        {index}
+      </div>
+      {/* The big centre rank — the casino-readable arm, hidden by default. */}
       <span
+        className="hm-card-rank"
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: 0,
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: Math.round(size * 0.62),
+          fontWeight: 900,
+          lineHeight: 1,
+          letterSpacing: rank === "10" ? "-0.08em" : undefined,
+        }}
+      >
+        {rank}
+      </span>
+      <span
+        className="hm-card-pip"
         aria-hidden
         style={{
           position: "absolute",
@@ -103,7 +149,6 @@ export function CardFace({ card, size = 44, delay = 0 }: { card: Card; size?: nu
           // a glance that is only ever trying to read the corner; at this
           // weight it carries the suit as colour and shape from across a room.
           lineHeight: 1,
-          opacity: 0.22,
         }}
       >
         <Suit size={Math.round(size * 0.72)} />
@@ -112,16 +157,21 @@ export function CardFace({ card, size = 44, delay = 0 }: { card: Card; size?: nu
   );
 }
 
+/**
+ * The back of a card.
+ *
+ * The pattern is in look.css, not here. It was three hardcoded colours in this
+ * function, and that made it the one surface on the whole table a palette
+ * could not reach — every alternative skin rendered with the same maroon
+ * backs, which read as unfinished for a reason that had nothing to do with the
+ * skin being tried.
+ */
 export function CardBack({ size = 34 }: { size?: number }) {
   return (
     <div
+      className="hm-card-back"
       style={{
-        width: size,
-        height: size * 1.4,
-        borderRadius: size * 0.14,
-        background:
-          "repeating-linear-gradient(45deg, #7a2c34 0 4px, #93414a 4px 8px)",
-        border: "2px solid #5b1e25",
+        ["--card-w" as string]: `${size}px`,
         boxShadow: "0 1px 4px rgba(0,0,0,.4)",
       }}
     />

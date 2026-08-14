@@ -1,0 +1,675 @@
+/* The look system — every art decision on this table, as CSS.
+ *
+ * Each block is one AXIS. The first rule in a block is the shipped default and
+ * carries no selector prefix; every arm after it keys on an attribute the look
+ * store writes onto <html>. So the default is stated ONCE, in the plain rule,
+ * and an unknown or corrupt stored value selects nothing and lands on it.
+ *
+ * WHY CSS AND NOT PROPS. The lab has to restyle a live table instantly, on a
+ * phone, without remounting a component or re-running a hand. A prop threaded
+ * from a picker down through Table -> Seat -> CardFace would also be a second
+ * copy of "what the table looks like" living in TypeScript, next to the first
+ * copy in the stylesheet. One attribute on the root element is the whole
+ * mechanism, and it is the same mechanism whether the picker is open or the
+ * player picked six weeks ago.
+ *
+ * SIZES ARE UNITLESS MULTIPLIERS wherever a size is authored in JS. The table
+ * scales itself against the viewport (see table/scale.ts), so a look that
+ * wrote `44px` anywhere would be correct on one phone and wrong on the rest.
+ */
+
+:root {
+  /* How fast the felt moves. Every authored duration below is multiplied by
+     this, so `pace` is one number rather than fourteen edits. */
+  --pace: 1;
+  --card-ratio: 1.4;
+  --card-round: 0.14;
+  --card-border: 0px;
+  --deal-anim: hm-flip-in;
+  --deal-ms: 380ms;
+  --fold-opacity: 0.45;
+  --fold-filter: none;
+  --fold-anim: none;
+}
+
+/* ===========================================================================
+   1. TABLE — the shape of the felt itself
+
+   This first rule is the whole default felt, moved out of Table.tsx. Only two
+   values still come from the component, as variables, because only the
+   component can know them: `--felt-inset` (which depends on the measured
+   layout) and `--rail-w` (which scales with the table).
+   =========================================================================== */
+
+#felt {
+  position: absolute;
+  inset: var(--felt-inset);
+  border-radius: 48% / 40%;
+  border-style: solid;
+  border-width: var(--rail-w);
+  border-color: var(--rail);
+  /* Cloth, then light. Two 45-degree hatches at a 3px period read as a weave
+     at any size and cost nothing — where a texture IMAGE would be an external
+     request, which a game may not make, and a data URI would be more bytes
+     than the rest of this file. Listed first so it sits ON TOP of the
+     lighting gradient. */
+  background:
+    repeating-linear-gradient(45deg, var(--cloth) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(-45deg, var(--cloth) 0 1px, transparent 1px 3px),
+    radial-gradient(
+      ellipse at 50% 38%,
+      var(--felt-hi) 0%,
+      var(--felt) 55%,
+      var(--felt-edge) 100%
+    );
+  /* Four layers make the rail read as padded rather than as a line: the
+     vignette, a dark ring just inside it, a lit ring just outside it, and the
+     table's own drop shadow. */
+  box-shadow:
+    inset 0 0 60px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 2px var(--rail-lo),
+    0 0 0 2px var(--rail-hi),
+    0 8px 30px rgba(0, 0, 0, 0.5);
+}
+html[data-look-table="racetrack"] #felt {
+  border-radius: 999px;
+}
+/* NO `inset` override here, and that is a correction rather than an omission.
+   Narrowing the felt to make a TRUE circle was tried and it looked broken:
+   the seats sit on an ellipse computed in JS from the container (see
+   table/scale.ts), not from the felt, so shrinking one and not the other
+   left two players floating off the edge of the table. An arm may change the
+   SHAPE of the felt; it may not change where people sit. */
+html[data-look-table="circle"] #felt {
+  border-radius: 50%;
+}
+html[data-look-table="rect"] #felt {
+  border-radius: 28px;
+}
+html[data-look-table="diamond"] #felt {
+  border-radius: 42% 42% 42% 42% / 30% 30% 30% 30%;
+}
+
+/* ===========================================================================
+   2. CLOTH — the surface, under the light
+   The default lives in Table.tsx's background list, because the lighting
+   gradient has to sit UNDER the weave and a stylesheet cannot reorder a
+   list it did not write. Each arm here replaces the whole stack.
+   =========================================================================== */
+
+html[data-look-cloth="plain"] #felt {
+  background: radial-gradient(
+    ellipse at 50% 38%,
+    var(--felt-hi) 0%,
+    var(--felt) 55%,
+    var(--felt-edge) 100%
+  );
+}
+html[data-look-cloth="speckle"] #felt {
+  background:
+    radial-gradient(circle at 20% 30%, var(--cloth) 0 1px, transparent 1px),
+    radial-gradient(circle at 70% 60%, var(--cloth) 0 1px, transparent 1px),
+    radial-gradient(
+      ellipse at 50% 38%,
+      var(--felt-hi) 0%,
+      var(--felt) 55%,
+      var(--felt-edge) 100%
+    );
+  background-size:
+    7px 7px,
+    11px 11px,
+    100% 100%;
+}
+html[data-look-cloth="twill"] #felt {
+  background:
+    repeating-linear-gradient(
+      60deg,
+      var(--cloth) 0 1px,
+      transparent 1px 5px
+    ),
+    radial-gradient(
+      ellipse at 50% 38%,
+      var(--felt-hi) 0%,
+      var(--felt) 55%,
+      var(--felt-edge) 100%
+    );
+}
+html[data-look-cloth="spot"] #felt {
+  background:
+    radial-gradient(
+      ellipse at 50% 34%,
+      rgba(255, 255, 255, 0.16) 0%,
+      transparent 46%
+    ),
+    radial-gradient(
+      ellipse at 50% 44%,
+      var(--felt-hi) 0%,
+      var(--felt) 42%,
+      var(--felt-edge) 100%
+    );
+}
+
+/* ===========================================================================
+   3. RAIL — the edge you rest your elbows on
+   =========================================================================== */
+
+html[data-look-rail="leather"] #felt {
+  border-color: #2b2320;
+  box-shadow:
+    inset 0 0 60px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 3px rgba(0, 0, 0, 0.55),
+    0 0 0 2px rgba(255, 255, 255, 0.07),
+    0 0 0 8px #221b19,
+    0 10px 34px rgba(0, 0, 0, 0.6);
+}
+html[data-look-rail="chrome"] #felt {
+  border-color: #b9c0c7;
+  box-shadow:
+    inset 0 0 60px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 2px rgba(0, 0, 0, 0.35),
+    0 0 0 2px rgba(255, 255, 255, 0.6),
+    0 8px 30px rgba(0, 0, 0, 0.5);
+}
+html[data-look-rail="gold"] #felt {
+  border-color: #6b5220;
+  box-shadow:
+    inset 0 0 60px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 2px var(--gold),
+    0 0 0 2px rgba(232, 182, 76, 0.45),
+    0 8px 30px rgba(0, 0, 0, 0.5);
+}
+html[data-look-rail="none"] #felt {
+  border-width: 2px;
+  border-color: var(--felt-edge);
+  box-shadow:
+    inset 0 0 60px rgba(0, 0, 0, 0.45),
+    0 8px 30px rgba(0, 0, 0, 0.45);
+}
+
+/* ===========================================================================
+   4. CARD FACE — how a card says what it is
+   The DOM carries every part (four corner indices, a centre pip, a centre
+   rank) and each arm decides which are shown. One card component, five
+   layouts, and no branch in TypeScript that a look has to be threaded into.
+   =========================================================================== */
+
+.hm-card-idx-3,
+.hm-card-idx-4,
+.hm-card-rank {
+  display: none;
+}
+.hm-card-pip {
+  opacity: 0.22;
+}
+
+html[data-look-cardface="big"] .hm-card-rank {
+  display: flex;
+}
+html[data-look-cardface="big"] .hm-card-pip {
+  opacity: 0.5;
+  transform: translateY(30%) scale(0.42);
+}
+html[data-look-cardface="big"] .hm-card-idx-2 {
+  display: none;
+}
+
+html[data-look-cardface="quad"] .hm-card-idx-3,
+html[data-look-cardface="quad"] .hm-card-idx-4 {
+  display: block;
+}
+html[data-look-cardface="quad"] .hm-card-pip {
+  opacity: 0.13;
+}
+
+html[data-look-cardface="plain"] .hm-card-pip {
+  display: none;
+}
+html[data-look-cardface="plain"] .hm-card-idx-2 {
+  display: none;
+}
+
+html[data-look-cardface="bold"] .hm-card-idx {
+  transform: scale(1.22);
+  transform-origin: top left;
+}
+html[data-look-cardface="bold"] .hm-card-idx-2 .hm-card-idx {
+  transform-origin: bottom right;
+}
+html[data-look-cardface="bold"] .hm-card-pip {
+  opacity: 0.4;
+}
+
+/* ===========================================================================
+   5. DECK — how many colours the suits use
+   Four-colour decks are a real card-room option and the single biggest
+   legibility win available here: clubs and spades stop being the same card
+   at a glance, which is exactly the mistake that costs a pot.
+   =========================================================================== */
+
+.hm-card[data-suit="0"],
+.hm-card[data-suit="3"] {
+  color: var(--card-black);
+}
+.hm-card[data-suit="1"],
+.hm-card[data-suit="2"] {
+  color: var(--card-red);
+}
+
+html[data-look-deck="four"] .hm-card[data-suit="0"] {
+  color: #1a8a4e;
+}
+html[data-look-deck="four"] .hm-card[data-suit="1"] {
+  color: #2568cf;
+}
+
+html[data-look-deck="contrast"] .hm-card[data-suit="0"],
+html[data-look-deck="contrast"] .hm-card[data-suit="3"] {
+  color: #000;
+}
+html[data-look-deck="contrast"] .hm-card[data-suit="1"],
+html[data-look-deck="contrast"] .hm-card[data-suit="2"] {
+  color: #d4001f;
+}
+html[data-look-deck="contrast"] .hm-card {
+  background: #fff;
+}
+
+html[data-look-deck="soft"] .hm-card[data-suit="0"] {
+  color: #4a6b52;
+}
+html[data-look-deck="soft"] .hm-card[data-suit="1"] {
+  color: #7d6ba8;
+}
+html[data-look-deck="soft"] .hm-card[data-suit="2"] {
+  color: #b5636b;
+}
+html[data-look-deck="soft"] .hm-card[data-suit="3"] {
+  color: #3f4550;
+}
+
+/* ===========================================================================
+   6. CARD BACK — the pattern on twenty of the cards on screen
+   This used to be three hardcoded colours inside CardFace.tsx, which made it
+   the one surface a palette could not reach: every skin came out with the
+   same maroon backs, and the light ones read as half finished for a reason
+   that had nothing to do with the skin.
+   =========================================================================== */
+
+.hm-card-back {
+  background: repeating-linear-gradient(
+    45deg,
+    #7a2c34 0 4px,
+    #93414a 4px 8px
+  );
+  border: 2px solid #5b1e25;
+}
+html[data-look-cardback="lattice"] .hm-card-back {
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.14) 0 1px, transparent 1px 6px),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.14) 0 1px, transparent 1px 6px),
+    #1e3566;
+  border-color: #101d3c;
+}
+html[data-look-cardback="weave"] .hm-card-back {
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.22) 0 2px, transparent 2px 4px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.22) 0 2px, transparent 2px 4px),
+    #1f6b4f;
+  border-color: #0e3a2b;
+}
+html[data-look-cardback="monogram"] .hm-card-back {
+  background:
+    radial-gradient(circle at 50% 50%, var(--gold) 0 14%, transparent 15%),
+    radial-gradient(circle at 50% 50%, transparent 0 26%, rgba(232, 182, 76, 0.5) 26% 28%, transparent 29%),
+    #14161b;
+  border-color: #000;
+}
+html[data-look-cardback="slate"] .hm-card-back {
+  background: linear-gradient(160deg, #3b444f, #222831);
+  border-color: #171c22;
+}
+
+/* ===========================================================================
+   7. CARD SHAPE — the rectangle itself
+   Width comes from JS (the table scales), everything else from here.
+   =========================================================================== */
+
+.hm-card,
+.hm-card-back {
+  width: var(--card-w);
+  height: calc(var(--card-w) * var(--card-ratio));
+  border-radius: calc(var(--card-w) * var(--card-round));
+}
+html[data-look-cardshape="wide"] {
+  --card-ratio: 1.32;
+}
+html[data-look-cardshape="tall"] {
+  --card-ratio: 1.52;
+}
+html[data-look-cardshape="sharp"] {
+  --card-round: 0.03;
+}
+html[data-look-cardshape="round"] {
+  --card-round: 0.22;
+}
+html[data-look-cardshape="framed"] {
+  --card-round: 0.1;
+}
+html[data-look-cardshape="framed"] .hm-card {
+  box-shadow:
+    inset 0 0 0 2px rgba(0, 0, 0, 0.12),
+    0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+/* ===========================================================================
+   8. SEAT — the player
+   The first two rules are not an arm: they are the DEFAULT seat, moved out of
+   Seat.tsx so the arms below can reach it. An inline style beats a stylesheet
+   rule, so anything a look wants to change cannot stay inline.
+   =========================================================================== */
+
+.hm-seat {
+  transform: translate(-50%, -50%);
+}
+/* Sitting out is a CONDITION, not a moment: a flat dim, never an animation.
+   The fold treatment is section 12. */
+.hm-seat.is-out {
+  opacity: 0.45;
+}
+
+.hm-plate {
+  background: var(--seat-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-1);
+}
+.hm-seat-active .hm-plate {
+  background: var(--seat-active);
+  animation: holdem-pulse calc(1.6s * var(--pace)) infinite;
+}
+/* The chips landing. `won` is set by PotAwarded and cleared by the next
+   HandStarted, so this runs exactly once per hand won and needs no timer of
+   its own to take it away. */
+.hm-seat-won .hm-plate {
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 18px var(--glow);
+}
+
+html[data-look-seat="pill"] .hm-plate {
+  border-radius: 999px;
+  padding-inline: 1.1em;
+}
+html[data-look-seat="plaque"] .hm-plate {
+  border-radius: 4px;
+  border-width: 2px;
+  border-color: var(--gold);
+  background: linear-gradient(180deg, var(--surface-2), var(--seat-bg));
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
+}
+html[data-look-seat="bare"] .hm-plate {
+  background: transparent;
+  border-color: transparent;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+html[data-look-seat="avatar"] .hm-avatar {
+  transform: scale(2.1);
+  margin-inline-end: 0.55em;
+}
+html[data-look-seat="avatar"] .hm-plate {
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.42);
+  border-color: transparent;
+}
+
+/* ===========================================================================
+   9. TURN — how the table says it is your move
+   The default is a pulsing ring plus the bar underneath. Every arm here is
+   an ADDITION to the bar rather than a replacement for it: the bar is the
+   only thing on screen that says HOW LONG, and a look must not be able to
+   take that away.
+   =========================================================================== */
+
+html[data-look-turn="ring"] .hm-plate {
+  animation: none;
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+html[data-look-turn="spot"] .hm-seat-active::before {
+  content: "";
+  position: absolute;
+  inset: -28%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.14), transparent 68%);
+  pointer-events: none;
+}
+html[data-look-turn="flood"] .hm-plate {
+  animation: none;
+}
+html[data-look-turn="flood"] .hm-seat-active .hm-plate {
+  background: var(--gold);
+  color: var(--gold-ink);
+}
+html[data-look-turn="flood"] .hm-seat-active .hm-plate * {
+  color: var(--gold-ink) !important;
+}
+html[data-look-turn="lift"] .hm-seat-active {
+  transform: translate(-50%, -50%) scale(1.09);
+  z-index: 5;
+}
+html[data-look-turn="calm"] .hm-plate {
+  animation: none;
+}
+
+/* ===========================================================================
+   10. CHIPS — a bet you can read without reading
+   =========================================================================== */
+
+html[data-look-chips="striped"] .hm-chip::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: repeating-conic-gradient(
+    from 0deg,
+    rgba(255, 255, 255, 0.9) 0deg 12deg,
+    transparent 12deg 45deg
+  );
+  opacity: 0.55;
+}
+html[data-look-chips="tall"] .hm-chip {
+  height: calc(var(--chip-h) * 1.55) !important;
+}
+html[data-look-chips="flat"] .hm-chip {
+  height: calc(var(--chip-h) * 0.7) !important;
+}
+html[data-look-chips="plain"] .hm-chip {
+  border-color: transparent !important;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4) !important;
+}
+
+/* ===========================================================================
+   11. DEAL — how a card arrives
+   =========================================================================== */
+
+.hm-card {
+  animation: var(--deal-anim) calc(var(--deal-ms) * var(--pace)) var(--ease) both;
+}
+html[data-look-deal="slide"] {
+  --deal-anim: hm-deal-slide;
+  --deal-ms: 420ms;
+}
+html[data-look-deal="drop"] {
+  --deal-anim: hm-deal-drop;
+  --deal-ms: 340ms;
+}
+html[data-look-deal="fan"] {
+  --deal-anim: hm-deal-fan;
+  --deal-ms: 460ms;
+}
+html[data-look-deal="fade"] {
+  --deal-anim: hm-deal-fade;
+  --deal-ms: 300ms;
+}
+
+@keyframes hm-flip-in {
+  from {
+    transform: rotateY(90deg);
+  }
+  to {
+    transform: rotateY(0);
+  }
+}
+@keyframes hm-deal-slide {
+  from {
+    transform: translate(-160%, -70%) rotate(-24deg);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    transform: translate(0, 0) rotate(0);
+    opacity: 1;
+  }
+}
+@keyframes hm-deal-drop {
+  from {
+    transform: translateY(-90%) scale(1.14);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+@keyframes hm-deal-fan {
+  from {
+    transform: rotate(-38deg) translateX(-40%) scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: rotate(0) translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+@keyframes hm-deal-fade {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ===========================================================================
+   12. FOLD — what leaving the hand looks like
+   =========================================================================== */
+
+.hm-seat.is-folded {
+  opacity: var(--fold-opacity);
+  filter: var(--fold-filter);
+}
+.hm-seat.is-folded .hm-cards {
+  animation: var(--fold-anim) calc(320ms * var(--pace)) var(--ease) both;
+}
+html[data-look-fold="grey"] {
+  --fold-opacity: 0.72;
+  --fold-filter: grayscale(1) brightness(0.62);
+}
+html[data-look-fold="muck"] {
+  --fold-opacity: 0.5;
+  --fold-anim: hm-muck;
+}
+html[data-look-fold="shrink"] {
+  --fold-opacity: 0.55;
+  --fold-anim: hm-fold-shrink;
+}
+html[data-look-fold="ghost"] {
+  --fold-opacity: 0.22;
+}
+
+@keyframes hm-muck {
+  from {
+    transform: translate(0, 0) rotate(0);
+    opacity: 1;
+  }
+  to {
+    transform: translate(0, -140%) rotate(12deg);
+    opacity: 0;
+  }
+}
+@keyframes hm-fold-shrink {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+}
+
+/* ===========================================================================
+   13. AWARD — winning the pot
+   The chips flying home are drawn in JavaScript (juice/effects.ts flyTo) and
+   are the same in every arm. What varies here is what the WINNING SEAT does,
+   which is the half a stylesheet can honestly own.
+   =========================================================================== */
+
+html[data-look-award="halo"] .hm-seat-won .hm-plate {
+  box-shadow: 0 0 0 3px var(--gold), 0 0 34px var(--glow);
+}
+html[data-look-award="flash"] .hm-seat-won .hm-plate {
+  animation: hm-flash calc(700ms * var(--pace)) var(--ease) 2;
+}
+html[data-look-award="rise"] .hm-seat-won {
+  animation: hm-rise calc(600ms * var(--pace)) var(--ease) both;
+}
+html[data-look-award="quiet"] .hm-seat-won .hm-plate {
+  box-shadow: none;
+  border-color: var(--gold);
+}
+
+@keyframes hm-flash {
+  0%,
+  100% {
+    background: var(--seat-bg);
+  }
+  50% {
+    background: var(--gold);
+  }
+}
+@keyframes hm-rise {
+  0% {
+    transform: translate(-50%, -50%);
+  }
+  40% {
+    transform: translate(-50%, -62%);
+  }
+  100% {
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* ===========================================================================
+   14. PACE — one number for how fast the whole felt moves
+   The operator's word for the table, once, was "too fast". This is that
+   complaint made adjustable instead of re-litigated per animation.
+   =========================================================================== */
+
+html[data-look-pace="slow"] {
+  --pace: 1.45;
+}
+html[data-look-pace="slower"] {
+  --pace: 2;
+}
+html[data-look-pace="snappy"] {
+  --pace: 0.72;
+}
+
+/* Reduced motion still wins over every arm above — the media query in
+   global.css sets `animation-duration: 0.01ms !important`, and nothing here
+   uses !important on a duration. Verified rather than assumed: an arm that
+   set a duration with !important would silently override an accessibility
+   preference, which is the one thing a look may never do. */
