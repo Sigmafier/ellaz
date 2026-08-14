@@ -1,8 +1,21 @@
 import type { Card } from "@shared/engine/cards";
 import { rankOf, suitOf } from "@shared/engine/cards";
+import { SUIT_ICON } from "../ui/icons";
 
 const RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
-const SUITS = ["♣", "♦", "♥", "♠"];
+
+/**
+ * For the DOM only. The suit is drawn as SVG (`SUIT_ICON`); this is what
+ * `data-card-suit` carries so a test can read a card without pixels.
+ *
+ * It used to be what the card RENDERED, and that was the single worst emoji in
+ * this app: `♠` and `♣` are text characters, `♥` and `♦` have emoji
+ * presentations, and several Android builds promote all four to full-colour
+ * cartoons. The same card was a black spade on one phone and a glossy blue
+ * pictogram on the next — at a poker table, where the suit is half of what a
+ * card says.
+ */
+const SUIT_CHAR = ["♣", "♦", "♥", "♠"];
 
 /**
  * A playing card.
@@ -21,7 +34,8 @@ export function CardFace({ card, size = 44, delay = 0 }: { card: Card; size?: nu
   const suit = suitOf(card);
   const red = suit === 1 || suit === 2;
   const rank = RANKS[rankOf(card)];
-  const pip = SUITS[suit];
+  const pip = SUIT_CHAR[suit];
+  const Suit = SUIT_ICON[suit];
 
   // The corner index scales with the card, with a floor: below about 9px a
   // "10" stops being two readable digits and becomes a smudge, and the hole
@@ -46,7 +60,7 @@ export function CardFace({ card, size = 44, delay = 0 }: { card: Card; size?: nu
       }}
     >
       <span>{rank}</span>
-      <span style={{ fontSize: indexSize * 0.78 }}>{pip}</span>
+      <Suit size={Math.round(indexSize * 0.72)} />
     </span>
   );
 
@@ -85,12 +99,11 @@ export function CardFace({ card, size = 44, delay = 0 }: { card: Card; size?: nu
           // Big, and faded. At full strength it competes with the indices for
           // a glance that is only ever trying to read the corner; at this
           // weight it carries the suit as colour and shape from across a room.
-          fontSize: size * 0.72,
           lineHeight: 1,
           opacity: 0.22,
         }}
       >
-        {pip}
+        <Suit size={Math.round(size * 0.72)} />
       </span>
     </div>
   );

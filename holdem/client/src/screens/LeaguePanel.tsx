@@ -4,6 +4,7 @@ import { useApp } from "../state/store";
 import { Sheet } from "./RoomScreen";
 import type { Locale } from "../i18n";
 import { makeT } from "../i18n";
+import { IconLink } from "../ui/icons";
 
 export function LeaguePanel({ locale, onClose }: { locale: Locale; onClose: () => void }) {
   const { ledger, isHost } = useApp();
@@ -45,7 +46,7 @@ export function LeaguePanel({ locale, onClose }: { locale: Locale; onClose: () =
                       onClick={() => socket.hostRelink(r.playerId)}
                       title="relink device"
                     >
-                      🔗
+                      <IconLink size={14} />
                     </button>
                   </td>
                 )}

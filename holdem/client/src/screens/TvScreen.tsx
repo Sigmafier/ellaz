@@ -10,6 +10,7 @@ import { Table } from "../table/Table";
 import { attachJuice } from "../juice/moments";
 import type { Locale } from "../i18n";
 import { makeT } from "../i18n";
+import { Logo } from "../ui/icons";
 
 export function TvScreen({ code, locale }: { code: string; locale: Locale }) {
   const app = useApp();
@@ -35,7 +36,10 @@ export function TvScreen({ code, locale }: { code: string; locale: Locale }) {
           background: "var(--surface)",
         }}
       >
-        <span style={{ fontSize: 20, fontWeight: 800 }}>♠️ {t("appName")}</span>
+        <span style={{ fontSize: 20, fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <Logo size={19} />
+          {t("appName")}
+        </span>
         <span style={{ color: "var(--ink-dim)", fontSize: 15 }}>{t("spectating")}</span>
         <span dir="ltr" style={{ fontSize: 26, fontWeight: 900, letterSpacing: 5, color: "var(--gold)" }}>
           {code}

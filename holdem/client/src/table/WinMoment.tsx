@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Card } from "@shared/engine/cards";
-import { nameEmoji } from "@shared/names";
+import { Animal } from "../ui/animals";
 import { useApp } from "../state/store";
 import { handName } from "./handName";
 import type { SeatPos } from "./layout";
@@ -51,10 +51,22 @@ export function WinMoment({
   const split = lastPot.winners.length > 1;
   const each = Math.round(lastPot.amount / Math.max(1, lastPot.winners.length));
 
-  const label = (seat: number) => {
+  /**
+   * One winner, as an element rather than a string.
+   *
+   * The animal used to be prefixed onto the name inside a template literal,
+   * which only worked while it was a character. A drawn one has to be a node,
+   * so the separator between winners moves out here too.
+   */
+  const label = (seat: number, i: number) => {
     const s = view.seats[seat];
-    const emoji = nameEmoji(seatNames[seat]);
-    return `${emoji ? `${emoji} ` : ""}${s?.name ?? `#${seat}`}`;
+    return (
+      <span key={seat} style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+        {i > 0 ? <span style={{ opacity: 0.6, marginInlineEnd: 5 }}>·</span> : null}
+        <Animal id={seatNames[seat]?.noun} size={Math.max(14, u(18))} />
+        <bdi>{s?.name ?? `#${seat}`}</bdi>
+      </span>
+    );
   };
 
   /**
@@ -159,7 +171,9 @@ export function WinMoment({
             overflowWrap: "anywhere",
           }}
         >
-          <bdi>{lastPot.winners.map(label).join(" · ")}</bdi>
+          <span style={{ display: "inline-flex", flexWrap: "wrap", justifyContent: "center", gap: 4 }}>
+            {lastPot.winners.map(label)}
+          </span>
         </div>
         <div style={{ fontSize: u(16), fontWeight: 800, color: "var(--gold)" }}>
           {split ? `${t("splitPot")} — ${each} ${t("each")}` : `${t("wins")} ${lastPot.amount}`}

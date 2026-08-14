@@ -3,7 +3,7 @@ import type { Card } from "@shared/engine/cards";
 import { CardBack, CardFace } from "./CardFace";
 import { ChipStack } from "./ChipStack";
 import { TimerBar } from "./TimerBar";
-import { nameEmoji } from "@shared/names";
+import { Animal } from "../ui/animals";
 import { useApp } from "../state/store";
 import type { Shape } from "./scale";
 import type { Locale } from "../i18n";
@@ -147,7 +147,9 @@ export function Seat({
           {/* The animal is the seat's face. It comes from `names` beside the
               view, never from the engine's seat label — the engine holds an
               opaque string and must not learn about the word pool. */}
-          <span aria-hidden>{nameEmoji(seatNames[seat.seat])}</span>{" "}
+          <span style={{ display: "inline-flex", verticalAlign: "-2px", marginInlineEnd: 4 }}>
+            <Animal id={seatNames[seat.seat]?.noun} size={Math.max(12, u(14))} />
+          </span>
           <bdi>{seat.name}</bdi>
           {isMe && (
             <span style={{ opacity: 0.6, fontWeight: 600 }}> ({t("you")})</span>

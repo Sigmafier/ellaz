@@ -6,12 +6,43 @@ import { useApp } from "../state/store";
 import { Sheet } from "./RoomScreen";
 import type { Locale } from "../i18n";
 import { makeT } from "../i18n";
+import { SuitClub, SuitDiamond, SuitHeart, SuitSpade } from "../ui/icons";
+
+const SUIT_CHAR: Record<string, string> = { c: "♣", d: "♦", h: "♥", s: "♠" };
+const SUIT_EL: Record<string, () => JSX.Element> = {
+  "♣": () => <SuitClub size={11} />,
+  "♦": () => <SuitDiamond size={11} />,
+  "♥": () => <SuitHeart size={11} />,
+  "♠": () => <SuitSpade size={11} />,
+};
 
 const pretty = (c: number) => {
   const code = cardCode(c);
-  const suits: Record<string, string> = { c: "♣", d: "♦", h: "♥", s: "♠" };
-  return code[0].replace("T", "10") + suits[code[1]];
+  return code[0].replace("T", "10") + SUIT_CHAR[code[1]];
 };
+
+/**
+ * Swap the suit characters in a finished line for drawn ones.
+ *
+ * The log is built as STRINGS because every line is an i18n template with
+ * names and amounts interpolated into it, and that is the right shape for
+ * translated prose. So the substitution happens at render time instead of
+ * turning six `push` sites into JSX — the pipeline keeps its strings and the
+ * suits still stop being a font the phone chose.
+ */
+function withSuits(text: string) {
+  const parts = text.split(/([♣♦♥♠])/);
+  return parts.map((part, i) => {
+    const El = SUIT_EL[part];
+    return El ? (
+      <span key={i} style={{ display: "inline-flex", verticalAlign: "-1px" }}>
+        <El />
+      </span>
+    ) : (
+      part
+    );
+  });
+}
 
 export function HistoryPanel({ locale, onClose }: { locale: Locale; onClose: () => void }) {
   const { history, replay } = useApp();
@@ -45,7 +76,7 @@ export function HistoryPanel({ locale, onClose }: { locale: Locale; onClose: () 
                 </span>
               </div>
               <div dir="ltr" style={{ fontSize: 13, color: "var(--ink-dim)", textAlign: "left" }}>
-                {h.board.map(pretty).join(" ")}
+                {withSuits(h.board.map(pretty).join(" "))}
               </div>
             </button>
             {openHand === h.handNo && replay?.handNo === h.handNo && (
@@ -92,7 +123,7 @@ function ReplayLines({ events, names, locale }: { events: EngineEvent[]; names: 
     <div style={{ marginTop: 8, borderTop: "1px solid var(--line)", paddingTop: 8, fontSize: 13, display: "flex", flexDirection: "column", gap: 3 }}>
       {lines.map((l, i) => (
         <div key={i}>
-          <bdi>{l}</bdi>
+          <bdi>{withSuits(l)}</bdi>
         </div>
       ))}
     </div>

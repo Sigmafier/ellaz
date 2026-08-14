@@ -9,6 +9,7 @@ import { HistoryPanel } from "./HistoryPanel";
 import { LeaguePanel } from "./LeaguePanel";
 import type { Locale } from "../i18n";
 import { makeT } from "../i18n";
+import { IconDice, IconHistory, IconMore, IconSoundOff, IconSoundOn, IconTrophy } from "../ui/icons";
 
 export function RoomScreen({
   code,
@@ -88,14 +89,29 @@ export function RoomScreen({
         {app.conn === "connecting" && (
           <span style={{ color: "var(--ink-dim)", fontSize: 12 }}>{t("connecting")}</span>
         )}
-        <button className="btn ghost" style={{ minHeight: 38, padding: "0 10px" }} onClick={() => setPanel("history")}>
-          🕘
+        <button
+          className="btn ghost"
+          style={{ minHeight: 38, padding: "0 10px" }}
+          aria-label={t("history")}
+          onClick={() => setPanel("history")}
+        >
+          <IconHistory size={18} />
         </button>
-        <button className="btn ghost" style={{ minHeight: 38, padding: "0 10px" }} onClick={() => setPanel("league")}>
-          🏆
+        <button
+          className="btn ghost"
+          style={{ minHeight: 38, padding: "0 10px" }}
+          aria-label={t("league")}
+          onClick={() => setPanel("league")}
+        >
+          <IconTrophy size={18} />
         </button>
-        <button className="btn ghost" style={{ minHeight: 38, padding: "0 10px" }} onClick={() => setPanel("menu")}>
-          ⋮
+        <button
+          className="btn ghost"
+          style={{ minHeight: 38, padding: "0 10px" }}
+          aria-label={t("menu")}
+          onClick={() => setPanel("menu")}
+        >
+          <IconMore size={18} />
         </button>
       </header>
 
@@ -125,9 +141,10 @@ export function RoomScreen({
               from the reply rather than optimistically from the request. */}
           <button
             className="btn ghost"
+            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
             onClick={() => app.myName && socket.setName(rerollName(app.myName))}
           >
-            🎲 {app.myName ? renderName(app.myName) : t("rerollName")}
+            <IconDice size={16} /> {app.myName ? renderName(app.myName) : t("rerollName")}
           </button>
           <button className="btn ghost" onClick={onToggleLocale}>
             {t("language")}
@@ -136,12 +153,13 @@ export function RoomScreen({
               being judged is the felt behind this sheet, at real size. */}
           <button
             className="btn ghost"
+            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
             onClick={() => {
               setMuted(!muted);
               setMutedUi(!muted);
             }}
           >
-            {muted ? "🔇 → 🔊" : "🔊 → 🔇"}
+            {muted ? <IconSoundOff size={16} /> : <IconSoundOn size={16} />} {muted ? t("soundOn") : t("soundOff")}
           </button>
           {me && !me.sittingOut && (
             <button

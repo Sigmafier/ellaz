@@ -225,7 +225,18 @@ export function Table({ locale, spectator = false }: { locale: Locale; spectator
 
         {/* emote tray toggle (seated only) */}
         {seated && (
-          <div style={{ position: "absolute", bottom: wide ? 10 : 90, insetInlineEnd: 10, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, zIndex: 20 }}>
+          /* THE ONE PLACE EMOJI STAY, and it is marked so a sweep can say so.
+             Everything else in this app is drawn (see ui/icons.tsx), because a
+             glyph the phone chooses is not a picture we ship. An emote is the
+             exception on purpose: the player is throwing a face across the
+             table, their platform's own set is the one they recognise, and
+             looking native to their phone is the point rather than a defect.
+             The toggle wears the same mark — a smiley is what says "emoji
+             live behind this button". */
+          <div
+            data-emote-tray
+            style={{ position: "absolute", bottom: wide ? 10 : 90, insetInlineEnd: 10, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, zIndex: 20 }}
+          >
             {emotesOpen && (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, background: "var(--surface)", padding: 8, borderRadius: "var(--radius-2)", border: "1px solid var(--line)" }}>
                 {EMOTES.map((e) => (

@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { nameEmoji, pickName, renderName, rerollName } from "@shared/names";
+import { pickName, renderName, rerollName } from "@shared/names";
 import { createRoom, listTables, type OpenTable } from "../net/socket";
 import { savedName, saveName } from "../net/nameStore";
 import type { Locale } from "../i18n";
 import { makeT } from "../i18n";
+import { Animal } from "../ui/animals";
+import { IconCrown, IconDice, IconEye, IconLock, IconRefresh, Logo } from "../ui/icons";
 
 export function Home({
   locale,
@@ -96,8 +98,9 @@ export function Home({
   return (
     <div style={{ maxWidth: 420, margin: "0 auto", padding: "32px 20px", display: "flex", flexDirection: "column", gap: 20 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <h1 style={{ margin: 0, fontSize: 34 }}>
-          ♠️ {t("appName")}
+        <h1 style={{ margin: 0, fontSize: 34, display: "flex", alignItems: "center", gap: 10 }}>
+          <Logo size={30} />
+          {t("appName")}
         </h1>
         <button className="btn ghost" style={{ minHeight: 36, fontSize: 14 }} onClick={onToggleLocale}>
           {t("language")}
@@ -113,7 +116,7 @@ export function Home({
             className="field"
             style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, fontWeight: 800 }}
           >
-            <span aria-hidden style={{ fontSize: 24, lineHeight: 1 }}>{nameEmoji(name)}</span>
+            <Animal id={name.noun} size={26} />
             <span>{renderName(name)}</span>
           </div>
           <button
@@ -123,7 +126,7 @@ export function Home({
             title={t("rerollName")}
             onClick={doReroll}
           >
-            🎲
+            <IconDice size={18} />
           </button>
         </div>
       </div>
@@ -133,13 +136,13 @@ export function Home({
           <strong>{t("openTables")}</strong>
           <button
             className="btn ghost"
-            style={{ minHeight: 32, fontSize: 13, padding: "0 10px" }}
+            style={{ minHeight: 32, fontSize: 13, padding: "0 10px", display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}
             onClick={() => {
               keepName();
               refresh();
             }}
           >
-            ↻ {t("refreshTables")}
+            <IconRefresh size={13} /> {t("refreshTables")}
           </button>
         </div>
         {tables === null ? (
@@ -232,11 +235,11 @@ export function Home({
             <Row label={t("privateTable")}>
               <button
                 className={`btn ${isPrivate ? "primary" : "ghost"}`}
-                style={{ minHeight: 38, fontSize: 13 }}
+                style={{ minHeight: 38, fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}
                 aria-pressed={isPrivate}
                 onClick={() => setPrivate((v) => !v)}
               >
-                {isPrivate ? `🔒 ${t("privateOn")}` : `👀 ${t("privateOff")}`}
+                {isPrivate ? <IconLock size={14} /> : <IconEye size={14} />} {isPrivate ? t("privateOn") : t("privateOff")}
               </button>
             </Row>
             <button className="btn primary" disabled={creating} onClick={doCreate}>
@@ -289,7 +292,7 @@ function TableRow({
       </span>
       <span dir="ltr" style={{ color: "var(--ink-dim)", fontSize: 14 }}>
         {table.seated}/{table.maxSeats} · {table.sb}/{table.bb}
-        {table.league ? " · ♛" : ""}
+        {table.league ? <IconCrown size={12} /> : null}
       </span>
       <span
         style={{
