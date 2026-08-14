@@ -19,8 +19,23 @@
 export type ChipsMode = "fresh" | "league";
 
 export interface TableSnapshot {
-  /** Sockets connected right now. Anything above zero means somebody is here. */
+  /**
+   * Sockets connected at the moment this snapshot was TAKEN — which is not the
+   * same as right now, and the difference is the whole reason `reportedAt`
+   * exists below.
+   */
   connected: number;
+  /**
+   * When this snapshot was taken.
+   *
+   * A table reports itself to the lobby and the lobby keeps the last thing it
+   * was told. So `connected` is a CLAIM with an age, not a fact: a table whose
+   * last word was "two people are here" and which then stopped waking up says
+   * "two people are here" forever. Without this field there is no way to tell
+   * that sentence apart from a table that is genuinely busy, and every gate
+   * downstream believes it.
+   */
+  reportedAt: number;
   /** When the room was created. */
   createdAt: number;
   /** The last moment a socket was attached. 0 if nobody ever arrived. */
@@ -99,9 +114,47 @@ function emptySince(s: TableSnapshot): number {
   return s.lastSeenAt > 0 ? s.lastSeenAt : s.createdAt;
 }
 
+/**
+ * How often an OCCUPIED table re-states that it is occupied.
+ *
+ * Comfortably under `PRESENCE_TTL_MS`, so one missed beat is not a delisting
+ * and it takes a genuine death to go quiet.
+ */
+export const HEARTBEAT_MS = 2 * 60_000;
+
+/**
+ * How long "somebody is here" is believed after it was said.
+ *
+ * This is the fix for a lobby that advertised dead rooms forever. `lobby.ts`
+ * decides staleness at READ time and its own comment claims that check "cannot
+ * be missed" — and it was missed, by exactly one line: the verdict returned
+ * `keep` the moment `connected > 0`, and `connected` is whatever the table
+ * last said before it stopped saying anything. A room whose players closed
+ * their tabs in a way that never produced a clean close was therefore pinned
+ * at "2 players are here" permanently. Measured live 2026-08-14: a table sat
+ * in the lobby forty minutes after the last browser closed.
+ *
+ * The rule that replaces it: presence is a claim with an expiry. A live table
+ * renews it every `HEARTBEAT_MS`; a table that cannot renew it is, after this
+ * long, no longer evidence of anything. Three misses.
+ */
+export const PRESENCE_TTL_MS = 6 * 60_000;
+
+/**
+ * Is anybody actually here?
+ *
+ * The table's own snapshots are taken with `reportedAt` of now, so on the
+ * table this is just `connected > 0` and stays exact. It is only across the
+ * wire, where a row can outlive the thing that wrote it, that the age matters
+ * — which is why one function serves both and neither has to remember.
+ */
+export function presentNow(s: TableSnapshot, now: number): boolean {
+  return s.connected > 0 && now - s.reportedAt <= PRESENCE_TTL_MS;
+}
+
 /** How long a table has had nobody in it. Never negative. */
 export function idleMs(s: TableSnapshot, now: number): number {
-  if (s.connected > 0) return 0;
+  if (presentNow(s, now)) return 0;
   return Math.max(0, now - emptySince(s));
 }
 
@@ -118,7 +171,7 @@ export function reapAfterMs(s: TableSnapshot): number {
 }
 
 export function verdict(s: TableSnapshot, now: number): Verdict {
-  if (s.connected > 0) return "keep";
+  if (presentNow(s, now)) return "keep";
   const idle = idleMs(s, now);
   if (idle >= reapAfterMs(s)) return "delete";
   if (idle >= LIST_STALE_MS) return "unlist";
@@ -142,12 +195,15 @@ export function shouldList(s: TableSnapshot, now: number, isPrivate: boolean): b
  * When this table next needs waking up, or null if it does not.
  *
  * Returns an absolute epoch ms so the caller can hand it straight to
- * `setAlarm`. Null while anybody is connected — the game's own action timer
- * governs then, and a reaper alarm on a live table would fight it for the one
- * alarm slot a Durable Object has.
+ * `setAlarm`. A Durable Object has exactly one alarm slot, so this shares it
+ * with the game clock and the caller arms whichever comes first.
  */
 export function nextCheckAt(s: TableSnapshot, now: number): number | null {
-  if (s.connected > 0) return null;
+  // An occupied table wakes anyway, to say so. That heartbeat is what makes
+  // `PRESENCE_TTL_MS` above safe to enforce: without it, enforcing an expiry
+  // on presence would delist tables that are genuinely busy but quiet — six
+  // people between hands emit nothing at all.
+  if (presentNow(s, now)) return now + HEARTBEAT_MS;
   const since = emptySince(s);
   const unlistAt = since + LIST_STALE_MS;
   const deleteAt = since + reapAfterMs(s);

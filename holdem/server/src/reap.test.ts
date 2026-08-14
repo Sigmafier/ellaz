@@ -1,7 +1,10 @@
 import { describe as group, expect, it } from "vitest";
 import {
+  HEARTBEAT_MS,
   idleMs,
   LIST_STALE_MS,
+  presentNow,
+  PRESENCE_TTL_MS,
   nextCheckAt,
   reapAfterMs,
   REAP_FRESH_MS,
@@ -23,6 +26,10 @@ function table(over: Partial<TableSnapshot> = {}): TableSnapshot {
     // nothing could produce, and it made seven of these tests lie.
     createdAt: NOW - day(1),
     lastSeenAt: NOW,
+    // Fresh by default, so the presence expiry only comes into play in the
+    // tests that deliberately age it. A snapshot the table just took of
+    // itself always has this value.
+    reportedAt: NOW,
     handsPlayed: 12,
     chipsMode: "fresh",
     ...over,
@@ -40,11 +47,16 @@ group("a table with somebody in it is never touched", () => {
     expect(idleMs(t, NOW)).toBe(0);
   });
 
-  it("asks for no reaper alarm while anyone is connected", () => {
-    // The whole point: a Durable Object has ONE alarm, and the action timer
-    // needs it. A reaper deadline on a live table would fight the game clock.
-    expect(nextCheckAt(table({ connected: 1 }), NOW)).toBeNull();
-    expect(nextCheckAt(table({ connected: 9 }), NOW)).toBeNull();
+  it("asks for a heartbeat while anyone is connected", () => {
+    // This test used to assert `toBeNull()` — "a Durable Object has ONE alarm
+    // and the action timer needs it, so the reaper must not ask for one while
+    // people are here". The reasoning was sound and the conclusion was the
+    // bug: silence is indistinguishable from a table that has stopped
+    // existing, so a room that died while occupied stayed in the lobby
+    // forever. Sharing the slot is handled by `Math.min` in armNext, which is
+    // what makes asking for one safe.
+    expect(nextCheckAt(table({ connected: 1 }), NOW)).toBe(NOW + HEARTBEAT_MS);
+    expect(nextCheckAt(table({ connected: 9 }), NOW)).toBe(NOW + HEARTBEAT_MS);
   });
 });
 
@@ -206,5 +218,74 @@ group("nextCheckAt schedules exactly the boundaries", () => {
     const at = nextCheckAt(t, NOW)!;
     expect(verdict(t, at - 1)).toBe("keep");
     expect(verdict(t, at)).toBe("unlist");
+  });
+});
+
+group("presence expires — the bug that advertised dead rooms", () => {
+  // The live failure, 2026-08-14: a table sat in the lobby for forty minutes
+  // after the last browser closed, saying "4/6". The lobby decides staleness
+  // at read time and its own comment claims that check "cannot be missed" —
+  // and it was missed by one line, `if (s.connected > 0) return "keep"`.
+  //
+  // `connected` is not a fact the lobby can observe. It is the last thing the
+  // TABLE said, and a table that stops waking up stops correcting it. So the
+  // one state that pins a row in the lobby permanently is the one state a
+  // dead table is most likely to be frozen in.
+
+  it("believes a fresh report that says somebody is here", () => {
+    const t = table({ connected: 2, reportedAt: NOW, lastSeenAt: NOW });
+    expect(presentNow(t, NOW)).toBe(true);
+    expect(verdict(t, NOW)).toBe("keep");
+    expect(shouldList(t, NOW, false)).toBe(true);
+  });
+
+  it("stops believing it once the report is older than the TTL", () => {
+    // Nothing about this row changed. Only the clock moved.
+    const t = table({ connected: 2, reportedAt: NOW, lastSeenAt: NOW });
+    const later = NOW + PRESENCE_TTL_MS + min(1);
+    expect(presentNow(t, later)).toBe(false);
+    expect(shouldList(t, later, false)).toBe(false);
+  });
+
+  it("delists a dead table, and would not have before this", () => {
+    // The exact shape of HF1BV: last word "2 connected", then silence.
+    const dead = table({ connected: 2, reportedAt: NOW, lastSeenAt: NOW, handsPlayed: 3 });
+    const fortyMinutesLater = NOW + min(40);
+
+    expect(shouldList(dead, fortyMinutesLater, false)).toBe(false);
+    // The pre-fix predicate, spelled out, so the difference is on the record
+    // rather than in a commit message.
+    expect(dead.connected > 0).toBe(true);
+  });
+
+  it("a heartbeat inside the TTL keeps a quiet-but-occupied table listed", () => {
+    // Six people between hands emit nothing at all. Expiring presence without
+    // a renewal would delist them, which is why HEARTBEAT_MS exists and why
+    // it has to be comfortably under the TTL.
+    expect(HEARTBEAT_MS).toBeLessThan(PRESENCE_TTL_MS);
+    const beat = table({ connected: 6, reportedAt: NOW, lastSeenAt: NOW });
+    // Two missed beats is still fine; it takes real silence.
+    const after = NOW + HEARTBEAT_MS * 2;
+    expect(presentNow(beat, after)).toBe(true);
+    expect(shouldList(beat, after, false)).toBe(true);
+  });
+
+  it("schedules the heartbeat, rather than nothing, while occupied", () => {
+    // This used to return null — "the game clock governs while anyone is
+    // here" — which is true right up until the game clock is not running,
+    // and a table between hands has no game clock at all.
+    const t = table({ connected: 3, reportedAt: NOW });
+    expect(nextCheckAt(t, NOW)).toBe(NOW + HEARTBEAT_MS);
+  });
+
+  it("an expired report does not make a table deletable any sooner", () => {
+    // Presence expiring must only ever cost a LISTING. The delete clock is
+    // measured from lastSeenAt and is generous on purpose; a stale report
+    // must not shorten it, or a busy table whose heartbeats were dropped
+    // could be collected out from under the people sitting at it.
+    const t = table({ connected: 4, reportedAt: NOW, lastSeenAt: NOW, handsPlayed: 9 });
+    const justPastTtl = NOW + PRESENCE_TTL_MS + 1;
+    expect(verdict(t, justPastTtl)).toBe("unlist");
+    expect(idleMs(t, justPastTtl)).toBeLessThan(REAP_FRESH_MS);
   });
 });

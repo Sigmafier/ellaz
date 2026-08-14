@@ -18,7 +18,7 @@
 import { computeLegal } from "../../shared/src/engine/betting";
 import type { Env } from "./env";
 import { LOBBY_NAME, type LobbyEntry } from "./lobby";
-import { nextCheckAt, type TableSnapshot, verdict } from "./reap";
+import { HEARTBEAT_MS, nextCheckAt, type TableSnapshot, verdict } from "./reap";
 import { secureRng } from "../../shared/src/engine/rng";
 import { apply } from "../../shared/src/engine/table";
 import {
@@ -139,6 +139,28 @@ const INTER_HAND_MS = 4_000;
 const HISTORY_CAP = 500;
 const RELINK_TTL_MS = 10 * 60_000;
 
+/**
+ * How long a seat is held for a player with no socket, before it is given back.
+ *
+ * Sitting out already happens after two timeouts, and it is not enough on its
+ * own: an auto-sat-out player still OCCUPIES the seat, so a table fills with
+ * people who left and stops being joinable while looking busy. Measured live
+ * 2026-08-14 — one table held four seats for players whose browsers had been
+ * closed for the better part of an hour, and the lobby advertised it as 4/6.
+ *
+ * Five minutes rather than one, because a closed socket is not the same as a
+ * departure: a locked phone, a backgrounded tab and a tunnel all close sockets
+ * and the client reconnects by itself on wake. Five is long enough that every
+ * one of those comes back to its seat and short enough that a genuinely
+ * abandoned seat is free before the next hand matters.
+ *
+ * A player who is CONNECTED is never stood up, however long they sit out. A
+ * tab that is open is a person who might come back this minute, and taking
+ * their chips off the table for being quiet is a worse failure than a seat
+ * that stays busy.
+ */
+const STAND_UP_MS = 5 * 60_000;
+
 export class TableDO implements DurableObject {
   private table: TableState | null = null;
   private meta: Meta = { claimed: false, hostPlayerId: null, createdAt: 0 };
@@ -255,6 +277,23 @@ export class TableDO implements DurableObject {
   }
 
   /**
+   * A socket that broke rather than closed. The same departure.
+   *
+   * There was no handler here at all, and its absence is half of why the
+   * lobby advertised dead rooms: the hibernation API delivers a clean close to
+   * `webSocketClose` and a broken one HERE, and a tab that is killed, a phone
+   * that loses signal or a laptop lid that shuts is the second kind. Those
+   * departures were never stamped and never reported, so the table's last word
+   * to the lobby stayed "somebody is here" — which is exactly the sentence
+   * `PRESENCE_TTL_MS` now puts an expiry on, but the honest fix is to say the
+   * true thing at the time rather than to let a timeout paper over it.
+   */
+  async webSocketError(ws: WebSocket): Promise<void> {
+    await this.touch(ws);
+    await this.armNext(ws);
+  }
+
+  /**
    * How many sockets are attached, not counting one that is on its way out.
    *
    * `getWebSockets()` still contains the closing socket during
@@ -291,6 +330,10 @@ export class TableDO implements DurableObject {
   private snapshot(leaving?: WebSocket): TableSnapshot {
     return {
       connected: this.connectedCount(leaving),
+      // Taken NOW, by the only party that can see its own sockets. Once this
+      // travels to the lobby it stops being current, and `reportedAt` is what
+      // lets the far end know how much to believe it.
+      reportedAt: Date.now(),
       createdAt: this.meta.createdAt,
       lastSeenAt: this.meta.lastSeenAt ?? 0,
       handsPlayed: this.table?.handCounter ?? 0,
@@ -321,6 +364,7 @@ export class TableDO implements DurableObject {
       createdAt: s.createdAt,
       lastSeenAt: s.lastSeenAt,
       connected: s.connected,
+      reportedAt: s.reportedAt,
       handsPlayed: s.handsPlayed,
       isPrivate: this.meta.isPrivate === true,
     };
@@ -353,6 +397,66 @@ export class TableDO implements DurableObject {
     this.seq = 0;
     this.curHandEvents = [];
     if (code) await this.dropFromLobby(code);
+  }
+
+  /**
+   * Give back the seats of players who are not here any more.
+   *
+   * Absence is measured per PLAYER rather than per seat: a seat index is a
+   * position at a table and a playerId is a person, and it is the person who
+   * left. Keyed the other way, standing up and sitting down elsewhere would
+   * look like continuity and a seat swap would look like an absence.
+   *
+   * Run from the alarm, which for an occupied table means every heartbeat. A
+   * table with NOBODY connected needs nothing from this — the reaper deletes
+   * the whole thing on its own clock — so this only has to solve the case
+   * that actually blocks people: real players at a table whose other seats
+   * are held by ghosts.
+   */
+  private async standUpAbsent(): Promise<void> {
+    const table = this.table;
+    if (!table) return;
+    const now = Date.now();
+
+    const here = new Set<string>();
+    for (const sock of this.ctx.getWebSockets()) {
+      const att = safeAttachment(sock);
+      if (att?.playerId) here.add(att.playerId);
+    }
+
+    const absent = (await this.ctx.storage.get<Record<string, number>>("absent")) ?? {};
+    const seated = new Set<string>();
+    const evict: number[] = [];
+
+    for (let i = 0; i < table.seats.length; i++) {
+      const pid = table.seats[i].playerId;
+      if (!pid) continue;
+      seated.add(pid);
+      if (here.has(pid)) {
+        delete absent[pid];
+        continue;
+      }
+      // First time we have noticed. The clock starts now, not at whatever
+      // moment the socket happened to drop — a table that was hibernating
+      // has no idea when that was, and guessing earlier would stand people
+      // up on the strength of a gap it never observed.
+      absent[pid] ??= now;
+      if (now - absent[pid] >= STAND_UP_MS) evict.push(i);
+    }
+
+    // Forget anyone who is no longer seated at all, so this cannot grow
+    // without bound on a table that has been running all evening.
+    for (const pid of Object.keys(absent)) if (!seated.has(pid)) delete absent[pid];
+    await this.ctx.storage.put("absent", absent);
+
+    for (const seat of evict) {
+      const pid = table.seats[seat].playerId;
+      // `leave` mid-hand is safe: the engine sets pendingLeave and vacates at
+      // the end of the hand, so nobody is pulled out of a pot they are in.
+      await this.applyAndCommit(null, { type: "leave", seat });
+      if (pid) delete absent[pid];
+    }
+    if (evict.length) await this.ctx.storage.put("absent", absent);
   }
 
   private async dropFromLobby(code: string): Promise<void> {
@@ -881,6 +985,20 @@ export class TableDO implements DurableObject {
         await this.armNext();
         return;
       }
+      // Occupied: say so, at most once every HEARTBEAT_MS.
+      //
+      // This is the renewal that makes an expiry on presence safe. It is
+      // rate-limited against `lastSeenAt` rather than fired on every alarm
+      // because alarms are also the action clock — a table in a fast hand
+      // wakes every few seconds, and a lobby write per fold would turn a
+      // convenience into the busiest thing in the room.
+      if (now - (this.meta.lastSeenAt ?? 0) >= HEARTBEAT_MS) {
+        await this.touch();
+        // Same beat, same reason: this is the only regular wake-up an
+        // occupied table has, so it is where a seat held by somebody who
+        // left gets handed back.
+        await this.standUpAbsent();
+      }
     }
 
     const timer = await this.ctx.storage.get<TimerRec>("timer");
@@ -901,6 +1019,18 @@ export class TableDO implements DurableObject {
       return;
     }
     if (timer.kind === "interHand") {
+      // The deadline check is load-bearing, not defensive.
+      //
+      // This branch used to start the hand on ANY alarm, which was correct
+      // only while the inter-hand deadline was the sole thing that could wake
+      // a table with players at it. The reaper's heartbeat is now a second
+      // one — so without this, every heartbeat that landed during the pause
+      // would deal the next hand early, cutting the four seconds people have
+      // to look at who won down to whatever was left.
+      if (Date.now() < timer.deadline) {
+        await this.armNext();
+        return;
+      }
       if (!table.hand) {
         await this.applyAndCommit(null, { type: "startHand" });
       }

@@ -29,6 +29,14 @@ export interface LobbyEntry {
   createdAt: number;
   lastSeenAt: number;
   connected: number;
+  /**
+   * When the table said all this.
+   *
+   * The row outlives the report, and `connected` is only meaningful next to
+   * its own age — see `presentNow` in reap.ts. Deliberately NOT in `LobbyRow`:
+   * a client is told what a table looks like, not how we know.
+   */
+  reportedAt: number;
   handsPlayed: number;
   isPrivate: boolean;
 }
