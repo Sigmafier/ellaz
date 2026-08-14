@@ -248,4 +248,17 @@ export const REST: Record<string, Scene> = {
       <circle cx="49" cy="58" r="15" fill="${PAL.paper}" stroke="${I}" stroke-width="3"/>
       <circle cx="45" cy="55" r="2.6" fill="${I}"/><circle cx="55" cy="55" r="2.6" fill="${I}"/>
       <circle cx="50" cy="63" r="2.6" fill="${PAL.raspberry}"/></g>` },
+
+  /* A picture and its first letter: an apple on a card, and the tile with A lit
+     among two blanks - the whole game in one glance, no word of text to read. */
+  letters: { a: "#6355E0", b: "#8B84FF", d: "band", s: `
+    <rect x="16" y="24" width="84" height="84" rx="15" fill="${PAL.paper}" stroke="${I}" stroke-width="3.5"/>
+    <circle cx="58" cy="70" r="27" fill="${PAL.raspberry}"/>
+    <path d="M58 45c-2-9 6-15 14-13-1 8-6 13-14 13z" fill="${PAL.lime}"/>
+    <path d="M58 47v-8" stroke="${PAL.inkSoft}" stroke-width="4" stroke-linecap="round"/>
+    <g stroke="${I}" stroke-width="3.5">
+      <rect x="118" y="30" width="64" height="64" rx="14" fill="${PAL.sunflower}"/>
+      <rect x="118" y="104" width="28" height="28" rx="8" fill="${PAL.paper}"/>
+      <rect x="154" y="104" width="28" height="28" rx="8" fill="${PAL.paper}"/></g>
+    <text x="150" y="76" font-family="Fredoka,system-ui,sans-serif" font-size="46" font-weight="800" text-anchor="middle" fill="${I}">A</text>` },
 };

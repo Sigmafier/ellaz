@@ -63,6 +63,7 @@ const LOADERS: Record<string, () => Promise<{ default: GameModule }>> = {
   fit: () => import("../games/fit/index"),
   music: () => import("../games/music/index"),
   maze: () => import("../games/maze/index"),
+  letters: () => import("../games/letters/index"),
 };
 
 // Curated order — this is the order the home grid renders in.

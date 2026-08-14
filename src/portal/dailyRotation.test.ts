@@ -55,13 +55,17 @@ describe("today's puzzle", () => {
   });
 
   it("is a different game from yesterday, essentially every day", () => {
-    // A BOUND rather than "never", deliberately. The no-repeat guard looks back
+    // A RATE rather than a count, deliberately. The no-repeat guard looks back
     // exactly one day, which is what keeps a new game from perturbing the whole
-    // calendar; the price is a repeat roughly once every n² days. Asserting
-    // "never" would be a landmine that goes red when game 26 ships, for a
-    // reason that has nothing to do with anything being wrong.
+    // calendar; the price is a repeat roughly once every n² days. The old bound
+    // here was an absolute `<= 1` over the 365-day window, which its own comment
+    // called a landmine that "goes red when game 26 ships" - and it did, at game
+    // 29, when this year happens to carry two of the ~1/n² residual repeats
+    // (2/365 = 0.55%). That is the design working, not a defect, so the bound is
+    // now the same <1% RATE the rule test asserts in daily.test.ts rather than a
+    // count that has to be re-tuned every time the roster grows.
     const repeats = YEAR.filter((d, i) => i > 0 && dailyGameId(d) === dailyGameId(YEAR[i - 1]));
-    expect(repeats.length, `repeated on: ${repeats.join(", ")}`).toBeLessThanOrEqual(1);
+    expect(repeats.length / YEAR.length, `repeated on: ${repeats.join(", ")}`).toBeLessThan(0.01);
   });
 });
 

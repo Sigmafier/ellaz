@@ -31,6 +31,7 @@ import { meta as pet } from "../games/pet/meta";
 import { meta as fit } from "../games/fit/meta";
 import { meta as music } from "../games/music/meta";
 import { meta as maze } from "../games/maze/meta";
+import { meta as letters } from "../games/letters/meta";
 
 /**
  * The roster, in the order the home grid renders it.
@@ -118,6 +119,14 @@ export const GAMES: ReadonlyArray<GameMeta> = [
   // card art and neither costs the first visit its picture.
   music,
   maze,
+
+  // Wave 6. `letters` is the FIRST game ever in the `learn` category - declared
+  // in CATEGORY_ORDER from the start and never rendered, exactly as `create`
+  // waited for `music` and `speed` for `bees`. A picture is shown and the child
+  // taps the letter its word begins with; an in-game toggle switches the letters
+  // between languages, so a Hebrew reader can practise the English alphabet
+  // without changing the interface. Appended, so its card art stays lazy.
+  letters,
 ];
 
 export function metaFor(id: string): GameMeta | undefined {
