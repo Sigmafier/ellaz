@@ -19,10 +19,12 @@
 // free: an OPTIONS preflight reveals the verdict in a header without creating
 // a table, and the disallowed-origin control proves the check can say no.
 //
-// ADVISORY until HOLDEM_CUSTOM_DOMAIN=1. It reports on every run and only reds
-// the run once somebody has armed it — the domain does not exist yet, and a
-// gate that is red from the day it lands is a gate people learn to ignore
+// ARMED IN CI (`HOLDEM_CUSTOM_DOMAIN=1` in deploy-holdem.yml). It shipped
+// advisory because the domain did not exist yet — a gate that is red from the
+// day it lands is a gate people learn to ignore — and was enforced in the same
+// change that made it pass, which is the other half of that rule
 // (.claude/rules/a-gate-that-reds-on-day-one-teaches-you-to-ignore-it.md).
+// Run it bare to see the state without failing anything.
 
 import { Resolver } from "node:dns/promises";
 
@@ -41,33 +43,56 @@ const bad = (m) => {
 const timeout = (ms) => AbortSignal.timeout(ms);
 
 // ---------------------------------------------------------------------------
-// 1. DNS. Use a PUBLIC resolver, not this machine's — a stale negative cache
+// 1. DNS. Use PUBLIC resolvers, not this machine's — a stale negative cache
 //    locally would report a domain missing for minutes after it went live.
-const resolver = new Resolver();
-resolver.setServers(["1.1.1.1", "8.8.8.8"]);
+//
+//    Ask each one SEPARATELY, and treat a hit from ANY of them as live.
+//    `setServers([a, b])` looks like redundancy and is not: NXDOMAIN is a
+//    real answer rather than a transport failure, so node stops at the first
+//    resolver and never asks the second. Measured 2026-08-14, minutes after
+//    the record was published — 1.1.1.1 still held the negative cache while
+//    8.8.8.8 had the CNAME, and the gate reported "the CNAME has not been
+//    created" over a domain that was already serving the correct build over
+//    a valid certificate. A resolver disagreement IS propagation; reporting
+//    it as an absent record sends somebody back to a panel they got right.
+const RESOLVERS = [
+  ["1.1.1.1", "cloudflare"],
+  ["8.8.8.8", "google"],
+  ["9.9.9.9", "quad9"],
+];
 
-let dnsLive = false;
-let cname = null;
-try {
-  cname = (await resolver.resolveCname(HOST))[0] ?? null;
-} catch {
-  /* no CNAME is not fatal on its own — an A record would also serve */
+async function askOne(ip) {
+  const r = new Resolver();
+  r.setServers([ip]);
+  const out = { cname: null, addrs: [] };
+  try {
+    out.cname = (await r.resolveCname(HOST))[0]?.replace(/\.$/, "") ?? null;
+  } catch {
+    /* no CNAME is not fatal on its own — an A record would also serve */
+  }
+  try {
+    out.addrs = await r.resolve4(HOST).catch(() => r.resolve6(HOST));
+  } catch {
+    /* an empty list is the answer */
+  }
+  return out;
 }
-try {
-  const a = await resolver.resolve4(HOST).catch(() => resolver.resolve6(HOST));
-  dnsLive = a.length > 0;
-} catch {
-  /* handled below */
-}
+
+const answers = await Promise.all(RESOLVERS.map(([ip]) => askOne(ip)));
+const seen = answers.filter((a) => a.addrs.length > 0);
+const dnsLive = seen.length > 0;
+const cname = answers.find((a) => a.cname)?.cname ?? null;
+const lagging = RESOLVERS.filter((_, i) => answers[i].addrs.length === 0).map(([, name]) => name);
 
 if (!dnsLive) {
-  bad(`${HOST} does not resolve — the CNAME at Hostinger has not been created (or has not propagated)`);
-} else if (cname && cname.replace(/\.$/, "") !== PAGES) {
+  bad(`${HOST} does not resolve at any of ${RESOLVERS.map(([, n]) => n).join("/")} — the CNAME at Hostinger has not been created`);
+} else if (cname && cname !== PAGES) {
   // Pointing somewhere real but WRONG is worse than pointing nowhere: it
   // serves a working site that is not this one.
   bad(`${HOST} is a CNAME to ${cname}, not ${PAGES} — it is pointed at the wrong project`);
 } else {
-  ok(`${HOST} resolves${cname ? ` (CNAME -> ${cname.replace(/\.$/, "")})` : ""}`);
+  ok(`${HOST} resolves${cname ? ` (CNAME -> ${cname})` : ""}`);
+  if (lagging.length) info(`${lagging.join(", ")} ${lagging.length > 1 ? "have" : "has"} not caught up yet — ordinary propagation, not a missing record`);
 }
 
 // ---------------------------------------------------------------------------

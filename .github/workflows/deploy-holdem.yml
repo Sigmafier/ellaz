@@ -172,12 +172,31 @@ jobs:
             "${{ steps.pages.outputs.url }}" \
             client/dist
 
+      # The custom domain is a THIRD party to every deploy and the only one
+      # with no representation in this repo: Pages holds the hostname,
+      # Hostinger holds the CNAME, and `server/wrangler.toml` holds the origin
+      # allowlist. A deploy can be entirely correct and still leave
+      # poker.ellaz.fun serving a page where every button 403s — which is what
+      # it did, and which nothing else here can see, because the pages.dev
+      # origin keeps working throughout.
+      #
+      # ARMED. It shipped advisory because the domain did not exist yet
+      # (.claude/rules/a-gate-that-reds-on-day-one-teaches-you-to-ignore-it.md)
+      # and is enforced from the commit that made it pass, which is the same
+      # rule's other half.
+      - name: Assert the custom domain still works
+        if: steps.creds.outputs.have == 'true'
+        env:
+          HOLDEM_CUSTOM_DOMAIN: "1"
+        run: node scripts/assert-custom-domain.mjs poker.ellaz.fun "${PAGES_PROJECT}.pages.dev" "${{ steps.worker.outputs.url }}"
+
       - name: Summary
         if: steps.creds.outputs.have == 'true'
         run: |
           {
             echo "### Hold'em is live"
             echo ""
-            echo "- table: <${{ steps.pages.outputs.url }}>"
+            echo "- table: <https://poker.ellaz.fun/>"
+            echo "- mirror: <${{ steps.pages.outputs.url }}>"
             echo "- server: <${{ steps.worker.outputs.url }}>"
           } >> "$GITHUB_STEP_SUMMARY"
