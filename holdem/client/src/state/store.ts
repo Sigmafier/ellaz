@@ -12,6 +12,17 @@ import { saveName } from "../net/nameStore";
 
 export type ConnState = "idle" | "connecting" | "open" | "reconnecting";
 
+/** A named type so `msLeft` can take one without importing the whole store. */
+export interface TimerState {
+  seatIdx: number;
+  deadlineEpochMs: number;
+  /** The server's own clock at the moment it sent this. */
+  serverNow: number;
+  /** OUR clock when it arrived. The pair is what makes skew cancel. */
+  receivedAt: number;
+  timeBank: boolean;
+}
+
 export interface ChatItem {
   key: number;
   seatIdx: number;
@@ -35,7 +46,7 @@ export interface AppState {
   /** Seat → word ids, so a seat can wear its animal. Arrives with every view. */
   seatNames: Record<number, PlayerName>;
   you: YouView | null;
-  timer: { seatIdx: number; deadlineEpochMs: number; receivedAt: number; serverNow: number; timeBank: boolean } | null;
+  timer: TimerState | null;
   /** Cards revealed at the current showdown, cleared on the next HandStarted. */
   reveals: Record<number, readonly [Card, Card] | "muck">;
   /** Last visible action per seat this street (badges). */

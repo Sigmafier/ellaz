@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useApp } from "../state/store";
+import { msLeft, totalMs } from "../state/timer";
 
 /**
  * Shrinking countdown for the acting seat, computed against the server's
@@ -15,9 +16,8 @@ export function TimerBar({ seatIdx, width = 64 }: { seatIdx: number; width?: num
   }, []);
 
   if (!timer || timer.seatIdx !== seatIdx) return null;
-  const now = timer.serverNow + (Date.now() - timer.receivedAt);
-  const remaining = Math.max(0, timer.deadlineEpochMs - now);
-  const total = (view?.config.actionTimeMs ?? 25_000) + (timer.timeBank ? view?.config.timeBankMs ?? 0 : 0);
+  const remaining = msLeft(timer);
+  const total = totalMs(timer, view?.config.actionTimeMs ?? 25_000, view?.config.timeBankMs ?? 0);
   const frac = Math.min(1, remaining / total);
   const urgent = remaining < 6_000;
   return (
