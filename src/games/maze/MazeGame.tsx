@@ -11,8 +11,9 @@ import {
   isSolved,
   newMaze,
   scoreReport,
-  tap,
+  stepMove,
   type Difficulty,
+  type Dir,
   type MazeState,
 } from "./logic";
 
@@ -20,11 +21,11 @@ import {
 // decides what a tap LOOKS and SOUNDS like, and what the outcomes it reports
 // are worth to the economy.
 //
-// TAP, NEVER DRAG, and never a step-by-step joystick either. A tap names a
-// DESTINATION and the mouse walks there by the shortest way `logic.ts` found,
-// so nothing here asks a child to hold a gesture or to hit the same small
-// square four times in a row. That is the kids rule in CLAUDE.md, and it is
-// also what moves the difficulty off dexterity and onto planning.
+// ARROWS, ONE STEP AT A TIME. The mouse walks a single square per press of the
+// on-screen D-pad (or an arrow key), which is what a child expects of a maze:
+// you steer it through, you do not teleport it. A press into a hedge simply
+// does nothing — no penalty, this platform has no losing. Walking the fewest
+// steps is still the skill, so the streak rewards an efficient route.
 //
 // NO CLOCK IN THE GAME STATE. The only timers in this file are cosmetic - the
 // route that lights up behind the mouse, and the beat before the next maze is
@@ -53,7 +54,7 @@ const WORDS: Record<
   }
 > = {
   he: {
-    hint: "הקישו לאן העכבר ילך",
+    hint: "השתמשו בחצים כדי להזיז את העכבר",
     perfect: "מושלם!",
     streak: "מושלמים",
     mouse: "העכבר",
@@ -62,7 +63,7 @@ const WORDS: Record<
     empty: "משבצת ריקה",
   },
   en: {
-    hint: "Tap where the mouse should go",
+    hint: "Use the arrows to move the mouse",
     perfect: "Perfect!",
     streak: "Perfect",
     mouse: "the mouse",
@@ -71,7 +72,7 @@ const WORDS: Record<
     empty: "empty square",
   },
   es: {
-    hint: "Toca a dónde va el ratón",
+    hint: "Usa las flechas para mover el ratón",
     perfect: "¡Perfecto!",
     streak: "Perfectos",
     mouse: "el ratón",
@@ -174,6 +175,7 @@ export function MazeGame({ ctx }: { ctx: GameContext }) {
 
   const startedRef = useRef(false);
   const timersRef = useRef<number[]>([]);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   const solved = isSolved(state);
   const T = WORDS[ctx.locale];
@@ -219,28 +221,32 @@ export function MazeGame({ ctx }: { ctx: GameContext }) {
   // missing reward latch safe - see the note on SESSION.
   useGameSession(ctx, SESSION, () => state, { live: !solved });
 
-  /* ------------------------------------------------------------- the taps */
+  /* ------------------------------------------------------------ the steps */
 
   // Everything here runs in the HANDLER, never inside a setState updater:
   // React may run an updater twice, and a doubled `winMoment` is a doubled
   // grant - real coins, not a stray animation.
-  const onCell = useCallback(
-    (index: number, el: HTMLElement) => {
+  const move = useCallback(
+    (dir: Dir) => {
       if (solved) return;
       ctx.audio.unlock();
       ctx.speech.unlock();
 
-      const { state: next, outcome } = tap(state, index);
-      if (outcome.kind !== "moved") return;
+      const { state: next, outcome } = stepMove(state, dir);
+      if (outcome.kind !== "moved") {
+        // Bumped a hedge or the edge: a small nudge, no penalty, no move.
+        if (outcome.kind === "blocked") haptic.tap();
+        return;
+      }
 
       setState(next);
       setTrail(outcome.path);
       after(420, () => setTrail([]));
 
-      // The tapped square's own middle, so coins fly from where the mouse ended
-      // up rather than from the middle of the screen.
-      const r = el.getBoundingClientRect();
-      const at = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      // Coins fly from the middle of the board - there is no tapped cell to fly
+      // from now that the arrows drive it.
+      const r = gridRef.current?.getBoundingClientRect();
+      const at = r ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : { x: 0, y: 0 };
 
       if (outcome.collected.length > 0) {
         ctx.audio.play("pop");
@@ -279,7 +285,53 @@ export function MazeGame({ ctx }: { ctx: GameContext }) {
     [after, ctx, level, solved, state],
   );
 
+  // Arrow keys / WASD for desktop, alongside the on-screen D-pad. Bound to the
+  // window so a player never has to click the board to "focus" it first.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const map: Record<string, Dir> = {
+        ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right",
+        w: "up", s: "down", a: "left", d: "right",
+      };
+      const dir = map[e.key];
+      if (!dir) return;
+      e.preventDefault();
+      move(dir);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [move]);
+
   /* ----------------------------------------------------------- the screen */
+
+  // A D-pad key. `onPointerDown` (not click) so the mouse moves the instant a
+  // finger lands, and `preventDefault` so a press does not scroll the page.
+  const dpadBtn = (glyph: string, dir: Dir, place: { gridColumn: number; gridRow: number }) => (
+    <button
+      type="button"
+      aria-label={dir}
+      onPointerDown={(e) => {
+        e.preventDefault();
+        move(dir);
+      }}
+      style={{
+        ...place,
+        border: "none",
+        borderRadius: 14,
+        background: "var(--surface)",
+        boxShadow: "var(--shadow-1)",
+        color: "var(--text)",
+        fontSize: 24,
+        display: "grid",
+        placeItems: "center",
+        cursor: "pointer",
+        touchAction: "none",
+        userSelect: "none",
+      }}
+    >
+      {glyph}
+    </button>
+  );
 
   const size = state.size;
   // Sized against the VIEWPORT, not this container, like every board here. On a
@@ -302,54 +354,76 @@ export function MazeGame({ ctx }: { ctx: GameContext }) {
       onLevel={startLevel}
       onRestart={restart}
       footer={
-        <div
-          style={{
-            background: "var(--surface)",
-            borderRadius: "var(--radius-2)",
-            boxShadow: "var(--shadow-1)",
-            padding: "10px 12px 12px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 6,
-          }}
-        >
-          {/* What is still out there, as the things themselves. A pre-reader
-              reads four crumbs going down to none; a number would need
-              explaining. It WRAPS because the count comes from the level
-              (a-row-that-grows-with-the-catalog-must-wrap.md). */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
           <div
-            aria-hidden="true"
             style={{
+              background: "var(--surface)",
+              borderRadius: "var(--radius-2)",
+              boxShadow: "var(--shadow-1)",
+              padding: "8px 12px 10px",
+              width: "100%",
               display: "flex",
-              flexWrap: "wrap",
-              justifyContent: "center",
-              gap: 6,
-              minHeight: 30,
-              fontSize: 24,
-              lineHeight: 1.2,
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 4,
             }}
           >
-            {Array.from({ length: LEVELS[level].cheese }, (_, i) => (
-              <span key={i} style={{ opacity: i < state.cheese.length ? 1 : 0.2 }}>
-                🧀
-              </span>
-            ))}
+            {/* What is still out there, as the things themselves. A pre-reader
+                reads four crumbs going down to none; a number would need
+                explaining. It WRAPS because the count comes from the level
+                (a-row-that-grows-with-the-catalog-must-wrap.md). */}
+            <div
+              aria-hidden="true"
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                justifyContent: "center",
+                gap: 6,
+                minHeight: 30,
+                fontSize: 24,
+                lineHeight: 1.2,
+              }}
+            >
+              {Array.from({ length: LEVELS[level].cheese }, (_, i) => (
+                <span key={i} style={{ opacity: i < state.cheese.length ? 1 : 0.2 }}>
+                  🧀
+                </span>
+              ))}
+            </div>
+            <b
+              style={{
+                fontSize: 15,
+                fontFamily: "Fredoka, inherit",
+                textAlign: "center",
+                color: praise ? "var(--green)" : "var(--text-dim)",
+              }}
+            >
+              {praise ? T.perfect : T.hint}
+            </b>
           </div>
-          <b
+
+          {/* The D-pad — one step per press. `dir="ltr"` because these are
+              physical directions on a board pinned LTR. */}
+          <div
+            dir="ltr"
             style={{
-              fontSize: 15,
-              fontFamily: "Fredoka, inherit",
-              textAlign: "center",
-              color: praise ? "var(--green)" : "var(--text-dim)",
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 58px)",
+              gridTemplateRows: "repeat(2, 58px)",
+              gap: 8,
+              touchAction: "none",
             }}
           >
-            {praise ? T.perfect : T.hint}
-          </b>
+            {dpadBtn("▲", "up", { gridColumn: 2, gridRow: 1 })}
+            {dpadBtn("◀", "left", { gridColumn: 1, gridRow: 2 })}
+            {dpadBtn("▼", "down", { gridColumn: 2, gridRow: 2 })}
+            {dpadBtn("▶", "right", { gridColumn: 3, gridRow: 2 })}
+          </div>
         </div>
       }
     >
       <div
+        ref={gridRef}
         className="ellaz-play-surface"
         // LTR, always. The app is Hebrew RTL by default, so an RTL grid lays
         // column 0 out on the visual RIGHT - and a maze whose walls mirror is a
@@ -380,19 +454,16 @@ export function MazeGame({ ctx }: { ctx: GameContext }) {
           const isCheese = state.cheese.includes(i);
           const label = isMouse ? T.mouse : isCheese ? T.cheese : isHome ? T.home : T.empty;
           return (
-            <button
+            <div
               key={i}
-              type="button"
-              // Every square reads the same without its coordinates, so a
-              // screen reader could not tell 49 of them apart. One-based,
-              // because nobody counts from zero out loud.
+              // Display only now — the arrows drive the mouse, so cells are not
+              // tappable. Still labelled per-square so a screen reader can read
+              // the board out; one-based, because nobody counts from zero aloud.
+              role="img"
               aria-label={`${label} ${col + 1}, ${row + 1}`}
-              onClick={(e) => onCell(i, e.currentTarget)}
               style={{
                 minWidth: 0,
                 minHeight: 0,
-                padding: 0,
-                border: "none",
                 // A hedge on the far side of the board is drawn even where the
                 // rules keep no wall, so the frame closes; everywhere else the
                 // border is present but transparent, which keeps every cell
@@ -412,14 +483,12 @@ export function MazeGame({ ctx }: { ctx: GameContext }) {
                 lineHeight: 1,
                 background: trail.includes(i) ? FLOOR_TRAIL : isHome ? HOME_TILE : FLOOR,
                 transition: "background 0.18s ease",
-                cursor: "pointer",
-                touchAction: "none",
               }}
             >
               <span aria-hidden="true">
                 {isMouse ? "🐭" : isCheese ? "🧀" : isHome ? "🏠" : ""}
               </span>
-            </button>
+            </div>
           );
         })}
       </div>
