@@ -68,8 +68,18 @@ export const ADJECTIVES: readonly Adjective[] = [
 ];
 
 /**
- * Animals, one distinct emoji each — the emoji is the seat's avatar, so two
- * players at one table must never wear the same face. Pinned in the tests.
+ * Animals, all distinct — the animal is the seat's avatar, so two players at
+ * one table must never wear the same face. Pinned in the tests.
+ *
+ * `emoji` is NOT the avatar any more and NOTHING RENDERS IT. The app draws
+ * each animal from `client/src/ui/animals.tsx`, keyed off this `id`, because
+ * an emoji is a font the phone chooses rather than a picture we ship.
+ *
+ * The field and `nameEmoji` are kept rather than deleted only because the
+ * ratchet in `names.test.ts` asserts on them, and they would be the obvious
+ * fallback for a future text-only surface — a terminal client, a share
+ * string. Checked 2026-08-14: no such caller exists today. If you are looking
+ * for something to delete, this is it; just do not wire it back into a screen.
  */
 export const NOUNS: readonly Noun[] = [
   { id: "tiger", en: "Tiger", emoji: "🐯" },

@@ -54,7 +54,8 @@ console output.
 
 ## Names are drawn, never typed
 
-16 adjectives × 20 animals, English, one emoji each. The two **ids** are what
+16 adjectives × 20 animals, English, each animal drawn in
+`client/src/ui/animals.tsx`. The two **ids** are what
 cross the wire and what the server stores; the string is rendered on the way
 out, so nothing a client sends is ever displayed.
 
@@ -73,6 +74,92 @@ renders the reply and never its own request.
 Adding words is fine. **Never remove or rename a word id** — they are persisted
 per player and travel in saved hand history and the ledger, so removing one
 un-names every player who had it, retroactively, in hands already played.
+
+## The felt is deliberately behind the server
+
+`client/src/state/pacer.ts` holds server messages back and releases them at
+street boundaries. The engine was always right — it deals the flop, the turn
+and the river as three `StreetDealt` events and turns over every live hand on
+an all-in runout — but the client applied the whole batch in one React render,
+so an all-in preflop arrived as five community cards, two showdowns and a
+result simultaneously. Nothing to fix in the engine; the information was there
+and arriving too fast to be a game.
+
+**It costs nobody a decision.** A batch only ever holds more than one street
+when no player can act, which is exactly the condition the engine sets
+`runout` on. In ordinary play a batch carries one street and the delay is one
+beat.
+
+**`view.hand` goes null the instant a pot is awarded**, and that is the trap
+behind almost everything that looked broken here. Anything gated on it
+vanishes at precisely the moment everyone wants to look at it. The board reads
+from `shownBoard` in the store, which outlives the hand, and a seat's cards
+test `reveals` BEFORE `hand`. Both are cleared by the next `HandStarted`. If
+you add anything else that should survive the end of a hand, gate it the same
+way — and do not "fix" a disappearance by giving a banner its own copy of the
+board, which is what `WinMoment` used to do and why there were two rows of
+five cards stacked on each other.
+
+## Nobody there means nobody there
+
+Three clocks, all in `server/src/reap.ts`, which is pure and tested because it
+is the only code here that can destroy something a person made.
+
+- **Presence is a claim with an expiry.** `connected` is not something the
+  lobby can observe — it is the last thing the TABLE said, and a table that
+  stops waking up stops correcting it. `verdict` used to return `keep` the
+  moment `connected > 0`, so the one state that pins a row in the lobby
+  forever was the state a dead table is most likely to be frozen in. A row sat
+  advertising "4/6" forty minutes after the last browser closed. `reportedAt`
+  travels with the count and `presentNow` refuses to believe one older than
+  `PRESENCE_TTL_MS`; an occupied table renews it every `HEARTBEAT_MS`, and the
+  renewal is what makes the expiry safe — six people between hands emit
+  nothing at all.
+- **`webSocketError` is as load-bearing as `webSocketClose`.** The hibernation
+  API delivers a clean close to one and a broken one to the other, and a
+  killed tab, a lost signal and a shut lid are all the second kind. It did not
+  exist here, so those departures were never reported.
+- **A seat is given back after `STAND_UP_MS` with no socket** — keyed by
+  playerId rather than seat index, because it is the person who left.
+  Auto-sit-out after two timeouts already existed and was never enough: a
+  sat-out player still occupies the chair, so a table fills with ghosts and
+  stops being joinable while looking busy. A CONNECTED player is never stood
+  up, however long they sit out.
+
+**One alarm, two clocks.** A Durable Object has exactly one alarm slot;
+`armNext` arms the earlier of the game clock and the reaper's, and `alarm()`
+re-derives which it was rather than trusting which it set. Adding the
+heartbeat immediately exposed the cost of not doing that: `alarm()`'s
+interHand branch started the next hand on ANY alarm, which was correct only
+while the inter-hand deadline was the sole thing that could wake an occupied
+table. It checks its deadline now.
+
+## Every glyph is drawn — except the chat emotes
+
+`client/src/ui/icons.tsx` (17, `currentColor`) and `client/src/ui/animals.tsx`
+(the 20 players can be called). An emoji is a font the device chooses, not a
+picture we ship.
+
+The **card suits** were the worst case: `♠` and `♣` are text characters, `♥`
+and `♦` have emoji presentations, and several Android builds promote all four
+to full-colour cartoons — so the same card was a black spade on one phone and
+a glossy blue pictogram on the next, at a table where the suit is half of what
+a card says. `SUIT_CHAR` still exists in `CardFace`, for `data-card-suit`
+only, so a test can read a card without pixels.
+
+The **emote tray is the sanctioned exception** and is marked `data-emote-tray`
+so a sweep can state what it excludes. The player is throwing a face across
+the table; their platform's own set is the one they recognise.
+
+The animals are the only icons here that are not `currentColor`, and that is
+legibility rather than decoration: at 14px a tiger, a lion, a bear and a panda
+are the same circle with two ears. **Judge any new one rendered at 14, not at
+64** — four of the twenty were rewritten at that size, and the hedgehog was a
+smooth hill twice, both times a paint-order bug.
+
+**A preview harness that renders raw HTML will lie to you.** React camelCases
+SVG attributes; `strokeWidth` means nothing to the HTML parser, so every
+stroked icon comes back hairline. Render through the real client build.
 
 ## It must stay free
 
