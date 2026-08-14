@@ -4,11 +4,12 @@ import type { GameContent } from "../types";
  * The statistic here answers what a parent wants to know about a letter game:
  * does it actually cover the alphabet, or the same handful of letters on a loop?
  *
- * The 58 pictures start words with 18 different letters in Hebrew, 19 in English
+ * The 74 pictures start words with 19 different letters in Hebrew, 19 in English
  * and 23 in Spanish, derived from the real pool by
- * `scripts/sim/letters-coverage.mjs`. The Spanish spread is widest because the
- * same picture can begin with a different letter in each language - a car is
- * מכונית, car and coche.
+ * `scripts/sim/letters-coverage.mjs`. Easy mode draws the 22 simplest everyday
+ * words (dog, cat, home, car); the harder levels add the rest. The Spanish
+ * spread is widest because the same picture can begin with a different letter in
+ * each language - a car is מכונית, car and coche.
  */
 export const letters: GameContent = {
   id: "letters",
@@ -24,17 +25,17 @@ export const letters: GameContent = {
       body: [
         "מופיעה תמונה. באיזו אות היא מתחילה? נוגעים בה.",
 
-        "יש 58 תמונות בשישה נושאים, חיות, פירות, אוכל, צעצועים, טבע וכלי תחבורה, והמילה עצמה לא כתובה בשום מקום. זה הצעד שלפני הקריאה. ילד רואה את התמונה, אומר לעצמו את שמה בראש, ורק אז מחפש את הצליל שבו היא נפתחת. אין כאן קריאה של מילה שלמה, ולכן זה עובד כבר בגיל ארבע, אצל מי שמכיר את האותיות אבל עדיין לא קורא.",
+        "יש 74 תמונות, מכלב וחתול ובית ועד ג'ירפה ומסוק, והמילה עצמה לא כתובה בשום מקום. זה הצעד שלפני הקריאה. ילד רואה את התמונה, אומר לעצמו את שמה בראש, ורק אז מחפש את הצליל שבו היא נפתחת. אין כאן קריאה של מילה שלמה, ולכן זה עובד כבר בגיל ארבע, אצל מי שמכיר את האותיות אבל עדיין לא קורא.",
 
-        "הרמה משנה שני דברים יחד. בקל יש שתי אותיות לבחירה, מתוך שני הנושאים המוכרים ביותר, חיות ופירות. בבינוני יש שלוש, וזו הגרסה הרגילה של המשחק. בקשה יש ארבע, והתמונות מגיעות מכל ששת הנושאים, כך שאוצר המילים מתרחב בדיוק כשהניחוש נעשה קשה יותר.",
+        "הרמה משנה שני דברים יחד. בקל יש שתי אותיות לבחירה, והתמונות הן 22 המילים הכי פשוטות ויומיומיות, כלב, חתול, בית, מכונית. בבינוני יש שלוש, וזו הגרסה הרגילה של המשחק. בקשה יש ארבע, והתמונות מגיעות מכל המאגר, כך שאוצר המילים מתרחב בדיוק כשהניחוש נעשה קשה יותר.",
 
-        "האותיות יכולות להיות בשפה אחרת מזו של האתר, וזה החלק המיוחד כאן. ילד דובר עברית יכול לתרגל את האלף-בית האנגלי בלי שהתפריטים סביבו ישתנו, ודובר אנגלית יכול לנסות ספרדית. מאגר התמונות מכסה 18 אותיות פתיחה שונות בעברית, 19 באנגלית ו-23 בספרדית, אז זה תרגול אמיתי ולא אותן חמש אותיות שוב ושוב. תשובה שגויה לא מענישה: האות מתעממת, התמונה רועדת קצת, ואפשר לנסות שוב על אותה תמונה. אין שעון ואי אפשר להפסיד.",
+        "האותיות יכולות להיות בשפה אחרת מזו של האתר, וזה החלק המיוחד כאן. ילד דובר עברית יכול לתרגל את האלף-בית האנגלי בלי שהתפריטים סביבו ישתנו, ודובר אנגלית יכול לנסות ספרדית. מאגר התמונות מכסה 19 אותיות פתיחה שונות בעברית, 19 באנגלית ו-23 בספרדית, אז זה תרגול אמיתי ולא אותן חמש אותיות שוב ושוב. תשובה שגויה לא מענישה: האות מתעממת, התמונה רועדת קצת, ואפשר לנסות שוב על אותה תמונה. אין שעון ואי אפשר להפסיד.",
       ],
 
       howToPlay: [
         { title: "מסתכלים על התמונה", body: "מופיעה תמונה אחת גדולה. אומרים בראש מה רואים." },
         { title: "מוצאים את האות הראשונה", body: "באיזו אות מתחיל השם? נוגעים בה מבין האותיות למטה." },
-        { title: "בוחרים רמה", body: "שתיים, שלוש או ארבע אותיות לבחירה, ונושאים רחבים יותר ככל שעולים." },
+        { title: "בוחרים רמה", body: "שתיים, שלוש או ארבע אותיות לבחירה, ואוצר מילים רחב יותר ככל שעולים." },
         { title: "מחליפים שפה", body: "כפתור השפה מחליף את האותיות בין עברית, אנגלית וספרדית בכל רגע." },
       ],
 
@@ -100,7 +101,7 @@ export const letters: GameContent = {
         },
         {
           q: "כמה תמונות יש?",
-          a: "58 תמונות בשישה נושאים. הן פותחות ב-18 אותיות שונות בעברית, 19 באנגלית ו-23 בספרדית, אז יש כיסוי רחב של האלף-בית.",
+          a: "74 תמונות, ובקל אלה 22 המילים הכי פשוטות. הן פותחות ב-19 אותיות שונות בעברית, 19 באנגלית ו-23 בספרדית, אז יש כיסוי רחב של האלף-בית.",
         },
         {
           q: "מה קורה בתשובה שגויה?",
@@ -133,11 +134,11 @@ export const letters: GameContent = {
       body: [
         "A picture shows up. What does its word start with? Tap the letter.",
 
-        "There are 58 pictures across 6 themes, animals and fruit and food and toys and nature and vehicles, and the word itself is never written down. That matters. Reading the word would hand over the answer, so a child has to name the picture in their own head first and then find the sound it opens with. This is the step before reading rather than reading itself, which is why it works for a four-year-old who knows their letters but cannot yet read a whole word off the page.",
+        "There are 74 pictures, from dog and cat and home to giraffe and helicopter, and the word itself is never written down. That matters. Reading the word would hand over the answer, so a child has to name the picture in their own head first and then find the sound it opens with. This is the step before reading rather than reading itself, which is why it works for a four-year-old who knows their letters but cannot yet read a whole word off the page.",
 
-        "Difficulty moves two things at once. Easy shows 2 letters to choose between, drawn from the two most familiar themes, animals and fruit. Medium shows 3, the ordinary version of the game. Hard shows 4 and pulls pictures from all six themes, so the vocabulary widens exactly as the guessing gets harder.",
+        "Difficulty moves two things at once. Easy shows 2 letters to choose between, and its pictures are the 22 simplest everyday words, dog, cat, home, car. Medium shows 3, the ordinary version of the game. Hard shows 4 and pulls from the whole pool, so the vocabulary widens exactly as the guessing gets harder.",
 
-        "The letters can be a different language from the app, and that is the part worth having. A Hebrew-speaking child can practise the English alphabet while every menu around them stays in Hebrew, and an English speaker can try Spanish for a while. The pool starts words with 18 different letters in Hebrew, 19 in English and 23 in Spanish, so it is real coverage rather than the same five letters on a loop.",
+        "The letters can be a different language from the app, and that is the part worth having. A Hebrew-speaking child can practise the English alphabet while every menu around them stays in Hebrew, and an English speaker can try Spanish for a while. The pool starts words with 19 different letters in Hebrew, 19 in English and 23 in Spanish, so it is real coverage rather than the same five letters on a loop.",
 
         "A wrong tap does nothing harsh. The letter dims, the picture gives a small shake, and the same picture waits for another go. There is no clock and no way to lose. Correct answers keep arriving, the count climbs, and the best run for each language and level is kept for next time.",
       ],
@@ -145,7 +146,7 @@ export const letters: GameContent = {
       howToPlay: [
         { title: "Look at the picture", body: "One big picture appears. Say to yourself what it is." },
         { title: "Find the first letter", body: "Which letter does its name start with? Tap it from the row below." },
-        { title: "Pick a level", body: "Two, three or four letters to choose between, with wider themes as you climb." },
+        { title: "Pick a level", body: "Two, three or four letters to choose between, with a wider range of pictures as you climb." },
         { title: "Switch language", body: "The language button flips the letters between Hebrew, English and Spanish anytime." },
       ],
 
@@ -211,7 +212,7 @@ export const letters: GameContent = {
         },
         {
           q: "How many pictures are there?",
-          a: "58 pictures across six themes. They start with 18 different letters in Hebrew, 19 in English and 23 in Spanish, so the alphabet is well covered.",
+          a: "74 pictures, and easy mode uses the 22 simplest. They start with 19 different letters in Hebrew, 19 in English and 23 in Spanish, so the alphabet is well covered.",
         },
         {
           q: "What happens on a wrong answer?",
@@ -244,17 +245,17 @@ export const letters: GameContent = {
       body: [
         "Aparece una imagen. ¿Por qué letra empieza? Se toca.",
 
-        "Hay 58 imágenes repartidas en seis temas, animales, frutas, comida, juguetes, naturaleza y vehículos, y la palabra nunca aparece escrita. Eso importa. Leer la palabra daría la respuesta, así que el niño tiene que nombrar la imagen en su cabeza y luego buscar el sonido con el que arranca. Es el paso anterior a la lectura, no la lectura misma, y por eso funciona con un niño de cuatro años que conoce sus letras pero todavía no lee una palabra entera.",
+        "Hay 74 imágenes, desde perro y gato y casa hasta jirafa y helicóptero, y la palabra nunca aparece escrita. Eso importa. Leer la palabra daría la respuesta, así que el niño tiene que nombrar la imagen en su cabeza y luego buscar el sonido con el que arranca. Es el paso anterior a la lectura, no la lectura misma, y por eso funciona con un niño de cuatro años que conoce sus letras pero todavía no lee una palabra entera.",
 
-        "El nivel cambia dos cosas a la vez. Fácil muestra 2 letras entre las que elegir, de los dos temas más conocidos, animales y frutas. Medio muestra 3, la versión de siempre. Difícil muestra 4 y saca imágenes de los seis temas, así que el vocabulario se abre justo cuando acertar cuesta más.",
+        "El nivel cambia dos cosas a la vez. Fácil muestra 2 letras entre las que elegir, y sus imágenes son las 22 palabras más sencillas del día a día, perro, gato, casa, coche. Medio muestra 3, la versión de siempre. Difícil muestra 4 y saca imágenes de todo el conjunto, así que el vocabulario se abre justo cuando acertar cuesta más.",
 
-        "Las letras pueden estar en otro idioma que el de la aplicación, y esa es la parte que merece la pena. Un niño que habla hebreo puede practicar el alfabeto inglés mientras los menús siguen en hebreo, y quien habla inglés puede probar el español. Las imágenes empiezan por 18 letras distintas en hebreo, 19 en inglés y 23 en español, así que es práctica de verdad y no las mismas cinco letras una y otra vez. Un toque equivocado no castiga: la letra se atenúa, la imagen tiembla un poco y la misma imagen espera otro intento. No hay reloj y no se puede perder.",
+        "Las letras pueden estar en otro idioma que el de la aplicación, y esa es la parte que merece la pena. Un niño que habla hebreo puede practicar el alfabeto inglés mientras los menús siguen en hebreo, y quien habla inglés puede probar el español. Las imágenes empiezan por 19 letras distintas en hebreo, 19 en inglés y 23 en español, así que es práctica de verdad y no las mismas cinco letras una y otra vez. Un toque equivocado no castiga: la letra se atenúa, la imagen tiembla un poco y la misma imagen espera otro intento. No hay reloj y no se puede perder.",
       ],
 
       howToPlay: [
         { title: "Mira la imagen", body: "Aparece una imagen grande. Dite a ti mismo qué es." },
         { title: "Busca la primera letra", body: "¿Por qué letra empieza su nombre? Tócala en la fila de abajo." },
-        { title: "Elige un nivel", body: "Dos, tres o cuatro letras para elegir, con temas más amplios según subes." },
+        { title: "Elige un nivel", body: "Dos, tres o cuatro letras para elegir, con más variedad de imágenes según subes." },
         { title: "Cambia de idioma", body: "El botón de idioma cambia las letras entre hebreo, inglés y español cuando quieras." },
       ],
 
@@ -320,7 +321,7 @@ export const letters: GameContent = {
         },
         {
           q: "¿Cuántas imágenes hay?",
-          a: "58 imágenes en seis temas. Empiezan por 18 letras distintas en hebreo, 19 en inglés y 23 en español, así que el alfabeto queda bien cubierto.",
+          a: "74 imágenes, y en fácil son las 22 más sencillas. Empiezan por 19 letras distintas en hebreo, 19 en inglés y 23 en español, así que el alfabeto queda bien cubierto.",
         },
         {
           q: "¿Qué pasa con una respuesta equivocada?",
@@ -346,15 +347,15 @@ export const letters: GameContent = {
 
   provenance: [
     {
-      claim: "58 pictures across 6 themes",
+      claim: "74 pictures in the full pool, 22 simplest words in easy mode",
       source: "scripts/sim/letters-coverage.mjs",
     },
     {
-      claim: "18 distinct starting letters in Hebrew, 19 in English, 23 in Spanish",
+      claim: "19 distinct starting letters in Hebrew, 19 in English, 23 in Spanish",
       source: "scripts/sim/letters-coverage.mjs",
     },
     {
-      claim: "2, 3 or 4 letter choices by difficulty, widening from two themes to all six",
+      claim: "2, 3 or 4 letter choices by difficulty, widening from the simple words to the whole pool",
       source: "src/games/letters/logic.ts",
     },
   ],

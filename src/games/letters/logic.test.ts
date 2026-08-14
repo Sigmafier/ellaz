@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { CAST, CAST_THEMES } from "@shared/cast";
+import { CAST } from "@shared/cast";
 import { mulberry32, seedFrom } from "@shared/rng";
 import { PAGE_LOCALES } from "@i18n/locales";
+import { SIMPLE } from "./words";
 import {
   ALPHABETS,
   LEVELS,
@@ -10,12 +11,12 @@ import {
   firstLetter,
   isMilestoneRound,
   levelById,
-  nextChallenge,
-  pickItem,
   poolFor,
+  refillBag,
 } from "./logic";
 
 const seeded = (label: string) => mulberry32(seedFrom(label));
+const ALL_PICTURES = [...SIMPLE, ...Object.values(CAST).flat()];
 
 describe("firstLetter", () => {
   it("uppercases the initial for Latin scripts", () => {
@@ -37,19 +38,29 @@ describe("firstLetter", () => {
     expect(firstLetter("ג'ירפה", "he")).toBe("ג");
   });
 
-  it("derives a real alphabet letter for EVERY cast word in EVERY language", () => {
+  it("derives a real alphabet letter for EVERY picture (SIMPLE + cast) in every language", () => {
     // The load-bearing invariant: a picture whose first letter is not in the
     // pool could never be answered, and the correct choice would look foreign.
-    for (const theme of CAST_THEMES) {
-      for (const item of CAST[theme]) {
-        for (const lang of PAGE_LOCALES) {
-          const letter = firstLetter(item[lang], lang);
-          expect(
-            ALPHABETS[lang].includes(letter),
-            `${item[lang]} (${lang}) -> "${letter}" not in the ${lang} alphabet`,
-          ).toBe(true);
-        }
+    for (const item of ALL_PICTURES) {
+      for (const lang of PAGE_LOCALES) {
+        const letter = firstLetter(item[lang], lang);
+        expect(
+          ALPHABETS[lang].includes(letter),
+          `${item[lang]} (${lang}) -> "${letter}" not in the ${lang} alphabet`,
+        ).toBe(true);
       }
+    }
+  });
+});
+
+describe("the simple word list", () => {
+  it("has no duplicate picture", () => {
+    expect(new Set(SIMPLE.map((i) => i.emoji)).size).toBe(SIMPLE.length);
+  });
+
+  it("holds the everyday words easy mode wants", () => {
+    for (const en of ["dog", "cat", "home", "car", "ball"]) {
+      expect(SIMPLE.some((i) => i.en === en), `SIMPLE is missing ${en}`).toBe(true);
     }
   });
 });
@@ -78,9 +89,7 @@ describe("buildRound", () => {
         expect(round.options).toHaveLength(choices);
         expect(round.options).toContain(round.correct);
         expect(new Set(round.options).size).toBe(choices);
-        // The correct letter is never ALSO one of the distractors.
         expect(round.options.filter((l) => l === round.correct)).toHaveLength(1);
-        // Every option is a real letter of that alphabet.
         for (const opt of round.options) expect(ALPHABETS[lang].includes(opt)).toBe(true);
       }
     }
@@ -100,29 +109,52 @@ describe("levels and pools", () => {
     expect(() => levelById("easy")).not.toThrow();
   });
 
-  it("hard draws from every theme, easy from the two familiar ones", () => {
-    expect(poolFor(levelById("hard")).length).toBe(poolFor(levelById("hard")).length);
-    expect(new Set(levelById("hard").themes)).toEqual(new Set(CAST_THEMES));
-    expect(levelById("easy").themes).toEqual(["animals", "fruit"]);
-    expect(poolFor(levelById("hard")).length).toBeGreaterThan(poolFor(levelById("easy")).length);
-  });
+  it("easy is the simple list; the pools widen and each holds no duplicate picture", () => {
+    const easy = poolFor(levelById("easy"));
+    const medium = poolFor(levelById("medium"));
+    const hard = poolFor(levelById("hard"));
 
-  it("pickItem avoids the previous picture when it can", () => {
-    const pool = poolFor(levelById("hard"));
-    for (let i = 0; i < 40; i++) {
-      const prev = pool[i % pool.length].emoji;
-      expect(pickItem(pool, seeded(`pick-${i}`), prev).emoji).not.toBe(prev);
+    expect(easy).toBe(SIMPLE);
+    expect(easy.length).toBeLessThan(medium.length);
+    expect(medium.length).toBeLessThan(hard.length);
+
+    for (const [name, pool] of [
+      ["easy", easy],
+      ["medium", medium],
+      ["hard", hard],
+    ] as const) {
+      expect(new Set(pool.map((i) => i.emoji)).size, `${name} has a duplicate picture`).toBe(
+        pool.length,
+      );
     }
   });
 });
 
-describe("nextChallenge", () => {
-  it("returns a picture with matching, correct letter choices", () => {
-    const level = levelById("medium");
-    const c = nextChallenge(level, "en", seeded("chal"));
-    expect(c.options).toHaveLength(level.choices);
-    expect(c.options).toContain(c.correct);
-    expect(c.correct).toBe(firstLetter(c.item.en, "en"));
+describe("refillBag - the shuffle bag", () => {
+  const pool = poolFor(levelById("hard"));
+
+  it("is a permutation: a full pass shows every picture exactly once", () => {
+    const bag = refillBag(pool, seeded("bag"));
+    expect(bag).toHaveLength(pool.length);
+    expect(new Set(bag.map((i) => i.emoji)).size).toBe(pool.length);
+    expect(new Set(bag.map((i) => i.emoji))).toEqual(new Set(pool.map((i) => i.emoji)));
+  });
+
+  it("never repeats the last-shown picture across a reshuffle seam", () => {
+    for (let i = 0; i < 40; i++) {
+      const avoid = pool[i % pool.length].emoji;
+      expect(refillBag(pool, seeded(`seam-${i}`), avoid)[0].emoji).not.toBe(avoid);
+    }
+  });
+
+  it("does not mutate the pool", () => {
+    const before = pool.map((i) => i.emoji);
+    refillBag(pool, seeded("nomutate"));
+    expect(pool.map((i) => i.emoji)).toEqual(before);
+  });
+
+  it("is deterministic under a seeded rng", () => {
+    expect(refillBag(pool, seeded("s"))).toEqual(refillBag(pool, seeded("s")));
   });
 });
 

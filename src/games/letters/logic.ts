@@ -6,11 +6,12 @@
 // and which alphabet the wrong answers are drawn from.
 //
 // PURE: no DOM, no React, no timers. Imports go to the DIRECT shared modules
-// (`@shared/cast`, `@shared/rng`) and the i18n LEAF (`@i18n/locales`, which
-// imports nothing), never the `@shared` barrel and never `@ui`/`@juice`.
-import { CAST_THEMES, castOf, type CastItem, type CastTheme } from "@shared/cast";
-import { pick, shuffle } from "@shared/rng";
+// (`@shared/cast`, `@shared/rng`) and the game's own pure `./words`, never the
+// `@shared` barrel and never `@ui`/`@juice`.
+import { CAST, type CastItem } from "@shared/cast";
+import { shuffle } from "@shared/rng";
 import type { PageLocale } from "@i18n/locales";
+import { SIMPLE } from "./words";
 
 /** Level ids double as reward tiers - the union is identical by design. */
 export type LevelId = "easy" | "medium" | "hard";
@@ -19,19 +20,17 @@ export interface Level {
   id: LevelId;
   /** How many letters the child chooses between. The brief's example is medium's 3. */
   choices: number;
-  /** Which cast themes the pictures are drawn from. Wider = harder, by vocabulary. */
-  themes: readonly CastTheme[];
 }
 
 /**
- * Difficulty ramps BOTH axes the operator asked for: the number of letter
- * choices (2 -> 3 -> 4, so the odds of a lucky tap fall) and the breadth of
- * vocabulary (the two most familiar themes -> four -> all six).
+ * Difficulty ramps BOTH axes: the number of letter choices (2 -> 3 -> 4, so the
+ * odds of a lucky tap fall) and the breadth of vocabulary (see `poolFor` - the
+ * simplest everyday words alone, then broader, then everything).
  */
 export const LEVELS: readonly Level[] = [
-  { id: "easy", choices: 2, themes: ["animals", "fruit"] },
-  { id: "medium", choices: 3, themes: ["animals", "fruit", "vehicles", "toys"] },
-  { id: "hard", choices: 4, themes: CAST_THEMES },
+  { id: "easy", choices: 2 },
+  { id: "medium", choices: 3 },
+  { id: "hard", choices: 4 },
 ] as const;
 
 export function levelById(id: LevelId): Level {
@@ -45,6 +44,64 @@ export const MILESTONE_EVERY = 5;
 
 export function isMilestoneRound(round: number): boolean {
   return round > 0 && round % MILESTONE_EVERY === 0;
+}
+
+// --- The picture pools, by level ------------------------------------------
+//
+// Easy is the game's own list of the simplest everyday words (dog, cat, home,
+// car, ball). Harder levels add the shared `cast.ts` pictures on top for
+// breadth, DEDUPED BY EMOJI so a word that appears in both (ball, apple,
+// banana, tree, star) is one picture, not two - and `SIMPLE` goes first, so the
+// familiar name/spelling is the one kept.
+
+function unionByEmoji(...lists: readonly (readonly CastItem[])[]): CastItem[] {
+  const seen = new Set<string>();
+  const out: CastItem[] = [];
+  for (const list of lists) {
+    for (const item of list) {
+      if (!seen.has(item.emoji)) {
+        seen.add(item.emoji);
+        out.push(item);
+      }
+    }
+  }
+  return out;
+}
+
+/** Every picture a level can draw. */
+export function poolFor(level: Level): readonly CastItem[] {
+  if (level.id === "easy") return SIMPLE;
+  if (level.id === "medium") {
+    return unionByEmoji(SIMPLE, CAST.animals, CAST.fruit, CAST.vehicles, CAST.toys);
+  }
+  return unionByEmoji(SIMPLE, ...Object.values(CAST));
+}
+
+// --- The shuffle bag -------------------------------------------------------
+//
+// The old selection picked a random picture every round (with replacement, only
+// avoiding the immediately-previous one), so the same word recurred constantly.
+// Instead the renderer shuffles the whole pool once and deals through it in
+// order, so no word repeats until every one has been shown. `refillBag` builds
+// each shuffle; the renderer holds the position and calls it again when the bag
+// runs out.
+
+/**
+ * A freshly shuffled copy of `pool`. When `avoidEmoji` is given (the last
+ * picture shown before this reshuffle), the first card is swapped with the
+ * second if it would repeat it - so the seam between two passes is never a
+ * back-to-back repeat. Non-mutating; `pool` is untouched.
+ */
+export function refillBag(
+  pool: readonly CastItem[],
+  rng: () => number = Math.random,
+  avoidEmoji?: string,
+): CastItem[] {
+  const bag = shuffle(pool, rng);
+  if (bag.length > 1 && avoidEmoji !== undefined && bag[0].emoji === avoidEmoji) {
+    [bag[0], bag[1]] = [bag[1], bag[0]];
+  }
+  return bag;
 }
 
 // --- Alphabets -------------------------------------------------------------
@@ -72,11 +129,10 @@ export const ALPHABETS: Record<PageLocale, readonly string[]> = {
  *
  * - Latin (en/es): the first character, diacritic stripped (NFD) and uppercased,
  *   so "árbol" and "avión" both resolve to A - the letter the pool actually holds.
- *   None of the cast words begin with a Spanish digraph (ch/ll); if one is ever
- *   added it still resolves to its first letter, which is the honest, learnable
- *   answer for a child.
- * - Hebrew: the first character as written. Cast words carry no nikud and the
- *   geresh in ג'ירפה / צ'יפס sits AFTER the first letter, so `[0]` is a base letter.
+ *   None of the words begin with a Spanish digraph (ch/ll) other than "llave",
+ *   which resolves to its first letter L - the honest, learnable answer for a child.
+ * - Hebrew: the first character as written. The words carry no nikud, so `[0]` is
+ *   always a base letter.
  */
 function latinInitial(first: string): string {
   return first.normalize("NFD").replace(/\p{Diacritic}/gu, "").toUpperCase();
@@ -135,38 +191,4 @@ export function buildRound(
   const pool = ALPHABETS[lang].filter((l) => l !== correct);
   const distractors = shuffle(pool, rng).slice(0, Math.max(0, choices - 1));
   return { correct, options: shuffle([correct, ...distractors], rng) };
-}
-
-/** Every picture a level can draw, across all of its themes. */
-export function poolFor(level: Level): readonly CastItem[] {
-  return level.themes.flatMap((theme) => castOf(theme));
-}
-
-/**
- * A picture from the pool. `avoidEmoji` keeps the same picture from appearing
- * twice in a row; if it happens to be the whole (one-item) pool it is ignored
- * rather than looping forever - a repeat beats a hang.
- */
-export function pickItem(
-  pool: readonly CastItem[],
-  rng: () => number = Math.random,
-  avoidEmoji?: string,
-): CastItem {
-  const eligible = avoidEmoji ? pool.filter((i) => i.emoji !== avoidEmoji) : pool;
-  return pick(eligible.length > 0 ? eligible : pool, rng);
-}
-
-export interface Challenge extends Round {
-  item: CastItem;
-}
-
-/** One whole turn: a picture plus its letter choices. */
-export function nextChallenge(
-  level: Level,
-  lang: PageLocale,
-  rng: () => number = Math.random,
-  avoidEmoji?: string,
-): Challenge {
-  const item = pickItem(poolFor(level), rng, avoidEmoji);
-  return { item, ...buildRound(lang, item, level.choices, rng) };
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { textFor, AUTONYM, type Locale } from "@i18n/index";
 import type { GameContext } from "@sdk/index";
+import type { CastItem } from "@shared/cast";
 import { GameChrome } from "@ui/GameChrome";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { IconButton } from "@ui/index";
@@ -8,12 +9,15 @@ import { haptic, shake } from "@juice/index";
 import { Prompt, winMoment, useRememberedLevel } from "@shared/index";
 import {
   LEVELS,
+  type Level,
   type LevelId,
-  type Challenge,
+  type Round,
+  buildRound,
   contentLangOptions,
   isMilestoneRound,
   levelById,
-  nextChallenge,
+  poolFor,
+  refillBag,
 } from "./logic";
 
 // The content language (which alphabet the child is practising) is remembered
@@ -21,6 +25,10 @@ import {
 // UI language: a Hebrew-speaking child can practise English letters without the
 // whole interface changing.
 const LANG_KEY = "lang";
+
+interface Challenge extends Round {
+  item: CastItem;
+}
 
 const LEVEL_LABELS: Record<LevelId, Record<Locale, string>> = {
   easy: { he: "קל", en: "Easy", es: "Fácil" },
@@ -70,9 +78,9 @@ function WordSpeaker({
 export function Letters({ ctx }: { ctx: GameContext }): ReactElement {
   const T = textFor(
     {
-      he: { prompt: "איזו אות פותחת?", listen: "השמע" },
-      en: { prompt: "Which letter does it start with?", listen: "listen" },
-      es: { prompt: "¿Con qué letra empieza?", listen: "escuchar" },
+      he: { prompt: "איזו אות פותחת?" },
+      en: { prompt: "Which letter does it start with?" },
+      es: { prompt: "¿Con qué letra empieza?" },
     },
     ctx.locale,
   );
@@ -91,10 +99,30 @@ export function Letters({ ctx }: { ctx: GameContext }): ReactElement {
       : langOptions[0];
   });
 
+  // The shuffle bag: the level's whole pool, shuffled once and dealt through in
+  // order, so no picture repeats until every one has been shown. Refilled (a
+  // fresh shuffle) when it runs out, and rebuilt from scratch on a new session
+  // or a level/language change. Held in refs because it advances from the tap
+  // handler and must not trigger a re-render on its own.
+  const bagRef = useRef<CastItem[]>([]);
+  const posRef = useRef(0);
+  const lastEmojiRef = useRef<string | undefined>(undefined);
+
+  const drawNext = useCallback((lvl: Level, lang: Locale): Challenge => {
+    if (posRef.current >= bagRef.current.length) {
+      bagRef.current = refillBag(poolFor(lvl), Math.random, lastEmojiRef.current);
+      posRef.current = 0;
+    }
+    const item = bagRef.current[posRef.current];
+    posRef.current += 1;
+    lastEmojiRef.current = item.emoji;
+    return { item, ...buildRound(lang, item, lvl.choices) };
+  }, []);
+
   const board = `${contentLang}:${levelId}`;
   const [best, setBest] = useState(() => ctx.score?.best(board) ?? 0);
   const [round, setRound] = useState(0);
-  const [challenge, setChallenge] = useState<Challenge>(() => nextChallenge(level, contentLang));
+  const [challenge, setChallenge] = useState<Challenge>(() => drawNext(level, contentLang));
   /** Letters already tried on THIS picture - dimmed, so a child sees what they ruled out. */
   const [tried, setTried] = useState<string[]>([]);
 
@@ -114,18 +142,23 @@ export function Letters({ ctx }: { ctx: GameContext }): ReactElement {
   }, [ctx, levelId]);
 
   // Start a clean run at a level + content language. Both a difficulty change
-  // and a language change are a fresh run: the score board changes with the
-  // language, so an English-letter best and a Hebrew-letter best never mix.
+  // and a language change are a fresh run with a freshly shuffled bag: the score
+  // board changes with the language, so an English-letter best and a
+  // Hebrew-letter best never mix.
   const startFresh = useCallback(
-    (lvl: LevelId, lang: Locale) => {
+    (id: LevelId, lang: Locale) => {
+      const lvl = levelById(id);
+      bagRef.current = [];
+      posRef.current = 0;
+      lastEmojiRef.current = undefined;
       bestFiredRef.current = false;
       setRound(0);
       setTried([]);
-      setChallenge(nextChallenge(levelById(lvl), lang));
-      setBest(ctx.score?.best(`${lang}:${lvl}`) ?? 0);
-      ctx.analytics.levelStart(lvl);
+      setChallenge(drawNext(lvl, lang));
+      setBest(ctx.score?.best(`${lang}:${id}`) ?? 0);
+      ctx.analytics.levelStart(id);
     },
-    [ctx],
+    [ctx, drawNext],
   );
 
   const chooseLevel = useCallback(
@@ -193,9 +226,9 @@ export function Letters({ ctx }: { ctx: GameContext }): ReactElement {
         }
       }
 
-      setChallenge(nextChallenge(level, contentLang, Math.random, challenge.item.emoji));
+      setChallenge(drawNext(level, contentLang));
     },
-    [ctx, tried, challenge, round, board, levelId, level, contentLang],
+    [ctx, tried, challenge, round, board, levelId, level, contentLang, drawNext],
   );
 
   return (
