@@ -17,7 +17,7 @@
 // Direct module paths, NOT the `@shared` barrel: the barrel re-exports Prompt
 // (React) and useGameTimer, so a pure logic module importing it drags React and
 // a CSS side-effect into the logic core. Enforced by `logic-is-pure.test.ts`.
-import { CAST_THEMES, drawCast, type CastItem, type CastTheme } from "@shared/cast";
+import { CAST, CAST_THEMES, drawCast, type CastItem, type CastTheme } from "@shared/cast";
 import { pick, randInt, shuffle } from "@shared/rng";
 
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
@@ -59,6 +59,18 @@ export const MAX_ITEMS = 6;
 /** Never study fewer than this many ms per character, at any difficulty. */
 export const MIN_MS_PER_ITEM = 1500;
 
+/**
+ * How many characters the answer row offers.
+ *
+ * The row is the vanished character plus DECOYS from the same theme that were
+ * never on the board — not the board set re-shown. Re-showing the board made
+ * this a spot-the-odd-one-out against the visible tiles instead of a memory
+ * game: a child could ignore the study beat entirely and just tap the answer
+ * that had no twin on the board. With fresh decoys, the row shares nothing with
+ * the reduced board, so the only way to know what is gone is to have looked.
+ */
+export const OPTION_COUNT: Record<Difficulty, number> = { easy: 3, medium: 4, hard: 4 };
+
 /** Never study for less than this in total, at any difficulty. */
 export const MIN_STUDY_MS = 5000;
 
@@ -83,12 +95,10 @@ export interface Round {
   /** Index into `items` of the character that vanishes. */
   vanished: number;
   /**
-   * The SAME characters in a DIFFERENT order - the answer row.
-   *
-   * Shuffling independently of the board matters: if the answers sat in board
-   * order, the child could solve it by position alone (the odd one out lines up
-   * with the hole) without ever looking at the characters. Shuffled, the answer
-   * row asks "which of these is not up there any more?", which is the question.
+   * The answer row: the vanished character plus decoys from the same theme that
+   * were NEVER on the board, all shuffled. It shares nothing with the reduced
+   * board on purpose — see `OPTION_COUNT` — so the child answers from memory
+   * rather than by matching against the tiles still on screen.
    */
   choices: readonly CastItem[];
   studyMs: number;
@@ -108,15 +118,20 @@ export function newRound(difficulty: Difficulty, rng: () => number = Math.random
   const spec = LEVELS[difficulty];
   const theme = pick(CAST_THEMES, rng);
   const items = drawCast(theme, spec.count, rng);
-  return {
-    difficulty,
-    theme,
-    items,
-    vanished: randInt(0, items.length - 1, rng),
-    choices: shuffle(items, rng),
-    studyMs: spec.studyMs,
-    columns: spec.columns,
-  };
+  const vanished = randInt(0, items.length - 1, rng);
+  const answer = items[vanished];
+
+  // Decoys: same-theme characters that were NOT on the board. Drawing from the
+  // theme's full cast keeps the row coherent (all fruit, all animals) while
+  // sharing nothing with the reduced board. If a theme is too small to supply a
+  // full set of decoys, the row is simply shorter — never fewer than the answer
+  // plus one, and drawCast already pins that no theme is actually that short.
+  const onBoard = new Set(items.map((i) => i.emoji));
+  const decoyPool = CAST[theme].filter((c) => !onBoard.has(c.emoji));
+  const decoys = shuffle(decoyPool, rng).slice(0, Math.max(0, OPTION_COUNT[difficulty] - 1));
+  const choices = shuffle([answer, ...decoys], rng);
+
+  return { difficulty, theme, items, vanished, choices, studyMs: spec.studyMs, columns: spec.columns };
 }
 
 /** The character that disappeared. Always a member of `round.items`. */

@@ -54,6 +54,44 @@ function sunburst(cx, cy, ri, ro, n, halfDeg = 11) {
 }
 const full = "M0 0 H200 V200 H0 Z";
 
+// A simple standing person. topY = top of the hair, r = head radius. Returns
+// fillable regions (hair, head, shirt, arms, legs) plus face outlines (dot eyes,
+// a smile). Used to compose the "kids" and "family" scenes.
+function person(pfx, cx, topY, r) {
+  const hcy = topY + r * 1.25; // head centre (hair sits above)
+  const neckY = hcy + r;
+  const shoulderY = neckY + r * 0.15;
+  const hipY = shoulderY + r * 2.1;
+  const footY = hipY + r * 1.5;
+  const hw = r * 1.15; // half shirt width
+  const lw = r * 0.5; // half leg width
+  const midY = (shoulderY + hipY) / 2;
+  const regions = [
+    { id: pfx + "legL", d: poly([[cx - lw - 1, hipY], [cx - 1, hipY], [cx - 1, footY], [cx - lw - 1, footY]]) },
+    { id: pfx + "legR", d: poly([[cx + 1, hipY], [cx + lw + 1, hipY], [cx + lw + 1, footY], [cx + 1, footY]]) },
+    { id: pfx + "shirt", d: `M${R(cx - hw)} ${R(shoulderY)} Q${R(cx - hw - 3)} ${R(midY)} ${R(cx - hw * 0.9)} ${R(hipY)} H${R(cx + hw * 0.9)} Q${R(cx + hw + 3)} ${R(midY)} ${R(cx + hw)} ${R(shoulderY)} Q${R(cx)} ${R(shoulderY - r * 0.55)} ${R(cx - hw)} ${R(shoulderY)} Z` },
+    { id: pfx + "armL", d: `M${R(cx - hw + 2)} ${R(shoulderY + 3)} q${R(-r * 0.85)} ${R(r * 0.5)} ${R(-r * 0.6)} ${R(r * 1.5)} l${R(r * 0.5)} 1 q${R(-r * 0.1)} ${R(-r * 0.9)} ${R(r * 0.5)} ${R(-r * 1.3)} Z` },
+    { id: pfx + "armR", d: `M${R(cx + hw - 2)} ${R(shoulderY + 3)} q${R(r * 0.85)} ${R(r * 0.5)} ${R(r * 0.6)} ${R(r * 1.5)} l${R(-r * 0.5)} 1 q${R(r * 0.1)} ${R(-r * 0.9)} ${R(-r * 0.5)} ${R(-r * 1.3)} Z` },
+    { id: pfx + "head", d: circle(cx, hcy, r) },
+    { id: pfx + "hair", d: `M${R(cx - r)} ${R(hcy - r * 0.15)} Q${R(cx - r * 1.05)} ${R(hcy - r * 1.35)} ${R(cx)} ${R(hcy - r * 1.3)} Q${R(cx + r * 1.05)} ${R(hcy - r * 1.35)} ${R(cx + r)} ${R(hcy - r * 0.15)} Q${R(cx + r * 0.55)} ${R(hcy - r * 0.75)} ${R(cx)} ${R(hcy - r * 0.62)} Q${R(cx - r * 0.55)} ${R(hcy - r * 0.75)} ${R(cx - r)} ${R(hcy - r * 0.15)} Z` },
+  ];
+  const outlines = [
+    `M${R(cx - r * 0.38)} ${R(hcy - r * 0.05)} l0.1 0`,
+    `M${R(cx + r * 0.38)} ${R(hcy - r * 0.05)} l0.1 0`,
+    `M${R(cx - r * 0.35)} ${R(hcy + r * 0.4)} Q${R(cx)} ${R(hcy + r * 0.68)} ${R(cx + r * 0.35)} ${R(hcy + r * 0.4)}`,
+  ];
+  return { regions, outlines };
+}
+
+// A row of fence pickets (pointed tops) as one fillable region.
+function pickets(x0, x1, topY, botY, w, gap) {
+  let d = "";
+  for (let x = x0; x + w <= x1; x += w + gap) {
+    d += `M${R(x)} ${R(topY + 6)} L${R(x + w / 2)} ${R(topY)} L${R(x + w)} ${R(topY + 6)} V${R(botY)} H${R(x)} Z`;
+  }
+  return d;
+}
+
 // ---- pictures ----
 const P = [];
 function pic(id, he, en, es, regions, outlines) {
@@ -339,6 +377,101 @@ pic("cupcake", "קאפקייק", "Cupcake", "Magdalena",
    "M76 124 V176", "M92 124 L88 176", "M108 124 L112 176", "M124 124 V176",
    "M84 112 l5 5", "M118 108 l-5 5", "M96 96 l4 5", "M104 118 l4 4"],
 );
+
+// 16. SUV
+pic("suv", "רכב שטח", "SUV", "Todoterreno",
+  [
+    { id: "sky", d: "M0 0 H200 V150 H0 Z" },
+    { id: "road", d: "M0 150 H200 V200 H0 Z" },
+    { id: "cabin", d: "M42 92 V66 Q42 60 48 60 H152 Q158 60 158 66 V92 Z" },
+    { id: "body", d: "M22 92 H178 V140 H22 Z" },
+    { id: "winF", d: poly([[96, 88], [96, 68], [150, 68], [150, 88]]) },
+    { id: "winB", d: poly([[50, 88], [50, 68], [92, 68], [92, 88]]) },
+    { id: "door", d: "M92 92 H96 V140 H92 Z" },
+    { id: "bumper", d: "M18 130 H182 V146 H18 Z" },
+    { id: "wheelL", d: circle(60, 150, 20) },
+    { id: "wheelR", d: circle(140, 150, 20) },
+    { id: "hubL", d: circle(60, 150, 8) },
+    { id: "hubR", d: circle(140, 150, 8) },
+    { id: "headlight", d: circle(173, 104, 5) },
+    { id: "rack", d: "M44 56 H156 V60 H44 Z" },
+  ],
+  ["M18 150 H182"],
+);
+
+// 17. KIDS — two children on the grass.
+{
+  const a = person("a", 74, 66, 20);
+  const b = person("b", 132, 74, 17);
+  pic("kids", "ילדים", "Kids", "Niños",
+    [
+      { id: "sky", d: "M0 0 H200 V158 H0 Z" },
+      { id: "grass", d: "M0 158 H200 V200 H0 Z" },
+      { id: "sun", d: circle(172, 30, 15) },
+      ...a.regions,
+      ...b.regions,
+    ],
+    [...a.outlines, ...b.outlines],
+  );
+}
+
+// 18. PLAYGROUND — a swing set and a slide.
+pic("playground", "גן שעשועים", "Playground", "Parque",
+  [
+    { id: "sky", d: "M0 0 H200 V156 H0 Z" },
+    { id: "grass", d: "M0 156 H200 V200 H0 Z" },
+    { id: "sun", d: circle(30, 30, 15) },
+    { id: "frameL", d: poly([[36, 156], [70, 58], [76, 58], [46, 156]]) },
+    { id: "frameR", d: poly([[124, 156], [96, 58], [90, 58], [114, 156]]) },
+    { id: "bar", d: "M66 54 H100 V62 H66 Z" },
+    { id: "seat", d: "M74 116 H92 V124 H74 Z" },
+    { id: "post", d: "M158 156 V92 H166 V156 Z" },
+    { id: "platform", d: "M150 88 H178 V96 H150 Z" },
+    { id: "slide", d: poly([[152, 96], [166, 96], [132, 156], [120, 156]]) },
+    { id: "ball", d: circle(150, 168, 12) },
+  ],
+  ["M78 60 V116", "M88 60 V116", "M150 96 L118 156"],
+);
+
+// 19. GARDEN — fence, flowers and a bush.
+{
+  const flowers = [];
+  const fx = [40, 96, 152];
+  fx.forEach((x, i) => {
+    for (let k = 0; k < 5; k++) flowers.push({ id: `f${i}p${k}`, d: petal(x, 120, (k * 360) / 5 - 90, 15, 6) });
+    flowers.push({ id: `f${i}c`, d: circle(x, 120, 7) });
+  });
+  pic("garden", "גינה", "Garden", "Jardín",
+    [
+      { id: "sky", d: "M0 0 H200 V150 H0 Z" },
+      { id: "grass", d: "M0 150 H200 V200 H0 Z" },
+      { id: "sun", d: circle(30, 30, 15) },
+      { id: "fence", d: pickets(6, 194, 150, 190, 16, 8) },
+      { id: "bush", d: "M150 150 Q150 128 168 128 Q176 116 186 128 Q198 130 194 150 Z" },
+      ...flowers,
+    ],
+    fx.map((x) => `M${x} 127 V150`),
+  );
+}
+
+// 20. FAMILY — two grown-ups and two children.
+{
+  const dad = person("d", 52, 44, 22);
+  const mom = person("m", 100, 50, 21);
+  const kid = person("k", 142, 74, 16);
+  const tot = person("t", 172, 92, 12);
+  pic("family", "משפחה", "Family", "Familia",
+    [
+      { id: "sky", d: "M0 0 H200 V164 H0 Z" },
+      { id: "grass", d: "M0 164 H200 V200 H0 Z" },
+      ...dad.regions,
+      ...mom.regions,
+      ...kid.regions,
+      ...tot.regions,
+    ],
+    [...dad.outlines, ...mom.outlines, ...kid.outlines, ...tot.outlines],
+  );
+}
 
 // ---- serialize ----
 const PALETTE = [

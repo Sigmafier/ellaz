@@ -16,7 +16,6 @@ import { meta as snake } from "../games/snake/meta";
 import { meta as sequence } from "../games/sequence/meta";
 import { meta as vanish } from "../games/vanish/meta";
 import { meta as shadows } from "../games/shadows/meta";
-import { meta as sortsize } from "../games/sortsize/meta";
 import { meta as echo } from "../games/echo/meta";
 import { meta as evolve } from "../games/evolve/meta";
 import { meta as balloons } from "../games/balloons/meta";
@@ -61,14 +60,12 @@ export const GAMES: ReadonlyArray<GameMeta> = [
   snake,
   blocks,
 
-  // The first game here that a player has to be able to READ. It sits under
-  // `learn` beside `sortsize` rather than in the kids block above, and its
-  // `ageBand` is "all" for the same reason - a five-year-old cannot play it.
+  // The first game here that a player has to be able to READ, so its `ageBand`
+  // is "all" - a five-year-old cannot play it - and it sits outside the kids
+  // block above.
   wordguess,
 
-  // Wave 1 - the pre-reading kids catalog. `sortsize` sits under `learn`
-  // (pre-numeric ordering); the rest under `think`.
-  sortsize,
+  // Wave 1 - the pre-reading kids catalog, under `think`.
   sequence,
   vanish,
   shadows,

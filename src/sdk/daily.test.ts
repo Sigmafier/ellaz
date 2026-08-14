@@ -514,7 +514,7 @@ describe("the record itself", () => {
 /** A roster the size of the real one, so the probabilities below are the real ones. */
 const ROSTER = [
   "memory", "evolve", "coloring", "finddiff", "hidden", "math", "2048", "tictactoe",
-  "minesweeper", "sudoku", "snake", "blocks", "wordguess", "sortsize", "sequence",
+  "minesweeper", "sudoku", "snake", "blocks", "wordguess", "sequence",
   "vanish", "shadows", "echo", "balloons", "bubbles", "bees", "frog", "reaction",
   "sort", "merge",
 ];

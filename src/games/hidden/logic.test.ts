@@ -15,9 +15,9 @@ function makeIcons(n: number): string[] {
 
 // Difficulty crowd/target pairs mirroring Hidden.tsx (easy/medium/hard).
 const CONFIGS = [
-  { name: "easy", crowd: 16, targets: 3 },
-  { name: "medium", crowd: 24, targets: 4 },
-  { name: "hard", crowd: 32, targets: 5 },
+  { name: "easy", crowd: 24, targets: 3 },
+  { name: "medium", crowd: 40, targets: 4 },
+  { name: "hard", crowd: 56, targets: 5 },
 ];
 
 describe("hidden-object logic", () => {

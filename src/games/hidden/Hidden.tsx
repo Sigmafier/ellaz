@@ -7,21 +7,25 @@ import { burst, shake, haptic } from "@juice/index";
 import { shuffle, winMoment, useRememberedLevel } from "@shared/index";
 import { newGame, tapObject, isWon, targetIcons, type HiddenState } from "./logic";
 
-// A big cast of original characters (>=34 distinct so "hard" has a full crowd);
-// find the ones on the target strip.
+// A big cast of DISTINCT characters (every icon unique so a target is never
+// ambiguous). It has to be at least as large as the biggest crowd below, so the
+// "hard" scene is a dense, Where's-Wally-style throng rather than a sparse one.
 const CAST = [
   "🐶", "🐱", "🦊", "🐰", "🐻", "🐼", "🐨", "🐵", "🦁", "🐯", "🐸", "🐷",
   "🐔", "🐧", "🐦", "🦉", "🦄", "🐝", "🦋", "🐢", "🐙", "🦖", "🦕", "🐳",
   "🐌", "🐞", "🦔", "🦇", "🐴", "🐮", "🐗", "🦒", "🦓", "🦩", "🦜", "🐡",
-];
+  "🐠", "🐬", "🦈", "🐊", "🐍", "🐜", "🦗", "🕷️", "🦂", "🦀", "🦞", "🐚",
+  "🐺", "🦝", "🦡", "🦫", "🦦", "🦥", "🐿️", "🦨", "🐹", "🐭", "🦇", "🦚",
+].filter((v, i, a) => a.indexOf(v) === i); // keep it strictly distinct
 
 type Difficulty = "easy" | "medium" | "hard";
 
 // Difficulty controls BOTH the crowd size (slice of CAST) and the target count.
+// Crowds are large on purpose - the whole point of the change is a busy scene.
 const DIFFICULTIES: Record<Difficulty, { crowd: number; targets: number }> = {
-  easy: { crowd: 16, targets: 3 },
-  medium: { crowd: 24, targets: 4 },
-  hard: { crowd: 32, targets: 5 },
+  easy: { crowd: 24, targets: 3 },
+  medium: { crowd: 40, targets: 4 },
+  hard: { crowd: 56, targets: 5 },
 };
 
 const DIFF_OPTIONS: DifficultyOption<Difficulty>[] = [
@@ -206,9 +210,12 @@ export function Hidden({ ctx }: { ctx: GameContext }) {
         className="ellaz-play-surface"
         style={{
           position: "relative",
-          width: "min(94vw, 54vh, 560px)",
-          aspectRatio: "1 / 1.1",
-          background: "radial-gradient(circle at 50% 30%, #2b3170, #1a1e3f)",
+          width: "min(94vw, 58vh, 580px)",
+          aspectRatio: "1 / 1.15",
+          // A place rather than a void: sky over meadow, so the crowd reads as
+          // a scene to search through (Where's-Wally), not icons on black.
+          background:
+            "linear-gradient(180deg,#cdeaff 0%,#dff1ff 46%,#bfe6a0 46%,#a6d987 100%)",
           borderRadius: 18,
           overflow: "hidden",
           boxShadow: "var(--shadow-2)",
@@ -227,12 +234,12 @@ export function Hidden({ ctx }: { ctx: GameContext }) {
                 left: `${o.x}%`,
                 top: `${o.y}%`,
                 transform: "translate(-50%, -50%)",
-                border: found ? "3px solid #00e0a4" : "none",
-                background: "transparent",
-                fontSize: "clamp(24px, 6vw, 34px)",
+                border: found ? "3px solid #00b894" : "none",
+                background: found ? "rgba(0,230,164,0.25)" : "transparent",
+                fontSize: "clamp(17px, 4.4vw, 28px)",
                 lineHeight: 1,
-                padding: 2,
-                borderRadius: 10,
+                padding: 1,
+                borderRadius: 8,
               }}
             >
               {o.icon}

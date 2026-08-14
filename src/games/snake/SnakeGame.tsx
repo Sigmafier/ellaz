@@ -16,6 +16,7 @@ import { useRememberedLevel } from "@shared/useRememberedLevel";
 // pulls Phaser, so that one convenience import un-deferred 380 KB of engine
 // while every comment here still claimed it was lazy.
 import type { SnakeStatus, SpeedKey } from "./SnakeScene";
+import type { Dir } from "./logic";
 
 // The one Phaser game in the roster, wearing the same chrome as the other
 // twenty. Its score, level and speed used to be drawn INSIDE the canvas at
@@ -50,6 +51,7 @@ export function SnakeGame({ ctx }: { ctx: GameContext }) {
   const sceneRef = useRef<{
     setSpeed: (k: SpeedKey) => void;
     restartFromChrome: () => void;
+    steer: (dir: Dir) => void;
   } | null>(null);
   // Snake is the one game whose level lives inside the engine rather than in
   // React: the scene owns `selectedSpeed` and publishes it back out. So the
@@ -137,21 +139,52 @@ export function SnakeGame({ ctx }: { ctx: GameContext }) {
       he: {
         over: "המשחק נגמר - הקישו לשחק שוב",
         ready: "הקישו כדי להתחיל",
-        hint: "החליקו או חצים",
+        hint: "כפתורים, החלקה או חצים",
       },
       en: {
         over: "Game over - tap to play again",
         ready: "Tap to start",
-        hint: "Swipe or arrow keys",
+        hint: "Buttons, swipe or arrow keys",
       },
       es: {
         over: "Fin del juego - toca para jugar otra vez",
         ready: "Toca para empezar",
-        hint: "Desliza o usa las flechas",
+        hint: "Botones, desliza o flechas",
       },
     },
     ctx.locale,
   );
+
+  // A D-pad key. `onPointerDown` (not click) so a turn registers on touch the
+  // instant the finger lands, and `preventDefault` so a press does not also
+  // scroll the page or fire a phantom click.
+  const dpadBtn = (glyph: string, dir: Dir, place: { gridColumn: number; gridRow: number }) => (
+    <button
+      type="button"
+      aria-label={dir}
+      onPointerDown={(e) => {
+        e.preventDefault();
+        sceneRef.current?.steer(dir);
+      }}
+      style={{
+        ...place,
+        border: "none",
+        borderRadius: 14,
+        background: "var(--surface)",
+        boxShadow: "var(--shadow-1)",
+        color: "var(--text)",
+        fontSize: 24,
+        display: "grid",
+        placeItems: "center",
+        cursor: "pointer",
+        touchAction: "none",
+        userSelect: "none",
+      }}
+    >
+      {glyph}
+    </button>
+  );
+
   return (
     <GameChrome
       ctx={ctx}
@@ -170,26 +203,48 @@ export function SnakeGame({ ctx }: { ctx: GameContext }) {
       }}
       onRestart={() => sceneRef.current?.restartFromChrome()}
       footer={
-        <div
-          style={{
-            background: "var(--surface)",
-            borderRadius: "var(--radius-2)",
-            boxShadow: "var(--shadow-1)",
-            padding: "13px 12px",
-            minHeight: 60,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            textAlign: "center",
-          }}
-        >
-          <b style={{ fontSize: 17, fontFamily: "Fredoka, inherit" }}>
-            {status.phase === "over"
-              ? T.over
-              : status.phase === "ready"
-                ? T.ready
-                : T.hint}
-          </b>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+          <div
+            style={{
+              background: "var(--surface)",
+              borderRadius: "var(--radius-2)",
+              boxShadow: "var(--shadow-1)",
+              padding: "10px 12px",
+              minHeight: 44,
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              textAlign: "center",
+            }}
+          >
+            <b style={{ fontSize: 17, fontFamily: "Fredoka, inherit" }}>
+              {status.phase === "over"
+                ? T.over
+                : status.phase === "ready"
+                  ? T.ready
+                  : T.hint}
+            </b>
+          </div>
+
+          {/* On-screen D-pad — the old-school control for a player with no
+              keyboard who would rather tap than swipe. `dir="ltr"` because these
+              are physical DIRECTIONS on a board pinned LTR. */}
+          <div
+            dir="ltr"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 56px)",
+              gridTemplateRows: "repeat(2, 56px)",
+              gap: 8,
+              touchAction: "none",
+            }}
+          >
+            {dpadBtn("▲", "up", { gridColumn: 2, gridRow: 1 })}
+            {dpadBtn("◀", "left", { gridColumn: 1, gridRow: 2 })}
+            {dpadBtn("▼", "down", { gridColumn: 2, gridRow: 2 })}
+            {dpadBtn("▶", "right", { gridColumn: 3, gridRow: 2 })}
+          </div>
         </div>
       }
     >

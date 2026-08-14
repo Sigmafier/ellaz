@@ -68,6 +68,9 @@ const SESSION: SessionSpec<ColoringSession> = {
 
 const VIEW = 200; // every picture uses a 0 0 200 200 viewBox
 type Tool = "fill" | "brush";
+// One undoable step. A fill carries the colour it painted over (undefined = the
+// region was blank), so undo puts that back instead of just clearing it.
+type Action = { kind: "fill"; regionId: string; prev?: string } | { kind: "stroke" };
 // Brush widths in viewBox units. A 200-unit board shown at ~360px means the
 // smallest is a fine ~7px line and the largest a chunky ~47px one.
 const BRUSH_SIZES = [4, 9, 16, 26];
@@ -138,6 +141,11 @@ export function Coloring({ ctx }: { ctx: GameContext }) {
     restored && restored.picId === pic.id ? (restored.strokes ?? []) : [],
   );
   const [live, setLive] = useState<string | null>(null); // in-progress stroke `d`
+  // Undo history across BOTH tools, newest last. A fill remembers the colour it
+  // replaced (or none), so undo restores the region rather than just clearing
+  // it; a stroke just pops the last path. Transient — not persisted, so undo is
+  // within the current sitting only.
+  const [history, setHistory] = useState<Action[]>([]);
   const drawingRef = useRef<number[][] | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const activeThumbRef = useRef<HTMLButtonElement>(null);
@@ -171,6 +179,7 @@ export function Coloring({ ctx }: { ctx: GameContext }) {
     const wasComplete = pic.regions.every((r) => fills[r.id]);
     const nowComplete = pic.regions.every((r) => nf[r.id]);
     setFills(nf);
+    setHistory((h) => [...h, { kind: "fill", regionId, prev: fills[regionId] }]);
     // The blank page is a single region; flood-filling it is choosing a
     // background, not completing a picture, so it earns no win.
     if (pic.id !== "blank" && !wasComplete && nowComplete) {
@@ -216,11 +225,26 @@ export function Coloring({ ctx }: { ctx: GameContext }) {
     setLive(null);
     if (!pts) return;
     setStrokes((s) => [...s, { c: color, w: brushSize, d: strokePath(pts) }]);
+    setHistory((h) => [...h, { kind: "stroke" }]);
     ctx.audio.play("pop");
   };
 
+  // Undo the last action of EITHER tool — a fill is restored to the colour it
+  // covered, a stroke is popped.
   const undo = () => {
-    setStrokes((s) => s.slice(0, -1));
+    if (history.length === 0) return;
+    const last = history[history.length - 1];
+    if (last.kind === "stroke") {
+      setStrokes((s) => s.slice(0, -1));
+    } else {
+      setFills((f) => {
+        const nf = { ...f };
+        if (last.prev === undefined) delete nf[last.regionId];
+        else nf[last.regionId] = last.prev;
+        return nf;
+      });
+    }
+    setHistory((h) => h.slice(0, -1));
     ctx.audio.play("tap");
   };
 
@@ -228,6 +252,7 @@ export function Coloring({ ctx }: { ctx: GameContext }) {
     setPicId(id);
     setFills({});
     setStrokes([]);
+    setHistory([]);
     ctx.audio.play("tap");
     ctx.analytics.levelStart(id);
   };
@@ -236,6 +261,7 @@ export function Coloring({ ctx }: { ctx: GameContext }) {
   const clearPage = () => {
     setFills({});
     setStrokes([]);
+    setHistory([]);
   };
 
   const btnBase = {
@@ -386,7 +412,7 @@ export function Coloring({ ctx }: { ctx: GameContext }) {
             <button
               aria-label={T.undo}
               onClick={undo}
-              disabled={strokes.length === 0}
+              disabled={history.length === 0}
               style={{
                 ...btnBase,
                 marginInlineStart: "auto",
@@ -395,8 +421,8 @@ export function Coloring({ ctx }: { ctx: GameContext }) {
                 fontSize: 18,
                 background: "var(--surface)",
                 color: "var(--text)",
-                opacity: strokes.length === 0 ? 0.4 : 1,
-                cursor: strokes.length === 0 ? "default" : "pointer",
+                opacity: history.length === 0 ? 0.4 : 1,
+                cursor: history.length === 0 ? "default" : "pointer",
               }}
             >
               <span style={{ fontSize: 24, lineHeight: 1 }}>↶</span> {T.undo}

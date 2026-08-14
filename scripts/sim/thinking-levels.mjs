@@ -4,7 +4,7 @@
  *
  *   node scripts/sim/thinking-levels.mjs [--json]
  *
- * Five games (echo, sequence, shadows, vanish, sortsize) advertise their levels
+ * Four games (echo, sequence, shadows, vanish) advertise their levels
  * as a word. This turns each word into the quantity it stands for, read from
  * the game's own constants, so a retuned level moves this output instead of
  * being contradicted by it.
@@ -31,7 +31,6 @@ const echo = await import(join(ROOT, "src/games/echo/logic.ts"));
 const sequence = await import(join(ROOT, "src/games/sequence/logic.ts"));
 const shadows = await import(join(ROOT, "src/games/shadows/logic.ts"));
 const vanish = await import(join(ROOT, "src/games/vanish/logic.ts"));
-const sortsize = await import(join(ROOT, "src/games/sortsize/logic.ts"));
 
 const pct = (x) => Number((x * 100).toFixed(1));
 
@@ -111,32 +110,11 @@ for (const [d, spec] of Object.entries(vanish.LEVELS)) {
   }
 }
 
-/* --------------------------------------------------------------- sortsize */
-
-const sortLevels = {};
-for (const [d, cfg] of Object.entries(sortsize.LEVELS)) {
-  sortLevels[d] = {
-    task: cfg.kind,
-    items: cfg.count,
-    minSizeRatio: cfg.minRatio,
-    // How many DISTINCT orderings a child could produce - the size of the
-    // mistake space, which is what "order four things" really costs.
-    orderings: cfg.kind === "order" ? factorial(cfg.count) : null,
-  };
-}
-
-function factorial(n) {
-  let out = 1;
-  for (let i = 2; i <= n; i++) out *= i;
-  return out;
-}
-
 const out = {
   echo: echoLevels,
   sequence: sequenceLevels,
   shadows: { levels: shadowLevels, mediumAndHardShareOdds: shadowsSameOdds },
   vanish: vanishLevels,
-  sortsize: sortLevels,
 };
 
 if (process.argv.includes("--json")) {
@@ -176,15 +154,6 @@ if (process.argv.includes("--json")) {
     console.log(
       `${name.padEnd(9)} ${String(r.items).padStart(5)}   ${String(r.studyMs / 1000 + "s").padStart(5)}   ` +
         `${String(r.secondsPerItem + "s").padStart(8)}   ${String(r.guessPct + "%").padStart(10)}`,
-    );
-  }
-
-  console.log("\nsortsize: how close two sizes ever get\n");
-  console.log("level     task     items   smallest gap   orderings");
-  for (const [name, r] of Object.entries(sortLevels)) {
-    console.log(
-      `${name.padEnd(9)} ${r.task.padEnd(8)} ${String(r.items).padStart(5)}   ` +
-        `${String(r.minSizeRatio + "x").padStart(12)}   ${String(r.orderings ?? "-").padStart(9)}`,
     );
   }
 }

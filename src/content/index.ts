@@ -7,7 +7,6 @@ import { frog } from "./games/frog";
 import { echo } from "./games/echo";
 import { sequence } from "./games/sequence";
 import { shadows } from "./games/shadows";
-import { sortsize } from "./games/sortsize";
 import { vanish } from "./games/vanish";
 import { coloring } from "./games/coloring";
 import { evolve } from "./games/evolve";
@@ -62,7 +61,6 @@ export const CONTENT: Record<string, GameContent> = {
   [echo.id]: echo,
   [sequence.id]: sequence,
   [shadows.id]: shadows,
-  [sortsize.id]: sortsize,
   [vanish.id]: vanish,
   [coloring.id]: coloring,
   [evolve.id]: evolve,

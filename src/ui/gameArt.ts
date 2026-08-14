@@ -108,7 +108,10 @@ export interface Scene {
  * session starts on, which is what the 2026-08-11 ceiling note already refused
  * to pay for.
  */
-export const SHELL_ART_COUNT = 16;
+// 15, not 16, since the big/small game was removed from the middle of the
+// roster and its scene left the shell half with it — the split stays aligned
+// with the roster and one fewer scene ships on a first visit.
+export const SHELL_ART_COUNT = 15;
 
 /**
  * The scenes a first visit carries. The rest are in `gameArtRest.ts`.
@@ -178,18 +181,6 @@ const ART: Record<string, Scene> = {
      version's radial rays read as a SUN, which is worse than illegible — it
      looked like a different game. Curved FRAGMENTS flying apart, plus the knot
      left dangling on its string, say "popped" with no ambiguity. */
-  sortsize: { a: "#E4572E", b: "#F0805B", d: "band", s: `
-    <g fill="${PAL.paper}">
-      <circle cx="30" cy="116" r="8"/><circle cx="34" cy="120" r="14"/>
-      <circle cx="80" cy="94" r="13"/><circle cx="86" cy="102" r="23"/>
-      <circle cx="152" cy="50" r="19"/><circle cx="160" cy="66" r="34"/></g>
-    <g fill="${I}">
-      <circle cx="31" cy="118" r="2.6"/><circle cx="39" cy="118" r="2.6"/>
-      <circle cx="80" cy="99" r="4"/><circle cx="93" cy="99" r="4"/>
-      <circle cx="150" cy="60" r="5.6"/><circle cx="170" cy="60" r="5.6"/></g>
-    <g fill="${PAL.clay}">
-      <ellipse cx="35" cy="126" rx="4" ry="3"/><ellipse cx="86" cy="110" rx="6.5" ry="5"/>
-      <ellipse cx="160" cy="79" rx="10" ry="7.5"/></g>` },
 
   /* a row that plainly continues, ending in the card you must fill */
   sequence: { a: "#A855C9", b: "#C079DC", d: "band", s: `

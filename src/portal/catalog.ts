@@ -48,7 +48,6 @@ const LOADERS: Record<string, () => Promise<{ default: GameModule }>> = {
   snake: () => import("../games/snake/index"),
   blocks: () => import("../games/blocks/index"),
   wordguess: () => import("../games/wordguess/index"),
-  sortsize: () => import("../games/sortsize/index"),
   sequence: () => import("../games/sequence/index"),
   vanish: () => import("../games/vanish/index"),
   shadows: () => import("../games/shadows/index"),

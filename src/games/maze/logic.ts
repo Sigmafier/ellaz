@@ -401,6 +401,51 @@ export function tap(state: MazeState, index: number): { state: MazeState; outcom
   };
 }
 
+/** A step direction from the on-screen arrows / arrow keys. */
+export type Dir = "up" | "right" | "down" | "left";
+
+/** The cell one step from `i` in `dir`, or null at the board edge. */
+export function stepTarget(size: number, i: number, dir: Dir): number | null {
+  const r = Math.floor(i / size);
+  const c = i % size;
+  if (dir === "up") return r > 0 ? i - size : null;
+  if (dir === "down") return r < size - 1 ? i + size : null;
+  if (dir === "left") return c > 0 ? i - 1 : null;
+  return c < size - 1 ? i + 1 : null; // right
+}
+
+/**
+ * Walk the mouse ONE square in `dir`, if a hedge is not in the way.
+ *
+ * The step-at-a-time counterpart to `tap`: same outcome shape, same
+ * pick-up-a-crumb-and-maybe-finish rules, but exactly one cell. A move into a
+ * wall or off the edge is `blocked` and changes nothing - there is no penalty,
+ * the mouse simply does not go through the hedge. `perfect` still means the maze
+ * was finished in exactly `par` steps, so an efficient walker keeps the streak.
+ */
+export function stepMove(state: MazeState, dir: Dir): { state: MazeState; outcome: TapOutcome } {
+  if (isSolved(state)) return { state, outcome: { kind: "ignored" } };
+  const target = stepTarget(state.size, state.at, dir);
+  if (target === null || !isOpen(state.walls, state.size, state.at, target)) {
+    return { state, outcome: { kind: "blocked", at: state.at } };
+  }
+  const collected = state.cheese.includes(target) ? [target] : [];
+  const cheese = state.cheese.filter((c) => c !== target);
+  const steps = state.steps + 1;
+  const solved = cheese.length === 0 && target === state.home;
+  const perfect = solved && steps === state.par;
+  return {
+    state: {
+      ...state,
+      at: target,
+      cheese,
+      steps,
+      streak: solved ? (perfect ? state.streak + 1 : 0) : state.streak,
+    },
+    outcome: { kind: "moved", path: [target], collected, solved, perfect },
+  };
+}
+
 /* -------------------------------------------------------------- reporting */
 
 /**

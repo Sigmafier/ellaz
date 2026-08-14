@@ -16,18 +16,40 @@ export interface HiddenState {
   found: string[];
 }
 
-// Scatter `icons` across the scene, then choose `numTargets` of them to find.
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+// Lay `icons` out as a JITTERED GRID, then choose `numTargets` of them to find.
+//
+// A grid rather than a pure scatter, because a Where's-Wally crowd is dense and
+// every face must stay findable: random placement at a big crowd size buries
+// characters under one another (later ones paint on top), so a target could be
+// impossible to tap. A grid packs them tightly and evenly; the per-cell jitter
+// (up to ~35% of a cell) keeps it from reading as a spreadsheet. Coordinates
+// stay inside the same 6..94 / 12..92 window the scatter used, so nothing at
+// the render layer changes.
 export function newGame(
   icons: string[],
   numTargets: number,
   rng: () => number = Math.random,
 ): HiddenState {
-  const placed: Placed[] = icons.map((icon, i) => ({
-    id: `o${i}`,
-    icon,
-    x: 6 + rng() * 88,
-    y: 12 + rng() * 80,
-  }));
+  const n = icons.length;
+  const cols = Math.max(1, Math.round(Math.sqrt(n * 1.05))); // slightly wider than tall
+  const rows = Math.ceil(n / cols);
+  const cellW = 84 / cols;
+  const cellH = 76 / rows;
+  const shuffled = shuffle(icons, rng);
+  const placed: Placed[] = shuffled.map((icon, i) => {
+    const c = i % cols;
+    const r = Math.floor(i / cols);
+    const jx = (rng() - 0.5) * cellW * 0.7;
+    const jy = (rng() - 0.5) * cellH * 0.7;
+    return {
+      id: `o${i}`,
+      icon,
+      x: clamp(8 + cellW * (c + 0.5) + jx, 6, 94),
+      y: clamp(14 + cellH * (r + 0.5) + jy, 12, 92),
+    };
+  });
   const targets = shuffle(placed, rng)
     .slice(0, Math.min(numTargets, placed.length))
     .map((p) => p.id);

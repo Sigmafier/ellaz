@@ -12,12 +12,63 @@ import {
   optimalRoute,
   pathBetween,
   scoreReport,
+  stepMove,
+  stepTarget,
   tap,
   type Difficulty,
   type MazeState,
 } from "./logic";
 
 const seeded = (label: string) => mulberry32(seedFrom(label));
+
+describe("stepMove - one square at a time", () => {
+  it("walks into an open neighbour and blocks on a hedge or an edge", () => {
+    for (const level of DIFFICULTIES) {
+      for (let s = 0; s < 40; s++) {
+        const m = newMaze(level, 0, seeded(`step-${level}-${s}`));
+        const open = openNeighbours(m.walls, m.size, m.at);
+        for (const dir of ["up", "right", "down", "left"] as const) {
+          const target = stepTarget(m.size, m.at, dir);
+          const { state, outcome } = stepMove(m, dir);
+          if (target !== null && isOpen(m.walls, m.size, m.at, target)) {
+            expect(outcome.kind).toBe("moved");
+            expect(state.at).toBe(target);
+            expect(state.steps).toBe(1);
+            expect(open).toContain(target);
+          } else {
+            expect(outcome.kind).toBe("blocked");
+            expect(state.at).toBe(m.at); // did not move
+            expect(state).toBe(m); // and returned the same state
+          }
+        }
+      }
+    }
+  });
+
+  it("finishing in exactly par by single steps keeps the streak", () => {
+    const m = newMaze("easy", 3, seeded("par-walk"));
+    const route = optimalRoute(m.walls, m.size, m.at, m.cheese, m.home);
+    const waypoints = [m.at, ...route.order, m.home];
+    const dirOf = (from: number, to: number): "up" | "down" | "left" | "right" => {
+      const diff = to - from;
+      if (diff === -m.size) return "up";
+      if (diff === m.size) return "down";
+      return diff === 1 ? "right" : "left";
+    };
+    let cur = m;
+    for (let w = 1; w < waypoints.length; w++) {
+      const seg = pathBetween(m.walls, m.size, waypoints[w - 1], waypoints[w]) ?? [];
+      for (const cell of seg) {
+        const r = stepMove(cur, dirOf(cur.at, cell));
+        expect(r.outcome.kind).toBe("moved");
+        cur = r.state;
+      }
+    }
+    expect(isSolved(cur)).toBe(true);
+    expect(cur.steps).toBe(m.par);
+    expect(cur.streak).toBe(4); // 3 + this perfect one
+  });
+});
 
 /** Deal a maze from a named seed, so a failure is reproducible from its message. */
 function deal(level: Difficulty, label: string, streak = 0): MazeState {

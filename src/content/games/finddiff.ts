@@ -2,7 +2,7 @@ import type { GameContent } from "../types";
 
 /**
  * The page whose admission is a content limit rather than a difficulty warning:
- * there are 4 scenes and 15 differences in total, and a regular player will see
+ * there are 6 scenes and 30 differences in total, and a regular player will see
  * them again. Saying so is better than a parent discovering it in week two and
  * concluding the game is broken.
  *
@@ -25,18 +25,18 @@ export const finddiff: GameContent = {
       body: [
         "שתי תמונות זו לצד זו. משהו שונה. נוגעים בו.",
 
-        "וההודאה שלנו, כי עדיף שתדעו מראש מאשר תגלו בשבוע השני: יש כרגע 4 סצנות עם 15 הבדלים בסך הכול. ילד שמשחק בקביעות יראה את הגינה ואת עולם המים שוב, ואת ההבדל שכבר מצא הוא ימצא מהר יותר בפעם השנייה. זה משחק תוכן, וכמות התוכן היא בדיוק מה שיש. אנחנו מוסיפים סצנות, וברגע שנוסיף אחת היא תגיע לכל מי שכבר משחק בלי שיצטרך לעשות כלום.",
+        "וההודאה שלנו, כי עדיף שתדעו מראש מאשר תגלו בשבוע השני: יש כרגע 6 סצנות עם 30 הבדלים בסך הכול. ילד שמשחק בקביעות יראה את הגינה ואת עולם המים שוב, ואת ההבדל שכבר מצא הוא ימצא מהר יותר בפעם השנייה. זה משחק תוכן, וכמות התוכן היא בדיוק מה שיש. אנחנו מוסיפים סצנות, וברגע שנוסיף אחת היא תגיע לכל מי שכבר משחק בלי שיצטרך לעשות כלום.",
 
         "בינתיים זה עדיין עובד בזכות שני דברים. ההבדלים מפוזרים אחרת בכל סיבוב, וילדים בני ארבע לא זוכרים בין יום ליום איפה היה הפרפר. בגיל שבע כן זוכרים, וזו הסיבה שהמשחק הזה טוב יותר לילדים קטנים.",
 
         "אין שעון בכלל, ואין עונש על נגיעה במקום הלא נכון. אפשר לחפש דקה שלמה, לוותר על הבדל אחד ולהמשיך, ולנסות שוב אחר כך. השלבים ממשיכים בלי סוף ומה שנשמר הוא כמה סצנות ניקיתם בסך הכול.",
 
-        "והמספר הזה הוא סצנות ולא שלבים, בכוונה. המסך מציג שלב, אבל השלב עולה רק אחרי מעבר מלא על כל 4 הסצנות. לשמור את זה כשיא היה משאיר לרוב המשחקים שיא של 1 לתמיד, וזה מספר שלא אומר שום דבר.",
+        "והמספר הזה הוא סצנות ולא שלבים, בכוונה. המסך מציג שלב, אבל השלב עולה רק אחרי מעבר מלא על כל 6 הסצנות. לשמור את זה כשיא היה משאיר לרוב המשחקים שיא של 1 לתמיד, וזה מספר שלא אומר שום דבר.",
       ],
 
       howToPlay: [
         { title: "מסתכלים על שתי התמונות", body: "הן כמעט זהות. כמעט." },
-        { title: "מוצאים הבדל", body: "צבע שונה, פריט חסר, משהו שזז. 3 או 4 הבדלים לכל סצנה." },
+        { title: "מוצאים הבדל", body: "צבע שונה, פריט חסר, משהו שזז. 5 הבדלים לכל סצנה." },
         { title: "נוגעים בו", body: "נגיעה במקום הנכון מסמנת אותו. נגיעה במקום אחר לא עולה כלום." },
         { title: "מנקים את הסצנה", body: "כשמצאתם את כולם עוברים לסצנה הבאה, אוטומטית." },
       ],
@@ -107,7 +107,7 @@ export const finddiff: GameContent = {
         },
         {
           q: "כמה סצנות יש?",
-          a: "4 סצנות עם 15 הבדלים בסך הכול. זה משחק תוכן, אז ילד שמשחק בקביעות יראה אותן שוב. אנחנו מוסיפים עוד, וסצנה חדשה מגיעה אליכם בלי שתעשו כלום.",
+          a: "6 סצנות עם 30 הבדלים בסך הכול. זה משחק תוכן, אז ילד שמשחק בקביעות יראה אותן שוב. אנחנו מוסיפים עוד, וסצנה חדשה מגיעה אליכם בלי שתעשו כלום.",
         },
         {
           q: "מה קורה כשנוגעים במקום הלא נכון?",
@@ -124,7 +124,7 @@ export const finddiff: GameContent = {
         },
         {
           q: "איך השיא נמדד?",
-          a: "בכמה סצנות ניקיתם בסך הכול, כשיותר זה טוב יותר. המסך מציג גם שלב, אבל השלב עולה רק אחרי מעבר מלא על כל 4 הסצנות, ולכן הוא לא המספר שנשמר.",
+          a: "בכמה סצנות ניקיתם בסך הכול, כשיותר זה טוב יותר. המסך מציג גם שלב, אבל השלב עולה רק אחרי מעבר מלא על כל 6 הסצנות, ולכן הוא לא המספר שנשמר.",
         },
         {
           q: "מאיזה גיל זה מתאים?",
@@ -149,18 +149,18 @@ export const finddiff: GameContent = {
       body: [
         "Two pictures side by side. Something is different. Touch it.",
 
-        "Here is our admission, and you should have it up front rather than discover it in week two. There are currently 4 scenes with 15 differences between them. A child playing regularly will see the garden and the underwater scene again, and a difference they already found will come faster the second time. This is a content game, and the amount of content is exactly what it is. We add scenes, and a new one reaches everybody already playing without them doing anything.",
+        "Here is our admission, and you should have it up front rather than discover it in week two. There are currently 6 scenes with 30 differences between them. A child playing regularly will see the garden and the underwater scene again, and a difference they already found will come faster the second time. This is a content game, and the amount of content is exactly what it is. We add scenes, and a new one reaches everybody already playing without them doing anything.",
 
         "In the meantime it still works, for two reasons. The differences sit in different places each round, and four-year-olds do not remember from one day to the next where the butterfly was. Seven-year-olds do, which is why this game suits younger children better.",
 
         "There is no clock at all and no penalty for touching the wrong spot. You can search for a full minute, give up on one difference and come back to it, and try again later. Levels continue without end and what gets kept is how many scenes you cleared in total.",
 
-        "That number counts scenes rather than levels, deliberately. The screen shows a level, but the level only goes up after a full pass through all 4 scenes. Storing that as the record would leave most players on 1 forever, which is a number that says nothing.",
+        "That number counts scenes rather than levels, deliberately. The screen shows a level, but the level only goes up after a full pass through all 6 scenes. Storing that as the record would leave most players on 1 forever, which is a number that says nothing.",
       ],
 
       howToPlay: [
         { title: "Look at both pictures", body: "They are nearly identical. Nearly." },
-        { title: "Find a difference", body: "A changed colour, a missing item, something moved. 3 or 4 per scene." },
+        { title: "Find a difference", body: "A changed colour, a missing item, something moved. 5 per scene." },
         { title: "Touch it", body: "Touching the right spot marks it. Touching anywhere else costs nothing." },
         { title: "Clear the scene", body: "Find them all and the next scene arrives automatically." },
       ],
@@ -197,7 +197,7 @@ export const finddiff: GameContent = {
       ages: [
         { title: "3 to 4", body: "Together at first. One difference found unaided is an achievement at this age." },
         { title: "5 to 6", body: "Alone, and this is the age the game suits best." },
-        { title: "7 and up", body: "Still fun, but 15 differences get memorised quickly. Better in occasional visits." },
+        { title: "7 and up", body: "Still fun, but 30 differences get memorised quickly. Better in occasional visits." },
         {
           title: "Parents",
           body: "A good two-person game, because whoever finds one first takes nothing away from whoever is still looking.",
@@ -231,7 +231,7 @@ export const finddiff: GameContent = {
         },
         {
           q: "How many scenes are there?",
-          a: "4 scenes with 15 differences in total. This is a content game, so a child playing regularly will see them again. We add more, and a new scene reaches you without you doing anything.",
+          a: "6 scenes with 30 differences in total. This is a content game, so a child playing regularly will see them again. We add more, and a new scene reaches you without you doing anything.",
         },
         {
           q: "What happens on a wrong touch?",
@@ -248,7 +248,7 @@ export const finddiff: GameContent = {
         },
         {
           q: "How is the record measured?",
-          a: "By how many scenes you cleared in total, where higher is better. The screen also shows a level, but that only goes up after a full pass through all 4 scenes, which is why it is not the number stored.",
+          a: "By how many scenes you cleared in total, where higher is better. The screen also shows a level, but that only goes up after a full pass through all 6 scenes, which is why it is not the number stored.",
         },
         {
           q: "What age is this for?",
@@ -272,18 +272,18 @@ export const finddiff: GameContent = {
       body: [
         "Dos dibujos, uno al lado del otro. Algo cambia. Tócalo.",
 
-        "Aquí va nuestra confesión, y preferimos dárosla por delante a que la descubráis en la segunda semana. Ahora mismo hay 4 escenas con 15 diferencias entre todas. Un niño que juegue a menudo va a volver a ver el jardín y la escena bajo el agua, y una diferencia que ya encontró le va a salir antes la segunda vez. Este es un juego de contenido, y la cantidad de contenido es exactamente la que es. Vamos añadiendo escenas, y una nueva llega a todo el que ya está jugando sin que tenga que hacer nada.",
+        "Aquí va nuestra confesión, y preferimos dárosla por delante a que la descubráis en la segunda semana. Ahora mismo hay 6 escenas con 30 diferencias entre todas. Un niño que juegue a menudo va a volver a ver el jardín y la escena bajo el agua, y una diferencia que ya encontró le va a salir antes la segunda vez. Este es un juego de contenido, y la cantidad de contenido es exactamente la que es. Vamos añadiendo escenas, y una nueva llega a todo el que ya está jugando sin que tenga que hacer nada.",
 
         "Aun así funciona. Por dos motivos. Las diferencias caen en sitios distintos cada ronda, y los niños de cuatro años no se acuerdan de un día para otro de dónde estaba la mariposa. Los de siete sí, y por eso este juego les va mejor a los pequeños.",
 
         "No hay reloj de ningún tipo ni castigo por tocar donde no era. Puedes buscar un minuto entero, rendirte con una diferencia y volver a ella, y probar otra vez más tarde. Los niveles siguen sin final y lo que se guarda es cuántas escenas has completado en total.",
 
-        "Ese número cuenta escenas y no niveles, a propósito. La pantalla enseña un nivel, pero el nivel solo sube después de una vuelta completa por las 4 escenas. Guardar eso como récord dejaría a casi todo el mundo en 1 para siempre, que es un número que no dice nada.",
+        "Ese número cuenta escenas y no niveles, a propósito. La pantalla enseña un nivel, pero el nivel solo sube después de una vuelta completa por las 6 escenas. Guardar eso como récord dejaría a casi todo el mundo en 1 para siempre, que es un número que no dice nada.",
       ],
 
       howToPlay: [
         { title: "Mira los dos dibujos", body: "Son casi idénticos. Casi." },
-        { title: "Busca una diferencia", body: "Un color cambiado, algo que falta, algo movido. 3 o 4 por escena." },
+        { title: "Busca una diferencia", body: "Un color cambiado, algo que falta, algo movido. 5 por escena." },
         { title: "Tócala", body: "Tocar el sitio correcto la marca. Tocar en cualquier otro no cuesta nada." },
         { title: "Completa la escena", body: "Encuéntralas todas y la escena siguiente llega sola." },
       ],
@@ -320,7 +320,7 @@ export const finddiff: GameContent = {
       ages: [
         { title: "3 a 4", body: "Acompañados al principio. Una diferencia encontrada sin ayuda ya es un logro a esta edad." },
         { title: "5 a 6", body: "Solos, y esta es la edad a la que mejor le va el juego." },
-        { title: "7 en adelante", body: "Sigue teniendo gracia, pero 15 diferencias se memorizan rápido. Mejor en visitas sueltas." },
+        { title: "7 en adelante", body: "Sigue teniendo gracia, pero 30 diferencias se memorizan rápido. Mejor en visitas sueltas." },
         {
           title: "Padres",
           body: "Un buen juego para dos, porque quien encuentra una primero no le quita nada a quien sigue mirando.",
@@ -354,7 +354,7 @@ export const finddiff: GameContent = {
         },
         {
           q: "¿Cuántas escenas hay?",
-          a: "4 escenas con 15 diferencias en total. Es un juego de contenido, así que un niño que juegue a menudo las va a volver a ver. Vamos añadiendo más, y una escena nueva os llega sin que tengáis que hacer nada.",
+          a: "6 escenas con 30 diferencias en total. Es un juego de contenido, así que un niño que juegue a menudo las va a volver a ver. Vamos añadiendo más, y una escena nueva os llega sin que tengáis que hacer nada.",
         },
         {
           q: "¿Qué pasa si toco donde no era?",
@@ -371,7 +371,7 @@ export const finddiff: GameContent = {
         },
         {
           q: "¿Cómo se mide el récord?",
-          a: "Por cuántas escenas has completado en total, donde más es mejor. La pantalla también enseña un nivel, pero ese solo sube tras una vuelta completa por las 4 escenas, y por eso no es el número que se guarda.",
+          a: "Por cuántas escenas has completado en total, donde más es mejor. La pantalla también enseña un nivel, pero ese solo sube tras una vuelta completa por las 6 escenas, y por eso no es el número que se guarda.",
         },
         {
           q: "¿Para qué edad es?",
@@ -389,7 +389,7 @@ export const finddiff: GameContent = {
 
   provenance: [
     {
-      claim: "4 scenes with 15 differences in total, at 3 or 4 per scene",
+      claim: "6 scenes with 30 differences in total, at 5 per scene",
       source: "src/games/finddiff/scenes.ts",
     },
     {

@@ -110,9 +110,26 @@ export function colorOf(id: ColorId): BalloonColor {
   return BALLOON_COLORS.find((c) => c.id === id) ?? BALLOON_COLORS[0];
 }
 
-/** How fast balloons arrive and how long they last. The shared preset, as-is. */
+/**
+ * How fast balloons arrive and how long they last.
+ *
+ * The shared preset, sped up a notch for balloon pop specifically: `lifeMs` is
+ * the rise duration, so a shorter life means a faster-rising balloon, and
+ * `everyMs` shrinks with it so the surface does not thin out. The factor lives
+ * here rather than in `SPAWN_PRESETS` so bubbles, bees and frog — which share
+ * that preset — keep their own pace.
+ */
+// 15% faster rise on every level. Not more: the shared floor (a balloon must
+// stay reachable for ~2s) is asserted in logic.test.ts, and hard's 2400ms life
+// only clears 2000ms at 0.85.
+const BALLOON_SPEEDUP = 0.85;
 export function specFor(difficulty: Difficulty): SpawnSpec {
-  return SPAWN_PRESETS[difficulty];
+  const base = SPAWN_PRESETS[difficulty];
+  return {
+    ...base,
+    lifeMs: Math.round(base.lifeMs * BALLOON_SPEEDUP),
+    everyMs: Math.round(base.everyMs * BALLOON_SPEEDUP),
+  };
 }
 
 export interface Round {

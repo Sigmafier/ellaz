@@ -2,10 +2,10 @@ import type { GameContent } from "../types";
 
 /**
  * Way Home - the maze whose difficulty sits on PLANNING rather than on the
- * hand. A tap names a destination and the mouse walks the shortest route
- * itself, so nothing here asks a four-year-old to hold a gesture or to hit the
- * same small square four times running, and the only thing left to be good at
- * is which order to collect the crumbs in.
+ * hand. The arrows move the mouse one square at a time, so a four-year-old
+ * steers the whole route with big single-tap buttons rather than holding a
+ * gesture, and the thing left to be good at is which order to collect the
+ * crumbs in.
  *
  * That claim is the page, so it is measured rather than asserted:
  * `scripts/sim/maze-routes.mjs` deals 20,000 fresh mazes per level through the
@@ -31,16 +31,16 @@ export const maze: GameContent = {
     he: {
       metaTitle: "הדרך הביתה - משחק מבוך חינם | Ellaz",
       metaDescription:
-        "משחק מבוך חינמי בדפדפן. נוגעים במשבצת והעכבר הולך לשם בדרך הקצרה ואוסף פירורים בדרך. בלי שעון, בלי חיים, ובלי הרשמה.",
+        "משחק מבוך חינמי בדפדפן. מנווטים את העכבר בין הגדרות עם החצים, משבצת בכל לחיצה, ואוספים פירורים בדרך. בלי שעון, בלי חיים, ובלי הרשמה.",
 
-      lede: "משחק מבוך חינם בדפדפן. עכבר, כמה פירורי גבינה ומאורה בתוך גדר חיה. נוגעים במשבצת והעכבר הולך לשם בדרך הקצרה ואוסף כל פירור שהוא עובר עליו. אוספים הכול, מגיעים הביתה, ומבוך חדש מחכה.",
+      lede: "משחק מבוך חינם בדפדפן. עכבר, כמה פירורי גבינה ומאורה בתוך גדר חיה. מנווטים את העכבר בין הגדרות עם החצים, משבצת בכל לחיצה, ואוספים כל פירור שהוא עובר עליו. אוספים הכול, מגיעים הביתה, ומבוך חדש מחכה.",
 
       body: [
-        "נוגעים במשבצת, והעכבר הולך לשם. אוסף כל פירור בדרך. זהו.",
+        "לוחצים על חץ, והעכבר זז. משבצת אחת בכל לחיצה. אוסף כל פירור שדרך עליו. זהו.",
 
         "המיומנות כאן היא לבחור סדר, ואת זה אפשר למדוד במקום להבטיח. חילקנו 20,000 מבוכים טריים בכל גודל לוח והשווינו כל אחד מהם לריצה הקצרה ביותר שקיימת לו, כזו שנבדקה מול כל סדר אפשרי של הפירורים. עכבר שהולך תמיד אל הפירור הקרוב, המהלך שנראה מתבקש, קלע לדרך הקצרה ב-92.7 אחוז מהלוחות הקטנים ורק ב-68.6 אחוז מהגדולים. מי שאוסף לפי סדר הקריאה יורד ל-44.6 אחוז. ובלוח הגדול הסדר הגרוע ביותר עולה 84.35 צעדים מול 39.53 בדרך הקצרה, כך שההחלטה שווה יותר מכל ההליכה.",
 
-        "נגיעה אומרת לאן, לא צעד אחד. העכבר מוצא את הדרך בעצמו, אז אין כאן ג'ויסטיק ואין רצף נגיעות שצריך לדייק בהן. ילד שהאצבע שלו עוד לא מכוונת משחק בדיוק את אותו משחק.",
+        "החצים מזיזים את העכבר משבצת אחת בכל לחיצה, ואתם מנווטים אותו לאורך כל הדרך. המסלול שלכם. שום דבר לא מוחזק לחוץ, פשוט לוחצים חץ לכיוון שרוצים ללכת. ילד שהאצבע שלו עוד לא מכוונת משחק בדיוק את אותו משחק.",
 
         "וההודאה, כדאי לדעת אותה מראש: הלוח הקטן הוא בקושי מבוך. הוא נחצב כמו מבוך אמיתי ואז נפתחות בו תשע מכל עשר סמטאות ללא מוצא, כך שבחלוקה ממוצעת נשארת בו שליש של סמטה אחת, ובעשירית מהחלוקות כל סדר של הפירורים עולה בדיוק אותו מספר צעדים. זו גינה עם גדרות, וזה בכוונה. בן ארבע צריך בדיוק את זה. בן שמונה יגמור אותה תוך דקה, אז אל תתחילו אותו שם.",
 
@@ -50,9 +50,9 @@ export const maze: GameContent = {
       howToPlay: [
         { title: "בוחרים גודל לוח", body: "5 על 5 עם שני פירורים, 6 על 6 עם שלושה, או 7 על 7 עם ארבעה." },
         { title: "מסתכלים על הלוח", body: "הכול גלוי מהשנייה הראשונה. אין מה לחפש, יש מה להחליט." },
-        { title: "נוגעים במשבצת", body: "העכבר הולך לשם בדרך הקצרה שיש, ועובר דרך גדר חיה אף פעם." },
-        { title: "אוספים בדרך", body: "כל פירור שהמסלול עובר עליו נאסף, גם אם לא כיוונתם אליו." },
-        { title: "חוזרים למאורה", body: "כשכל הפירורים נאספו, נגיעה במאורה סוגרת את המבוך והבא מגיע לבד." },
+        { title: "מנווטים עם החצים", body: "כל לחיצה מזיזה את העכבר משבצת אחת, ואף פעם לא דרך גדר חיה." },
+        { title: "אוספים בדרך", body: "כל פירור שהעכבר דורך עליו נאסף, גם אם לא כיוונתם אליו." },
+        { title: "חוזרים למאורה", body: "כשכל הפירורים נאספו, הליכה אל המאורה סוגרת את המבוך והבא מגיע לבד." },
       ],
 
       tips: [
@@ -66,11 +66,11 @@ export const maze: GameContent = {
         },
         {
           title: "מסלול אחד, שני פירורים",
-          body: "שני פירורים על אותו ציר נאספים בנגיעה אחת. לפני שנוגעים בקרוב, בדקו אם הרחוק יושב מעבר לו על אותה דרך.",
+          body: "שני פירורים על אותו ציר נאספים בהליכה ישרה אחת. לפני שהולכים אל הקרוב, בדקו אם הרחוק יושב מעבר לו על אותה דרך.",
         },
         {
           title: "המסלול המואר",
-          body: "אחרי כל נגיעה הדרך שנעשתה נשארת מוארת לרגע. שם רואים בדיוק כמה עקיפות היו, וזה הדבר הכי מלמד במסך.",
+          body: "אחרי כל צעד הדרך שנעשתה נשארת מוארת לרגע. שם רואים בדיוק כמה עקיפות היו, וזה הדבר הכי מלמד במסך.",
         },
       ],
 
@@ -81,11 +81,11 @@ export const maze: GameContent = {
         },
         {
           title: "לקרוא מרחב",
-          body: "לפני הנגיעה צריך לראות שדרך קיימת. זו קריאת מפה קטנה, בלי מילה אחת.",
+          body: "לפני הצעד צריך לראות שדרך קיימת. זו קריאת מפה קטנה, בלי מילה אחת.",
         },
         {
           title: "לעצור לפני שפועלים",
-          body: "שום דבר לא זז עד שנוגעים, אז שנייה של מחשבה משנה את התוצאה מיד. זה נדיר במשחק שילדים אוהבים.",
+          body: "שום דבר לא זז עד שלוחצים חץ, אז שנייה של מחשבה משנה את התוצאה מיד. זה נדיר במשחק שילדים אוהבים.",
         },
         {
           title: "לחיות עם לא מושלם",
@@ -96,7 +96,7 @@ export const maze: GameContent = {
       ages: [
         {
           title: "3 עד 4",
-          body: "הלוח הקטן. שני פירורים, גדרות מעטות, וכמעט כל נגיעה מקדמת משהו.",
+          body: "הלוח הקטן. שני פירורים, גדרות מעטות, וכמעט כל צעד מקדם משהו.",
         },
         {
           title: "5 עד 6",
@@ -113,7 +113,7 @@ export const maze: GameContent = {
       ],
 
       accessibility:
-        "נגיעה אחת לכל מהלך, בלי גרירה, בלי החזקה ממושכת ובלי כפתורי כיוון שצריך ללחוץ עליהם ברצף. העכבר הולך את כל הדרך בעצמו, אז מי שמתקשה לדייק באצבע או משתמש באמצעי קלט חלופי מגיע בדיוק לאותם מקומות. אין שעון ואין ספירה לאחור, אז אפשר לעצור באמצע ולחשוב כמה שרוצים. המשבצות גדולות: בלוח הגדול הן יוצאות בערך 49 פיקסלים על טלפון של 390 פיקסלים, ובלוח הקטן הרבה יותר. כל משבצת נושאת תווית עם מה שיש בה ועם המספרים שלה בשורה ובעמודה, כך שקורא מסך מבחין בין 49 משבצות במקום להקריא אותו דבר 49 פעמים. אפשר לשחק בשקט מוחלט בלי לאבד מידע.",
+        "החצים הם כפתורים גדולים ללחיצה בודדת, לא מחווה שצריך להחזיק, וכל לחיצה מזיזה את העכבר משבצת אחת. אפשר גם עם מקשי החצים במקלדת. אין שעון ואין ספירה לאחור, אז אפשר לעצור באמצע ולחשוב כמה שרוצים. המשבצות גדולות: בלוח הגדול הן יוצאות בערך 49 פיקסלים על טלפון של 390 פיקסלים, ובלוח הקטן הרבה יותר. כל משבצת נושאת תווית עם מה שיש בה ועם המספרים שלה בשורה ובעמודה, כך שקורא מסך מבחין בין 49 משבצות במקום להקריא אותו דבר 49 פעמים. אפשר לשחק בשקט מוחלט בלי לאבד מידע.",
 
       together: [
         {
@@ -140,8 +140,8 @@ export const maze: GameContent = {
           a: "לא. אין שעון, אין חיים ואין מהלך שנגמר רע. הליכה עקומה עדיין מסתיימת במאורה, היא פשוט לא נספרת כמושלמת.",
         },
         {
-          q: "למה העכבר לא הולך בדרך שרציתי?",
-          a: "כי נגיעה אומרת לאן ולא איך. העכבר בוחר תמיד את הדרך הקצרה שיש בין המקום שלו למשבצת שנגעתם בה. רוצים דרך אחרת, געו קודם במשבצת שבאמצע.",
+          q: "אפשר לבחור באיזו דרך העכבר הולך?",
+          a: "כן. החצים מזיזים אותו משבצת אחת בכל פעם, אז המסלול כולו שלכם. רוצים לעקוף גדר, פשוט מנווטים סביבה צעד אחרי צעד.",
         },
         {
           q: "מה זה מבוך מושלם?",
@@ -181,16 +181,16 @@ export const maze: GameContent = {
     en: {
       metaTitle: "Way Home - Free Maze Game for Kids | Ellaz",
       metaDescription:
-        "A free maze game in your browser. Tap a square and the mouse walks the shortest way there, collecting crumbs as it goes. No timer, no lives, nothing to lose.",
+        "A free maze game in your browser. Steer the mouse with the arrows, one square per press, collecting crumbs as it goes. No timer, no lives, nothing to lose.",
 
-      lede: "A free maze game that runs in your browser. There is a mouse, a few crumbs and a burrow, with hedges in between. Tap any square and the mouse walks the shortest way there, picking up whatever it passes. Collect them all, get home, and the next maze arrives on its own.",
+      lede: "A free maze game that runs in your browser. There is a mouse, a few crumbs and a burrow, with hedges in between. Steer the mouse through the hedges with the arrows, one square at a time, picking up whatever it passes. Collect them all, get home, and the next maze arrives on its own.",
 
       body: [
-        "Nothing moves until a child touches the screen. Nothing here can go wrong. Walk a silly route and the maze still ends at the burrow, it is simply not a perfect one, and only perfect runs feed the record.",
+        "Nothing moves until a child presses an arrow. Nothing here can go wrong. Walk a silly route and the maze still ends at the burrow, it is simply not a perfect one, and only perfect runs feed the record.",
 
         "Which leaves exactly one thing worth being good at: the order. We dealt 20,000 fresh mazes at each board size and compared every deal against its own shortest possible run, brute-forced over every order of the crumbs. Walking to the nearest crumb first, which is the move everybody makes, matched that shortest run on 92.7% of the small boards and on only 68.6% of the big ones. Take them in reading order instead and it falls to 44.6%. And on the big board the worst order of the same four crumbs costs 84.35 steps against a shortest run of 39.53, so deciding is worth more than the entire walk.",
 
-        "A tap names a place. Never a step. The mouse works out the route itself, so there is no joystick anywhere on this screen and nothing at all to hold down.",
+        "The arrows move the mouse one square per press. You steer the whole way. The route is yours. Nothing at all is held down.",
 
         "Now the part worth knowing before you hand it over. The small board is barely a maze. It is carved properly and then nine out of every ten dead ends are opened back up again, which leaves about a third of one dead end on an average deal, and in one deal out of ten every order of the crumbs costs exactly the same number of steps. That board is a garden with hedges in it, and it is meant to be. A three-year-old needs precisely that. An eight-year-old will be done with it inside a minute, so do not start them there.",
       ],
@@ -198,9 +198,9 @@ export const maze: GameContent = {
       howToPlay: [
         { title: "Pick a board", body: "Five by five with two crumbs, six by six with three, or seven by seven with four." },
         { title: "Look at all of it", body: "Everything is visible from the first frame. Nothing is hidden, so nothing has to be hunted." },
-        { title: "Tap a square", body: "The mouse walks the shortest route there and never once goes through a hedge." },
-        { title: "Collect on the way", body: "Any crumb the route passes over is picked up, whether or not you were aiming at it." },
-        { title: "Head for the burrow", body: "Once the crumbs are gone, a tap on the burrow closes the maze and the next one deals itself." },
+        { title: "Steer with the arrows", body: "Each press moves the mouse one square, and never once through a hedge." },
+        { title: "Collect on the way", body: "Any crumb the mouse walks onto is picked up, whether or not you were aiming at it." },
+        { title: "Head for the burrow", body: "Once the crumbs are gone, walking onto the burrow closes the maze and the next one deals itself." },
       ],
 
       tips: [
@@ -214,11 +214,11 @@ export const maze: GameContent = {
         },
         {
           title: "Two crumbs, one walk",
-          body: "Crumbs on the same corridor come home in a single tap. Before you take the near one, check whether the far one is straight past it.",
+          body: "Crumbs on the same corridor come home on one straight walk. Before you take the near one, check whether the far one is straight past it.",
         },
         {
           title: "Watch the lit trail",
-          body: "The route stays lit for a moment after each tap. That is where a detour becomes visible, and it teaches more than anything else on the screen.",
+          body: "The route stays lit for a moment after each step. That is where a detour becomes visible, and it teaches more than anything else on the screen.",
         },
       ],
 
@@ -229,11 +229,11 @@ export const maze: GameContent = {
         },
         {
           title: "Reading a space",
-          body: "Before the tap you have to see that a route exists. Small-scale map reading, with no words in it.",
+          body: "Before the step you have to see that a route exists. Small-scale map reading, with no words in it.",
         },
         {
           title: "Pausing before acting",
-          body: "Nothing moves until you touch it, so a second of thought changes the result immediately. That is rare in a game children actually like.",
+          body: "Nothing moves until you press an arrow, so a second of thought changes the result immediately. That is rare in a game children actually like.",
         },
         {
           title: "Living with imperfect",
@@ -242,19 +242,19 @@ export const maze: GameContent = {
       ],
 
       ages: [
-        { title: "3 to 4", body: "The small board. Two crumbs, few hedges, and nearly every tap moves something along." },
+        { title: "3 to 4", body: "The small board. Two crumbs, few hedges, and nearly every step moves something along." },
         { title: "5 to 6", body: "Six by six with three crumbs. The shortest run averages 24.41 steps, which is where order starts to pay." },
         { title: "7 and up", body: "The big board: four crumbs, close to six dead ends per deal, and a perfect run that wants the whole board read." },
         { title: "Grown-ups", body: "Go for a streak of perfect runs. Our nearest-crumb bot manages 68.6%, which is a fair thing to measure yourself against." },
       ],
 
       accessibility:
-        "One tap per move. Nothing is dragged, nothing is held down, and there are no direction buttons that have to be pressed over and over. The mouse walks the whole route itself, so a player using an alternative input device, or a small hand that does not aim well yet, reaches exactly the same squares as anybody else. There is no clock and no countdown, so you can stop and think for as long as you like. The squares are large: on the biggest board they come out around 49 pixels on a 390 pixel phone, and a good deal larger on the small one. Every square is labelled with what is standing on it plus its own column and row, so a screen reader can tell forty-nine of them apart instead of reading the same thing forty-nine times. The whole game plays in silence without losing any information.",
+        "The arrows are big single-tap targets, not a gesture that has to be held, and each press moves the mouse one square. Arrow keys work too. There is no clock and no countdown, so you can stop and think for as long as you like. The squares are large: on the biggest board they come out around 49 pixels on a 390 pixel phone, and a good deal larger on the small one. Every square is labelled with what is standing on it plus its own column and row, so a screen reader can tell forty-nine of them apart instead of reading the same thing forty-nine times. The whole game plays in silence without losing any information.",
 
       together: [
         {
-          title: "Point before you tap",
-          body: "Ask which crumb goes first, then let them tap. A small child answers that with a finger, and that is already a plan.",
+          title: "Point before you go",
+          body: "Ask which crumb goes first, then let them steer. A small child answers that with a finger, and that is already a plan.",
         },
         {
           title: "One maze each",
@@ -262,7 +262,7 @@ export const maze: GameContent = {
         },
         {
           title: "Guess the number",
-          body: "Before the first tap, guess how many steps it will take. Compare it with the counter afterwards.",
+          body: "Before you start, guess how many steps it will take. Compare it with the counter afterwards.",
         },
         {
           title: "Say where it has been",
@@ -276,8 +276,8 @@ export const maze: GameContent = {
           a: "No. There is no clock, no lives and no move that ends badly. A wandering walk still finishes at the burrow, it just does not count as perfect.",
         },
         {
-          q: "Why did the mouse take a different route than I wanted?",
-          a: "Because a tap says where, not how. It always takes the shortest route between where it is and the square you touched. If you want a particular way round, tap a square in the middle first.",
+          q: "Can I choose which way the mouse goes?",
+          a: "Yes. The arrows move it one square at a time, so the whole route is yours. To go around a hedge, just steer the mouse around it step by step.",
         },
         {
           q: "What counts as a perfect maze?",
@@ -317,18 +317,18 @@ export const maze: GameContent = {
     es: {
       metaTitle: "El camino a casa - laberinto gratis | Ellaz",
       metaDescription:
-        "Juego de laberinto gratis en el navegador. Tocas una casilla y el ratón va por el camino más corto recogiendo migas. Sin reloj, sin vidas, sin perder.",
+        "Juego de laberinto gratis en el navegador. Guías al ratón entre los setos con las flechas, una casilla por pulsación, recogiendo migas. Sin reloj ni vidas.",
 
-      lede: "Un juego de laberinto gratuito que funciona en el navegador. Hay un ratón, unas migas y una madriguera, con setos en medio. Tocas cualquier casilla y el ratón va hasta allí por el camino más corto, recogiendo lo que pisa. Las juntas todas, llegas a casa y aparece otro laberinto.",
+      lede: "Un juego de laberinto gratuito que funciona en el navegador. Hay un ratón, unas migas y una madriguera, con setos en medio. Guías al ratón entre los setos con las flechas, una casilla cada vez, recogiendo lo que pisa. Las juntas todas, llegas a casa y aparece otro laberinto.",
 
       body: [
-        "Aquí no se mueve nada hasta que alguien toca la pantalla. Y nada puede salir mal.",
+        "Aquí no se mueve nada hasta que alguien pulsa una flecha. Y nada puede salir mal.",
 
         "Un recorrido torpe termina igual en la madriguera; sencillamente no cuenta como perfecto, y solo lo perfecto alimenta el récord. Así que queda una única cosa en la que valga la pena ser bueno: el orden. Repartimos 20.000 laberintos nuevos en cada tamaño de tablero y comparamos cada reparto con su propio recorrido mínimo, calculado a fuerza bruta sobre todos los órdenes posibles de las migas. Ir primero a la miga más cercana, que es lo que hace todo el mundo, coincide con ese mínimo en el 92,7% de los tableros pequeños y solo en el 68,6% de los grandes. Cogerlas en orden de lectura baja al 44,6%.",
 
         "Y en el tablero grande el peor orden de esas mismas cuatro migas cuesta 84,35 pasos frente a los 39,53 del recorrido mínimo. Decidir vale más que andar.",
 
-        "Un toque dice dónde. Nunca un paso. El ratón busca el camino él solo, y no hay mando ni nada que mantener pulsado.",
+        "Las flechas mueven al ratón una casilla por pulsación. Guías tú todo el camino. La ruta es tuya. Nada hay que mantener pulsado.",
 
         "La parte honesta, mejor saberla antes: el tablero pequeño apenas es un laberinto. Se excava como un laberinto de verdad y luego se le vuelven a abrir nueve de cada diez callejones sin salida, con lo que en un reparto medio queda un tercio de callejón, y en uno de cada diez repartos todos los órdenes cuestan exactamente los mismos pasos. Eso es un jardín con setos, y así se quiso. A un niño de tres años le viene justo eso. Uno de ocho lo agota en un minuto, así que no empecéis ahí.",
       ],
@@ -336,9 +336,9 @@ export const maze: GameContent = {
       howToPlay: [
         { title: "Elige tablero", body: "Cinco por cinco con dos migas, seis por seis con tres, o siete por siete con cuatro." },
         { title: "Míralo entero", body: "Todo está a la vista desde el primer momento. No hay nada escondido que buscar." },
-        { title: "Toca una casilla", body: "El ratón va por el camino más corto que existe y jamás atraviesa un seto." },
-        { title: "Recoge de paso", body: "Cualquier miga que pise el recorrido se recoge, aunque no apuntaras a ella." },
-        { title: "Vuelve a la madriguera", body: "Cuando ya no quedan migas, un toque en la madriguera cierra el laberinto y llega el siguiente." },
+        { title: "Guía con las flechas", body: "Cada pulsación mueve al ratón una casilla, y jamás a través de un seto." },
+        { title: "Recoge de paso", body: "Cualquier miga que el ratón pise se recoge, aunque no apuntaras a ella." },
+        { title: "Vuelve a la madriguera", body: "Cuando ya no quedan migas, llegar a la madriguera cierra el laberinto y aparece el siguiente." },
       ],
 
       tips: [
@@ -352,11 +352,11 @@ export const maze: GameContent = {
         },
         {
           title: "Dos migas, un paseo",
-          body: "Dos migas en el mismo pasillo caen con un solo toque. Antes de coger la cercana, comprueba si la lejana está justo detrás.",
+          body: "Dos migas en el mismo pasillo caen en un solo paseo recto. Antes de coger la cercana, comprueba si la lejana está justo detrás.",
         },
         {
           title: "Mira el rastro",
-          body: "El recorrido se queda iluminado un momento después de cada toque. Ahí se ve el rodeo, y eso enseña más que ninguna otra cosa de la pantalla.",
+          body: "El recorrido se queda iluminado un momento después de cada paso. Ahí se ve el rodeo, y eso enseña más que ninguna otra cosa de la pantalla.",
         },
       ],
 
@@ -367,11 +367,11 @@ export const maze: GameContent = {
         },
         {
           title: "Leer un espacio",
-          body: "Antes de tocar hay que ver que el camino existe. Lectura de mapa en pequeño, sin una sola palabra.",
+          body: "Antes de moverte hay que ver que el camino existe. Lectura de mapa en pequeño, sin una sola palabra.",
         },
         {
           title: "Parar antes de actuar",
-          body: "Nada se mueve hasta que lo tocas, así que un segundo de reflexión cambia el resultado en el acto.",
+          body: "Nada se mueve hasta que pulsas una flecha, así que un segundo de reflexión cambia el resultado en el acto.",
         },
         {
           title: "Convivir con lo imperfecto",
@@ -380,19 +380,19 @@ export const maze: GameContent = {
       ],
 
       ages: [
-        { title: "3 a 4", body: "El tablero pequeño. Dos migas, pocos setos, y casi cualquier toque adelanta algo." },
+        { title: "3 a 4", body: "El tablero pequeño. Dos migas, pocos setos, y casi cualquier paso adelanta algo." },
         { title: "5 a 6", body: "Seis por seis con tres migas. El recorrido mínimo ronda los 24,41 pasos y el orden ya se nota." },
         { title: "7 en adelante", body: "El tablero grande: cuatro migas, casi seis callejones sin salida por reparto y una partida perfecta que pide leerlo todo." },
         { title: "Adultos", body: "Id a por una racha de perfectos. Nuestro robot de la miga cercana se queda en el 68,6%." },
       ],
 
       accessibility:
-        "Un toque por movimiento, sin arrastrar, sin mantener pulsado y sin botones de dirección que haya que pulsar seguidos. El ratón recorre el camino entero solo, de modo que quien use un dispositivo de entrada alternativo, o una mano pequeña que todavía no apunta bien, llega exactamente a las mismas casillas. No hay reloj ni cuenta atrás, así que se puede parar a pensar el rato que haga falta. Las casillas son grandes: en el tablero mayor salen a unos 49 píxeles en un teléfono de 390 píxeles, y bastante más en el pequeño. Cada casilla lleva en la etiqueta lo que hay encima más su columna y su fila, así que un lector de pantalla distingue las cuarenta y nueve en vez de repetir lo mismo cuarenta y nueve veces. Se juega entero en silencio sin perderse información.",
+        "Las flechas son botones grandes de una sola pulsación, no un gesto que haya que mantener, y cada pulsación mueve al ratón una casilla. También valen las teclas de flecha. No hay reloj ni cuenta atrás, así que se puede parar a pensar el rato que haga falta. Las casillas son grandes: en el tablero mayor salen a unos 49 píxeles en un teléfono de 390 píxeles, y bastante más en el pequeño. Cada casilla lleva en la etiqueta lo que hay encima más su columna y su fila, así que un lector de pantalla distingue las cuarenta y nueve en vez de repetir lo mismo cuarenta y nueve veces. Se juega entero en silencio sin perderse información.",
 
       together: [
         {
-          title: "Señalad antes de tocar",
-          body: "Preguntad qué miga va primero y dejad tocar después. Un niño pequeño responde con el dedo, y eso ya es un plan.",
+          title: "Señalad antes de ir",
+          body: "Preguntad qué miga va primero y dejad guiar después. Un niño pequeño responde con el dedo, y eso ya es un plan.",
         },
         {
           title: "Un laberinto cada uno",
@@ -400,7 +400,7 @@ export const maze: GameContent = {
         },
         {
           title: "Adivinad los pasos",
-          body: "Antes del primer toque, adivinad cuántos pasos hará falta. Luego lo comparáis con el contador.",
+          body: "Antes de empezar, adivinad cuántos pasos hará falta. Luego lo comparáis con el contador.",
         },
         {
           title: "Contad dónde ha estado",
@@ -414,8 +414,8 @@ export const maze: GameContent = {
           a: "No. Ni reloj, ni vidas, ni un movimiento que acabe mal. Un paseo torpe termina igualmente en la madriguera, solo que no cuenta como perfecto.",
         },
         {
-          q: "¿Por qué el ratón no va por donde yo quería?",
-          a: "Porque un toque dice dónde y no cómo. Siempre toma el camino más corto entre donde está y la casilla que has tocado. Si quieres otro recorrido, toca antes una casilla intermedia.",
+          q: "¿Puedo elegir por dónde va el ratón?",
+          a: "Sí. Las flechas lo mueven una casilla cada vez, así que la ruta entera es tuya. Para rodear un seto, lo guías a su alrededor paso a paso.",
         },
         {
           q: "¿Qué es un laberinto perfecto?",

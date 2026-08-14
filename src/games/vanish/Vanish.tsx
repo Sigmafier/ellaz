@@ -188,7 +188,8 @@ export function Vanish({ ctx }: { ctx: GameContext }) {
   const gone = vanishedItem(round);
   const board = revealedItems(round);
   const secondsLeft = Math.max(0, Math.ceil((round.studyMs - elapsedMs) / 1000));
-  const choiceCols = Math.min(round.choices.length, 3);
+  // Four options lay out 2×2 rather than a stranded 3+1; three stay in a row.
+  const choiceCols = round.choices.length === 4 ? 2 : Math.min(round.choices.length, 3);
   const promptText =
     phase === "study"
       ? t.study
