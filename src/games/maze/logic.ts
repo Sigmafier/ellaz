@@ -69,11 +69,9 @@ export interface LevelConfig {
  * because the best route rarely visits them in the order they catch your eye.
  */
 export const LEVELS: Record<Difficulty, LevelConfig> = {
-  // Bigger boards now that the mouse walks one step at a time — a larger, more
-  // detailed maze to actually route through rather than a five-square garden.
-  easy: { size: 6, cheese: 2, braid: 0.85 },
-  medium: { size: 8, cheese: 3, braid: 0.4 },
-  hard: { size: 10, cheese: 4, braid: 0.08 },
+  easy: { size: 5, cheese: 2, braid: 0.9 },
+  medium: { size: 6, cheese: 3, braid: 0.45 },
+  hard: { size: 7, cheese: 4, braid: 0.1 },
 };
 
 /* ------------------------------------------------------------------- walls */
