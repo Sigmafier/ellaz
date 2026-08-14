@@ -49,6 +49,36 @@ So: when an early check fails, the checks that consume its output must say *"not
 evaluated"*, not their own failure text. Order the output so the root is first and the
 dependents are visibly dependent.
 
+## "Not yet" has more than one shape, and fixing one hides the next
+
+This recurred **the same day**, on the very next deploy, and the second shape is
+invisible from the first.
+
+The fix above waits for the origin to ANSWER. But `wrangler pages deploy` returns
+**before** the new deployment is current at the edge — so there is a second "not yet"
+where the hostname resolves, answers a healthy 200, and serves the **previous build**:
+
+| | reachable? | current? | what the gate said |
+|---|---|---|---|
+| cold hostname | ✗ | ✗ | 522 → fixed by the first pass |
+| **propagating** | **✓** | **✗** | **"it is serving an older build"** |
+| genuinely failed | ✓ | ✗ | the same sentence, and this time it means it |
+
+Measured: the deploy step succeeded, the gate ran ~1s later and read the old assets,
+and a check by hand moments afterwards showed the live page referencing exactly the
+assets that build produced. Five red lines, a perfect deploy.
+
+**And notice which line it printed** — the same one this rule was written about, except
+that this time it was TRUE. That is worse than false: a transient truth about a real and
+serious failure mode sends the reader hunting a bug that was never there, with the
+evidence apparently agreeing.
+
+So the thing to poll is the property you actually care about — *is it serving MY build*
+— not a proxy for it like *is it up*. Reachability was never the question.
+
+**A propagation delay is not a special case of a network error.** They need separate
+handling because the successful-looking one is the dangerous one.
+
 ## What is retryable, and what is not
 
 ```js
@@ -69,9 +99,27 @@ rather than a re-implementation of its logic:
 | 522 then 200 | retries, then passes | 3 attempts, 10s, passed |
 | 404 | does NOT retry | 1 attempt, 0s |
 | 522 forever | gives up, bounded | 4 attempts, 15s, failed |
+| current build | passes immediately | attempt 1 |
+| an entry the site can never serve | gives up, bounded, exit 1 | 3 loud retries, 11s |
 
-The middle row is the one that matters. Without it, a retry loop that retries
-*everything* passes the other two and looks identical to a correct one.
+The 404 row is the one that matters most. Without it, a retry loop that retries
+*everything* passes every other control and looks identical to a correct one.
+
+**Make the budget overridable so the failure path is provable in seconds** — a
+control nobody runs because it takes two minutes is a control nobody runs. It is
+an override for controls and never for CI, and the code should say so beside it.
+
+## A host's 404 may not look like one
+
+The last control also surfaced this: **Cloudflare Pages answers a MISSING asset with
+200 and its fallback HTML document**, so a `!res.ok` branch never fires for one and the
+honest cause ("this file was never uploaded") arrives disguised as whatever the next
+check says — here, "truncated or stale".
+
+The outcome was still correct because the hash comparison caught it. The *sentence* sent
+the reader to the bundler instead of the upload. Sniff the body when the shape of the
+answer matters: a `.js` request answered with `<!doctype html` is a missing file, not a
+corrupt one.
 
 ## When to Apply
 
