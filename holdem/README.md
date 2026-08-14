@@ -37,6 +37,7 @@ an English toggle.
 npm install
 npm test                 # engine + protocol suites (fast, pure)
 npm run dev              # wrangler dev :8787  +  vite :5175 (proxied /ws /api)
+npm run bots             # THREE OPPONENTS at a fresh table — see below
 node scripts/smoke.mjs   # 3 headless players play 5 real hands over WS
 node scripts/cli-client.mjs create "yossi"   # interactive terminal player
 ```
@@ -51,6 +52,63 @@ device token.
 The CLI client's argument is a **label for that process**, not a table name.
 Nobody types a name here (see below), so it only shapes the token and the
 console output.
+
+## Somebody to play against
+
+```bash
+npm run bots                     # 3 bots, fresh private table, against the LIVE site
+npm run bots -- --n 5            # five of them
+npm run bots -- --join 7K3QM     # sit down at a table that already exists
+npm run bots -- --local          # against `npm run dev` on :8787
+```
+
+It prints a `#/room/<CODE>` to play at and a `#/tv/<CODE>` to watch. Ctrl-C
+stands them up.
+
+**They run on your machine and reach the table through the same WebSocket a
+browser uses.** Nothing is deployed, the server has no idea they are bots, and
+a table of them exercises the real join, the real deal, the real clock and the
+real reconnect — so a bug that shows up under bots is a bug a person would have
+hit. It works against production for the same reason, and the worker's URL is
+read back out of the deployed client bundle rather than written down here,
+because that URL contains the Cloudflare account subdomain and would otherwise
+be one account change away from being a lie.
+
+**The brain lives in `shared/src/bot/`, and it is unit-tested for a reason.**
+`equity.ts` is Monte Carlo over the REAL evaluator — a few hundred runouts,
+counted — which means a bot can never disagree with the pot it is playing for,
+gets draws valued for free, and needs no second opinion about what beats what.
+Its tests check published preflop numbers (aces 85.2% heads-up, 63.9% against
+three) that exist outside this repo, so they are a real control rather than a
+snapshot of whatever it returned first. `policy.ts` turns that number into an
+action, and its own tests exist because **"the bots never raise" is a silent
+failure that wastes an entire sitting**: the pot never grows, nobody is ever
+all in, and the run-out and the showdown — the two things most worth looking
+at — simply never happen. A bounds property test over 4,000 random spots
+guards the other silent failure, an amount outside the legal band, which the
+server answers with an error the bot has no handler for: it then sits there
+until the clock folds it, every hand, and the table looks broken in a way that
+has nothing to do with what you were testing.
+
+Four personalities — a station, a nit, a maniac, and one that plays about
+right — because one policy at every seat produces the same hand forty times.
+
+**The table is 40 big blinds deep on purpose.** At 100bb nobody is ever all
+in: measured over the first eight hands this thing ever played, not once. The
+depth is the difference between a demo that shows the best thing on the felt
+and one that never does.
+
+They are NOT trying to play well. A bot that played correctly would fold most
+hands preflop, which is right and is a terrible thing to watch. And the equity
+assumes every opponent holds two random cards, which is generous to the hero
+facing a raise — so they call rather more than they should. For a test run
+that is the friendly direction to be wrong in: more pots reach a showdown,
+which is where the cards get turned over.
+
+Measured on the live site, 2026-08-14: a person clicked through the buy-in
+sheet and was dealt in beside them, the board arrived `0 → 3 → 4 → 5` over
+thirteen seconds, two more card faces appeared at the showdown while the board
+stayed up, and the page threw nothing.
 
 ## Names are drawn, never typed
 

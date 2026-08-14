@@ -12,7 +12,8 @@
     "test": "vitest run",
     "dev": "npm run dev --workspace=server & npm run dev --workspace=client & wait",
     "build": "npm run build --workspace=client",
-    "typecheck": "tsc --noEmit -p shared && tsc --noEmit -p server && tsc --noEmit -p client",
+    "typecheck": "tsc --noEmit -p shared && tsc --noEmit -p server && tsc --noEmit -p client && tsc --noEmit -p scripts",
+    "bots": "vite-node scripts/bots.ts --",
     "assert:domain": "node scripts/assert-custom-domain.mjs"
   },
   "devDependencies": {

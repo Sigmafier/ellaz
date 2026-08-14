@@ -1,0 +1,14 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"],
+    // WebSocket and fetch are globals in modern node, but their types live in
+    // the DOM lib rather than @types/node. Without this the bot runner does
+    // not typecheck at all — which is worse than it sounds, because it is the
+    // ONLY typed file under scripts/ and would therefore be the one file with
+    // types that nothing ever checks.
+    "lib": ["ES2022", "DOM"]
+  },
+  "include": ["**/*.ts"]
+}
