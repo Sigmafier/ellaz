@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { DIR, loadLocale, type Locale, saveLocale } from "./i18n";
+import { applyTheme, loadTheme, saveTheme, type ThemeId } from "./ui/themes";
 import { Home } from "./screens/Home";
 import { RoomScreen } from "./screens/RoomScreen";
 import { TvScreen } from "./screens/TvScreen";
@@ -15,6 +16,7 @@ function parseHash(): { screen: "home" } | { screen: "room" | "tv"; code: string
 export function App() {
   const [route, setRoute] = useState(parseHash());
   const [locale, setLocale] = useState<Locale>(loadLocale());
+  const [theme, setTheme] = useState<ThemeId>(loadTheme());
 
   useEffect(() => {
     const onHash = () => setRoute(parseHash());
@@ -27,17 +29,32 @@ export function App() {
     document.documentElement.dir = DIR[locale];
   }, [locale]);
 
+  useEffect(() => applyTheme(theme), [theme]);
+
   const toggleLocale = () => {
     const next: Locale = locale === "he" ? "en" : "he";
     setLocale(next);
     saveLocale(next);
   };
 
+  const pickTheme = (next: ThemeId) => {
+    setTheme(next);
+    saveTheme(next);
+  };
+
   if (route.screen === "room") {
-    return <RoomScreen code={route.code} locale={locale} onToggleLocale={toggleLocale} />;
+    return (
+      <RoomScreen
+        code={route.code}
+        locale={locale}
+        onToggleLocale={toggleLocale}
+        theme={theme}
+        onPickTheme={pickTheme}
+      />
+    );
   }
   if (route.screen === "tv") {
     return <TvScreen code={route.code} locale={locale} />;
   }
-  return <Home locale={locale} onToggleLocale={toggleLocale} />;
+  return <Home locale={locale} onToggleLocale={toggleLocale} theme={theme} onPickTheme={pickTheme} />;
 }

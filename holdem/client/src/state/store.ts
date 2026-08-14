@@ -52,6 +52,21 @@ export interface AppState {
   /** Last visible action per seat this street (badges). */
   lastAction: Record<number, string>;
   winners: number[];
+  /**
+   * The pot that was just won, for the winner banner — who, how much, and the
+   * board it was won on.
+   *
+   * Separate from `winners` because the two have different lifetimes on
+   * purpose. `winners` is live decoration on the seats and is right to vanish
+   * the instant a new hand starts. This is a RECORD of a moment, so it keeps
+   * its own copy of the board: the view's board is replaced by the next deal,
+   * and a banner reading its cards out of the live view would silently start
+   * describing the wrong hand.
+   *
+   * Cleared on HandStarted like the rest, so nothing survives into a hand it
+   * did not belong to.
+   */
+  lastPot: { winners: number[]; amount: number; board: Card[]; at: number } | null;
   chats: ChatItem[];
   history: HandSummary[] | null;
   replay: { handNo: number; events: EngineEvent[] } | null;
@@ -75,6 +90,7 @@ const initial: AppState = {
   reveals: {},
   lastAction: {},
   winners: [],
+  lastPot: null,
   chats: [],
   history: null,
   replay: null,
@@ -166,11 +182,13 @@ export function reduceMessage(msg: S2C): void {
       let reveals = state.reveals;
       let lastAction = state.lastAction;
       let winners = state.winners;
+      let lastPot = state.lastPot;
       for (const e of msg.events) {
         if (e.type === "HandStarted") {
           reveals = {};
           lastAction = {};
           winners = [];
+          lastPot = null;
         } else if (e.type === "ShowdownReveal") {
           reveals = { ...reveals, [e.seat]: e.mucked ? "muck" : e.cards! };
         } else if (e.type === "ActionTaken") {
@@ -179,11 +197,26 @@ export function reduceMessage(msg: S2C): void {
           lastAction = {};
         } else if (e.type === "PotAwarded") {
           winners = [...new Set([...winners, ...e.winners])];
+          // Side pots arrive as several PotAwarded events for one hand, so the
+          // banner ACCUMULATES rather than overwrites — otherwise it announces
+          // whichever side pot happened to be settled last, which on a big
+          // all-in is the smallest number at the table.
+          //
+          // The board is copied here rather than read at render time: the next
+          // deal replaces view.hand, and a banner reading the live view would
+          // name a hand from the board of the hand AFTER the one it describes.
+          lastPot = {
+            winners: [...new Set([...(lastPot?.winners ?? []), ...e.winners])],
+            amount: (lastPot?.amount ?? 0) + e.amount,
+            board: lastPot?.board ?? [...(state.view?.hand?.board ?? [])],
+            at: Date.now(),
+          };
         }
       }
       patch.reveals = reveals;
       patch.lastAction = lastAction;
       patch.winners = winners;
+      patch.lastPot = lastPot;
       setState(patch);
       for (const l of eventListeners) l(msg.events);
       break;

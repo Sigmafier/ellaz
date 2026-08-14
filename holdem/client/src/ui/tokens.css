@@ -1,6 +1,28 @@
-/* Design tokens — the ellaz tokens.css structure (neutral scale first, then
-   the palette) with a poker skin: dark felt, gold accent, card red/black.
-   One theme in v1; the shape stays ready for a second block. */
+/* Design tokens — the ellaz tokens.css structure, three themes.
+ *
+ * THE FILE IS IN FOUR PARTS AND THE ORDER OF THE LAST THREE IS THE THEME.
+ *
+ *   1. `:root` — NEUTRAL. Everything identical in every theme: space, radius,
+ *      tap targets, fonts, easing. A value belongs here if changing the look
+ *      would never change it.
+ *   2. `:root, :root[data-theme="felt"]` — the DEFAULT theme's values.
+ *   3. `:root[data-theme="daylight"]`
+ *   4. `:root[data-theme="slate"]`
+ *
+ * The default lives in the BARE `:root` selector, and that is load-bearing: a
+ * page whose boot script has not run yet carries no `data-theme` attribute at
+ * all, and bare `:root` means it paints the default rather than painting
+ * nothing.
+ *
+ * Theme blocks use `:root[data-theme=…]` (specificity 0,2,0) so a theme wins
+ * over the bare default regardless of the order a bundler concatenates them in.
+ * Never write a theme value at bare `:root` specificity in a non-default block.
+ *
+ * ALL THREE THEME BLOCKS MUST DECLARE AN IDENTICAL SET OF KEYS. A key present
+ * in one and missing from another resolves to the DEFAULT's value in that
+ * theme — silently, for that one property only, which is the shape of a theme
+ * bug nobody finds by looking. `theme-tokens.test.ts` asserts the sets match.
+ */
 
 :root {
   /* neutral scale */
@@ -18,13 +40,22 @@
     "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Hebrew",
     sans-serif;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
 
-  /* palette — dark room, green felt, gold chips */
+/* ---------------------------------------------------------------------------
+   FELT — the default. A card room at night: deep green cloth under a warm
+   light, a wooden rail around it, gold chips. The richest of the three, and
+   the closest to what shipped on 2026-08-14.
+--------------------------------------------------------------------------- */
+:root,
+:root[data-theme="felt"] {
   --bg: #0d1512;
   --surface: #16211c;
   --surface-2: #1e2c25;
   --felt: #1b4d3e;
-  --felt-edge: #123528;
+  --felt-hi: #2a7a5f;
+  --felt-edge: #0e2b21;
+  --rail: #4a3524;
   --line: #2c3f36;
   --ink: #f2f0e9;
   --ink-dim: #9fb0a7;
@@ -38,5 +69,75 @@
   --seat-bg: #10231b;
   --seat-active: #2c5c48;
   --chip: #e8b64c;
+  --pot-bg: rgba(0, 0, 0, 0.5);
+  --banner-bg: rgba(8, 18, 14, 0.9);
+  --glow: rgba(232, 182, 76, 0.55);
+  --glow-pulse: rgba(232, 182, 76, 0.7);
   --confetti-colors: #e8b64c, #58b98a, #faf7ef, #c2372c;
+}
+
+/* ---------------------------------------------------------------------------
+   DAYLIGHT — the ellaz.fun family look, so the two sites read as siblings.
+   Cream page, pink and teal accents, warm cloth. Palette taken from ellaz's
+   own `market` theme rather than approximated by eye.
+--------------------------------------------------------------------------- */
+:root[data-theme="daylight"] {
+  --bg: #fff6e9;
+  --surface: #fffdf8;
+  --surface-2: #fff3e0;
+  --felt: #12b5ad;
+  --felt-hi: #4fd6cf;
+  --felt-edge: #0a6f6a;
+  --rail: #ff8a3d;
+  --line: #efe0cc;
+  --ink: #241c17;
+  --ink-dim: #6b5c50;
+  --gold: #c2185b;
+  --gold-ink: #ffffff;
+  --accent: #3cb46a;
+  --danger: #ef4a3f;
+  --card-face: #ffffff;
+  --card-red: #ef4a3f;
+  --card-black: #241c17;
+  --seat-bg: #fffdf8;
+  --seat-active: #ffc730;
+  --chip: #c2185b;
+  --pot-bg: rgba(255, 253, 248, 0.92);
+  --banner-bg: rgba(255, 253, 248, 0.95);
+  --glow: rgba(194, 24, 91, 0.45);
+  --glow-pulse: rgba(194, 24, 91, 0.6);
+  --confetti-colors: #ff4d8d, #12b5ad, #ffc730, #3cb46a;
+}
+
+/* ---------------------------------------------------------------------------
+   SLATE — flat and modern. No cloth, no wood, no gradients that mean anything:
+   one dark surface, one accent, and type doing the work. The easiest of the
+   three to read at a glance and to make large, which is the point.
+--------------------------------------------------------------------------- */
+:root[data-theme="slate"] {
+  --bg: #0b0d10;
+  --surface: #151a20;
+  --surface-2: #1d242c;
+  --felt: #171d24;
+  --felt-hi: #1f2831;
+  --felt-edge: #12171d;
+  --rail: #262f39;
+  --line: #2a343f;
+  --ink: #f4f6f8;
+  --ink-dim: #93a1b0;
+  --gold: #6aa8ff;
+  --gold-ink: #05101f;
+  --accent: #4ad4a0;
+  --danger: #ff6b6b;
+  --card-face: #ffffff;
+  --card-red: #ff5a52;
+  --card-black: #0b0d10;
+  --seat-bg: #131920;
+  --seat-active: #24405e;
+  --chip: #6aa8ff;
+  --pot-bg: rgba(11, 13, 16, 0.72);
+  --banner-bg: rgba(11, 13, 16, 0.9);
+  --glow: rgba(106, 168, 255, 0.5);
+  --glow-pulse: rgba(106, 168, 255, 0.65);
+  --confetti-colors: #6aa8ff, #4ad4a0, #f4f6f8, #ff6b6b;
 }

@@ -22,7 +22,12 @@ export default defineConfig({
         short_name: "Hold'em",
         description: "Texas Hold'em with your friends. Play money only.",
         display: "standalone",
-        orientation: "portrait",
+        // "any", not "portrait". The table lays itself out two ways and the
+        // wide one is the operator's own preference — a manifest pinned to
+        // portrait would let an INSTALLED app refuse to rotate into the layout
+        // the browser tab happily uses, which is a difference nothing in this
+        // repo would ever surface.
+        orientation: "any",
         background_color: "#0d1512",
         theme_color: "#0d2118",
         icons: [

@@ -73,4 +73,8 @@ export const en: Record<StringKey, string> = {
   street_flop: "Flop",
   street_turn: "Turn",
   street_river: "River",
+  winsUncontested: "wins the pot",
+  splitPot: "Split pot",
+  handOver: "Hand over",
+  each: "each",
 };

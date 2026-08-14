@@ -5,6 +5,8 @@ import { attachJuice } from "../juice/moments";
 import { isMuted, setMuted } from "../audio/audio";
 import { useApp } from "../state/store";
 import { Table } from "../table/Table";
+import { ThemePicker } from "../ui/ThemePicker";
+import type { ThemeId } from "../ui/themes";
 import { HistoryPanel } from "./HistoryPanel";
 import { LeaguePanel } from "./LeaguePanel";
 import type { Locale } from "../i18n";
@@ -14,10 +16,14 @@ export function RoomScreen({
   code,
   locale,
   onToggleLocale,
+  theme,
+  onPickTheme,
 }: {
   code: string;
   locale: Locale;
   onToggleLocale: () => void;
+  theme: ThemeId;
+  onPickTheme: (id: ThemeId) => void;
 }) {
   const app = useApp();
   const t = makeT(locale);
@@ -132,6 +138,9 @@ export function RoomScreen({
           <button className="btn ghost" onClick={onToggleLocale}>
             {t("language")}
           </button>
+          {/* The look, changed from inside a live table on purpose: the thing
+              being judged is the felt behind this sheet, at real size. */}
+          <ThemePicker value={theme} onPick={onPickTheme} locale={locale} />
           <button
             className="btn ghost"
             onClick={() => {

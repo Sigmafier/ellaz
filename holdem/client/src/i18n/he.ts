@@ -72,6 +72,10 @@ export const he = {
   street_flop: "פלופ",
   street_turn: "טרן",
   street_river: "ריבר",
+  winsUncontested: "זכה בקופה",
+  splitPot: "חלוקת קופה",
+  handOver: "היד נגמרה",
+  each: "לכל אחד",
 } as const;
 
 export type StringKey = keyof typeof he;

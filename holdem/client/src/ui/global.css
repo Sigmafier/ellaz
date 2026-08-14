@@ -104,10 +104,10 @@ select {
 @keyframes holdem-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(232, 182, 76, 0.7);
+    box-shadow: 0 0 0 0 var(--glow-pulse);
   }
   50% {
-    box-shadow: 0 0 0 10px rgba(232, 182, 76, 0);
+    box-shadow: 0 0 0 10px transparent;
   }
 }
 
