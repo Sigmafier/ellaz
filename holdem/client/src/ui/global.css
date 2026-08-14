@@ -1,0 +1,370 @@
+/* Built at 390px first. Everything wider is the easy case. */
+
+:root {
+  --felt: #0b3d2e;
+  --felt-edge: #072a20;
+  --rail: #1f6b52;
+  --ink: #f2f7f4;
+  --ink-dim: #9fbdb0;
+  --gold: #e8c56a;
+  --danger: #c8553d;
+  --seat: #10493a;
+  --seat-live: #16775c;
+  --card-face: #fbfaf6;
+  --card-ink: #14110f;
+  --card-red: #b3322a;
+
+  --tap: 48px; /* nothing interactive is smaller */
+  --radius: 12px;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--felt-edge);
+  color: var(--ink);
+  font: 16px/1.4 ui-rounded, "SF Pro Rounded", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  /* The table manages its own scroll regions; the page itself must not bounce
+     under the fixed controls. */
+  overflow: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  border-radius: var(--radius);
+  min-height: var(--tap);
+  padding: 0 16px;
+  background: var(--rail);
+  cursor: pointer;
+  /* A poker button is tapped fast and often; a text selection or a double-tap
+     zoom in the middle of a betting round is a misclick waiting to happen. */
+  touch-action: manipulation;
+  user-select: none;
+}
+
+button:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+input {
+  font: inherit;
+  color: inherit;
+  background: #0000003d;
+  border: 1px solid #ffffff26;
+  border-radius: var(--radius);
+  min-height: var(--tap);
+  padding: 0 14px;
+  width: 100%;
+}
+
+/* ---------------------------------------------------------------- layout */
+
+.app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  /* viewport-fit=cover means the page runs under the notch and the home
+     indicator; these keep real content out of both. */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+
+.screen {
+  flex: 1;
+  min-height: 0; /* the flexbox scroll trap — without it the child cannot scroll */
+  display: flex;
+  flex-direction: column;
+}
+
+.pad {
+  padding: 16px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  /* Seats and controls both grow with the table size. A non-wrapping flex row
+     sizes to max-content and is clipped, invisibly, on exactly the phones this
+     is built for. */
+  flex-wrap: wrap;
+}
+
+.grow {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.dim {
+  color: var(--ink-dim);
+}
+
+.tiny {
+  font-size: 13px;
+}
+
+/* ----------------------------------------------------------------- felt */
+
+.felt {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: radial-gradient(120% 90% at 50% 30%, var(--rail) 0%, var(--felt) 55%, var(--felt-edge) 100%);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.seats {
+  display: grid;
+  /* Wraps by construction, so nine seats on a 390px phone is a taller grid
+     rather than a clipped row.
+
+     150px and not 108px: at 108 a 390px phone fits three columns and every
+     name longer than "Sly Fox" is ellipsed — "Cheerful Bear" rendered as
+     "Cheerful …". Two columns is the width a name from this pool actually
+     needs, and the pool is fixed so that width is knowable rather than a
+     guess. */
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.seat {
+  background: var(--seat);
+  border: 2px solid transparent;
+  border-radius: var(--radius);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.seat.acting {
+  border-color: var(--gold);
+  background: var(--seat-live);
+}
+
+.seat.folded {
+  opacity: 0.45;
+}
+
+.seat.empty {
+  background: #ffffff0f;
+  border-style: dashed;
+  border-color: #ffffff26;
+}
+
+.seat-name {
+  display: flex;
+  gap: 4px;
+  align-items: baseline;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.seat-stack {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.chip {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #00000047;
+  color: var(--gold);
+  white-space: nowrap;
+}
+
+.middle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.pot {
+  font-size: 15px;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------- cards */
+
+.cards {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.card {
+  width: 44px;
+  height: 62px;
+  border-radius: 7px;
+  background: var(--card-face);
+  color: var(--card-ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 1px 3px #0006;
+  flex: 0 0 auto;
+}
+
+.card.red {
+  color: var(--card-red);
+}
+
+.card .rank {
+  font-size: 21px;
+}
+
+.card .suit {
+  font-size: 16px;
+}
+
+.card.back {
+  background: repeating-linear-gradient(45deg, #245e7d, #245e7d 5px, #1b4a63 5px, #1b4a63 10px);
+  box-shadow: inset 0 0 0 2px #ffffff2e;
+}
+
+.card.mine {
+  width: 56px;
+  height: 78px;
+}
+
+.card.mine .rank {
+  font-size: 27px;
+}
+
+.card.mine .suit {
+  font-size: 20px;
+}
+
+/* ------------------------------------------------------------- controls */
+
+.controls {
+  background: #06231bef;
+  border-top: 1px solid #ffffff1f;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.actions button {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.btn-fold {
+  background: #5a2a24;
+}
+
+.btn-call {
+  background: var(--rail);
+}
+
+.btn-raise {
+  background: #8a6a1f;
+}
+
+.btn-primary {
+  background: var(--gold);
+  color: #23200f;
+  font-weight: 700;
+}
+
+.timer-track {
+  height: 4px;
+  border-radius: 2px;
+  background: #ffffff1f;
+  overflow: hidden;
+}
+
+.timer-fill {
+  height: 100%;
+  background: var(--gold);
+  /* Width is driven from JS every frame; no CSS transition, or the bar lags
+     the real deadline and a player trusts the wrong one. */
+}
+
+.timer-fill.urgent {
+  background: var(--danger);
+}
+
+/* ------------------------------------------------------------------ log */
+
+.log {
+  max-height: 116px;
+  overflow-y: auto;
+  font-size: 12px;
+  color: var(--ink-dim);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.banner {
+  background: #00000059;
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.banner.bad {
+  background: #4a1f18;
+}
+
+.code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 30px;
+  letter-spacing: 6px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--gold);
+}
+
+@media (min-width: 720px) {
+  /* One rule, so a laptop does not stretch a 390px design across 1440px.
+     Same lesson as ellaz's game-panel cap. */
+  .screen {
+    max-width: 680px;
+    width: 100%;
+    margin: 0 auto;
+  }
+}

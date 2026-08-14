@@ -3,3 +3,6 @@ dist/
 dist-*/
 .wrangler/
 *.local
+
+# eyeball screenshots — regenerated on every run
+eyeball-shots/

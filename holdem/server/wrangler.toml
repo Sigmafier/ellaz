@@ -15,5 +15,12 @@ class_name = "TableDO"
 
 [vars]
 # Comma-separated list of allowed browser origins for WS/API calls.
-# The pages.dev URL lands here once the first deploy exists.
-ALLOWED_ORIGINS = "http://localhost:5173"
+# *.pages.dev is allowed by pattern in index.ts, so the deploy preview and the
+# production Pages URL both work without an edit here; the custom domain lands
+# here when poker.ellaz.fun exists.
+#
+# 5175 is this client's dev port and 4173 is vite preview's default. NOT 5173:
+# that belongs to OGAS's legacy Sigma app, and sharing a localhost origin
+# cross-contaminates storage between two different apps — the machine-wide
+# grounding rule in rules/projects/registry.md.
+ALLOWED_ORIGINS = "http://localhost:5175,http://localhost:4173"

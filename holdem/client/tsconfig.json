@@ -4,8 +4,14 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "types": ["vite/client"]
+    "types": ["vite/client", "vitest/globals"],
+    // Must agree with the alias in client/vite.config.ts AND the one in
+    // ../vitest.config.ts. Three resolvers, one path — they are separate
+    // systems and none of them reads the others.
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["../shared/src/*"]
+    }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "../shared/src/**/*.ts"],
-  "exclude": ["../shared/src/**/*.test.ts", "../shared/src/engine/testkit.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts"]
 }

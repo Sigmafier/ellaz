@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Hold'em">
+  <!-- Original art: a card on felt. No trademarked deck design. -->
+  <rect width="32" height="32" rx="7" fill="#0b3d2e"/>
+  <rect x="8" y="5" width="16" height="22" rx="3" fill="#fbfaf6"/>
+  <path d="M16 9.5c-1.9 2.4-4.6 4-4.6 6.4a2.5 2.5 0 0 0 4 2c-.2 1.3-.8 2.2-1.7 2.8h4.6c-.9-.6-1.5-1.5-1.7-2.8a2.5 2.5 0 0 0 4-2c0-2.4-2.7-4-4.6-6.4z" fill="#14110f"/>
+</svg>

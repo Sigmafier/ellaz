@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- viewport-fit=cover + the safe-area insets in global.css keep the
+         betting controls clear of the home indicator on a notched phone. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
+    />
+    <meta name="theme-color" content="#0b3d2e" />
+    <!-- Without this the browser asks for /favicon.ico and logs a 404 on every
+         load — noise that trains everyone to ignore the console. -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="description" content="Texas Hold'em for friends. One room code, no accounts." />
+    <title>Hold'em</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
