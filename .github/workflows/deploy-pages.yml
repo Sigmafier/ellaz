@@ -3,6 +3,11 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+    # See deploy-hostinger.yml — a poker-only commit must not republish ellaz.
+    paths-ignore:
+      - "holdem/**"
+      - ".github/workflows/holdem.yml"
+      - ".github/workflows/deploy-holdem.yml"
   workflow_dispatch:
 
 # Allow the workflow to publish to Pages.

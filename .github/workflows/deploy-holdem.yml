@@ -1,0 +1,160 @@
+name: Deploy Hold'em (Cloudflare)
+
+# The poker sub-project deploys to Cloudflare — its own host, entirely separate
+# from ellaz.fun (Hostinger) and the Pages mirror. Nothing here can touch
+# either; nothing there can touch this.
+#
+# THIS FILE MUST LIVE AT THE REPOSITORY ROOT. It replaces
+# holdem/.github/workflows/deploy.yml, which GitHub never read: workflows are
+# discovered only in `.github/workflows/` at the root of the repo, so a nested
+# one is an ordinary text file. Verified against the API — that workflow had no
+# id, no runs, and could not have been dispatched. It was not misconfigured; it
+# was invisible.
+#
+# Needs two repo secrets: CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.
+# Without them the job SKIPS with a warning rather than failing, the same
+# choice deploy-hostinger.yml makes — a workflow that reds on every push gets
+# ignored, and an ignored workflow protects nothing. The cost of that choice is
+# that a green tick is not proof of a deploy, so read the summary.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "holdem/**"
+      - ".github/workflows/deploy-holdem.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: holdem-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        # Every step runs from holdem/, which is the npm workspace root. The
+        # repository root is ellaz's workspace and has its own package.json,
+        # its own lockfile and its own test suite — running `npm ci && npm test`
+        # there would install the wrong dependencies and run the wrong tests,
+        # then deploy anyway, all while looking correct in the log.
+        working-directory: holdem
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # NOT "holdem": a Pages project name becomes a globally-unique
+      # <name>.pages.dev hostname, and the short generic one is almost
+      # certainly taken by someone else's project — which surfaces as a
+      # failure at project-creation time, long after you have set the secrets.
+      PAGES_PROJECT: ellaz-holdem
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for credentials
+        id: creds
+        run: |
+          if [ -z "${CLOUDFLARE_API_TOKEN}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID}" ]; then
+            echo "have=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID are not set — SKIPPING the deploy. Nothing was published."
+            {
+              echo "### Hold'em deploy skipped"
+              echo ""
+              echo "Set both secrets at"
+              echo "<https://github.com/${{ github.repository }}/settings/secrets/actions/new>:"
+              echo ""
+              echo '- `CLOUDFLARE_API_TOKEN` — "Edit Cloudflare Workers" template, plus Cloudflare Pages: Edit'
+              echo '- `CLOUDFLARE_ACCOUNT_ID` — the Cloudflare dashboard sidebar'
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "have=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.creds.outputs.have == 'true'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: holdem/package-lock.json
+
+      - run: npm ci
+        if: steps.creds.outputs.have == 'true'
+
+      # Gate BEFORE publishing. holdem.yml runs these too, but this workflow
+      # can be fired by workflow_dispatch on a commit that never passed it.
+      - name: Typecheck and test
+        if: steps.creds.outputs.have == 'true'
+        run: |
+          npm run typecheck
+          npm test
+
+      - name: Deploy the worker
+        if: steps.creds.outputs.have == 'true'
+        working-directory: holdem/server
+        run: npx wrangler deploy
+
+      # The client needs the worker's URL at BUILD time, and that URL contains
+      # the account's workers.dev subdomain, which is not knowable from the
+      # repo. Asking the API for it is deterministic; parsing it out of
+      # wrangler's human-readable output is not, and a hand-set repo variable
+      # is one more thing to get wrong on a first deploy that has no other
+      # way to tell you it is wrong.
+      - name: Resolve the worker URL
+        if: steps.creds.outputs.have == 'true'
+        id: worker
+        run: |
+          set -euo pipefail
+          SUB=$(curl -sS -f \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/subdomain" \
+            | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s);if(!j.success||!j.result?.subdomain){console.error(JSON.stringify(j.errors??j));process.exit(1);}process.stdout.write(j.result.subdomain);})")
+          URL="https://holdem-server.${SUB}.workers.dev"
+          echo "url=${URL}" >> "$GITHUB_OUTPUT"
+          echo "worker: ${URL}"
+
+      - name: Build the client against that worker
+        if: steps.creds.outputs.have == 'true'
+        env:
+          VITE_SERVER_URL: ${{ steps.worker.outputs.url }}
+        run: npm run build --workspace=client
+
+      - name: Deploy the client to Pages
+        if: steps.creds.outputs.have == 'true'
+        id: pages
+        run: |
+          set -euo pipefail
+          # --commit-dirty because the checkout is not a clean git state to
+          # wrangler's eyes; the branch flag keeps every main deploy on the
+          # project's production URL rather than a per-commit preview.
+          npx wrangler pages deploy client/dist \
+            --project-name "${PAGES_PROJECT}" \
+            --branch main \
+            --commit-dirty=true
+          echo "url=https://${PAGES_PROJECT}.pages.dev" >> "$GITHUB_OUTPUT"
+
+      # Publishing is not landing. This is the only check in the poker
+      # sub-project that reads what a player actually receives, and it exists
+      # because ellaz.fun once served a blank page for an hour while every
+      # deploy reported success — see
+      # .claude/rules/a-deploy-ledger-that-can-disagree-with-the-disk.md
+      - name: Assert it is live
+        if: steps.creds.outputs.have == 'true'
+        run: |
+          node scripts/assert-holdem-live.mjs \
+            "${{ steps.worker.outputs.url }}" \
+            "${{ steps.pages.outputs.url }}" \
+            client/dist
+
+      - name: Summary
+        if: steps.creds.outputs.have == 'true'
+        run: |
+          {
+            echo "### Hold'em is live"
+            echo ""
+            echo "- table: <${{ steps.pages.outputs.url }}>"
+            echo "- server: <${{ steps.worker.outputs.url }}>"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,69 @@
+name: Hold'em (engine + server)
+
+# The poker sub-project is a separate npm workspace at holdem/. Ellaz's own
+# gates cannot see it: vitest's include is "src/**/*.test.ts" and tsconfig's
+# include is ["src", "vite.config.ts"], both anchored to src/. So without this
+# workflow the engine's 71 tests run nowhere, which is the same as not having
+# them - a suite nobody runs is documentation, not a gate.
+#
+# The path filter is the mirror image of the paths-ignore on the two ellaz
+# deploys: a poker commit must not publish ellaz.fun, and an ellaz commit must
+# not spend a runner on poker.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "holdem/**"
+      - ".github/workflows/holdem.yml"
+  pull_request:
+    paths:
+      - "holdem/**"
+      - ".github/workflows/holdem.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: holdem
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: holdem/package-lock.json
+
+      - run: npm ci
+
+      # Types first: a type error is a faster, clearer failure than the test
+      # run that would trip over it. Covers all three workspaces including the
+      # client, whose tsconfig exists precisely so this line cannot pass by
+      # skipping it.
+      - name: Typecheck (shared, server, client)
+        run: npm run typecheck
+
+      # One run, two reporters: the human log AND a machine-readable count.
+      # Running the suite twice to count it would double CI time for nothing.
+      - name: Engine + protocol tests
+        run: npm test -- --reporter=default --reporter=json --outputFile=/tmp/holdem-tests.json
+
+      # The suite is meant to be substantial. A config slip that makes vitest
+      # match no files exits 0 with "No test files found", so a green run is
+      # not by itself evidence that anything ran - assert the count. Same
+      # not-vacuous discipline the purity gate applies to its own file walk.
+      - name: Assert the suite is not vacuous
+        run: |
+          set -euo pipefail
+          COUNT=$(node -p "require('/tmp/holdem-tests.json').numTotalTests")
+          echo "ran $COUNT tests"
+          if [ "$COUNT" -lt 60 ]; then
+            echo "::error::only $COUNT tests ran, expected at least 60. Did the vitest include stop matching?"
+            exit 1
+          fi

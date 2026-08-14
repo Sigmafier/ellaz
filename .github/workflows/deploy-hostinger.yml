@@ -3,6 +3,15 @@ name: Deploy to Hostinger (ellaz.fun)
 on:
   push:
     branches: [main]
+    # The poker sub-project is a separate app on a separate host. A commit that
+    # only touches holdem/ changes nothing ellaz.fun serves, so publishing
+    # ellaz over FTP for it is a pointless upload and a pointless chance to
+    # leave the site mid-transfer. deploy-holdem.yml carries the mirror image
+    # of this filter.
+    paths-ignore:
+      - "holdem/**"
+      - ".github/workflows/holdem.yml"
+      - ".github/workflows/deploy-holdem.yml"
   workflow_dispatch:
 
 # ellaz.fun is a different host from the Pages site, so this gets its own lane:
