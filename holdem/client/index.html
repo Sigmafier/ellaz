@@ -1,10 +1,17 @@
 <!doctype html>
-<html lang="he" dir="rtl">
+<!-- English by default (operator's call, 2026-08-14). App.tsx rewrites both
+     attributes from the stored locale on mount, so this is the pre-hydration
+     state a first-time visitor sees for one frame — it must match the default
+     that loadLocale() returns or the page flips direction on boot. -->
+<html lang="en" dir="ltr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#0d2118" />
-    <title>הולדעם — פוקר עם חברים</title>
+    <!-- Without this every page load logs a 404 for /favicon.ico, and a console
+         that always has an error in it is a console nobody reads. -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Hold'em — poker with friends</title>
   </head>
   <body>
     <div id="root"></div>

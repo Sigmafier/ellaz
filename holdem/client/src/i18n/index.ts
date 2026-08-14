@@ -17,7 +17,9 @@ export function loadLocale(): Locale {
   } catch {
     /* incognito */
   }
-  return "he";
+  // English, not Hebrew (operator's call, 2026-08-14). Must stay in step with
+  // index.html's lang/dir, which is what a visitor sees before React mounts.
+  return "en";
 }
 
 export function saveLocale(locale: Locale): void {
@@ -30,5 +32,8 @@ export function saveLocale(locale: Locale): void {
 
 export function makeT(locale: Locale) {
   const dict = DICTS[locale];
-  return (key: StringKey): string => dict[key] ?? he[key];
+  // Fall back to ENGLISH, never Hebrew. A missing string should degrade to a
+  // language the reader may know rather than to an alphabet they cannot read —
+  // the same reasoning ellaz uses for its own lazy locale chunks.
+  return (key: StringKey): string => dict[key] ?? en[key];
 }

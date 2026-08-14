@@ -16,9 +16,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["icon-192.png", "icon-512.png"],
+      includeAssets: ["favicon.svg", "icon-192.png", "icon-512.png"],
       manifest: {
-        name: "Hold'em — פוקר עם חברים",
+        name: "Hold'em — poker with friends",
         short_name: "Hold'em",
         description: "Texas Hold'em with your friends. Play money only.",
         display: "standalone",
