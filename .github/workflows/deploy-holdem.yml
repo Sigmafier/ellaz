@@ -122,6 +122,29 @@ jobs:
           VITE_SERVER_URL: ${{ steps.worker.outputs.url }}
         run: npm run build --workspace=client
 
+      # `wrangler pages deploy` does NOT create a missing project — it fails
+      # with "Project not found [code: 8000007]", which reads like a typo in
+      # the name rather than a thing that has never existed. Non-interactive
+      # runs get no prompt, so the project has to be created explicitly, once.
+      #
+      # Idempotent by tolerating the second run's failure rather than by asking
+      # first: `pages project list` is a second API call that can also fail, and
+      # its failure would be indistinguishable from "no projects yet".
+      - name: Ensure the Pages project exists
+        if: steps.creds.outputs.have == 'true'
+        run: |
+          if npx wrangler pages project create "${PAGES_PROJECT}" \
+               --production-branch main 2>&1 | tee /tmp/create.log; then
+            echo "created ${PAGES_PROJECT}"
+          elif grep -qiE "already exists|8000009" /tmp/create.log; then
+            echo "${PAGES_PROJECT} already exists — continuing"
+          else
+            echo "::error::could not create the Pages project. If this says the"
+            echo "::error::token lacks permission, the API token needs Cloudflare Pages: Edit."
+            cat /tmp/create.log
+            exit 1
+          fi
+
       - name: Deploy the client to Pages
         if: steps.creds.outputs.have == 'true'
         id: pages
