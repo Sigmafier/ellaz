@@ -133,7 +133,46 @@ export function FindDiff({ ctx }: { ctx: GameContext }) {
       // toggle is simply absent rather than showing a single dead option.
       onRestart={() => reset()}
       footer={
-        won ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {/* Pick a scene by SEEING it, like the drawing game's gallery.
+              Horizontal scroll so it stays one row however many scenes ship. */}
+          <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>
+            {SCENES.map((s, i) => {
+              const active = i === sceneIdx;
+              return (
+                <button
+                  key={s.id}
+                  aria-label={s.name[ctx.locale]}
+                  aria-pressed={active}
+                  onClick={() => {
+                    ctx.audio.play("tap");
+                    reset(i);
+                  }}
+                  style={{
+                    flex: "0 0 auto",
+                    width: 52,
+                    height: 52,
+                    padding: 3,
+                    borderRadius: 10,
+                    border: active ? "3px solid var(--brand)" : "2px solid var(--line)",
+                    background: "#fff",
+                    boxShadow: active ? "var(--shadow-2)" : "var(--shadow-1)",
+                    cursor: "pointer",
+                  }}
+                >
+                  <svg
+                    viewBox={s.viewBox}
+                    width="100%"
+                    height="100%"
+                    style={{ display: "block", borderRadius: 6 }}
+                    aria-hidden="true"
+                    dangerouslySetInnerHTML={{ __html: s.base + s.diffs.map((d) => d.left).join("") }}
+                  />
+                </button>
+              );
+            })}
+          </div>
+          {won ? (
           <button
             type="button"
             onClick={advance}
@@ -174,7 +213,8 @@ export function FindDiff({ ctx }: { ctx: GameContext }) {
               {T.ask}
             </span>
           </div>
-        )
+          )}
+        </div>
       }
     >
       {/* wrapRef lives HERE, on the picture pair, because that is what shakes on
