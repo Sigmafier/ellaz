@@ -102,6 +102,23 @@ export class SnakeScene extends Phaser.Scene {
     this.restart();
   }
 
+  /**
+   * An on-screen D-pad press. Same path as an arrow key: unlock audio, restart
+   * from the game-over screen, otherwise start play on the first press and turn.
+   * Kept here (not in the chrome) so the canvas stays the single owner of input.
+   */
+  steer(dir: Dir) {
+    this.ctx.audio.unlock();
+    this.ctx.speech.unlock();
+    if (this.phase === "over") {
+      this.restart();
+      return;
+    }
+    this.startPlaying();
+    this.state = turn(this.state, dir);
+    this.draw();
+  }
+
   create() {
     this.state = newGame(COLS, ROWS);
     this.phase = "ready";

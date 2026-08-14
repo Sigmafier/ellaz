@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { CAST_THEMES, castOf } from "@shared/cast";
+import { CAST, CAST_THEMES, castOf } from "@shared/cast";
 import { mulberry32 } from "@shared/rng";
 import {
   COVER_MS,
@@ -8,6 +8,7 @@ import {
   MAX_ITEMS,
   MIN_MS_PER_ITEM,
   MIN_STUDY_MS,
+  OPTION_COUNT,
   PHASES,
   isCorrectChoice,
   newRound,
@@ -129,12 +130,26 @@ describe("vanish - a fair round", () => {
     }
   });
 
-  it("offers the original set as the answer row, in a different order", () => {
+  it("offers the vanished character plus fresh decoys, never the board set", () => {
     for (const d of DIFFICULTIES) {
       for (const round of roundsFor(d)) {
-        expect(round.choices.length).toBe(round.items.length);
-        const key = (x: { emoji: string }) => x.emoji;
-        expect([...round.choices].map(key).sort()).toEqual([...round.items].map(key).sort());
+        // The row is the answer plus decoys, capped by OPTION_COUNT.
+        expect(round.choices.length).toBeGreaterThanOrEqual(3);
+        expect(round.choices.length).toBeLessThanOrEqual(OPTION_COUNT[d]);
+        // All choices distinct.
+        const keys = round.choices.map((c) => c.emoji);
+        expect(new Set(keys).size).toBe(keys.length);
+        // Every choice EXCEPT the vanished one is a decoy that was NOT on the
+        // board — the whole point of the fix.
+        const gone = vanishedItem(round).emoji;
+        const onBoard = new Set(round.items.map((i) => i.emoji));
+        for (const c of round.choices) {
+          if (c.emoji === gone) continue;
+          expect(onBoard.has(c.emoji), `${c.emoji} is on the board`).toBe(false);
+        }
+        // Decoys stay on-theme (same cast).
+        const themeEmojis = new Set(CAST[round.theme].map((c) => c.emoji));
+        for (const c of round.choices) expect(themeEmojis.has(c.emoji)).toBe(true);
       }
     }
   });
@@ -151,14 +166,13 @@ describe("vanish - a fair round", () => {
     }
   });
 
-  it("shuffles the answer row away from board order at least sometimes", () => {
-    // Not every draw differs (a 3-item shuffle lands on identity ~1 in 6), so
-    // this asserts the row is genuinely re-ordered across the corpus rather
-    // than on any single round.
-    const reordered = roundsFor("hard").filter((r) =>
-      r.choices.some((c, i) => c.emoji !== r.items[i].emoji),
+  it("varies its decoys across the corpus", () => {
+    // The decoy set should not be constant — across many hard rounds the row
+    // draws a spread of characters, not the same three every time.
+    const seen = new Set(
+      roundsFor("hard").flatMap((r) => r.choices.map((c) => c.emoji)),
     );
-    expect(reordered.length).toBeGreaterThan(SEEDS.length / 2);
+    expect(seen.size).toBeGreaterThan(OPTION_COUNT.hard);
   });
 });
 
