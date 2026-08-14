@@ -2,21 +2,15 @@ import { useCallback, useEffect, useState } from "react";
 import { nameEmoji, pickName, renderName, rerollName } from "@shared/names";
 import { createRoom, listTables, type OpenTable } from "../net/socket";
 import { savedName, saveName } from "../net/nameStore";
-import { ThemePicker } from "../ui/ThemePicker";
-import type { ThemeId } from "../ui/themes";
 import type { Locale } from "../i18n";
 import { makeT } from "../i18n";
 
 export function Home({
   locale,
   onToggleLocale,
-  theme,
-  onPickTheme,
 }: {
   locale: Locale;
   onToggleLocale: () => void;
-  theme: ThemeId;
-  onPickTheme: (id: ThemeId) => void;
 }) {
   const t = makeT(locale);
   // Drawn, never typed. A first visit already HAS a name, so nothing on this
@@ -111,7 +105,6 @@ export function Home({
       </div>
       <p style={{ margin: 0, color: "var(--ink-dim)" }}>{t("tagline")}</p>
 
-      <ThemePicker value={theme} onPick={onPickTheme} locale={locale} />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 6, fontWeight: 700 }}>
         {t("yourName")}

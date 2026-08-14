@@ -1,27 +1,14 @@
-/* Design tokens — the ellaz tokens.css structure, three themes.
+/* Design tokens — the ellaz tokens.css structure.
  *
- * THE FILE IS IN FOUR PARTS AND THE ORDER OF THE LAST THREE IS THE THEME.
+ * TWO PARTS. `:root` NEUTRAL holds everything a look would never change —
+ * space, radius, tap targets, fonts, easing — and the FELT block below holds
+ * the palette.
  *
- *   1. `:root` — NEUTRAL. Everything identical in every theme: space, radius,
- *      tap targets, fonts, easing. A value belongs here if changing the look
- *      would never change it.
- *   2. `:root, :root[data-theme="felt"]` — the DEFAULT theme's values.
- *   3. `:root[data-theme="daylight"]`
- *   4. `:root[data-theme="slate"]`
- *
- * The default lives in the BARE `:root` selector, and that is load-bearing: a
- * page whose boot script has not run yet carries no `data-theme` attribute at
- * all, and bare `:root` means it paints the default rather than painting
- * nothing.
- *
- * Theme blocks use `:root[data-theme=…]` (specificity 0,2,0) so a theme wins
- * over the bare default regardless of the order a bundler concatenates them in.
- * Never write a theme value at bare `:root` specificity in a non-default block.
- *
- * ALL THREE THEME BLOCKS MUST DECLARE AN IDENTICAL SET OF KEYS. A key present
- * in one and missing from another resolves to the DEFAULT's value in that
- * theme — silently, for that one property only, which is the shape of a theme
- * bug nobody finds by looking. `theme-tokens.test.ts` asserts the sets match.
+ * There used to be three palettes here and a picker to switch between them.
+ * They are gone: one game, one look, decided. What survives from that
+ * arrangement is worth keeping — the palette lives at bare `:root`, so a page
+ * paints correctly before any script has run, and there is no attribute for a
+ * boot sequence to get wrong.
  */
 
 :root {
@@ -47,8 +34,7 @@
    light, a wooden rail around it, gold chips. The richest of the three, and
    the closest to what shipped on 2026-08-14.
 --------------------------------------------------------------------------- */
-:root,
-:root[data-theme="felt"] {
+:root {
   --bg: #0d1512;
   --surface: #16211c;
   --surface-2: #1e2c25;
@@ -84,84 +70,4 @@
   --confetti-colors: #e8b64c, #58b98a, #faf7ef, #c2372c;
 }
 
-/* ---------------------------------------------------------------------------
-   DAYLIGHT — the ellaz.fun family look, so the two sites read as siblings.
-   Cream page, pink and teal accents, warm cloth. Palette taken from ellaz's
-   own `market` theme rather than approximated by eye.
---------------------------------------------------------------------------- */
-:root[data-theme="daylight"] {
-  --bg: #fff6e9;
-  --surface: #fffdf8;
-  --surface-2: #fff3e0;
-  --felt: #12b5ad;
-  --felt-hi: #4fd6cf;
-  --felt-edge: #0a6f6a;
-  --rail: #ff8a3d;
-  --line: #efe0cc;
-  --ink: #241c17;
-  --ink-dim: #6b5c50;
-  --gold: #c2185b;
-  --gold-ink: #ffffff;
-  --accent: #3cb46a;
-  --danger: #ef4a3f;
-  --card-face: #ffffff;
-  --card-red: #ef4a3f;
-  --card-black: #241c17;
-  --seat-bg: #fffdf8;
-  --seat-active: #ffc730;
-  --chip: #c2185b;
-  --pot-bg: rgba(255, 253, 248, 0.92);
-  --banner-bg: rgba(255, 253, 248, 0.95);
-  --glow: rgba(194, 24, 91, 0.45);
-  --glow-pulse: rgba(194, 24, 91, 0.6);
-  --chip-1: #f2efe6;
-  --chip-5: #c2372c;
-  --chip-25: #2f8f5b;
-  --chip-100: #3a2f4d;
-  --chip-edge: rgba(255, 255, 255, 0.82);
-  --cloth: rgba(255, 255, 255, 0.07);
-  --rail-hi: rgba(255, 255, 255, 0.34);
-  --rail-lo: rgba(120, 60, 10, 0.35);
-  --confetti-colors: #ff4d8d, #12b5ad, #ffc730, #3cb46a;
-}
 
-/* ---------------------------------------------------------------------------
-   SLATE — flat and modern. No cloth, no wood, no gradients that mean anything:
-   one dark surface, one accent, and type doing the work. The easiest of the
-   three to read at a glance and to make large, which is the point.
---------------------------------------------------------------------------- */
-:root[data-theme="slate"] {
-  --bg: #0b0d10;
-  --surface: #151a20;
-  --surface-2: #1d242c;
-  --felt: #171d24;
-  --felt-hi: #1f2831;
-  --felt-edge: #12171d;
-  --rail: #262f39;
-  --line: #2a343f;
-  --ink: #f4f6f8;
-  --ink-dim: #93a1b0;
-  --gold: #6aa8ff;
-  --gold-ink: #05101f;
-  --accent: #4ad4a0;
-  --danger: #ff6b6b;
-  --card-face: #ffffff;
-  --card-red: #ff5a52;
-  --card-black: #0b0d10;
-  --seat-bg: #131920;
-  --seat-active: #24405e;
-  --chip: #6aa8ff;
-  --pot-bg: rgba(11, 13, 16, 0.72);
-  --banner-bg: rgba(11, 13, 16, 0.9);
-  --glow: rgba(106, 168, 255, 0.5);
-  --glow-pulse: rgba(106, 168, 255, 0.65);
-  --chip-1: #f2efe6;
-  --chip-5: #c2372c;
-  --chip-25: #2f8f5b;
-  --chip-100: #23262e;
-  --chip-edge: rgba(255, 255, 255, 0.7);
-  --cloth: rgba(255, 255, 255, 0.028);
-  --rail-hi: rgba(160, 190, 230, 0.16);
-  --rail-lo: rgba(0, 0, 0, 0.5);
-  --confetti-colors: #6aa8ff, #4ad4a0, #f4f6f8, #ff6b6b;
-}
