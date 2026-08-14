@@ -88,8 +88,11 @@ export const FAMILY_IDS = [
 export type FamilyId = (typeof FAMILY_IDS)[number];
 
 export const FAMILIES: Record<Difficulty, readonly FamilyId[]> = {
-  easy: ["ABAB", "AAB"],
-  medium: ["ABC", "AABB", "SIZE"],
+  // Easy is pure two-item alternation for a five-year-old: one rule, "it goes
+  // back and forth". AAB (the double-A) moved up to medium — spotting a run of
+  // two is the next step, not the first.
+  easy: ["ABAB"],
+  medium: ["AAB", "ABC", "AABB", "SIZE"],
   hard: ["ABBA", "GROW", "NUMBER"],
 };
 

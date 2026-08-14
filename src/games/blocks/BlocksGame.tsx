@@ -482,11 +482,13 @@ export function BlocksGame({ ctx }: { ctx: GameContext }) {
         // The pad. Row order is fixed LTR because these are DIRECTIONS on a
         // board that is itself pinned LTR - mirroring them in Hebrew would put
         // the left arrow on the right of the piece it moves.
+        // No soft-drop button: the single-step "▼" was fiddly on a phone and
+        // the hard-drop "⤓" does the useful thing. Keyboard ArrowDown still
+        // soft-drops for desktop players.
         <div dir="ltr" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {pad(T.left, "◀", () => nudge(-1))}
           {pad(T.rotate, "⟳", turn, true)}
           {pad(T.right, "▶", () => nudge(1))}
-          {pad(T.down, "▼", soften)}
           {pad(T.drop, "⤓", slam, true)}
         </div>
       }

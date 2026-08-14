@@ -208,9 +208,18 @@ export function Shadows({ ctx }: { ctx: GameContext }) {
           touchAction: "none",
         }}
       >
+        {/* On a correct pick the silhouette LIFTS — the real, colourful picture
+            shows for the reveal beat before the next shadow is dealt, so the
+            child sees what was hiding in the shadow. */}
         <span
           aria-hidden="true"
-          style={{ fontSize: PLATE_GLYPH, lineHeight: 1, filter: SILHOUETTE }}
+          style={{
+            fontSize: PLATE_GLYPH,
+            lineHeight: 1,
+            filter: solved ? "none" : SILHOUETTE,
+            transform: solved ? "scale(1.06)" : "none",
+            transition: "transform 200ms ease",
+          }}
         >
           {round.answerEmoji}
         </span>
