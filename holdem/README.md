@@ -53,6 +53,61 @@ The CLI client's argument is a **label for that process**, not a table name.
 Nobody types a name here (see below), so it only shapes the token and the
 console output.
 
+## The practice table
+
+**`PRACT` — <https://poker.ellaz.fun/#/room/PRACT>. Three seats held by the
+house, always there, and it shows up on the home screen like any other room.**
+
+It is the same brain as `npm run bots`, moved from a terminal into the Durable
+Object, because a table that needs somebody's laptop running is not a table you
+can open at any hour. `server/src/botSeats.ts` is the whole of it; the DO's own
+alarm is what makes a bot act, and a bot sits with `sit` and acts with `act`
+like everyone else. Nothing here reaches around the engine — a bug in that file
+can make a bot play badly and cannot make it play illegally.
+
+**It sleeps, and that is the design rather than an optimisation.** A table that
+DEALS around the clock is the fastest way off the free plan: ten actions a hand,
+a hand every half minute, is roughly forty thousand alarm wake-ups and storage
+writes a day for hands nobody is watching. So the house sits out while no human
+socket is connected — no eligible players, no inter-hand alarm, no reaper clock
+either (it is `evergreen`, so there is nothing for the reaper to decide) — and
+an idle practice table costs literally nothing. It wakes on the first `hello`.
+**The table is always THERE; it is not always playing, and those are different
+promises.**
+
+Three things that each had to be closed for that to hold, and every one of them
+would have looked fine:
+
+- `standUpAbsent` hands back a seat whose player has no socket after five
+  minutes. The house has no socket and never will, so without an exemption the
+  practice table would empty itself five minutes after it was created.
+- The reaper deletes a table nobody has visited. `evergreen` skips it — checked
+  in the DO rather than inside `verdict`, because reap.ts answers "is anybody
+  there" and should keep answering that honestly.
+- Sitting the bots out is not quite enough to stop the dealing. Two people who
+  close their laptops keep ACTIVE seats for the five minutes before they are
+  stood up, which is two eligible players and a table folding to itself in an
+  empty room. `armNext` now refuses to arm the inter-hand clock on a house table
+  with nobody connected.
+
+**The animals are distinct now.** `pickDistinctName` avoids an animal already in
+the room, because the animal is the seat's FACE — with twenty of them drawn
+independently a duplicate is 27% likely four-handed and 56% six-handed, and the
+operator hit it on the first table the bots ever sat at: Nimble Squirrel beside
+Brave Squirrel, told apart by one word.
+
+The client calls `/api/practice` once per visit rather than anybody creating it
+by hand. It is idempotent (fixed code, so a 409 is the success case) and it
+means the table repairs itself the next time somebody opens the home screen —
+where the alternative was a room I made once and trusted never to vanish, which
+is the shape of a promise that quietly stops being true.
+
+`PRACTICE_CODE` lives in `botSeats.ts` and not in `index.ts`, and the reason is
+worth keeping: **every export of a worker's entry module is a runtime binding.**
+A plain `export const` there makes the runtime refuse to boot —
+`Incorrect type for map entry 'PRACTICE_CODE': the provided value is not of type
+'function or ExportedHandler'` — on every environment at once.
+
 ## Somebody to play against
 
 ```bash

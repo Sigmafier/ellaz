@@ -62,6 +62,27 @@ export async function listTables(): Promise<OpenTable[]> {
   }
 }
 
+/**
+ * Make sure the practice table exists, and say nothing if it does.
+ *
+ * Idempotent on the server — the room has a fixed code, so no number of calls
+ * can create a second one — and called once per visit rather than written down
+ * anywhere here. That is deliberate: the alternative was for me to create it
+ * by hand once and trust it never to vanish, which is exactly the shape of a
+ * promise that quietly stops being true. This one repairs itself the next time
+ * anybody opens the home screen.
+ *
+ * Silent on failure. A missing practice table is a table missing from a list;
+ * it is not a reason to show anybody an error.
+ */
+export async function ensurePracticeTable(): Promise<void> {
+  try {
+    await fetch(`${serverBase()}/api/practice`);
+  } catch {
+    /* the lobby is a convenience */
+  }
+}
+
 export async function createRoom(config: Record<string, unknown>): Promise<string | null> {
   try {
     const res = await fetch(`${serverBase()}/api/create`, {

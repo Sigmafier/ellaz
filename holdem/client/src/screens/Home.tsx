@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { pickName, renderName, rerollName } from "@shared/names";
-import { createRoom, listTables, type OpenTable } from "../net/socket";
+import { createRoom, ensurePracticeTable, listTables, type OpenTable } from "../net/socket";
 import { savedName, saveName } from "../net/nameStore";
 import type { Locale } from "../i18n";
 import { makeT } from "../i18n";
@@ -39,6 +39,12 @@ export function Home({
   }, []);
 
   useEffect(() => {
+    // Ask for the practice table before the first listing, so somebody
+    // arriving at an otherwise empty lobby still has a game to join. It is
+    // idempotent and it answers in a few milliseconds; `refresh` does not
+    // wait on it, because a slow server must not delay the tables that DO
+    // exist.
+    void ensurePracticeTable().then(refresh);
     refresh();
     // Twenty seconds. The lobby is a list of rooms, not a live feed — a table
     // appearing a few seconds late costs nothing, and this screen is the one

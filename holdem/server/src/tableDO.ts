@@ -16,6 +16,7 @@
 // them owns the slot exclusively.
 
 import { computeLegal } from "../../shared/src/engine/betting";
+import { botCommand, botId, isBot, personaFor, pickDistinctName, thinkMs } from "./botSeats";
 import type { Env } from "./env";
 import { LOBBY_NAME, type LobbyEntry } from "./lobby";
 import { HEARTBEAT_MS, nextCheckAt, type TableSnapshot, verdict } from "./reap";
@@ -56,6 +57,22 @@ interface Meta {
   lastSeenAt?: number;
   /** The host asked not to be listed. Never affects when the table is reaped. */
   isPrivate?: boolean;
+  /**
+   * How many seats are played by the house. 0 for an ordinary table.
+   *
+   * Set once at `/init` and never changed: the bots are seated in the same
+   * breath, and their seat indices are their identity.
+   */
+  bots?: number;
+  /**
+   * Never collect this table.
+   *
+   * The practice table has to survive being empty — that is the entire point
+   * of it. It is the ONLY exemption from the reaper, it is set at `/init`,
+   * and there is no message that can turn it on: a client able to make its
+   * own table immortal is a client able to fill the account with them.
+   */
+  evergreen?: boolean;
 }
 
 interface PlayerRec {
@@ -203,6 +220,8 @@ export class TableDO implements DurableObject {
       const body = (await request.json()) as Partial<TableConfig> & {
         code: string;
         isPrivate?: boolean;
+        bots?: number;
+        evergreen?: boolean;
       };
       const config: TableConfig = {
         code: body.code,
@@ -225,8 +244,17 @@ export class TableDO implements DurableObject {
         createdAt: Date.now(),
         lastSeenAt: 0,
         isPrivate: body.isPrivate === true,
+        // One fewer than the seats, so a person always has somewhere to sit at
+        // a table that fills itself.
+        bots: clampInt(body.bots, 0, Math.max(0, config.maxSeats - 1), 0),
+        evergreen: body.evergreen === true,
       };
       await this.ctx.storage.put({ meta: this.meta, table: this.table, seq: 0 });
+      // Seated at birth and immediately sitting out. A bot that were `active`
+      // here would make the table eligible the moment a second one joined it,
+      // and it would deal to an empty room for ever — see the cost note in
+      // botSeats.ts. They are woken by the first human socket.
+      if (this.meta.bots) await this.seatBots(this.meta.bots);
       // Report at birth, so the room a host is about to share is already in
       // the lobby when their friends look — and arm the reaper, so a room
       // created and abandoned in the same minute still gets collected.
@@ -282,6 +310,9 @@ export class TableDO implements DurableObject {
     // `ws` is passed through because it is STILL in getWebSockets() here —
     // see connectedCount.
     await this.touch(ws);
+    // The last person out turns the lights off. `ws` is still in
+    // getWebSockets() at this point, hence passing it through.
+    await this.sleepBots(ws);
     await this.armNext(ws);
   }
 
@@ -299,6 +330,7 @@ export class TableDO implements DurableObject {
    */
   async webSocketError(ws: WebSocket): Promise<void> {
     await this.touch(ws);
+    await this.sleepBots(ws);
     await this.armNext(ws);
   }
 
@@ -376,6 +408,7 @@ export class TableDO implements DurableObject {
       reportedAt: s.reportedAt,
       handsPlayed: s.handsPlayed,
       isPrivate: this.meta.isPrivate === true,
+      evergreen: this.meta.evergreen === true,
     };
     try {
       const stub = this.env.LOBBY.get(this.env.LOBBY.idFromName(LOBBY_NAME));
@@ -422,6 +455,106 @@ export class TableDO implements DurableObject {
    * that actually blocks people: real players at a table whose other seats
    * are held by ghosts.
    */
+  // -------------------------------------------------------------------------
+  // The house seats
+  //
+  // Everything here is scoped by `this.meta.bots`, so an ordinary table runs
+  // not one line of it. Read botSeats.ts first — the sleeping is the design,
+  // not an optimisation.
+
+  /** Sockets belonging to a person, which is what decides whether to deal. */
+  private humansConnected(excluding?: WebSocket): number {
+    let n = 0;
+    for (const sock of this.ctx.getWebSockets()) {
+      if (sock === excluding) continue;
+      const att = safeAttachment(sock);
+      if (att?.playerId && !isBot(att.playerId)) n++;
+    }
+    return n;
+  }
+
+  /**
+   * Seat the house, sitting out, once at birth.
+   *
+   * Keyed in `players` by the bot id itself, which no client can collide with:
+   * `parseC2S` refuses a token under eight characters and every bot id is
+   * five. That is the whole reason a bot's record is safe to keep in the same
+   * map as everyone else's.
+   */
+  private async seatBots(count: number): Promise<void> {
+    const rng = secureRng();
+    const players = (await this.ctx.storage.get<Record<string, PlayerRec>>("players")) ?? {};
+    const taken = new Set<string>();
+    for (const p of Object.values(players)) taken.add(p.name.noun);
+
+    for (let i = 0; i < count; i++) {
+      const id = botId(i);
+      const name = pickDistinctName(taken, rng);
+      taken.add(name.noun);
+      players[id] = { playerId: id, name };
+      await this.applyAndCommit(null, {
+        type: "sit",
+        seat: i,
+        playerId: id,
+        name: displayName(name),
+        buyIn: this.table!.config.startingStack,
+      });
+      await this.applyAndCommit(null, { type: "sitOut", seat: i });
+    }
+    await this.ctx.storage.put("players", players);
+  }
+
+  /**
+   * Somebody arrived: put the house in, and stake anyone who busted.
+   *
+   * The rebuy is not a courtesy. Without it a bot that lost its stack is
+   * seated with nothing, `eligible` counts only seats with chips, and a table
+   * drains down to one player and stops dealing — which reads exactly like a
+   * hang to the person who just sat down.
+   */
+  private async wakeBots(): Promise<void> {
+    const table = this.table;
+    if (!table || !this.meta.bots) return;
+    for (let i = 0; i < table.seats.length; i++) {
+      const seat = table.seats[i];
+      if (!isBot(seat.playerId)) continue;
+      if (seat.stack <= 0 && !seat.inHand) {
+        await this.applyAndCommit(null, { type: "rebuy", seat: i, amount: table.config.startingStack });
+      }
+      if (this.table!.seats[i].status === "sittingOut") {
+        await this.applyAndCommit(null, { type: "sitIn", seat: i });
+      }
+    }
+  }
+
+  /**
+   * The last person left: stop dealing.
+   *
+   * This is the line that keeps the practice table free. Sitting the house out
+   * makes the table ineligible, so `armNext` arms no inter-hand alarm and the
+   * object goes quiet until somebody opens the URL again. Left running, three
+   * bots would play something like forty thousand actions a day to an empty
+   * room, every one of them an alarm and a storage write.
+   */
+  private async sleepBots(leaving?: WebSocket): Promise<void> {
+    const table = this.table;
+    if (!table || !this.meta.bots) return;
+    if (this.humansConnected(leaving) > 0) return;
+    for (let i = 0; i < table.seats.length; i++) {
+      const seat = this.table!.seats[i];
+      if (isBot(seat.playerId) && seat.status === "active") {
+        await this.applyAndCommit(null, { type: "sitOut", seat: i });
+      }
+    }
+  }
+
+  /** The bot seat the action is on, or -1. */
+  private botToAct(): number {
+    const hand = this.table?.hand;
+    if (!hand || !this.meta.bots || hand.toAct < 0) return -1;
+    return isBot(this.table!.seats[hand.toAct]?.playerId) ? hand.toAct : -1;
+  }
+
   private async standUpAbsent(): Promise<void> {
     const table = this.table;
     if (!table) return;
@@ -441,6 +574,10 @@ export class TableDO implements DurableObject {
       const pid = table.seats[i].playerId;
       if (!pid) continue;
       seated.add(pid);
+      // The house has no socket and never will. Left in, this would hand its
+      // own seats back five minutes after the table was created and the
+      // practice table would quietly become an empty one.
+      if (isBot(pid)) continue;
       if (here.has(pid)) {
         delete absent[pid];
         continue;
@@ -727,6 +864,9 @@ export class TableDO implements DurableObject {
     await this.sendTimer(ws);
     // Somebody is here: stop the reaper's clock and refresh the lobby row.
     await this.touch();
+    // …and wake the house, if this table has one. Before `armNext`, because
+    // sitting them in is what makes the table eligible to deal.
+    if (!isBot(rec.playerId)) await this.wakeBots();
     await this.armNext();
   }
 
@@ -932,17 +1072,32 @@ export class TableDO implements DurableObject {
           next = { ...prev, timeBank: true, deadline: prev.deadline + table.config.timeBankMs };
         }
       } else {
+        // A bot gets a short deadline instead of the table's clock, and the
+        // alarm decides for it rather than folding it. It MUST stay under
+        // `actionTimeMs` — a think longer than the clock would meet the
+        // timeout branch first and the house would fold every hand.
+        const botSeat = this.botToAct();
+        const wait =
+          botSeat === hand.toAct
+            ? Math.min(thinkMs(personaFor(botSeat), Math.random), table.config.actionTimeMs - 500)
+            : table.config.actionTimeMs;
         next = {
           kind: "action",
           seat: hand.toAct,
           actionSeq: hand.actionSeq,
-          deadline: Date.now() + table.config.actionTimeMs,
+          deadline: Date.now() + wait,
           timeBank: false,
         };
       }
     } else if (table.phase === "interHand" || table.phase === "waiting") {
       const eligible = table.seats.filter((s) => s.status === "active" && s.stack > 0).length;
-      if (eligible >= 2) {
+      // A house table does not deal while nobody is watching, and sitting the
+      // bots out is not quite enough to guarantee that: two people who close
+      // their laptops keep ACTIVE seats for the five minutes before they are
+      // stood up, which is two eligible players and a table dealing itself
+      // fold-after-fold to an empty room. Cheap to close, so closed.
+      const watched = !this.meta.bots || this.humansConnected(leaving) > 0;
+      if (eligible >= 2 && watched) {
         next = {
           kind: "interHand",
           seat: -1,
@@ -960,7 +1115,11 @@ export class TableDO implements DurableObject {
     // practice they never compete. `Math.min` rather than an assumption
     // because "in practice" is not a guarantee, and the failure of getting it
     // wrong is a game clock that never fires.
-    const reapAt = nextCheckAt(this.snapshot(leaving), Date.now());
+    // An evergreen table asks the reaper for nothing. It cannot be deleted and
+    // it cannot be delisted, so the only thing a wake-up would buy is a lobby
+    // row it already keeps — and this is the line that makes an idle practice
+    // table cost literally zero: no game clock, no reap clock, no alarm.
+    const reapAt = this.meta.evergreen ? null : nextCheckAt(this.snapshot(leaving), Date.now());
     const deadlines = [
       next.kind === "none" ? null : next.deadline,
       reapAt,
@@ -981,7 +1140,11 @@ export class TableDO implements DurableObject {
     // only safe way to read it is to ask both what they think NOW.
     if (table) {
       const now = Date.now();
-      const v = verdict(this.snapshot(), now);
+      // Evergreen skips the reaper entirely rather than being handled inside
+      // `verdict`. reap.ts answers one question — is anybody there — and
+      // teaching it about a table that is allowed to be empty forever would
+      // put an exemption inside the thing whose whole job is not to have one.
+      const v = this.meta.evergreen ? "keep" : verdict(this.snapshot(), now);
       if (v === "delete") {
         await this.collect();
         return;
@@ -1020,7 +1183,15 @@ export class TableDO implements DurableObject {
         hand.actionSeq === timer.actionSeq &&
         Date.now() >= timer.deadline
       ) {
-        await this.applyAndCommit(null, { type: "timeout", seat: timer.seat });
+        // The house decides; everyone else runs out of time. Same branch
+        // because it is the same event — the clock reached a seat that has
+        // not acted — and only the answer differs.
+        const cmd = this.botToAct() === timer.seat ? botCommand(table, timer.seat, secureRng()) : null;
+        // A null command means the bot could not act after all (the hand
+        // moved, or it holds no cards). Folding it would be a decision made
+        // by a bug; the timeout is the honest fallback and is what a real
+        // player would get.
+        await this.applyAndCommit(null, cmd ?? { type: "timeout", seat: timer.seat });
       } else {
         await this.armNext();
         await this.broadcastTimer();

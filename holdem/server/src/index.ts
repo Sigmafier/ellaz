@@ -7,6 +7,7 @@
 export { TableDO } from "./tableDO";
 export { LobbyDO } from "./lobby";
 
+import { PRACTICE_CODE } from "./botSeats";
 import { LOBBY_NAME } from "./lobby";
 import type { Env } from "./env";
 
@@ -19,6 +20,19 @@ export type { Env };
 // rejected rather than coerced.
 const CODE_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 const CODE_LENGTH = 5;
+
+// PRACTICE_CODE lives in botSeats.ts, and it is worth knowing why it cannot
+// live here: EVERY EXPORT OF A WORKER'S ENTRY MODULE IS A RUNTIME BINDING.
+// `export const PRACTICE_CODE = "PRACT"` in this file makes the runtime refuse
+// to start at all —
+//
+//   Incorrect type for map entry 'PRACTICE_CODE': the provided value is not of
+//   type 'function or ExportedHandler'
+//
+// — because the entry module's exports are a contract with the platform, not
+// an ordinary module surface. Only the default handler and Durable Object
+// classes belong here. A plain constant added for convenience takes the whole
+// worker down, at boot, on every environment at once.
 
 function makeCode(): string {
   const buf = new Uint8Array(CODE_LENGTH);
@@ -86,6 +100,38 @@ export default {
         if (res.status !== 409) return json(await res.json(), res.status, origin, env);
       }
       return json({ error: "could not allocate a room code" }, 500, origin, env);
+    }
+
+    // The practice table: one fixed room, seats held by the house, always
+    // there. Idempotent — the DO answers 409 once it has been claimed, and
+    // that is the SUCCESS case here rather than an error, which is what lets
+    // the client call this on every visit without checking first.
+    //
+    // Unauthenticated and safe to be: the code is a constant, so no number of
+    // calls can create a second table. Read `botSeats.ts` for why an idle one
+    // costs nothing.
+    if (url.pathname === "/api/practice") {
+      const stub = env.TABLE.get(env.TABLE.idFromName(PRACTICE_CODE));
+      const res = await stub.fetch("https://do/init", {
+        method: "POST",
+        body: JSON.stringify({
+          code: PRACTICE_CODE,
+          maxSeats: 6,
+          // 40 big blinds. Measured: at 100bb the first eight hands the bots
+          // ever played contained no all-in at all, and the run-out is the
+          // thing worth sitting down for.
+          sb: 2,
+          bb: 5,
+          startingStack: 200,
+          minBuyIn: 40,
+          maxBuyIn: 400,
+          actionTimeMs: 45_000,
+          bots: 3,
+          evergreen: true,
+        }),
+      });
+      if (res.ok || res.status === 409) return json({ code: PRACTICE_CODE }, 200, origin, env);
+      return json(await res.json(), res.status, origin, env);
     }
 
     // The lobby. Read-only and unauthenticated: it lists the tables whose

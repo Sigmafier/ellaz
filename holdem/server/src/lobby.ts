@@ -39,6 +39,19 @@ export interface LobbyEntry {
   reportedAt: number;
   handsPlayed: number;
   isPrivate: boolean;
+  /**
+   * A table that is allowed to be empty forever, and must stay on the list
+   * while it is.
+   *
+   * The practice table sleeps when nobody is connected — no sockets, no
+   * heartbeat, nothing to report — which is exactly the signature of a dead
+   * room. Without this the one table anybody can always join would be the
+   * first thing the lobby dropped.
+   *
+   * Set by the table itself at `/init` and by nothing else. Also NOT in
+   * `LobbyRow`: a client is told what a table looks like, not why it is here.
+   */
+  evergreen?: boolean;
 }
 
 /** What a client is told. Deliberately less than the entry above. */
@@ -112,7 +125,12 @@ export class LobbyDO implements DurableObject {
   private list(now: number): LobbyRow[] {
     const out: { row: LobbyRow; e: LobbyEntry }[] = [];
     for (const e of this.rows.values()) {
-      if (!shouldList(e, now, e.isPrivate)) continue;
+      // Evergreen is checked HERE and not inside `shouldList`, for the same
+      // reason the table checks it outside `verdict`: reap.ts answers "is
+      // anybody there", and it should keep answering that honestly rather
+      // than learning about a table for which the answer does not matter.
+      if (!e.evergreen && !shouldList(e, now, e.isPrivate)) continue;
+      if (e.evergreen && e.isPrivate) continue;
       out.push({
         e,
         row: {
