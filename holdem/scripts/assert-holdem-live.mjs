@@ -182,23 +182,6 @@ async function fetchWhenWarm(url, budgetMs = 90_000) {
   }
 }
 
-let html = "";
-{
-  const { res, err, attempt, waitedMs } = await fetchWhenWarm(PAGES);
-  if (err) {
-    bad(`the site is unreachable after ${Math.round(waitedMs / 1000)}s: ${err.message}`);
-  } else if (res.ok) {
-    html = await res.text();
-    ok(
-      attempt === 1
-        ? `the site answers (HTTP ${res.status})`
-        : `the site answers (HTTP ${res.status}) after ${Math.round(waitedMs / 1000)}s and ${attempt} attempts — a cold pages.dev hostname`,
-    );
-  } else {
-    bad(`the site returned HTTP ${res.status} after ${Math.round(waitedMs / 1000)}s`);
-  }
-}
-
 // Every built artifact must be SERVED and byte-identical. Not "referenced by
 // the HTML" — a lazy chunk is named inside another chunk, never in a document,
 // which is how two game chunks 404'd on ellaz.fun behind a green gate.
@@ -217,14 +200,72 @@ const builtEntry = built
   .map((p) => relative(DIST, p).split("\\").join("/"))
   .find((r) => r.startsWith("assets/") && r.endsWith(".js"));
 
+/**
+ * Wait for the edge to serve THIS build, not merely to answer.
+ *
+ * There are two different "not yet"s here and the gate needs both, which cost a
+ * red run to learn:
+ *
+ *   1. the hostname does not resolve yet   -> 522, handled by fetchWhenWarm
+ *   2. the hostname resolves and serves the PREVIOUS deployment -> 200, and
+ *      every downstream check then reports a defect that does not exist
+ *
+ * `wrangler pages deploy` RETURNS BEFORE the new deployment is current at the
+ * edge. Measured 2026-08-14: the gate ran ~1s after the deploy step exited and
+ * got the old build; the same URL served the new one moments later. The deploy
+ * was perfect and the run was red, and the line it printed — "it is serving an
+ * older build" — was true-but-transient, which is worse than false, because it
+ * names a real and serious failure mode.
+ *
+ * Polling for currency is what makes the check honest, and it does NOT make the
+ * gate unfailable: a deploy that genuinely never lands never becomes current,
+ * so it still fails — just at the end of the budget instead of instantly.
+ */
+// Overridable so a control can prove the failure path in seconds rather than
+// two minutes. Never raise it in CI to paper over a deploy that does not land.
+const BUDGET_MS = Number(process.env.LIVE_BUDGET_MS ?? 120_000);
+
+async function fetchCurrent(url, entry, budgetMs = BUDGET_MS) {
+  const started = Date.now();
+  let attempt = 0;
+  for (;;) {
+    attempt += 1;
+    const { res, err } = await fetchWhenWarm(url, Math.max(0, budgetMs - (Date.now() - started)));
+    if (!err && res.ok) {
+      const body = await res.text();
+      if (!entry || body.includes(entry)) {
+        return { html: body, attempt, waitedMs: Date.now() - started, current: true };
+      }
+      if (Date.now() - started >= budgetMs) {
+        return { html: body, attempt, waitedMs: Date.now() - started, current: false };
+      }
+      console.log(`  ...  answering, but with an older build (attempt ${attempt}) — the edge has not caught up`);
+    } else {
+      if (Date.now() - started >= budgetMs) {
+        return { html: "", attempt, waitedMs: Date.now() - started, current: false, err, status: res?.status };
+      }
+    }
+    await new Promise((r) => setTimeout(r, 5_000));
+  }
+}
+
 if (!builtEntry) {
   bad("the build produced no hashed JS entry to look for");
-} else if (!html) {
-  bad("no HTML was served, so nothing could be matched against the build");
-} else if (html.includes(builtEntry)) {
-  ok(`the served page references THIS build (${builtEntry})`);
 } else {
-  bad(`the served page does not reference ${builtEntry} — it is serving an older build`);
+  const { html: body, attempt, waitedMs, current, err, status } = await fetchCurrent(PAGES, builtEntry);
+  const secs = Math.round(waitedMs / 1000);
+  if (err) {
+    bad(`the site is unreachable after ${secs}s: ${err.message}`);
+  } else if (!body) {
+    bad(`the site returned HTTP ${status} after ${secs}s`);
+  } else if (current) {
+    ok(`the site answers, and serves THIS build (${builtEntry})${attempt > 1 ? ` — after ${secs}s and ${attempt} attempts` : ""}`);
+  } else {
+    bad(
+      `the site never served ${builtEntry} within ${secs}s — it is still on an older build. ` +
+        `The deploy step may have published to a different project or branch.`,
+    );
+  }
 }
 
 const docs = new Set([".html"]);
@@ -255,7 +296,17 @@ for (const file of built) {
   // name identifies the bytes.
   if (!isDoc && sha(served) !== sha(readFileSync(file))) {
     mismatched += 1;
-    bad(`${rel} is SERVED but does not match the build (truncated or stale)`);
+    // Cloudflare Pages answers a MISSING asset with 200 and its fallback
+    // document, so the `!res.ok` branch above never fires for one and the
+    // honest cause ("this file is not deployed") arrives disguised as
+    // "truncated or stale". Naming the two apart is the difference between
+    // looking at the upload and looking at the bundler.
+    const head = served.subarray(0, 200).toString("utf8").trimStart().toLowerCase();
+    if (head.startsWith("<!doctype html") || head.startsWith("<html")) {
+      bad(`${rel} is NOT DEPLOYED — the host answered with its fallback HTML page, not the file`);
+    } else {
+      bad(`${rel} is SERVED but does not match the build (truncated or stale)`);
+    }
   }
 }
 
