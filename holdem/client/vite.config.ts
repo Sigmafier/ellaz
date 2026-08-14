@@ -38,7 +38,10 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
+    // NOT 5173 — that port belongs to OGAS's legacy Sigma app on this machine,
+    // and two apps sharing a localhost origin share localStorage with it. Kept
+    // in step with ALLOWED_ORIGINS in server/wrangler.toml.
+    port: 5175,
     // Dev-only: lets a tunnel hostname (e.g. *.trycloudflare.com) reach the
     // dev server for live demos. Irrelevant to production builds.
     allowedHosts: true,

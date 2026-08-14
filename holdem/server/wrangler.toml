@@ -16,4 +16,9 @@ class_name = "TableDO"
 [vars]
 # Comma-separated list of allowed browser origins for WS/API calls.
 # The pages.dev URL lands here once the first deploy exists.
-ALLOWED_ORIGINS = "http://localhost:5173"
+# 5175 is this client's dev port and 4173 is vite preview's default. NOT 5173:
+# that belongs to OGAS's legacy Sigma app on this machine, and two apps sharing
+# a localhost origin cross-contaminate each other's localStorage — which for an
+# auth token is a phantom-401 cascade, and here would be one app reading the
+# other's device token.
+ALLOWED_ORIGINS = "http://localhost:5175,http://localhost:4173"
