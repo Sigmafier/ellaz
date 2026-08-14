@@ -154,11 +154,51 @@ What each failure means:
 
 ### The URL
 
-Launch is on the free `ellaz-holdem.pages.dev`. `poker.ellaz.fun` is a later
-CNAME at Hostinger pointing at it — a **subdomain** works with DNS staying
-where it is; only an apex would force ellaz.fun's nameservers onto Cloudflare,
-which this project is not going to do. Add the domain in the Pages dashboard
-**before** creating the CNAME, or it 522s.
+Launch is on the free `ellaz-holdem.pages.dev`. `poker.ellaz.fun` is a CNAME at
+Hostinger pointing at it — a **subdomain** works with DNS staying where it is;
+only an apex would force ellaz.fun's nameservers onto Cloudflare, which this
+project is not going to do.
+
+**Three parties have to agree, and only one of them is in this repo.** Each can
+be right while another is wrong, and the failures do not look alike:
+
+| Party | What it needs | If it is the missing one |
+|---|---|---|
+| Cloudflare Pages | the hostname registered on the `ellaz-holdem` project | Cloudflare error 1000/522 — obvious |
+| Hostinger DNS | `CNAME poker` → `ellaz-holdem.pages.dev` | NXDOMAIN — obvious |
+| The Worker | the new origin in `ALLOWED_ORIGINS` | **the page loads perfectly and every button 403s** |
+
+That third row is why the code half shipped first and alone. The origin check
+is the only thing between the new hostname and a working game: a browser there
+sends `Origin: https://poker.ellaz.fun`, which is not `.pages.dev`, so without
+that entry every create and every socket is refused while the site looks fine.
+Listing a hostname before it resolves costs nothing — nobody can send that
+Origin yet — whereas adding it afterwards leaves a window where the site is up
+and broken.
+
+**Do it in this order:**
+
+1. **Cloudflare** → Workers & Pages → `ellaz-holdem` → Custom domains → *Set up
+   a domain* → `poker.ellaz.fun`. It will sit at "pending" and tell you the
+   CNAME target. Registering FIRST means the edge knows the name before any
+   traffic arrives for it.
+2. **Hostinger** → hPanel → Domains → ellaz.fun → DNS / Nameservers → add
+   `Type CNAME · Name poker · Points to ellaz-holdem.pages.dev · TTL 3600`.
+3. Wait for the certificate (usually minutes), then run the gate below.
+
+```bash
+npm run assert:domain                 # advisory: prints what is still outstanding
+HOLDEM_CUSTOM_DOMAIN=1 npm run assert:domain   # enforcing: reds on any of them
+```
+
+It checks DNS, the CNAME target, HTTPS, that the hostname serves the **same
+app** as the pages.dev origin (a domain attached to the wrong Pages project
+otherwise looks entirely healthy), and — the one nobody thinks to check — that
+the Worker accepts the new Origin. That last one is asserted on the CORS
+response HEADER rather than the status, because the preflight answers 200
+either way, and it carries a disallowed-origin control so a gate that says yes
+to everyone cannot pass. Arm it with `HOLDEM_CUSTOM_DOMAIN=1` once all three
+parties are done.
 
 Rooms: `POST /api/create` → 5-char Crockford code (no I/L/O/U; input maps
 I/L→1, O→0). A **league** room's code is the league — bankrolls, ledger and

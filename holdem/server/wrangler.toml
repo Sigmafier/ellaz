@@ -31,4 +31,17 @@ class_name = "LobbyDO"
 # a localhost origin cross-contaminate each other's localStorage — which for an
 # auth token is a phantom-401 cascade, and here would be one app reading the
 # other's device token.
-ALLOWED_ORIGINS = "http://localhost:5175,http://localhost:4173"
+#
+# https://poker.ellaz.fun is listed AHEAD of the DNS existing, and that order
+# is the point. The origin check is the ONLY thing standing between the new
+# hostname and a working game: a browser there sends
+# `Origin: https://poker.ellaz.fun`, which is not `.pages.dev` and was not in
+# this list, so every create and every socket answered 403 while the page
+# itself rendered perfectly. Measured against the live worker before this
+# line existed — 403 for poker.ellaz.fun, 200 for the pages.dev origin, 403
+# for a hostile one, so it was the origin gate and not an accident.
+#
+# Listing a hostname that does not resolve costs nothing (nobody can send that
+# Origin until it does). Landing it AFTER the DNS costs a window in which the
+# site is up and completely broken.
+ALLOWED_ORIGINS = "http://localhost:5175,http://localhost:4173,https://poker.ellaz.fun"
