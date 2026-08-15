@@ -103,6 +103,37 @@ an idle practice table costs literally nothing. It wakes on the first `hello`.
 **The table is always THERE; it is not always playing, and those are different
 promises.**
 
+**The table stopped dealing entirely on 2026-08-15, and no part of it was
+broken.** Five seats, all active, holding 1963 / 2334 / 55 / 200 / 200 chips,
+phase pinned at `waiting`, and the inter-hand alarm firing every 6.5 s
+committing an **empty event list**, forever. `play-a-few.mjs` sat down and
+watched 0 hands in two minutes.
+
+Two correct rules in a cycle: a **joiner** (`owesBB`) inside the button..BB
+zone must wait, or they buy a late position without paying a blind; and a
+joiner stops owing only by being **dealt in**. Every eligible seat owed a
+blind, so the rule excluded all of them but the big blind, `dealtSeats` came
+back with one member, `computePositions` returned null, and `doStartHand` set
+`phase = "waiting"` and returned with no events. The blind never advanced, so
+the zone never moved, so nobody ever stopped owing.
+
+**And it is the normal path here, not an edge case.** `sleepBots()` sits every
+bot out when the last human leaves - the line above that keeps this table free
+- `wakeBots()` sits them all back in on the next visit, and `doSitIn` sets
+`owesBB = handCounter > 0`. So *every visit after the first* makes the whole
+table owe a blind at the same instant. Whether it wedges then comes down to
+where the button is: the zone runs from the previous SB to the new BB, two
+seats wide on a lucky day and five on an unlucky one.
+
+Fixed in the **engine**, not in the bot plumbing, because any real table
+reaches it the moment everyone sits out and back in: when the zone would leave
+fewer than two players it **yields**, and everyone eligible is dealt. Nobody
+joins free - they all post a live blind, which is what the rule already asks of
+an unzoned joiner. Measured after the deploy: hand #124 dealt 8.7 s after
+connecting, then 7 hands in 5 minutes, and the two abandoned seats timed out,
+sat themselves out, and one was reaped. Full trap:
+[`.claude/rules/a-wait-rule-whose-release-needs-the-thing-it-blocks.md`](../.claude/rules/a-wait-rule-whose-release-needs-the-thing-it-blocks.md).
+
 **A seat holding 0 chips does not sit at the table** (`server/src/busted.ts`).
 Not tidiness: `blinds.ts` counts only seats with chips, so every busted seat
 left in place is one player closer to a table that cannot deal — and the way
