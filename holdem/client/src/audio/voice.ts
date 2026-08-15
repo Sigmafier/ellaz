@@ -406,6 +406,16 @@ export function scatter(
   return { ...base, layers };
 }
 
+// bounce / chirp / friction USED TO LIVE HERE and were moved into the lab's own
+// chunk on 2026-08-15, before they ever shipped. Same reason `modes.ts` holds
+// the partial sets nothing plays: they are used only by lab candidates, and a
+// composer in this file is a composer the lab imports ACROSS a chunk boundary,
+// which pins it to the shell. Measured: 278 B gz on every first visit, for
+// three functions no child's device will ever call.
+//
+// Promoting a picked arm to a shipped voice is what brings one back here, and
+// that is the moment to pay for it.
+
 // ---------------------------------------------------------------------------
 // The nine, all PICKED - 2026-08-13, in the lab, with the names showing
 // ---------------------------------------------------------------------------

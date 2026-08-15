@@ -1499,19 +1499,32 @@ const win: Candidate[] = [
   },
 ];
 
+// The second wave, 2026-08-15. Every strip gains ten arms built on three
+// primitives this palette did not have - a settling BOUNCE, a falling pitch,
+// and friction that actually sweeps. See `more/kit.ts` for why more of the same
+// would not have answered "the sounds are still not fine enough".
+//
+// APPENDED, never merged in. The order is deliberate: the arms somebody has
+// already listened to keep their position in the strip, and the new ones arrive
+// underneath them. Re-sorting a strip is cheap to do and expensive to undo -
+// the operator navigates this screen by where a button was.
+import * as MORE_CARDS from "./more/cards";
+import * as MORE_CHIPS from "./more/chips";
+import * as MORE_TABLE from "./more/table";
+
 /** Every strip, in the order the lab shows them: loudest and most frequent first. */
 export const STRIPS: { name: SfxName; label: string; when: string; arms: Candidate[] }[] = [
-  { name: "chipClack", label: "Chips", when: "every call and every blind", arms: chipClack },
-  { name: "chipRaise", label: "Raise", when: "a bet or a raise - bigger than a call", arms: chipRaise },
-  { name: "cardSlide", label: "Deal", when: "once per card - the busiest sound here", arms: cardSlide },
-  { name: "shuffle", label: "Shuffle", when: "the start of every hand", arms: shuffle },
-  { name: "checkKnock", label: "Check", when: "somebody knocks the table", arms: checkKnock },
-  { name: "fold", label: "Fold", when: "somebody gives up the hand", arms: fold },
-  { name: "yourTurn", label: "Your turn", when: "the action reaches you", arms: yourTurn },
-  { name: "reveal", label: "Showdown", when: "a hand is turned face up", arms: reveal },
-  { name: "potSlide", label: "Pot", when: "the pot slides to the winner", arms: potSlide },
-  { name: "allIn", label: "All-in", when: "somebody puts it all in", arms: allIn },
-  { name: "win", label: "You win", when: "you take the pot", arms: win },
+  { name: "chipClack", label: "Chips", when: "every call and every blind", arms: [...chipClack, ...MORE_CHIPS.chipClack] },
+  { name: "chipRaise", label: "Raise", when: "a bet or a raise - bigger than a call", arms: [...chipRaise, ...MORE_CHIPS.chipRaise] },
+  { name: "cardSlide", label: "Deal", when: "once per card - the busiest sound here", arms: [...cardSlide, ...MORE_CARDS.cardSlide] },
+  { name: "shuffle", label: "Shuffle", when: "the start of every hand", arms: [...shuffle, ...MORE_CARDS.shuffle] },
+  { name: "checkKnock", label: "Check", when: "somebody knocks the table", arms: [...checkKnock, ...MORE_TABLE.checkKnock] },
+  { name: "fold", label: "Fold", when: "somebody gives up the hand", arms: [...fold, ...MORE_CARDS.fold] },
+  { name: "yourTurn", label: "Your turn", when: "the action reaches you", arms: [...yourTurn, ...MORE_TABLE.yourTurn] },
+  { name: "reveal", label: "Showdown", when: "a hand is turned face up", arms: [...reveal, ...MORE_CARDS.reveal] },
+  { name: "potSlide", label: "Pot", when: "the pot slides to the winner", arms: [...potSlide, ...MORE_CHIPS.potSlide] },
+  { name: "allIn", label: "All-in", when: "somebody puts it all in", arms: [...allIn, ...MORE_CHIPS.allIn] },
+  { name: "win", label: "You win", when: "you take the pot", arms: [...win, ...MORE_TABLE.win] },
 ];
 
 /** Total arms, for the studio's own header. Derived, so it cannot go stale. */

@@ -108,7 +108,11 @@ const check = (name, got, want, ok) => {
   });
   check("the six arrive settled", `Settled · ${look.settled}`, "5 look axes", look.settled === "5");
   check("the open ones can be settled", `${look.settleButtons} Settle buttons`, "one per open strip", look.settleButtons >= 8);
-  check("the sound tab counts every option", `Sounds · ${look.soundsTab}`, "98", look.soundsTab === "98");
+  // 208 = the 98 of the first wave plus 110 second-wave arms (ten per strip),
+  // and it is checked against the LIVE header rather than against the source
+  // because `SOUND_COUNT` is derived from STRIPS - so a strip that failed to
+  // load would show a smaller number here while every unit test still passed.
+  check("the sound tab counts every option", `Sounds · ${look.soundsTab}`, "208", look.soundsTab === "208");
   // 71 = the 70 that shipped before, plus the new `clean` card face. (Written
   // as 72 on the first run of this probe, from memory rather than from the
   // registry, and duly reported as a failure of the app.)

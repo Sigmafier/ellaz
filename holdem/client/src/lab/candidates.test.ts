@@ -28,15 +28,21 @@ group("every arm is playable", () => {
     // A candidate the override gate refuses is a button that changes the
     // highlight and then plays the built-in — indistinguishable from a pick
     // that did not take, and impossible to notice by ear.
+    // COLLECT, then assert once. An `expect` inside the loop throws on the
+    // first bad arm and hides every one after it, so a wave of new candidates
+    // gets fixed one run at a time - which is how a five-minute pass becomes an
+    // afternoon. The failure message is the whole list.
+    const refused: string[] = [];
     for (const strip of STRIPS) {
       for (const arm of strip.arms) {
         // Through JSON first: this is the shape it will be in when it comes
         // back off the disk, which is the only shape the gate ever sees in
         // production.
         const roundTripped = JSON.parse(JSON.stringify(arm.spec));
-        expect(validateSpec(roundTripped), `${strip.name}/${arm.id}`).not.toBeNull();
+        if (validateSpec(roundTripped) === null) refused.push(`${strip.name}/${arm.id}`);
       }
     }
+    expect(refused, "the override gate refuses these, so they would silently play the built-in").toEqual([]);
   });
 
   it("says something useful about each one", () => {

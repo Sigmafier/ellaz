@@ -389,7 +389,7 @@ dealing a real hand from the real engine. Three URLs, one screen, one lazy
 
 **<https://poker.ellaz.fun/#/lab>**, or the **Make it yours** row on the home
 screen, or the room menu → *Choose sounds*. Eleven strips, one per sound the
-table plays, **98 candidates**. Tapping a candidate **picks it and plays it
+table plays, **208 candidates** (18–20 an option each). Tapping a candidate **picks it and plays it
 through the real audio port** — not a preview path that could disagree with
 what a hand actually sounds like. That is the whole design rule: the thing
 being judged has to be the thing that ships.
@@ -445,6 +445,68 @@ simply began), a **raise** that sounds like more chips than a call, and a
 **card turning over** at showdown, which was silent inside a beat the pacer
 holds 1.2 s open for.
 
+### The second wave, and why 98 options were not variety
+
+The next verdict was *"still way way behind, not fine enough, I want a bigger
+and better variety"*, and both halves have one cause. **All ninety-eight arms
+were `struck()`** — an impulse into a set of exponentially decaying partials.
+Changing the partials changes the material and changing the frequency changes
+the size, but nothing in that vocabulary can change the **event**, so a strip of
+nine differed by parameter rather than by kind. The ear hears the family
+resemblance long before it hears the settings.
+
+Three composers, all in `lab/more/kit.ts`:
+
+- **`bounce()`** — contact, micro-bounce, rest, with the gaps **shrinking
+  geometrically**. That ratio between successive gaps is most of what the ear
+  uses to tell a hard surface from a soft one, and it is what makes a chip
+  *arrive* instead of appear.
+- **`chirp()`** — the pitch falling across the impact. A real contact patch
+  spreads as the object deforms and the partials slide downward a semitone or
+  three. A synthesiser holding one exact frequency is the loudest remaining
+  "this is a computer" tell once body and damping are already right.
+- **`friction()`** — a sliding contact as a **moving** band of noise with a real
+  attack. Not "sweeps are new" — `card-old` has swept 700→3000 Hz since long
+  before this. What is new is that a sweep is a *builder*, so it can go under a
+  chip, and **no chip on this table had ever scraped.**
+
+They live in the lab's chunk and not in `audio/voice.ts`, the same rule
+`modes.ts` follows: nothing ships them yet, and a composer in `voice.ts` is one
+the lab imports across a chunk boundary, which pins it to the shell. Measured
+both ways on the artifact — **278 B gz of first visit before the move, 10 B
+after** — and the arm lock re-passed unchanged afterwards, which proves the
+refactor altered no sound.
+
+**98 → 208 arms, 18–20 per strip.** Five new materials in `modes.ts`, and the
+one that matters is `STACK`: a *column* of chips is a coupled resonator, lower
+and longer than a single chip with a close beating pair, and it is where the
+sound of a riffle actually comes from. The individual chips only supply the
+transients.
+
+Measured on the deployed bundle, felt paused, idle control at zero:
+
+| tapped | onsets | sweeps | lowest |
+|---|---|---|---|
+| Chips / Clay (shipped) | 2 | 0 | 247 Hz |
+| Chips / Dropped (bounce) | **3** | 0 | 215 Hz |
+| Chips / Slid forward (friction) | 1 | **1** (1400→3400) | 259 Hz |
+| Chips / No body (the old sound) | 2 | 0 | 2662 Hz |
+
+**Count ONSETS, not oscillators.** The first version of that check counted
+nodes and reported "Dropped 9, Clay 14" — a real number answering the wrong
+question, because a node count is partials × events, so three landings on a
+two-partial click has *fewer* nodes than one landing on a four-partial chip and
+the arm that bounces reads as the simpler sound. A bounce **is** separate start
+times.
+
+The probe also had to stop matching arms by substring: `hasText: "Riffle"` was
+unambiguous at 98 arms and silently started matching *"Riffled first"* in a
+higher strip at 208, reporting 27 oscillators for a voice that is pure noise and
+creates none. It is scoped to the strip and anchored to the start of the name
+now, and it exits non-zero if a name matches anything other than exactly one
+button. Same defect as a row that grows with the catalogue: correct on the day
+it was written, wrong later, silent about it.
+
 **Sound on a phone, which is a different problem from sound.** Two causes, and
 neither leaves a trace in JavaScript — the context reports `running`, every node
 connects, `onended` fires on time, and nothing is in an error state:
@@ -472,8 +534,30 @@ is NOT knowable from code (the side switch) is named in words rather than
 guessed at. It is on that tab and nowhere else, because the person who needs it
 is already looking at sounds.
 
-A pick persists as a complete `VoiceSpec` under `holdem:voice:v1`, so a sound
-chosen on a phone plays on a laptop that has never opened this screen.
+A pick persists as a complete `VoiceSpec` under `holdem:voice:v1`, so it keeps
+playing exactly what was auditioned even if the candidate list is rewritten
+under it. **It does not travel between devices** — nothing here syncs, so a
+phone and a laptop are two tables, which is precisely why the six look decisions
+were shipped as *defaults* rather than left as picks.
+
+**Storing the value rather than the id makes the option list a persistence
+format.** The audio is safe; the LABEL is not, because `pickedSounds()` recovers
+which arm was chosen by comparing `JSON.stringify` against every candidate. Edit
+one digit of a shipped arm and the stored spec matches nothing: the strip shows
+no selection, the settled row reads back the *default's* name, and the speakers
+go on playing the pick — the one screen whose job is to say what you chose,
+disagreeing with what you hear, with nothing in the diff that looks like it
+touched saved data.
+
+So **arms are append-only**. `lab/arms.lock.json` fingerprints all 197
+non-control arms and `armLock.test.ts` compares: added is fine and expected,
+**edited** and **removed** are red and name the arm. Two positive controls sit
+beside it, because every one of those assertions passes vacuously over an empty
+lock and an empty lock is what a broken reader produces. Mutation-proven both
+ways. The `current` arm of each strip is deliberately *not* locked — picking it
+stores nothing at all, so no pick can be orphaned by it, and `candidates.test.ts`
+pins it to the shipped voice instead. Full rule:
+[`.claude/rules/a-pick-stored-by-value-freezes-what-it-points-at.md`](../.claude/rules/a-pick-stored-by-value-freezes-what-it-points-at.md).
 `audio/voiceOverride.ts` is the gate on the way back in and is the strictest
 reader in this app — every other stored blob decides what a screen SHOWS, this
 one decides what a synthesiser DOES next to somebody's ear. It validates rather
