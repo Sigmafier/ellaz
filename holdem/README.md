@@ -13,9 +13,12 @@ an English toggle.
   Hibernation API, storage-as-truth, single `alarm()` for the shot clock and
   auto-dealing.
 - **`client/`** — Vite + React PWA. Felt table with your seat always
-  bottom-center, authoritative action bar (no optimistic play), synthesized
-  poker sounds (zero audio files — the ellaz WebAudio voice engine with a new
-  poker voice set), chip-flight juice, hand history replay, league ledger.
+  bottom-center, authoritative action bar (no optimistic play), chip-flight
+  juice, hand history replay, league ledger. Sounds are **both**: the ellaz
+  WebAudio voice engine with a poker voice set, and — since 2026-08-15 — a
+  bank of real CC0 chip and card recordings that a player opts into and that
+  nothing downloads otherwise. ("Zero audio files" was true here for two weeks
+  and is what the third round of "the sounds are bad" was about.)
 
 ## Rules of the house (pinned in the engine tests)
 
@@ -506,6 +509,70 @@ creates none. It is scoped to the strip and anchored to the start of the name
 now, and it exits non-zero if a name matches anything other than exactly one
 button. Same defect as a row that grows with the catalogue: correct on the day
 it was written, wrong later, silent about it.
+
+### The third verdict was "still way way behind", so the layer changed
+
+Researched properly (`~/.claude/reports/research-poker-card-chip-sound-design-directions-2026-08-15.md`), and
+the finding was not a parameter: **no shipped poker or card game synthesises
+chips and cards.** They play recorded foley and use code only to choose, layer
+and vary it — and there is no published procedural chip or riffle model
+anywhere, which is itself the evidence. A real designer records three layers
+per event; every arm here was one struck-object model, which is one of the
+three, built from the wrong primitive.
+
+Two rounds already judged bad is the two-strike threshold in
+`rules/process/anti-cycle-protocol.md`, where another attempt in the same
+approach is forbidden and the move is a **layer change**. This is that.
+
+**Kenney's Casino Audio, CC0**, 36 files, mono 48 kHz Opus at 48 kbps,
+**120,538 B**. 48 and not 32 because most of this pack is NOISE — card slides,
+riffles, chip scatter — which is the worst case for a low bitrate, and 42 KB
+is not worth a fourth round of "the sounds are bad". Licence, source URL,
+download date and every edit are in `client/public/sfx/v1/PROVENANCE.md`; the
+credit is in the studio and here, because "not mandatory" is not a reason to
+omit it.
+
+**It is opt-in, and three lines keep it that way**: nothing precaches a
+`.opus`, nothing references one from `index.html`, and the fetch happens in
+`audio.ts` on the first gesture *only for arms actually picked*. A player who
+picks no recording downloads none of it, ever. `assert-first-visit.mjs` gates
+all three and both new controls are mutation-proven (7/7 planted failures
+caught). Cost to everyone else: **+1,238 B gz of shell** for the loader, the
+pick store and 36 measured gains.
+
+**Variants are the point, not decoration.** `cardSlide` fires five-plus times a
+hand, so "Real deal" is **six takes**, drawn without immediate repeat and
+detuned ±0.9 semitones per play. That is what middleware does in a real game
+and it is the whole answer to repetition fatigue.
+
+**A separate store from `voiceOverride`, deliberately.** Widening the existing
+one would touch every settled pick on the operator's devices. So recorded
+picks live under `holdem:sfxsample:v1`, a recorded pick WINS at playback, and
+picking a synth arm CLEARS it — without that last half the highlight moves and
+the recording keeps playing, which is the screen-disagrees-with-the-speakers
+bug the arm lock exists to prevent.
+
+**The fallback is honest and it is why the gate exists.** `playSample` returns
+false whenever a file has not decoded, and `play()` covers that hit with the
+synth voice — so a wrong URL, a 404 or a mapping typo all present as "it works,
+and it sounds like it did before", which is the exact verdict that started
+this. `samples.test.ts` checks both directions (named-but-absent, and
+shipped-but-unreachable) and is mutation-proven.
+
+**`check-samples.mjs` proves it end to end, and its discriminator is derived
+rather than written down.** Measured: this synth engine allocates ONE 2.000 s
+white-noise buffer and windows it, so "buffer source, no oscillator" is what a
+*pure-noise synth arm* looks like too — the first control here was `card-old`
+and it was indistinguishable from a recording. The probe now takes the
+engine's buffer lengths from a pitched control at run time and asserts the
+recorded arm plays a length the engine cannot produce. Live: 6 files fetched
+(that arm's takes, not the bank), warm playback `[0.584, 0.601]s`, 0
+oscillators, both controls holding.
+
+**Two strips get no recording and say so**: `checkKnock` is a hand on a table
+and `yourTurn` is a chime. Neither is in a casino foley pack, and inventing one
+out of a chip would be worse than the synth arm, which is already the right
+primitive.
 
 **Sound on a phone, which is a different problem from sound.** Two causes, and
 neither leaves a trace in JavaScript — the context reports `running`, every node

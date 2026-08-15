@@ -18,10 +18,13 @@ import { useEffect, useRef, useState } from "react";
 import { pickName, type PlayerName } from "@shared/names";
 import { Table } from "../table/Table";
 import type { Locale } from "../i18n";
-import { audioState, isMuted, play, setMuted, unlock } from "../audio/audio";
+import { audioState, isMuted, play, refreshSamplePicks, setMuted, unlock, warmSampleArm } from "../audio/audio";
 import type { SfxName } from "../audio/pokerVoices";
+import { clearSamplePicks, loadSamplePicks, setSamplePick } from "../audio/samplePick";
+import { NO_RECORDING } from "../audio/samples";
 import { clearOverrides, loadOverrides, setOverride } from "../audio/voiceOverride";
 import { type Candidate, SOUND_COUNT, STRIPS } from "../lab/candidates";
+import { recordedFor, type SampleCandidate } from "../lab/sampleStrips";
 import { attachJuice } from "../juice/moments";
 import { savedName, saveName } from "../net/nameStore";
 import { ARM_COUNT, AXES, type Arm } from "./axes";
@@ -62,6 +65,7 @@ export function Studio({ locale, tab: initialTab = "look" }: { locale: Locale; t
   const [tab, setTab] = useState<StudioTab>(initialTab);
   const [picks, setPicks] = useState<LookPicks>({});
   const [sounds, setSounds] = useState<Partial<Record<SfxName, string>>>({});
+  const [recs, setRecs] = useState<Partial<Record<SfxName, string>>>({});
   const [name, setName] = useState<PlayerName>(() => savedName() ?? pickName());
   const [dealKey, setDealKey] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -71,6 +75,7 @@ export function Studio({ locale, tab: initialTab = "look" }: { locale: Locale; t
   useEffect(() => {
     setPicks(loadLook());
     setSounds(pickedSounds());
+    setRecs(loadSamplePicks());
     setLocks(loadLocks([...LOCK_KEYS.look, ...LOCK_KEYS.sound]));
     if (isMuted()) setMuted(false);
   }, []);
@@ -114,8 +119,33 @@ export function Studio({ locale, tab: initialTab = "look" }: { locale: Locale; t
     // judges the whole palette by.
     unlock();
     setOverride(sfx, arm.current ? null : arm.spec);
+    // A recorded pick WINS at playback time, so picking a synthesised arm has
+    // to clear it. Without this the highlight moves and the recording keeps
+    // playing — a screen disagreeing with the speakers, which is the exact
+    // class of bug the arm lock exists to prevent.
+    setSamplePick(sfx, null);
+    refreshSamplePicks();
+    setRecs((p) => {
+      const n = { ...p };
+      delete n[sfx];
+      return n;
+    });
     setSounds((p) => ({ ...p, [sfx]: arm.id }));
     play(sfx);
+  };
+
+  const chooseRecorded = (sfx: SfxName, cand: SampleCandidate) => {
+    unlock();
+    setSamplePick(sfx, cand.id);
+    refreshSamplePicks();
+    setRecs((p) => ({ ...p, [sfx]: cand.id }));
+    // The FIRST tap of a recorded arm has nothing decoded yet, so `play` falls
+    // through to the synth voice for that one hit. Fetch, then play again once
+    // a variant is in — otherwise auditioning a recording plays the thing it
+    // is meant to replace, which is the worst possible first impression.
+    warmSampleArm(cand.id);
+    play(sfx);
+    window.setTimeout(() => play(sfx), 420);
   };
 
   // The name lives in a REF as well as in state, and the ref is what the merge
@@ -143,7 +173,10 @@ export function Studio({ locale, tab: initialTab = "look" }: { locale: Locale; t
       setPicks({});
     } else if (tab === "sound") {
       clearOverrides();
+      clearSamplePicks();
+      refreshSamplePicks();
       setSounds({});
+      setRecs({});
     } else {
       chooseName(pickName());
     }
@@ -275,18 +308,47 @@ export function Studio({ locale, tab: initialTab = "look" }: { locale: Locale; t
               place a poker sound has to work. Every voice is level-matched, so a
               strip is a fair comparison rather than a loudness contest.
             </Lede>
+            <p style={{ color: "var(--ink-dim)", fontSize: 12, lineHeight: 1.5, margin: "-6px 0 14px" }}>
+              🎙️ The <strong style={{ color: "var(--gold)" }}>RECORDED</strong> options at the top of each
+              strip are real chips and real cards, not models of them — every shipped card game does it
+              this way. They download only if you pick one.{" "}
+              <a href="https://kenney.nl" target="_blank" rel="noreferrer noopener" style={{ color: "var(--ink-dim)" }}>
+                Casino Audio by Kenney
+              </a>
+              , public domain.
+            </p>
             <AudioStatus />
             <Decisions
               locks={locks}
               onToggle={toggleLock}
               onOpenAll={openAll}
               items={STRIPS.map((strip) => {
-                const chosen = sounds[strip.name] ?? strip.arms.find((a) => a.current)?.id;
+                const rec = recs[strip.name];
+                const recorded = recordedFor(strip.name);
+                // A recorded pick WINS at playback, so it wins in the UI too.
+                // Reading the synth highlight while a recording plays is the
+                // bug, not a cosmetic difference.
+                const chosen = rec ?? sounds[strip.name] ?? strip.arms.find((a) => a.current)?.id;
+                const chosenName =
+                  recorded.find((r) => r.id === chosen)?.name ??
+                  strip.arms.find((a) => a.id === chosen)?.name ??
+                  "—";
                 return {
                   lockKey: `sound:${strip.name}`,
                   label: strip.label,
                   when: strip.when,
-                  chosenName: strip.arms.find((a) => a.id === chosen)?.name ?? "—",
+                  chosenName,
+                  note: NO_RECORDING.includes(strip.name)
+                    ? "No recording for this one — it is a hand on a table, not a card or a chip, so a casino foley pack does not have it. The synthesised options below are the right primitive for it."
+                    : undefined,
+                  recorded: recorded.map((r) => ({
+                    id: r.id,
+                    name: r.name,
+                    blurb: r.blurb,
+                    takes: r.takes,
+                    on: r.id === chosen,
+                    pick: () => chooseRecorded(strip.name, r),
+                  })),
                   arms: strip.arms.map((arm) => ({
                     id: arm.id,
                     name: arm.name,
@@ -392,6 +454,21 @@ interface Decision {
   /** The name of whatever is picked, for the one-line settled row. */
   chosenName: string;
   arms: { id: string; name: string; blurb: string; current?: boolean; on: boolean; pick: () => void }[];
+  /**
+   * The RECORDED options, rendered as their own group above the synthesised
+   * ones rather than mixed in among them.
+   *
+   * Two reasons, and the second is the one that would be easy to get wrong.
+   * They are a different KIND of thing - a recording of an object versus a
+   * model of one - and a strip that hides that difference is asking for a
+   * comparison nobody can interpret. And the synthesised arms keep their
+   * existing order among themselves, because the operator navigates this
+   * screen by where a button was; a new labelled row above them adds a place
+   * to look without moving anything that was already there.
+   */
+  recorded?: { id: string; name: string; blurb: string; on: boolean; takes: number; pick: () => void }[];
+  /** Shown instead of an empty recorded group. */
+  note?: string;
 }
 
 /**
@@ -424,7 +501,15 @@ function Decisions({
   return (
     <>
       {open.map((d) => (
-        <Strip key={d.lockKey} label={d.label} when={d.when} arms={d.arms} onLock={() => onToggle(d.lockKey)} />
+        <Strip
+          key={d.lockKey}
+          label={d.label}
+          when={d.when}
+          arms={d.arms}
+          recorded={d.recorded}
+          note={d.note}
+          onLock={() => onToggle(d.lockKey)}
+        />
       ))}
 
       {open.length === 0 && (
@@ -493,6 +578,8 @@ function Strip({
   label,
   when,
   arms,
+  recorded,
+  note,
   onLock,
 }: {
   label: string;
@@ -503,6 +590,21 @@ function Strip({
   // Widening here rather than narrowing either registry: they are two lists
   // with two histories and neither is wrong.
   arms: { id: string; name: string; blurb: string; current?: boolean; on: boolean; pick: () => void }[];
+  /**
+   * The RECORDED options, rendered as their own group above the synthesised
+   * ones rather than mixed in among them.
+   *
+   * Two reasons, and the second is the one that would be easy to get wrong.
+   * They are a different KIND of thing - a recording of an object versus a
+   * model of one - and a strip that hides that difference is asking for a
+   * comparison nobody can interpret. And the synthesised arms keep their
+   * existing order among themselves, because the operator navigates this
+   * screen by where a button was; a new labelled row above them adds a place
+   * to look without moving anything that was already there.
+   */
+  recorded?: { id: string; name: string; blurb: string; on: boolean; takes: number; pick: () => void }[];
+  /** Shown instead of an empty recorded group. */
+  note?: string;
 }) {
   return (
     <section style={{ marginBottom: 20 }}>
@@ -518,6 +620,55 @@ function Strip({
           🔒 Settle
         </button>
       </div>
+      {/* RECORDED FIRST, in its own labelled group.
+          Real foley and a synthesised model are different kinds of thing, and
+          a strip that mixes them is asking for a comparison nobody can read.
+          The synthesised row below keeps its own order untouched. */}
+      {recorded && recorded.length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 6 }}>
+            <span aria-hidden>🎙️</span>
+            <span style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: 0.3, color: "var(--gold)" }}>RECORDED</span>
+            <span style={{ fontSize: 11, color: "var(--ink-dim)" }}>real chips and cards, not modelled</span>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {recorded.map((r) => (
+              <button
+                key={r.id}
+                className={r.on ? "btn primary" : "btn ghost"}
+                style={{
+                  minHeight: 52,
+                  flex: "1 1 150px",
+                  maxWidth: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "flex-start",
+                  gap: 2,
+                  padding: "8px 12px",
+                  textAlign: "start",
+                }}
+                onClick={r.pick}
+              >
+                <span style={{ fontWeight: 800, fontSize: 13.5 }}>
+                  {r.name}
+                  {/* The take count is the honest headline. One recording
+                      played five times a hand is repetition fatigue; six is
+                      why this group exists at all. */}
+                  <span style={{ opacity: 0.65, fontWeight: 600 }}> · {r.takes} take{r.takes === 1 ? "" : "s"}</span>
+                </span>
+                <span style={{ fontSize: 11, opacity: 0.75, fontWeight: 500, lineHeight: 1.35, whiteSpace: "normal" }}>
+                  {r.blurb}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {note && (
+        <p style={{ fontSize: 11.5, color: "var(--ink-dim)", lineHeight: 1.45, margin: "0 0 10px" }}>{note}</p>
+      )}
+
       {/* The strip WRAPS. A row whose length is the number of options is the
           exact shape that clipped fifteen of twenty games off the ellaz
           leaderboards. */}

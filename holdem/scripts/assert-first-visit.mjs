@@ -31,7 +31,7 @@
 //   --control plants each failure in a COPY of dist/ and requires this script
 //   to catch every one. A gate nobody has watched fail is not a gate.
 
-import { readFileSync, readdirSync, writeFileSync, cpSync, rmSync, mkdtempSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync, cpSync, rmSync, mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -59,7 +59,13 @@ function inspect(dist) {
   // empty list, which is how this exact check reported success twice in ellaz.
   const precached = [...sw.matchAll(/url:"([^"]+)"/g)].map((m) => m[1]);
   const shellSrc = shells.map((f) => readFileSync(join(assets, f), "utf8")).join("\n");
-  return { files, labs, shells, html, precached, shellSrc };
+  // The recorded bank. `public/` files are copied verbatim, so these are NOT
+  // in assets/ and NOT hashed - a different population from every chunk above
+  // and one no existing check could see.
+  const sfxDir = join(dist, "sfx", "v1");
+  const sfx = existsSync(sfxDir) ? readdirSync(sfxDir).filter((f) => f.endsWith(".opus")) : [];
+  const sfxBytes = sfx.reduce((a, f) => a + statSync(join(sfxDir, f)).size, 0);
+  return { files, labs, shells, html, precached, shellSrc, sfx, sfxBytes };
 }
 
 function check(dist) {
@@ -96,6 +102,25 @@ function check(dist) {
       fail.push(`the shell STATICALLY imports ${lab} — a manual chunk magnetised shared code into the lab`);
   }
 
+  // THE RECORDED BANK IS OPT-IN, and these three lines are the entire
+  // mechanism keeping it that way.
+  //
+  // 118 KB of audio is bigger than this whole app. It is paid ONLY by somebody
+  // who picked a recording, and what makes that true is that nothing precaches
+  // it and nothing references it from the document - the fetch happens in
+  // `audio.ts` on the first gesture, and only for arms actually picked.
+  //
+  // The default `globPatterns` does not sweep `.opus` today. That is a DEFAULT,
+  // not a decision, and the day it changes or somebody adds `opus` to the
+  // pattern list, every player downloads the bank behind a green build. This is
+  // the line that notices.
+  for (const f of s.precached) {
+    if (f.endsWith(".opus")) fail.push(`${f} is PRECACHED — every player downloads the recorded bank`);
+  }
+  if (/\.opus\b/.test(s.html)) fail.push("index.html references a .opus file — the bank must be fetched on demand, never linked");
+  if (s.sfx.length && !/sfx\/v1\//.test(s.shellSrc))
+    fail.push("positive control failed: the shell never builds a sfx/v1/ URL, so the bank is unreachable rather than lazy");
+
   // POSITIVE CONTROLS. Every assertion above is an absence, and an absence is
   // satisfied by a build that emitted nothing at all.
   const shellPrecached = s.shells.some((f) => s.precached.includes(`assets/${f}`));
@@ -116,6 +141,7 @@ function report(dist) {
   console.log(`OK  first visit is ${s.shells.map(size).reduce((a, b) => a + b, 0)} B of shell`);
   console.log(`    lab kept off it: ${s.labs.map((f) => `${f} (${size(f)} B)`).join(", ")}`);
   console.log(`    precache holds ${s.precached.length} entries, none of them the lab`);
+  console.log(`    recorded bank opt-in: ${s.sfx.length} files, ${s.sfxBytes} B, 0 precached, 0 in index.html`);
   return 0;
 }
 
@@ -136,6 +162,14 @@ if (process.argv.includes("--control")) {
       writeFileSync(p, `import{x}from"./${s.labs[0]}";\n` + readFileSync(p, "utf8"));
     }],
     ["lab chunk renamed away", (d, s) => rmSync(join(d, "assets", s.labs[0]))],
+    ["a sample precached", (d, s) => {
+      const p = join(d, "sw.js");
+      writeFileSync(p, readFileSync(p, "utf8").replace('url:"index.html"', `url:"sfx/v1/${s.sfx[0]}",revision:null},{url:"index.html"`));
+    }],
+    ["a sample linked from index.html", (d, s) => {
+      const p = join(d, "index.html");
+      writeFileSync(p, readFileSync(p, "utf8").replace("</head>", `<link rel="preload" as="audio" href="/sfx/v1/${s.sfx[0]}"></head>`));
+    }],
     ["precache matcher blinded", (d) => {
       const p = join(d, "sw.js");
       writeFileSync(p, readFileSync(p, "utf8").replaceAll('url:"', 'href:"'));

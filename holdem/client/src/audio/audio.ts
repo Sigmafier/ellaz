@@ -3,6 +3,8 @@
 // ellaz WebAudioPort pattern with the lab/override machinery removed.
 
 import { POKER_VOICES, type SfxName } from "./pokerVoices";
+import { ensureArm, playSample } from "./sampleBank";
+import { loadSamplePicks } from "./samplePick";
 import { loadOverrides } from "./voiceOverride";
 import { isWarm, playVoice, warmVoices } from "./voiceEngine";
 
@@ -11,6 +13,37 @@ const MUTE_KEY = "holdem:muted";
 let ctx: AudioContext | null = null;
 let muted = loadMuted();
 let warmed = false;
+
+/**
+ * The recorded picks, read ONCE at module load and refreshed only when the
+ * studio changes them.
+ *
+ * `play()` is on the hottest path in this app - a dealt card fires it five
+ * times a hand - and `loadOverrides()` is already a JSON parse per call.
+ * Adding a second parse per hit to answer a question whose answer changes
+ * about twice a year is the wrong trade. The studio calls
+ * `refreshSamplePicks()` when it changes one.
+ */
+let samplePicks = loadSamplePicks();
+
+/**
+ * Start fetching a recorded arm. The studio calls this when auditioning one.
+ *
+ * It exists so the AudioContext stays private to this module: the alternative
+ * is exporting `ctx`, and a second module holding a reference to it is how a
+ * suspended context gets used by something that never checks its state.
+ */
+export function warmSampleArm(armId: string): void {
+  const c = ensureCtx();
+  if (c) ensureArm(c, armId);
+}
+
+/** Re-read the recorded picks after the studio changes one. */
+export function refreshSamplePicks(): void {
+  samplePicks = loadSamplePicks();
+  const c = ctx;
+  if (c) for (const id of Object.values(samplePicks)) ensureArm(c, id);
+}
 
 function loadMuted(): boolean {
   try {
@@ -125,6 +158,15 @@ export function unlock(): void {
     void warmVoices(c, [...Object.values(POKER_VOICES), ...picked]).catch(() => {
       /* level matching is best-effort */
     });
+    // AND the recorded bank starts here, on the first gesture, rather than on
+    // the first card - which is the difference between the opening deal being
+    // recorded and being the synth fallback.
+    //
+    // This is also where the payload stays opt-in: a player who has picked no
+    // recording fetches nothing, ever. Nothing in the bank is precached and
+    // nothing is referenced from index.html, so the 118 KB is paid only by
+    // somebody who chose it.
+    for (const id of Object.values(samplePicks)) ensureArm(c, id);
   }
 }
 
@@ -189,6 +231,14 @@ export function play(name: SfxName, opts: PlayOptions = {}): void {
     return;
   }
   try {
+    // A RECORDED pick wins, and falls THROUGH to the synth when it is not
+    // ready. `playSample` returns false for a hit whose file has not decoded
+    // yet - the first card of the first hand of a session, most often - and
+    // covering that with the synth voice is much better than dropping it. The
+    // player hears a card either way; one of them is a recording.
+    const rec = samplePicks[name];
+    if (rec && playSample(c, rec, opts)) return;
+
     // A voice picked in the lab plays HERE, through the same call every game
     // event makes. That is the whole point of the lab: what you hear while
     // choosing is what the table will play, not a preview that can disagree
