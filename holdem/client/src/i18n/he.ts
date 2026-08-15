@@ -90,6 +90,8 @@ export const he = {
   splitPot: "חלוקת קופה",
   handOver: "היד נגמרה",
   each: "לכל אחד",
+  playWithBots: "לשחק מול המחשב",
+  botsTable: "מחשב",
 } as const;
 
 export type StringKey = keyof typeof he;

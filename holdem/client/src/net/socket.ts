@@ -40,6 +40,14 @@ export interface OpenTable {
   bb: number;
   playing: boolean;
   league: boolean;
+  /**
+   * Seats held by the house. Absent or 0 means every player at it is a person.
+   *
+   * The client used to have no way to tell, which is why hiding the robots
+   * would have meant hardcoding the practice table's code here — a copy of a
+   * server constant kept in step by nothing at all.
+   */
+  bots?: number;
 }
 
 /**
@@ -124,19 +132,54 @@ class GameSocket {
     this.closedOnPurpose = true;
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     if (this.heartbeat) clearInterval(this.heartbeat);
-    this.ws?.close(1000, "bye");
-    this.ws = null;
+    this.retire();
     resetPacer();
     resetState();
   }
 
+  /**
+   * Let go of the current socket, and make sure it cannot speak again.
+   *
+   * `close()` alone is not enough and never was. A closing socket keeps
+   * delivering frames until the handshake finishes, and its `onclose` then runs
+   * the reconnect ladder below — for a socket nobody is using any more. So the
+   * handlers come off FIRST and the close is second; after this returns, that
+   * socket is incapable of reaching the store or of spawning a replacement.
+   */
+  private retire(): void {
+    const old = this.ws;
+    this.ws = null;
+    if (!old) return;
+    old.onopen = null;
+    old.onmessage = null;
+    old.onclose = null;
+    old.onerror = null;
+    try {
+      old.close(1000, "replaced");
+    } catch {
+      /* already closing */
+    }
+  }
+
   private open(relink?: string): void {
     if (!this.code) return;
+    // WHATEVER IS THERE GOES FIRST. Without this line `open()` overwrote
+    // `this.ws` and left the previous socket live — receiving every broadcast
+    // and delivering it into the same store, so one flop was applied twice and
+    // the felt showed six community cards made of the right three, twice.
+    // Measured on the live table: 40 visibilitychange events produced 41
+    // sockets, 22 of them open AT ONCE. See scripts/repro/double-socket.mjs.
+    this.retire();
     const base = serverBase().replace(/^http/, "ws") || `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}`;
     const ws = new WebSocket(`${base}/ws/${this.code}`);
     this.ws = ws;
 
+    // EVERY handler asks whether it is still the current socket. Retiring one
+    // nulls its handlers, so this is belt to that brace — but a frame already
+    // dispatched cannot be un-dispatched, and this is the guard that holds when
+    // the two race.
     ws.onopen = () => {
+      if (this.ws !== ws) return;
       this.attempts = 0;
       setState({ conn: "open" });
       this.sendRaw({
@@ -151,6 +194,7 @@ class GameSocket {
       this.heartbeat = setInterval(() => this.sendRaw({ t: "ping", now: Date.now() }), 20_000);
     };
     ws.onmessage = (ev) => {
+      if (this.ws !== ws) return;
       try {
         deliver(JSON.parse(ev.data as string) as S2C);
       } catch {
@@ -158,6 +202,7 @@ class GameSocket {
       }
     };
     ws.onclose = () => {
+      if (this.ws !== ws) return;
       if (this.heartbeat) clearInterval(this.heartbeat);
       if (this.closedOnPurpose || getState().kicked) return;
       setState({ conn: "reconnecting" });
@@ -174,7 +219,14 @@ class GameSocket {
     this.wakeListenersAttached = true;
     const wake = () => {
       if (this.closedOnPurpose || !this.code) return;
-      if (this.ws && this.ws.readyState === WebSocket.OPEN) return;
+      // CONNECTING counts as busy, and that word is the whole bug. A socket
+      // that has not finished its handshake is neither open nor gone, so a
+      // wake in that window used to start a second one — and a person coming
+      // back to a tab fires this every time. The connect window is short, the
+      // number of alt-tabs in an evening is not.
+      const busy =
+        this.ws && (this.ws.readyState === WebSocket.CONNECTING || this.ws.readyState === WebSocket.OPEN);
+      if (busy) return;
       if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
       this.attempts = 0;
       this.open();

@@ -139,6 +139,30 @@ let draining = false;
 /** When the most recent `PotAwarded` is scheduled to land. See AFTER_AWARD_MS. */
 let lastAwardAt = 0;
 
+/**
+ * The highest `seq` already accepted, per message kind.
+ *
+ * THE SERVER NUMBERS ITS COMMANDS, so a message that arrives twice is
+ * recognisable rather than merely suspicious. `applyAndCommit` increments once
+ * and sends the `ev` and the `room` for that command under the same number, to
+ * every socket — so a client holding two sockets receives both twice, and
+ * `StreetDealt` APPENDS. One flop applied twice is a six-card board made of the
+ * right three cards, twice.
+ *
+ * The socket lifetime is where that was FIXED (see net/socket.ts): a wake
+ * during the connect handshake used to start a second socket without closing
+ * the first, measured at 22 open at once. This is the second guard, and it is
+ * not the same guard — it makes a duplicate un-applicable no matter how many
+ * streams exist, including a future one nobody has thought of. The cause and
+ * the class are worth closing separately.
+ *
+ * Reset by `resetPacer`, which runs on connect and on leaving a room. It must
+ * be: `connect` also clears the store, and a snapshot dropped as "already seen"
+ * against a store that no longer holds it is a blank table.
+ */
+let lastEvSeq = -1;
+let lastRoomSeq = -1;
+
 function pump(): void {
   if (draining || timer !== null) return;
   const next = queue[0];
@@ -165,6 +189,18 @@ function pump(): void {
  * overtake a run-out in progress.
  */
 export function deliver(msg: S2C): void {
+  // A command this client has already been told about is dropped here, before
+  // it can be queued or folded into anything. `<=` rather than `!==` because a
+  // late frame from a socket that is on its way out carries an OLD number, and
+  // replaying the state of three commands ago is its own kind of wrong.
+  if (msg.t === "ev") {
+    if (msg.seq <= lastEvSeq) return;
+    lastEvSeq = msg.seq;
+  } else if (msg.t === "room") {
+    if (msg.seq <= lastRoomSeq) return;
+    lastRoomSeq = msg.seq;
+  }
+
   const now = Date.now();
   const tail = queue.length ? queue[queue.length - 1].at : now;
 
@@ -205,6 +241,10 @@ export function resetPacer(): void {
   // delay the first hand of the next one by up to AFTER_AWARD_MS, for a
   // banner nobody is looking at.
   lastAwardAt = 0;
+  // And so are the seen-seq marks. The store is cleared alongside this, so a
+  // snapshot refused as "already seen" would leave a table with nothing on it.
+  lastEvSeq = -1;
+  lastRoomSeq = -1;
   if (timer !== null) {
     clearTimeout(timer);
     timer = null;

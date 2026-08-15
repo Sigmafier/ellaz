@@ -153,7 +153,18 @@ export function Table({ locale, spectator = false }: { locale: Locale; spectator
             <div id="board" style={{ display: "flex", gap: u(5), minHeight: u(62) }}>
               {shownBoard.map((c, i) => (
                 <CardFace
-                  key={`${view.hand?.handNo ?? "end"}-${i}-${c}`}
+                  // The card and its place, and DELIBERATELY not the hand
+                  // number. `view.hand` goes null the instant the pot is
+                  // awarded, so a key built on `handNo ?? "end"` changed for
+                  // every card at that exact moment — React unmounted the
+                  // board and mounted it again, and all five cards played
+                  // their deal animation a second time, over the winner. The
+                  // operator's "cards in flop go again and again" has two
+                  // causes and this is the smaller one.
+                  //
+                  // A new hand still animates: `HandStarted` empties the board
+                  // first, so the list goes to nothing and back.
+                  key={`${i}-${c}`}
                   card={c}
                   size={u(42)}
                   // Only the flop is a group, so only the flop staggers. The

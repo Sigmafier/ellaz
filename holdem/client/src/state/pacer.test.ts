@@ -4,7 +4,15 @@ import type { S2C } from "@shared/protocol";
 import { deliver, pacerDepth, planBeats, resetPacer } from "./pacer";
 import { getState, resetState } from "./store";
 
-const ev = (events: EngineEvent[]): Extract<S2C, { t: "ev" }> => ({ t: "ev", seq: 1, events });
+/**
+ * A batch, under a command number.
+ *
+ * `seq` is not decoration and these tests may not share one: `deliver` refuses
+ * a batch whose number it has already accepted, which is what makes a second
+ * socket incapable of dealing the same flop twice. Two batches in one test are
+ * two commands and must say so.
+ */
+const ev = (events: EngineEvent[], seq = 1): Extract<S2C, { t: "ev" }> => ({ t: "ev", seq, events });
 
 const street = (s: "flop" | "turn" | "river", cards: number[]): EngineEvent =>
   ({ type: "StreetDealt", street: s, cards }) as EngineEvent;
@@ -122,8 +130,8 @@ describe("the queue holds a new hand off the last result", () => {
     vi.advanceTimersByTime(50);
     expect(getState().winners).toEqual([1]);
 
-    // The server's pause is over and it has dealt again.
-    deliver(ev([startHand(2)]));
+    // The server's pause is over and it has dealt again — a second command.
+    deliver(ev([startHand(2)], 2));
 
     // Half a second later the banner must still be up.
     vi.advanceTimersByTime(500);
@@ -142,6 +150,82 @@ describe("the queue holds a new hand off the last result", () => {
     deliver(ev([startHand(1)]));
     vi.advanceTimersByTime(50);
     expect(pacerDepth()).toBe(0);
+  });
+
+  // -------------------------------------------------------------------------
+  // The same command, twice.
+  //
+  // Not hypothetical: measured on the live table, forty visibilitychange
+  // events produced forty-one sockets and TWENTY-TWO open at once, every one
+  // of them delivering every broadcast into this one queue. `StreetDealt`
+  // appends, so the felt held the right three cards, twice, and then the right
+  // five cards, twice.
+  //
+  // The cause is fixed in net/socket.ts. This is the class: a duplicate is
+  // refused here no matter how many streams exist.
+
+  it("refuses a command it has already accepted", () => {
+    deliver(ev([street("flop", [1, 2, 3])], 7));
+    vi.advanceTimersByTime(50);
+    expect(getState().handBoard).toEqual([1, 2, 3]);
+
+    // The second socket's copy of the same command.
+    deliver(ev([street("flop", [1, 2, 3])], 7));
+    vi.advanceTimersByTime(2_000);
+    expect(getState().handBoard).toEqual([1, 2, 3]);
+    expect(getState().shownCount).toBe(3);
+  });
+
+  it("still accepts the NEXT command after a duplicate", () => {
+    // The refusal must not poison the stream — a dropped duplicate is not a
+    // reason to stop believing the server.
+    deliver(ev([street("flop", [1, 2, 3])], 7));
+    deliver(ev([street("flop", [1, 2, 3])], 7));
+    deliver(ev([street("turn", [4])], 8));
+    vi.advanceTimersByTime(4_000);
+    expect(getState().handBoard).toEqual([1, 2, 3, 4]);
+  });
+
+  it("refuses a stale snapshot without refusing a fresh one", () => {
+    const room = (seq: number, board: number[]): S2C =>
+      ({
+        t: "room",
+        seq,
+        names: {},
+        view: {
+          phase: "hand",
+          seats: [],
+          config: {},
+          buttonSeat: 0,
+          hand: { handNo: 1, board, potTotal: 0, street: "flop", toAct: -1, betTo: 0 },
+        },
+      }) as unknown as S2C;
+
+    deliver(room(5, [1, 2, 3]));
+    vi.advanceTimersByTime(50);
+    expect(getState().handBoard).toEqual([1, 2, 3]);
+
+    // A late frame from a socket on its way out, carrying an OLD number.
+    deliver(room(4, [9, 9, 9]));
+    vi.advanceTimersByTime(50);
+    expect(getState().handBoard).toEqual([1, 2, 3]);
+
+    deliver(room(6, [1, 2, 3, 4]));
+    vi.advanceTimersByTime(50);
+    expect(getState().handBoard).toEqual([1, 2, 3, 4]);
+  });
+
+  it("forgets the seen commands when the table is left", () => {
+    // resetPacer clears the store too, so a snapshot refused as "already seen"
+    // against a store that no longer holds it is a table with nothing on it.
+    deliver(ev([street("flop", [1, 2, 3])], 7));
+    vi.advanceTimersByTime(50);
+    resetPacer();
+    resetState();
+
+    deliver(ev([street("flop", [5, 6, 7])], 7));
+    vi.advanceTimersByTime(50);
+    expect(getState().handBoard).toEqual([5, 6, 7]);
   });
 
   it("forgets the hold when the table is left", () => {

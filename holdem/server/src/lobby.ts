@@ -52,6 +52,16 @@ export interface LobbyEntry {
    * `LobbyRow`: a client is told what a table looks like, not why it is here.
    */
   evergreen?: boolean;
+  /**
+   * How many of this table's seats are held by the house.
+   *
+   * IS in `LobbyRow`, unlike the two above, and the difference is the point: a
+   * client is told what a table looks like, and "the other players here are
+   * not people" is the single most important thing about the look of one. The
+   * alternative was for the client to hardcode the practice table's code,
+   * which is a copy of a server constant kept in step by nothing.
+   */
+  bots?: number;
 }
 
 /** What a client is told. Deliberately less than the entry above. */
@@ -63,6 +73,8 @@ export interface LobbyRow {
   bb: number;
   playing: boolean;
   league: boolean;
+  /** Seats held by the house. Absent or 0 means every player is a person. */
+  bots?: number;
 }
 
 /**
@@ -141,6 +153,7 @@ export class LobbyDO implements DurableObject {
           bb: e.bb,
           playing: e.playing,
           league: e.chipsMode === "league",
+          bots: e.bots,
         },
       });
     }

@@ -91,4 +91,6 @@ export const en: Record<StringKey, string> = {
   splitPot: "Split pot",
   handOver: "Hand over",
   each: "each",
+  playWithBots: "Play against the house",
+  botsTable: "house",
 };

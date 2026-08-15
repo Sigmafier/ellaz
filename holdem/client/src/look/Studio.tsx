@@ -18,7 +18,7 @@ import { useEffect, useRef, useState } from "react";
 import { pickName, type PlayerName } from "@shared/names";
 import { Table } from "../table/Table";
 import type { Locale } from "../i18n";
-import { isMuted, play, setMuted, unlock } from "../audio/audio";
+import { audioState, isMuted, play, setMuted, unlock } from "../audio/audio";
 import type { SfxName } from "../audio/pokerVoices";
 import { clearOverrides, loadOverrides, setOverride } from "../audio/voiceOverride";
 import { type Candidate, STRIPS } from "../lab/candidates";
@@ -249,6 +249,7 @@ export function Studio({ locale, tab: initialTab = "look" }: { locale: Locale; t
               place a poker sound has to work. Every voice is level-matched, so a
               strip is a fair comparison rather than a loudness contest.
             </Lede>
+            <AudioStatus />
             {STRIPS.map((strip) => {
               const chosen = sounds[strip.name] ?? strip.arms.find((a) => a.current)?.id;
               return (
@@ -294,6 +295,61 @@ function Lede({ children }: { children: React.ReactNode }) {
     <p style={{ color: "var(--ink-dim)", fontSize: 13, lineHeight: 1.5, margin: "0 0 14px" }}>
       {children}
     </p>
+  );
+}
+
+/**
+ * What the audio layer is doing, said out loud.
+ *
+ * "I don't hear sounds on my phone" is a report nobody here can reproduce: the
+ * device is not in this room and the two likeliest causes leave NO trace in
+ * JavaScript. A suspended context is knowable and is shown; the iOS ringer
+ * switch is not knowable at all, and is named instead, because a person
+ * holding the phone can check it in a second and no amount of code can.
+ *
+ * It is on this tab and nowhere else. A player never needs it; the one person
+ * trying to work out why their phone is quiet is already looking at sounds.
+ */
+function AudioStatus() {
+  const [s, setS] = useState(audioState);
+  useEffect(() => {
+    const id = setInterval(() => setS(audioState()), 500);
+    return () => clearInterval(id);
+  }, []);
+
+  const bad = s.muted || s.ctx !== "running";
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: 8,
+        padding: "8px 12px",
+        marginBottom: 14,
+        fontSize: 12,
+        lineHeight: 1.5,
+        color: "var(--ink-dim)",
+        background: "var(--surface)",
+        border: `1px solid ${bad ? "var(--danger)" : "var(--line)"}`,
+        borderRadius: "var(--radius-2)",
+      }}
+    >
+      <code dir="ltr" style={{ fontWeight: 800, color: bad ? "var(--danger)" : "var(--gold)" }}>
+        audio: {s.ctx}
+        {s.muted ? " · MUTED" : ""}
+        {s.unsilenced ? " · media" : " · ringer"}
+      </code>
+      <span>
+        {s.muted
+          ? "Sound is off in the menu — nothing will play."
+          : s.ctx !== "running"
+            ? "The browser has not let audio start yet. Tap anything on this page."
+            : s.unsilenced
+              ? "Running. If this phone is still silent, it is the volume — an iPhone plays this through the RINGER volume, and the side switch mutes it."
+              : "Running, but on the ringer channel. On an iPhone the side switch will silence it."}
+      </span>
+    </div>
   );
 }
 

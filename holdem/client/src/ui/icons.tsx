@@ -290,3 +290,21 @@ export function IconFullscreen({ size, title }: IconProps) {
     </Svg>
   );
 }
+
+/**
+ * The house.
+ *
+ * Marks the one table whose other players are not people — on the switch that
+ * decides whether it is listed at all, and on the row itself when it is. A
+ * head with two eyes and an aerial: the most legible "not a person" shape at
+ * 16px, where a face with features reads as a smudge.
+ */
+export function IconRobot({ size, title }: IconProps) {
+  return (
+    <Svg size={size} title={title}>
+      <path d="M46 6h8v12h-8z" />
+      <circle cx="50" cy="6" r="6" />
+      <path d="M22 24h56a8 8 0 0 1 8 8v40a8 8 0 0 1-8 8H22a8 8 0 0 1-8-8V32a8 8 0 0 1 8-8zm12 20a7 7 0 1 0 0 14 7 7 0 0 0 0-14zm32 0a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM34 66h32v6H34z" />
+    </Svg>
+  );
+}

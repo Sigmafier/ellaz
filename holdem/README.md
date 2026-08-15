@@ -56,7 +56,32 @@ console output.
 ## The practice table
 
 **`PRACT` — <https://poker.ellaz.fun/#/room/PRACT>. Three seats held by the
-house, always there, and it shows up on the home screen like any other room.**
+house, and it appears on the home screen ONLY when the switch under the table
+list is on.**
+
+That switch is off by default and it used to not exist. "Always there" was
+implemented as *create it on every visit to the home screen, and list it like
+any other room*, so the first thing on the lobby, every single time, was a room
+full of machines — the operator, 2026-08-15: *"it keeps popping again and again
+i dont want it to come up unless we are on testing mod."*
+
+**The switch is not a filter over something that exists anyway.** Asking for
+the practice table is what creates it (`/api/practice`), and with the switch off
+this client never asks. `client/src/net/botsPref.ts` remembers the choice per
+device.
+
+**The row says so, and the client does not know the code.** A lobby row carries
+`bots` (`server/src/lobby.ts`), so the filter reads what the table says about
+itself. The alternative was for the client to hardcode `PRACT` — a copy of a
+server constant kept in step by nothing at all.
+
+**A lobby row is whatever the table last SAID about itself, and a sleeping
+table says nothing.** So a row written before `bots` existed keeps its old
+shape for as long as the table stays quiet — which for this one, evergreen and
+asleep whenever it is empty, is forever. `/init` answering 409 now re-reports on
+the way out, which makes "ask for the practice table" the thing that repairs
+its own row. Anything else added to `LobbyRow` needs the same thought: the field
+does not arrive when you deploy it, it arrives when each table next speaks.
 
 It is the same brain as `npm run bots`, moved from a terminal into the Durable
 Object, because a table that needs somebody's laptop running is not a table you
@@ -244,6 +269,42 @@ way — and do not "fix" a disappearance by giving a banner its own copy of the
 board, which is what `WinMoment` used to do and why there were two rows of
 five cards stacked on each other.
 
+## One table, one socket
+
+**The worst bug this project has had, and every guard against it was pointed
+somewhere else.** The operator, 2026-08-15: *"i see cards in flop go again and
+again hence i see more than 6 7 8 cards on deck."* Everything above says a
+six-card board is unrepresentable — `handBoard` is replaced by the server's own
+board on every snapshot, and the felt renders `slice(0, shownCount)`. All of it
+is true, and all of it assumes ONE stream of events.
+
+`client/src/net/socket.ts` held more than one. Two lines did it, and neither
+reads like a bug on its own:
+
+- `wake()` returned early only when the socket was **OPEN**. A socket still
+  shaking hands is neither open nor gone, and coming back to a tab fires wake
+  every time.
+- `open()` assigned `this.ws` without closing what was already there, so the
+  abandoned socket stayed live — and its own `onclose` ran the reconnect
+  ladder, which is why the count GREW instead of settling at two.
+
+Measured on the live table with `scripts/repro/double-socket.mjs`: forty
+`visibilitychange` events produced **forty-one sockets, twenty-two open at
+once**. Every one of them received every broadcast and delivered it into the
+one store. `StreetDealt` appends, so the flop was applied twenty-two times.
+The operator was reporting the mild version of what was happening.
+
+It also doubles the sounds, the pot in the winner banner, and the depth of the
+pacer queue — so "many many bugs in game play" was one defect wearing several
+costumes.
+
+**Fixed in two places on purpose, and they are not the same fix.** `retire()`
+takes the handlers off a socket before closing it and every handler checks it
+is still the current one — that is the CAUSE. `deliver()` refuses a `seq` it
+has already accepted (`client/src/state/pacer.ts`) — that is the CLASS, and it
+holds no matter how many streams exist. `client/src/net/socket.test.ts` stubs a
+WebSocket and pins both; four of its seven tests go red against the old code.
+
 ## Nobody there means nobody there
 
 Three clocks, all in `server/src/reap.ts`, which is pure and tested because it
@@ -280,11 +341,43 @@ table. It checks its deadline now.
 
 ## The sound lab
 
+It is one TAB of three now — the studio, `client/src/look/Studio.tsx`, which is
+the look (`#/look`), the sounds (`#/lab`) and your name (`#/name`) over a felt
+dealing a real hand from the real engine. Three URLs, one screen, one lazy
+`lab-*` chunk that no player downloads to play.
+
 **<https://poker.ellaz.fun/#/lab>**, or the room menu → *Choose sounds*. Eight
 strips, one per sound the table plays, five candidates each. Tapping a
 candidate **picks it and plays it through the real audio port** — not a preview
 path that could disagree with what a hand actually sounds like. That is the
 whole design rule: the thing being judged has to be the thing that ships.
+
+**Sound on a phone, which is a different problem from sound.** Two causes, and
+neither leaves a trace in JavaScript — the context reports `running`, every node
+connects, `onended` fires on time, and nothing is in an error state:
+
+- **iOS suspends the AudioContext whenever the app is backgrounded.** A call, a
+  glance at a message, the screen locking. `attachUnlockOnFirstGesture` used to
+  REMOVE its own listener after the first tap, so nothing ever resumed it and
+  every sound for the rest of that session was dropped by the
+  `state !== "running"` guard in `play()`. Not one missing sound — all of them,
+  permanently, after an ordinary interruption. It now listens for as long as the
+  page lives, and resuming a running context is a no-op, so asking costs nothing
+  and asking once was the bug.
+- **WebAudio plays through the RINGER channel on iOS**, so the hardware side
+  switch silences the game while everything reports success. An `<audio>`
+  element that is genuinely playing moves the page to media playback and
+  WebAudio follows it there, so `audio.ts` builds a tenth of a second of silence
+  as a real WAV and loops it. Muting the game pauses it too: a page listed by
+  the phone as playing media, right after you muted it, is its own small
+  betrayal.
+
+**The sounds tab shows what the audio layer is actually doing** — `audio:
+running · media`, or `suspended`, or `MUTED`. A report from a phone nobody here
+can hold says something checkable instead of "no sound", and the one cause that
+is NOT knowable from code (the side switch) is named in words rather than
+guessed at. It is on that tab and nowhere else, because the person who needs it
+is already looking at sounds.
 
 A pick persists as a complete `VoiceSpec` under `holdem:voice:v1`, so a sound
 chosen on a phone plays on a laptop that has never opened this screen.

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { pickName, renderName, rerollName } from "@shared/names";
 import { createRoom, ensurePracticeTable, listTables, type OpenTable } from "../net/socket";
+import { botsWanted, setBotsWanted } from "../net/botsPref";
 import { savedName, saveName } from "../net/nameStore";
 import type { Locale } from "../i18n";
 import { makeT } from "../i18n";
 import { Animal } from "../ui/animals";
-import { IconCrown, IconDice, IconEye, IconLock, IconRefresh, Logo } from "../ui/icons";
+import { IconCrown, IconDice, IconEye, IconLock, IconRefresh, IconRobot, Logo } from "../ui/icons";
 
 export function Home({
   locale,
@@ -30,6 +31,10 @@ export function Home({
   const [isPrivate, setPrivate] = useState(false);
   const [error, setError] = useState("");
   const [tables, setTables] = useState<OpenTable[] | null>(null);
+  // OFF unless this device has asked. See net/botsPref.ts — the practice table
+  // used to be created and listed on every visit, so a lobby always opened on
+  // a room full of machines.
+  const [bots, setBots] = useState(botsWanted);
 
   // `null` means "have not looked yet" and `[]` means "looked, nothing there".
   // Rendering the empty-state copy over the first is how a lobby flashes "no
@@ -39,12 +44,14 @@ export function Home({
   }, []);
 
   useEffect(() => {
-    // Ask for the practice table before the first listing, so somebody
-    // arriving at an otherwise empty lobby still has a game to join. It is
-    // idempotent and it answers in a few milliseconds; `refresh` does not
-    // wait on it, because a slow server must not delay the tables that DO
-    // exist.
-    void ensurePracticeTable().then(refresh);
+    // ONLY when this device has asked for it. It is idempotent and it answers
+    // in a few milliseconds; `refresh` does not wait on it, because a slow
+    // server must not delay the tables that DO exist.
+    //
+    // Asking for it is what CREATES it, so leaving the switch off is not
+    // merely a filter over the list — the room is never made, never woken and
+    // never costs anything.
+    if (bots) void ensurePracticeTable().then(refresh);
     refresh();
     // Twenty seconds. The lobby is a list of rooms, not a live feed — a table
     // appearing a few seconds late costs nothing, and this screen is the one
@@ -57,7 +64,11 @@ export function Home({
       clearInterval(iv);
       document.removeEventListener("visibilitychange", onFocus);
     };
-  }, [refresh]);
+    // `bots` is a dependency because turning the switch ON has to go and make
+    // the table before the next listing can show it. Turning it off re-runs
+    // this too, which costs one extra `refresh` and keeps the two directions
+    // symmetrical rather than special-cased.
+  }, [refresh, bots]);
 
   // A name always exists, so this only persists the current one. It cannot
   // fail and it cannot refuse, which is the whole point of a pool.
@@ -92,6 +103,20 @@ export function Home({
       return;
     }
     location.hash = `#/room/${code}`;
+  };
+
+  /**
+   * The tables to show, which is not the same list the server sent.
+   *
+   * Filtered on what the ROW says about itself rather than on a code this
+   * screen would otherwise have to know — see `bots` in net/socket.ts.
+   */
+  const shown = (tables ?? []).filter((tbl) => bots || !tbl.bots);
+
+  const toggleBots = () => {
+    const next = !bots;
+    setBots(next);
+    setBotsWanted(next);
   };
 
   const doJoin = () => {
@@ -153,13 +178,13 @@ export function Home({
         </div>
         {tables === null ? (
           <div style={{ color: "var(--ink-dim)", fontSize: 14 }}>…</div>
-        ) : tables.length === 0 ? (
+        ) : shown.length === 0 ? (
           <div style={{ color: "var(--ink-dim)", fontSize: 14, lineHeight: 1.5 }}>
             {t("noOpenTables")}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {tables.map((tbl) => (
+            {shown.map((tbl) => (
               <TableRow
                 key={tbl.code}
                 table={tbl}
@@ -172,6 +197,54 @@ export function Home({
             ))}
           </div>
         )}
+
+        {/* The switch, under the list it changes, so what it does is visible
+            in the same glance. Off by default and remembered per device.
+            Turning it on is also what CREATES the table — this is not a
+            filter over something that exists regardless. */}
+        <button
+          className="btn ghost"
+          role="switch"
+          aria-checked={bots}
+          onClick={toggleBots}
+          style={{
+            minHeight: 44,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+            fontSize: 14,
+          }}
+        >
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <IconRobot size={16} /> {t("playWithBots")}
+          </span>
+          <span
+            aria-hidden
+            style={{
+              flex: "0 0 auto",
+              width: 40,
+              height: 24,
+              borderRadius: 999,
+              background: bots ? "var(--gold)" : "var(--line)",
+              position: "relative",
+              transition: "background 160ms var(--ease)",
+            }}
+          >
+            <span
+              style={{
+                position: "absolute",
+                top: 3,
+                insetInlineStart: bots ? 19 : 3,
+                width: 18,
+                height: 18,
+                borderRadius: "50%",
+                background: bots ? "var(--gold-ink)" : "var(--ink-dim)",
+                transition: "inset-inline-start 160ms var(--ease)",
+              }}
+            />
+          </span>
+        </button>
       </div>
 
       <div style={{ background: "var(--surface)", borderRadius: "var(--radius-2)", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
@@ -274,7 +347,7 @@ function TableRow({
   onJoin,
 }: {
   table: OpenTable;
-  t: (k: "tablePlaying" | "tableWaiting" | "tableFull") => string;
+  t: (k: "tablePlaying" | "tableWaiting" | "tableFull" | "botsTable") => string;
   onJoin: () => void;
 }) {
   const full = table.seated >= table.maxSeats;
@@ -300,6 +373,14 @@ function TableRow({
         {table.seated}/{table.maxSeats} · {table.sb}/{table.bb}
         {table.league ? <IconCrown size={12} /> : null}
       </span>
+      {/* Said on the row as well as on the switch. Somebody who turned the
+          switch on an hour ago should not have to remember which of three
+          rooms was the one with the machines in it. */}
+      {table.bots ? (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--ink-dim)" }}>
+          <IconRobot size={12} /> {t("botsTable")}
+        </span>
+      ) : null}
       <span
         style={{
           marginInlineStart: "auto",

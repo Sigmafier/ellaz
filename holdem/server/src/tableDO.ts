@@ -224,7 +224,20 @@ export class TableDO implements DurableObject {
     const url = new URL(request.url);
 
     if (url.pathname === "/init" && request.method === "POST") {
-      if (this.meta.claimed) return new Response(JSON.stringify({ error: "claimed" }), { status: 409 });
+      if (this.meta.claimed) {
+        // Already ours — but say so to the lobby on the way out.
+        //
+        // A lobby row is whatever the table last said about itself, and a
+        // table that is asleep says nothing. So a row written before a field
+        // existed keeps its old shape for as long as the table stays quiet,
+        // which for the practice table (evergreen, sleeps when empty) is
+        // FOREVER. That is how a client filter reading a new field silently
+        // stops filtering. Re-reporting here costs one write on a call that
+        // already exists and makes "ask for the practice table" the thing
+        // that repairs its row.
+        await this.reportToLobby();
+        return new Response(JSON.stringify({ error: "claimed" }), { status: 409 });
+      }
       const body = (await request.json()) as Partial<TableConfig> & {
         code: string;
         isPrivate?: boolean;
@@ -417,6 +430,11 @@ export class TableDO implements DurableObject {
       handsPlayed: s.handsPlayed,
       isPrivate: this.meta.isPrivate === true,
       evergreen: this.meta.evergreen === true,
+      // What the table was BUILT with, not how many are sitting right now.
+      // A bot that busted and left is still a table the house plays at, and a
+      // lobby row that stopped saying so the moment a seat emptied would be a
+      // switch that flickers.
+      bots: this.meta.bots || undefined,
     };
     try {
       const stub = this.env.LOBBY.get(this.env.LOBBY.idFromName(LOBBY_NAME));
