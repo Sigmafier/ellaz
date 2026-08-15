@@ -22,7 +22,7 @@ import { mulberry32, seedFrom } from "@shared/engine/rng";
 import { apply } from "@shared/engine/table";
 import { createTable, DEFAULT_CONFIG, type EngineEvent, type TableState } from "@shared/engine/types";
 import { publicView, redactEvent } from "@shared/engine/view";
-import type { PlayerName } from "@shared/names";
+import { type PlayerName, renderName } from "@shared/names";
 import { deliver, resetPacer } from "../state/pacer";
 import { resetState } from "../state/store";
 
@@ -40,6 +40,17 @@ const SEATS: { name: string; word: PlayerName }[] = [
 const NAMES: Record<number, PlayerName> = Object.fromEntries(
   SEATS.map((s, i) => [i, s.word]),
 );
+
+/**
+ * The name on OUR seat, which the name picker changes while a hand is running.
+ *
+ * Held here rather than passed to `runDemo` because it must be changeable
+ * WITHOUT re-dealing: choosing a name is a browse — twenty animals, tapped one
+ * after another — and re-shuffling the deck on every tap would make the felt
+ * flash instead of showing the one thing being judged, which is how the name
+ * looks on a nameplate.
+ */
+let myName: PlayerName = SEATS[DEMO_SEAT].word;
 
 /**
  * How each seat plays, as an ORDER OF PREFERENCE over whatever is legal.
@@ -105,7 +116,19 @@ function push(state: TableState, events: EngineEvent[]): void {
       .filter((e): e is EngineEvent => e !== null);
     if (mine.length) deliver({ t: "ev", seq: seq++, events: mine });
   }
-  deliver({ t: "room", view: publicView(state), names: NAMES, seq: seq++ });
+  // `names` is what the felt RENDERS (the animal and the word ids); the
+  // engine's own seat label is a separate string set at sit time. Both are
+  // overridden for our seat, because a nameplate shows one and the layout is
+  // sized by the other — changing only `names` gives a tiger's face over
+  // somebody else's word.
+  const view = publicView(state);
+  view.seats[DEMO_SEAT].name = renderName(myName) ?? view.seats[DEMO_SEAT].name;
+  deliver({
+    t: "room",
+    view,
+    names: { ...NAMES, [DEMO_SEAT]: myName },
+    seq: seq++,
+  });
   const hand = state.hand;
   deliver({
     t: "you",
@@ -132,17 +155,38 @@ function push(state: TableState, events: EngineEvent[]): void {
  * lab down with it — the axes are still pickable on a still table, and a lab
  * that white-screens is worse than one that stops moving.
  */
-export function runDemo(opts: { seed?: string; actionMs?: number } = {}): () => void {
+export function runDemo(opts: { seed?: string; actionMs?: number; name?: PlayerName } = {}): {
+  stop: () => void;
+  /** Re-label our seat and repaint, without disturbing the hand in flight. */
+  rename: (name: PlayerName) => void;
+  /**
+   * Hold the hand where it is, WITHOUT clearing the felt.
+   *
+   * Distinct from `stop` on purpose: stop tears the table down, which is right
+   * on unmount and wrong here. A still table is what you want while judging
+   * one card face or A/B-ing one chip sound against another — a felt that
+   * keeps dealing underneath you is the thing being compared moving.
+   */
+  setPaused: (p: boolean) => void;
+} {
   const actionMs = opts.actionMs ?? 950;
   let stopped = false;
   let timer: ReturnType<typeof setTimeout> | null = null;
   let table = seatTable();
   let hands = 0;
+  if (opts.name) myName = opts.name;
+
+  let paused = false;
 
   const wait = (ms: number, fn: () => void) => {
     if (stopped) return;
     timer = setTimeout(() => {
-      if (!stopped) fn();
+      if (stopped) return;
+      // Re-arm rather than drop the step: a pause that swallowed the pending
+      // callback would leave the loop with nothing to resume, so unpausing
+      // would show a table frozen forever with no error anywhere.
+      if (paused) return wait(200, fn);
+      fn();
     }, ms);
   };
 
@@ -187,13 +231,25 @@ export function runDemo(opts: { seed?: string; actionMs?: number } = {}): () => 
   push(table, []);
   wait(500, deal);
 
-  return () => {
-    stopped = true;
-    if (timer !== null) clearTimeout(timer);
-    // The queue outlives this component otherwise, and every beat in it is a
-    // real S2C the reducer believes — a demo beat landing on a real table
-    // would deal lab cards onto a live hand.
-    resetPacer();
-    resetState();
+  return {
+    stop: () => {
+      stopped = true;
+      if (timer !== null) clearTimeout(timer);
+      // The queue outlives this component otherwise, and every beat in it is a
+      // real S2C the reducer believes — a demo beat landing on a real table
+      // would deal lab cards onto a live hand.
+      resetPacer();
+      resetState();
+    },
+    setPaused: (p: boolean) => {
+      paused = p;
+    },
+    rename: (name: PlayerName) => {
+      myName = name;
+      // A `room` message, which is exactly what the SERVER sends when somebody
+      // renames themselves mid-hand — so the felt is exercising the same path
+      // here as it does there, rather than a lab-only shortcut.
+      if (!stopped) push(table, []);
+    },
   };
 }

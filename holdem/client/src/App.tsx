@@ -3,29 +3,38 @@ import { DIR, loadLocale, type Locale, saveLocale } from "./i18n";
 import { Home } from "./screens/Home";
 import { RoomScreen } from "./screens/RoomScreen";
 import { TvScreen } from "./screens/TvScreen";
+import type { StudioTab } from "./look/Studio";
 
-// The sound lab is a tuning tool, not part of playing poker, so it is lazy and
-// carved into its own `lab-*` chunk that the service worker does not precache
-// (see vite.config.ts). Reachable in production on purpose — the sounds are
-// judged on the phone they will be heard on, not on a laptop in dev.
-const SoundLab = lazy(() => import("./lab/SoundLab").then((m) => ({ default: m.SoundLab })));
+// The studio — the look, the sounds, and your name, over a table dealing a
+// real hand. Lazy and carved into its own `lab-*` chunk that the service
+// worker does not precache (see vite.config.ts): a tuning tool must not be in
+// what a player downloads to play a hand. Reachable in production on purpose —
+// the sounds are judged on the phone they will be heard on, not on a laptop
+// in dev.
+const Studio = lazy(() => import("./look/Studio").then((m) => ({ default: m.Studio })));
 
-// The look lab — every art decision on the felt, over a table dealing a real
-// hand. Same arrangement as the sound lab and for the same reason: a tuning
-// tool must not be in what a player downloads to play a hand. It is named into
-// the same `lab-*` chunk (see vite.config.ts), so the one precache exclusion,
-// the one modulepreload filter and the one gate cover both.
-const LookLab = lazy(() => import("./look/LookLab").then((m) => ({ default: m.LookLab })));
-
-function parseHash(): { screen: "home" | "lab" | "look" } | { screen: "room" | "tv"; code: string } {
+/**
+ * THREE hashes, ONE screen, and that is deliberate rather than lazy routing.
+ *
+ * The menu offers "sounds", "look" and "your name" as three separate errands,
+ * because that is how somebody arrives at them — and they are one screen,
+ * because all three are judged against the same felt. Keeping the three URLs
+ * means the menu entries stay honest, an old `#/lab` link still works, and a
+ * shared link can drop somebody straight on the tab it is about.
+ */
+function parseHash():
+  | { screen: "home" }
+  | { screen: "studio"; tab: StudioTab }
+  | { screen: "room" | "tv"; code: string } {
   const room = location.hash.match(/^#\/room\/([A-Za-z0-9-]+)/);
   if (room) return { screen: "room", code: room[1].toUpperCase() };
   const tv = location.hash.match(/^#\/tv\/([A-Za-z0-9-]+)/);
   if (tv) return { screen: "tv", code: tv[1].toUpperCase() };
-  // `#/look` before `#/lab`: neither prefixes the other, but the two names are
-  // one letter apart and a future `#/labs` would.
-  if (/^#\/look\b/.test(location.hash)) return { screen: "look" };
-  if (/^#\/lab\b/.test(location.hash)) return { screen: "lab" };
+  if (/^#\/look\b/.test(location.hash)) return { screen: "studio", tab: "look" };
+  if (/^#\/name\b/.test(location.hash)) return { screen: "studio", tab: "name" };
+  // `#/lab` last of the three: it is the oldest name, and it now means the
+  // tab it always meant rather than a screen of its own.
+  if (/^#\/lab\b/.test(location.hash)) return { screen: "studio", tab: "sound" };
   return { screen: "home" };
 }
 
@@ -58,17 +67,14 @@ export function App() {
   if (route.screen === "tv") {
     return <TvScreen code={route.code} locale={locale} />;
   }
-  if (route.screen === "lab") {
+  if (route.screen === "studio") {
     return (
       <Suspense fallback={null}>
-        <SoundLab />
-      </Suspense>
-    );
-  }
-  if (route.screen === "look") {
-    return (
-      <Suspense fallback={null}>
-        <LookLab locale={locale} />
+        {/* Keyed on the tab so arriving from a different menu entry remounts
+            on the right one. Without the key, React keeps the mounted Studio
+            and its `useState(initialTab)` — so the second menu entry somebody
+            taps opens the screen they were already on. */}
+        <Studio key={route.tab} locale={locale} tab={route.tab} />
       </Suspense>
     );
   }

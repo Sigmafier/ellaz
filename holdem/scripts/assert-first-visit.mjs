@@ -1,6 +1,7 @@
 // What a player downloads before they can play a hand.
 //
-// The sound lab is a tuning tool. Keeping it off a first load takes THREE
+// The studio (look, sounds, your name) is a tuning tool. Keeping it off a
+// first load takes THREE
 // things that live in three different places, and getting two of them right
 // produces a green build whose payload did not move:
 //
@@ -13,7 +14,9 @@
 // for the lazy chunk undoes all three.
 //
 // This gate exists because the fourth and a fifth both fired here on the day
-// the lab was written, and neither was visible anywhere except the artifact:
+// the lab was written, and a SIXTH fired the day it was renamed — the chunk
+// name was matched on a FILE name, so renaming the component dropped the
+// `lab-` prefix and the whole screen went into the precache, and neither was visible anywhere except the artifact:
 //
 //   · the modulepreload — three correct settings, and every player still
 //     fetched the lab on first paint.
@@ -35,12 +38,12 @@ import { tmpdir } from "node:os";
 const DIST = process.env.DIST_DIR ?? "client/dist";
 
 /**
- * How many `lab-*.js` chunks this build should emit: the sound lab and the
- * look lab. Both are named into the same prefix on purpose (see the note in
- * vite.config.ts) so that one precache exclusion, one modulepreload filter and
- * one gate cover every tuning screen there will ever be.
+ * How many `lab-*.js` chunks this build should emit: one, the studio (look,
+ * sounds and your name, over a demo hand). It was 2 while the sound lab and
+ * the look lab were separate screens; they were merged because all three are
+ * judged against the same felt.
  */
-const LABS_EXPECTED = 2;
+const LABS_EXPECTED = 1;
 
 /** Every check, as data, so --control can plant a failure per check. */
 function inspect(dist) {

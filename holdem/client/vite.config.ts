@@ -87,17 +87,22 @@ export default defineConfig({
         // splitting alone — shared modules stay where the dependency graph
         // puts them, which is the shell.
         //
-        // BOTH labs share the `lab-` name, and deliberately: `globIgnores`,
-        // `resolveDependencies` and assert-first-visit.mjs each hold one
-        // pattern, so a second tuning screen that invented a second prefix
-        // would need all three edited and would ship to every player if any
-        // one of them were missed. `src/look/LookLab.tsx` is the look lab's
-        // entry; `src/look/lookStore.ts` and `look.css` are NOT matched here
-        // and must not be — they are what paints a player's picks on the
-        // first frame, so they belong in the shell.
+        // Matched on the DIRECTORY, not on a file name. The first version of
+        // this named `/src/look/LookLab`, and renaming that component to
+        // Studio.tsx silently dropped the `lab-` prefix — so the chunk went
+        // straight into the precache and every player downloaded the tuning
+        // screen. Nothing in the rename touched this file; a green build is
+        // what a file-name match buys you the day somebody renames a file.
+        // (Caught by assert-first-visit.mjs on the next run: `expected 1
+        // lab-*.js chunks and found 0`, precache up to 9 entries.)
+        //
+        // `src/look/lookStore.ts` and `look.css` live in the same directory
+        // and are NOT affected: only emitted CHUNKS are named here, and those
+        // two are statically imported by the entry, so they are part of the
+        // shell — which is the point, since they are what paints a player's
+        // picks on the first frame.
         chunkFileNames: (chunk) =>
-          chunk.facadeModuleId?.includes("/src/lab/") ||
-          chunk.facadeModuleId?.includes("/src/look/LookLab")
+          /\/src\/(lab|look)\//.test(chunk.facadeModuleId ?? "")
             ? "assets/lab-[hash].js"
             : "assets/[name]-[hash].js",
       },

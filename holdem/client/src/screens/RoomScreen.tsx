@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { renderName, rerollName } from "@shared/names";
 import { socket } from "../net/socket";
 import { attachJuice } from "../juice/moments";
+import { Animal } from "../ui/animals";
 import { isMuted, setMuted } from "../audio/audio";
 import { useApp } from "../state/store";
 import { Table } from "../table/Table";
@@ -136,21 +137,48 @@ export function RoomScreen({
       {panel === "league" && <LeaguePanel locale={locale} onClose={() => setPanel("none")} />}
       {panel === "menu" && (
         <Sheet onClose={() => setPanel("none")}>
-          {/* The reroll the shared-link player never got on the way in. The
-              server answers with the name it SETTLED on, so the store updates
-              from the reply rather than optimistically from the request. */}
-          <button
-            className="btn ghost"
-            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-            onClick={() => app.myName && socket.setName(rerollName(app.myName))}
-          >
-            <IconDice size={16} /> {app.myName ? renderName(app.myName) : t("rerollName")}
-          </button>
+          {/* Your name, and now a way to CHOOSE it rather than only to reroll
+              it. Two taps, deliberately different verbs:
+
+              the LABEL opens the picker (both halves, 320 names, seen on a
+              nameplate before you commit), and the DIE is the old one-tap
+              reroll, kept because it is genuinely the fastest way to get a
+              name you do not hate and some people will never want more.
+
+              The reroll sends through the socket and the server answers with
+              the name it SETTLED on, so the store updates from the reply
+              rather than optimistically from the request. The picker saves to
+              this device and rides the next `hello` — it lives on a screen
+              that has already left the room. */}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              className="btn ghost"
+              style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+              onClick={() => {
+                setPanel("none");
+                location.hash = "#/name";
+              }}
+            >
+              {app.myName && <Animal id={app.myName.noun} size={18} />}
+              {app.myName ? renderName(app.myName) : t("yourName")}
+            </button>
+            <button
+              className="btn ghost"
+              style={{ minWidth: 56 }}
+              aria-label={t("rerollName")}
+              title={t("rerollName")}
+              onClick={() => app.myName && socket.setName(rerollName(app.myName))}
+            >
+              <IconDice size={16} />
+            </button>
+          </div>
           <button className="btn ghost" onClick={onToggleLocale}>
             {t("language")}
           </button>
-          {/* The look, changed from inside a live table on purpose: the thing
-              being judged is the felt behind this sheet, at real size. */}
+          {/* Mute. The comment that used to sit here described a theme picker
+              that no longer exists — and the reason it gave ("judged against
+              the felt behind this sheet") is now the studio's whole design,
+              two entries below. */}
           <button
             className="btn ghost"
             style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
