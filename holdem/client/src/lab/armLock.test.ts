@@ -35,9 +35,38 @@ import { STRIPS } from "./candidates";
 
 const LOCK = new URL("./arms.lock.json", import.meta.url);
 
-/** FNV-1a over the exact string the studio compares. Short, stable, enough. */
+/**
+ * Round every number to 9 significant figures before hashing.
+ *
+ * THE LOCK CANNOT FINGERPRINT THE EXACT BYTES, and finding that out cost a red
+ * CI run over a green local one. `struck()` derives each partial's life through
+ * `Math.pow(ratio, damp)`, and `Math.pow` is implementation-APPROXIMATED in
+ * ECMAScript - engines are allowed to differ in the last unit in the last
+ * place, and this machine and the runner do. 60 of 197 arms came back "EDITED"
+ * on a tree where nothing had been edited.
+ *
+ * Nine significant figures is seven orders of magnitude coarser than that noise
+ * and still far finer than any deliberate change: the mutation proof flips
+ * 0.052 to 0.053, which is three digits.
+ *
+ * It also says something true about the feature underneath. The studio matches
+ * a stored pick with exact `JSON.stringify` equality, so a pick IS bound to the
+ * arithmetic of the engine that made it - fine in practice, since the same
+ * device does both sides, and worth knowing about before somebody proposes
+ * moving picks between devices.
+ */
+function stable(v: unknown): unknown {
+  if (typeof v === "number") return Number.isFinite(v) ? Number(v.toPrecision(9)) : v;
+  if (Array.isArray(v)) return v.map(stable);
+  if (v && typeof v === "object") {
+    return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, stable(x)]));
+  }
+  return v;
+}
+
+/** FNV-1a over the rounded spec. Short, portable, enough. */
 function fingerprint(spec: unknown): string {
-  const s = JSON.stringify(spec);
+  const s = JSON.stringify(stable(spec));
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
   // The LENGTH as well as the hash. Two specs of different length cannot
@@ -104,5 +133,15 @@ group("shipped arms are frozen", () => {
     const b = STRIPS[0].arms[1].spec;
     expect(fingerprint(a)).not.toBe(fingerprint(b));
     expect(fingerprint(a)).toBe(fingerprint(JSON.parse(JSON.stringify(a))));
+  });
+
+  it("survives a last-ULP difference and still catches a real edit", () => {
+    // The control for the rounding above, and it is the failure that actually
+    // happened: identical source, two engines, `Math.pow` differing in the last
+    // bit, 60 arms reported as edited. Both directions, because rounding hard
+    // enough to hide engine noise is also how you hide a change.
+    const v = 52 / Math.pow(2.32, 1.3);
+    expect(fingerprint({ ms: v * (1 + Number.EPSILON) })).toBe(fingerprint({ ms: v }));
+    expect(fingerprint({ ms: v * 1.001 })).not.toBe(fingerprint({ ms: v }));
   });
 });
