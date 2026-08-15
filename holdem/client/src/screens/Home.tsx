@@ -6,7 +6,7 @@ import { savedName, saveName } from "../net/nameStore";
 import type { Locale } from "../i18n";
 import { makeT } from "../i18n";
 import { Animal } from "../ui/animals";
-import { IconCrown, IconDice, IconEye, IconLock, IconRefresh, IconRobot, Logo } from "../ui/icons";
+import { IconCrown, IconDice, IconEye, IconLock, IconPalette, IconRefresh, IconRobot, Logo } from "../ui/icons";
 
 export function Home({
   locale,
@@ -161,6 +161,42 @@ export function Home({
           </button>
         </div>
       </div>
+
+      {/* The studio, from the home screen.
+       *
+       * It had two ways in and both of them assumed you already knew: type
+       * `#/look`, or open a table and find it in the ⋮ menu. The operator's own
+       * question after it shipped was "how do i reach the lab?", which is the
+       * whole argument for this row — a screen nobody can find is a screen
+       * nobody uses, however good it is.
+       *
+       * It sits under the NAME rather than under the tables, because the name
+       * is one of the three things it changes; the row reads as "and the rest
+       * of you" rather than as an unrelated settings link. */}
+      <button
+        className="btn ghost"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          minHeight: 56,
+          padding: "0 14px",
+          textAlign: "start",
+        }}
+        onClick={() => {
+          keepName();
+          location.hash = "#/look";
+        }}
+      >
+        <IconPalette size={20} />
+        <span style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1 }}>
+          <span style={{ fontWeight: 800 }}>{t("studio")}</span>
+          <span style={{ fontSize: 12, opacity: 0.7, fontWeight: 500 }}>{t("studioHint")}</span>
+        </span>
+        <span aria-hidden style={{ opacity: 0.6 }}>
+          ›
+        </span>
+      </button>
 
       <div style={{ background: "var(--surface)", borderRadius: "var(--radius-2)", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

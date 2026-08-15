@@ -308,3 +308,19 @@ export function IconRobot({ size, title }: IconProps) {
     </Svg>
   );
 }
+
+/**
+ * The studio.
+ *
+ * A painter's palette with three wells, because the screen it opens is three
+ * decisions (the look, the sounds, your name) rather than a settings page — and
+ * a cog would say the opposite. The thumb hole is what makes it read as a
+ * palette at 18px instead of as a blob.
+ */
+export function IconPalette({ size, title }: IconProps) {
+  return (
+    <Svg size={size} title={title}>
+      <path d="M50 8C27 8 8 25 8 47c0 21 17 37 39 37 6 0 10-4 10-9 0-3-1-4-3-6-2-2-3-4-3-6 0-4 3-7 8-7h9c15 0 24-10 24-24C92 21 73 8 50 8zM28 52a7 7 0 1 1 0-14 7 7 0 0 1 0 14zm12-20a7 7 0 1 1 0-14 7 7 0 0 1 0 14zm22 0a7 7 0 1 1 0-14 7 7 0 0 1 0 14zm16 16a7 7 0 1 1 0-14 7 7 0 0 1 0 14z" />
+    </Svg>
+  );
+}

@@ -48,9 +48,12 @@ function handleEvents(events: EngineEvent[]): void {
   for (const e of events) {
     switch (e.type) {
       case "HandStarted": {
-        // A quick dealing riffle: one slide per dealt seat, staggered.
+        // The shuffle, THEN the deal. New on 2026-08-15: a hand used to begin
+        // with cards already moving, which is the one moment at a real table
+        // that has an unmistakable sound of its own.
+        play("shuffle");
         e.dealtSeats.forEach((_, i) => {
-          setTimeout(() => play("cardSlide", { semitones: (i % 3) - 1 }), i * 70);
+          setTimeout(() => play("cardSlide", { semitones: (i % 3) - 1 }), 320 + i * 70);
         });
         break;
       }
@@ -64,8 +67,11 @@ function handleEvents(events: EngineEvent[]): void {
         } else if (e.kind === "fold") {
           play("fold", { gain: e.seat === mySeat ? 1 : 0.5 });
         } else {
-          play("chipClack");
-          chipsToPot(e.seat, e.kind === "raise" || e.kind === "bet");
+          // A raise sounds like more chips than a call, which is the whole
+          // information a table gives you before you look at the number.
+          const aggressive = e.kind === "raise" || e.kind === "bet";
+          play(aggressive ? "chipRaise" : "chipClack");
+          chipsToPot(e.seat, aggressive);
           if (e.seat === mySeat) haptic.tap();
         }
         if (e.allIn) {
@@ -78,6 +84,12 @@ function handleEvents(events: EngineEvent[]): void {
         e.cards.forEach((_, i) => {
           setTimeout(() => play("cardSlide", { semitones: i }), i * 110);
         });
+        break;
+      case "ShowdownReveal":
+        // New on 2026-08-15. Turning a hand over was silent, which made the
+        // one beat the pacer holds 1.2s open for the quietest thing on the
+        // felt.
+        play("reveal");
         break;
       case "PotAwarded": {
         const iWon = e.winners.includes(mySeat);

@@ -74,6 +74,13 @@ const BEFORE_AWARD_MS = 1600;
  */
 const AFTER_AWARD_MS = 2600;
 
+// DELIBERATELY NOT SCALED BY `pace`, where the three beats above are. This one
+// is not a story beat — it is a negotiation with INTER_HAND_MS on a server that
+// has never heard of anybody's look preference. It buys a fixed number of
+// seconds to read a result, which does not get longer because cards arrive
+// slower, and scaling it would spend the pacer's whole lag budget (see
+// `paceScale`) on the one hold that already sits closest to the server's clock.
+
 /**
  * Where a batch of events is allowed to be cut, and how long the cut is worth.
  *
@@ -83,10 +90,49 @@ const AFTER_AWARD_MS = 2600;
  */
 function beatBefore(e: EngineEvent, isFirst: boolean): number | null {
   if (isFirst) return null;
-  if (e.type === "StreetDealt") return STREET_MS;
-  if (e.type === "ShowdownReveal") return BEFORE_REVEAL_MS;
-  if (e.type === "PotAwarded") return BEFORE_AWARD_MS;
+  if (e.type === "StreetDealt") return STREET_MS * paceScale();
+  if (e.type === "ShowdownReveal") return BEFORE_REVEAL_MS * paceScale();
+  if (e.type === "PotAwarded") return BEFORE_AWARD_MS * paceScale();
   return null;
+}
+
+/**
+ * The `pace` look, as a multiplier on the beats above.
+ *
+ * READ OFF THE DOCUMENT, not from a copy of the arm table. look.css owns what
+ * each arm is worth; asking `getComputedStyle` for the value it resolved means
+ * there is one set of numbers rather than two that can disagree — and it takes
+ * effect on the next beat with no reload, which is what the studio needs.
+ *
+ * WHY IT IS CAPPED AT 1.6 WHILE THE CSS GETS THE FULL 2. This is not timidity
+ * about a magic number; the two are spending different things. A CSS animation
+ * is free — it plays inside a beat that is already happening. A beat is time
+ * the felt spends BEHIND THE SERVER, and the server's clock does not know this
+ * queue exists.
+ *
+ * The debt is bounded rather than cumulative (the queue drains the moment the
+ * held `HandStarted` is released, and every fold/call/raise after it has no
+ * beat at all), but the bound is what matters: a full run-out is three streets
+ * plus a reveal plus an award, so the felt renders the award roughly
+ * `5.8s x pace` after the batch lands, while the server has already dealt the
+ * next hand at `INTER_HAND_MS` = 6.5s and started a 25s action clock. At 1x
+ * that costs about 2s. At 2x it would cost about 10s — 40% of the clock, on
+ * the hand after every all-in, which is the worst possible hand to be short of
+ * time on. 1.6 keeps it near a quarter of that, and the run-out is still
+ * unmistakably slower.
+ *
+ * Never throws: no DOM (the unit tests run in node), an unparseable value, a
+ * missing property — all answer 1, which is the same answer as "no preference".
+ */
+export function paceScale(): number {
+  try {
+    const raw = getComputedStyle(document.documentElement).getPropertyValue("--pace");
+    const v = Number.parseFloat(raw);
+    if (!Number.isFinite(v) || v <= 0) return 1;
+    return Math.min(1.6, Math.max(0.5, v));
+  } catch {
+    return 1;
+  }
 }
 
 /** One release: some events, after some delay. */

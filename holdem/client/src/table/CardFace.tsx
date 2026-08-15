@@ -119,7 +119,10 @@ export function CardFace({ card, size = 44, delay = 0 }: { card: Card; size?: nu
       >
         {index}
       </div>
-      {/* The big centre rank — the casino-readable arm, hidden by default. */}
+      {/* The big centre rank — what the card leads with since 2026-08-15.
+          Its SIZE is in look.css as a multiple of `--card-w`, not here: `clean`
+          wants a bigger rank than `big` does (nothing is sharing the card with
+          it), and a number written inline cannot be told apart by an arm. */}
       <span
         className="hm-card-rank"
         aria-hidden
@@ -128,7 +131,6 @@ export function CardFace({ card, size = 44, delay = 0 }: { card: Card; size?: nu
           inset: 0,
           alignItems: "center",
           justifyContent: "center",
-          fontSize: Math.round(size * 0.62),
           fontWeight: 900,
           lineHeight: 1,
           letterSpacing: rank === "10" ? "-0.08em" : undefined,

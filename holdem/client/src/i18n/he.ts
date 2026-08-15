@@ -92,6 +92,8 @@ export const he = {
   each: "לכל אחד",
   playWithBots: "לשחק מול המחשב",
   botsTable: "מחשב",
+  studio: "לעצב את השולחן",
+  studioHint: "השולחן, הקלפים, הצלילים והשם שלך",
 } as const;
 
 export type StringKey = keyof typeof he;

@@ -178,6 +178,20 @@ export const MODES = {
     [3.9, 0.2],
     [10.1, 0.045],
   ],
+  /**
+   * The BODY of an impact - the table and the felt under it, not the object.
+   *
+   * Nearly modeless on purpose: one strong fundamental and two weak, closely
+   * spaced neighbours, which is what a damped mass on a soft surface does. It
+   * is never played alone. It goes UNDER a bright strike, at 180-300 Hz, and
+   * it is the single thing every chip voice on this table was missing - see
+   * the note above CHIP_LAND in pokerVoices.ts.
+   */
+  thud: [
+    [1, 1],
+    [1.72, 0.1],
+    [2.61, 0.03],
+  ],
 } as const satisfies Record<string, readonly (readonly [number, number])[]>;
 
 export type ModeName = keyof typeof MODES;
@@ -290,6 +304,105 @@ export function run(
       });
     }
   });
+  return { ...base, layers };
+}
+
+/**
+ * Layer whole voices into one — a bright strike over a low body, a noise
+ * texture under a pitched tail.
+ *
+ * `struck()` builds partials from ONE fundamental, so it can only ever make an
+ * object that resonates in one register. A real impact is two things at once:
+ * the object (high, fast) and what it landed on (low, slower). That is not a
+ * partial of the first sound, it is a second sound, which is why this exists
+ * rather than another entry in the partial table.
+ *
+ * Each extra voice's pitched layers are RESCALED to the first voice's `freq`,
+ * because a layer's `ratio` is relative to the voice it belongs to and the
+ * result has only one. Noise layers have no pitch and pass through untouched.
+ * The first voice's room (`space`, `tail`, `warmth`) wins for all of them —
+ * two rooms in one sound is exactly the artificial smear this palette avoids.
+ *
+ * PUT THE BRIGHTEST VOICE FIRST. Rescaling divides by the base's `freq`, so a
+ * 2.6 kHz strike mixed into a 190 Hz base lands at ratio 13.7 before its own
+ * partials multiply it — and the override gate refuses any ratio above 64,
+ * which is the whole voice silently falling back to the built-in. Bright first
+ * makes every added ratio a fraction instead, and it is the ordering every
+ * impact in pokerVoices.ts uses. (Learned the other way round, from a knuckle
+ * with a ring on it that the gate rejected at ratio 122.)
+ */
+export function mix(...specs: VoiceSpec[]): VoiceSpec {
+  const [base, ...rest] = specs;
+  const layers: LayerSpec[] = [...base.layers];
+  for (const s of rest) {
+    const k = s.freq / base.freq;
+    for (const l of s.layers) {
+      layers.push({ ...l, ratio: l.wave === "noise" ? l.ratio : (l.ratio ?? 1) * k });
+    }
+  }
+  return { ...base, ms: Math.max(...specs.map((s) => s.ms)), layers };
+}
+
+// A tiny seeded PRNG, so a scattered voice is DATA and not a dice roll. Specs
+// are compared by value (the studio matches a stored override against the arm
+// that produced it) and stored as JSON, so a voice that rebuilt itself
+// differently each import would stop being pickable. Per-PLAY variation is a
+// different mechanism and already exists: `jitter`.
+function mulberry32(a: number): () => number {
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function seedFrom(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+  return h >>> 0;
+}
+
+/**
+ * A run of hits that is NOT evenly spaced — chips tumbling, a riffle, a stack
+ * settling.
+ *
+ * `run()` puts every note on an exact grid at an exact interval, and the ear
+ * is very good at hearing that grid: a perfectly periodic burst train is the
+ * difference between "chips" and "a drum machine playing chips". Real contact
+ * is messy, so the gap, the gain and the pitch of every hit wobble here — by
+ * default +/-45% on timing, which is far more than sounds reasonable written
+ * down and is roughly what a handful of chips actually does.
+ *
+ * `seed` is what makes two arms of the same shape different sounds rather than
+ * duplicates, and it is why every scattered candidate names one.
+ */
+export function scatter(
+  base: VoiceSpec,
+  hits: number,
+  gap: number,
+  o: { seed?: string; spread?: number; gainVar?: number; pitchVar?: number } = {},
+): VoiceSpec {
+  const rnd = mulberry32(seedFrom(o.seed ?? "scatter"));
+  const spread = o.spread ?? 0.45;
+  const gainVar = o.gainVar ?? 0.35;
+  const pitchVar = o.pitchVar ?? 1.5;
+  const scale = 1 / Math.sqrt(hits);
+  const layers: LayerSpec[] = [];
+  let t = 0;
+  for (let i = 0; i < hits; i++) {
+    const r = semi((rnd() * 2 - 1) * pitchVar);
+    const g = scale * (1 + (rnd() * 2 - 1) * gainVar);
+    for (const l of base.layers) {
+      layers.push({
+        ...l,
+        ratio: l.wave === "noise" ? l.ratio : (l.ratio ?? 1) * r,
+        gain: l.gain * g,
+        delay: (l.delay ?? 0) + t,
+      });
+    }
+    t += gap * (1 + (rnd() * 2 - 1) * spread);
+  }
   return { ...base, layers };
 }
 

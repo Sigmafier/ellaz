@@ -140,7 +140,13 @@ export function Seat({
       <div
         className="hm-plate"
         style={{
-          padding: `${u(4)}px ${u(10)}px`,
+          // The SCALE only. What the plate does with it — narrow panel, wide
+          // pill, brass plaque — is look.css's decision, and it could not make
+          // it while this was an inline `padding` shorthand: an inline style
+          // beats a stylesheet rule, so the pill arm's extra width had never
+          // applied. See the `.hm-plate` block in look.css.
+          ["--plate-pad-y" as string]: `${u(4)}px`,
+          ["--plate-pad-x" as string]: `${u(10)}px`,
           textAlign: "center",
           minWidth: u(76),
         }}

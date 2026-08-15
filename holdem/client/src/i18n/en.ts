@@ -93,4 +93,6 @@ export const en: Record<StringKey, string> = {
   each: "each",
   playWithBots: "Play against the house",
   botsTable: "house",
+  studio: "Make it yours",
+  studioHint: "The table, the cards, the sounds, your name",
 };

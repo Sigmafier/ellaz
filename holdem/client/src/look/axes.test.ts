@@ -103,6 +103,11 @@ group("registry and stylesheet agree", () => {
 const FILES = (name: string) =>
   readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "table", name), "utf8");
 
+/** Drop `/* *\/` and `//` comments, so the key extractor reads code only. */
+function stripComments(src: string): string {
+  return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+}
+
 /** The style object literal that follows a marker, up to its closing `}}`. */
 function styleAfter(src: string, marker: string): string {
   const at = src.indexOf(marker);
@@ -124,13 +129,29 @@ group("the components leave the look alone", () => {
       marker: 'className="hm-card"',
       allowed: ["position", "--card-w", "background", "boxShadow", "overflow", "animationDelay"],
     },
-    // The nameplate: only what the table's scaling owns.
-    { file: "Seat.tsx", marker: 'className="hm-plate"', allowed: ["padding", "textAlign", "minWidth"] },
+    // The nameplate: only what the table's scaling owns — and the padding as
+    // two VARIABLES rather than as `padding`. That is the whole point of this
+    // row now: an inline `padding` shorthand silently killed the pill arm's
+    // extra width for as long as the arm existed, and this list is what stops
+    // it coming back.
+    {
+      file: "Seat.tsx",
+      marker: 'className="hm-plate"',
+      allowed: ["--plate-pad-y", "--plate-pad-x", "textAlign", "minWidth"],
+    },
   ];
 
   for (const c of cases) {
     it(`${c.file} ${c.marker} sets only what the stylesheet cannot know`, () => {
-      const block = styleAfter(FILES(c.file), c.marker);
+      // COMMENTS ARE STRIPPED FIRST, and that is a fix rather than tidiness.
+      // The extractor takes "any word followed by a colon" as a style key, so
+      // an ordinary English sentence in a comment — "an inline `padding`
+      // shorthand: it beats a stylesheet rule" — reported `shorthand` as a
+      // property nobody may set. It can only ever produce a false RED, never a
+      // false green, so nothing shipped wrong; but a gate that goes red at the
+      // sight of a comment is a gate somebody eventually edits the comment to
+      // appease, and then it is measuring prose instead of code.
+      const block = stripComments(styleAfter(FILES(c.file), c.marker));
       // Both quoted computed keys (["--x" as string]) and bare ones.
       const keys = [...block.matchAll(/(?:\["?(--[a-z-]+)"?[^\]]*\]|(?:^|[\s{])([a-zA-Z]+))\s*:/g)]
         .map((m) => m[1] ?? m[2])
@@ -145,6 +166,21 @@ group("the components leave the look alone", () => {
   // finds zero entries and reports every absence as satisfied.
   it("the extractor found real style blocks", () => {
     for (const c of cases) expect(styleAfter(FILES(c.file), c.marker).length).toBeGreaterThan(20);
+  });
+
+  // And the SECOND control, for the comment stripper added above it. Every
+  // assertion in this group is "the set of forbidden keys is empty", which a
+  // stripper that ate the whole block would satisfy perfectly — the same
+  // vacuous green as a precache matcher that finds zero entries and reports
+  // every absence as satisfied. So: each block must still declare at least one
+  // key AFTER stripping, and the stripper must actually remove a comment.
+  it("the comment stripper leaves the code behind", () => {
+    for (const c of cases) {
+      const stripped = stripComments(styleAfter(FILES(c.file), c.marker));
+      expect(stripped, c.file).toMatch(/[a-zA-Z\]]\s*:/);
+    }
+    expect(stripComments("{ a: 1, // b: 2\n c: 3 }")).toBe("{ a: 1, \n c: 3 }");
+    expect(stripComments("{ a: 1, /* b: 2 */ c: 3 }")).toBe("{ a: 1,  c: 3 }");
   });
 });
 

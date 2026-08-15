@@ -21,8 +21,14 @@
 :root {
   /* How fast the felt moves. Every authored duration below is multiplied by
      this, so `pace` is one number rather than fourteen edits. */
-  --pace: 1;
-  --card-ratio: 1.4;
+  /* 2 since 2026-08-15 — "much slower, every card is an event". This scales
+     the CSS animations AND, via getComputedStyle, the pacer's beats between
+     streets (see state/pacer.ts). Before that it scaled only the animations,
+     so picking it doubled how long a card took to turn over and left the gap
+     between the flop and the turn exactly as it was — half a knob, and the
+     half nobody watches. */
+  --pace: 2;
+  --card-ratio: 1.32;
   --card-round: 0.14;
   --card-border: 0px;
   --deal-anim: hm-flip-in;
@@ -44,7 +50,9 @@
 #felt {
   position: absolute;
   inset: var(--felt-inset);
-  border-radius: 48% / 40%;
+  /* The tournament racetrack — straight sides, fully round ends. Picked
+     2026-08-15 over the card-room oval, which is now an arm below. */
+  border-radius: 999px;
   border-style: solid;
   border-width: var(--rail-w);
   border-color: var(--rail);
@@ -71,8 +79,8 @@
     0 0 0 2px var(--rail-hi),
     0 8px 30px rgba(0, 0, 0, 0.5);
 }
-html[data-look-table="racetrack"] #felt {
-  border-radius: 999px;
+html[data-look-table="oval"] #felt {
+  border-radius: 48% / 40%;
 }
 /* NO `inset` override here, and that is a correction rather than an omission.
    Narrowing the felt to make a TRUE circle was tried and it looked broken:
@@ -193,41 +201,96 @@ html[data-look-rail="none"] #felt {
    layouts, and no branch in TypeScript that a look has to be threaded into.
    =========================================================================== */
 
+/* THE DEFAULT IS `clean` — picked 2026-08-15: the rank big in the middle, the
+   suit under it, and no corner index at all.
+
+   The tradeoff is real and worth writing down rather than discovering later. A
+   corner index exists so a card can be read from a FANNED hand where only the
+   corner shows. This table never fans anything — two hole cards sit side by
+   side and the board is five separate cards — so the corner is buying a
+   property nothing here uses, while costing the middle of the card. Fan a hand
+   one day and this default has to be revisited; `index` below is that card,
+   kept whole.
+
+   The rank rides up and the suit drops, rather than the suit staying a faded
+   ghost behind the rank. Two things at full strength in different places read
+   as spacious; two things overlapping at half strength read as a smudge. */
+.hm-card-idx-1,
+.hm-card-idx-2,
 .hm-card-idx-3,
-.hm-card-idx-4,
-.hm-card-rank {
+.hm-card-idx-4 {
   display: none;
 }
+.hm-card-rank {
+  display: flex;
+  /* 0.7 rather than the 0.62 it inherited from the `big` arm: `big` was sharing
+     the card with a corner index and this is not. */
+  font-size: calc(var(--card-w) * 0.7);
+  transform: translateY(-13%);
+}
 .hm-card-pip {
-  opacity: 0.22;
+  opacity: 0.92;
+  transform: translateY(34%) scale(0.4);
 }
 
+/* The real playing card: rank over suit in two opposite corners, big faded
+   suit behind. What this table shipped until 2026-08-15. */
+html[data-look-cardface="index"] .hm-card-idx-1,
+html[data-look-cardface="index"] .hm-card-idx-2 {
+  display: block;
+}
+html[data-look-cardface="index"] .hm-card-rank {
+  display: none;
+}
+html[data-look-cardface="index"] .hm-card-pip {
+  opacity: 0.22;
+  transform: none;
+}
+
+/* Big rank AND a corner — the halfway house. */
+html[data-look-cardface="big"] .hm-card-idx-1 {
+  display: block;
+}
 html[data-look-cardface="big"] .hm-card-rank {
-  display: flex;
+  font-size: calc(var(--card-w) * 0.62);
+  transform: none;
 }
 html[data-look-cardface="big"] .hm-card-pip {
   opacity: 0.5;
   transform: translateY(30%) scale(0.42);
 }
-html[data-look-cardface="big"] .hm-card-idx-2 {
-  display: none;
-}
 
+html[data-look-cardface="quad"] .hm-card-idx-1,
+html[data-look-cardface="quad"] .hm-card-idx-2,
 html[data-look-cardface="quad"] .hm-card-idx-3,
 html[data-look-cardface="quad"] .hm-card-idx-4 {
   display: block;
 }
+html[data-look-cardface="quad"] .hm-card-rank {
+  display: none;
+}
 html[data-look-cardface="quad"] .hm-card-pip {
   opacity: 0.13;
+  transform: none;
 }
 
+html[data-look-cardface="plain"] .hm-card-idx-1 {
+  display: block;
+}
+html[data-look-cardface="plain"] .hm-card-rank {
+  display: none;
+}
 html[data-look-cardface="plain"] .hm-card-pip {
   display: none;
 }
-html[data-look-cardface="plain"] .hm-card-idx-2 {
+
+html[data-look-cardface="bold"] .hm-card-idx-1,
+html[data-look-cardface="bold"] .hm-card-idx-2 {
+  display: block;
+}
+html[data-look-cardface="bold"] .hm-card-rank {
   display: none;
 }
-
 html[data-look-cardface="bold"] .hm-card-idx {
   transform: scale(1.22);
   transform-origin: top left;
@@ -237,6 +300,7 @@ html[data-look-cardface="bold"] .hm-card-idx-2 .hm-card-idx {
 }
 html[data-look-cardface="bold"] .hm-card-pip {
   opacity: 0.4;
+  transform: none;
 }
 
 /* ===========================================================================
@@ -340,8 +404,8 @@ html[data-look-cardback="slate"] .hm-card-back {
   height: calc(var(--card-w) * var(--card-ratio));
   border-radius: calc(var(--card-w) * var(--card-round));
 }
-html[data-look-cardshape="wide"] {
-  --card-ratio: 1.32;
+html[data-look-cardshape="std"] {
+  --card-ratio: 1.4;
 }
 html[data-look-cardshape="tall"] {
   --card-ratio: 1.52;
@@ -377,10 +441,23 @@ html[data-look-cardshape="framed"] .hm-card {
   opacity: 0.45;
 }
 
+/* THE DEFAULT IS `pill` — picked 2026-08-15.
+ *
+ * The padding comes through TWO VARIABLES the component writes, not through an
+ * inline `padding`, and that is a fix rather than a flourish. Seat.tsx sets a
+ * SCALED padding (it multiplies by the table's own scale, which no stylesheet
+ * can know) and an inline shorthand beats a stylesheet rule — so the old
+ * `pill` arm's `padding-inline: 1.1em` had never once applied. Picking Pill
+ * rounded the corners and did nothing else, which is the look system's
+ * signature failure: an arm that looks like a boring option rather than a
+ * broken one. Now the scale comes from JS and the multiplier from here, so an
+ * arm can widen a plate without knowing how big the table is.
+ */
 .hm-plate {
   background: var(--seat-bg);
   border: 1px solid var(--line);
-  border-radius: var(--radius-1);
+  border-radius: 999px;
+  padding: var(--plate-pad-y) calc(var(--plate-pad-x) * 2.1);
 }
 .hm-seat-active .hm-plate {
   background: var(--seat-active);
@@ -394,11 +471,12 @@ html[data-look-cardshape="framed"] .hm-card {
   box-shadow: 0 0 18px var(--glow);
 }
 
-html[data-look-seat="pill"] .hm-plate {
-  border-radius: 999px;
-  padding-inline: 1.1em;
+html[data-look-seat="plate"] .hm-plate {
+  border-radius: var(--radius-1);
+  padding-inline: var(--plate-pad-x);
 }
 html[data-look-seat="plaque"] .hm-plate {
+  padding-inline: var(--plate-pad-x);
   border-radius: 4px;
   border-width: 2px;
   border-color: var(--gold);
@@ -406,6 +484,9 @@ html[data-look-seat="plaque"] .hm-plate {
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
 }
 html[data-look-seat="bare"] .hm-plate {
+  /* Narrow again: with no panel behind it, the pill's breathing room is just
+     a gap between a name and nothing. */
+  padding-inline: var(--plate-pad-x);
   background: transparent;
   border-color: transparent;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
@@ -661,8 +742,8 @@ html[data-look-award="quiet"] .hm-seat-won .hm-plate {
 html[data-look-pace="slow"] {
   --pace: 1.45;
 }
-html[data-look-pace="slower"] {
-  --pace: 2;
+html[data-look-pace="now"] {
+  --pace: 1;
 }
 html[data-look-pace="snappy"] {
   --pace: 0.72;

@@ -21,11 +21,12 @@ import type { Locale } from "../i18n";
 import { audioState, isMuted, play, setMuted, unlock } from "../audio/audio";
 import type { SfxName } from "../audio/pokerVoices";
 import { clearOverrides, loadOverrides, setOverride } from "../audio/voiceOverride";
-import { type Candidate, STRIPS } from "../lab/candidates";
+import { type Candidate, SOUND_COUNT, STRIPS } from "../lab/candidates";
 import { attachJuice } from "../juice/moments";
 import { savedName, saveName } from "../net/nameStore";
 import { ARM_COUNT, AXES, type Arm } from "./axes";
 import { runDemo } from "./demoHand";
+import { type LockKey, loadLocks, setLocked, unlockAll } from "./lockStore";
 import { clearLook, loadLook, type LookKey, type LookPicks, setLook } from "./lookStore";
 import { NamePicker } from "./NamePicker";
 
@@ -33,6 +34,13 @@ export type StudioTab = "look" | "sound" | "name";
 
 /** Axes whose whole point is motion — worth a nudge to press Deal. */
 const MOVING = new Set<LookKey>(["deal", "fold", "award", "pace", "turn"]);
+
+/** Every lock key on a tab, in the order that tab lists its decisions. */
+const LOCK_KEYS: Record<StudioTab, LockKey[]> = {
+  look: AXES.map((a) => `look:${a.key}`),
+  sound: STRIPS.map((s) => `sound:${s.name}`),
+  name: [],
+};
 
 /** Which sound is picked for each strip, by arm id. */
 function pickedSounds(): Partial<Record<SfxName, string>> {
@@ -57,13 +65,27 @@ export function Studio({ locale, tab: initialTab = "look" }: { locale: Locale; t
   const [name, setName] = useState<PlayerName>(() => savedName() ?? pickName());
   const [dealKey, setDealKey] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [locks, setLocks] = useState<Record<LockKey, boolean>>({});
   const demo = useRef<ReturnType<typeof runDemo> | null>(null);
 
   useEffect(() => {
     setPicks(loadLook());
     setSounds(pickedSounds());
+    setLocks(loadLocks([...LOCK_KEYS.look, ...LOCK_KEYS.sound]));
     if (isMuted()) setMuted(false);
   }, []);
+
+  const toggleLock = (key: LockKey) => {
+    const next = !locks[key];
+    setLocked(key, next);
+    setLocks((p) => ({ ...p, [key]: next }));
+  };
+
+  const openAll = () => {
+    const keys = LOCK_KEYS[tab];
+    unlockAll(keys);
+    setLocks((p) => ({ ...p, ...Object.fromEntries(keys.map((k) => [k, false])) }));
+  };
 
   // The juice layer, attached exactly as RoomScreen attaches it — so the demo's
   // chips fly, its felt shakes on an all-in, and its sounds are the ones being
@@ -196,7 +218,7 @@ export function Studio({ locale, tab: initialTab = "look" }: { locale: Locale; t
             {(
               [
                 ["look", `Look · ${ARM_COUNT}`],
-                ["sound", `Sounds · ${STRIPS.length}`],
+                ["sound", `Sounds · ${SOUND_COUNT}`],
                 ["name", "Your name"],
               ] as [StudioTab, string][]
             ).map(([id, label]) => (
@@ -220,24 +242,28 @@ export function Studio({ locale, tab: initialTab = "look" }: { locale: Locale; t
               you will play on. <strong>Deal</strong> starts a fresh hand;{" "}
               <strong>❙❙</strong> holds it still so you can stare at one card.
             </Lede>
-            {AXES.map((axis) => {
-              const chosen = picks[axis.key] ?? axis.arms.find((a) => a.current)?.id;
-              return (
-                <Strip
-                  key={axis.key}
-                  label={axis.label}
-                  when={axis.when + (MOVING.has(axis.key) ? " · press Deal" : "")}
-                  arms={axis.arms.map((arm) => ({
+            <Decisions
+              locks={locks}
+              onToggle={toggleLock}
+              onOpenAll={openAll}
+              items={AXES.map((axis) => {
+                const chosen = picks[axis.key] ?? axis.arms.find((a) => a.current)?.id;
+                return {
+                  lockKey: `look:${axis.key}`,
+                  label: axis.label,
+                  when: axis.when + (MOVING.has(axis.key) ? " · press Deal" : ""),
+                  chosenName: axis.arms.find((a) => a.id === chosen)?.name ?? "—",
+                  arms: axis.arms.map((arm) => ({
                     id: arm.id,
                     name: arm.name,
                     blurb: arm.blurb,
                     current: arm.current,
                     on: arm.id === chosen,
                     pick: () => chooseLook(axis.key, arm),
-                  }))}
-                />
-              );
-            })}
+                  })),
+                };
+              })}
+            />
           </>
         )}
 
@@ -250,24 +276,28 @@ export function Studio({ locale, tab: initialTab = "look" }: { locale: Locale; t
               strip is a fair comparison rather than a loudness contest.
             </Lede>
             <AudioStatus />
-            {STRIPS.map((strip) => {
-              const chosen = sounds[strip.name] ?? strip.arms.find((a) => a.current)?.id;
-              return (
-                <Strip
-                  key={strip.name}
-                  label={strip.label}
-                  when={strip.when}
-                  arms={strip.arms.map((arm) => ({
+            <Decisions
+              locks={locks}
+              onToggle={toggleLock}
+              onOpenAll={openAll}
+              items={STRIPS.map((strip) => {
+                const chosen = sounds[strip.name] ?? strip.arms.find((a) => a.current)?.id;
+                return {
+                  lockKey: `sound:${strip.name}`,
+                  label: strip.label,
+                  when: strip.when,
+                  chosenName: strip.arms.find((a) => a.id === chosen)?.name ?? "—",
+                  arms: strip.arms.map((arm) => ({
                     id: arm.id,
                     name: arm.name,
                     blurb: arm.blurb,
                     current: arm.current,
                     on: arm.id === chosen,
                     pick: () => chooseSound(strip.name, arm),
-                  }))}
-                />
-              );
-            })}
+                  })),
+                };
+              })}
+            />
           </>
         )}
 
@@ -283,6 +313,8 @@ export function Studio({ locale, tab: initialTab = "look" }: { locale: Locale; t
 
         <p style={{ color: "var(--ink-dim)", fontSize: 12, lineHeight: 1.5, marginTop: 20 }}>
           Everything here is saved on this device and nothing is uploaded.{" "}
+          <strong>🔒 Settle</strong> folds a decision you have made down to one
+          line so you stop scrolling past it — it never stops you changing it.{" "}
           <strong>Reset</strong> puts this tab back to what ships.
         </p>
       </div>
@@ -353,6 +385,103 @@ function AudioStatus() {
   );
 }
 
+interface Decision {
+  lockKey: LockKey;
+  label: string;
+  when: string;
+  /** The name of whatever is picked, for the one-line settled row. */
+  chosenName: string;
+  arms: { id: string; name: string; blurb: string; current?: boolean; on: boolean; pick: () => void }[];
+}
+
+/**
+ * The open decisions, then the settled ones.
+ *
+ * THE ORDER IS THE FEATURE. Twenty-five strips is a lot to scroll past to reach
+ * the three you have not made up your mind about, and every one you HAVE
+ * decided is a small invitation to re-litigate it. Settled decisions still
+ * render — hiding them would make a pick unreachable — but as one line each,
+ * below a divider, in the order they were listed.
+ *
+ * A lock is a view preference and nothing else: it never blocks a change, and
+ * tapping a settled row opens it again. See lockStore.ts for why that
+ * separation is load-bearing rather than modest.
+ */
+function Decisions({
+  items,
+  locks,
+  onToggle,
+  onOpenAll,
+}: {
+  items: Decision[];
+  locks: Record<LockKey, boolean>;
+  onToggle: (k: LockKey) => void;
+  onOpenAll: () => void;
+}) {
+  const open = items.filter((i) => !locks[i.lockKey]);
+  const settled = items.filter((i) => locks[i.lockKey]);
+
+  return (
+    <>
+      {open.map((d) => (
+        <Strip key={d.lockKey} label={d.label} when={d.when} arms={d.arms} onLock={() => onToggle(d.lockKey)} />
+      ))}
+
+      {open.length === 0 && (
+        <p style={{ color: "var(--ink-dim)", fontSize: 13, lineHeight: 1.5, margin: "4px 0 18px" }}>
+          Every decision on this tab is settled. Tap one below to open it again.
+        </p>
+      )}
+
+      {settled.length > 0 && (
+        <section style={{ marginTop: 26 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              marginBottom: 10,
+              paddingTop: 14,
+              borderTop: "1px solid var(--line)",
+            }}
+          >
+            <strong style={{ fontSize: 13, color: "var(--ink-dim)" }}>
+              Settled · {settled.length}
+            </strong>
+            <span style={{ flex: 1 }} />
+            <button className="btn ghost" style={{ minHeight: 34, fontSize: 12, padding: "0 10px" }} onClick={onOpenAll}>
+              Open all
+            </button>
+          </div>
+          {settled.map((d) => (
+            <button
+              key={d.lockKey}
+              className="btn ghost"
+              style={{
+                display: "flex",
+                width: "100%",
+                minHeight: 44,
+                alignItems: "center",
+                gap: 10,
+                padding: "0 12px",
+                marginBottom: 6,
+                textAlign: "start",
+                opacity: 0.78,
+              }}
+              onClick={() => onToggle(d.lockKey)}
+            >
+              <span aria-hidden>🔒</span>
+              <span style={{ fontWeight: 700, fontSize: 13 }}>{d.label}</span>
+              <span style={{ flex: 1 }} />
+              <span style={{ fontSize: 12.5, color: "var(--gold)", fontWeight: 700 }}>{d.chosenName}</span>
+            </button>
+          ))}
+        </section>
+      )}
+    </>
+  );
+}
+
 /**
  * One decision, and every option for it.
  *
@@ -364,9 +493,11 @@ function Strip({
   label,
   when,
   arms,
+  onLock,
 }: {
   label: string;
   when: string;
+  onLock: () => void;
   // `current?: boolean`, not `?: true` — the look registry spells the shipped
   // default `current: true` and the sound registry spells it `current: boolean`.
   // Widening here rather than narrowing either registry: they are two lists
@@ -377,7 +508,15 @@ function Strip({
     <section style={{ marginBottom: 20 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 7, flexWrap: "wrap" }}>
         <strong style={{ fontSize: 15 }}>{label}</strong>
-        <span style={{ color: "var(--ink-dim)", fontSize: 12 }}>{when}</span>
+        <span style={{ color: "var(--ink-dim)", fontSize: 12, flex: 1 }}>{when}</span>
+        <button
+          className="btn ghost"
+          style={{ minHeight: 32, fontSize: 11.5, padding: "0 10px", alignSelf: "center" }}
+          aria-label={`Settle ${label}`}
+          onClick={onLock}
+        >
+          🔒 Settle
+        </button>
       </div>
       {/* The strip WRAPS. A row whose length is the number of options is the
           exact shape that clipped fifteen of twenty games off the ellaz
