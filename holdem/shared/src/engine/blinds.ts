@@ -107,13 +107,51 @@ export function computePositions(state: TableState, rng: () => number): HandPosi
   // Who is dealt in: every eligible seat, minus joiners stuck in the
   // button..BB zone (they wait). Heads-up ignores the zone entirely.
   const zone = headsUp ? new Set<number>() : zoneSeats(buttonSeat, bigBlindSeat, n);
-  const dealtSeats: number[] = [];
-  const livePostSeats: number[] = [];
-  for (const i of eligibleIdx) {
-    const owes = seats[i].owesBB && !headsUp && i !== bigBlindSeat;
-    if (owes && zone.has(i)) continue; // must wait for the BB to reach them
-    dealtSeats.push(i);
-    if (owes) livePostSeats.push(i);
+
+  function deal(withZone: ReadonlySet<number>): { dealtSeats: number[]; livePostSeats: number[] } {
+    const dealtSeats: number[] = [];
+    const livePostSeats: number[] = [];
+    for (const i of eligibleIdx) {
+      const owes = seats[i].owesBB && !headsUp && i !== bigBlindSeat;
+      if (owes && withZone.has(i)) continue; // must wait for the BB to reach them
+      dealtSeats.push(i);
+      if (owes) livePostSeats.push(i);
+    }
+    return { dealtSeats, livePostSeats };
+  }
+
+  let { dealtSeats, livePostSeats } = deal(zone);
+
+  // THE ZONE YIELDS RATHER THAN STARVING THE TABLE.
+  //
+  // Waiting for the blind to reach you protects the players who have ALREADY
+  // paid one, from somebody buying a late position for free. When every
+  // eligible seat is a joiner there is nobody in that set: the rule excludes
+  // everyone except the big blind, `dealtSeats` comes back with one member,
+  // and this function returns null.
+  //
+  // That is not a pause. `owesBB` is cleared in exactly one place - being
+  // dealt in - and the big blind only advances when a hand is dealt, so a
+  // table in this state can never leave it. Measured on the live practice
+  // table 2026-08-15: five funded players, phase pinned at "waiting", the
+  // inter-hand alarm firing every 6.5 s and committing an EMPTY event list,
+  // for as long as anyone cared to watch.
+  //
+  // And it is the NORMAL path there, not an exotic one. `sleepBots()` sits
+  // every bot out when the last human leaves (which is what keeps that table
+  // free) and `wakeBots()` sits them all back in on the next visit, so every
+  // visit after the first makes the whole table owe a blind at the same
+  // instant. Whether it wedges then comes down to where the button happens to
+  // be: the zone runs from the previous SB to the new BB, so it is two seats
+  // wide on a lucky day and five on an unlucky one.
+  //
+  // So when the zone would leave fewer than two players, it gives way and
+  // everyone eligible is dealt. Nobody joins free - every one of them lands in
+  // `livePostSeats` and posts a live blind, which is the fair outcome rather
+  // than a waiver, and is exactly what the rule asks of an unzoned joiner
+  // already.
+  if (dealtSeats.length < 2) {
+    ({ dealtSeats, livePostSeats } = deal(new Set()));
   }
   if (dealtSeats.length < 2) return null;
 

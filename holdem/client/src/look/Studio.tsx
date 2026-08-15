@@ -373,6 +373,8 @@ export function Studio({ locale, tab: initialTab = "look" }: { locale: Locale; t
           </>
         )}
 
+        <HandOver />
+
         <p style={{ color: "var(--ink-dim)", fontSize: 12, lineHeight: 1.5, marginTop: 20 }}>
           Everything here is saved on this device and nothing is uploaded.{" "}
           <strong>🔒 Settle</strong> folds a decision you have made down to one
@@ -381,6 +383,96 @@ export function Studio({ locale, tab: initialTab = "look" }: { locale: Locale; t
         </p>
       </div>
     </div>
+  );
+}
+
+/**
+ * Hand every pick over in one tap.
+ *
+ * NOTHING HERE IS UPLOADED, and that is the feature and the problem at once.
+ * Picks live in this browser's localStorage, there is no account and no sync,
+ * so a choice made on a phone is invisible to a laptop and invisible to
+ * whoever is asked to make it the default that ships. The operator's ask -
+ * "adopt my choices" - has no mechanism behind it without this.
+ *
+ * So: one button, the whole set as one line of JSON, on the clipboard. The
+ * text is ALSO shown, selectable, because `navigator.clipboard` is unavailable
+ * on a non-secure origin and silently rejects in more browsers than it should
+ * - and a copy button that quietly does nothing is worse than no button at
+ * all. Whichever half works, the picks are reachable.
+ */
+function HandOver() {
+  const [text, setText] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const gather = () => {
+    const payload = {
+      v: 1,
+      look: loadLook(),
+      sound: pickedSounds(),
+      recorded: loadSamplePicks(),
+      name: savedName(),
+      // Every lock key on the look and sound tabs - `loadLocks` answers for
+      // the keys it is given, so this has to name the same set the screen
+      // does or a settled decision would be missing from the handover.
+      settled: Object.entries(loadLocks([...LOCK_KEYS.look, ...LOCK_KEYS.sound]))
+        .filter(([, on]) => on)
+        .map(([k]) => k),
+    };
+    const json = JSON.stringify(payload);
+    setText(json);
+    setCopied(false);
+    // Best-effort, and the failure is visible rather than silent: the text
+    // below is what you fall back to.
+    navigator.clipboard
+      ?.writeText(json)
+      .then(() => setCopied(true))
+      .catch(() => setCopied(false));
+  };
+
+  return (
+    <section style={{ marginTop: 26, paddingTop: 16, borderTop: "1px solid var(--line)" }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+        <strong style={{ fontSize: 14 }}>Hand your picks over</strong>
+        <span style={{ color: "var(--ink-dim)", fontSize: 12, flex: 1 }}>
+          to make them what everybody gets
+        </span>
+        <button className="btn ghost" style={{ minHeight: 34, fontSize: 12, padding: "0 10px" }} onClick={gather}>
+          {text ? (copied ? "✅ Copied" : "Copy again") : "Show my picks"}
+        </button>
+      </div>
+      {text ? (
+        <>
+          <p style={{ color: "var(--ink-dim)", fontSize: 11.5, lineHeight: 1.5, margin: "0 0 8px" }}>
+            {copied ? "On your clipboard." : "Select and copy this."} Paste it into the chat and every
+            choice below becomes the default this table ships with — on every device, for everybody.
+          </p>
+          <textarea
+            readOnly
+            value={text}
+            onFocus={(e) => e.currentTarget.select()}
+            style={{
+              width: "100%",
+              minHeight: 92,
+              fontFamily: "ui-monospace, monospace",
+              fontSize: 11,
+              lineHeight: 1.45,
+              padding: 10,
+              borderRadius: 10,
+              border: "1px solid var(--line)",
+              background: "var(--bg)",
+              color: "var(--ink)",
+              resize: "vertical",
+            }}
+          />
+        </>
+      ) : (
+        <p style={{ color: "var(--ink-dim)", fontSize: 11.5, lineHeight: 1.5, margin: 0 }}>
+          Your picks are saved in this browser only — nothing is uploaded, so nobody else can read
+          them. This copies them out as one line you can paste.
+        </p>
+      )}
+    </section>
   );
 }
 
