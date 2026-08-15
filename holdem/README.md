@@ -339,6 +339,47 @@ interHand branch started the next hand on ANY alarm, which was correct only
 while the inter-hand deadline was the sole thing that could wake an occupied
 table. It checks its deadline now.
 
+## Six decisions that are the table, not a preference
+
+Settled 2026-08-15: a **racetrack** felt, **wide** cards, a **big centre rank
+with no corner index**, **pill** nameplates, and **double-slow** pacing. They
+are the plain CSS in `look.css` now; the old defaults became arms beside the
+others.
+
+**Shipping them as defaults was the actual fix for "I have to do this again and
+again."** A pick lives in this browser's `localStorage`, so a phone and a PC
+were always two different tables and always would be — no amount of lock UI
+reaches a device that has never been here. The look system already had the
+right shape for this: the default is the plain rule with no attribute, so
+flipping one is moving a declaration and letting `axes.test.ts` check both
+directions (`current: true` must have no rule of its own; every other arm must
+have one that does something).
+
+Two live defects surfaced doing it, both of the class this system fails in —
+**an arm that reads as a boring option rather than a broken one**:
+
+- **The Pill arm's extra padding had never applied.** `Seat.tsx` set an inline
+  `padding` shorthand, an inline style beats a stylesheet rule, so picking Pill
+  rounded the corners and did nothing else. The scale now comes from JS as
+  `--plate-pad-x/y` and the multiplier from CSS, and the allowed-list in
+  `axes.test.ts` forbids the shorthand coming back. Measured live: 31.5 px,
+  where the base is 15.
+- **`pace` scaled only the CSS animations.** "Much slower" doubled how long a
+  card took to turn over and left the gap between the flop and the turn exactly
+  as it was — half a knob, and the half nobody watches. `pacer.ts` reads
+  `--pace` off the document now, **capped at 1.6 while the CSS gets the full
+  2**: a beat is time the felt spends behind a server whose clock has never
+  heard of a look preference, and at 2× a full run-out would cost ~10 s of a
+  25 s action clock on the hand after every all-in. The arithmetic is in the
+  code beside the cap.
+
+**🔒 Settle** folds a decided strip down to one line and drops it below the
+open ones, with the six arriving settled. It is a **view preference only** — it
+never blocks a change, and tapping a settled row reopens it. `lockStore.ts`
+stores booleans rather than a list of locked keys, because a list cannot say "I
+deliberately reopened one of the six" and the next release would quietly close
+it again.
+
 ## The sound lab
 
 It is one TAB of three now — the studio, `client/src/look/Studio.tsx`, which is
@@ -346,11 +387,63 @@ the look (`#/look`), the sounds (`#/lab`) and your name (`#/name`) over a felt
 dealing a real hand from the real engine. Three URLs, one screen, one lazy
 `lab-*` chunk that no player downloads to play.
 
-**<https://poker.ellaz.fun/#/lab>**, or the room menu → *Choose sounds*. Eight
-strips, one per sound the table plays, five candidates each. Tapping a
-candidate **picks it and plays it through the real audio port** — not a preview
-path that could disagree with what a hand actually sounds like. That is the
-whole design rule: the thing being judged has to be the thing that ships.
+**<https://poker.ellaz.fun/#/lab>**, or the **Make it yours** row on the home
+screen, or the room menu → *Choose sounds*. Eleven strips, one per sound the
+table plays, **98 candidates**. Tapping a candidate **picks it and plays it
+through the real audio port** — not a preview path that could disagree with
+what a hand actually sounds like. That is the whole design rule: the thing
+being judged has to be the thing that ships.
+
+The home-screen row was added on 2026-08-15 for a reason worth keeping: the
+studio's only two entrances were typing `#/look` or already being inside a
+table, and the question that arrived the day after it shipped was *"how do i
+reach the lab?"*. A screen nobody can find is a screen nobody uses.
+
+### The first palette was thin, and the cause was nameable
+
+The verdict was *"the sounds are horrible"*, which no test can hold. The cause
+could be tested: **every impact was all click and no body.** `CHIP_CLACK` was
+`struck(2400, …, CLAY)` and CLAY's partials start at ratio 1, so the sound's
+lowest component was 2400 Hz and there was no energy below it anywhere.
+
+A clay chip landing on a chip on felt is two things at once: a **body at
+180–300 Hz** decaying over 120–300 ms, and a **click at 2.5–4.5 kHz** gone in
+20–80 ms. The named signature of a synthetic impact is "too much brightness
+around 3–10 kHz, too little midrange body, decay envelopes too simple" — which
+was a description of what we had, arrived at from the other direction.
+
+So `voice.ts` gained two builders and the whole palette was rebuilt on them:
+
+- **`mix()`** — layer whole voices, so an impact can be a bright strike over a
+  low body. **Put the brightest voice first**: rescaling divides by the base's
+  `freq`, and the override gate refuses any ratio above 64, which is the whole
+  voice silently falling back to the built-in.
+- **`scatter()`** — an aperiodic run. A perfectly even burst train is the
+  difference between chips and a drum machine playing chips. Seeded, so a spec
+  is data and stays pickable; per-play variation is `jitter` and already exists.
+
+**A cascade is not the unit repeated.** A dozen chips tumbling into a pot make
+a dozen clicks and *one* low rumble, because the table under them is one object
+being excited repeatedly. Stacking a full body per chip is both wrong and over
+the gate's 64-layer ceiling — which is how the modelling error surfaced.
+
+Measured on the deployed bundle, felt paused, with an idle control at zero
+oscillators and the body-less arm as the negative control:
+
+| tapped | oscillators | lowest |
+|---|---|---|
+| Clay (shipped) | 14 | **244 Hz** |
+| No body (what shipped before) | 8 | **2621 Hz** |
+| Riffle (the new shuffle) | 0 | pure noise, correctly |
+
+`audio/pokerVoices.test.ts` asserts the spectrum reaches the bottom, and is
+mutation-proved: restoring the body-less chip kills 4 of 4.
+
+**Three sounds the table never made**, added the same day — a **shuffle** at
+the start of a hand (the most recognisable poker sound there is, and a hand
+simply began), a **raise** that sounds like more chips than a call, and a
+**card turning over** at showdown, which was silent inside a beat the pacer
+holds 1.2 s open for.
 
 **Sound on a phone, which is a different problem from sound.** Two causes, and
 neither leaves a trace in JavaScript — the context reports `running`, every node
