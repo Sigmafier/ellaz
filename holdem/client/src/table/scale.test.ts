@@ -1,5 +1,5 @@
 import { describe as group, expect, it } from "vitest";
-import { feltBox, MAX_SCALE, MIN_SCALE, RAIL_W, seatRadius, tableScale, WIDE_RATIO } from "./scale";
+import { feltBox, MAX_SCALE, MIN_SCALE, RAIL_W, seatRadius, SEAT_MAX_SCALE, seatScale, tableScale, WIDE_RATIO } from "./scale";
 
 // WRAPPER boxes — the element that holds the felt and the rail — because that
 // is what tableScale takes. Viewport minus the 55px room header.
@@ -126,5 +126,32 @@ group("the rail cannot make the shape oscillate", () => {
     expect(feltBox(1000, 400, "wide").w).toBeCloseTo((1000 - RAIL_W) * 0.92, 5);
     expect(feltBox(1000, 400, "tall").w).toBeCloseTo(1000 * 0.92, 5);
     expect(RAIL_W).toBeGreaterThanOrEqual(96); // a 44px tap target plus padding
+  });
+});
+
+group("a seat stops growing before the felt does", () => {
+  it("caps at SEAT_MAX_SCALE on a desktop", () => {
+    // 1440x847 wrapper — the size the operator plays at, where the felt scales
+    // to ~2.3 and a nameplate reached 503px with 48 of them off-screen.
+    const { scale } = tableScale(1440, 847);
+    expect(scale).toBeGreaterThan(SEAT_MAX_SCALE);
+    expect(seatScale(scale)).toBe(SEAT_MAX_SCALE);
+  });
+
+  it("leaves a phone alone", () => {
+    // The cap must not be a shrink. Small screens never reached it, and a seat
+    // that got smaller on a phone would be fixing the wrong table.
+    for (const [w, h] of [
+      [390, 720],
+      [844, 350],
+      [900, 560],
+    ]) {
+      const { scale } = tableScale(w, h);
+      expect(seatScale(scale)).toBe(scale);
+    }
+  });
+
+  it("never scales a seat below the authored size", () => {
+    expect(seatScale(tableScale(320, 480).scale)).toBeGreaterThanOrEqual(MIN_SCALE);
   });
 });

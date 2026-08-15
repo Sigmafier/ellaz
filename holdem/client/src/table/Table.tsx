@@ -5,7 +5,7 @@ import { Seat } from "./Seat";
 import { ActionBar } from "./ActionBar";
 import { WinMoment } from "./WinMoment";
 import { seatPosition } from "./layout";
-import { seatRadius } from "./scale";
+import { seatRadius, seatScale } from "./scale";
 import { useTableScale } from "./useTableScale";
 import { socket } from "../net/socket";
 import { useApp } from "../state/store";
@@ -192,7 +192,11 @@ export function Table({ locale, spectator = false }: { locale: Locale; spectator
               y={pos.y}
               isMe={s.seat === mySeat}
               locale={locale}
-              scale={scale}
+              // CAPPED, unlike everything else on the felt. A seat is centred
+              // on its point, so half of it hangs outward, and a nameplate has
+              // nothing to stop it growing — measured at 503px wide on a 1440
+              // screen, with 48px of it past the window edge. See scale.ts.
+              scale={seatScale(scale)}
               shape={shape}
               onSitHere={!spectator && !seated && s.status === "empty" ? () => setBuyInFor(s.seat) : null}
             />

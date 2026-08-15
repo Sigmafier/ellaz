@@ -74,6 +74,35 @@ const NEED_W: Record<Shape, number> = { tall: 330, wide: 520 };
 export const MIN_SCALE = 1;
 export const MAX_SCALE = 2.6;
 
+/**
+ * The most a SEAT may be scaled by, whatever the felt does.
+ *
+ * A seat is drawn CENTRED on a point 42% of the way out along the ellipse, so
+ * half of it hangs past that point — and its width is a nameplate, which grows
+ * with `scale` and has nothing to push back. Measured on the live table, seats
+ * clipped by the window edge at every desktop size:
+ *
+ *     1920x1080   widest seat 565px   2 seats clipped (11px)
+ *     1440x900    widest seat 503px   1 seat clipped (48px)
+ *     1280x800    widest seat 444px   1 seat clipped (63px)
+ *      900x600    widest seat 216px   all inside
+ *      390x844    widest seat 165px   all inside
+ *
+ * A 500-pixel box saying "Clever Fox 190" is not a near miss that needs a few
+ * more pixels of margin — it is the wrong size for what it is, and the clipping
+ * is what made that obvious. Cards and the pot still take the full `scale`,
+ * because a big screen SHOULD get big cards; it is the furniture that has no
+ * reason to keep growing.
+ *
+ * 1.5 rather than a margin calculation: a margin would keep the plates at 500px
+ * and pull the seats inward to fit them, which crowds the board with the same
+ * boxes that were the problem.
+ */
+export const SEAT_MAX_SCALE = 1.5;
+
+/** What a seat scales by, given what the felt scales by. */
+export const seatScale = (scale: number): number => Math.min(scale, SEAT_MAX_SCALE);
+
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 /** The felt box a wrapper of this size will produce, rail and insets removed. */
