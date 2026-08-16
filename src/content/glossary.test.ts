@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { GLOSSARY, type Glossary } from "./glossary";
+import { GLOSSARY, violations } from "./glossary";
 
 /**
  * The glossary is the one part of an unreviewed language that gets human-grade
@@ -8,22 +8,6 @@ import { GLOSSARY, type Glossary } from "./glossary";
  * Whether "navigateur" is the right French word is a dictionary question, and
  * that is exactly the question forty terms makes answerable.
  */
-
-/** Word-boundary match, so "coin" does not fire inside "rejoindre". */
-function usesWord(haystack: string, word: string): boolean {
-  const esc = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`(^|[^\\p{L}])${esc}([^\\p{L}]|$)`, "iu").test(haystack);
-}
-
-export function violations(text: string, glossary: Glossary): string[] {
-  const out: string[] = [];
-  for (const t of glossary) {
-    for (const bad of t.avoid ?? []) {
-      if (usesWord(text, bad)) out.push(`"${bad}" — use "${t.term}" (${t.concept})`);
-    }
-  }
-  return out;
-}
 
 describe("the locked vocabulary is coherent", () => {
   for (const [locale, glossary] of Object.entries(GLOSSARY)) {
@@ -60,14 +44,15 @@ describe("the locked vocabulary is coherent", () => {
         // Subtler than the above and it bit this file on the first draft: the
         // room entry forbade "la pièce", which matches inside "la pièce d'or" -
         // the locked term for a coin. Every correct page would have failed.
+        //
+        // Asked through the PUBLIC matcher rather than a private helper, so it
+        // tests the path a real page takes: a locked term, fed to the checker,
+        // must never be reported as a violation of the vocabulary it belongs to.
         for (const t of glossary) {
-          for (const bad of t.avoid ?? []) {
-            const collides = glossary.filter((o) => usesWord(o.term, bad));
-            expect(
-              collides.map((o) => o.term),
-              `"${bad}" is forbidden but appears inside a locked term`,
-            ).toEqual([]);
-          }
+          expect(
+            violations(t.term, glossary),
+            `the locked term "${t.term}" is itself flagged by the glossary`,
+          ).toEqual([]);
         }
       });
 

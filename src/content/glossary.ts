@@ -105,7 +105,12 @@ export const FR: Glossary = [
   // --- the rewards economy ----------------------------------------------
   { concept: "coin", term: "pièce d'or", avoid: ["coin"] },
   { concept: "star", term: "étoile" },
-  { concept: "the room (the World screen)", term: "chambre", avoid: ["le monde"] },
+  // No `avoid` here, and that is a finding rather than a gap. It forbade
+  // "le monde", which collides with "tout le monde" - "everyone" - one of the
+  // most common phrases in French. Every page mentioning everybody would have
+  // failed. A forbidden phrase has to be one that cannot occur innocently, and
+  // a two-word fragment of ordinary speech never is.
+  { concept: "the room (the World screen)", term: "chambre" },
 ];
 
 /**
@@ -115,3 +120,26 @@ export const FR: Glossary = [
  * written AGAINST this, so it has to exist first.
  */
 export const GLOSSARY: Record<string, Glossary> = { fr: FR };
+
+/** Word-boundary match, so "coin" does not fire inside "rejoindre". */
+function usesWord(haystack: string, word: string): boolean {
+  const esc = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^\\p{L}])${esc}([^\\p{L}]|$)`, "iu").test(haystack);
+}
+
+/**
+ * Which forbidden words this text uses, and what to use instead.
+ *
+ * Lives beside the data rather than in the test, so the authoring brief, the
+ * page gate and the unit tests all ask the same function. A second matcher is
+ * how a page passes one check and fails another for no visible reason.
+ */
+export function violations(text: string, glossary: Glossary): string[] {
+  const out: string[] = [];
+  for (const t of glossary) {
+    for (const bad of t.avoid ?? []) {
+      if (usesWord(text, bad)) out.push(`"${bad}" -> use "${t.term}" (${t.concept})`);
+    }
+  }
+  return out;
+}
