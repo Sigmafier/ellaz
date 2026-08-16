@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { petFr } from "./fr/pet";
 
 /**
  * My Pet - the care toy whose selling point is a NEGATIVE: there is nothing in
@@ -472,6 +473,8 @@ export const pet: GameContent = {
 
       keywords: ["mascota", "cuidar", "criatura", "infantil", "juego tranquilo", "sin perder"],
     },
+
+    fr: petFr,
   },
 
   provenance: [

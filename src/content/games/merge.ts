@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { mergeFr } from "./fr/merge";
 
 /**
  * Merge - the endless one, and the page whose best number is arithmetic rather
@@ -347,6 +348,8 @@ export const merge: GameContent = {
 
       keywords: ["combinar", "criaturas", "escalera", "lógica", "infantil", "evolución"],
     },
+
+    fr: mergeFr,
   },
 
   provenance: [

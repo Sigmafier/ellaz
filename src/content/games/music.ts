@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { musicFr } from "./fr/music";
 
 /**
  * Music Box - the first game in the `create` section, and the only one here
@@ -456,6 +457,8 @@ export const music: GameContent = {
 
       keywords: ["música", "crear", "melodía", "infantil", "sin perder", "sonidos"],
     },
+
+    fr: musicFr,
   },
 
   provenance: [

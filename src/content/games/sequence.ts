@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { sequenceFr } from "./fr/sequence";
 
 /**
  * Pattern completion, and a page whose interesting content is the taxonomy: the
@@ -387,6 +388,8 @@ export const sequence: GameContent = {
 
       keywords: ["patrones", "secuencias", "qué viene después", "lógica", "infantil", "razonar"],
     },
+
+    fr: sequenceFr,
   },
 
   provenance: [

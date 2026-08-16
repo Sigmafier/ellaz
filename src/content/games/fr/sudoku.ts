@@ -64,6 +64,10 @@ export const sudokuFr: GameCopy = {
       title: "La patience utile",
       body: "Une grille difficile récompense le fait de s'arrêter et de regarder, ce qui est rare dans un jeu. On avance en observant mieux, pas en appuyant plus vite.",
     },
+    {
+      title: "Repérer où chercher",
+      body: "Une grille de 81 cases se regarde par zones, pas d'un bloc. Choisir où poser les yeux avant de raisonner est une méthode qui sert bien au-delà du sudoku.",
+    },
   ],
 
   ages: [
@@ -92,6 +96,10 @@ export const sudokuFr: GameCopy = {
     {
       title: "La grille partagée",
       body: "Chacun son tour, une case chacun, sans se conseiller. La partie dure plus longtemps et les erreurs deviennent drôles au lieu d'être agaçantes.",
+    },
+    {
+      title: "La grille du soir",
+      body: "Une grille moyenne à deux, une case chacun, sans se conseiller. Elle dure dix minutes et se termine presque toujours.",
     },
   ],
 

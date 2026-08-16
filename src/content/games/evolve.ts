@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { evolveFr } from "./fr/evolve";
 
 /**
  * The honest page. Evolution is 2048's engine wearing a creature skin, and
@@ -388,6 +389,8 @@ export const evolve: GameContent = {
 
       keywords: ["evolución", "unir", "criaturas", "dinosaurio", "duplicar", "juego para niños"],
     },
+
+    fr: evolveFr,
   },
 
   provenance: [

@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { n2048Fr } from "./fr/2048";
 
 /**
  * 2048. Note the id is "2048" while the directory is `n2048` - a directory
@@ -406,6 +407,8 @@ export const n2048: GameContent = {
 
       keywords: ["2048", "juego de números", "puzle", "fichas", "unir", "juego gratis"],
     },
+
+    fr: n2048Fr,
   },
 
   provenance: [

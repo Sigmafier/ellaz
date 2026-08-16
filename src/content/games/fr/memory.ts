@@ -67,6 +67,10 @@ export const memoryFr: GameCopy = {
       title: "L'attention qui tient",
       body: "Une grille de 10 paires demande deux ou trois minutes de concentration continue. C'est court pour un adulte et long pour un enfant de cinq ans, et c'est précisément la bonne longueur pour progresser.",
     },
+    {
+      title: "La stratégie qu'on se donne",
+      body: "Un enfant qui découvre qu'il vaut mieux ouvrir les coins vient d'inventer une méthode. Cette découverte compte plus que le score qu'elle produit.",
+    },
   ],
 
   ages: [
@@ -95,6 +99,10 @@ export const memoryFr: GameCopy = {
     {
       title: "Le coup dicté",
       body: "L'enfant tient l'écran et un adulte dit où appuyer, sans montrer du doigt. Ça travaille la gauche, la droite et les rangées, et ça rend le jeu bavard, ce qui est bien.",
+    },
+    {
+      title: "Le jeu des adultes",
+      body: "Deux adultes sur 10 paires, en comptant les coups. Descendre sous 16 demande une vraie concentration, et la partie dure trois minutes.",
     },
   ],
 

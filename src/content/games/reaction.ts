@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { reactionFr } from "./fr/reaction";
 
 /**
  * The reaction game, and the page whose statistic quantifies a design claim.
@@ -397,6 +398,8 @@ export const reaction: GameContent = {
 
       keywords: ["tiempo de reacción", "luz verde", "reflejos", "velocidad", "juego para niños", "atención"],
     },
+
+    fr: reactionFr,
   },
 
   provenance: [

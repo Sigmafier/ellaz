@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { beesFr } from "./fr/bees";
 
 /**
  * The game whose ladder runs backwards, and the page says so.
@@ -399,6 +400,8 @@ export const bees: GameContent = {
 
       keywords: ["abejas", "mariposas", "atención", "autocontrol", "infantil", "concentración"],
     },
+
+    fr: beesFr,
   },
 
   provenance: [

@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { minesweeperFr } from "./fr/minesweeper";
 
 /**
  * The page where the statistic and the admission are the same sentence.
@@ -426,6 +427,8 @@ export const minesweeper: GameContent = {
 
       keywords: ["buscaminas", "juego de lógica", "puzle", "juego clásico", "deducción", "tablero"],
     },
+
+    fr: minesweeperFr,
   },
 
   provenance: [

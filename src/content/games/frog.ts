@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { frogFr } from "./fr/frog";
 
 /**
  * The chasing game with nothing to lose, and the page whose statistic is about
@@ -378,6 +379,8 @@ export const frog: GameContent = {
 
       keywords: ["rana", "nenúfares", "juego para bebés", "infantil", "tocar", "coordinación"],
     },
+
+    fr: frogFr,
   },
 
   provenance: [

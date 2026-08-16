@@ -62,7 +62,12 @@ export const FR: Glossary = [
   { concept: "no download", term: "sans téléchargement", avoid: ["sans download"] },
   { concept: "advertising", term: "publicité", avoid: ["pub", "annonces", "ads"] },
   { concept: "device", term: "appareil", avoid: ["device"] },
-  { concept: "phone", term: "téléphone", avoid: ["mobile", "smartphone"] },
+  // The noun forms only. Bare "mobile" is an ordinary French adjective - "une
+  // cible mobile" is correct prose about a moving target, and forbidding it
+  // reds a good page for a word that has nothing to do with telephones. Same
+  // shape as the "le monde" / "tout le monde" collision this file already
+  // dropped once: a forbidden phrase must be one that cannot occur innocently.
+  { concept: "phone", term: "téléphone", avoid: ["un mobile", "le mobile", "son mobile", "smartphone"] },
   { concept: "tablet", term: "tablette" },
   { concept: "computer", term: "ordinateur", avoid: ["PC"] },
   { concept: "screen", term: "écran" },
@@ -103,7 +108,17 @@ export const FR: Glossary = [
   { concept: "animal", term: "animal" },
 
   // --- the rewards economy ----------------------------------------------
-  { concept: "coin", term: "pièce d'or", avoid: ["coin"] },
+  // No `avoid` here, and that is the deliberate half. The obvious entry is
+  // `avoid: ["coin"]`, and it was here until 29 pages existed to test it
+  // against: "coin" is the ordinary French word for a CORNER, which every
+  // grid game's tips reach for ("gardez la plus grosse case dans un coin").
+  // An English "coin" leaking into French prose is close to unheard of, so
+  // the rule reds correct pages far more often than it catches anything, and
+  // a gate that reds correct pages is a gate somebody switches off. Third
+  // instance of this in this file after "le monde" and "mobile": a forbidden
+  // phrase must be one that cannot occur innocently. The locked term still
+  // does its job - it tells a writer to say "pièce d'or" rather than "pièce".
+  { concept: "coin", term: "pièce d'or" },
   { concept: "star", term: "étoile" },
   // No `avoid` here, and that is a finding rather than a gap. It forbade
   // "le monde", which collides with "tout le monde" - "everyone" - one of the

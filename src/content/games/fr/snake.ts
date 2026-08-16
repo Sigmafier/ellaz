@@ -63,6 +63,10 @@ export const snakeFr: GameCopy = {
       title: "Le calme sous contrainte",
       body: "Le rythme monte, le corps s'allonge, et la seule chose qui aide est de ralentir la tête pendant que le jeu accélère. C'est plus facile à dire qu'à faire, et ça s'apprend.",
     },
+    {
+      title: "Accepter la fin",
+      body: "Toute partie finit par une défaite, y compris les bonnes. Apprendre qu'un score de 40 est une réussite même s'il se termine mal vaut plus que le score.",
+    },
   ],
 
   ages: [
@@ -73,6 +77,10 @@ export const snakeFr: GameCopy = {
     {
       title: "Ados et adultes",
       body: "La vitesse rapide dès le départ, pour aller vite à l'endroit intéressant. C'est le mode où le score devient une affaire de place, pas de réflexes.",
+    },
+    {
+      title: "8 à 11 ans",
+      body: "La vitesse lente, qui laisse 2,9 secondes pour traverser le plateau au départ. C'est le seul réglage où une partie dure assez longtemps pour apprendre quelque chose.",
     },
   ],
 
@@ -87,6 +95,10 @@ export const snakeFr: GameCopy = {
     {
       title: "Le copilote",
       body: "Un joueur dirige, l'autre annonce le danger à voix haute. On se rend vite compte que le copilote voit mieux, ce qui est exactement l'idée.",
+    },
+    {
+      title: "Le relais",
+      body: "Chacun joue jusqu'à sa première erreur de trajectoire, puis passe l'appareil. La partie dure plus longtemps et personne ne joue seul.",
     },
   ],
 

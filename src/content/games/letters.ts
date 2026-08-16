@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { lettersFr } from "./fr/letters";
 
 /**
  * The statistic here answers what a parent wants to know about a letter game:
@@ -346,6 +347,8 @@ export const letters: GameContent = {
 
       keywords: ["letras", "primera letra", "alfabeto", "fonética", "lectura", "juego educativo"],
     },
+
+    fr: lettersFr,
   },
 
   provenance: [

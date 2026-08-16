@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { wordguessFr } from "./fr/wordguess";
 
 /**
  * The English is NOT a translation of the Hebrew. It opens on a different
@@ -420,6 +421,8 @@ export const wordguess: GameContent = {
         "palabras en el navegador",
       ],
     },
+
+    fr: wordguessFr,
   },
 
   provenance: [

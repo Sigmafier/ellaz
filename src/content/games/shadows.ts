@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { shadowsFr } from "./fr/shadows";
 
 /**
  * The page whose statistic is a counter-example: medium and hard offer the SAME
@@ -395,6 +396,8 @@ export const shadows: GameContent = {
 
       keywords: ["sombras", "emparejar", "siluetas", "formas", "infantil", "reconocer"],
     },
+
+    fr: shadowsFr,
   },
 
   provenance: [

@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { balloonsFr } from "./fr/balloons";
 
 /**
  * The page's admission and its statistic are both about the same design choice:
@@ -396,6 +397,8 @@ export const balloons: GameContent = {
 
       keywords: ["globos", "colores", "juego para bebés", "infantil", "tocar", "aprender colores"],
     },
+
+    fr: balloonsFr,
   },
 
   provenance: [

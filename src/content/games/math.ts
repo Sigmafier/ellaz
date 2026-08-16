@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { mathFr } from "./fr/math";
 
 /**
  * Seven levels that cross a real boundary partway through: the first three are
@@ -387,6 +388,8 @@ export const math: GameContent = {
 
       keywords: ["matemáticas", "contar", "sumar", "multiplicar", "cálculo", "aprender jugando"],
     },
+
+    fr: mathFr,
   },
 
   provenance: [

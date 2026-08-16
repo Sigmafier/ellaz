@@ -140,7 +140,7 @@ const he: SiteCopy = {
     body: "הכתובת הזאת לא קיימת. אולי המשחק עבר, ואולי נפלה טעות בהעתקה.",
     back: "חזרה לכל המשחקים",
   },
-  footer: "Ellaz - משחקים חינם בעברית ובאנגלית. אין פרסומות, אין הרשמה, ואין איסוף מידע על ילדים.",
+  footer: "Ellaz - משחקים חינם בעברית, אנגלית, ספרדית וצרפתית. אין פרסומות, אין הרשמה, ואין איסוף מידע על ילדים.",
 };
 
 const en: SiteCopy = {
@@ -217,7 +217,7 @@ const en: SiteCopy = {
     back: "Back to all the games",
   },
   footer:
-    "Ellaz - free games in Hebrew and English. No ads, no accounts, and nothing collected about a child.",
+    "Ellaz - free games in Hebrew, English, Spanish and French. No ads, no accounts, and nothing collected about a child.",
 };
 
 /**
@@ -312,7 +312,91 @@ const es: SiteCopy = {
     back: "Volver a todos los juegos",
   },
   footer:
-    "Ellaz - juegos gratis en hebreo, inglés y español. Sin anuncios, sin cuentas y sin recoger nada sobre ningún niño.",
+    "Ellaz - juegos gratis en hebreo, inglés, español y francés. Sin anuncios, sin cuentas y sin recoger nada sobre ningún niño.",
+};
+
+const fr: SiteCopy = {
+  brand: "Ellaz",
+  tagline: "Des jeux gratuits dans le navigateur, sans rien installer",
+  home: "Accueil",
+  gameHeading: "{title}",
+  play: "Jouer",
+  playNote: "Le jeu s'ouvre directement. Rien à télécharger, aucun compte à créer.",
+  noScript: "Le jeu a besoin de JavaScript. Le reste de la page, non.",
+  loading: "Le jeu se charge tout seul. Il n'y a rien à toucher.",
+  dataSaver: "L'économiseur de données est actif, alors nous attendons que vous appuyiez.",
+  chrome: { back: "Tous les jeux", fullScreen: "Plein écran" },
+  headings: {
+    howToPlay: "Comment on joue ?",
+    about: "À propos du jeu",
+    teaches: "Qu'est-ce que ça apprend ?",
+    tips: "Conseils",
+    ages: "À partir de quel âge ?",
+    accessibility: "Accessibilité",
+    together: "Jouer à deux",
+    faq: "Questions fréquentes",
+    related: "D'autres jeux",
+  },
+  facts: [
+    "Gratuit",
+    "Sans publicité",
+    "Sans compte",
+    "Sans téléchargement",
+    "Marche hors ligne",
+    "Un joueur",
+  ],
+  categories: {
+    kids: "Pour les petits",
+    learn: "Apprendre",
+    think: "Réfléchir",
+    speed: "Rapidité",
+    create: "Créer",
+    classics: "Classiques",
+  },
+  homePage: {
+    title: "Ellaz - jeux gratuits dans le navigateur, enfants et adultes",
+    description:
+      "{games} jeux gratuits dans le navigateur. Rien à télécharger, aucun compte, aucune publicité. Sur téléphone, tablette et ordinateur, même hors ligne.",
+    h1: "Des jeux gratuits dans votre navigateur",
+    lede: "Tous les jeux s'ouvrent à la première seconde, tournent dans le navigateur, et continuent de marcher sans connexion une fois chargés.",
+    body: [
+      "Le site entier est construit autour d'une seule question: qu'est-ce qu'un enfant de quatre ans peut ouvrir tout seul. Il n'y a rien à lire, aucun compte à remplir et aucun écran qui demande quelque chose avant de laisser jouer. On appuie sur un jeu et il démarre.",
+      "Il y a des jeux de mémoire, de réflexion, de rapidité et de dessin, et à côté quelques classiques sur lesquels un adulte passe volontiers son après-midi. Chaque jeu garde son record sur l'appareil, et chaque niveau garde le sien de son côté.",
+    ],
+  },
+  worldPage: {
+    title: "Ma chambre - Ellaz",
+    description:
+      "La chambre du joueur sur Ellaz. Les pièces d'or gagnées en jouant achètent des meubles, des animaux et des vêtements, et tout reste sur l'appareil.",
+    h1: "Ma chambre",
+    lede: "Chaque victoire laisse des pièces d'or dans le porte-monnaie, et ces pièces achètent des choses pour la chambre.",
+    body: [
+      "La chambre a huit emplacements à remplir: mur, sol, tapis, plante, affiche, vêtement, chapeau et animal. Chaque catégorie contient une chose gratuite dès le départ, donc la chambre est complète avant d'avoir gagné la moindre pièce.",
+      "Acheter tient en un appui. Pas de fenêtre de confirmation, pas de renseignement à donner. Une chose encore trop chère tremble un peu et ne dit rien de plus, parce qu'un refus n'est pas une erreur.",
+      "Chaque joueur porte un nom: un adjectif et un animal, tirés d'une liste fermée, avec un bouton pour en retirer un autre. Aucun enfant ne saisit de nom, et il n'y a donc rien ici que quiconque ait à surveiller.",
+    ],
+  },
+  boardsPage: {
+    title: "Les records - Ellaz",
+    description:
+      "Les records d'Ellaz. Chaque jeu garde une marque par niveau, et vous voyez où se situe la vôtre: aujourd'hui, cette semaine, ce mois-ci ou depuis toujours.",
+    h1: "Les records",
+    lede: "Votre meilleure marque à chaque jeu, et la place qu'elle occupe parmi celles des autres.",
+    body: [
+      "Chaque jeu garde votre meilleur résultat, un par niveau. Certains comptent des points, d'autres un temps, d'autres des coups, et chacun a son propre tableau. Au sudoku, le plus rapide gagne. Au jeu de mémoire, celui qui a retourné le moins de cartes.",
+      "Le tableau ne classe pas tout le monde, et c'est délibéré. Près de la tête, vous voyez votre place exacte. En dessous, un pourcentage, tant qu'il reste agréable à lire. Les autres voient leur propre marque et rien sur leur position. Aucun enfant n'apprendra ici qu'il est dernier.",
+      "Les noms viennent d'une liste fermée: un adjectif et un animal. Personne n'écrit le sien, donc rien dans ce tableau n'identifie un enfant.",
+      "Ce que le tableau ne fait pas: tout cela vit sur l'appareil, donc effacer les données du navigateur efface aussi les records. Un code de sauvegarde attend dans la chambre, et il vaut mieux le noter avant le jour où il servira.",
+    ],
+  },
+  notFound: {
+    title: "Page introuvable - Ellaz",
+    h1: "Il n'y a rien ici",
+    body: "Cette adresse n'existe pas. Le jeu a peut-être changé de place, ou une lettre s'est perdue en copiant le lien.",
+    back: "Retour à tous les jeux",
+  },
+  footer:
+    "Ellaz - des jeux gratuits en hébreu, en anglais, en espagnol et en français. Sans publicité, sans compte, et sans rien collecter au sujet d'un enfant.",
 };
 
 /**
@@ -322,7 +406,7 @@ const es: SiteCopy = {
  * language that has 23 articles but no section headings is still a page whose
  * body is partly untranslated.
  */
-export const SITE: Record<PageLocale, SiteCopy> = { he, en, es };
+export const SITE: Record<PageLocale, SiteCopy> = { he, en, es, fr };
 
 /**
  * The home copy with its facts filled in.

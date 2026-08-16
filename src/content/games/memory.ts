@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { memoryFr } from "./fr/memory";
 
 /**
  * Pilot #1. The voice every other game page is written to.
@@ -371,6 +372,8 @@ export const memory: GameContent = {
 
       keywords: ["memoria", "parejas", "concentración", "cartas", "infantil", "entrenar la mente"],
     },
+
+    fr: memoryFr,
   },
 
   provenance: [

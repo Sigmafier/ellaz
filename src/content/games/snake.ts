@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { snakeFr } from "./fr/snake";
 
 /**
  * Pilot #3 - the classic, and the one whose record is points.
@@ -359,6 +360,8 @@ export const snake: GameContent = {
 
       keywords: ["serpiente", "arcade", "clásico", "reflejos", "infinito", "retro"],
     },
+
+    fr: snakeFr,
   },
 
   provenance: [

@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { vanishFr } from "./fr/vanish";
 
 /**
  * The page where the fairness rule is the statistic.
@@ -387,6 +388,8 @@ export const vanish: GameContent = {
 
       keywords: ["memoria", "qué falta", "memoria visual", "concentración", "infantil", "atención"],
     },
+
+    fr: vanishFr,
   },
 
   provenance: [

@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { blocksFr } from "./fr/blocks";
 
 /**
  * The falling-block game, and the one whose statistic is about the PIECES
@@ -359,6 +360,8 @@ export const blocks: GameContent = {
 
       keywords: ["bloques que caen", "puzle de bloques", "arcade", "clásico", "infinito", "rotación"],
     },
+
+    fr: blocksFr,
   },
 
   provenance: [

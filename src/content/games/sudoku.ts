@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { sudokuFr } from "./fr/sudoku";
 
 /**
  * Pilot #2 - the thinking game, and the one whose record is a TIME.
@@ -359,6 +360,8 @@ export const sudoku: GameContent = {
 
       keywords: ["sudoku", "lógica", "pasatiempo", "rejilla", "animales", "experto"],
     },
+
+    fr: sudokuFr,
   },
 
   provenance: [

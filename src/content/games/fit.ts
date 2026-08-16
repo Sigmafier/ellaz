@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { fitFr } from "./fr/fit";
 
 /**
  * Shape Fit - the placement puzzle whose whole selling point is an ABSENCE.
@@ -363,6 +364,8 @@ export const fit: GameContent = {
 
       keywords: ["encajar formas", "bloques", "puzle", "lógica", "espacial", "sin reloj"],
     },
+
+    fr: fitFr,
   },
 
   provenance: [

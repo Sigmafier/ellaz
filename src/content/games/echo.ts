@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { echoFr } from "./fr/echo";
 
 /**
  * The statistic here answers the question every parent silently asks about a
@@ -386,6 +387,8 @@ export const echo: GameContent = {
 
       keywords: ["memoria", "secuencias", "simón", "concentración", "patrones", "juego para niños"],
     },
+
+    fr: echoFr,
   },
 
   provenance: [

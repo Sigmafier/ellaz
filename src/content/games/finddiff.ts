@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { finddiffFr } from "./fr/finddiff";
 
 /**
  * The page whose admission is a content limit rather than a difficulty warning:
@@ -388,6 +389,8 @@ export const finddiff: GameContent = {
 
       keywords: ["encuentra las diferencias", "siete diferencias", "comparar", "atención", "infantil", "observación"],
     },
+
+    fr: finddiffFr,
   },
 
   provenance: [

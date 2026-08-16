@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { hiddenFr } from "./fr/hidden";
 
 /**
  * The hidden-object game. Its statistic is the crowd-to-target ratio, which is
@@ -386,6 +387,8 @@ export const hidden: GameContent = {
 
       keywords: ["buscar objetos", "encuéntrame", "búsqueda", "atención", "infantil", "rastreo visual"],
     },
+
+    fr: hiddenFr,
   },
 
   provenance: [

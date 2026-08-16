@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { bubblesFr } from "./fr/bubbles";
 
 /**
  * The letters-and-numbers game, and the page where the interesting decision is
@@ -387,6 +388,8 @@ export const bubbles: GameContent = {
 
       keywords: ["burbujas", "letras", "números", "aprender a leer", "abecedario", "infantil"],
     },
+
+    fr: bubblesFr,
   },
 
   provenance: [

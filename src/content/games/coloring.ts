@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { coloringFr } from "./fr/coloring";
 
 /**
  * The one game on this platform with no score, ever, and the page exists partly
@@ -390,6 +391,8 @@ export const coloring: GameContent = {
 
       keywords: ["colorear", "dibujos para pintar", "dibujar", "creatividad", "infantil", "colores"],
     },
+
+    fr: coloringFr,
   },
 
   provenance: [

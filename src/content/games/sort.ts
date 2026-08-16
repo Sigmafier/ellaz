@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { sortFr } from "./fr/sort";
 
 /**
  * Colour sort - the puzzle whose whole selling point is a property of the
@@ -345,6 +346,8 @@ export const sort: GameContent = {
 
       keywords: ["ordenar colores", "tubos", "puzle", "lógica", "infantil", "clasificar"],
     },
+
+    fr: sortFr,
   },
 
   provenance: [

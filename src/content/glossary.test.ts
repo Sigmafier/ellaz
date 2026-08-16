@@ -83,12 +83,31 @@ describe("the violation matcher", () => {
   });
 
   it("respects word boundaries", () => {
-    // "coin" is forbidden as an English word for a coin. It is also a perfectly
-    // ordinary French word meaning "corner", and it hides inside "rejoindre".
-    // A substring matcher would red correct French on both counts, which is how
-    // a gate gets switched off.
-    expect(violations("Venez nous rejoindre.", g)).toEqual([]);
-    expect(violations("dans le coin de l'écran", g).length).toBeGreaterThan(0);
+    // "pub" is forbidden as slang for advertising. It also hides inside
+    // "publicité", which is the locked term the rule exists to steer people
+    // TOWARDS, and inside "publier". A substring matcher would flag the
+    // correct word as a violation of itself.
+    expect(violations("Aucune publicité, jamais.", g)).toEqual([]);
+    expect(violations("Une page couverte de pub.", g).length).toBeGreaterThan(0);
+  });
+
+  it("leaves an ambiguous word alone rather than redding correct prose", () => {
+    // "coin" (corner) and "mobile" (moving) are ordinary French words that
+    // collide with anglicisms. Banning them reds pages that are perfectly
+    // right, which is how a gate gets ignored. Only the unambiguous noun
+    // forms are forbidden. Third and fourth instances after "le monde".
+    expect(violations("Gardez la plus grosse case dans un coin.", g)).toEqual([]);
+    expect(violations("Viser une cible mobile avec un doigt.", g)).toEqual([]);
+    expect(violations("Sortez un mobile de votre poche.", g).length).toBeGreaterThan(0);
+  });
+
+  it("does not flag a forbidden word used in its innocent sense", () => {
+    // "mobile" as a telephone is an anglicism; "une cible mobile" is ordinary
+    // French about a moving target. Forbidding the bare word reds a correct
+    // page, which is how a gate gets switched off. Only the noun forms are
+    // banned. Second instance of this in the file after "le monde".
+    expect(violations("Viser une cible mobile avec un doigt.", g)).toEqual([]);
+    expect(violations("Sortez un mobile de votre poche.", g).length).toBeGreaterThan(0);
   });
 
   it("reports the term to use, not merely that something is wrong", () => {

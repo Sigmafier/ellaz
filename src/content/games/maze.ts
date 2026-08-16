@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { mazeFr } from "./fr/maze";
 
 /**
  * Way Home - the maze whose difficulty sits on PLANNING rather than on the
@@ -454,6 +455,8 @@ export const maze: GameContent = {
 
       keywords: ["laberinto", "ratón", "planificar", "ruta", "infantil", "sin reloj"],
     },
+
+    fr: mazeFr,
   },
 
   provenance: [

@@ -254,6 +254,7 @@ export const VOICE: Record<PageLocale, VoiceRules> = {
   he: { banned: BANNED_HE, ruleOfThree: RULE_OF_THREE_HE, contrast: CONTRAST_HE },
   en: { banned: BANNED_EN, ruleOfThree: RULE_OF_THREE_EN, contrast: CONTRAST_EN },
   es: { banned: BANNED_ES, ruleOfThree: RULE_OF_THREE_ES, contrast: CONTRAST_ES },
+  fr: { banned: BANNED_FR, ruleOfThree: RULE_OF_THREE_FR, contrast: CONTRAST_FR },
 };
 
 /**
@@ -270,9 +271,7 @@ export const VOICE: Record<PageLocale, VoiceRules> = {
  * red build; forgetting to write it is impossible, because the prose could not
  * have been checked without it.
  */
-export const PENDING_VOICE: Record<string, VoiceRules> = {
-  fr: { banned: BANNED_FR, ruleOfThree: RULE_OF_THREE_FR, contrast: CONTRAST_FR },
-};
+export const PENDING_VOICE: Record<string, VoiceRules> = {};
 
 /* --------------------------------------------------------------- analysers */
 

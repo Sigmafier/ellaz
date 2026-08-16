@@ -1,4 +1,5 @@
 import type { GameContent } from "../types";
+import { tictactoeFr } from "./fr/tictactoe";
 
 /**
  * The page that tells a player one opponent cannot be beaten, and proves it
@@ -408,6 +409,8 @@ export const tictactoe: GameContent = {
 
       keywords: ["tres en raya", "gato", "contra el ordenador", "estrategia", "juego clásico", "dos jugadores"],
     },
+
+    fr: tictactoeFr,
   },
 
   provenance: [
