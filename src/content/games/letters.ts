@@ -16,6 +16,7 @@ export const letters: GameContent = {
 
   copy: {
     he: {
+      name: "אות פותחת",
       metaTitle: "אות פותחת - משחק אותיות חינם | Ellaz",
       metaDescription:
         "משחק אותיות חינם לילדים. מופיעה תמונה, והילד נוגע באות שבה המילה מתחילה. אפשר להחליף בין עברית, אנגלית וספרדית בתוך המשחק. בלי הרשמה.",
@@ -125,6 +126,7 @@ export const letters: GameContent = {
     },
 
     en: {
+      name: "First Letter",
       metaTitle: "First Letter - Free Alphabet Game for Kids | Ellaz",
       metaDescription:
         "A free alphabet game: a picture appears and your child taps the letter its word begins with. Switch the letters between Hebrew, English and Spanish.",
@@ -236,6 +238,7 @@ export const letters: GameContent = {
     },
 
     es: {
+      name: "Primera letra",
       metaTitle: "Primera letra - juego de letras para niños | Ellaz",
       metaDescription:
         "Juego de letras gratis. Aparece una imagen y el niño toca la letra por la que empieza su palabra. Cambia las letras entre hebreo, inglés y español.",

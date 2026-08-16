@@ -63,6 +63,31 @@ export interface Provenance {
 
 /** One game's prose, in one language. */
 export interface GameCopy {
+  /**
+   * The game's NAME, as a person says it. "Snake". "Buscaminas". "נחש".
+   *
+   * Two or three words, no brand, no punctuation - this is the noun that goes
+   * in a heading, a breadcrumb and a share card, NOT the sentence `metaTitle`
+   * is. It cannot be derived from `metaTitle` either: "Free Snake Game - Play
+   * Online, No Download | Ellaz" has no reliable way back to "Snake".
+   *
+   * WHY IT LIVES HERE AND NOT ON `meta.ts`, which already has a title.
+   *
+   * Because `meta.ts` is SHIPPED. The roster imports all 29 metas statically so
+   * the home grid can render without pulling in game code, so every name on it
+   * is downloaded by every child before they choose a game. Keyed by page
+   * language, that made a new page language cost the bundle 29 more strings -
+   * measured at +3,351 B gz to reach eleven, against ~600 B of headroom.
+   *
+   * `src/content` is build-time only (`no-app-imports.test.ts` enforces it), so
+   * a name here is read by the emitter and shipped to nobody. That is the whole
+   * reason a page can now exist in a language the bundle has never heard of.
+   *
+   * `meta.title` still exists and is still right - it is what the APP shows, in
+   * the three languages the app carries. The two are allowed to differ: this
+   * one is written by whoever wrote the page.
+   */
+  name: string;
   /** <= 60 chars. Becomes <title> and og:title. */
   metaTitle: string;
   /** 50-160 chars. Becomes the meta description. */

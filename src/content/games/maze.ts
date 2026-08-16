@@ -29,6 +29,7 @@ export const maze: GameContent = {
 
   copy: {
     he: {
+      name: "הדרך הביתה",
       metaTitle: "הדרך הביתה - משחק מבוך חינם | Ellaz",
       metaDescription:
         "משחק מבוך חינמי בדפדפן. מנווטים את העכבר בין הגדרות עם החצים, משבצת בכל לחיצה, ואוספים פירורים בדרך. בלי שעון, בלי חיים, ובלי הרשמה.",
@@ -179,6 +180,7 @@ export const maze: GameContent = {
     },
 
     en: {
+      name: "Way Home",
       metaTitle: "Way Home - Free Maze Game for Kids | Ellaz",
       metaDescription:
         "A free maze game in your browser. Steer the mouse with the arrows, one square per press, collecting crumbs as it goes. No timer, no lives, nothing to lose.",
@@ -315,6 +317,7 @@ export const maze: GameContent = {
     },
 
     es: {
+      name: "El camino a casa",
       metaTitle: "El camino a casa - laberinto gratis | Ellaz",
       metaDescription:
         "Juego de laberinto gratis en el navegador. Guías al ratón entre los setos con las flechas, una casilla por pulsación, recogiendo migas. Sin reloj ni vidas.",

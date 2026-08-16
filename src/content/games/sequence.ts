@@ -15,6 +15,7 @@ export const sequence: GameContent = {
 
   copy: {
     he: {
+      name: "מה בא אחר כך?",
       metaTitle: "מה בא אחר כך - משחק דפוסים לילדים | Ellaz",
       metaDescription:
         "משחק דפוסים חינם לילדים. רואים סדרה ומשלימים את הבא בתור. שמונה סוגי דפוסים, בלי הרשמה.",
@@ -139,6 +140,7 @@ export const sequence: GameContent = {
     },
 
     en: {
+      name: "What Comes Next",
       metaTitle: "What Comes Next - Free Pattern Game for Kids | Ellaz",
       metaDescription:
         "A free pattern game for children. See a sequence and pick what continues it. Eight kinds of pattern, no download or signup.",
@@ -262,6 +264,7 @@ export const sequence: GameContent = {
       keywords: ["patterns", "sequences", "what comes next", "logic", "preschool", "thinking"],
     },
     es: {
+      name: "¿Qué viene ahora?",
       metaTitle: "¿Qué viene después? - juego de patrones gratis | Ellaz",
       metaDescription:
         "Juego de patrones gratis para niños. Aparece una secuencia y hay que elegir qué la continúa. Ocho tipos de patrón, sin descargas ni registro.",

@@ -14,6 +14,7 @@ export const snake: GameContent = {
 
   copy: {
     he: {
+      name: "נחש",
       metaTitle: "משחק נחש - סנייק חינם בעברית | Ellaz",
       metaDescription:
         "משחק נחש חינמי בדפדפן, על לוח 17×17. שלוש מהירויות פתיחה, בלי שלבים ובלי סוף. עובד בהחלקה על הטלפון.",
@@ -129,6 +130,7 @@ export const snake: GameContent = {
     },
 
     en: {
+      name: "Snake",
       metaTitle: "Free Snake Game - Play Online, No Download | Ellaz",
       metaDescription:
         "The classic snake game, free in your browser on a 17x17 board. Three starting speeds, endless play, and swipe controls on a phone.",
@@ -243,6 +245,7 @@ export const snake: GameContent = {
       keywords: ["snake", "arcade", "classic", "reflexes", "endless", "retro"],
     },
     es: {
+      name: "Snake",
       metaTitle: "Juego de la serpiente gratis - jugar online | Ellaz",
       metaDescription:
         "El clásico juego de la serpiente, gratis en el navegador sobre un tablero de 17x17. Tres velocidades de salida, partida infinita y control por deslizamiento.",

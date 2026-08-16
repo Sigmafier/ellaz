@@ -17,6 +17,7 @@ export const memory: GameContent = {
 
   copy: {
     he: {
+      name: "זיכרון",
       metaTitle: "משחק זיכרון לילדים - חינם בעברית | Ellaz",
       metaDescription:
         "משחק זיכרון חינמי בעברית. הופכים שני קלפים ומחפשים זוג, ב-3 רמות. בלי שעון, בלי הורדה ובלי הרשמה.",
@@ -135,6 +136,7 @@ export const memory: GameContent = {
     },
 
     en: {
+      name: "Memory",
       metaTitle: "Free Memory Game for Kids - Play Online | Ellaz",
       metaDescription:
         "A free memory game in your browser. Flip two cards and find a pair, across three levels. No download and no signup.",
@@ -252,6 +254,7 @@ export const memory: GameContent = {
       keywords: ["memory", "matching game", "concentration", "cards", "preschool", "brain training"],
     },
     es: {
+      name: "Memoria",
       metaTitle: "Juego de memoria para niños - gratis | Ellaz",
       metaDescription:
         "Juego de memoria gratis en el navegador. Das la vuelta a dos cartas y buscas la pareja, en tres niveles. Sin descargas y sin registro.",

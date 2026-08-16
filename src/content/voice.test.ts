@@ -25,6 +25,7 @@ import type { GameCopy } from "./types";
 /** A minimal passing page, so each test can break exactly one thing. */
 function copy(over: Partial<GameCopy> = {}): GameCopy {
   return {
+    name: "משחק",
     metaTitle: "כותרת",
     metaDescription: "תיאור קצר של המשחק, מספיק ארוך כדי להיות שימושי בתוצאות חיפוש.",
     lede: "משחק חינם בדפדפן. שלוש רמות, בלי שעון.",

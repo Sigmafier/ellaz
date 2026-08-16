@@ -15,6 +15,7 @@ export const bubbles: GameContent = {
 
   copy: {
     he: {
+      name: "תפסו בועות",
       metaTitle: "תפסו בועות - אותיות ומספרים לילדים | Ellaz",
       metaDescription:
         "משחק חינם ללימוד אותיות ומספרים בעברית. מבקשים אות, ותופסים את הבועה שנושאת אותה. בלי הרשמה.",
@@ -139,6 +140,7 @@ export const bubbles: GameContent = {
     },
 
     en: {
+      name: "Catch the Bubbles",
       metaTitle: "Catch the Bubbles - Letters & Numbers Game | Ellaz",
       metaDescription:
         "A free letters and numbers game for children. A character is named, catch the bubble carrying it. No download, no signup.",
@@ -262,6 +264,7 @@ export const bubbles: GameContent = {
       keywords: ["bubbles", "letters", "numbers", "learn to read", "alphabet", "preschool"],
     },
     es: {
+      name: "Atrapa burbujas",
       metaTitle: "Atrapa las burbujas - letras y números | Ellaz",
       metaDescription:
         "Juego gratis de letras y números para niños. Se pide un carácter y hay que atrapar la burbuja que lo lleva. Sin descargas ni registro.",

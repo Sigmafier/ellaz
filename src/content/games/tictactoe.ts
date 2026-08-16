@@ -18,6 +18,7 @@ export const tictactoe: GameContent = {
 
   copy: {
     he: {
+      name: "איקס עיגול",
       metaTitle: "איקס עיגול - משחק חינם נגד המחשב | Ellaz",
       metaDescription:
         "איקס עיגול חינם בדפדפן נגד המחשב, בשלוש רמות. הרמה הקשה לא ניתנת לניצחון. בלי הורדה ובלי הרשמה.",
@@ -148,6 +149,7 @@ export const tictactoe: GameContent = {
     },
 
     en: {
+      name: "Tic-Tac-Toe",
       metaTitle: "Tic-Tac-Toe - Free Online vs Computer | Ellaz",
       metaDescription:
         "Play Tic-Tac-Toe free against the computer on three levels. Hard cannot be beaten, and we counted. No download, no signup.",
@@ -277,6 +279,7 @@ export const tictactoe: GameContent = {
       keywords: ["tic tac toe", "noughts and crosses", "vs computer", "strategy", "classic game", "two player"],
     },
     es: {
+      name: "Tres en raya",
       metaTitle: "Tres en raya gratis contra el ordenador | Ellaz",
       metaDescription:
         "Juega al tres en raya gratis contra el ordenador en tres niveles. El difícil no se puede ganar, y lo contamos. Sin descargas y sin registro.",

@@ -14,6 +14,7 @@ export const hidden: GameContent = {
 
   copy: {
     he: {
+      name: "מצא אותי",
       metaTitle: "מצא אותי - משחק חיפוש חפצים לילדים | Ellaz",
       metaDescription:
         "משחק חיפוש חינם לילדים. מתבקשים למצוא כמה דברים בתוך ערימה, בלי שעון ובלי עונש. בלי הרשמה.",
@@ -138,6 +139,7 @@ export const hidden: GameContent = {
     },
 
     en: {
+      name: "Find Me",
       metaTitle: "Find Me - Free Hidden Object Game for Kids | Ellaz",
       metaDescription:
         "A free hidden object game for children. Find a few things in a crowd, with no clock and no penalty. No download or signup.",
@@ -261,6 +263,7 @@ export const hidden: GameContent = {
       keywords: ["hidden object", "find me", "searching", "attention", "preschool", "visual scanning"],
     },
     es: {
+      name: "Encuéntrame",
       metaTitle: "Encuéntrame - juego de buscar objetos gratis | Ellaz",
       metaDescription:
         "Juego gratis de buscar objetos para niños. Encuentra unas cosas en un montón, sin reloj y sin castigo. Sin descargas ni registro.",

@@ -18,6 +18,7 @@ export const bees: GameContent = {
 
   copy: {
     he: {
+      name: "רק דבורים",
       metaTitle: "רק דבורים - משחק ריכוז לילדים | Ellaz",
       metaDescription:
         "משחק חינם לילדים: דבורים ופרפרים עפים בשמיים, ונוגעים רק בדבורים. בלי ניקוד שיורד, בלי הרשמה.",
@@ -145,6 +146,7 @@ export const bees: GameContent = {
     },
 
     en: {
+      name: "Bees Only",
       metaTitle: "Bees Only - Free Focus Game for Kids | Ellaz",
       metaDescription:
         "A free game for children: bees and butterflies cross the sky and you tap only the bees. Nothing to lose, no signup.",
@@ -271,6 +273,7 @@ export const bees: GameContent = {
       keywords: ["bees", "butterflies", "focus", "self control", "preschool", "attention game"],
     },
     es: {
+      name: "Solo abejas",
       metaTitle: "Solo abejas - juego de atención gratis | Ellaz",
       metaDescription:
         "Juego gratis para niños: abejas y mariposas cruzan el cielo y hay que tocar solo las abejas. Nada que perder, sin registro.",

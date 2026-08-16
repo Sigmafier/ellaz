@@ -15,6 +15,7 @@ export const math: GameContent = {
 
   copy: {
     he: {
+      name: "חשבון",
       metaTitle: "חשבון - משחק מתמטיקה חינם לילדים | Ellaz",
       metaDescription:
         "משחק חשבון חינם לילדים. 7 רמות מספירה ועד כפל, עם 3 תשובות לבחירה. בלי שעון ובלי הרשמה.",
@@ -139,6 +140,7 @@ export const math: GameContent = {
     },
 
     en: {
+      name: "Math",
       metaTitle: "Math - Free Maths Game for Kids, Counting to Times | Ellaz",
       metaDescription:
         "A free maths game for children. 7 levels from counting to multiplication, 3 answers per question. No clock and no signup.",
@@ -262,6 +264,7 @@ export const math: GameContent = {
       keywords: ["math", "maths", "counting", "addition", "multiplication", "kids learning"],
     },
     es: {
+      name: "Cuentas",
       metaTitle: "Matemáticas - juego gratis de contar a multiplicar | Ellaz",
       metaDescription:
         "Juego de matemáticas gratis para niños. 7 niveles, de contar a multiplicar, con 3 respuestas por pregunta. Sin reloj y sin registro.",

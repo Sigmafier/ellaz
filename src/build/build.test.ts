@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { gameName } from "./gameName";
 import { describe, it, expect } from "vitest";
 import { CONTENT } from "../content/index";
 import { SITE } from "../content/site";
@@ -336,8 +337,8 @@ describe("every page renders", () => {
     for (const meta of GAMES) {
       const h1 = headingFor(meta, locale);
       expect(h1, `${meta.id}: H1 still carries a raw token`).not.toMatch(/[{}]/);
-      expect(h1, `${meta.id}: H1 does not contain the game's own title`).toContain(
-        meta.title[locale],
+      expect(h1, `${meta.id}: H1 does not contain the game's own name`).toContain(
+        gameName(meta.id, locale),
       );
     }
   });
@@ -660,7 +661,7 @@ describe("robots, sitemap and llms", () => {
         // The title is the DESCRIPTION of that link, and it must be the one in
         // the link's own language. It used to be `m.title.he` beside an English
         // URL for every row in the file.
-        expect(txt, `llms.txt does not name ${meta.id} in ${l}`).toContain(meta.title[l]);
+        expect(txt, `llms.txt does not name ${meta.id} in ${l}`).toContain(gameName(meta.id, l));
         checked++;
       }
     }

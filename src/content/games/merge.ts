@@ -21,6 +21,7 @@ export const merge: GameContent = {
 
   copy: {
     he: {
+      name: "שניים לאחד",
       metaTitle: "שניים לאחד - משחק חיבור חינם | Ellaz",
       metaDescription:
         "משחק חיבור חינמי בדפדפן. נוגעים בשני יצורים זהים והם הופכים לאחד גדול יותר, מזחל ועד דרקון. שלוש רמות, בלי הרשמה ובלי פרסומות.",
@@ -130,6 +131,7 @@ export const merge: GameContent = {
     },
 
     en: {
+      name: "Two Make One",
       metaTitle: "Two Make One - Free Merge Game | Ellaz",
       metaDescription:
         "A free tap-to-merge game in your browser. Touch two matching creatures and they become the next one up, caterpillar to dragon. Three levels, no signup.",
@@ -237,6 +239,7 @@ export const merge: GameContent = {
     },
 
     es: {
+      name: "Dos en uno",
       metaTitle: "Dos en uno - juego de combinar gratis | Ellaz",
       metaDescription:
         "Juego de combinar gratis en el navegador. Tocas dos criaturas iguales y se convierten en la siguiente, de oruga a dragón. Tres niveles, sin registro.",

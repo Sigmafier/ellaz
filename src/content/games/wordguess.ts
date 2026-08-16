@@ -15,6 +15,7 @@ export const wordguess: GameContent = {
 
   copy: {
     he: {
+      name: "נחשו מילה",
       metaTitle: "נחשו מילה - משחק מילים בעברית חינם | Ellaz",
       metaDescription:
         "משחק ניחוש מילים בעברית, חינם בדפדפן. 6 ניסיונות, מילים של 4, 5 או 6 אותיות. בלי הורדה ובלי הרשמה.",
@@ -150,6 +151,7 @@ export const wordguess: GameContent = {
     },
 
     en: {
+      name: "Word Guess",
       metaTitle: "Word Guess - free online word game | Ellaz",
       metaDescription:
         "A free word-guessing game in your browser. Six tries, words of 4, 5 or 6 letters, in English or Hebrew. No download, no account.",
@@ -284,6 +286,7 @@ export const wordguess: GameContent = {
       ],
     },
     es: {
+      name: "Adivina la palabra",
       metaTitle: "Adivina la palabra - juego de palabras gratis | Ellaz",
       metaDescription:
         "Juego de adivinar palabras gratis en el navegador. Seis intentos, palabras de 4, 5 o 6 letras, con teclado español y ñ. Sin descargas.",

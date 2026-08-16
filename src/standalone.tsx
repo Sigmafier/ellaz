@@ -30,7 +30,7 @@ import { createRoot } from "react-dom/client";
 import "@ui/index";
 import { GameHost } from "./portal/GameHost";
 import { unlockAudioOnFirstGesture } from "./portal/unlockAudio";
-import { isPageLocale } from "@i18n/locales";
+import { shippedLocaleFor } from "@i18n/locales";
 import type { Locale } from "@i18n/index";
 
 /** Where "back" goes when there is no back. */
@@ -46,7 +46,9 @@ function boot(): void {
   if (!mount || !gameId) return;
 
   const lang = document.documentElement.lang;
-  const locale: Locale = isPageLocale(lang) ? lang : "en";
+  // A SHIPPED locale: this bundle carries the app's own strings and no pages
+  // at all, so the question is which language its labels exist in.
+  const locale: Locale = shippedLocaleFor(lang);
 
   unlockAudioOnFirstGesture();
 

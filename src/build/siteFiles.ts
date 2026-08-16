@@ -1,4 +1,5 @@
 import type { GameMeta } from "../sdk/types";
+import { gameName } from "./gameName";
 import { ORIGIN } from "../content/site";
 import { ENGLISH_NAME } from "../i18n/locales";
 import { LOCALES, ROUTES, canonicalUrl, gamePath, homePath } from "./routes";
@@ -155,13 +156,14 @@ export function llmsTxt(games: ReadonlyArray<GameMeta>): string {
     // silently because no type reads it back.
     //
     // Derived from LOCALES, so a promoted language brings its own section with
-    // no edit here. The description is the game's title IN THAT LANGUAGE, which
-    // is the only string about a game that exists outside `src/content/` - the
-    // page prose is build-time-only and far too long for an index anyway.
+    // no edit here. The link text is the game's name IN THAT LANGUAGE, read
+    // through `gameName()` from the page prose rather than from `meta.title` -
+    // which is what lets this file name a game in a language the bundle does
+    // not carry.
     ...LOCALES.flatMap((l) => [
       `## Games (${ENGLISH_NAME[l]})`,
       "",
-      ...games.map((m) => `- [${m.title[l]}](${canonicalUrl(gamePath(m.id, l))})`),
+      ...games.map((m) => `- [${gameName(m.id, l)}](${canonicalUrl(gamePath(m.id, l))})`),
       "",
     ]),
     "## Pages",

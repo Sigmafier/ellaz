@@ -16,6 +16,7 @@ export const reaction: GameContent = {
 
   copy: {
     he: {
+      name: "אור ירוק",
       metaTitle: "אור ירוק - מבחן זמן תגובה לילדים | Ellaz",
       metaDescription:
         "משחק זמן תגובה חינם לילדים. מחכים לאור הירוק ונוגעים מהר. נגיעה מוקדמת לא נחשבת הפסד. בלי הרשמה.",
@@ -143,6 +144,7 @@ export const reaction: GameContent = {
     },
 
     en: {
+      name: "Green Light",
       metaTitle: "Green Light - Free Reaction Time Test for Kids | Ellaz",
       metaDescription:
         "A free reaction time game for children. Wait for green, then tap fast. Tapping early is never a loss. No download, no signup.",
@@ -269,6 +271,7 @@ export const reaction: GameContent = {
       keywords: ["reaction time", "green light", "reflexes", "speed", "kids game", "attention"],
     },
     es: {
+      name: "Luz verde",
       metaTitle: "Luz verde - test de reflejos gratis para niños | Ellaz",
       metaDescription:
         "Juego gratis de tiempo de reacción para niños. Espera al verde y toca rápido. Tocar antes nunca es perder. Sin descargas ni registro.",

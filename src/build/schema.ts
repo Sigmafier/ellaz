@@ -1,4 +1,5 @@
 import type { GameMeta } from "../sdk/types";
+import { gameName } from "./gameName";
 import type { GameCopy, Locale } from "../content/types";
 import { ORIGIN, SITE } from "../content/site";
 import { canonicalUrl, gamePath, homePath } from "./routes";
@@ -81,7 +82,7 @@ function breadcrumb(locale: Locale, meta: GameMeta) {
       {
         "@type": "ListItem",
         position: 2,
-        name: meta.title[locale],
+        name: gameName(meta.id, locale),
         item: canonicalUrl(gamePath(meta.id, locale)),
       },
     ],
@@ -94,7 +95,7 @@ export function gameGraph(meta: GameMeta, copy: GameCopy, locale: Locale) {
     {
       "@type": "VideoGame",
       "@id": `${url}#game`,
-      name: meta.title[locale],
+      name: gameName(meta.id, locale),
       url,
       description: copy.lede,
       inLanguage: locale,
@@ -169,7 +170,7 @@ export function homeGraph(
         itemListElement: games.map((meta, i) => ({
           "@type": "ListItem",
           position: i + 1,
-          name: meta.title[locale],
+          name: gameName(meta.id, locale),
           url: canonicalUrl(gamePath(meta.id, locale)),
         })),
       },

@@ -16,6 +16,7 @@ export const n2048: GameContent = {
 
   copy: {
     he: {
+      name: "2048",
       metaTitle: "2048 - משחק חינם בעברית באינטרנט | Ellaz",
       metaDescription:
         "2048 חינם בדפדפן, בשלושה גדלי לוח. מחליקים, מחברים מספרים זהים ומגיעים ליעד. בלי הורדה ובלי הרשמה.",
@@ -146,6 +147,7 @@ export const n2048: GameContent = {
     },
 
     en: {
+      name: "2048",
       metaTitle: "2048 - Play Free Online, No Download | Ellaz",
       metaDescription:
         "Play 2048 free in your browser on three board sizes, including a kids board. Slide, merge matching numbers, no signup.",
@@ -275,6 +277,7 @@ export const n2048: GameContent = {
       keywords: ["2048", "number game", "puzzle", "tiles", "merge", "free game"],
     },
     es: {
+      name: "2048",
       metaTitle: "2048 - jugar gratis online, sin descargas | Ellaz",
       metaDescription:
         "Juega al 2048 gratis en el navegador, en tres tamaños de tablero, uno de ellos para niños. Desliza, une números iguales, sin registro.",

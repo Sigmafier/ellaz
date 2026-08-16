@@ -23,6 +23,7 @@ export const fit: GameContent = {
 
   copy: {
     he: {
+      name: "צורות מתאימות",
       metaTitle: "צורות מתאימות - פאזל חשיבה חינם | Ellaz",
       metaDescription:
         "פאזל צורות חינמי בדפדפן. שלוש צורות במגש, נוגעים באחת ומניחים אותה על הלוח, ושורה או עמודה מלאה נעלמת. בלי שעון, בלי הרשמה.",
@@ -136,6 +137,7 @@ export const fit: GameContent = {
     },
 
     en: {
+      name: "Shape Fit",
       metaTitle: "Free Block Fit Puzzle - Play Online | Ellaz",
       metaDescription:
         "A free block fit puzzle in your browser. Three shapes wait in a tray, you tap one onto the board, and a full row or column clears. No timer, no falling.",
@@ -249,6 +251,7 @@ export const fit: GameContent = {
     },
 
     es: {
+      name: "Encaja Formas",
       metaTitle: "Encaja formas - puzle gratis | Ellaz",
       metaDescription:
         "Puzle de encajar formas gratis en el navegador. Tres figuras esperan en la bandeja: tocas una, tocas una casilla y cae ahí. Una fila o columna llena se vacía.",

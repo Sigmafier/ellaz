@@ -15,6 +15,7 @@ export const balloons: GameContent = {
 
   copy: {
     he: {
+      name: "פוצצו בלונים",
       metaTitle: "פוצצו בלונים - משחק צבעים לילדים | Ellaz",
       metaDescription:
         "משחק בלונים חינם לילדים בעברית. מבקשים צבע, ופוצצים רק את הבלונים שלו. בלי הורדה ובלי הרשמה.",
@@ -142,6 +143,7 @@ export const balloons: GameContent = {
     },
 
     en: {
+      name: "Pop the Balloons",
       metaTitle: "Pop the Balloons - Free Colour Game for Kids | Ellaz",
       metaDescription:
         "A free balloon popping game for young children. A colour is named, balloons drift up, pop the matching ones. No signup.",
@@ -268,6 +270,7 @@ export const balloons: GameContent = {
       keywords: ["balloons", "colours", "toddler game", "preschool", "tapping", "learn colours"],
     },
     es: {
+      name: "Revienta globos",
       metaTitle: "Explota los globos - juego de colores gratis | Ellaz",
       metaDescription:
         "Juego gratis de explotar globos para niños pequeños. Se pide un color, los globos suben y hay que explotar los que coinciden. Sin registro.",

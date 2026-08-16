@@ -18,6 +18,7 @@ export const minesweeper: GameContent = {
 
   copy: {
     he: {
+      name: "שולה מוקשים",
       metaTitle: "שולה מוקשים - משחק חינם בעברית | Ellaz",
       metaDescription:
         "שולה מוקשים חינם בדפדפן, בשלוש רמות. ההקלקה הראשונה תמיד בטוחה. בלי הורדה ובלי הרשמה.",
@@ -154,6 +155,7 @@ export const minesweeper: GameContent = {
     },
 
     en: {
+      name: "Minesweeper",
       metaTitle: "Free Minesweeper - Play Online, No Download | Ellaz",
       metaDescription:
         "Play Minesweeper free in your browser across three levels. The first click is always safe. No download and no signup.",
@@ -289,6 +291,7 @@ export const minesweeper: GameContent = {
       keywords: ["minesweeper", "logic game", "puzzle", "classic game", "deduction", "board game"],
     },
     es: {
+      name: "Buscaminas",
       metaTitle: "Buscaminas gratis - jugar online sin descargas | Ellaz",
       metaDescription:
         "Juega al buscaminas gratis en el navegador, en tres niveles. El primer clic siempre es seguro. Sin descargas y sin registro.",

@@ -19,6 +19,7 @@ export const sort: GameContent = {
 
   copy: {
     he: {
+      name: "מיון צבעים",
       metaTitle: "מיון צבעים - משחק חשיבה חינם | Ellaz",
       metaDescription:
         "משחק מיון צבעים חינמי בדפדפן. מרימים כדורים ממבחנה אחת ושופכים לשנייה עד שכל צבע לבד. שלוש רמות, החזרה בלי הגבלה, בלי הרשמה.",
@@ -128,6 +129,7 @@ export const sort: GameContent = {
     },
 
     en: {
+      name: "Color Sort",
       metaTitle: "Free Color Sort Puzzle - Play Online | Ellaz",
       metaDescription:
         "A free colour sort puzzle in your browser. Lift the top balls from one tube, pour them into another, until each colour sits alone. Unlimited undo.",
@@ -235,6 +237,7 @@ export const sort: GameContent = {
     },
 
     es: {
+      name: "Ordenar Colores",
       metaTitle: "Ordenar colores - puzle gratis | Ellaz",
       metaDescription:
         "Puzle de ordenar colores gratis en el navegador. Levantas las bolas de arriba de un tubo y las viertes en otro hasta dejar cada color solo.",

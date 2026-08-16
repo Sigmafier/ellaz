@@ -31,6 +31,7 @@ export const music: GameContent = {
 
   copy: {
     he: {
+      name: "תיבת נגינה",
       metaTitle: "תיבת נגינה - משחק יצירה חינם | Ellaz",
       metaDescription:
         "משחק יצירת מוזיקה חינמי בדפדפן. מדליקים ריבועים על רשת, לוחצים על הנגן והמנגינה מתנגנת בלולאה. שלושה צלילים, בלי שעון ובלי דרך לטעות.",
@@ -181,6 +182,7 @@ export const music: GameContent = {
     },
 
     en: {
+      name: "Music Box",
       metaTitle: "Music Box - Free Kids Music Maker | Ellaz",
       metaDescription:
         "A free music game in your browser. Light up squares on a grid, press play, and your tune loops. Three sounds to choose from, no timer, nothing to get wrong.",
@@ -317,6 +319,7 @@ export const music: GameContent = {
     },
 
     es: {
+      name: "Caja de música",
       metaTitle: "Caja de música - juego de crear gratis | Ellaz",
       metaDescription:
         "Juego de música gratis en el navegador. Enciendes cuadros en una rejilla, pulsas play y tu melodía suena en bucle. Tres sonidos, sin reloj y sin equivocarse.",

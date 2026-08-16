@@ -14,6 +14,7 @@ export const echo: GameContent = {
 
   copy: {
     he: {
+      name: "חזרו אחריי",
       metaTitle: "חזרו אחריי - משחק זיכרון רצפים | Ellaz",
       metaDescription:
         "משחק זיכרון חינם לילדים. המסך מדליק רצף, והילד חוזר עליו. הרצף מתארך בכל סיבוב. בלי הרשמה.",
@@ -138,6 +139,7 @@ export const echo: GameContent = {
     },
 
     en: {
+      name: "Follow Me",
       metaTitle: "Follow Me - Free Memory Sequence Game | Ellaz",
       metaDescription:
         "A free sequence memory game for kids. Pads light up in order and you repeat them. The pattern grows each round. No signup.",
@@ -261,6 +263,7 @@ export const echo: GameContent = {
       keywords: ["memory", "sequence", "simon", "concentration", "pattern", "kids game"],
     },
     es: {
+      name: "Repite conmigo",
       metaTitle: "Sígueme - juego de memoria de secuencias | Ellaz",
       metaDescription:
         "Juego gratis de memoria de secuencias para niños. Los botones se encienden en orden y hay que repetirlos. El patrón crece cada ronda.",

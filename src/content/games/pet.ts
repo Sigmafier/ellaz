@@ -23,6 +23,7 @@ export const pet: GameContent = {
 
   copy: {
     he: {
+      name: "החיה שלי",
       metaTitle: "החיה שלי - משחק טיפוח חינם | Ellaz",
       metaDescription:
         "משחק טיפוח חינמי בדפדפן. בוחרים יצור, מאכילים ורוחצים ומשחקים איתו, והוא גדל דרך חמישה גדלים. אי אפשר להיכשל, והוא אף פעם לא רעב ולא עצוב.",
@@ -173,6 +174,7 @@ export const pet: GameContent = {
     },
 
     en: {
+      name: "My Pet",
       metaTitle: "My Pet - Free Kids Pet Care Game | Ellaz",
       metaDescription:
         "A free pet care game in your browser. Pick a creature, feed it, wash it, play with it, and watch it grow through five sizes. It can never be sad or hungry.",
@@ -321,6 +323,7 @@ export const pet: GameContent = {
     },
 
     es: {
+      name: "Mi Mascota",
       metaTitle: "Mi Mascota - juego de cuidar gratis | Ellaz",
       metaDescription:
         "Juego de cuidar una mascota, gratis y en el navegador. Eliges una criatura, le das de comer, la bañas y juegas con ella, y crece en cinco tamaños.",

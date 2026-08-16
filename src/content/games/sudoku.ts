@@ -14,6 +14,7 @@ export const sudoku: GameContent = {
 
   copy: {
     he: {
+      name: "סודוקו",
       metaTitle: "סודוקו לילדים ולמבוגרים - חינם בעברית | Ellaz",
       metaDescription:
         "סודוקו חינמי בדפדפן, מלוח חיות 4×4 לילדים ועד 9×9 למומחים. 6 רמות, שעון, ושיא נפרד לכל רמה.",
@@ -129,6 +130,7 @@ export const sudoku: GameContent = {
     },
 
     en: {
+      name: "Sudoku",
       metaTitle: "Free Sudoku - Kids Animal Boards to Expert 9x9 | Ellaz",
       metaDescription:
         "Free sudoku in your browser, from a 4x4 animal board for four-year-olds to expert 9x9. Six levels, a clock, and a record per level.",
@@ -243,6 +245,7 @@ export const sudoku: GameContent = {
       keywords: ["sudoku", "logic", "puzzle", "grid", "animals", "expert"],
     },
     es: {
+      name: "Sudoku",
       metaTitle: "Sudoku gratis - de animales 4x4 a experto 9x9 | Ellaz",
       metaDescription:
         "Sudoku gratis en el navegador, desde un tablero de animales 4x4 para niños de cuatro años hasta el experto 9x9. Seis niveles, reloj y récord por nivel.",

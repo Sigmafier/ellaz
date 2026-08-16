@@ -32,6 +32,7 @@
    lets the layout be unit-tested without a rasteriser. */
 
 import bidiFactory from "bidi-js";
+import { gameName } from "./gameName";
 import type { GameMeta } from "@sdk/index";
 import type { Locale } from "../content/types";
 import { dirOf } from "../i18n/locales";
@@ -152,7 +153,7 @@ export function ogCardTree(route: Route, meta?: GameMeta, artPngUri?: string): C
   const site = SITE[route.locale];
   const rtl = dirOf(route.locale) === "rtl";
   const ground = meta ? artGround(meta.id) : "#241C3B";
-  const title = toVisualOrder(meta ? meta.title[route.locale] : site.brand, route.locale);
+  const title = toVisualOrder(meta ? gameName(meta.id, route.locale) : site.brand, route.locale);
   const sub = toVisualOrder(meta ? site.brand : site.tagline, route.locale);
 
   // The art arrives already RASTERISED, and that is not an optimisation.

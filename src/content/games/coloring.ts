@@ -18,6 +18,7 @@ export const coloring: GameContent = {
 
   copy: {
     he: {
+      name: "צביעה",
       metaTitle: "צביעה - דפי צביעה דיגיטליים לילדים | Ellaz",
       metaDescription:
         "משחק צביעה חינם לילדים בדפדפן. 20 ציורים ו-20 צבעים, בלי ניקוד ובלי דרך לטעות. בלי הרשמה.",
@@ -142,6 +143,7 @@ export const coloring: GameContent = {
     },
 
     en: {
+      name: "Coloring",
       metaTitle: "Coloring - Free Digital Coloring Pages for Kids | Ellaz",
       metaDescription:
         "A free coloring game in your browser. 20 pictures and 20 colours, with no score and no way to get it wrong. No signup.",
@@ -265,6 +267,7 @@ export const coloring: GameContent = {
       keywords: ["coloring", "coloring pages", "drawing", "creative", "preschool", "colours"],
     },
     es: {
+      name: "Colorear",
       metaTitle: "Colorear - dibujos para pintar gratis online | Ellaz",
       metaDescription:
         "Juego de colorear gratis en el navegador. 20 dibujos y 20 colores, sin puntuación y sin forma de hacerlo mal. Sin registro.",

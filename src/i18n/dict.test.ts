@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { APP_LOCALES, PAGE_LOCALES, dirOf } from "./locales";
+import { APP_LOCALES, PAGE_LOCALES, SHIPPED_LOCALES, dirOf } from "./locales";
 import {
   AVAILABLE,
   DIR,
@@ -157,8 +157,8 @@ describe("authored text in an app language nobody authored it in", () => {
   it("still prefers a page locale's own words where they exist", () => {
     // The negative control: a resolver that ALWAYS returned English would pass
     // every assertion above.
-    const own: Record<(typeof PAGE_LOCALES)[number], string> = { he: "א", en: "b", es: "c" };
-    for (const locale of PAGE_LOCALES) {
+    const own: Record<(typeof SHIPPED_LOCALES)[number], string> = { he: "א", en: "b", es: "c" };
+    for (const locale of SHIPPED_LOCALES) {
       expect(textFor(own, locale), locale).toBe(own[locale]);
     }
   });

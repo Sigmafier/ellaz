@@ -16,6 +16,7 @@ export const finddiff: GameContent = {
 
   copy: {
     he: {
+      name: "מצא הבדלים",
       metaTitle: "מצא את ההבדלים - משחק חינם לילדים | Ellaz",
       metaDescription:
         "משחק מצא את ההבדלים חינם לילדים. שתי תמונות כמעט זהות, ומוצאים מה שונה. בלי שעון ובלי הרשמה.",
@@ -140,6 +141,7 @@ export const finddiff: GameContent = {
     },
 
     en: {
+      name: "Find Differences",
       metaTitle: "Find the Differences - Free Game for Kids | Ellaz",
       metaDescription:
         "A free spot the difference game for children. Two nearly identical pictures, find what changed. No clock and no signup.",
@@ -263,6 +265,7 @@ export const finddiff: GameContent = {
       keywords: ["spot the difference", "find differences", "comparison", "attention", "preschool", "observation"],
     },
     es: {
+      name: "Busca las diferencias",
       metaTitle: "Encuentra las diferencias - juego gratis | Ellaz",
       metaDescription:
         "Juego gratis de encontrar las diferencias para niños. Dos dibujos casi iguales, busca qué cambió. Sin reloj y sin registro.",

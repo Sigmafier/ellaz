@@ -16,6 +16,7 @@ export const evolve: GameContent = {
 
   copy: {
     he: {
+      name: "התפתחות",
       metaTitle: "התפתחות - משחק חיות שמתפתחות | Ellaz",
       metaDescription:
         "משחק חינם לילדים. מחברים שתי חיות זהות והן הופכות לחיה גדולה יותר, מביצה ועד טי-רקס. בלי הרשמה.",
@@ -140,6 +141,7 @@ export const evolve: GameContent = {
     },
 
     en: {
+      name: "Evolution",
       metaTitle: "Evolution - Merge Creatures from Egg to T-Rex | Ellaz",
       metaDescription:
         "A free merging game for children. Combine two identical creatures to evolve them, from egg all the way to T-Rex. No signup.",
@@ -263,6 +265,7 @@ export const evolve: GameContent = {
       keywords: ["evolution", "merge", "creatures", "dinosaur", "doubling", "kids game"],
     },
     es: {
+      name: "Evolución",
       metaTitle: "Evolución - une criaturas del huevo al T-Rex | Ellaz",
       metaDescription:
         "Juego gratis de unir para niños. Combina dos criaturas iguales para evolucionarlas, desde el huevo hasta el T-Rex. Sin registro.",

@@ -14,6 +14,7 @@ export const shadows: GameContent = {
 
   copy: {
     he: {
+      name: "צל ותמונה",
       metaTitle: "צל ותמונה - משחק התאמה לילדים | Ellaz",
       metaDescription:
         "משחק צללים חינם לילדים. רואים צל, ומוצאים לאיזה דבר הוא שייך. שלוש רמות, בלי הרשמה ובלי הורדה.",
@@ -141,6 +142,7 @@ export const shadows: GameContent = {
     },
 
     en: {
+      name: "Shadow Match",
       metaTitle: "Shadow Match - Free Matching Game for Kids | Ellaz",
       metaDescription:
         "A free shadow matching game for children. See a silhouette, find what cast it. Three levels, no download and no signup.",
@@ -267,6 +269,7 @@ export const shadows: GameContent = {
       keywords: ["shadows", "matching", "silhouette", "shapes", "preschool", "recognition"],
     },
     es: {
+      name: "Sombra y foto",
       metaTitle: "Sombras - juego de emparejar gratis para niños | Ellaz",
       metaDescription:
         "Juego gratis de emparejar sombras para niños. Aparece una silueta y hay que encontrar qué la proyecta. Tres niveles, sin descargas ni registro.",

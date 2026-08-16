@@ -15,6 +15,7 @@ export const blocks: GameContent = {
 
   copy: {
     he: {
+      name: "קוביות נופלות",
       metaTitle: "קוביות נופלות - משחק חינם בעברית | Ellaz",
       metaDescription:
         "משחק קוביות נופלות חינמי בדפדפן. מסובבים צורות, ממלאים שורה, והיא נעלמת. שלוש רמות, לוח 8 על 14 או 10 על 18.",
@@ -131,6 +132,7 @@ export const blocks: GameContent = {
     },
 
     en: {
+      name: "Falling Blocks",
       metaTitle: "Falling Blocks - Free Online Block Game | Ellaz",
       metaDescription:
         "A free falling-block game in your browser. Turn the shapes, fill a row, watch it go. Three levels, eleven shapes, and big touch buttons.",
@@ -244,6 +246,7 @@ export const blocks: GameContent = {
       keywords: ["falling blocks", "block puzzle", "arcade", "classic", "endless", "rotation"],
     },
     es: {
+      name: "Bloques que caen",
       metaTitle: "Bloques que caen - juego gratis online | Ellaz",
       metaDescription:
         "Juego gratis de bloques que caen en el navegador. Gira las piezas, completa una fila y desaparece. Tres niveles, once formas y botones grandes.",

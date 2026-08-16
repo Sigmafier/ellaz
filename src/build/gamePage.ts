@@ -1,4 +1,5 @@
 import type { GameMeta } from "../sdk/types";
+import { gameName } from "./gameName";
 import type { GameCopy, Locale, Titled } from "../content/types";
 import { SITE, type SiteCopy } from "../content/site";
 import { html, type RawHtml } from "./html";
@@ -71,7 +72,7 @@ export function gameCards(
       (m) => html`<li>
         <a href="${href(gamePath(m.id, locale), base)}">
           <span class="em" aria-hidden="true">${m.emoji}</span>
-          <span>${m.title[locale]}<span class="cat">${site.categories[m.category] ?? ""}</span></span>
+          <span>${gameName(m.id, locale)}<span class="cat">${site.categories[m.category] ?? ""}</span></span>
         </a>
       </li>`,
     )}
@@ -86,7 +87,7 @@ export function gameCards(
  * it. The renderer no longer knows that Hebrew is the one with a word in front.
  */
 export function headingFor(meta: GameMeta, locale: Locale): string {
-  return SITE[locale].gameHeading.replace("{title}", meta.title[locale]);
+  return SITE[locale].gameHeading.replace("{title}", gameName(meta.id, locale));
 }
 
 /**
@@ -153,7 +154,7 @@ export function gamePage(opts: GamePageOptions): string {
   const body = html`
     <nav class="bc">
       <a href="${href(homePath(locale), base)}">${site.home}</a> ›
-      ${site.categories[meta.category] ?? ""} › ${meta.title[locale]}
+      ${site.categories[meta.category] ?? ""} › ${gameName(meta.id, locale)}
     </nav>
 
     ${stage(meta.emoji, site)}
@@ -217,7 +218,7 @@ export function gamePage(opts: GamePageOptions): string {
     // correct CSS pointed at the wrong variable, and nothing could flag it.
     headerChrome: {
       ground: artGround(meta.id),
-      title: meta.title[locale],
+      title: gameName(meta.id, locale),
       cat: site.categories[meta.category],
       backLabel: site.chrome.back,
       fullLabel: site.chrome.fullScreen,

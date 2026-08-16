@@ -15,6 +15,7 @@ export const vanish: GameContent = {
 
   copy: {
     he: {
+      name: "מה נעלם?",
       metaTitle: "מה נעלם - משחק זיכרון חזותי לילדים | Ellaz",
       metaDescription:
         "משחק זיכרון חינם לילדים. מסתכלים על כמה דברים, שמיכה יורדת, ואחד נעלם. שלוש רמות, בלי הרשמה.",
@@ -139,6 +140,7 @@ export const vanish: GameContent = {
     },
 
     en: {
+      name: "What Disappeared",
       metaTitle: "What Disappeared - Visual Memory Game for Kids | Ellaz",
       metaDescription:
         "A free visual memory game for children. Study a few things, a blanket covers them, one is gone. Three levels, no signup.",
@@ -262,6 +264,7 @@ export const vanish: GameContent = {
       keywords: ["memory", "what disappeared", "visual memory", "concentration", "preschool", "attention"],
     },
     es: {
+      name: "¿Qué falta?",
       metaTitle: "¿Qué falta? - memoria visual para niños | Ellaz",
       metaDescription:
         "Juego gratis de memoria visual para niños. Miras unas cosas, una manta las tapa y falta una. Tres niveles, sin registro.",

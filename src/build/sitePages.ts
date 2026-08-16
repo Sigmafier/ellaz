@@ -1,4 +1,5 @@
 import type { GameMeta } from "../sdk/types";
+import { gameName } from "./gameName";
 import type { Locale } from "../content/types";
 import { SITE, homeCopy } from "../content/site";
 import { AUTONYM } from "../i18n/locales";
@@ -132,7 +133,7 @@ export function homeShellBody(
         ${games.map(
           (m) =>
             html`<li>
-              <a href="${href(gamePath(m.id, locale), base)}">${m.title[locale]}</a>
+              <a href="${href(gamePath(m.id, locale), base)}">${gameName(m.id, locale)}</a>
             </li>`,
         )}
       </ul>

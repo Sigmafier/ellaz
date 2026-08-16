@@ -15,6 +15,7 @@ export const frog: GameContent = {
 
   copy: {
     he: {
+      name: "תפסו את הצפרדע",
       metaTitle: "תפסו את הצפרדע - משחק לילדים חינם | Ellaz",
       metaDescription:
         "משחק צפרדע חינם לילדים. צפרדע קופצת בין עלי נופר וצריך לגעת בה. בלי הפסד, בלי הורדה ובלי הרשמה.",
@@ -136,6 +137,7 @@ export const frog: GameContent = {
     },
 
     en: {
+      name: "Catch the Frog",
       metaTitle: "Catch the Frog - Free Game for Toddlers | Ellaz",
       metaDescription:
         "A free frog game for young children. A frog hops between lily pads and you tap it. Nothing to lose, no download, no signup.",
@@ -256,6 +258,7 @@ export const frog: GameContent = {
       keywords: ["frog", "lily pads", "toddler game", "preschool", "tapping", "hand eye"],
     },
     es: {
+      name: "Atrapa la rana",
       metaTitle: "Atrapa la rana - juego gratis para peques | Ellaz",
       metaDescription:
         "Juego gratis de ranas para niños pequeños. Una rana salta de nenúfar en nenúfar y hay que tocarla. Nada que perder, sin registro.",
