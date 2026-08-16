@@ -152,6 +152,48 @@ export const BANNED_ES = [
 ] as const;
 
 /**
+ * French. The connectors and marketing phrases a French reader flags as
+ * templated, plus the ones a model reaches for when producing French out of
+ * English habits.
+ *
+ * AUTHORED, NOT TRANSLATED, and the difference shows in the list itself.
+ * "plongez dans" happens to be the twin of Spanish "sumergete" - but "de nos
+ * jours", "force est de constater" and "il convient de noter" have no
+ * counterpart in the other three lists, and English "dive into" has no useful
+ * French translation to ban. A list produced by translating BANNED_EN would
+ * have missed every one of those and carried phrases no French writer types.
+ *
+ * `voice.test.ts` asserts the banned lists are DISJOINT across languages, which
+ * is what stops `fr: VOICE.es` - an assignment that type-checks, runs, and
+ * silently measures French prose against Spanish tells.
+ */
+export const BANNED_FR = [
+  "plongez dans",
+  "plonger dans",
+  "immergez-vous",
+  "il convient de noter",
+  "il est important de noter",
+  "il est a noter",
+  "force est de constater",
+  "de nos jours",
+  "a l'ere du numerique",
+  "dans le monde d'aujourd'hui",
+  "sans aucun doute",
+  "une experience inoubliable",
+  "la solution ideale",
+  "une large gamme",
+  "au niveau superieur",
+  "le monde fascinant",
+  "decouvrez le monde",
+  "en resume",
+  "pour conclure",
+  "en conclusion",
+  "par ailleurs",
+  "outil indispensable",
+  "n'hesitez pas a",
+];
+
+/**
  * The dash family. Every one of these reads as a machine tell to the operator,
  * and the plain hyphen reads identically, so there is no cost to the rule.
  * Written as escapes so this source file does not itself contain one - showing
@@ -170,11 +212,20 @@ const RULE_OF_THREE_EN = /\bno\s+\S+,\s*no\s+\S+,?\s+(and|or)\s+no\b/gi;
  */
 const RULE_OF_THREE_ES = /\bsin\s+\S+,\s*sin\s+\S+,?\s+(y|ni|o)\s+sin\b/gi;
 
+/**
+ * French negates a noun with `sans`, so its rule-of-three is
+ * `sans X, sans Y et sans Z`. The same SHAPE as the Spanish `sin` and a
+ * different word; the Hebrew and English patterns would both match nothing.
+ */
+const RULE_OF_THREE_FR = /\bsans\s+\S+,\s*sans\s+\S+,?\s+(et|ni|ou)\s+sans\b/gi;
+
 /** "sounds like X but it isn't" / "it's not just X, it's Y" - the same crutch, twice. */
 const CONTRAST_HE = /נשמע כמו[^.]{0,40}אבל|זה לא רק \S+ אלא|הצד השני של אותו מטבע/g;
 const CONTRAST_EN = /\b(it'?s|this is)\s+not\s+just\s+[^,.]{1,40},?\s+(it'?s|it is)\b/gi;
 /** `no es solo X, es Y` / `no es (solo) un X sino Y` — the same crutch in Spanish. */
 const CONTRAST_ES = /\bno\s+es\s+(solo|sólo|únicamente)\s+[^,.]{1,40}[,]?\s+(es|sino)\b/gi;
+/** `ce n'est pas juste X, c'est Y` / `pas seulement X mais Y` - the same crutch. */
+const CONTRAST_FR = /\b(ce\s+n'?est|il\s+ne\s+s'?agit)\s+pas\s+(juste|seulement|uniquement)\s+[^,.]{1,40}[,]?\s+(c'?est|mais)\b/gi;
 
 /**
  * Everything this file knows about ONE language, in one place.
@@ -203,6 +254,24 @@ export const VOICE: Record<PageLocale, VoiceRules> = {
   he: { banned: BANNED_HE, ruleOfThree: RULE_OF_THREE_HE, contrast: CONTRAST_HE },
   en: { banned: BANNED_EN, ruleOfThree: RULE_OF_THREE_EN, contrast: CONTRAST_EN },
   es: { banned: BANNED_ES, ruleOfThree: RULE_OF_THREE_ES, contrast: CONTRAST_ES },
+};
+
+/**
+ * Languages whose rules are WRITTEN but whose prose is not finished.
+ *
+ * Keyed by a plain string, exactly like `GLOSSARY`, and separate from `VOICE`
+ * on purpose. `VOICE` stays `Record<PageLocale, VoiceRules>` because that type
+ * is the guarantee: promoting a language before somebody has written its tell
+ * vocabulary must be a RED BUILD. Deriving `VOICE` from a string-keyed record
+ * would make it compile and quietly measure the new language against nothing.
+ *
+ * So a language is authored HERE first, its prose is written against it, and on
+ * promotion the entry MOVES into `VOICE` above. Forgetting to move it is the
+ * red build; forgetting to write it is impossible, because the prose could not
+ * have been checked without it.
+ */
+export const PENDING_VOICE: Record<string, VoiceRules> = {
+  fr: { banned: BANNED_FR, ruleOfThree: RULE_OF_THREE_FR, contrast: CONTRAST_FR },
 };
 
 /* --------------------------------------------------------------- analysers */
