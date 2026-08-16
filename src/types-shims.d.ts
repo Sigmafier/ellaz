@@ -30,3 +30,18 @@ declare module "*/scripts/indexnow.mjs" {
     now: number,
   ): { urls: string[]; reason: string };
 }
+
+// `@shuding/opentype.js` is satori's own fork and ships no types. It is reached
+// only from `src/build/ogImages.ts`, to ask a bundled font's cmap whether it has
+// a glyph for a character before a card is rasterised.
+//
+// Deliberately satori's parser rather than a second font library: the question
+// is "will the RASTERISER find this glyph", and any other parser could answer it
+// differently and be confidently wrong about a card nobody can read.
+declare module "@shuding/opentype.js" {
+  interface ParsedFont {
+    charToGlyphIndex(char: string): number;
+  }
+  const opentype: { parse(buffer: ArrayBuffer): ParsedFont };
+  export default opentype;
+}

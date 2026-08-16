@@ -149,12 +149,26 @@ function text(value: string, style: Record<string, unknown>): CardNode {
  * which is the only thing about this layout that is locale-aware. The text
  * itself needs no help: satori runs the bidi algorithm.
  */
-export function ogCardTree(route: Route, meta?: GameMeta, artPngUri?: string): CardNode {
+/**
+ * The two strings a card actually draws.
+ *
+ * Split out so the glyph-coverage check in `ogImages.ts` asks THIS rather than
+ * rebuilding the same two expressions. A second copy would be right today and
+ * wrong the first time the layout changes, and the failure it guards - a title
+ * rasterised as empty rectangles - is invisible to every other check.
+ */
+export function ogCardText(route: Route, meta?: GameMeta): { title: string; sub: string } {
   const site = SITE[route.locale];
+  return {
+    title: toVisualOrder(meta ? gameName(meta.id, route.locale) : site.brand, route.locale),
+    sub: toVisualOrder(meta ? site.brand : site.tagline, route.locale),
+  };
+}
+
+export function ogCardTree(route: Route, meta?: GameMeta, artPngUri?: string): CardNode {
   const rtl = dirOf(route.locale) === "rtl";
   const ground = meta ? artGround(meta.id) : "#241C3B";
-  const title = toVisualOrder(meta ? gameName(meta.id, route.locale) : site.brand, route.locale);
-  const sub = toVisualOrder(meta ? site.brand : site.tagline, route.locale);
+  const { title, sub } = ogCardText(route, meta);
 
   // The art arrives already RASTERISED, and that is not an optimisation.
   // Satori embeds an SVG `<image>` happily and resvg then drops it on the

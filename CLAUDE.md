@@ -901,6 +901,36 @@ and every scene ends with `fill:var(--art-veil,transparent)`, which a rasteriser
 resolve and paints as **opaque black over the entire card**. `artSvgSized` resolves it
 and throws on any `var()` it cannot.
 
+**The fonts are three families now, and the byte gate could never have seen why.**
+Heebo covers Latin and Hebrew and **nothing else** — measured on the bundled files,
+zero Arabic codepoints and zero Cyrillic. Satori does not throw on a missing glyph;
+it draws a **rectangle**. So an Arabic or Russian card is a valid PNG of a title
+bar full of tofu, and the size check below passes it: measured, a fully-tofu card
+is **10,899 B**, inside the 4 KB–600 KB window, and a real card is ~21 KB because
+the art dominates. Promoting either language would have shipped 32 unreadable
+cards with every gate green.
+
+Three things cost real time to find and are pinned in `ogGlyphs.test.ts`:
+**registering a fallback under the SAME family name does nothing** (satori takes
+the first match for family+weight and never falls back within a family — Arabic
+stayed at 128 bytes of path per character; under its own name Cyrillic went
+150 → 645); **Noto Sans Arabic, Noto Kufi Arabic and Amiri all CRASH** satori's
+opentype fork with `lookupType: 5 - substFormat: 3 is not yet supported`, so the
+obvious choice is the one that breaks the build — **Cairo**, Tajawal and Almarai
+parse; and **Arabic joining WORKS**, so do not add a shaper. That last one is
+easy to get backwards: tested by rendering one letter and the same letter
+doubled, where an unshaped pair would be the isolated outline twice — it is not,
+while the **Latin control** (`n` vs `nn`) is exactly doubled, which is what makes
+the method able to report "no shaping" at all.
+
+`missingGlyphs()` in `ogImages.ts` now refuses to rasterise a card carrying a
+character no bundled font has. It asks the cmap through **satori's own parser**,
+so the check and the rasteriser cannot disagree, and it is an exact question
+rather than a threshold that could go stale. Adding the fonts was proven inert:
+all **96 existing cards byte-identical** before and after, and the first visit
+unmoved at 89,440 B — `src/build` ships to nobody, so 68 KB of fonts cost a
+reader zero.
+
 `assert-pages.mjs` gates it: a card per page, absolute ellaz.fun URL, file present, and
 **between 4 KB and 600 KB** — the floor catches a flat-colour card, the ceiling is where
 WhatsApp silently drops the preview. Mutation-proven three ways. Full account:
