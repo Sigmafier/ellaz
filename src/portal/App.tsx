@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import type { AppLocale } from "@i18n/locales";
-import { APP_LOCALES } from "@i18n/locales";
-import { DEFAULT_LOCALE, DIR, isLoaded, loadDict } from "@i18n/index";
+import { APP_LOCALES, CANONICAL_LOCALE } from "@i18n/locales";
+import { DEFAULT_LOCALE, DIR, isLoaded, loadDict, makeT } from "@i18n/index";
 import { analytics, startCloudSync } from "@sdk/index";
 import { Home } from "./Home";
 
@@ -94,6 +94,10 @@ export function App({ initialLocale }: { initialLocale?: AppLocale } = {}) {
   // promise that resolved after a later pick started, and it must never render.
   const pickSeq = useRef(0);
   const hash = useHash();
+  // Re-created each render on purpose: it must pick up a lazy dictionary the
+  // moment `dictTick` says one arrived. Only the tab title uses it here - every
+  // visible string is Home's own `t`.
+  const translate = makeT(locale);
 
   // The stored language may be one of the nine that live in their own chunk, so
   // the very first render of a returning Spanish visitor happens before their
@@ -133,6 +137,50 @@ export function App({ initialLocale }: { initialLocale?: AppLocale } = {}) {
     document.documentElement.lang = locale;
     document.documentElement.dir = DIR[locale];
   }, [locale]);
+
+  // The tab title follows the language the player is actually reading.
+  //
+  // ONLY ON `/`, and the guard is `initialLocale` - the same signal that
+  // decides whether the URL or the stored preference wins. `/he/` and `/es/`
+  // are app shells too, and they carry an EMITTED title written for that page
+  // in that language; a game page carries the game's own `metaTitle`, tuned per
+  // game and per locale. Repainting either from the generic app tagline would
+  // replace a good title with a worse one - a regression wearing the shape of a
+  // fix, and invisible because the page would still look right.
+  //
+  // The EMITTED title is never what this produces. Crawlers do not run
+  // JavaScript, so what the build wrote is what search sees, and that stays the
+  // canonical locale's own SEO-tuned line, authored in the site copy. This is a
+  // convenience for the human whose tab, bookmark and share sheet would
+  // otherwise be stuck in a language they did not choose.
+  //
+  // `appName` + `tagline` rather than a new dictionary key: both already exist
+  // in all eleven languages, so this costs the first visit nothing. The page
+  // prose is build-time only and unreachable from here by design -
+  // `no-app-imports.test.ts` enforces it, because importing it would put every
+  // word of every page into the shell a child downloads before choosing a game.
+  //
+  // That module is named nowhere above, and the phrasing is deliberate: the
+  // gate matches an import by SHAPE, and `from` followed by a quoted path is
+  // that shape whether it sits in code or in a sentence. Naming the file here
+  // reds the suite. Loud and harmless, which is the right direction for a
+  // purity gate to be wrong in - so it is worked around here rather than
+  // loosened there.
+  const emittedTitle = useRef<string | null>(null);
+  // Computed in render and passed to the effect as a STRING, not as a
+  // translator. `makeT` returns a fresh closure every render, so a `t` in the
+  // dependency array re-fires the effect on every render forever; a string
+  // compares by value and changes exactly twice - once if the lazy dictionary
+  // lands, once per language pick.
+  const localizedTitle = `${translate("appName")} - ${translate("tagline")}`;
+  useEffect(() => {
+    if (initialLocale !== undefined) return; // an emitted shell owns its own title
+    if (emittedTitle.current === null) emittedTitle.current = document.title;
+    // English readers keep the emitted line, which is longer and more specific
+    // than the tagline. Switching away and back restores it rather than leaving
+    // the generic version behind.
+    document.title = locale === CANONICAL_LOCALE ? emittedTitle.current : localizedTitle;
+  }, [locale, initialLocale, localizedTitle]);
 
   const pickLocale = (next: AppLocale) => {
     // Fetch FIRST, then switch. Switching first would flash English for the

@@ -624,6 +624,9 @@ export function renderDocument(opts: DocumentOptions): string {
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="${site.brand}" />
         <meta property="og:locale" content="${OG_LOCALE[locale]}" />
+        ${alternates
+          .filter((a) => a.locale !== locale)
+          .map((a) => html`<meta property="og:locale:alternate" content="${OG_LOCALE[a.locale]}" />`)}
         <meta property="og:title" content="${opts.title}" />
         <meta property="og:description" content="${opts.description}" />
         <meta property="og:url" content="${canonical}" />

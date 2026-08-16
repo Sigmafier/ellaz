@@ -236,7 +236,67 @@ async function runChecks() {
     }
   }
 
+  /* The 301s that carry the old English URLs.
+
+     On 2026-08-14 English took the bare URLs and `dist/en/` stopped being
+     emitted, so every `/en/...` address Google had indexed now depends entirely
+     on two RewriteRules in `deploy/hostinger.htaccess`. Nothing verified them:
+     `assert-crawlable.mjs` walks the sitemap and `/en/` is not in it, and the
+     checks above walk `dist/`, which no longer contains that directory. If
+     mod_rewrite were unavailable or the file were not uploaded, those URLs would
+     404 and every gate in this repo would stay green while the site threw away
+     the only ranking it had.
+
+     Primary host only. The GitHub Pages copy runs nginx and never reads an
+     .htaccess, so asserting there would fail for a reason that is not a defect. */
+  if (BASE === "/") {
+    const redirects = [
+      ["/en/", "/"],
+      ["/en/games/snake/", "/games/snake/"],
+      ["/en", "/"], // the slashless form - DirectorySlash no longer covers it
+    ];
+    for (const [from, to] of redirects) {
+      const res = await raw(`${SITE}${from}`);
+      const loc = res.location || "";
+      if (res.status !== 301) {
+        failures.push(
+          `${from}  HTTP ${res.status || "transport"}, expected 301 to ${to}` +
+            " - the .htaccess redirect is not firing, and every old English URL is lost",
+        );
+      } else if (new URL(loc, SITE).pathname !== to) {
+        failures.push(`${from}  301 but to ${loc}, expected ${to}`);
+      }
+    }
+    /* The control, and the reason the loop above is evidence rather than
+       decoration. A checker that reported "redirects" for everything - a broken
+       matcher, a follow-by-default fetch, a host answering 301 to all - would
+       pass every assertion above while proving nothing. So assert the opposite
+       reading is reachable: a live English page must answer 200, NOT a redirect.
+       Without this the whole block can pass vacuously. */
+    const live = await raw(`${SITE}/games/snake/`);
+    if (live.status !== 200) {
+      failures.push(
+        `/games/snake/  HTTP ${live.status || "transport"}, expected 200` +
+          (live.status === 301
+            ? ` - a redirect HERE would send every English reader to ${live.location}`
+            : ""),
+      );
+    } else {
+      notes.push(`/en/ 301s to the bare URLs, and /games/snake/ still answers 200`);
+    }
+  }
+
   return { failures, notes, count: wanted.size };
+}
+
+/** One fetch that does NOT follow redirects, so a 301 is observable as a 301. */
+async function raw(url) {
+  try {
+    const res = await fetch(url, { redirect: "manual", cache: "no-store" });
+    return { status: res.status, location: res.headers.get("location") || "" };
+  } catch (err) {
+    return { status: 0, location: "", error: String(err) };
+  }
 }
 
 /** Every built artifact that the host is expected to serve, dist-relative. */

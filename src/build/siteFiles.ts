@@ -146,10 +146,24 @@ export function llmsTxt(games: ReadonlyArray<GameMeta>): string {
     "> no account, no ads, and nothing collected about a child. Every game runs in the",
     "> browser and keeps working offline after one visit.",
     "",
-    "## Games",
-    "",
-    ...games.map((m) => `- [${m.title.en}](${canonicalUrl(gamePath(m.id, "en"))}): ${m.title.he}`),
-    "",
+    // One section per language, rather than one English list.
+    //
+    // It used to be a single list of English URLs, each described by the game's
+    // HEBREW title - so the file advertised a third of the site, and described
+    // that third in a language the link was not in. Same class as the "in Hebrew
+    // and English" sentence above: prose describing the system, going stale
+    // silently because no type reads it back.
+    //
+    // Derived from LOCALES, so a promoted language brings its own section with
+    // no edit here. The description is the game's title IN THAT LANGUAGE, which
+    // is the only string about a game that exists outside `src/content/` - the
+    // page prose is build-time-only and far too long for an index anyway.
+    ...LOCALES.flatMap((l) => [
+      `## Games (${ENGLISH_NAME[l]})`,
+      "",
+      ...games.map((m) => `- [${m.title[l]}](${canonicalUrl(gamePath(m.id, l))})`),
+      "",
+    ]),
     "## Pages",
     "",
     ...LOCALES.map((l) => `- [Home, ${ENGLISH_NAME[l]}](${canonicalUrl(homePath(l))})`),

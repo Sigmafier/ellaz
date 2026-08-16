@@ -81,13 +81,30 @@ export function renderRoute(route: Route, base: string, headAssets?: HeadAssets)
 /**
  * The head tags injected into the APPLICATION's own `index.html`.
  *
- * `/` is the Hebrew home page and it is also the app, so it is the one page the
- * emitter must not overwrite. It gets the description, the canonical, the
- * language alternates and the `ItemList` of all 21 games instead - which is how
- * a crawler that lands on `/` discovers the game pages, since the home grid's
- * cards are still buttons until Phase 5 turns them into links.
+ * `/` is the CANONICAL locale's home page - English since 2026-08-14 - and it is
+ * also the app, so it is the one page the emitter appends to rather than writes.
+ * It gets the title, the description, the canonical, the language alternates and
+ * the `ItemList` of the whole roster, which is how a crawler landing on `/`
+ * discovers the game pages.
+ *
+ * The `<title>` is NOT in this list, and that is not an oversight - it is the one
+ * tag that already exists in the file, so it is REPLACED by `replaceTitle` below
+ * rather than appended. Appending would emit two, and the browser keeps the first.
  */
 const HOME_CANONICAL = ROUTES.find((r) => r.kind === "home" && r.locale === CANONICAL_LOCALE)!;
+
+/**
+ * The `<title>` for `/`.
+ *
+ * Read from the same `homeCopy` that `og:title` and the JSON-LD graph already
+ * use, so the three cannot disagree. They did: until 2026-08-16 `/` shipped the
+ * hardcoded `Ellaz — Games / משחקים` from index.html - a bilingual literal that
+ * nothing owned - beside an English `og:title`, an English description and
+ * `lang="en"`. It survived because no gate in this repo read a title at all.
+ */
+export function indexTitle(): string {
+  return homeCopy(CANONICAL_LOCALE, GAMES.length).title;
+}
 
 export function indexHeadTags(base: string): string {
   const copy = homeCopy(CANONICAL_LOCALE, GAMES.length);
@@ -102,14 +119,21 @@ export function indexHeadTags(base: string): string {
     ...LOCALES.map(
       (l) => `<link rel="alternate" hreflang="${l}" href="${canonicalUrl(homePath(l))}" />`,
     ),
-    // English, not Hebrew. x-default answers "we have no page in your
-    // language", and Hebrew is the wrong answer to that for everyone except
-    // Hebrew speakers - who are matched by hreflang="he" long before this line
-    // is consulted. `/` is still the Hebrew home and still ranks as Hebrew.
+    // English. x-default answers "we have no page in your language", and since
+    // 2026-08-14 that is also the canonical locale, so this line and the
+    // canonical above now point at the same URL. Legal and correct - Google's
+    // own examples do it - and the two constants stay separate because they
+    // answer different questions and were different for months.
     `<link rel="alternate" hreflang="x-default" href="${canonicalUrl(homePath(DEFAULT_LOCALE))}" />`,
     `<meta property="og:type" content="website" />`,
     `<meta property="og:site_name" content="Ellaz" />`,
     `<meta property="og:locale" content="${OG_LOCALE[CANONICAL_LOCALE]}" />`,
+    // Every OTHER language this page has a sibling in. Derived from LOCALES for
+    // the same reason the hreflang cluster above is: one list, so `/` can never
+    // advertise a language set the emitted pages have never heard of.
+    ...LOCALES.filter((l) => l !== CANONICAL_LOCALE).map(
+      (l) => `<meta property="og:locale:alternate" content="${OG_LOCALE[l]}" />`,
+    ),
     `<meta property="og:title" content="${escapeAttr(copy.title)}" />`,
     `<meta property="og:description" content="${escapeAttr(copy.description)}" />`,
     `<meta property="og:url" content="${canonicalUrl(homePath(CANONICAL_LOCALE))}" />`,
@@ -157,6 +181,62 @@ export function replaceHtmlLangDir(html: string, locale: PageLocale): string {
     );
   }
   return html.replace(open, `<html lang="${locale}" dir="${dirOf(locale)}">`);
+}
+
+/**
+ * Replace the app shell's `<title>` with the canonical locale's own.
+ *
+ * The exact sibling of `replaceHtmlLangDir` above, for the exact same reason and
+ * with the same throw. index.html cannot import anything, so its title was a
+ * literal only a person could keep in step with CANONICAL_LOCALE - and when the
+ * root changed language on 2026-08-14 it kept the old one. What it kept was
+ * worse than stale: `Ellaz — Games / משחקים`, a bilingual string belonging to
+ * neither language, on the site's canonical entry and `x-default` target, while
+ * `og:title`, the description and the JSON-LD graph beside it were all English.
+ *
+ * REPLACED rather than appended. A second `<title>` is not an error in HTML -
+ * the browser takes the first and ignores the rest - so appending would emit the
+ * correct title into a document that goes on showing the wrong one.
+ *
+ * The match is non-greedy and cannot cross a `<`, so it takes the first title
+ * element and can never swallow the document hunting a second `</title>`.
+ */
+export function replaceTitle(html: string, title: string): string {
+  const tag = /<title>[^<]*<\/title>/gi;
+  const found = html.match(tag) ?? [];
+  if (found.length === 0) {
+    throw new Error(
+      "page emitter: index.html has no <title> to replace. The shell's shape changed - " +
+        "update replaceTitle and build.test.ts together. A missing title is not something " +
+        "to paper over: `/` is the canonical entry and x-default target for the whole site.",
+    );
+  }
+  // Two is not a shrug. HTML says the FIRST title wins, so a document carrying
+  // two has already decided which one is real - and it is not necessarily the
+  // one this function is about to write. Refuse rather than pick.
+  if (found.length > 1) {
+    throw new Error(
+      `page emitter: index.html has ${found.length} <title> elements (${found.join(", ")}). ` +
+        "The browser keeps the first, so rewriting one of them is not enough to decide what " +
+        "the page is called. Remove the extra before this can be correct.",
+    );
+  }
+  // A REPLACER FUNCTION, never a replacement string. `String.replace` expands
+  // `$&`, `` $` ``, `$'` and `$1` inside a replacement STRING, and this one
+  // carries authored copy in three languages - a title containing `$` would be
+  // silently rewritten into something nobody wrote. A function's return value
+  // is used verbatim.
+  return html.replace(tag, () => `<title>${escapeHtmlText(title)}</title>`);
+}
+
+/**
+ * Text escaping for `<title>`, which is `#PCDATA` - it has no attributes and no
+ * child elements, so `&`, `<` and `>` are the whole surface. `escapeAttr` above
+ * is the wrong tool: it escapes `"`, which inside a title is a literal quote a
+ * copywriter may legitimately want, and it leaves `>` alone.
+ */
+function escapeHtmlText(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 export interface EmittedFile {
@@ -263,7 +343,11 @@ export function pagesPlugin(base: string): Plugin {
       // Rewritten rather than asserted, so there is one owner instead of two
       // that agree. The throw covers the only way this can silently no-op.
       const withLang = replaceHtmlLangDir(html, CANONICAL_LOCALE);
-      const withHead = withLang.replace("</head>", `  ${indexHeadTags(base)}\n  </head>`);
+      // The title is REPLACED, not appended - see `replaceTitle`. It rides here
+      // beside the lang/dir stamp because they are the same defect class: the
+      // two head literals index.html carries that nothing else can own.
+      const withTitle = replaceTitle(withLang, indexTitle());
+      const withHead = withTitle.replace("</head>", `  ${indexHeadTags(base)}\n  </head>`);
       // The canonical language's home, as a document, ahead of the app's mount
       // point.
       //

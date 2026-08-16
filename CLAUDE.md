@@ -760,6 +760,30 @@ noindex, internal-link integrity, JSON-LD parse, sitemap bijection, no page
 precached, and no `NavigationRoute` in `sw.js`. Every check has a negative control,
 and all of them were mutation-proven against a real `dist/` on 2026-08-04.
 
+**It reads `<title>` and `meta description` since 2026-08-16, and it did not
+before** — the two strings did not appear anywhere in the file. That is why `/`
+shipped `<title>Ellaz — Games / משחקים</title>` on the site's canonical entry and
+`x-default` target, a bilingual literal `index.html` owned and nothing rewrote,
+beside an English `og:title`, an English description and `lang="en"`. It survived
+the 2026-08-14 flip that rewrote every other tag on that page. `replaceTitle()`
+in `pages.ts` now owns it, exactly as `replaceHtmlLangDir` owns `lang`/`dir`, and
+throws rather than no-op — **it REPLACES rather than appends, because a second
+`<title>` is legal HTML and the browser keeps the FIRST**, so appending emits the
+right string into a document that goes on showing the wrong one.
+
+**The title's language check is ASYMMETRIC, and that is the whole finding.** The
+obvious design is the script-DOMINANCE test Gate 4 already uses ten lines away —
+and it reports **green** on this exact defect: `Ellaz — Games / משחקים` measures
+**62.5% Latin, 37.5% Hebrew**, so Latin dominates and the title passes. A title is
+short enough that the brand name swings the ratio. So a **Latin**-locale title
+must carry *zero* non-Latin letters, while a **non-Latin** locale's title may
+carry Latin (the Hebrew home title is legitimately 13.9% Latin — it starts
+"Ellaz") and is compared only against the other non-Latin scripts. Both halves are
+pinned by one control that asserts dominance *would* have passed. Six mutations
+against a real `dist/` on 2026-08-16, each killed and named; `/` is seeded in
+explicitly, since it is `emitted: false` and the per-page loop cannot see it —
+the third time that blind spot has needed naming in this file.
+
 Run the gate under **both** bases before believing it:
 `npm run build:check` then `BASE_PATH=/ellaz/ npx vite build --outDir dist-ellaz &&
 DIST_DIR=dist-ellaz npm run assert:pages`. Half these failures are base-dependent
@@ -1528,7 +1552,13 @@ is the failure `assert-first-visit.mjs` exists to catch and has now caught three
 times. It passed with its negative control rejecting 9 of 9 planted entries, so
 that green is a real one rather than a vacuous one.
 
-**Latest reading: 89,322 B gz, 678 spare** (2026-08-14, 29 games; supersedes
+**Latest reading: 89,375 B gz, 625 spare** (2026-08-16, 29 games, after the
+title/meta work below — net +53 B for a per-language title on `/`,
+`og:locale:alternate` on every page and the runtime tab title. It was briefly
++278 B: an explanatory comment added to `index.html` cost ~225 B gz on its own,
+because **comments in that file ship to every visitor** — the same property that
+made `/` score 96 words of pinch-zoom comment over a 29-byte body. Rationale
+belongs in `pages.ts`, which is build-time.) (supersedes 89,322 / 678 of 2026-08-14; supersedes
 the 89,164 below) (2026-08-13, after the nine voices
 were re-picked). That is **tight**, and the tree it was measured on is not the
 one the previous line describes: `daily` and `share` are now static in the shell

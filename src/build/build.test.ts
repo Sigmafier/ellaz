@@ -10,9 +10,11 @@ import { LOCALES, ROUTES, canonicalUrl, gamePath, homePath, href } from "./route
 import {
   allEmittedFiles,
   indexHeadTags,
+  indexTitle,
   pagesPlugin,
   renderRoute,
   replaceHtmlLangDir,
+  replaceTitle,
 } from "./pages";
 import { headingFor, relatedTo } from "./gamePage";
 import { llmsTxt, robotsTxt, sitemapXml } from "./siteFiles";
@@ -642,9 +644,27 @@ describe("robots, sitemap and llms", () => {
     expect(checked).toBe(rows.length * LOCALES.length);
   });
 
-  it("lists every game in llms.txt", () => {
+  it("lists every game in llms.txt, in every page language", () => {
+    // Widened from English-only on 2026-08-16. The old assertion was true of a
+    // file that named a third of the site: it walked GAMES but pinned the
+    // locale to "en", so the population it checked could never have included a
+    // Hebrew or Spanish URL. The same "which pages are in its population" hole
+    // that hid the roster-count gate's blindness to `juegos`.
     const txt = llmsTxt(GAMES);
-    for (const meta of GAMES) expect(txt).toContain(canonicalUrl(gamePath(meta.id, "en")));
+    let checked = 0;
+    for (const l of LOCALES) {
+      for (const meta of GAMES) {
+        expect(txt, `llms.txt has no ${l} link for ${meta.id}`).toContain(
+          canonicalUrl(gamePath(meta.id, l)),
+        );
+        // The title is the DESCRIPTION of that link, and it must be the one in
+        // the link's own language. It used to be `m.title.he` beside an English
+        // URL for every row in the file.
+        expect(txt, `llms.txt does not name ${meta.id} in ${l}`).toContain(meta.title[l]);
+        checked++;
+      }
+    }
+    expect(checked).toBe(GAMES.length * LOCALES.length);
   });
 
   it("names every page language in llms.txt, and links each home", () => {
@@ -702,7 +722,13 @@ describe("the bare-URL home is a document, not an empty shell", () => {
    * pass whether or not the emitter rewrites anything, which is the whole
    * failure this fixture exists to make impossible.
    */
-  const SHELL = `<!doctype html><html lang="he" dir="rtl"><head></head>
+  // The fixture goes in WRONG on purpose, in both of the two head literals
+  // index.html carries that nothing else can own: `he`/`rtl` for a root that is
+  // English, and the bilingual title that really shipped until 2026-08-16. A
+  // fixture that already agreed with the answer would pass whether or not the
+  // rewrite ran at all.
+  const SHELL = `<!doctype html><html lang="he" dir="rtl"><head>
+    <title>Ellaz — Games / משחקים</title></head>
     <body class="app-shell"><div id="root"></div>
     <script type="module" src="/src/main.tsx"></script></body></html>`;
 
@@ -810,6 +836,17 @@ describe("the bare-URL home is a document, not an empty shell", () => {
     const out = runTransform("/", page, "/es/games/snake/");
     expect(out).toBe(page);
     expect(out).not.toContain('id="home-doc"');
+    // And specifically its TITLE, which is the newest way this can go wrong.
+    // `replaceTitle` matches any single `<title>`, and a game page has exactly
+    // one - its own `metaTitle` - so moving the call one line ABOVE the
+    // `ctx.path` guard would rewrite all 96 dev pages to the home title.
+    // Production would stay perfect (the hook runs once there, for index.html)
+    // and nothing would throw. Only the guard prevents it, so the guard is what
+    // this asserts.
+    const titleOf = (html: string) => /<title>([^<]*)<\/title>/.exec(html)?.[1];
+    expect(titleOf(page), "the fixture must HAVE a title, or the next line is vacuous").toBeTruthy();
+    expect(titleOf(out)).toBe(titleOf(page));
+    expect(titleOf(out)).not.toBe(indexTitle());
   });
 
   it("refuses to emit silently if the mount point moves", () => {
@@ -817,8 +854,43 @@ describe("the bare-URL home is a document, not an empty shell", () => {
     // vanish from `/` with a green build - which is the exact failure this whole
     // block exists to prevent, arriving by a different door.
     expect(() =>
-      runTransform("/", `<html><head></head><body><div id="app"></div></body></html>`),
+      runTransform("/", `<html><head><title>x</title></head><body><div id="app"></div></body></html>`),
     ).toThrow(/mount point/i);
+  });
+
+  it("gives `/` the canonical locale's own title, and replaces rather than appends", () => {
+    // The bug this whole pair of helpers exists for. `/` shipped
+    // `Ellaz — Games / משחקים` - a bilingual literal nothing owned - as the
+    // title of the site's canonical entry and x-default target, beside an
+    // English og:title, an English description and lang="en". No gate here read
+    // a title, so it survived the 2026-08-14 flip that changed everything else.
+    const out = transform("/");
+    expect(out).toContain(`<title>${indexTitle()}</title>`);
+    // The fixture's title went in bilingual, so this proves a REWRITE.
+    expect(out).not.toContain("Ellaz — Games / משחקים");
+    // EXACTLY one. A second <title> is legal HTML and the browser keeps the
+    // FIRST, so an append would emit the right string into a document that goes
+    // on showing the wrong one - green build, unchanged defect.
+    expect(out.match(/<title>/g)).toHaveLength(1);
+    // And it agrees with the og:title beside it, which is the disagreement that
+    // made the defect visible in the first place.
+    expect(out).toContain(`<meta property="og:title" content="${indexTitle()}" />`);
+  });
+
+  it("refuses a shell with no <title> rather than leaving an unowned one", () => {
+    // The control for the throw. A no-op here leaves a perfectly valid document
+    // carrying whatever literal was in the file - which is precisely the defect,
+    // so silence is the one thing this must not do.
+    expect(() => replaceTitle("<html><head></head><body></body></html>", "Ellaz")).toThrow(
+      /no <title>/i,
+    );
+  });
+
+  it("escapes text in the title rather than emitting markup", () => {
+    // `<title>` is #PCDATA: no child elements, so `&` and `<` are the surface.
+    expect(replaceTitle("<head><title>x</title></head>", "A & B <c>")).toContain(
+      "<title>A &amp; B &lt;c&gt;</title>",
+    );
   });
 });
 

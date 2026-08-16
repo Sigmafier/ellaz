@@ -200,7 +200,7 @@ const en: SiteCopy = {
   boardsPage: {
     title: "Leaderboards - Ellaz",
     description:
-      "The Ellaz leaderboards. Every game keeps a record for every difficulty, and you can see where yours stands against everyone else playing: today, this week, this month, or ever.",
+      "The Ellaz leaderboards. Every game keeps a record for every difficulty, and you can see where yours stands against everyone else: today, this week, or ever.",
     h1: "Leaderboards",
     lede: "Your own best in every game, and where it sits among everyone else playing.",
     body: [
@@ -272,7 +272,7 @@ const es: SiteCopy = {
   homePage: {
     title: "Ellaz - juegos gratis en el navegador para niños y mayores",
     description:
-      "{games} juegos gratis que funcionan en el navegador. Sin descargas, sin cuenta y sin anuncios. Van en teléfono, tablet y ordenador, y sin conexión después de la primera visita.",
+      "{games} juegos gratis en el navegador. Sin descargas, sin cuenta y sin anuncios. Van en teléfono, tablet y ordenador, y sin conexión tras la primera visita.",
     h1: "Juegos gratis en tu navegador",
     lede: "Todos los juegos se abren desde el primer segundo, funcionan en el navegador y siguen funcionando sin conexión una vez que los has cargado.",
     body: [

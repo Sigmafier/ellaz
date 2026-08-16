@@ -31,6 +31,22 @@ const DIST = process.env.DIST_DIR ?? "dist";
 
 /** The prose floor per page, as a RATCHET. It only ever goes up. */
 const MIN_WORDS = 550;
+/* Google truncates a SERP title around 580px, which is roughly 60 characters of
+   Latin - and `GameCopy.metaTitle` is already documented as "<= 60 chars" and
+   pinned at that in content.test.ts. This is deliberately looser than 60: the
+   home and world titles are authored elsewhere, an over-long title is a
+   cosmetic loss rather than a defect, and a gate that reds on a good page for
+   two characters is one people learn to raise rather than read. It is here to
+   catch a title that is a paragraph, not to police copywriting. */
+const MAX_TITLE = 70;
+/* 160 is where Google truncates a snippet, and it is the ceiling
+   `content.test.ts` already pins for every game's `metaDescription`. This
+   extends the same number to the home, world and boards pages, whose copy lives
+   in `site.ts` and was checked by nothing - two of them were over when this gate
+   was written (en boards at 176, es home at 171) and both were shortened in the
+   same commit, because a gate that reds on day one for something nobody fixes
+   that day is one people learn to ignore. */
+const MAX_DESC = 160;
 
 const failures = [];
 const fail = (msg) => failures.push(msg);
@@ -87,6 +103,97 @@ export function scriptShare(text) {
   if (total === 0) return { ...counts, total: 0 };
   for (const k of Object.keys(counts)) counts[k] /= total;
   return { ...counts, total };
+}
+
+/**
+ * The `<title>` and the `<meta name="description">`, as text.
+ *
+ * THEIR OWN EXTRACTOR, and that is the whole point rather than a convenience.
+ * `bodyText()` above strips everything before `<body>`, so a head tag read
+ * through it is always the empty string - and every assertion built on that
+ * would pass, silently, over a page with no title at all. The same shape as the
+ * webfont matcher written from the source and run against the artifact:
+ * a check that cannot see its subject reports success about something it never
+ * observed. See a-diagnostic-that-truncates-what-it-compares.md.
+ *
+ * Non-greedy and `[^<]`, so it takes the FIRST title and cannot run away
+ * through the document hunting a second `</title>`.
+ *
+ * SCOPED TO THE HEAD, which is not caution about today's markup - it is about
+ * tomorrow's. `<svg><title>` is the standard way to label an inline icon, and
+ * this project emits inline SVG on every page. The moment one of those gains a
+ * `<title>` (the art currently uses `aria-hidden` instead), an unscoped matcher
+ * on a page whose head lost its title would read the icon's label and report it
+ * as the document's - a confident, plausible, wrong answer, which is the one
+ * outcome a gate must never produce.
+ */
+export function headMeta(html) {
+  const head = /<head[^>]*>([\s\S]*?)<\/head>/i.exec(html);
+  const scope = head ? head[1] : "";
+  const title = /<title>([^<]*)<\/title>/i.exec(scope);
+  const desc = /<meta\s+name="description"\s+content="([^"]*)"/i.exec(scope);
+  const decode = (s) =>
+    (s ?? "")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#0?39;|&apos;/g, "'")
+      .replace(/&amp;/g, "&")
+      .trim();
+  return { title: decode(title?.[1]), description: decode(desc?.[1]) };
+}
+
+/**
+ * Is this title written in the language its page claims?
+ *
+ * ASYMMETRIC, and the asymmetry is load-bearing. The body gate above asks which
+ * script DOMINATES, which is right for 900 words of prose and wrong for a title,
+ * because a title is short enough that the brand name swings the ratio. Measured
+ * on the exact string this gate was written for:
+ *
+ *     "Ellaz — Games / משחקים"  ->  62.5% latin, 37.5% hebrew
+ *
+ * Dominant script is Latin. A `share[want] > 0.5` check - the obvious design,
+ * and the one already used ten lines away - reports GREEN on the defect it
+ * exists to catch. So:
+ *
+ *   - a LATIN-script locale's title must contain NO non-Latin letters at all.
+ *     There is no legitimate reason for Hebrew or Arabic in an English title,
+ *     and zero is a bright line no brand name can blur.
+ *   - a NON-LATIN locale's title may contain Latin, because the brand is Latin
+ *     in every language - the Hebrew home title is legitimately 13.9% Latin
+ *     since it begins "Ellaz". There, dominance among the LETTERS THAT CARRY
+ *     LANGUAGE is the right question, so Latin is excluded from the comparison.
+ *
+ * Returns null when the title is fine, or a sentence naming what is wrong.
+ */
+export function titleScriptFault(title, wantScript) {
+  const share = scriptShare(title);
+  if (share.total === 0) return "contains no letters at all";
+  const foreign = Object.entries(share).filter(
+    ([k, v]) => k !== "total" && k !== wantScript && v > 0,
+  );
+  if (wantScript === "latin") {
+    const bad = foreign.filter(([, v]) => v > 0);
+    if (bad.length) {
+      return (
+        `is ${bad.map(([k, v]) => `${(v * 100).toFixed(0)}% ${k}`).join(", ")} — a Latin-script ` +
+        `title must carry no other script, and this one reads as neither language`
+      );
+    }
+    return null;
+  }
+  // Non-Latin locale: ignore the Latin brand and ask whether what remains is
+  // this language. A title with a Latin brand and Cyrillic body on a Hebrew
+  // page is still wrong, and this catches it.
+  const others = foreign.filter(([k]) => k !== "latin");
+  const own = share[wantScript] ?? 0;
+  const worst = others.sort((a, b) => b[1] - a[1])[0];
+  if (own === 0) return `contains no ${wantScript} at all`;
+  if (worst && worst[1] >= own) {
+    return `is more ${worst[0]} (${(worst[1] * 100).toFixed(0)}%) than ${wantScript}`;
+  }
+  return null;
 }
 
 /**
@@ -270,6 +377,39 @@ function main() {
     process.exit(1);
   }
 
+  /* GATE 6's shared state. Titles and descriptions are checked per page for
+     presence and language, and ACROSS pages for uniqueness - two pages sharing
+     a title is Google's own "duplicate title tag" finding, and on a site whose
+     pages are 29 games x 3 languages it is the realistic way a copy-paste
+     mistake ships. `/` is seeded into these below, beside the other gates that
+     have to reach past `emitted`. */
+  const titles = new Map();
+  const descriptions = new Map();
+  const seeTitle = (where, html, locale) => {
+    const { title, description } = headMeta(html);
+    if (!title) {
+      fail(`${where} has no <title> — it is the strongest on-page signal there is`);
+    } else {
+      if (title.length > MAX_TITLE) {
+        fail(`${where} title is ${title.length} chars, over ${MAX_TITLE}: "${title}"`);
+      }
+      const wantScript = L.script[locale];
+      const fault = wantScript && titleScriptFault(title, wantScript);
+      if (fault) fail(`${where} is lang="${locale}" but its title ${fault}: "${title}"`);
+      if (titles.has(title)) fail(`${where} and ${titles.get(title)} share a title: "${title}"`);
+      else titles.set(title, where);
+    }
+    if (!description) {
+      fail(`${where} has no meta description — it is the snippet a search result shows`);
+    } else if (description.length > MAX_DESC) {
+      fail(`${where} description is ${description.length} chars, over ${MAX_DESC} — it will be cut`);
+    } else if (descriptions.has(description)) {
+      fail(`${where} and ${descriptions.get(description)} share a meta description`);
+    } else {
+      descriptions.set(description, where);
+    }
+  };
+
   for (const page of emitted) {
     const file = join(DIST, page.file);
     if (!existsSync(file)) {
@@ -278,6 +418,17 @@ function main() {
     }
     const html = readFileSync(file, "utf8");
     const where = page.file;
+
+    // --- GATE 6: the title and the description ---------------------------
+    //
+    // Added 2026-08-16, after `/` was found shipping `Ellaz — Games / משחקים`
+    // - a bilingual literal nothing owned - as the title of the site's
+    // canonical entry and x-default target, beside an English og:title and
+    // lang="en". It survived the 2026-08-14 language flip that rewrote every
+    // other tag on that page, because until now the strings "title" and
+    // "description" did not appear anywhere in this file. The title is the
+    // strongest on-page signal there is and the line a search result shows.
+    seeTitle(where, html, page.locale);
 
     // --- the page is a real document -------------------------------------
     if (!/<h1[\s>]/i.test(html)) fail(`${where} has no <h1>`);
@@ -560,6 +711,12 @@ function main() {
   // carries a complete and correct cluster and the GATE could not see it. A
   // blind spot that reports as a defect on the neighbouring page is the worst
   // shape available, so `/` is seeded in explicitly.
+  // GATE 6 too, and `/` is the page it was WRITTEN for - the bilingual title
+  // lived here and nowhere else. Seeding it in is not a nicety: without this
+  // line the new gate would be green over the exact defect that prompted it,
+  // which is this blind spot's third appearance in this file.
+  seeTitle("index.html", indexHtml, L.canonical);
+
   const homeCanonical = "https://ellaz.fun/";
   const homeAlts = alternatesOf(indexHtml).filter((a) => a.hreflang !== "x-default");
   cluster.set(homeCanonical, new Set(homeAlts.map((a) => a.href)));
@@ -973,6 +1130,81 @@ function runControls() {
     [
       "a page with no alternates reads as none, not as an error",
       () => alternatesOf("<html><head><title>x</title></head></html>").length === 0,
+    ],
+
+    // --- GATE 6: the title and the description -----------------------------
+    [
+      "a title and a description are read out of the head",
+      () => {
+        const m = headMeta(
+          '<html><head><title>Snake</title><meta name="description" content="A game." />' +
+            "</head><body>x</body></html>",
+        );
+        return m.title === "Snake" && m.description === "A game.";
+      },
+    ],
+    [
+      "a missing title reads as absent, not as the empty-string success",
+      () => headMeta("<html><head></head><body>x</body></html>").title === "",
+    ],
+    [
+      // The reason headMeta is head-scoped. An inline `<svg><title>` is the
+      // standard way to label an icon, and this site emits inline SVG on every
+      // page. Unscoped, a page whose head lost its title would report the
+      // icon's label as the document title - a confident wrong answer.
+      "an <svg><title> in the body is not the document's title",
+      () =>
+        headMeta("<html><head></head><body><svg><title>icon</title></svg></body></html>").title ===
+        "",
+    ],
+    [
+      "entities in a title are decoded, so `&amp;` is not a false failure",
+      // bubbles' English metaTitle really contains an ampersand, and it is
+      // emitted as `&amp;`. Without the decode this gate red-lines one correct
+      // page forever, which is how a gate gets switched off.
+      () => headMeta("<head><title>Letters &amp; Numbers</title></head>").title === "Letters & Numbers",
+    ],
+    [
+      // THE control for this whole gate. The bilingual title that really
+      // shipped on `/` is 62.5% Latin, so the obvious design - the same
+      // script-DOMINANCE test gate 4 uses ten lines away - reports GREEN on the
+      // exact defect this was written to catch. Both halves are asserted: that
+      // dominance would have passed, and that the asymmetric rule does not.
+      "the bilingual title that shipped on / is rejected, where a dominance test would pass it",
+      () => {
+        const shipped = "Ellaz — Games / משחקים";
+        const share = scriptShare(shipped);
+        const dominanceWouldPass = share.latin > 0.5;
+        return dominanceWouldPass && titleScriptFault(shipped, "latin") !== null;
+      },
+    ],
+    [
+      "a clean English title on a Latin page is accepted",
+      () => titleScriptFault("Free Snake Game - Play Online, No Download | Ellaz", "latin") === null,
+    ],
+    [
+      // The other side of the asymmetry, and the reason it exists. This title
+      // is 55% Hebrew to 45% Latin - it clears a dominance test by ONE LETTER,
+      // which is a tripwire under the copy: rename the brand to "Ellaz Games"
+      // and a correct Hebrew page goes red. Excluding the Latin brand from the
+      // comparison removes the margin rather than tuning it.
+      "a Hebrew title carrying the Latin brand is accepted, and not by a hair",
+      () => {
+        const share = scriptShare("השיאים - Ellaz");
+        return share.latin > 0.4 && titleScriptFault("השיאים - Ellaz", "hebrew") === null;
+      },
+    ],
+    [
+      "an English title on a Hebrew page is rejected",
+      () => titleScriptFault("Leaderboards - Ellaz", "hebrew") !== null,
+    ],
+    [
+      "a Cyrillic title on a Hebrew page is rejected even though the brand is Latin",
+      () => titleScriptFault("Рекорды - Ellaz", "hebrew") !== null,
+    ],
+    [
+      "a title of pure punctuation is rejected rather than passing as 'no foreign script'",
+      () => titleScriptFault("— / |", "latin") !== null,
     ],
   ];
 
