@@ -63,7 +63,7 @@ src/
 │            (mount/unmount bridge), WalletChip, games (the ordered roster),
 │            catalog (roster + lazy loaders), paths/pageContext/legacyHash,
 │            world/ (the room + shop)
-├─ build/    BUILD-TIME ONLY - the 90 emitted pages. Pure strings, no DOM, no
+├─ build/    BUILD-TIME ONLY - the 128 emitted pages. Pure strings, no DOM, no
 │            React. Nothing in the app may import it (it reads src/content)
 └─ games/<id>/
    ├─ meta.ts         DOM-free GameMeta - catalog.ts imports it statically
@@ -174,7 +174,7 @@ Verify by `curl`ing as Googlebot, never in a browser:
 **`npm run assert:crawlable` is the only gate here that reads the NETWORK** rather
 than `dist/`, which is precisely why it exists — a 403 to every crawler passed every
 other check in this repo. It fetches robots.txt and the sitemap as Googlebot and then
-walks all 78 URLs; that walk IS the burst test, since the challenge arms on a run of
+walks every URL the sitemap lists (128 with French, and the number moves with `PAGE_LOCALES`); that walk IS the burst test, since the challenge arms on a run of
 requests rather than the first one. It checks the BODY as well as the status, because
 a challenge can be served with 200. `.github/workflows/crawlable.yml` runs it daily
 and a red run emails the owner. Node built-ins only, so it needs no `npm ci`.
@@ -528,7 +528,7 @@ separate three.js / Babylon / PlayCanvas bake-off.
    property-based with a count ratchet, and `build.test.ts` asserts the two lists
    stay identical, so a well-formed entry needs no test edit.
 6. `src/content/games/<id>.ts` - the page's words, **once per `PAGE_LOCALES`**
-   (Hebrew, English and Spanish today), plus a `provenance` row for every number
+   (Hebrew, English, Spanish and French today), plus a `provenance` row for every number
    the prose quotes. See the next section.
 
 **A game cannot ship in fewer languages than the site has, and that is enforced
@@ -551,9 +551,11 @@ almost certainly needs no engine**: 22 of the 23 render as React over a pure
 hit for `from "phaser"` in `src/`, re-verified 2026-08-13). Phaser sits in its own
 lazy `vendor-phaser` chunk - "cached across all canvas games" was never true,
 because snake is the only canvas game.
-**Three web pages come for free as well** - the route table is derived from the
-roster and `PAGE_LOCALES`, so `/games/<id>/`, `/he/games/<id>/` and
-`/es/games/<id>/` are emitted, sitemapped and gated the moment step 5 lands. Missing step 6 is a red build, not a thin page.
+**A web page PER PAGE LOCALE comes for free as well** - the route table is
+derived from the roster and `PAGE_LOCALES`, so `/games/<id>/`,
+`/he/games/<id>/`, `/es/games/<id>/` and `/fr/games/<id>/` are emitted,
+sitemapped and gated the moment step 5 lands. Read the count off
+`PAGE_LOCALES`, not off this sentence - it has been wrong twice. Missing step 6 is a red build, not a thin page.
 
 **Two gates key on a DIRECTORY CONTAINING `meta.ts`, not on registration**, so
 "I haven't registered it yet" does not keep a half-built game out of their
@@ -571,16 +573,16 @@ until the set is complete. Discovered 2026-08-13, building two games at once.
 ## Every game has a real web address
 
 The site used to be one document. It is now 85: `dist/index.html` (still the app,
-unchanged) plus **90 emitted pages** built by `src/build/**` inside a Vite plugin,
+unchanged) plus **128 emitted pages** built by `src/build/**` inside a Vite plugin,
 so `npm run build` cannot skip them and neither deploy workflow can forget.
 
 | URL | What it is |
 |---|---|
 | `/` | the application, and now also a document. **ENGLISH since 2026-08-14.** The emitter adds head tags AND the English home body; it never overwrites the file |
-| `/games/<id>/` · `/he/games/<id>/` · `/es/games/<id>/` | every game x 3 languages, ~900 words each (28 on 2026-08-14 — read the count off the roster, not off this line) |
-| `/he/` · `/es/` | the home screen in that language — **the app**, emitted as a shell (see below) |
-| `/world/` · `/he/world/` · `/es/world/` | the room |
-| `/boards/` · `/he/boards/` · `/es/boards/` | the leaderboards (two screens - see below) |
+| `/games/<id>/` · `/he/…` · `/es/…` · `/fr/…` | every game x every page locale, ~900 words each (29 games x 4 languages on 2026-08-16 — read both counts off the roster and `PAGE_LOCALES`, not off this line) |
+| `/he/` · `/es/` · `/fr/` | the home screen in that language — **the app**, emitted as a shell (see below) |
+| `/world/` · `/he/world/` · `/es/world/` · `/fr/world/` | the room |
+| `/boards/` · `/he/boards/` · `/es/boards/` · `/fr/boards/` | the leaderboards (two screens - see below) |
 | `/404.html` | bilingual, `noindex`, and `ErrorDocument`-wired on Hostinger |
 | `robots.txt` · `sitemap.xml` · `llms.txt` | emitted, not in `public/` (see below) |
 
@@ -985,10 +987,38 @@ rather than a live defect.
 
 `src/i18n/locales.ts` holds all three. **`APP_LOCALES`** is what the interface
 speaks — currently 11: he, en, es, pt, fr, de, ar, it, ru, tr, id.
-**`PAGE_LOCALES`** is what has written prose — currently 3, he, en and **es**
-(promoted 2026-08-12, ~27,400 words). `ROUTES` derives from `PAGE_LOCALES`, so
-**adding a language to the app emits exactly zero documents** and cannot cost
-anything.
+**`PAGE_LOCALES`** is what has written prose — currently 4: he, en, **es**
+(promoted 2026-08-12, ~27,400 words) and **fr** (promoted 2026-08-16, 29 game
+pages plus `site.ts`). `ROUTES` derives from `PAGE_LOCALES`, so **adding a
+language to the app emits exactly zero documents** and cannot cost anything.
+
+**French cost the shell nothing and needed no gate edits**, which is the
+`SHIPPED_LOCALES` split below paying for itself: 128 emitted pages under both
+bases, first visit **89,469 B gz of 90,000**, and `globIgnores` derives from
+`PAGE_LOCALES` so `fr/**` excluded itself. Spanish, by contrast, killed six
+two-language constants on the way in. The one thing that did move was the
+GLOSSARY, and it moved three times for the same reason — see below.
+
+**It was written from a BRIEF, never from the English page.** `scripts/brief.mjs
+fr <game>` prints the language-neutral facts (`src/build/factSheet.ts`), the
+locked vocabulary (`src/content/glossary.ts`) and the voice rules that will be
+measured, and it deliberately refuses to print another language's prose. Two
+pages written from the brief share facts; two pages written from each other
+share structure, and structure is what a duplicate is.
+`node scripts/check-fr.mjs` runs the whole set through every gate at once.
+
+**Three glossary rules had to be NARROWED, and they are one defect wearing
+three costumes: a forbidden term that can occur innocently.** `le monde`
+collides with `tout le monde` (everyone); `mobile` is an ordinary adjective in
+*une cible mobile*; and `coin` is the ordinary French word for a **corner** —
+the word every grid game's tips reach for, so `avoid: ["coin"]` reds correct
+pages far more often than it catches an anglicism nobody types. Only the
+unambiguous noun forms are banned now, and `glossary.test.ts` pins each with a
+control. Its word-boundary example moved to `pub`, which hides inside
+`publicité` — the very word the rule steers writers toward. A gate that reds
+correct pages is a gate somebody switches off, which is the same lesson as
+[`a-gate-that-reds-on-day-one-teaches-you-to-ignore-it.md`](.claude/rules/a-gate-that-reds-on-day-one-teaches-you-to-ignore-it.md)
+from the vocabulary end.
 
 **`SHIPPED_LOCALES` is the third, and it exists since 2026-08-16 because the
 other two were quietly the same type.** It is what AUTHORED APP STRINGS are
@@ -1630,7 +1660,10 @@ is the failure `assert-first-visit.mjs` exists to catch and has now caught three
 times. It passed with its negative control rejecting 9 of 9 planted entries, so
 that green is a real one rather than a vacuous one.
 
-**Latest reading: 89,440 B gz, 560 spare** (2026-08-16, 29 games, after the SHIPPED/PAGE locale split — +65 B for the two narrowing funnels, which buys removing a 9,120 B wall. Supersedes 89,375 / 625 from earlier the same day, after the
+**Latest reading: 89,469 B gz, 531 spare** (2026-08-16, 29 games, **4 page
+locales**. French moved this by 29 B, which is noise rather than a cost: page
+content is build-time only, so a fourth language buys 32 more documents for
+nothing a child downloads. Supersedes 89,440 / 560 from earlier the same day, after the SHIPPED/PAGE locale split — +65 B for the two narrowing funnels, which buys removing a 9,120 B wall. Supersedes 89,375 / 625 from earlier the same day, after the
 title/meta work below — net +53 B for a per-language title on `/`,
 `og:locale:alternate` on every page and the runtime tab title. It was briefly
 +278 B: an explanatory comment added to `index.html` cost ~225 B gz on its own,
