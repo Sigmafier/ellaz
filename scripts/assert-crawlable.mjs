@@ -133,6 +133,25 @@ export function bodyStats(html) {
   // indexOf/lastIndexOf cannot backtrack, so the shape is gone rather than
   // tuned. `lastIndexOf` preserves the old greedy behaviour of taking the LAST
   // `</body>`, which a test pins.
+  const { markup, text } = bodyParts(html);
+  return {
+    words: text ? text.split(" ").length : 0,
+    links: (markup.match(/<a\s[^>]*href=/gi) ?? []).length,
+    h1: (markup.match(/<h1[\s>]/gi) ?? []).length,
+  };
+}
+
+/**
+ * The body, once with markup and once as plain text.
+ *
+ * SHARED, and that sharing is the fix rather than a tidy-up. The language check
+ * below first measured the RAW body and reported every Hebrew page as "mostly
+ * latin (71-79%)" - it was counting the ~2 KB of inline CSS and the JSON-LD
+ * block, not a word of prose. Caught by walking a local copy of `dist/`, where
+ * the pages are known-good, so a red line could only be the checker's fault.
+ * Two pipelines for "what does this page say" is how the two disagree.
+ */
+export function bodyParts(html) {
   const lower = html.toLowerCase();
   const open = lower.indexOf("<body");
   const gt = open === -1 ? -1 : html.indexOf(">", open);
@@ -146,11 +165,7 @@ export function bodyStats(html) {
     .replace(/<[^>]*>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  return {
-    words: text ? text.split(" ").length : 0,
-    links: (markup.match(/<a\s[^>]*href=/gi) ?? []).length,
-    h1: (markup.match(/<h1[\s>]/gi) ?? []).length,
-  };
+  return { markup, text };
 }
 
 /**
@@ -181,6 +196,93 @@ export function bodyStats(html) {
  * range - there was never any value in the extra 60.
  */
 const CONTENT_FLOOR = { words: 60, links: 3, h1: 1 };
+
+/**
+ * Which writing system each locale's pages must be served in.
+ *
+ * Only the scripts that can be told apart. `en`, `es`, `pt`, `fr` and the rest
+ * of the Latin set are all "latin", so this cannot separate English prose from
+ * Spanish - and it does not pretend to. What it CAN see is a URL serving the
+ * wrong SCRIPT, which is the failure this site has actually been one config
+ * change away from twice.
+ */
+const SCRIPT_OF_LOCALE = { he: "hebrew", ar: "arabic", ru: "cyrillic" };
+
+const SCRIPT_RANGES = [
+  ["hebrew", /[֐-׿]/],
+  ["arabic", /[؀-ۿݐ-ݿ]/],
+  ["cyrillic", /[Ѐ-ӿ]/],
+  ["latin", /[A-Za-zÀ-ɏ]/],
+];
+
+/** What fraction of the letters belong to each script. URLs stripped first. */
+export function scriptShare(text) {
+  const stripped = text.replace(/https?:\/\/\S+/g, " ");
+  const counts = { hebrew: 0, arabic: 0, cyrillic: 0, latin: 0 };
+  let total = 0;
+  for (const ch of stripped) {
+    for (const [name, re] of SCRIPT_RANGES) {
+      if (re.test(ch)) {
+        counts[name]++;
+        total++;
+        break;
+      }
+    }
+  }
+  return { ...counts, total };
+}
+
+/**
+ * The locale a URL's page is supposed to be in, read off the SITEMAP's own
+ * self-referential hreflang rather than from a list kept here.
+ *
+ * Every `<url>` declares an alternate for each language INCLUDING ITSELF - the
+ * spec requires the self-reference and `siteFiles.ts` emits it - so the entry
+ * whose href equals the loc names that page's language. Deriving it means this
+ * script needs no copy of PAGE_LOCALES, cannot go stale when one is promoted,
+ * and cannot be wrong about which prefix belongs to whom. It is `.mjs` and
+ * cannot import the `.ts` list, which is exactly how a second list gets born.
+ */
+export function localeOfUrl(sitemapXml, url) {
+  for (const block of sitemapXml.split("<url>").slice(1)) {
+    const loc = /<loc>([^<]+)<\/loc>/.exec(block)?.[1]?.trim();
+    if (loc !== url) continue;
+    for (const m of block.matchAll(/hreflang="([^"]+)"\s+href="([^"]+)"/g)) {
+      if (m[2].trim() === url && m[1] !== "x-default") return m[1];
+    }
+    return null;
+  }
+  return null;
+}
+
+/**
+ * Is this page served in the script its locale claims?
+ *
+ * WHY THIS IS ON THE LIVE GATE AND NOT ONLY IN `assert-pages.mjs`. That one
+ * reads `dist/`, where the pages have always been correct. This asks what the
+ * SERVER hands a crawler, which is a different question and the one that has
+ * gone wrong here before - a CDN rule, a stale directory left behind by a
+ * locale move, a half-finished upload. On 2026-08-14 English took the bare
+ * URLs and Hebrew moved to `/he/`; if any part of that ever half-reverted, the
+ * symptom would be bare URLs serving Hebrew again, every existing check green,
+ * and the only visible sign would be English queries quietly failing to appear
+ * in Search Console. That is not a thing anyone notices for weeks.
+ *
+ * Returns null when there is nothing to say - an unknown locale, a Latin-script
+ * language this cannot distinguish, or a page with no letters yet counted.
+ */
+export function wrongScript(locale, html) {
+  const { text: body } = bodyParts(html);
+  const want = SCRIPT_OF_LOCALE[locale] ?? (locale ? "latin" : null);
+  if (!want) return null;
+  const share = scriptShare(body);
+  if (share.total === 0) return null; // the content floor already speaks to this
+  const dominant = Object.entries(share)
+    .filter(([k]) => k !== "total")
+    .sort((a, b) => b[1] - a[1])[0];
+  if (dominant[0] === want) return null;
+  return `${locale} page is mostly ${dominant[0]} (${Math.round((dominant[1] / share.total) * 100)}%), expected ${want}`;
+}
 
 /**
  * Is this page empty to a crawler? Its own function so a control can fire the
@@ -279,8 +381,13 @@ async function get(url, ua = UA) {
 }
 
 /** Fetch `urls` a few at a time, reporting anything a crawler could not read. */
-async function walk(urls) {
+async function walk(urls, sitemapXml = "") {
   let done = 0;
+  // How many URLs were actually READ, as opposed to attempted. Without this the
+  // summary below cannot tell "measured and fine" from "never measured": `thin`
+  // only fills from 200s, so a run where every URL 403s leaves it empty and the
+  // old line reported "all 96 URLs carry a real body" over zero observations.
+  let measured = 0;
   /** Pages that answered like a page and carried nothing. See CONTENT_FLOOR. */
   const thin = [];
   const queue = [...urls];
@@ -321,13 +428,17 @@ async function walk(urls) {
       } else {
         // Only measure a page that answered like one. Reporting "0 words" for
         // a 403 would bury the real finding under a symptom of it.
+        measured++;
         const s = bodyStats(res.body);
         if (belowFloor(s)) thin.push({ url, ...s });
+        // ...and is it in the language this URL claims? See `wrongScript`.
+        const mismatch = wrongScript(localeOfUrl(sitemapXml, url), res.body);
+        if (mismatch) fail(`${url} — ${mismatch}`);
       }
     }
   });
   await Promise.all(workers);
-  return { done, thin };
+  return { done, measured, thin };
 }
 
 /**
@@ -377,7 +488,7 @@ async function main() {
     fail("the sitemap lists no URLs — nothing below was actually checked");
   } else {
     console.log(`sitemap: ${urls.length} URLs`);
-    const { done: checked, thin } = await walk(urls);
+    const { done: checked, measured, thin } = await walk(urls, sm.body);
     console.log(`walked:  ${checked} URLs as Googlebot`);
 
     // --- the content floor ---------------------------------------------------
@@ -391,9 +502,13 @@ async function main() {
     // in the same change that makes the last offender pass. One line, and the
     // reversible half is already proven by then.
     const armed = process.env.CRAWL_CONTENT_FLOOR === "1";
-    if (thin.length === 0) {
+    if (measured === 0) {
+      // Say nothing rather than something false. Every URL failed before a body
+      // could be read, and the failures above are the finding.
+      console.log(`content: not measured — 0 of ${checked} URLs returned a readable page`);
+    } else if (thin.length === 0) {
       console.log(
-        `content: all ${checked} URLs carry a real body ` +
+        `content: all ${measured} URLs carry a real body ` +
           `(>=${CONTENT_FLOOR.words} words, >=${CONTENT_FLOOR.links} links, >=${CONTENT_FLOOR.h1} h1)`,
       );
     } else {
@@ -485,6 +600,32 @@ async function main() {
     ["robots blocking everything", () => robotsBlocksEverything("User-agent: *\nDisallow: /")],
     ["robots allowing everything", () => !robotsBlocksEverything("User-agent: *\nAllow: /")],
     ["a named-bot block is not an outage", () => !robotsBlocksEverything("User-agent: BadBot\nDisallow: /")],
+
+    // --- the language a URL claims vs the language it serves -----------------
+    //
+    // The regression these exist for: the bare URLs held HEBREW until
+    // 2026-08-14 and hold ENGLISH now. A half-revert would serve Hebrew there
+    // again, clear every content floor, keep every status 200, and show up
+    // only as English queries never appearing in Search Console.
+    ["a URL's own locale is read off the sitemap's self-reference",
+      () => localeOfUrl('<urlset><url><loc>https://ellaz.fun/games/snake/</loc><xhtml:link rel="alternate" hreflang="en" href="https://ellaz.fun/games/snake/"/><xhtml:link rel="alternate" hreflang="he" href="https://ellaz.fun/he/games/snake/"/></url><url><loc>https://ellaz.fun/he/games/snake/</loc><xhtml:link rel="alternate" hreflang="en" href="https://ellaz.fun/games/snake/"/><xhtml:link rel="alternate" hreflang="he" href="https://ellaz.fun/he/games/snake/"/></url></urlset>', "https://ellaz.fun/he/games/snake/") === "he"
+         && localeOfUrl('<urlset><url><loc>https://ellaz.fun/games/snake/</loc><xhtml:link rel="alternate" hreflang="en" href="https://ellaz.fun/games/snake/"/><xhtml:link rel="alternate" hreflang="he" href="https://ellaz.fun/he/games/snake/"/></url><url><loc>https://ellaz.fun/he/games/snake/</loc><xhtml:link rel="alternate" hreflang="en" href="https://ellaz.fun/games/snake/"/><xhtml:link rel="alternate" hreflang="he" href="https://ellaz.fun/he/games/snake/"/></url></urlset>', "https://ellaz.fun/games/snake/") === "en"],
+    ["a URL the sitemap does not list has no locale, rather than a guessed one",
+      () => localeOfUrl('<urlset><url><loc>https://ellaz.fun/games/snake/</loc><xhtml:link rel="alternate" hreflang="en" href="https://ellaz.fun/games/snake/"/><xhtml:link rel="alternate" hreflang="he" href="https://ellaz.fun/he/games/snake/"/></url><url><loc>https://ellaz.fun/he/games/snake/</loc><xhtml:link rel="alternate" hreflang="en" href="https://ellaz.fun/games/snake/"/><xhtml:link rel="alternate" hreflang="he" href="https://ellaz.fun/he/games/snake/"/></url></urlset>', "https://ellaz.fun/nope/") === null],
+    ["a bare URL serving Hebrew is caught",
+      () => wrongScript("en", "<body>משחק הנחש הקלאסי, חינם בדפדפן, על לוח גדול</body>") !== null],
+    ["a /he/ URL serving English is caught",
+      () => wrongScript("he", "<body>The classic snake game, free in your browser</body>") !== null],
+    ["a correct English page is NOT flagged",
+      () => wrongScript("en", "<body>The classic snake game, free in your browser</body>") === null],
+    ["a correct Hebrew page is NOT flagged",
+      () => wrongScript("he", "<body>משחק הנחש הקלאסי, חינם בדפדפן</body>") === null],
+    ["a Hebrew page carrying the Latin brand is NOT flagged",
+      () => wrongScript("he", "<body>משחק הנחש הקלאסי, חינם בדפדפן. Ellaz</body>") === null],
+    ["an unknown locale says nothing rather than guessing",
+      () => wrongScript(null, "<body>anything at all</body>") === null],
+    ["a URL is not counted as evidence of language",
+      () => wrongScript("he", "<body>משחק https://ellaz.fun/games/snake/ חינם בדפדפן</body>") === null],
 
     // --- the named-crawler list ----------------------------------------------
     // The first is this site's actual robots.txt shape. It is the control that
