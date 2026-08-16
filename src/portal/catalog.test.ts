@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { SHIPPED_LOCALES } from "@i18n/locales";
 import { CATALOG, CATEGORY_ORDER, findEntry } from "./catalog";
 // The two static dictionaries, read directly. They used to be reached through a
 // `STRINGS` Proxy on the old key-first table, which was kept alive purely for
@@ -19,8 +20,10 @@ describe("catalog", () => {
     for (const e of CATALOG) {
       const { meta } = e;
       expect(meta.id).toMatch(/^[a-z0-9-]+$/);
-      expect(meta.title.he).toBeTruthy();
-      expect(meta.title.en).toBeTruthy();
+      // Every SHIPPED language, derived. Written out as `.he` and `.en` this
+      // asserted nothing about Spanish for the whole time Spanish existed, and
+      // a game shipping with a missing title renders a blank card.
+      for (const l of SHIPPED_LOCALES) expect(meta.title[l], `${meta.id} has no ${l} title`).toBeTruthy();
       expect(meta.emoji.length).toBeGreaterThan(0);
       expect(meta.color).toMatch(/^#[0-9a-f]{6}$/i);
       expect(RENDERERS).toContain(meta.renderer);

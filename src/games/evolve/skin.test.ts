@@ -3,8 +3,12 @@ import { LADDER, rungFor, CREATURES } from "./skin";
 // The engine's own level table — the win targets the ladder has to cover.
 // Relative import is deliberate: evolve reuses 2048's engine rather than copying it.
 import { LEVELS } from "../n2048/logic";
+import { SHIPPED_LOCALES } from "@i18n/locales";
 
-const LOCALES = ["he", "en"] as const;
+// SHIPPED_LOCALES, not a literal: a skin name is authored text that ships in
+// the bundle, so this population must be whatever that list holds. Written
+// out, it silently skipped Spanish for the four days Spanish existed.
+const LOCALES = SHIPPED_LOCALES;
 
 describe("evolve ladder", () => {
   it("is ascending powers of two starting at 2", () => {

@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { SHIPPED_LOCALES } from "@i18n/locales";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { mulberry32 } from "./rng";
@@ -265,7 +266,7 @@ describe("the active seat's card stays readable", () => {
 
 describe("the words", () => {
   it("exist in every authored language", () => {
-    for (const locale of ["he", "en", "es"] as const) {
+    for (const locale of SHIPPED_LOCALES) {
       const w = VERSUS_WORDS[locale];
       expect(w.two.length).toBeGreaterThan(0);
       expect(w.one.length).toBeGreaterThan(0);
@@ -277,7 +278,7 @@ describe("the words", () => {
   });
 
   it("says something different in each language", () => {
-    const twos = (["he", "en", "es"] as const).map((l) => VERSUS_WORDS[l].two);
+    const twos = SHIPPED_LOCALES.map((l) => VERSUS_WORDS[l].two);
     expect(new Set(twos).size).toBe(twos.length);
   });
 

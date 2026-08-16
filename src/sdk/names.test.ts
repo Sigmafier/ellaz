@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { PAGE_LOCALES } from "@i18n/locales";
+import { SHIPPED_LOCALES } from "@i18n/locales";
 import {
   ADJECTIVES,
   NOUNS,
@@ -118,7 +118,7 @@ describe("rendering a name", () => {
     for (const adj of ADJECTIVES) {
       for (const noun of NOUNS) {
         const name = { adj: adj.id, noun: noun.id };
-        for (const locale of PAGE_LOCALES) {
+        for (const locale of SHIPPED_LOCALES) {
           const rendered = renderName(name, locale);
           expect(rendered, `${adj.id}/${noun.id}/${locale}`).toBeTruthy();
           expect(rendered).not.toContain("undefined");
@@ -243,7 +243,7 @@ describe("promoting a language must not silently leave names in English", () => 
   // three genders and German's declension will each need their own column and
   // their own `RENDER` row; neither can reuse this one.
   it("has every page locale's form for every adjective and noun", () => {
-    for (const locale of PAGE_LOCALES) {
+    for (const locale of SHIPPED_LOCALES) {
       for (const a of ADJECTIVES) {
         const form = (a as unknown as Record<string, unknown>)[locale];
         expect(form, `adjective "${a.id}" has no ${locale} form`).toBeDefined();
@@ -259,7 +259,7 @@ describe("promoting a language must not silently leave names in English", () => 
     // The positive control: without this, the check above is satisfied by a
     // pool nobody can actually render from.
     const name = { adj: ADJECTIVES[0].id, noun: NOUNS[0].id };
-    for (const locale of PAGE_LOCALES) {
+    for (const locale of SHIPPED_LOCALES) {
       const rendered = renderName(name, locale);
       expect(rendered, `renderName in ${locale}`).toBeTruthy();
       expect(rendered).not.toContain("undefined");

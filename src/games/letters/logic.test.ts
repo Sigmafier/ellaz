@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
+import { SHIPPED_LOCALES } from "@i18n/locales";
 import { CAST } from "@shared/cast";
 import { mulberry32, seedFrom } from "@shared/rng";
-import { PAGE_LOCALES } from "@i18n/locales";
 import { SIMPLE } from "./words";
 import {
   ALPHABETS,
@@ -42,7 +42,7 @@ describe("firstLetter", () => {
     // The load-bearing invariant: a picture whose first letter is not in the
     // pool could never be answered, and the correct choice would look foreign.
     for (const item of ALL_PICTURES) {
-      for (const lang of PAGE_LOCALES) {
+      for (const lang of SHIPPED_LOCALES) {
         const letter = firstLetter(item[lang], lang);
         expect(
           ALPHABETS[lang].includes(letter),
@@ -83,7 +83,7 @@ describe("buildRound", () => {
   const item = { emoji: "🍌", he: "בננה", en: "banana", es: "plátano" };
 
   it("always includes the correct letter, exactly once, with no duplicates", () => {
-    for (const lang of PAGE_LOCALES) {
+    for (const lang of SHIPPED_LOCALES) {
       for (const choices of [2, 3, 4]) {
         const round = buildRound(lang, item, choices, seeded(`${lang}-${choices}`));
         expect(round.options).toHaveLength(choices);
@@ -163,6 +163,23 @@ describe("contentLangOptions", () => {
     expect(contentLangOptions("he")).toEqual(["he", "en", "es"]);
     expect(contentLangOptions("en")).toEqual(["en", "es"]);
     expect(contentLangOptions("es")).toEqual(["es", "en"]);
+  });
+
+  it("answers for every shipped language, self first, and never invents one", () => {
+    // The rule above is stated per language and has to be, since "which scripts
+    // may a reader practise" is an editorial call rather than a derivation. This
+    // is the derived half beside it: whatever the list holds, every entry gets a
+    // non-empty answer that starts with itself and names only real languages.
+    //
+    // Without it, adding a shipped language leaves the assertions above green -
+    // they never mention the new one - while its toggle silently offers nothing.
+    for (const l of SHIPPED_LOCALES) {
+      const opts = contentLangOptions(l);
+      expect(opts.length, `${l} is offered no content languages`).toBeGreaterThan(0);
+      expect(opts[0], `${l} should be offered its own language first`).toBe(l);
+      expect(new Set(opts).size, `${l} offers a duplicate`).toBe(opts.length);
+      for (const o of opts) expect(SHIPPED_LOCALES).toContain(o);
+    }
   });
 });
 

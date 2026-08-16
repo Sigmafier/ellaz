@@ -5,7 +5,7 @@ import { boardsHref, gameHref, homeHref, worldHref } from "./paths";
 import { readPageContext } from "./pageContext";
 import { redirectLegacyHash } from "./legacyHash";
 import { boardsPath, gamePath, homePath, worldPath } from "../build/routes";
-import { CANONICAL_LOCALE, PAGE_LOCALES } from "@i18n/locales";
+import { APP_LOCALES, CANONICAL_LOCALE, PAGE_LOCALES } from "@i18n/locales";
 
 /**
  * The app's link generator and the page emitter's route table are two
@@ -21,7 +21,10 @@ describe("the app links to the pages the emitter actually writes", () => {
   });
 
   it("agrees about the home, the room and the boards too", () => {
-    for (const locale of ["he", "en"] as const) {
+    // PAGE_LOCALES: these are the addresses of emitted DOCUMENTS, so the
+    // population is the languages that have documents - not the narrower
+    // list of languages whose app strings ship.
+    for (const locale of PAGE_LOCALES) {
       expect(homeHref(locale)).toBe(homePath(locale));
       expect(worldHref(locale)).toBe(worldPath(locale));
       expect(boardsHref(locale)).toBe(boardsPath(locale));
@@ -86,7 +89,18 @@ describe("what page am I on", () => {
   });
 
   it("ignores a language it does not speak", () => {
-    document.documentElement.lang = "fr";
+    // DERIVED, because the literal here was "fr" - an app language with no page
+    // today and a page language the moment somebody promotes it, at which point
+    // this test asserts the exact opposite of its own name and fails for a
+    // reason that has nothing to do with `readPageContext`.
+    //
+    // The intent is "an app language the emitter has never written a page for",
+    // so that is what it computes. If every app language is promoted the set is
+    // empty and there is nothing left to test, which the skip says out loud
+    // rather than passing vacuously.
+    const unwritten = APP_LOCALES.find((l) => !(PAGE_LOCALES as readonly string[]).includes(l));
+    if (!unwritten) return; // every app language has pages: nothing to ignore
+    document.documentElement.lang = unwritten;
     document.body.dataset.page = "game";
     document.body.dataset.game = "snake";
     document.body.innerHTML = '<div id="game-frame"></div>';

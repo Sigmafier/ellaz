@@ -9,7 +9,7 @@ import { DAILY_KEY } from "./daily";
 // over-match control is to run the REAL catalog through the refusal, and a
 // hand-written list of titles would be a second catalog that drifts.
 import { GAMES } from "../portal/games";
-import { PAGE_LOCALES } from "@i18n/locales";
+import { SHIPPED_LOCALES } from "@i18n/locales";
 import {
   MAX_ITEMS,
   assertShareSafe,
@@ -188,7 +188,7 @@ describe("nothing that restores a profile may ever leave the device", () => {
     // this broad WILL eventually fire on an innocent hyphenated title, and
     // this is what makes that a red build rather than a puzzled parent.
     for (const meta of GAMES) {
-      for (const locale of PAGE_LOCALES) {
+      for (const locale of SHIPPED_LOCALES) {
         const title = meta.title[locale];
         expect(scrub(title), `${meta.id}.${locale}`).toBe(title);
       }

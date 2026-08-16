@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { mulberry32, seedFrom } from "@shared/rng";
 import { SPAWN_DIFFICULTIES, isSustainable, steadyStateAlive } from "@shared/spawn.pure";
 import type { Locale } from "@i18n/index";
+import { SHIPPED_LOCALES } from "@i18n/locales";
 import {
   CONFUSION_GROUPS,
   DIFFICULTY_CONFIG,
@@ -22,7 +23,23 @@ import {
 } from "./logic";
 
 const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard"];
-const LOCALES: Locale[] = ["he", "en"];
+// See evolve/skin.test.ts: derived, because a literal here skipped Spanish
+// from the day it shipped and would skip every language added after.
+const LOCALES: readonly Locale[] = SHIPPED_LOCALES;
+
+/**
+ * Ten digits plus that language's alphabet.
+ *
+ * A RECORD and not a ternary, which is the whole point of this edit. It used to
+ * read `locale === "he" ? 32 : 36` beside a hardcoded `["he", "en"]`, so when
+ * Spanish shipped it was not merely unmeasured - the else-branch was WRONG for
+ * it. Spanish keeps Ñ as a letter of its own, so its pool is 37 and the ternary
+ * claimed 36. Nothing failed, because the population never included Spanish.
+ *
+ * A record cannot have an else-branch: a new shipped language reds this line by
+ * name instead of quietly inheriting English's count.
+ */
+const POOL_SIZE: Record<Locale, number> = { he: 32, en: 36, es: 37 };
 
 // Enough seeds that a property holding "by luck" on one draw cannot pass. Fixed
 // values, so every assertion below is deterministic — never flaky.
@@ -45,7 +62,7 @@ describe("the alphabet a bubble can carry", () => {
     expect(new Set(pool).size).toBe(pool.length);
     for (const ch of pool) expect([...ch].length).toBe(1);
     for (const d of "0123456789") expect(pool).toContain(d);
-    expect(pool.length).toBe(locale === "he" ? 32 : 36);
+    expect(pool.length).toBe(POOL_SIZE[locale]);
   });
 
   it("leaves the Hebrew final (sofit) forms OUT", () => {

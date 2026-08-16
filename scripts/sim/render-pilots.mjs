@@ -115,12 +115,27 @@ function renderPage(id, locale, copy, provenance) {
 const pages = ORDER.flatMap((id) => {
   const c = CONTENT[id];
   if (!c) throw new Error(`${id} missing from CONTENT - the roster moved.`);
-  return ["he", "en"].map((loc) => renderPage(id, loc, c[loc], c.provenance));
+  // `c.copy[loc]`, and the LOCALES read off the object itself.
+  //
+  // Two bugs in one line, both silent in their own way. It read `c[loc]`, which
+  // has been `undefined` since the prose moved under `copy` - so this script
+  // crashed rather than rendering, and nobody noticed because it is run by hand.
+  // And the locales were the literal `["he", "en"]`, so even working it would
+  // have rendered two thirds of the site: Spanish pages were never once put in
+  // front of a reader by the tool whose entire job is putting pages in front of
+  // a reader.
+  //
+  // Derived from the content object, so a promoted language joins the review
+  // surface the moment its prose exists. That matters more than it looks - a
+  // human reading the rendered page is the ONLY check that can see whether the
+  // prose sounds like a person, and it is the whole safety net for a language
+  // nobody on the team reads.
+  return Object.keys(c.copy).map((loc) => renderPage(id, loc, c.copy[loc], c.provenance));
 }).join("\n");
 
 const html = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ellaz - three pilot game pages, for the voice review</title>
+<title>Ellaz - every game page, for the voice review</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#0e1018;color:#e8e9f0;font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
@@ -197,4 +212,10 @@ show();
 
 mkdirSync(OUT, { recursive: true });
 writeFileSync(join(OUT, "index.html"), html, "utf8");
-console.log(`wrote ${join(OUT, "index.html")} - ${ORDER.length} games x 2 languages`);
+// Counted from what was actually rendered, not asserted from a literal. The
+// "2" here outlived Spanish by four days and would have reported a confident
+// wrong number about the very output the reader is holding.
+const langCount = new Set(ORDER.flatMap((id) => Object.keys(CONTENT[id].copy))).size;
+console.log(
+  `wrote ${join(OUT, "index.html")} - ${ORDER.length} games x ${langCount} languages`,
+);
