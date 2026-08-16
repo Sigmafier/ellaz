@@ -951,14 +951,62 @@ commit-stamp step shells out to git and a later step reports the CSS that was ne
 written. Both deploy workflows always have git, so this is a trap for a source unpack
 rather than a live defect.
 
-## Two locale sets, and the narrow one is a type
+## THREE locale sets, and the difference between them is the whole point
 
-`src/i18n/locales.ts` holds both, and the difference between them is the whole
-point. **`APP_LOCALES`** is what the interface speaks — currently 11: he, en, es,
-pt, fr, de, ar, it, ru, tr, id. **`PAGE_LOCALES`** is what has written prose —
-currently 3, he, en and **es** (promoted 2026-08-12, ~27,400 words). `ROUTES`
-derives from `PAGE_LOCALES`, so **adding a language to the app emits exactly
-zero documents** and cannot cost anything.
+`src/i18n/locales.ts` holds all three. **`APP_LOCALES`** is what the interface
+speaks — currently 11: he, en, es, pt, fr, de, ar, it, ru, tr, id.
+**`PAGE_LOCALES`** is what has written prose — currently 3, he, en and **es**
+(promoted 2026-08-12, ~27,400 words). `ROUTES` derives from `PAGE_LOCALES`, so
+**adding a language to the app emits exactly zero documents** and cannot cost
+anything.
+
+**`SHIPPED_LOCALES` is the third, and it exists since 2026-08-16 because the
+other two were quietly the same type.** It is what AUTHORED APP STRINGS are
+written in — a game's title, an animal's name, a shop item, an alphabet — the
+things a child's device downloads. It was `type Locale = PageLocale`, and that
+alias was the single thing standing between this site and pages in every
+language it speaks: `GameMeta.title` is `Record<Locale, string>` on the
+DOM-free meta, and the roster imports all 29 metas **statically**, so every
+PAGE language dragged 29 more titles into the shell.
+
+**Measured against the real chunk before the split: reaching eleven cost
++3,351 B gz in titles alone and +9,120 B gz across every shell record, against
+625 B of headroom.** A 14× overrun, to ship eleven names of one game to a reader
+who reads one.
+
+Pages now read a game's name from **`GameCopy.name`** via `gameName(id, locale)`
+in `src/build/gameName.ts` — build-time only, shipped to nobody. Ten emitter
+sites used to read `meta.title[locale]` (h1, breadcrumb, header bar, related
+cards, three JSON-LD nodes, the share card, the home grid, llms.txt) and now
+share one function, because ten call sites reading one fact ten ways is how a
+breadcrumb and an `h1` disagree about what a game is called. It **throws**
+rather than falling back: a French page whose heading silently reads "Snake" is
+indistinguishable downstream from a real name.
+
+**The result, and the number to re-run rather than trust: adding a locale to
+`PAGE_LOCALES` now reds ONLY `src/content` — 29 prose files, `site.ts` and
+`voice.ts`. Zero app, zero emitter, zero tests.** Before, it red ~120 sites
+across sdk/ui/shared/games/portal. The probe is one command and it is the whole
+proof of this design:
+
+```bash
+# add a 4th entry to PAGE_LOCALES, then:
+npx tsc --noEmit 2>&1 | grep "error TS" | grep -v "^src/content/"   # must be empty
+```
+
+Two funnels narrow an interface language to a list that is shorter:
+`pageLocaleFor()` for URLs, `shippedLocaleFor()` for authored strings, and
+`textFor()` wherever the record itself is in hand. **Widening `SHIPPED_LOCALES`
+is a PAYLOAD decision** — run `assert:payload` before and after — while widening
+`PAGE_LOCALES` is a prose decision the payload gate will not even notice.
+
+Three latent bugs fell out of the split, all one shape — a shipped record
+indexed by an interface language that already had eleven values, type-checking
+only because there is no `noUncheckedIndexedAccess`: `Boards` read
+`meta.title[locale]` directly rather than through `textFor()`, `World` read
+`item.name[locale]` in five places, and `boardLabel()`'s fallback returned
+`{he, en}` against a record needing `es`. Each rendered `undefined` into a
+heading for anyone reading in one of the eight app-only languages.
 
 **Promoting Spanish cost no first-visit bytes and it very nearly cost 1,363.**
 Content is build-time only, so 23 more articles move nothing. The chrome
@@ -1552,7 +1600,7 @@ is the failure `assert-first-visit.mjs` exists to catch and has now caught three
 times. It passed with its negative control rejecting 9 of 9 planted entries, so
 that green is a real one rather than a vacuous one.
 
-**Latest reading: 89,375 B gz, 625 spare** (2026-08-16, 29 games, after the
+**Latest reading: 89,440 B gz, 560 spare** (2026-08-16, 29 games, after the SHIPPED/PAGE locale split — +65 B for the two narrowing funnels, which buys removing a 9,120 B wall. Supersedes 89,375 / 625 from earlier the same day, after the
 title/meta work below — net +53 B for a per-language title on `/`,
 `og:locale:alternate` on every page and the runtime tab title. It was briefly
 +278 B: an explanatory comment added to `index.html` cost ~225 B gz on its own,
