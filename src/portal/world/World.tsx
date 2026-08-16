@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import type { Locale } from "@i18n/index";
-import { backArrow, makeT } from "@i18n/index";
+import type { AppLocale } from "@i18n/locales";
+import { backArrow, makeT, textFor } from "@i18n/index";
 import {
   audioPort,
   dailyStreak,
@@ -67,7 +67,7 @@ const CATEGORY_KEY: Record<ItemCategory, string> = {
   pet: "catPet",
 };
 
-export function World({ locale, onExit }: { locale: Locale; onExit: () => void }) {
+export function World({ locale, onExit }: { locale: AppLocale; onExit: () => void }) {
   const t = makeT(locale);
   const [profile, setProfile] = useState<ProfileV1>(() => wallet.snapshot());
   // The streak lives in its own key beside the profile, so the shop reads it
@@ -231,7 +231,7 @@ function NamePlate({
   t,
 }: {
   profile: ProfileV1;
-  locale: Locale;
+  locale: AppLocale;
   t: (key: string) => string;
 }) {
   const plateRef = useRef<HTMLDivElement>(null);
@@ -299,7 +299,7 @@ function ItemCard({
   profile: ProfileV1;
   earned: Earned;
   equipped: boolean;
-  locale: Locale;
+  locale: AppLocale;
   t: (key: string) => string;
   onTap: (item: ShopItem, card: HTMLElement) => void;
 }) {
@@ -353,12 +353,12 @@ function ItemCard({
   // Spoken separately from the badge: a screen reader should hear words, not
   // "star 10".
   const spoken = owned
-    ? `${item.name[locale]}, ${equipped ? t("place") : t("owned")}`
+    ? `${textFor(item.name, locale)}, ${equipped ? t("place") : t("owned")}`
     : starLocked
-      ? `${item.name[locale]}, ${t("needStars")} ${item.requiresStars}`
+      ? `${textFor(item.name, locale)}, ${t("needStars")} ${item.requiresStars}`
       : streakLocked
-        ? `${item.name[locale]}, ${t("needStreak")} ${item.requiresStreak}`
-        : `${item.name[locale]}, ${t("buy")} ${item.price} ${t("coins")}`;
+        ? `${textFor(item.name, locale)}, ${t("needStreak")} ${item.requiresStreak}`
+        : `${textFor(item.name, locale)}, ${t("buy")} ${item.price} ${t("coins")}`;
 
   return (
     <button
@@ -380,7 +380,7 @@ function ItemCard({
     >
       <Scene equipped={preview} size="100%" />
       <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
-        {item.name[locale]}
+        {textFor(item.name, locale)}
       </span>
       <span
         // The price reads left-to-right even inside the Hebrew RTL shell.

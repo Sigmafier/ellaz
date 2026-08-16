@@ -32,7 +32,7 @@
 // PURE: no DOM, no React, no Phaser. The `rng` parameter goes LAST and defaults
 // to `Math.random`. Imports are the DIRECT module paths rather than the
 // `@shared` barrel, which re-exports React components.
-import type { PageLocale } from "@i18n/locales";
+import type { ShippedLocale } from "@i18n/locales";
 import { pick } from "@shared/rng";
 
 /**
@@ -43,7 +43,7 @@ import { pick } from "@shared/rng";
  * every kind of care instead of quietly handing a Spanish player an English
  * aria-label. Same gate as `CastItem` in `@shared/cast`.
  */
-export type Named = Record<PageLocale, string>;
+export type Named = Record<ShippedLocale, string>;
 
 /* ------------------------------------------------------------- kinds of care */
 

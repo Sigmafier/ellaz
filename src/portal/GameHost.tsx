@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { backArrow, makeT, type Locale } from "@i18n/index";
+import { backArrow, makeT, shippedLocaleFor } from "@i18n/index";
+import type { AppLocale } from "@i18n/locales";
 import { createHostControls, audioPort, wallet } from "@sdk/index";
 import { Button, IconButton } from "@ui/components";
 import { findEntry } from "./catalog";
@@ -15,7 +16,7 @@ export function GameHost({
   variant = "app",
 }: {
   gameId: string;
-  locale: Locale;
+  locale: AppLocale;
   onExit: () => void;
   /**
    * "app" fills a viewport and owns its own chrome. "page" sits inside the
@@ -40,7 +41,10 @@ export function GameHost({
       return;
     }
 
-    const host = createHostControls(gameId, locale, el);
+    // Narrowed here, at the boundary: the interface may be speaking one of
+    // eleven languages and a game's own label tables are written in three. A
+    // Portuguese player gets English game strings rather than `undefined`.
+    const host = createHostControls(gameId, shippedLocaleFor(locale), el);
     (host.context as unknown as { __setRequestExit: (f: () => void) => void }).__setRequestExit(
       onExit,
     );

@@ -95,6 +95,47 @@ const _pageLocalesAreAppLocales: readonly AppLocale[] = PAGE_LOCALES;
 void _pageLocalesAreAppLocales;
 
 /**
+ * The languages whose AUTHORED APP STRINGS ship in the bundle.
+ *
+ * A third list, and it exists because the other two answer different questions
+ * and this one decides what a child DOWNLOADS.
+ *
+ *   APP_LOCALES     what the interface speaks          (chrome, lazy per language)
+ *   PAGE_LOCALES    what has written prose             (build-time, emitted, never shipped)
+ *   SHIPPED_LOCALES what authored app text exists in   (game titles, animal names, shop items)
+ *
+ * It used to BE `PageLocale` - `type Locale = PageLocale` in `strings.ts` - and
+ * that alias is what made adding a page language cost the first visit. A game
+ * title is `Record<Locale, string>` on the DOM-free meta, and the roster imports
+ * all 29 metas STATICALLY, so every page language dragged 29 more titles into
+ * the shell chunk. Measured before the split: promoting the eight remaining app
+ * languages added 3,351 B gz of titles alone and 9,120 B gz across every shell
+ * record, against 625 B of headroom. A 14x overrun, to ship eleven names of one
+ * game to a child who reads one language.
+ *
+ * Separated, a new page language costs the bundle EXACTLY ZERO. Pages read
+ * their game name from `GameCopy.name` in `src/content` instead, which is
+ * build-time only and never shipped.
+ *
+ * It is a subset of APP_LOCALES and deliberately NOT tied to PAGE_LOCALES in
+ * either direction: prose and shipped strings are different work, done by
+ * different people, at different costs. Widening this list is a PAYLOAD
+ * decision - run `npm run assert:payload` before and after - while widening
+ * PAGE_LOCALES is a prose decision that the payload gate will not even notice.
+ *
+ * Anything read through `textFor()` falls back to English, so an app language
+ * outside this list renders English game names rather than blanks. That is the
+ * same answer `x-default` gives a crawler.
+ */
+export const SHIPPED_LOCALES = ["en", "he", "es"] as const;
+
+export type ShippedLocale = (typeof SHIPPED_LOCALES)[number];
+
+/** The same compile-time subset proof, for the same reason. */
+const _shippedLocalesAreAppLocales: readonly AppLocale[] = SHIPPED_LOCALES;
+void _shippedLocalesAreAppLocales;
+
+/**
  * Which page a visitor reading the app in `locale` should be sent to.
  *
  * The app speaks eleven languages; pages exist in three. So a French-speaking
@@ -114,6 +155,28 @@ void _pageLocalesAreAppLocales;
 export function pageLocaleFor(locale: string): PageLocale {
   return (PAGE_LOCALES as readonly string[]).includes(locale)
     ? (locale as PageLocale)
+    : DEFAULT_LOCALE;
+}
+
+/**
+ * The same funnel, for AUTHORED SHIPPED STRINGS rather than for pages.
+ *
+ * `pageLocaleFor` answers "which document exists for this reader". This answers
+ * "which written-by-a-person string exists for them" - a game's title, an
+ * animal's name, a shop item. The two lists are separate since 2026-08-16 and
+ * both need a funnel, because the app speaks eleven languages and neither list
+ * is that long.
+ *
+ * `textFor()` is the right tool wherever the RECORD is in hand; this is for the
+ * places that pass a locale onward instead - `GameHost` handing `ctx.locale` to
+ * a game, which then indexes its own `Record<Locale, string>` tables. Without
+ * it a Portuguese player reaches a game whose every label is `undefined`.
+ * English rather than a blank, which is the promise every other fallback here
+ * makes.
+ */
+export function shippedLocaleFor(locale: string): ShippedLocale {
+  return (SHIPPED_LOCALES as readonly string[]).includes(locale)
+    ? (locale as ShippedLocale)
     : DEFAULT_LOCALE;
 }
 
@@ -238,8 +301,15 @@ export const ENGLISH_NAME: Record<AppLocale, string> = {
  * for, and English is a better answer than Hebrew for everyone on earth except
  * Hebrew speakers, who are matched by `hreflang="he"` long before x-default is
  * ever consulted.
+ *
+ * Typed as BOTH lists at once, and that is the invariant rather than a
+ * convenience. This constant is the floor under three different questions -
+ * which page to serve when no language matches, which dictionary to fall back
+ * to, and which authored string `textFor()` reaches for - so it has to be a
+ * member of every list that has a fallback. Narrow it to one and the day the
+ * two lists diverge is the day the other one silently has no floor.
  */
-export const DEFAULT_LOCALE: PageLocale = "en";
+export const DEFAULT_LOCALE: PageLocale & ShippedLocale = "en";
 
 /**
  * The language `/` itself is written in.

@@ -18,21 +18,23 @@
 // cannot pull the i18n resolver into the shared module graph. Same sanctioned
 // arrow as `@ui` -> `@i18n` (see CLAUDE.md); `locales.ts` imports nothing, so
 // it can never become a cycle.
-import type { PageLocale } from "@i18n/locales";
+import type { ShippedLocale } from "@i18n/locales";
 import { shuffle } from "./rng";
 
 /**
  * A themed character: the glyph, plus its name in every language a HUMAN HAS
  * WRITTEN one for.
  *
- * `Record<PageLocale, string>` rather than two literal `he` / `en` fields, and that
- * is a gate rather than a tidy-up. `Locale` is `PageLocale`, so the day a
- * language is promoted — Spanish is next — the compiler demands a Spanish name
- * for all 58 of these. Written as `he: string; en: string` it would simply
- * COMPILE, and `Shadows.tsx` and `SortSize.tsx` would go on handing Spanish
- * players English aria-labels with no error anywhere: the exact silent-skip
- * this project's two-locale-set rule exists to make impossible, hiding one
- * layer below where that rule was applied.
+ * `Record<ShippedLocale, string>` rather than two literal `he` / `en` fields, and
+ * that is a gate rather than a tidy-up: written as `he: string; en: string` it
+ * would simply COMPILE, and `Shadows.tsx` and `SortSize.tsx` would go on handing
+ * players of a newly-added language English aria-labels with no error anywhere.
+ *
+ * It was keyed on `PageLocale` until 2026-08-16, which made these 58 names part
+ * of the price of a new PAGE — 58 strings in the shell chunk for a language
+ * whose only new artifact is prose nobody downloads. Now the two are separate:
+ * promoting a page language demands nothing here, and widening SHIPPED_LOCALES
+ * demands all 58 and is a payload decision taken on purpose.
  *
  * Call sites are unchanged — `item.he` and `item.en` still resolve, because the
  * record's keys ARE those names.
@@ -42,7 +44,7 @@ import { shuffle } from "./rng";
  * languages under `copy` instead of intersecting them (see
  * `src/content/types.ts`); nothing here collides.
  */
-export type CastItem = Record<PageLocale, string> & {
+export type CastItem = Record<ShippedLocale, string> & {
   /** The glyph a game draws. */
   emoji: string;
 };

@@ -1,5 +1,6 @@
 import { createRoot, type Root } from "react-dom/client";
-import { DEFAULT_LOCALE, loadDict, type Locale } from "@i18n/index";
+import { DEFAULT_LOCALE, loadDict } from "@i18n/index";
+import type { PageLocale } from "@i18n/locales";
 import { analytics, startCloudSync } from "@sdk/index";
 import { Boards } from "./Boards";
 import { fitStage } from "./fitStage";
@@ -72,7 +73,7 @@ function connectionIsStingy(): boolean {
 function mountWallet(
   slot: HTMLElement | undefined,
   bare: boolean,
-  locale: Locale,
+  locale: PageLocale,
 ): Root | null {
   if (!slot) return null;
   const root = createRoot(slot);
@@ -115,7 +116,7 @@ function wireFullScreen(): void {
 }
 
 /** Where the in-game back control goes. Real history first, the home page as a floor. */
-function exitTo(locale: Locale): () => void {
+function exitTo(locale: PageLocale): () => void {
   return () => {
     if (window.history.length > 1) window.history.back();
     else window.location.assign(homeHref(locale));
@@ -127,7 +128,7 @@ export function bootContentPage(ctx: PageContext): void {
   // reached by a hand-edited or half-deployed document. DEFAULT_LOCALE rather
   // than a literal: the answer to "we could not tell" is the same everywhere,
   // and it moved to English with the root.
-  const locale: Locale = ctx.locale ?? DEFAULT_LOCALE;
+  const locale: PageLocale = ctx.locale ?? DEFAULT_LOCALE;
   const frame = ctx.frame;
   if (!frame) return;
 

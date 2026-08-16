@@ -15,7 +15,7 @@
 // PURE: no DOM, no React, no Phaser. The `rng` parameter goes LAST and defaults
 // to `Math.random`. Imports are the DIRECT module paths rather than the
 // `@shared` barrel, which re-exports React components.
-import type { PageLocale } from "@i18n/locales";
+import type { ShippedLocale } from "@i18n/locales";
 import { randInt } from "@shared/rng";
 
 /**
@@ -27,7 +27,7 @@ import { randInt } from "@shared/rng";
  * of quietly handing a Spanish player an English aria-label. Same gate as
  * `CastItem` in `@shared/cast`.
  */
-export type Creature = Record<PageLocale, string> & {
+export type Creature = Record<ShippedLocale, string> & {
   /** The glyph the renderer draws. */
   emoji: string;
 };

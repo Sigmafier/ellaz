@@ -26,7 +26,7 @@
 // through Hebrew: English is the x-default and the root for exactly this
 // reason. A Turkish visitor seeing English for 200ms is reading a language
 // they may know; seeing Hebrew is reading an alphabet they do not.
-import type { AppLocale, PageLocale } from "./locales";
+import type { AppLocale, ShippedLocale } from "./locales";
 import { APP_LOCALES, DEFAULT_LOCALE, dirOf } from "./locales";
 import { he } from "./dict/he";
 import { en } from "./dict/en";
@@ -49,15 +49,27 @@ export type { StringKey };
  * eleven titles per game is 23 x 9 extra strings in the SHELL — against 3 KB of
  * headroom.
  *
- * So there are two types and they mean different things:
- *   `AppLocale`  — the language the INTERFACE is speaking (11). `t()`, `DIR`.
- *   `Locale`     — the language a HUMAN WROTE this string in (2, = PageLocale).
+ * So there are THREE types and they mean different things:
+ *   `AppLocale`     — the language the INTERFACE is speaking (11). `t()`, `DIR`.
+ *   `Locale`        — the language a HUMAN WROTE this SHIPPED string in (3).
+ *   `PageLocale`    — the language a page's PROSE is written in (3, and growing).
+ *
+ * `Locale` was an alias for `PageLocale` until 2026-08-16, and that alias was
+ * the thing standing between this site and pages in every language it speaks:
+ * a page language could not be added without dragging 29 more game titles into
+ * the shell. Measured, it was 3,351 B gz for titles and 9,120 B gz across every
+ * shell record to reach eleven — against 625 B of headroom.
+ *
+ * They are the same three languages TODAY and they are no longer the same
+ * QUESTION. A page needs its game name from `GameCopy.name` in `src/content`
+ * (build-time, never shipped); the app needs it from `meta.title` (shipped).
+ * Growing the first is free; growing the second is a payload decision.
  *
  * A component that renders a title in the app's language resolves through
  * `textFor()` below, which falls back to English rather than pretending.
  */
 export type { AppLocale };
-export type Locale = PageLocale;
+export type Locale = ShippedLocale;
 
 /** Every language the interface speaks. Was the two-entry list, before. */
 export const LOCALES: readonly AppLocale[] = APP_LOCALES;
@@ -71,8 +83,8 @@ export const LOCALES: readonly AppLocale[] = APP_LOCALES;
  * new app language can never blank a screen: it falls back to English, which is
  * the same thing `x-default` promises a crawler.
  */
-export function textFor<T>(authored: Record<PageLocale, T>, locale: AppLocale): T {
-  return authored[locale as PageLocale] ?? authored[DEFAULT_LOCALE];
+export function textFor<T>(authored: Record<ShippedLocale, T>, locale: AppLocale): T {
+  return authored[locale as ShippedLocale] ?? authored[DEFAULT_LOCALE];
 }
 
 /**

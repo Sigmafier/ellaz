@@ -15,7 +15,7 @@
  * was never "an import", it was an ALIAS the config cannot resolve. It buys the
  * theme labels the same promotion guarantee every other authored string has.
  */
-import type { PageLocale } from "../i18n/locales";
+import type { ShippedLocale } from "../i18n/locales";
 
 export type ThemeId = "market" | "night";
 
@@ -26,7 +26,7 @@ export interface Theme {
    * so promoting a language reds here instead of leaving the theme name in
    * English on a screen that is not.
    */
-  readonly label: Record<PageLocale, string>;
+  readonly label: Record<ShippedLocale, string>;
   /** One glyph, so the control reads without reading. */
   readonly glyph: string;
   /**

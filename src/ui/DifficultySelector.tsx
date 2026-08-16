@@ -1,5 +1,7 @@
 import type { ReactElement } from "react";
 import type { Locale } from "@i18n/index";
+import type { AppLocale } from "@i18n/locales";
+import { textFor } from "@i18n/index";
 import { Button } from "./components";
 
 // The difficulty selector every game shares. Eight games hand-rolled the same
@@ -19,7 +21,7 @@ export function DifficultySelector<T extends string>(props: {
   options: readonly DifficultyOption<T>[];
   value: T;
   onChange: (id: T) => void;
-  locale: Locale;
+  locale: AppLocale;
   /** Bigger touch target for the kids games (age-5 minimum). */
   kids?: boolean;
 }): ReactElement {
@@ -47,7 +49,7 @@ export function DifficultySelector<T extends string>(props: {
           onClick={() => onChange(o.id)}
           style={{ fontSize: 16, padding: "0 var(--space-3)" }}
         >
-          {o.label[locale]}
+          {textFor(o.label, locale)}
         </Button>
       ))}
     </div>

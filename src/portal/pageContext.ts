@@ -1,4 +1,4 @@
-import type { Locale } from "@i18n/index";
+import type { PageLocale } from "@i18n/locales";
 import { isPageLocale } from "@i18n/locales";
 
 /**
@@ -30,7 +30,7 @@ export interface PageContext {
    * said which language they want, and answering in English because a previous
    * visit stored it is the thing that would read as broken.
    */
-  locale?: Locale;
+  locale?: PageLocale;
   /** Where the game or the room mounts. Absent on the app shell. */
   frame?: HTMLElement;
   /** Where the wallet chip mounts. Absent on the app shell. */
@@ -46,7 +46,7 @@ export interface PageContext {
  * A `lang="fr"` here would mean somebody hand-wrote a file, and answering
  * `undefined` to that is the honest reading.
  */
-function asLocale(value: string | undefined): Locale | undefined {
+function asLocale(value: string | undefined): PageLocale | undefined {
   return isPageLocale(value) ? value : undefined;
 }
 

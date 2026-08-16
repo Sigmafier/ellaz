@@ -10,7 +10,7 @@
 // `@shared` barrel and never `@ui`/`@juice`.
 import { CAST, type CastItem } from "@shared/cast";
 import { shuffle } from "@shared/rng";
-import type { PageLocale } from "@i18n/locales";
+import type { ShippedLocale } from "@i18n/locales";
 import { SIMPLE } from "./words";
 
 /** Level ids double as reward tiers - the union is identical by design. */
@@ -106,17 +106,23 @@ export function refillBag(
 
 // --- Alphabets -------------------------------------------------------------
 //
-// `Record<PageLocale, ...>` on purpose: the day a fourth language is promoted,
-// this record stops compiling until it is given an alphabet - the same gate
-// `cast.ts` and the content files carry, rather than a silent English fallback
-// for a language that has real letters of its own.
+// `Record<ShippedLocale, ...>` on purpose: the day a language joins the SHIPPED
+// set, this record stops compiling until it is given an alphabet - the same gate
+// `cast.ts` carries, rather than a silent English fallback for a language that
+// has real letters of its own.
+//
+// SHIPPED, not PAGE, since 2026-08-16. An alphabet is data a child's device
+// downloads; a page is prose nobody downloads. Adding French PAGES demands
+// nothing here, and it should not - a French article about this game does not
+// imply a French alphabet mode inside it. Adding French to SHIPPED_LOCALES
+// does, and reds this line by name.
 //
 // A first letter is NEVER a Hebrew FINAL form (ך ם ן ף ץ), so those are absent -
 // a wrong answer must still be a real letter a child recognises, and a final
 // form offered mid-word reads as subtly off. Spanish keeps Ñ as its own letter
 // and folds accented vowels onto their base (see `firstLetter`), so the pool is
 // A-Z plus Ñ and no accented forms.
-export const ALPHABETS: Record<PageLocale, readonly string[]> = {
+export const ALPHABETS: Record<ShippedLocale, readonly string[]> = {
   he: "אבגדהוזחטיכלמנסעפצקרשת".split(""),
   en: "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""),
   es: "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ".split(""),
@@ -138,13 +144,13 @@ function latinInitial(first: string): string {
   return first.normalize("NFD").replace(/\p{Diacritic}/gu, "").toUpperCase();
 }
 
-const DERIVE: Record<PageLocale, (first: string) => string> = {
+const DERIVE: Record<ShippedLocale, (first: string) => string> = {
   he: (first) => first,
   en: latinInitial,
   es: latinInitial,
 };
 
-export function firstLetter(word: string, lang: PageLocale): string {
+export function firstLetter(word: string, lang: ShippedLocale): string {
   const first = [...word.trim()][0] ?? "";
   return DERIVE[lang](first);
 }
@@ -153,17 +159,17 @@ export function firstLetter(word: string, lang: PageLocale): string {
 //
 // The operator's rule: a Hebrew interface can practise all three scripts, every
 // other interface gets the two Latin ones. Games only ever receive a locale
-// narrowed to a page locale (he/en/es), so "the interface is Hebrew" is exactly
-// "the page locale is he". Data-driven, so it reds on promotion and never reads
-// as a translation branch.
-const EXTRA_CONTENT: Record<PageLocale, readonly PageLocale[]> = {
+// narrowed to a shipped locale (he/en/es), so "the interface is Hebrew" is
+// exactly "the shipped locale is he". Data-driven, so it reds when the shipped
+// set grows and never reads as a translation branch.
+const EXTRA_CONTENT: Record<ShippedLocale, readonly ShippedLocale[]> = {
   he: ["en", "es"],
   en: ["es"],
   es: ["en"],
 };
 
 /** The content languages to offer, the player's own first (the default). */
-export function contentLangOptions(current: PageLocale): readonly PageLocale[] {
+export function contentLangOptions(current: ShippedLocale): readonly ShippedLocale[] {
   return [current, ...EXTRA_CONTENT[current]];
 }
 
@@ -182,7 +188,7 @@ export interface Round {
  * appears among them.
  */
 export function buildRound(
-  lang: PageLocale,
+  lang: ShippedLocale,
   item: CastItem,
   choices: number,
   rng: () => number = Math.random,

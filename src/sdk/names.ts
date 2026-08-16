@@ -35,6 +35,8 @@
 // in `portal/world/items.ts`. Removing one silently un-names every player who
 // had it. Words are ADDED; the ratchet in names.test.ts fails on a shrink.
 import type { Locale } from "@i18n/index";
+import type { AppLocale } from "@i18n/locales";
+import { DEFAULT_LOCALE } from "@i18n/locales";
 // Deep import, deliberately, and sanctioned by the barrel's own doc comment.
 // `@shared/index` re-exports winMoment, which reaches @juice and the portal's
 // WalletChip, which imports the wallet — and the wallet imports the profile,
@@ -196,11 +198,17 @@ const RENDER: Record<Locale, (adj: Adjective, noun: Noun) => string> = {
  * the call site, where "this player has no name yet" and "this build doesn't
  * know that word" can both be answered the same honest way: offer them a name.
  */
-export function renderName(name: PlayerName | undefined, locale: Locale): string | undefined {
+export function renderName(name: PlayerName | undefined, locale: AppLocale): string | undefined {
   const resolved = resolveName(name);
   if (!resolved) return undefined;
   const { adj, noun } = resolved;
-  return RENDER[locale](adj, noun);
+  // Takes an APP locale and narrows here, for the same reason `textFor()` does:
+  // the interface speaks eleven languages and this pool is written in three, so
+  // every caller would otherwise have to narrow at the call site and one of them
+  // would forget. A Turkish player sees the English name rather than a blank
+  // where their name should be - the same answer x-default gives a crawler.
+  const render = RENDER[locale as Locale] ?? RENDER[DEFAULT_LOCALE];
+  return render(adj, noun);
 }
 
 /** The noun's emoji — the character's face. `undefined` if the name doesn't resolve. */

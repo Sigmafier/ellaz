@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Locale } from "@i18n/index";
-import { backArrow, makeT } from "@i18n/index";
+import type { AppLocale } from "@i18n/locales";
+import { backArrow, makeT, pageLocaleFor, textFor } from "@i18n/index";
 import {
   audioPort,
   boardStanding,
@@ -82,10 +83,10 @@ const BOARD_LABELS: Record<string, Record<Locale, string>> = {
 };
 
 function boardLabel(board: string): Record<Locale, string> {
-  return BOARD_LABELS[board] ?? { he: board, en: board };
+  return BOARD_LABELS[board] ?? { he: board, en: board, es: board };
 }
 
-export function Boards({ locale, onExit }: { locale: Locale; onExit: () => void }) {
+export function Boards({ locale, onExit }: { locale: AppLocale; onExit: () => void }) {
   const t = makeT(locale);
   // Read once per mount. The wallet and the record store both change only when
   // a game is played, and no game is playable from this screen.
@@ -124,7 +125,7 @@ function GameGrid({
   onExit,
 }: {
   games: Playable[];
-  locale: Locale;
+  locale: AppLocale;
   t: (key: string) => string;
   onOpen: (id: string) => void;
   onExit: () => void;
@@ -205,7 +206,7 @@ function GameCard({
 }: {
   game: Playable;
   best: number | undefined;
-  locale: Locale;
+  locale: AppLocale;
   t: (key: string) => string;
   onOpen: () => void;
 }) {
@@ -216,7 +217,7 @@ function GameCard({
       onClick={onOpen}
       // The record belongs in the spoken label too — a screen reader announcing
       // only the game name would lose the one fact the card exists to carry.
-      aria-label={`${meta.title[locale]}, ${label}`}
+      aria-label={`${textFor(meta.title, locale)}, ${label}`}
       style={{
         border: "none",
         borderRadius: "var(--radius-3)",
@@ -250,7 +251,7 @@ function GameCard({
           textOverflow: "ellipsis",
         }}
       >
-        {meta.title[locale]}
+        {textFor(meta.title, locale)}
       </span>
       <span
         dir="ltr"
@@ -291,7 +292,7 @@ function GameBoard({
   onBack,
 }: {
   game: Playable;
-  locale: Locale;
+  locale: AppLocale;
   t: (key: string) => string;
   onBack: () => void;
 }) {
@@ -315,7 +316,7 @@ function GameBoard({
         <span aria-hidden="true" style={{ fontSize: 26, lineHeight: 1 }}>
           {meta.emoji}
         </span>
-        <h2 style={{ flex: 1, fontSize: 22, lineHeight: 1.1, margin: 0 }}>{meta.title[locale]}</h2>
+        <h2 style={{ flex: 1, fontSize: 22, lineHeight: 1.1, margin: 0 }}>{textFor(meta.title, locale)}</h2>
       </header>
 
       {game.boards.length > 1 ? (
@@ -350,7 +351,7 @@ function GameBoard({
       {/* A real <a>, not a handler: the game lives at its own URL, so this gets
           middle-click, long-press and Back for nothing. */}
       <a
-        href={gameHref(meta.id, locale)}
+        href={gameHref(meta.id, pageLocaleFor(locale))}
         onClick={() => audioPort.play("tap")}
         style={{
           display: "flex",
@@ -369,7 +370,7 @@ function GameBoard({
         }}
       >
         <span aria-hidden="true">{meta.emoji}</span>
-        {`${t("boardsPlay")} ${meta.title[locale]}`}
+        {`${t("boardsPlay")} ${textFor(meta.title, locale)}`}
       </a>
     </>
   );
@@ -405,7 +406,7 @@ function Board({
   board: string;
   unit: ScoreUnit;
   window: BoardWindow;
-  locale: Locale;
+  locale: AppLocale;
   t: (key: string) => string;
 }) {
   const [load, setLoad] = useState<Load>({ kind: "loading" });
@@ -547,7 +548,7 @@ function You({
 }
 
 /** `adj__noun` word ids back into a name in the reader's language. */
-function nameOf(packed: string, locale: Locale): string | undefined {
+function nameOf(packed: string, locale: AppLocale): string | undefined {
   const [adj, noun] = packed.split("__");
   if (!adj || !noun) return undefined;
   return renderName({ adj, noun }, locale);
