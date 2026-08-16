@@ -18,11 +18,11 @@ export const sudokuFr: GameCopy = {
   lede: "Six niveaux, du 4x4 aux animaux jusqu'au 9x9 expert. Chaque grille a une solution et une seule, donc on ne devine jamais. Le record est un temps.",
 
   body: [
-    "Un sudoku se remplit sans rien lire. C'est vrai des chiffres, et c'est encore plus vrai des deux petites grilles où les cases portent des animaux au lieu de nombres. Un enfant de quatre ans y joue sans savoir compter, et la règle reste exactement la même: jamais deux fois la même chose sur une ligne, sur une colonne, ou dans un bloc.",
-    "Les six niveaux vont du 4x4 au 9x9. Le nombre de cases déjà remplies descend au fur et à mesure: 9, puis 18, puis 42, 34, 28, et 24,7 en moyenne tout en haut, mesuré sur 60 grilles à chaque niveau. Le niveau expert vise 24 et n'y arrive pas toujours; il s'arrête parfois à 27, parce qu'en dessous la grille cesse d'avoir une solution unique et nous refusons de la publier.",
+    "Un sudoku se remplit sans rien lire. C'est vrai des chiffres, et c'est encore plus vrai des deux petites grilles où les cases portent des animaux au lieu de nombres. Un enfant de quatre ans y joue sans savoir compter, et la règle reste exactement la même : jamais deux fois la même chose sur une ligne, sur une colonne, ou dans un bloc.",
+    "Les six niveaux vont du 4x4 au 9x9. Le nombre de cases déjà remplies descend au fur et à mesure : 9, puis 18, puis 42, 34, 28, et 24,7 en moyenne tout en haut, mesuré sur 60 grilles à chaque niveau. Le niveau expert vise 24 et n'y arrive pas toujours ; il s'arrête parfois à 27, parce qu'en dessous la grille cesse d'avoir une solution unique et nous refusons de la publier.",
     "Ce que vous remplissez vous-même compte plus que ce qui est donné. Sur la grille des animaux, 7 cases sur 16. Sur la facile, 39 sur 81. Sur l'expert, 56. La grille grandit.",
-    "Le record est le temps de résolution, et le plus court gagne. Chaque niveau garde le sien: une grille d'animaux en 40 secondes et un expert en 11 minutes ne se comparent pas, et les mélanger rendrait les deux chiffres inutiles. Tout est écrit sur l'appareil, sans compte et sans que personne d'autre le voie.",
-    "Une limite, honnêtement: le niveau expert n'est pas amusant pour tout le monde. Il demande des techniques qu'on apprend, pas seulement de l'attention, et un joueur occasionnel s'y bloque sans savoir pourquoi. Commencez au milieu. C'est un conseil, pas une excuse.",
+    "Le record est le temps de résolution, et le plus court gagne. Chaque niveau garde le sien : une grille d'animaux en 40 secondes et un expert en 11 minutes ne se comparent pas, et les mélanger rendrait les deux chiffres inutiles. Tout est écrit sur l'appareil, sans compte et sans que personne d'autre le voie.",
+    "Une limite, honnêtement : le niveau expert n'est pas amusant pour tout le monde. Il demande des techniques qu'on apprend, pas seulement de l'attention, et un joueur occasionnel s'y bloque sans savoir pourquoi. Commencez au milieu. C'est un conseil, pas une excuse.",
   ],
 
   howToPlay: [
@@ -58,7 +58,7 @@ export const sudokuFr: GameCopy = {
   teaches: [
     {
       title: "L'élimination",
-      body: "Le sudoku est un raisonnement par élimination du début à la fin: ce n'est pas 3 parce que la ligne en a déjà un. C'est la même mécanique que la déduction en mathématiques, sans une seule opération à faire.",
+      body: "Le sudoku est un raisonnement par élimination du début à la fin : ce n'est pas 3 parce que la ligne en a déjà un. C'est la même mécanique que la déduction en mathématiques, sans une seule opération à faire.",
     },
     {
       title: "La patience utile",
@@ -105,27 +105,27 @@ export const sudokuFr: GameCopy = {
 
   faq: [
     {
-      q: "Le sudoku est-il gratuit ?",
+      q: "Le sudoku est-il gratuit ?",
       a: "Oui, tous les niveaux, sans limite de parties. Il n'y a pas de version payante et pas de publicité.",
     },
     {
-      q: "Faut-il un compte pour garder son temps ?",
+      q: "Faut-il un compte pour garder son temps ?",
       a: "Non. Le record est écrit sur l'appareil, sans compte et sans adresse e-mail.",
     },
     {
-      q: "Y a-t-il toujours une seule solution ?",
+      q: "Y a-t-il toujours une seule solution ?",
       a: "Oui. Chaque grille est vérifiée à la génération, et une grille qui aurait deux solutions n'est pas proposée. Vous n'avez donc jamais à deviner.",
     },
     {
-      q: "Un enfant peut-il y jouer sans savoir compter ?",
+      q: "Un enfant peut-il y jouer sans savoir compter ?",
       a: "Oui, avec les grilles d'animaux en 4x4 et 6x6. Les cases portent des dessins et la règle est identique.",
     },
     {
-      q: "Combien de cases faut-il remplir ?",
+      q: "Combien de cases faut-il remplir ?",
       a: "7 sur 16 pour les animaux, 39 sur 81 en facile, et 56 en expert. Le niveau expert part de 24,7 cases données en moyenne.",
     },
     {
-      q: "Est-ce qu'il marche hors ligne ?",
+      q: "Est-ce qu'il marche hors ligne ?",
       a: "Oui, après la première visite. Les grilles sont générées sur l'appareil, donc aucune connexion n'est nécessaire pour jouer.",
     },
   ],

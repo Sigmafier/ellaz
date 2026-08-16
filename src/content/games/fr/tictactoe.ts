@@ -10,11 +10,11 @@ export const tictactoeFr: GameCopy = {
   lede: "Trois adversaires. Le premier joue au hasard, le dernier ne peut pas perdre. Nous avons simulé 3 000 parties contre lui et gagné zéro fois.",
 
   body: [
-    "Le morpion tient sur neuf cases et tout le monde y a joué. Ce que peu de gens savent, c'est qu'il est entièrement résolu: il existe 255 168 parties complètes possibles, et si les deux joueurs jouent parfaitement, le résultat est toujours une partie nulle. Toujours. Le jeu n'est intéressant que parce qu'un humain ne joue jamais parfaitement.",
+    "Le morpion tient sur neuf cases et tout le monde y a joué. Ce que peu de gens savent, c'est qu'il est entièrement résolu : il existe 255 168 parties complètes possibles, et si les deux joueurs jouent parfaitement, le résultat est toujours une partie nulle. Toujours. Le jeu n'est intéressant que parce qu'un humain ne joue jamais parfaitement.",
     "Nos trois niveaux sont donc trois degrés d'imperfection, choisis exprès. Le facile joue un coup au hasard. Le moyen joue le meilleur coup environ une fois sur deux. Le difficile calcule toutes les suites possibles. Il ne se trompe jamais.",
-    "Les chiffres disent le reste. Contre un joueur qui pose au hasard, notre niveau facile perd 29% du temps, le moyen gagne 54,3%, le difficile gagne 78,3% et perd 0. Et contre le difficile, sur 3 000 parties simulées, nous n'avons obtenu aucune victoire: 21,7% de parties nulles et 78,3% de défaites. Ce n'est pas un réglage à ajuster, c'est ce que veut dire résoudre un jeu.",
+    "Les chiffres disent le reste. Contre un joueur qui pose au hasard, notre niveau facile perd 29% du temps, le moyen gagne 54,3%, le difficile gagne 78,3% et perd 0. Et contre le difficile, sur 3 000 parties simulées, nous n'avons obtenu aucune victoire : 21,7% de parties nulles et 78,3% de défaites. Ce n'est pas un réglage à ajuster, c'est ce que veut dire résoudre un jeu.",
     "Le record est la plus longue série de victoires d'affilée, et chaque adversaire garde la sienne. Contre le difficile, elle peut rester vide pour toujours.",
-    "L'aveu tient là, et il faut le dire plutôt que de le laisser découvrir: le niveau difficile n'est pas battable. Ni par vous, ni par nous, ni par personne. Le meilleur résultat possible est la partie nulle, et le vrai défi est d'en obtenir une à chaque fois. Si le but est de gagner, jouez contre le moyen, où une erreur sur deux vous laisse une porte ouverte.",
+    "L'aveu tient là, et il faut le dire plutôt que de le laisser découvrir : le niveau difficile n'est pas battable. Ni par vous, ni par nous, ni par personne. Le meilleur résultat possible est la partie nulle, et le vrai défi est d'en obtenir une à chaque fois. Si le but est de gagner, jouez contre le moyen, où une erreur sur deux vous laisse une porte ouverte.",
   ],
 
   howToPlay: [
@@ -73,12 +73,12 @@ export const tictactoeFr: GameCopy = {
     },
     {
       title: "Adultes",
-      body: "Le difficile, comme énigme plutôt que comme jeu: obtenir la partie nulle à chaque fois demande de connaître les bonnes réponses.",
+      body: "Le difficile, comme énigme plutôt que comme jeu : obtenir la partie nulle à chaque fois demande de connaître les bonnes réponses.",
     },
   ],
 
   accessibility:
-    "Neuf grandes cases, un appui par coup, sans glisser et sans double appui. Rien n'est chronométré: la grille attend votre coup aussi longtemps qu'il faut. Les deux marques se distinguent par leur forme et pas seulement par leur couleur, et l'adversaire répond immédiatement pour qu'il n'y ait jamais de doute sur qui doit jouer.",
+    "Neuf grandes cases, un appui par coup, sans glisser et sans double appui. Rien n'est chronométré : la grille attend votre coup aussi longtemps qu'il faut. Les deux marques se distinguent par leur forme et pas seulement par leur couleur, et l'adversaire répond immédiatement pour qu'il n'y ait jamais de doute sur qui doit jouer.",
 
   together: [
     {
@@ -97,27 +97,27 @@ export const tictactoeFr: GameCopy = {
 
   faq: [
     {
-      q: "Le morpion est-il gratuit ?",
+      q: "Le morpion est-il gratuit ?",
       a: "Oui, les trois adversaires, sans publicité, sans compte et sans version payante.",
     },
     {
-      q: "Peut-on battre le niveau difficile ?",
+      q: "Peut-on battre le niveau difficile ?",
       a: "Non. Il calcule toutes les suites possibles. Sur 3 000 parties simulées, nous avons obtenu 21,7% de parties nulles et aucune victoire.",
     },
     {
-      q: "Quelle est la différence entre les trois niveaux ?",
+      q: "Quelle est la différence entre les trois niveaux ?",
       a: "Le facile joue un coup au hasard, le moyen joue le meilleur coup environ une fois sur deux, le difficile ne se trompe jamais.",
     },
     {
-      q: "Combien de parties de morpion existent ?",
+      q: "Combien de parties de morpion existent ?",
       a: "255 168 parties complètes. Avec deux joueurs parfaits, le résultat est toujours une partie nulle.",
     },
     {
-      q: "Que garde le record ?",
+      q: "Que garde le record ?",
       a: "La plus longue série de victoires d'affilée contre un adversaire donné. Elle repart à zéro si vous changez d'adversaire.",
     },
     {
-      q: "Est-ce qu'il marche hors ligne ?",
+      q: "Est-ce qu'il marche hors ligne ?",
       a: "Oui, après la première visite. L'adversaire est calculé sur l'appareil, sans connexion.",
     },
   ],

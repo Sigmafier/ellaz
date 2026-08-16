@@ -12,9 +12,9 @@ export const fitFr: GameCopy = {
   body: [
     "Trois formes attendent en bas de l'écran. Vous les posez où elles rentrent. Une ligne ou une colonne complète s'efface. Trois nouvelles formes arrivent quand les trois précédentes sont posées.",
     "Rien n'est chronométré, ce qui rend ce jeu très différent de ceux où les blocs tombent. La partie se termine quand aucune des 3 formes proposées ne rentre nulle part, et jamais parce que vous avez été trop lent. Un enfant peut regarder la grille pendant deux minutes. Rien ne presse.",
-    "Nous avons comparé deux façons de jouer sur 3 000 parties par niveau et par programme, et le résultat dit exactement où se situe la difficulté. En facile, un programme qui examine tous les placements légaux tient 112,7 poses contre 21,8 pour un programme qui pose au hasard: 5,17 fois plus longtemps. En difficile, les mêmes deux programmes atteignent 19,3 et 12,5, soit un gain de 1,54 seulement. Autrement dit, le niveau facile récompense énormément le fait de réfléchir, et le difficile beaucoup moins, parce qu'il finit avant que la réflexion ait le temps de payer.",
+    "Nous avons comparé deux façons de jouer sur 3 000 parties par niveau et par programme, et le résultat dit exactement où se situe la difficulté. En facile, un programme qui examine tous les placements légaux tient 112,7 poses contre 21,8 pour un programme qui pose au hasard : 5,17 fois plus longtemps. En difficile, les mêmes deux programmes atteignent 19,3 et 12,5, soit un gain de 1,54 seulement. Autrement dit, le niveau facile récompense énormément le fait de réfléchir, et le difficile beaucoup moins, parce qu'il finit avant que la réflexion ait le temps de payer.",
     "Un dernier chiffre le confirme. En difficile, la grille n'est remplie qu'à 50,2% quand la partie s'arrête, et 45,3% des parties se terminent avec plus de la moitié de la grille encore vide.",
-    "L'aveu est justement là. Le niveau difficile est frustrant, et pas parce qu'il est exigeant: il se termine tôt, avec beaucoup de place apparemment disponible, sur un tirage de 3 formes qui ne rentraient nulle part. Ce n'est pas toujours votre faute, et il est plus honnête de l'écrire que de laisser croire à une erreur de jeu.",
+    "L'aveu est justement là. Le niveau difficile est frustrant, et pas parce qu'il est exigeant : il se termine tôt, avec beaucoup de place apparemment disponible, sur un tirage de 3 formes qui ne rentraient nulle part. Ce n'est pas toujours votre faute, et il est plus honnête de l'écrire que de laisser croire à une erreur de jeu.",
   ],
 
   howToPlay: [
@@ -73,7 +73,7 @@ export const fitFr: GameCopy = {
     },
     {
       title: "Adultes",
-      body: "Le difficile sur 8 sur 8, sans chronomètre, est un excellent jeu de pause: on peut s'arrêter au milieu et reprendre plus tard.",
+      body: "Le difficile sur 8 sur 8, sans chronomètre, est un excellent jeu de pause : on peut s'arrêter au milieu et reprendre plus tard.",
     },
   ],
 
@@ -97,27 +97,27 @@ export const fitFr: GameCopy = {
 
   faq: [
     {
-      q: "Ce jeu de formes est-il gratuit ?",
+      q: "Ce jeu de formes est-il gratuit ?",
       a: "Oui, les trois niveaux, sans publicité, sans compte et sans version payante.",
     },
     {
-      q: "Y a-t-il un chronomètre ?",
+      q: "Y a-t-il un chronomètre ?",
       a: "Non. La partie se termine seulement quand aucune des 3 formes proposées ne rentre nulle part.",
     },
     {
-      q: "Combien y a-t-il de formes ?",
+      q: "Combien y a-t-il de formes ?",
       a: "19 en tout, dont 10 seulement au niveau facile. La grille fait 6 sur 6 en facile et 8 sur 8 aux autres niveaux.",
     },
     {
-      q: "Comment marquer beaucoup de points ?",
+      q: "Comment marquer beaucoup de points ?",
       a: "En effaçant deux lignes d'un coup, ce qui vaut trois fois une seule ligne.",
     },
     {
-      q: "Pourquoi la partie finit-elle si tôt en difficile ?",
-      a: "Parce qu'un tirage de 3 formes peut ne rentrer nulle part: la grille n'est remplie qu'à 50,2% en moyenne quand la partie s'arrête.",
+      q: "Pourquoi la partie finit-elle si tôt en difficile ?",
+      a: "Parce qu'un tirage de 3 formes peut ne rentrer nulle part : la grille n'est remplie qu'à 50,2% en moyenne quand la partie s'arrête.",
     },
     {
-      q: "Est-ce qu'il marche hors ligne ?",
+      q: "Est-ce qu'il marche hors ligne ?",
       a: "Oui, après la première visite, sans connexion.",
     },
   ],

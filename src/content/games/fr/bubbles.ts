@@ -12,9 +12,9 @@ export const bubblesFr: GameCopy = {
   body: [
     "La consigne montre une lettre ou un chiffre en grand. Des bulles traversent l'écran. On appuie sur la bonne. Voilà tout.",
     "Le réservoir contient les 10 chiffres plus les lettres de la langue en cours, soit 26 majuscules en français et en anglais, ou 22 lettres de base en hébreu. Les formes finales de l'hébreu sont écartées, parce qu'un enfant qui apprend l'alphabet n'a aucune raison de rencontrer deux dessins pour la même lettre avant d'avoir appris la première.",
-    "Le niveau facile a une propriété que nous avons vérifiée plutôt que supposée: sur 120 tours mesurés par langue, il ne produit jamais deux bulles qui se ressemblent. Jamais un O à côté d'un 0, jamais un l à côté d'un 1. Un enfant qui commence tout juste à reconnaître ses lettres n'a pas à départager deux dessins presque identiques, ce qui est un exercice de vision plutôt qu'un exercice de lecture. Aux niveaux supérieurs, les paires ambiguës reviennent, et c'est à ce moment-là qu'elles ont un sens.",
+    "Le niveau facile a une propriété que nous avons vérifiée plutôt que supposée : sur 120 tours mesurés par langue, il ne produit jamais deux bulles qui se ressemblent. Jamais un O à côté d'un 0, jamais un l à côté d'un 1. Un enfant qui commence tout juste à reconnaître ses lettres n'a pas à départager deux dessins presque identiques, ce qui est un exercice de vision plutôt qu'un exercice de lecture. Aux niveaux supérieurs, les paires ambiguës reviennent, et c'est à ce moment-là qu'elles ont un sens.",
     "Une bulle reste 4,2 secondes à l'écran en facile et 2,4 en difficile. Il faut 4, 5 ou 6 bonnes prises pour finir un niveau.",
-    "L'aveu: ce jeu fait réviser des lettres, il ne les enseigne pas. Un enfant qui n'a jamais vu la lettre M ne l'apprendra pas ici, parce que rien ne la lui nomme ni ne la lui explique. Ce jeu sert quand la lettre a déjà été rencontrée ailleurs, avec un adulte, et qu'il s'agit de la reconnaître vite.",
+    "L'aveu : ce jeu fait réviser des lettres, il ne les enseigne pas. Un enfant qui n'a jamais vu la lettre M ne l'apprendra pas ici, parce que rien ne la lui nomme ni ne la lui explique. Ce jeu sert quand la lettre a déjà été rencontrée ailleurs, avec un adulte, et qu'il s'agit de la reconnaître vite.",
   ],
 
   howToPlay: [
@@ -83,7 +83,7 @@ export const bubblesFr: GameCopy = {
   together: [
     {
       title: "L'alphabet à deux voix",
-      body: "L'adulte nomme le signe demandé, l'enfant le cherche. Puis on inverse: l'enfant nomme et l'adulte attrape, ce qui est bien plus efficace qu'il n'y paraît.",
+      body: "L'adulte nomme le signe demandé, l'enfant le cherche. Puis on inverse : l'enfant nomme et l'adulte attrape, ce qui est bien plus efficace qu'il n'y paraît.",
     },
     {
       title: "La chasse dans la maison",
@@ -97,27 +97,27 @@ export const bubblesFr: GameCopy = {
 
   faq: [
     {
-      q: "Ce jeu de lettres est-il gratuit ?",
+      q: "Ce jeu de lettres est-il gratuit ?",
       a: "Oui, les trois niveaux, sans publicité, sans compte et sans version payante.",
     },
     {
-      q: "Quels signes apparaissent ?",
-      a: "Les 10 chiffres plus les lettres de la langue en cours: 26 majuscules en français, ou 22 lettres de base en hébreu, formes finales exclues.",
+      q: "Quels signes apparaissent ?",
+      a: "Les 10 chiffres plus les lettres de la langue en cours : 26 majuscules en français, ou 22 lettres de base en hébreu, formes finales exclues.",
     },
     {
-      q: "Les signes qui se ressemblent posent-ils problème ?",
-      a: "Pas au niveau facile: sur 120 tours mesurés par langue, il n'en produit aucune paire. Les niveaux supérieurs les réintroduisent volontairement.",
+      q: "Les signes qui se ressemblent posent-ils problème ?",
+      a: "Pas au niveau facile : sur 120 tours mesurés par langue, il n'en produit aucune paire. Les niveaux supérieurs les réintroduisent volontairement.",
     },
     {
-      q: "Combien de temps dure une bulle ?",
+      q: "Combien de temps dure une bulle ?",
       a: "4,2 secondes en facile et 2,4 en difficile.",
     },
     {
-      q: "Ce jeu apprend-il l'alphabet ?",
-      a: "Non, il le fait réviser. Rien ici ne nomme ni n'explique une lettre inconnue: la rencontre se fait ailleurs, avec un adulte.",
+      q: "Ce jeu apprend-il l'alphabet ?",
+      a: "Non, il le fait réviser. Rien ici ne nomme ni n'explique une lettre inconnue : la rencontre se fait ailleurs, avec un adulte.",
     },
     {
-      q: "Est-ce qu'il marche hors ligne ?",
+      q: "Est-ce qu'il marche hors ligne ?",
       a: "Oui, après la première visite, sans connexion.",
     },
   ],

@@ -11,10 +11,10 @@ export const lettersFr: GameCopy = {
 
   body: [
     "Une image s'affiche. En dessous, quelques lettres. L'enfant appuie sur la bonne. Rien n'est écrit.",
-    "Le niveau facile ne pioche que dans 22 mots, les plus courts et les plus courants, avec 2 lettres proposées seulement. Le moyen passe à 3 choix et le difficile à 4, en ouvrant le réservoir complet de 74 images. La progression porte donc sur deux choses à la fois: la difficulté du mot et le nombre de réponses à écarter.",
-    "Le réservoir couvre 19 lettres initiales différentes en français et en anglais, et 23 en espagnol. Ce n'est pas l'alphabet entier, volontairement: certaines lettres ne commencent aucun mot qu'un enfant de quatre ans reconnaît en image, et remplir la liste avec des mots rares transformerait un jeu de sons en un jeu de vocabulaire adulte. Mieux vaut 19 lettres qu'un enfant maîtrise que 26 dont 7 lui sont inconnues.",
+    "Le niveau facile ne pioche que dans 22 mots, les plus courts et les plus courants, avec 2 lettres proposées seulement. Le moyen passe à 3 choix et le difficile à 4, en ouvrant le réservoir complet de 74 images. La progression porte donc sur deux choses à la fois : la difficulté du mot et le nombre de réponses à écarter.",
+    "Le réservoir couvre 19 lettres initiales différentes en français et en anglais, et 23 en espagnol. Ce n'est pas l'alphabet entier, volontairement : certaines lettres ne commencent aucun mot qu'un enfant de quatre ans reconnaît en image, et remplir la liste avec des mots rares transformerait un jeu de sons en un jeu de vocabulaire adulte. Mieux vaut 19 lettres qu'un enfant maîtrise que 26 dont 7 lui sont inconnues.",
     "Rien n'est chronométré et une erreur ne coûte rien. La bonne réponse reste accessible aussitôt.",
-    "L'aveu: ce jeu suppose que l'enfant sait comment le mot se dit. Devant l'image d'un panda, il doit penser panda, pas ours. Si un enfant emploie un autre mot que celui attendu, sa réponse sera juste dans sa tête et fausse à l'écran, et il n'y a aucun moyen de le lui expliquer depuis un jeu. Un adulte qui nomme l'image à voix haute règle le problème en une seconde, et c'est pour ce jeu-là que la présence d'un adulte compte le plus.",
+    "L'aveu : ce jeu suppose que l'enfant sait comment le mot se dit. Devant l'image d'un panda, il doit penser panda, pas ours. Si un enfant emploie un autre mot que celui attendu, sa réponse sera juste dans sa tête et fausse à l'écran, et il n'y a aucun moyen de le lui expliquer depuis un jeu. Un adulte qui nomme l'image à voix haute règle le problème en une seconde, et c'est pour ce jeu-là que la présence d'un adulte compte le plus.",
   ],
 
   howToPlay: [
@@ -97,27 +97,27 @@ export const lettersFr: GameCopy = {
 
   faq: [
     {
-      q: "Ce jeu de lettres est-il gratuit ?",
+      q: "Ce jeu de lettres est-il gratuit ?",
       a: "Oui, les trois niveaux, sans publicité, sans compte et sans version payante.",
     },
     {
-      q: "Combien d'images et de lettres ?",
+      q: "Combien d'images et de lettres ?",
       a: "74 images dans le réservoir complet, dont 22 mots simples au niveau facile, avec 2, 3 ou 4 lettres proposées selon la difficulté.",
     },
     {
-      q: "Toutes les lettres de l'alphabet sont-elles couvertes ?",
+      q: "Toutes les lettres de l'alphabet sont-elles couvertes ?",
       a: "Non. 19 lettres initiales en français, et 23 en espagnol. Les lettres qui ne commencent aucun mot reconnaissable en image sont écartées volontairement.",
     },
     {
-      q: "Faut-il savoir lire ?",
+      q: "Faut-il savoir lire ?",
       a: "Non. Il faut reconnaître une lettre et entendre le premier son d'un mot, ce qui vient avant la lecture.",
     },
     {
-      q: "Que faire si l'enfant emploie un autre mot ?",
+      q: "Que faire si l'enfant emploie un autre mot ?",
       a: "Nommez l'image à voix haute avant qu'il choisisse. C'est la principale source d'erreur et elle disparaît complètement ainsi.",
     },
     {
-      q: "Est-ce qu'il marche hors ligne ?",
+      q: "Est-ce qu'il marche hors ligne ?",
       a: "Oui, après la première visite, sans connexion.",
     },
   ],

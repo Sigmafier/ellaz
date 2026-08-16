@@ -5,22 +5,22 @@ export const mathFr: GameCopy = {
   name: "Calcul",
   metaTitle: "Jeu de calcul mental gratuit, 7 niveaux | Ellaz",
   metaDescription:
-    "Compter, additionner, soustraire, multiplier: 7 niveaux du dénombrement aux tables. Jeu de calcul gratuit, sans compte et hors ligne.",
+    "Compter, additionner, soustraire, multiplier : 7 niveaux du dénombrement aux tables. Jeu de calcul gratuit, sans compte et hors ligne.",
 
   lede: "Sept niveaux, de compter jusqu'à 10 aux tables jusqu'à 5 fois 5. Trois réponses proposées, une seule juste, et rien à écrire.",
 
   body: [
     "Une question, 3 réponses, un appui. C'est tout. Le premier niveau demande de compter des objets jusqu'à 10, le dernier des multiplications jusqu'à 5 fois 5, et entre les deux il y a la reconnaissance de quantités, les images à dénombrer, puis les additions et soustractions jusqu'à 5, puis 10, puis 20.",
     "Avec 3 réponses proposées, un enfant qui appuie au hasard a raison une fois sur trois, soit 33,3%. Ce n'est pas un défaut. C'est un choix. Un enfant qui doit saisir un nombre au clavier passe la moitié de son temps à chercher les touches, et les tout-petits abandonnent avant d'avoir fait un seul calcul. Trois grosses réponses lisibles laissent toute l'attention sur la question. Et si un enfant réussit vingt questions d'affilée, personne au monde ne croit qu'il a eu de la chance vingt fois.",
-    "Le niveau de reconnaissance de quantités s'arrête à 6 et pas plus haut, pour une raison précise: les groupes d'objets servent eux-mêmes de boutons de réponse, et personne ne distingue un groupe de 7 d'un groupe de 8 d'un simple coup d'oeil. Au-delà de 6, l'enfant se met à compter au lieu de reconnaître, ce qui est un autre exercice et il existe déjà à côté.",
+    "Le niveau de reconnaissance de quantités s'arrête à 6 et pas plus haut, pour une raison précise : les groupes d'objets servent eux-mêmes de boutons de réponse, et personne ne distingue un groupe de 7 d'un groupe de 8 d'un simple coup d'oeil. Au-delà de 6, l'enfant se met à compter au lieu de reconnaître, ce qui est un autre exercice et il existe déjà à côté.",
     "L'équation reste écrite de gauche à droite, dans les 2 sens de lecture du site, parce qu'un calcul se note ainsi partout. Partout, sans exception.",
-    "L'aveu honnête: ce jeu ne remplace rien. Il entraîne la rapidité sur des calculs qu'un enfant sait déjà poser, et il ne lui apprendra pas pourquoi 7 plus 5 font 12. Cette explication vient d'un adulte, avec des objets sur une table. Ce que le jeu apporte ensuite, c'est la répétition, qui est ennuyeuse à faire sur une feuille et supportable ici.",
+    "L'aveu honnête : ce jeu ne remplace rien. Il entraîne la rapidité sur des calculs qu'un enfant sait déjà poser, et il ne lui apprendra pas pourquoi 7 plus 5 font 12. Cette explication vient d'un adulte, avec des objets sur une table. Ce que le jeu apporte ensuite, c'est la répétition, qui est ennuyeuse à faire sur une feuille et supportable ici.",
   ],
 
   howToPlay: [
     {
       title: "Choisir un niveau",
-      body: "7 niveaux vont du dénombrement aux multiplications. Prenez-en un plus bas que ce que vous croyez: la vitesse compte autant que la difficulté.",
+      body: "7 niveaux vont du dénombrement aux multiplications. Prenez-en un plus bas que ce que vous croyez : la vitesse compte autant que la difficulté.",
     },
     {
       title: "Lire la question",
@@ -28,7 +28,7 @@ export const mathFr: GameCopy = {
     },
     {
       title: "Appuyer sur la bonne réponse",
-      body: "3 réponses sont proposées. Une erreur ne coûte rien: la question reste, et l'enfant réessaie tout de suite.",
+      body: "3 réponses sont proposées. Une erreur ne coûte rien : la question reste, et l'enfant réessaie tout de suite.",
     },
   ],
 
@@ -97,27 +97,27 @@ export const mathFr: GameCopy = {
 
   faq: [
     {
-      q: "Ce jeu de calcul est-il gratuit ?",
+      q: "Ce jeu de calcul est-il gratuit ?",
       a: "Oui, les 7 niveaux, sans publicité, sans compte et sans version payante.",
     },
     {
-      q: "Quels calculs sont couverts ?",
+      q: "Quels calculs sont couverts ?",
       a: "Compter jusqu'à 10, reconnaître des quantités jusqu'à 6, dénombrer des images, additionner et soustraire jusqu'à 5, 10 puis 20, et multiplier jusqu'à 5 fois 5.",
     },
     {
-      q: "Pourquoi seulement 3 réponses proposées ?",
+      q: "Pourquoi seulement 3 réponses proposées ?",
       a: "Pour qu'un enfant de trois ans puisse jouer sans clavier. Le hasard vaut 33,3%, mais une série de bonnes réponses ne s'explique pas par la chance.",
     },
     {
-      q: "Pourquoi les quantités s'arrêtent-elles à 6 ?",
+      q: "Pourquoi les quantités s'arrêtent-elles à 6 ?",
       a: "Parce que les groupes d'objets servent de boutons, et qu'un groupe de 7 ne se distingue pas d'un groupe de 8 d'un coup d'oeil.",
     },
     {
-      q: "Faut-il un compte ?",
+      q: "Faut-il un compte ?",
       a: "Non, ni compte, ni adresse e-mail. Le record est écrit sur l'appareil.",
     },
     {
-      q: "Est-ce qu'il marche hors ligne ?",
+      q: "Est-ce qu'il marche hors ligne ?",
       a: "Oui, après la première visite. Les questions sont fabriquées sur l'appareil.",
     },
   ],

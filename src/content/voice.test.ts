@@ -287,3 +287,35 @@ describe("every language with pages has its own voice rules", () => {
     ).toEqual([]);
   });
 });
+
+describe("punctuation spacing is a per-language rule, not a universal one", () => {
+  // The shared fixture is Hebrew and carries its own "חינם?", so every count
+  // below is a DELTA against the untouched fixture rather than an absolute.
+  // Hardcoding the absolute passed for the wrong reason once already: it
+  // silently included the fixture's own mark, so the number agreed with a
+  // miscount instead of with the rule.
+  const base = analyse(copy(), "fr").tightPunctuation;
+
+  it("flags a tight colon and a tight question mark in French", () => {
+    const r = analyse(copy({ lede: "L'aveu: ce jeu ne pardonne rien. Vraiment?" }), "fr");
+    expect(r.tightPunctuation - base).toBe(2);
+  });
+
+  it("accepts the no-break space", () => {
+    const r = analyse(copy({ lede: "L'aveu\u00A0: ce jeu ne pardonne rien. Vraiment\u00A0?" }), "fr");
+    expect(r.tightPunctuation - base).toBe(0);
+  });
+
+  it("is SILENT for languages that do not want the space", () => {
+    // The half that matters. English, Hebrew and Spanish put nothing before a
+    // colon, so a rule applied to every language would red three correct
+    // locales in order to fix one - the "gate that reds correct pages" failure
+    // this session already hit three times in the French glossary alone.
+    for (const locale of ["en", "he", "es"] as const) {
+      expect(
+        analyse(copy({ lede: "One thing: this is correct. Right?" }), locale).tightPunctuation,
+        `${locale} must not be held to French spacing`,
+      ).toBe(0);
+    }
+  });
+});

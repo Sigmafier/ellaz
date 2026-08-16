@@ -11,10 +11,10 @@ export const wordguessFr: GameCopy = {
 
   body: [
     "Vous proposez un mot de la bonne longueur. Chaque lettre se colore. Bien placée, présente ailleurs, ou absente. Vous recommencez avec ce que vous venez d'apprendre, et ainsi de suite jusqu'à trouver.",
-    "La partie se joue dans la langue de l'interface, avec sa propre liste de mots. La liste anglaise de 4 lettres en compte 53, celle de 5 lettres 47, celle de 6 lettres 37. Ce sont des listes courtes et choisies, pas un dictionnaire: nous préférons 53 mots qu'un enfant connaît à 4 000 mots dont il n'a jamais entendu parler.",
+    "La partie se joue dans la langue de l'interface, avec sa propre liste de mots. La liste anglaise de 4 lettres en compte 53, celle de 5 lettres 47, celle de 6 lettres 37. Ce sont des listes courtes et choisies, pas un dictionnaire : nous préférons 53 mots qu'un enfant connaît à 4 000 mots dont il n'a jamais entendu parler.",
     "Le premier essai vaut beaucoup plus que les suivants, et nous l'avons mesuré sur chaque liste. En anglais, commencer par road ramène les 53 mots possibles à 4,81 en moyenne. Commencer par plum en laisse 20,36, soit quatre fois plus de travail derrière. Sur les mots de six lettres, planet laisse 1,27 possibilité et banana en laisse 7. La différence tient entièrement au fait qu'un bon mot de départ contient des lettres fréquentes et ne répète aucune lettre.",
     "En espagnol, sapo réduit une liste de 65 mots à 4,82, là où kiwi en laisse 44,29. Presque dix fois pire. Même longueur, pourtant.",
-    "L'aveu: ce jeu demande de savoir lire et écrire, ce qui en fait le moins accessible du catalogue. Un enfant qui commence tout juste à lire y passera plus de temps à chercher les lettres du clavier qu'à réfléchir, et l'expérience sera pénible. Les jeux de lettres pour les petits, sur ce site, se jouent en appuyant sur des images.",
+    "L'aveu : ce jeu demande de savoir lire et écrire, ce qui en fait le moins accessible du catalogue. Un enfant qui commence tout juste à lire y passera plus de temps à chercher les lettres du clavier qu'à réfléchir, et l'expérience sera pénible. Les jeux de lettres pour les petits, sur ce site, se jouent en appuyant sur des images.",
   ],
 
   howToPlay: [
@@ -24,7 +24,7 @@ export const wordguessFr: GameCopy = {
     },
     {
       title: "Lire les couleurs",
-      body: "Chaque lettre reçoit une couleur: bien placée, présente mais ailleurs, ou absente du mot. Les indices se cumulent d'un essai à l'autre.",
+      body: "Chaque lettre reçoit une couleur : bien placée, présente mais ailleurs, ou absente du mot. Les indices se cumulent d'un essai à l'autre.",
     },
     {
       title: "Recommencer avec ce que vous savez",
@@ -73,12 +73,12 @@ export const wordguessFr: GameCopy = {
     },
     {
       title: "Adultes",
-      body: "Les mots de 6 lettres, où le premier essai décide de la partie: 1,27 possibilité restante contre 7 selon le mot choisi.",
+      body: "Les mots de 6 lettres, où le premier essai décide de la partie : 1,27 possibilité restante contre 7 selon le mot choisi.",
     },
   ],
 
   accessibility:
-    "Le jeu se joue au clavier tactile ou physique, ce qui en fait le plus exigeant du site pour qui a des difficultés de saisie. Rien n'est chronométré, donc le temps de réflexion n'entre pas en compte. Les indices ne reposent pas uniquement sur la couleur: chaque lettre porte aussi une marque de forme, pour qu'un joueur daltonien distingue bien placé de présent ailleurs.",
+    "Le jeu se joue au clavier tactile ou physique, ce qui en fait le plus exigeant du site pour qui a des difficultés de saisie. Rien n'est chronométré, donc le temps de réflexion n'entre pas en compte. Les indices ne reposent pas uniquement sur la couleur : chaque lettre porte aussi une marque de forme, pour qu'un joueur daltonien distingue bien placé de présent ailleurs.",
 
   together: [
     {
@@ -97,27 +97,27 @@ export const wordguessFr: GameCopy = {
 
   faq: [
     {
-      q: "Ce jeu de mots est-il gratuit ?",
+      q: "Ce jeu de mots est-il gratuit ?",
       a: "Oui, toutes les longueurs, sans publicité, sans compte et sans version payante.",
     },
     {
-      q: "Combien de mots contiennent les listes ?",
+      q: "Combien de mots contiennent les listes ?",
       a: "En anglais, 53 mots de 4 lettres, 47 de 5 et 37 de 6. En espagnol, 65, 55 et 46. Les listes sont courtes et choisies volontairement.",
     },
     {
-      q: "Quel est le meilleur premier mot ?",
+      q: "Quel est le meilleur premier mot ?",
       a: "Un mot riche en lettres fréquentes et sans répétition. En anglais, road ramène 53 possibilités à 4,81, contre 20,36 pour plum.",
     },
     {
-      q: "Dans quelle langue se joue la partie ?",
+      q: "Dans quelle langue se joue la partie ?",
       a: "Dans la langue de l'interface, avec sa propre liste de mots. Changer de langue change la liste.",
     },
     {
-      q: "À partir de quel âge ?",
+      q: "À partir de quel âge ?",
       a: "Huit ans environ, car il faut lire et saisir au clavier. Les jeux de lettres pour les plus jeunes se jouent en appuyant sur des images.",
     },
     {
-      q: "Est-ce qu'il marche hors ligne ?",
+      q: "Est-ce qu'il marche hors ligne ?",
       a: "Oui, après la première visite. Les listes de mots sont sur l'appareil.",
     },
   ],

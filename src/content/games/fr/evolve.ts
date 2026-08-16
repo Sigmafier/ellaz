@@ -14,7 +14,7 @@ export const evolveFr: GameCopy = {
     "C'est le même moteur que notre jeu de chiffres, avec les mêmes 3 grilles. Nous avons remplacé les nombres par des créatures. Rien d'autre.",
     "Ce remplacement change plus de choses qu'il n'y paraît. Un enfant de quatre ans qui ne lit pas et ne compte pas ne peut rien faire d'une case marquée 128, parce qu'il n'a aucun moyen de savoir si elle est grande ou petite. Un crocodile, si. Il sait tout de suite. L'ordre des animaux se devine tout seul, du plus petit au plus impressionnant, et la question de savoir quelle case fusionner avec quelle autre devient lisible sans une seule explication.",
     "Le record est gardé séparément de celui du jeu de chiffres, même si le moteur est partagé. Une partie ici ne touche jamais un score gagné là-bas. Les deux vivent chacun de leur côté.",
-    "Une limite honnête: à partir du sixième ou septième animal, la grille devient serrée et le jeu redevient un jeu de réflexion pur, avec la même exigence qu'un jeu de chiffres. Les enfants qui jouaient pour voir apparaître de nouvelles bêtes s'arrêtent souvent là, et ce n'est pas un échec. Ils ont vu six animaux naître, ce qui est la partie du jeu écrite pour eux.",
+    "Une limite honnête : à partir du sixième ou septième animal, la grille devient serrée et le jeu redevient un jeu de réflexion pur, avec la même exigence qu'un jeu de chiffres. Les enfants qui jouaient pour voir apparaître de nouvelles bêtes s'arrêtent souvent là, et ce n'est pas un échec. Ils ont vu six animaux naître, ce qui est la partie du jeu écrite pour eux.",
   ],
 
   howToPlay: [
@@ -97,27 +97,27 @@ export const evolveFr: GameCopy = {
 
   faq: [
     {
-      q: "Ce jeu d'évolution est-il gratuit ?",
+      q: "Ce jeu d'évolution est-il gratuit ?",
       a: "Oui, entièrement, sans publicité et sans achat pour débloquer un animal. Les dix créatures sont là dès la première partie.",
     },
     {
-      q: "Combien y a-t-il de créatures ?",
+      q: "Combien y a-t-il de créatures ?",
       a: "Dix, de l'oeuf au T-Rex. Chacune est obtenue en réunissant deux exemplaires de la précédente.",
     },
     {
-      q: "Faut-il savoir compter pour y jouer ?",
-      a: "Non. Aucun chiffre n'est affiché: on voit des animaux, et leur ordre se devine à leur taille.",
+      q: "Faut-il savoir compter pour y jouer ?",
+      a: "Non. Aucun chiffre n'est affiché : on voit des animaux, et leur ordre se devine à leur taille.",
     },
     {
-      q: "Est-ce le même jeu que le 2048 ?",
+      q: "Est-ce le même jeu que le 2048 ?",
       a: "C'est le même moteur avec des animaux à la place des nombres. Les records sont gardés séparément, donc une partie ici ne touche pas votre score de l'autre jeu.",
     },
     {
-      q: "Faut-il un compte ?",
+      q: "Faut-il un compte ?",
       a: "Non, ni compte, ni adresse e-mail, ni mot de passe. Le record est écrit sur l'appareil.",
     },
     {
-      q: "Est-ce qu'il marche hors ligne ?",
+      q: "Est-ce qu'il marche hors ligne ?",
       a: "Oui, après la première visite. Le jeu reste disponible dans le navigateur sans connexion.",
     },
   ],

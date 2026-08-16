@@ -11,10 +11,10 @@ export const frogFr: GameCopy = {
 
   body: [
     "La grenouille se pose sur un nénuphar. Appuyez dessus. Elle saute ailleurs. Et ça recommence.",
-    "Il y a toujours exactement une grenouille à l'écran, et elle ne se pose jamais deux fois de suite sur le même nénuphar. Ces 2 règles ont l'air techniques et elles changent l'expérience: un enfant n'a jamais à chercher laquelle des grenouilles est la bonne, et il n'a jamais à se demander si elle a bougé ou pas.",
+    "Il y a toujours exactement une grenouille à l'écran, et elle ne se pose jamais deux fois de suite sur le même nénuphar. Ces 2 règles ont l'air techniques et elles changent l'expérience : un enfant n'a jamais à chercher laquelle des grenouilles est la bonne, et il n'a jamais à se demander si elle a bougé ou pas.",
     "Le temps d'attente se raccourcit au fil du tour, mais bien moins vite qu'on ne l'imagine. Sur le niveau facile, la grenouille attend 2,94 secondes au premier saut et encore 2,49 au dernier du tour. Le plancher, à 1,74 seconde, n'est atteint qu'après 14 sauts, ce qui veut dire qu'il n'arrive jamais pendant une partie facile. Seul le niveau difficile l'atteint à l'intérieur d'un tour, au huitième saut sur dix. Autrement dit, pour un enfant de trois ans, ce jeu ne s'emballe pas.",
     "Les niveaux offrent 4, 5 ou 6 nénuphars. Il faut 6, 8 ou 10 prises par tour.",
-    "L'aveu: c'est le jeu le plus simple du catalogue, et un enfant de six ans en fait le tour en quelques minutes. Il est fait pour les tout-petits qui apprennent à viser, et il n'a rien à offrir au-delà. Ce n'est pas un défaut à corriger, c'est ce à quoi il sert.",
+    "L'aveu : c'est le jeu le plus simple du catalogue, et un enfant de six ans en fait le tour en quelques minutes. Il est fait pour les tout-petits qui apprennent à viser, et il n'a rien à offrir au-delà. Ce n'est pas un défaut à corriger, c'est ce à quoi il sert.",
   ],
 
   howToPlay: [
@@ -87,7 +87,7 @@ export const frogFr: GameCopy = {
     },
     {
       title: "Le guide",
-      body: "Un adulte dit où elle est allée, sans montrer du doigt: en haut à droite. Le vocabulaire de position se met en place tout seul.",
+      body: "Un adulte dit où elle est allée, sans montrer du doigt : en haut à droite. Le vocabulaire de position se met en place tout seul.",
     },
     {
       title: "La grenouille annoncée",
@@ -97,27 +97,27 @@ export const frogFr: GameCopy = {
 
   faq: [
     {
-      q: "Ce jeu de la grenouille est-il gratuit ?",
+      q: "Ce jeu de la grenouille est-il gratuit ?",
       a: "Oui, les trois niveaux, sans publicité, sans compte et sans version payante.",
     },
     {
-      q: "Combien de temps pour attraper la grenouille ?",
+      q: "Combien de temps pour attraper la grenouille ?",
       a: "2,94 secondes au premier saut en facile, encore 2,49 au dernier du tour. Le plancher de 1,74 seconde n'est atteint qu'après 14 sauts.",
     },
     {
-      q: "Peut-elle rester au même endroit ?",
+      q: "Peut-elle rester au même endroit ?",
       a: "Non, jamais. Elle change toujours de nénuphar, et il n'y en a jamais qu'une à l'écran.",
     },
     {
-      q: "Combien de nénuphars y a-t-il ?",
+      q: "Combien de nénuphars y a-t-il ?",
       a: "4, 5 ou 6 selon le niveau, avec 6, 8 ou 10 prises pour finir un tour.",
     },
     {
-      q: "À partir de quel âge ?",
+      q: "À partir de quel âge ?",
       a: "Deux ans. C'est le jeu le plus simple du site, et il devient trop facile vers six ans.",
     },
     {
-      q: "Est-ce qu'il marche hors ligne ?",
+      q: "Est-ce qu'il marche hors ligne ?",
       a: "Oui, après la première visite, sans connexion.",
     },
   ],

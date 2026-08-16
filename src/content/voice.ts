@@ -248,13 +248,33 @@ export interface VoiceRules {
   banned: readonly string[];
   ruleOfThree: RegExp;
   contrast: RegExp;
+  /**
+   * True for languages whose orthotypography puts a space before `: ; ? !`.
+   *
+   * French does; English, Hebrew and Spanish do not, which is exactly why this
+   * is a per-language flag rather than a rule the analyser applies to
+   * everything. It is a NO-BREAK space (U+00A0), not a plain one, so the mark
+   * cannot be orphaned onto the next line.
+   *
+   * It earns a gate because of HOW it goes wrong: the first French draft here
+   * wrote " ?" in every FAQ question and "mot:" everywhere else, so the pages
+   * were internally inconsistent - the single most visible way French reads as
+   * written by somebody who does not write French. Nothing else in this file
+   * could see it, and no reviewer without the language would either.
+   */
+  spacedPunctuation?: boolean;
 }
 
 export const VOICE: Record<PageLocale, VoiceRules> = {
   he: { banned: BANNED_HE, ruleOfThree: RULE_OF_THREE_HE, contrast: CONTRAST_HE },
   en: { banned: BANNED_EN, ruleOfThree: RULE_OF_THREE_EN, contrast: CONTRAST_EN },
   es: { banned: BANNED_ES, ruleOfThree: RULE_OF_THREE_ES, contrast: CONTRAST_ES },
-  fr: { banned: BANNED_FR, ruleOfThree: RULE_OF_THREE_FR, contrast: CONTRAST_FR },
+  fr: {
+    banned: BANNED_FR,
+    ruleOfThree: RULE_OF_THREE_FR,
+    contrast: CONTRAST_FR,
+    spacedPunctuation: true,
+  },
 };
 
 /**
@@ -310,6 +330,8 @@ export interface VoiceReport {
   ruleOfThree: number;
   contrastFormula: number;
   digitFacts: number;
+  /** `: ; ? !` with no space in front, in a language that requires one. */
+  tightPunctuation: number;
 }
 
 export function analyse(copy: GameCopy, locale: Locale): VoiceReport {
@@ -339,6 +361,12 @@ export function analyse(copy: GameCopy, locale: Locale): VoiceReport {
     contrastFormula: (prose.match(rules.contrast) ?? []).length,
     // A digit run, not a lone numeral, so "9.2" and "20,000" each count once.
     digitFacts: (prose.match(/\d[\d.,]*/g) ?? []).length,
+    // Only asked of a language that wants the space, and asked of the
+    // character BEFORE the mark rather than of the mark itself - a mark at the
+    // start of a string has nothing in front of it and is not a defect.
+    tightPunctuation: rules.spacedPunctuation
+      ? (prose.match(/[^\s\u00A0][:;?!]/g) ?? []).length
+      : 0,
   };
 }
 
@@ -369,6 +397,14 @@ export function violations(r: VoiceReport): string[] {
     out.push(
       `${r.dashes} em/en dash characters. Customer-facing copy uses a plain hyphen; ` +
         `the operator reads the long dash as a tell that text was machine-written.`,
+    );
+
+  if (r.tightPunctuation)
+    out.push(
+      `${r.tightPunctuation} of \`: ; ? !\` with no space in front. This language puts a ` +
+        `NO-BREAK space (U+00A0) there. Getting it right on some marks and not others is ` +
+        `worse than getting it wrong everywhere, because the inconsistency is what a ` +
+        `native reader notices first.`,
     );
 
   if (r.ruleOfThree > MAX_RULE_OF_THREE)

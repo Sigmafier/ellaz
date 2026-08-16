@@ -11,10 +11,10 @@ export const vanishFr: GameCopy = {
 
   body: [
     "Une poignée d'objets s'affiche. Ils disparaissent. Ils reviennent, sauf un, et l'enfant doit désigner celui qui manque.",
-    "Le temps d'observation n'est pas décoratif, il est calculé. Le facile montre 3 objets pendant 7 secondes, soit 2,33 secondes par objet. Le moyen montre 4 objets pendant 8 secondes, donc 2 secondes chacun. Le difficile montre 6 objets pendant 9 secondes, ce qui fait 1,5 seconde par objet. Ce dernier chiffre est aussi un plancher: aucun niveau, jamais, ne descend en dessous de 1,5 seconde par objet ni de 5 secondes au total, quoi qu'il arrive. Un jeu de mémoire qui affiche trop vite ne teste plus la mémoire, il teste la vitesse de lecture, et ce n'est pas la même chose.",
+    "Le temps d'observation n'est pas décoratif, il est calculé. Le facile montre 3 objets pendant 7 secondes, soit 2,33 secondes par objet. Le moyen montre 4 objets pendant 8 secondes, donc 2 secondes chacun. Le difficile montre 6 objets pendant 9 secondes, ce qui fait 1,5 seconde par objet. Ce dernier chiffre est aussi un plancher : aucun niveau, jamais, ne descend en dessous de 1,5 seconde par objet ni de 5 secondes au total, quoi qu'il arrive. Un jeu de mémoire qui affiche trop vite ne teste plus la mémoire, il teste la vitesse de lecture, et ce n'est pas la même chose.",
     "Avec 3 objets, une réponse au hasard tombe juste 33,3% du temps. Avec 4, c'est 25%. Avec 6, 16,7%.",
-    "Rien n'est écrit à aucun moment et rien ne demande de compter. Un enfant de trois ans joue au niveau facile sans qu'on lui explique la règle: on la lui montre une fois et c'est fini.",
-    "La limite honnête: 6 objets, c'est peu pour un adulte. Le niveau difficile de ce jeu est un exercice confortable pour n'importe qui de plus de dix ans, et il n'est pas prévu pour être davantage. C'est un jeu pour les petits, et l'élargir vers le haut voudrait dire afficher plus vite, ce que le plancher interdit exprès.",
+    "Rien n'est écrit à aucun moment et rien ne demande de compter. Un enfant de trois ans joue au niveau facile sans qu'on lui explique la règle : on la lui montre une fois et c'est fini.",
+    "La limite honnête : 6 objets, c'est peu pour un adulte. Le niveau difficile de ce jeu est un exercice confortable pour n'importe qui de plus de dix ans, et il n'est pas prévu pour être davantage. C'est un jeu pour les petits, et l'élargir vers le haut voudrait dire afficher plus vite, ce que le plancher interdit exprès.",
   ],
 
   howToPlay: [
@@ -97,27 +97,27 @@ export const vanishFr: GameCopy = {
 
   faq: [
     {
-      q: "Ce jeu de mémoire est-il gratuit ?",
+      q: "Ce jeu de mémoire est-il gratuit ?",
       a: "Oui, les trois niveaux, sans publicité, sans compte et sans version payante.",
     },
     {
-      q: "Combien de temps pour regarder les objets ?",
+      q: "Combien de temps pour regarder les objets ?",
       a: "7 secondes pour 3 objets, 8 pour 4 et 9 pour 6, soit 2,33, 2 et 1,5 seconde par objet.",
     },
     {
-      q: "Le jeu peut-il devenir trop rapide ?",
+      q: "Le jeu peut-il devenir trop rapide ?",
       a: "Non. Un plancher de 1,5 seconde par objet et de 5 secondes au total ne peut être franchi par aucun niveau.",
     },
     {
-      q: "Faut-il savoir lire ?",
+      q: "Faut-il savoir lire ?",
       a: "Non. Tout est en images et rien n'est écrit sur l'écran de jeu.",
     },
     {
-      q: "À partir de quel âge ?",
-      a: "Trois ans pour le niveau facile. C'est un jeu pour les enfants: il reste confortable pour un adulte, volontairement.",
+      q: "À partir de quel âge ?",
+      a: "Trois ans pour le niveau facile. C'est un jeu pour les enfants : il reste confortable pour un adulte, volontairement.",
     },
     {
-      q: "Est-ce qu'il marche hors ligne ?",
+      q: "Est-ce qu'il marche hors ligne ?",
       a: "Oui, après la première visite, sans aucune connexion.",
     },
   ],

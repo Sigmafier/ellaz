@@ -12,7 +12,7 @@ export const finddiffFr: GameCopy = {
   body: [
     "Le principe se passe d'explication et c'est justement pourquoi ce jeu marche à trois ans. Deux dessins presque identiques, l'un à côté de l'autre. Appuyez là où ils diffèrent. Une marque apparaît sur les deux images en même temps, pour que l'enfant voie bien qu'il a raison des deux côtés.",
     "Il y a 6 scènes et 5 différences dans chacune, donc 30 au total. Quand les 6 sont passées, le jeu recommence au début et le compteur de niveau monte d'un cran. Sans fin.",
-    "Le record est le nombre de scènes réussies depuis le début, et pas le niveau affiché à l'écran. La différence compte: le niveau ne monte qu'après un tour complet des six scènes, donc si nous enregistrions celui-là, l'immense majorité des joueurs garderait un record de 1 pendant des semaines. Une scène terminée est un vrai progrès, et le compteur doit avancer quand quelque chose avance.",
+    "Le record est le nombre de scènes réussies depuis le début, et pas le niveau affiché à l'écran. La différence compte : le niveau ne monte qu'après un tour complet des six scènes, donc si nous enregistrions celui-là, l'immense majorité des joueurs garderait un record de 1 pendant des semaines. Une scène terminée est un vrai progrès, et le compteur doit avancer quand quelque chose avance.",
     "Rien n'est chronométré. Un enfant peut regarder une image pendant 2 minutes sans que rien ne le presse ni ne lui souffle la réponse.",
     "L'honnêteté oblige à dire que six scènes, ce n'est pas beaucoup. Un enfant attentif les connaît par coeur au bout de trois ou quatre passages, et à partir de là le jeu devient un exercice de mémoire plutôt qu'un exercice d'observation. C'est encore utile, mais ce n'est plus le même jeu, et nous préférons l'écrire ici plutôt que de laisser croire à un catalogue sans fond.",
   ],
@@ -58,7 +58,7 @@ export const finddiffFr: GameCopy = {
     },
     {
       title: "Décrire ce qu'on voit",
-      body: "Trouver une différence oblige souvent à la nommer pour être sûr: le chapeau est bleu ici et rouge là. Le vocabulaire progresse en même temps que l'oeil.",
+      body: "Trouver une différence oblige souvent à la nommer pour être sûr : le chapeau est bleu ici et rouge là. Le vocabulaire progresse en même temps que l'oeil.",
     },
   ],
 
@@ -97,27 +97,27 @@ export const finddiffFr: GameCopy = {
 
   faq: [
     {
-      q: "Le jeu des différences est-il gratuit ?",
+      q: "Le jeu des différences est-il gratuit ?",
       a: "Oui, les six scènes, sans publicité, sans compte et sans version payante.",
     },
     {
-      q: "Combien y a-t-il de différences ?",
+      q: "Combien y a-t-il de différences ?",
       a: "Cinq par scène et six scènes, donc 30 en tout avant que le jeu recommence.",
     },
     {
-      q: "Que compte le record ?",
+      q: "Que compte le record ?",
       a: "Le nombre de scènes réussies depuis le début, et pas le niveau affiché. Le niveau ne monte qu'après un tour complet, donc il avancerait beaucoup trop lentement.",
     },
     {
-      q: "Y a-t-il un chronomètre ?",
+      q: "Y a-t-il un chronomètre ?",
       a: "Non. Un enfant peut regarder aussi longtemps qu'il veut, et une erreur ne coûte rien.",
     },
     {
-      q: "À partir de quel âge ?",
+      q: "À partir de quel âge ?",
       a: "Trois ans avec un adulte à côté, six ans tout seul. Il n'y a rien à lire.",
     },
     {
-      q: "Est-ce qu'il marche hors ligne ?",
+      q: "Est-ce qu'il marche hors ligne ?",
       a: "Oui, après la première visite. Les six scènes sont sur l'appareil.",
     },
   ],

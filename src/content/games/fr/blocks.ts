@@ -12,10 +12,10 @@ export const blocksFr: GameCopy = {
   body: [
     "Une forme descend, vous la faites tourner et glisser, elle se pose. Quand une rangée est complète d'un bord à l'autre, elle s'efface et tout ce qui est au-dessus redescend d'un cran. La partie s'arrête quand la pile touche le haut. Rien de plus.",
     "Le niveau calme donne 4 formes seulement, sur une grille de 8 sur 14, avec une seconde entière entre deux descentes. Le normal en donne 9. Le rapide en donne 11 et descend d'un cran toutes les 140 millisecondes en fin de partie, ce qui laisse le temps d'un geste. Pas deux.",
-    "Nous avons fait jouer un programme qui range simplement les blocs à plat, sans stratégie particulière. Il survit à 100% des parties calmes et à 99,3% des normales. Sur le rapide, il ne survit à aucune: la partie médiane s'arrête après 78 rangées. C'est la mesure la plus utile de la page, parce qu'elle dit que les deux premiers niveaux se jouent tranquillement et que le troisième a une fin garantie, quel que soit votre talent.",
+    "Nous avons fait jouer un programme qui range simplement les blocs à plat, sans stratégie particulière. Il survit à 100% des parties calmes et à 99,3% des normales. Sur le rapide, il ne survit à aucune : la partie médiane s'arrête après 78 rangées. C'est la mesure la plus utile de la page, parce qu'elle dit que les deux premiers niveaux se jouent tranquillement et que le troisième a une fin garantie, quel que soit votre talent.",
     "Pour comparaison, un programme qui pose les blocs n'importe où termine une partie normale au bout d'une vingtaine de pièces, sans avoir effacé une seule rangée. Poser à plat change tout.",
-    "Les points récompensent les rangées groupées: une rangée vaut 10, deux d'un coup 30, trois 60, quatre 100. Descendre une pièce d'un coup sec rapporte un point par rangée parcourue. Une pièce d'or arrive toutes les 5 rangées effacées.",
-    "L'aveu: c'est le jeu le moins adapté aux petits du site. Il demande de faire tourner une forme dans sa tête avant de la poser, et cette capacité arrive vers 7 ou 8 ans. En dessous, même le niveau calme finit par une pile en désordre et un enfant qui ne comprend pas ce qu'il aurait dû faire.",
+    "Les points récompensent les rangées groupées : une rangée vaut 10, deux d'un coup 30, trois 60, quatre 100. Descendre une pièce d'un coup sec rapporte un point par rangée parcourue. Une pièce d'or arrive toutes les 5 rangées effacées.",
+    "L'aveu : c'est le jeu le moins adapté aux petits du site. Il demande de faire tourner une forme dans sa tête avant de la poser, et cette capacité arrive vers 7 ou 8 ans. En dessous, même le niveau calme finit par une pile en désordre et un enfant qui ne comprend pas ce qu'il aurait dû faire.",
   ],
 
   howToPlay: [
@@ -98,27 +98,27 @@ export const blocksFr: GameCopy = {
 
   faq: [
     {
-      q: "Ce jeu de blocs est-il gratuit ?",
+      q: "Ce jeu de blocs est-il gratuit ?",
       a: "Oui, les trois vitesses, sans publicité, sans compte et sans version payante.",
     },
     {
-      q: "Combien de formes y a-t-il ?",
+      q: "Combien de formes y a-t-il ?",
       a: "4 au niveau calme, 9 au normal et 11 au rapide, sur des grilles de 8 sur 14 ou 10 sur 18.",
     },
     {
-      q: "Le niveau rapide est-il gagnable ?",
+      q: "Le niveau rapide est-il gagnable ?",
       a: "Non, il finit toujours. Un programme qui range proprement survit à 100% des parties calmes et à aucune partie rapide, la médiane s'arrêtant après 78 rangées.",
     },
     {
-      q: "Comment marquer beaucoup de points ?",
+      q: "Comment marquer beaucoup de points ?",
       a: "En effaçant plusieurs rangées d'un coup. Une rangée vaut 10 points, deux valent 30, trois 60 et quatre 100.",
     },
     {
-      q: "À partir de quel âge ?",
+      q: "À partir de quel âge ?",
       a: "Sept ans environ, parce qu'il faut se représenter une forme tournée avant de la poser. En dessous, les jeux pour enfants du site conviennent mieux.",
     },
     {
-      q: "Est-ce qu'il marche hors ligne ?",
+      q: "Est-ce qu'il marche hors ligne ?",
       a: "Oui, après la première visite, et la partie en cours est retrouvée si vous quittez le jeu.",
     },
   ],

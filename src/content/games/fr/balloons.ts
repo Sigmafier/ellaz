@@ -11,10 +11,10 @@ export const balloonsFr: GameCopy = {
 
   body: [
     "Des ballons traversent l'écran. La consigne montre lequel viser. On appuie dessus, il éclate.",
-    "Le temps qu'un ballon passe à l'écran est le seul réglage de difficulté: 4,2 secondes en facile, 3,2 en moyen, 2,4 en difficile. C'est long, et c'est délibéré. Un enfant de trois ans a besoin de voir la couleur, de la comparer à la consigne, de décider, puis de viser, et cette chaîne prend bien plus de temps qu'un adulte ne l'imagine. Un jeu de rapidité pour les petits qui va trop vite ne devient pas plus difficile, il devient impossible, et l'enfant arrête.",
-    "Il y a une garantie dans le code qui mérite d'être connue: après 2 ballons qui ne sont pas la couleur demandée, le suivant l'est forcément. Un enfant ne peut donc jamais attendre longtemps sans occasion de réussir, même quand le tirage est malchanceux.",
+    "Le temps qu'un ballon passe à l'écran est le seul réglage de difficulté : 4,2 secondes en facile, 3,2 en moyen, 2,4 en difficile. C'est long, et c'est délibéré. Un enfant de trois ans a besoin de voir la couleur, de la comparer à la consigne, de décider, puis de viser, et cette chaîne prend bien plus de temps qu'un adulte ne l'imagine. Un jeu de rapidité pour les petits qui va trop vite ne devient pas plus difficile, il devient impossible, et l'enfant arrête.",
+    "Il y a une garantie dans le code qui mérite d'être connue : après 2 ballons qui ne sont pas la couleur demandée, le suivant l'est forcément. Un enfant ne peut donc jamais attendre longtemps sans occasion de réussir, même quand le tirage est malchanceux.",
     "Les 5 couleurs portent chacune une forme différente, donc un enfant daltonien joue sans dépendre de la teinte. Les tours demandent 5, 7 ou 9 ballons selon le niveau.",
-    "L'aveu: éclater des ballons n'apprend rien de scolaire. Ce jeu travaille la vitesse de réaction et la précision du geste, ce qui est utile à trois ans, et rien d'autre. Si vous cherchez un jeu qui fait progresser en lecture ou en calcul, il y en a sur ce site, et celui-ci n'en fait pas partie.",
+    "L'aveu : éclater des ballons n'apprend rien de scolaire. Ce jeu travaille la vitesse de réaction et la précision du geste, ce qui est utile à trois ans, et rien d'autre. Si vous cherchez un jeu qui fait progresser en lecture ou en calcul, il y en a sur ce site, et celui-ci n'en fait pas partie.",
   ],
 
   howToPlay: [
@@ -78,7 +78,7 @@ export const balloonsFr: GameCopy = {
   ],
 
   accessibility:
-    "Tout se joue en appuyant, sans glisser, sur des cibles larges. Les 5 couleurs portent chacune une forme distincte, donc rien ne dépend uniquement de la teinte. Le niveau facile laisse 4,2 secondes par ballon, ce qui reste jouable avec une aide à la saisie. Un ballon raté ne coûte rien: aucun son désagréable, aucune perte de points.",
+    "Tout se joue en appuyant, sans glisser, sur des cibles larges. Les 5 couleurs portent chacune une forme distincte, donc rien ne dépend uniquement de la teinte. Le niveau facile laisse 4,2 secondes par ballon, ce qui reste jouable avec une aide à la saisie. Un ballon raté ne coûte rien : aucun son désagréable, aucune perte de points.",
 
   together: [
     {
@@ -97,27 +97,27 @@ export const balloonsFr: GameCopy = {
 
   faq: [
     {
-      q: "Ce jeu de ballons est-il gratuit ?",
+      q: "Ce jeu de ballons est-il gratuit ?",
       a: "Oui, les trois niveaux, sans publicité, sans compte et sans version payante.",
     },
     {
-      q: "Combien de temps dure un ballon à l'écran ?",
+      q: "Combien de temps dure un ballon à l'écran ?",
       a: "4,2 secondes en facile, 3,2 en moyen et 2,4 en difficile.",
     },
     {
-      q: "Le bon ballon peut-il ne jamais venir ?",
+      q: "Le bon ballon peut-il ne jamais venir ?",
       a: "Non. Après 2 ballons qui ne sont pas la couleur demandée, le suivant l'est avec certitude.",
     },
     {
-      q: "Convient-il à un enfant daltonien ?",
+      q: "Convient-il à un enfant daltonien ?",
       a: "Oui. Chacune des 5 couleurs porte une forme distincte, donc rien ne repose sur la teinte seule.",
     },
     {
-      q: "À partir de quel âge ?",
+      q: "À partir de quel âge ?",
       a: "Deux ans pour le niveau facile. Il n'y a rien à lire et une erreur ne fait rien perdre.",
     },
     {
-      q: "Est-ce qu'il marche hors ligne ?",
+      q: "Est-ce qu'il marche hors ligne ?",
       a: "Oui, après la première visite, sans connexion.",
     },
   ],

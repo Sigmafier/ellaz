@@ -11,10 +11,10 @@ export const reactionFr: GameCopy = {
 
   body: [
     "L'écran est rouge. Il devient vert. Vous appuyez. Le temps écoulé s'affiche en millisecondes.",
-    "Toute la difficulté tient dans l'attente, et elle est construite exprès pour être imprévisible. Le facile attend entre 1 000 et 2 600 millisecondes, le moyen entre 1 100 et 3 800, le difficile entre 1 200 et 5 000. D'un niveau à l'autre, l'attente moyenne est multipliée par 1,72 seulement, tandis que la largeur de la fourchette est multipliée par 2,38. C'est ce deuxième chiffre qui compte: ce n'est pas d'attendre plus longtemps qui est dur, c'est de ne pas savoir combien de temps.",
+    "Toute la difficulté tient dans l'attente, et elle est construite exprès pour être imprévisible. Le facile attend entre 1 000 et 2 600 millisecondes, le moyen entre 1 100 et 3 800, le difficile entre 1 200 et 5 000. D'un niveau à l'autre, l'attente moyenne est multipliée par 1,72 seulement, tandis que la largeur de la fourchette est multipliée par 2,38. C'est ce deuxième chiffre qui compte : ce n'est pas d'attendre plus longtemps qui est dur, c'est de ne pas savoir combien de temps.",
     "Nous avons calculé ce que rapporterait la triche la plus évidente, qui consiste à appuyer toujours au même moment sans regarder. Le meilleur instant fixe se trompe de 400 millisecondes en facile, de 675 en moyen et de 951 en difficile. Autrement dit, la stratégie d'anticipation coûte à peu près une seconde entière au niveau le plus dur, ce qui est très largement pire que de simplement regarder l'écran. C'est la seule façon honnête de prouver qu'un test de réaction en est bien un.",
-    "Le jeu félicite en dessous de 350, 550 et 900 millisecondes selon le niveau. Au-delà, il ne dit rien: pas de reproche, pas de message. Un temps lent est un temps, pas une faute.",
-    "L'aveu: ce jeu mesure quelque chose que l'entraînement ne fait presque pas progresser. Le temps de réaction visuel d'un adulte est ce qu'il est, et gagner 20 millisecondes demande beaucoup de parties pour un gain qui ne sert nulle part. C'est amusant à comparer entre deux personnes, et ce n'est pas un exercice.",
+    "Le jeu félicite en dessous de 350, 550 et 900 millisecondes selon le niveau. Au-delà, il ne dit rien : pas de reproche, pas de message. Un temps lent est un temps, pas une faute.",
+    "L'aveu : ce jeu mesure quelque chose que l'entraînement ne fait presque pas progresser. Le temps de réaction visuel d'un adulte est ce qu'il est, et gagner 20 millisecondes demande beaucoup de parties pour un gain qui ne sert nulle part. C'est amusant à comparer entre deux personnes, et ce n'est pas un exercice.",
   ],
 
   howToPlay: [
@@ -87,7 +87,7 @@ export const reactionFr: GameCopy = {
     },
     {
       title: "Enfant contre adulte",
-      body: "Le résultat surprend souvent: un enfant de dix ans bat régulièrement un adulte de quarante. C'est vrai, c'est mesurable, et ça fait rire tout le monde.",
+      body: "Le résultat surprend souvent : un enfant de dix ans bat régulièrement un adulte de quarante. C'est vrai, c'est mesurable, et ça fait rire tout le monde.",
     },
     {
       title: "La chaîne",
@@ -97,27 +97,27 @@ export const reactionFr: GameCopy = {
 
   faq: [
     {
-      q: "Ce test de réaction est-il gratuit ?",
+      q: "Ce test de réaction est-il gratuit ?",
       a: "Oui, les trois niveaux, sans publicité, sans compte et sans version payante.",
     },
     {
-      q: "Combien de temps dure l'attente ?",
+      q: "Combien de temps dure l'attente ?",
       a: "Entre 1 000 et 2 600 millisecondes en facile, 1 100 à 3 800 en moyen et 1 200 à 5 000 en difficile.",
     },
     {
-      q: "Peut-on tricher en appuyant au bon moment ?",
+      q: "Peut-on tricher en appuyant au bon moment ?",
       a: "Non. Le meilleur instant fixe se trompe de 400 millisecondes en facile et de 951 en difficile, ce qui est bien pire que de regarder.",
     },
     {
-      q: "Qu'est-ce qu'un bon temps ?",
+      q: "Qu'est-ce qu'un bon temps ?",
       a: "Le jeu félicite en dessous de 350 millisecondes en facile, 550 en moyen et 900 en difficile. Au-delà, il ne dit rien du tout.",
     },
     {
-      q: "Peut-on progresser ?",
+      q: "Peut-on progresser ?",
       a: "Un peu, et pas beaucoup. Le temps de réaction visuel se travaille mal, ce qui fait de ce jeu une comparaison plus qu'un entraînement.",
     },
     {
-      q: "Est-ce qu'il marche hors ligne ?",
+      q: "Est-ce qu'il marche hors ligne ?",
       a: "Oui, après la première visite, sans connexion.",
     },
   ],

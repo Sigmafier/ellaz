@@ -11,10 +11,10 @@ export const sortFr: GameCopy = {
 
   body: [
     "On appuie sur un tube pour prendre sa couleur du dessus, puis sur un autre pour l'y verser. Un versement n'est possible que sur une couleur identique ou sur un tube vide. Le but est simple. Chaque couleur réunie dans son tube.",
-    "Il y a 4, 6 ou 8 couleurs selon le niveau, et toujours 2 tubes libres. Ces 2 tubes sont l'espace de manoeuvre du jeu entier: c'est leur nombre, pas celui des couleurs, qui décide de la difficulté réelle.",
+    "Il y a 4, 6 ou 8 couleurs selon le niveau, et toujours 2 tubes libres. Ces 2 tubes sont l'espace de manoeuvre du jeu entier : c'est leur nombre, pas celui des couleurs, qui décide de la difficulté réelle.",
     "Nous avons distribué 4 000 grilles par niveau et fait jouer deux programmes pour savoir à quel point ce jeu pardonne. Un programme qui verse au hasard finit quand même 99,7% des grilles faciles, et se bloque sur 10,2% des difficiles contre 0,2% en facile. Un programme qui suit une seule règle simple, celle de préférer un versement qui complète une couleur, boucle le facile en 11 versements, le moyen en 15,5 et le difficile en 19,4. Le mélange lui-même, refait à l'envers, prend 21,8 versements en facile et 34,6 en difficile. Autrement dit, la solution efficace est presque toujours plus courte que le chemin par lequel la grille a été mélangée.",
     "Le record est le nombre de versements. Le plus petit gagne. Chaque niveau garde le sien.",
-    "L'aveu: sur le niveau difficile, il est possible d'arriver à une position sans aucun versement légal, et le jeu ne prévient pas avant. 10,2% des parties jouées sans réfléchir finissent ainsi. C'est ce qui rend le niveau intéressant, et c'est aussi ce qui le rend agaçant pour un enfant qui ne comprend pas ce qui s'est passé. En facile, cela n'arrive presque jamais.",
+    "L'aveu : sur le niveau difficile, il est possible d'arriver à une position sans aucun versement légal, et le jeu ne prévient pas avant. 10,2% des parties jouées sans réfléchir finissent ainsi. C'est ce qui rend le niveau intéressant, et c'est aussi ce qui le rend agaçant pour un enfant qui ne comprend pas ce qui s'est passé. En facile, cela n'arrive presque jamais.",
   ],
 
   howToPlay: [
@@ -50,7 +50,7 @@ export const sortFr: GameCopy = {
   teaches: [
     {
       title: "Planifier une suite de gestes",
-      body: "Un versement ne se juge pas seul: il faut savoir ce qu'il libère et ce qu'il enterre. C'est un vrai raisonnement en plusieurs étapes, dans un jeu sans une seule règle écrite.",
+      body: "Un versement ne se juge pas seul : il faut savoir ce qu'il libère et ce qu'il enterre. C'est un vrai raisonnement en plusieurs étapes, dans un jeu sans une seule règle écrite.",
     },
     {
       title: "Garder de la place",
@@ -78,7 +78,7 @@ export const sortFr: GameCopy = {
   ],
 
   accessibility:
-    "Tout se joue en appuyant, jamais en glissant: un appui pour prendre, un appui pour verser. Rien n'est chronométré. Les couleurs sont accompagnées de motifs différents à l'intérieur des tubes, donc un joueur daltonien les distingue sans dépendre de la teinte. Une partie en cours est retrouvée si vous quittez le jeu.",
+    "Tout se joue en appuyant, jamais en glissant : un appui pour prendre, un appui pour verser. Rien n'est chronométré. Les couleurs sont accompagnées de motifs différents à l'intérieur des tubes, donc un joueur daltonien les distingue sans dépendre de la teinte. Une partie en cours est retrouvée si vous quittez le jeu.",
 
   together: [
     {
@@ -97,27 +97,27 @@ export const sortFr: GameCopy = {
 
   faq: [
     {
-      q: "Ce jeu de tri est-il gratuit ?",
+      q: "Ce jeu de tri est-il gratuit ?",
       a: "Oui, les trois niveaux, sans publicité, sans compte et sans version payante.",
     },
     {
-      q: "Combien de couleurs et de tubes libres ?",
+      q: "Combien de couleurs et de tubes libres ?",
       a: "4, 6 ou 8 couleurs selon le niveau, et toujours 2 tubes libres.",
     },
     {
-      q: "Peut-on se bloquer ?",
-      a: "Oui, surtout en difficile: sur 4 000 grilles, un jeu au hasard se bloque sur 10,2% des difficiles contre 0,2% des faciles.",
+      q: "Peut-on se bloquer ?",
+      a: "Oui, surtout en difficile : sur 4 000 grilles, un jeu au hasard se bloque sur 10,2% des difficiles contre 0,2% des faciles.",
     },
     {
-      q: "Combien de versements pour une bonne partie ?",
+      q: "Combien de versements pour une bonne partie ?",
       a: "Une règle simple suffit à boucler le facile en 11 versements, le moyen en 15,5 et le difficile en 19,4.",
     },
     {
-      q: "Le record est-il gardé par niveau ?",
+      q: "Le record est-il gardé par niveau ?",
       a: "Oui, chacun le sien, et le plus petit nombre de versements gagne.",
     },
     {
-      q: "Est-ce qu'il marche hors ligne ?",
+      q: "Est-ce qu'il marche hors ligne ?",
       a: "Oui, après la première visite, sans connexion.",
     },
   ],

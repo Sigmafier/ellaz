@@ -14,7 +14,7 @@ export const coloringFr: GameCopy = {
     "C'est le seul jeu du site qui ne garde aucun record, et c'est une décision, pas un oubli. 20 des autres jeux en gardent un. Ici, aucun.",
     "La raison est simple. Noter le dessin d'un enfant est le contraire de ce que nous voulons faire. Il n'y a donc pas de chronomètre, pas de compteur de zones remplies, pas de message qui félicite ou qui regrette. Un ciel vert n'est pas une erreur. Un personnage laissé à moitié blanc n'est pas une partie abandonnée. Rien sur cet écran ne suggère à un enfant de quatre ans qu'il existait une bonne façon de faire et qu'il ne l'a pas trouvée.",
     "Les 20 dessins sont des scènes simples, avec des zones larges qu'un doigt atteint sans viser. La page blanche est là pour les enfants qui préfèrent partir de rien. Elle sert beaucoup.",
-    "La limite, et elle est vraie: ce n'est pas un outil de dessin. On ne trace pas de trait, on ne gomme pas une zone en particulier, on ne dessine pas ses propres formes. On remplit des zones existantes avec vingt couleurs. Un enfant qui veut vraiment dessiner sera plus heureux avec une feuille de papier, et nous ne prétendons pas le contraire.",
+    "La limite, et elle est vraie : ce n'est pas un outil de dessin. On ne trace pas de trait, on ne gomme pas une zone en particulier, on ne dessine pas ses propres formes. On remplit des zones existantes avec vingt couleurs. Un enfant qui veut vraiment dessiner sera plus heureux avec une feuille de papier, et nous ne prétendons pas le contraire.",
   ],
 
   howToPlay: [
@@ -97,27 +97,27 @@ export const coloringFr: GameCopy = {
 
   faq: [
     {
-      q: "Le coloriage est-il gratuit ?",
+      q: "Le coloriage est-il gratuit ?",
       a: "Oui, les 20 dessins et la page blanche, sans publicité et sans version payante.",
     },
     {
-      q: "Combien y a-t-il de dessins et de couleurs ?",
+      q: "Combien y a-t-il de dessins et de couleurs ?",
       a: "20 dessins plus une page blanche, avec une palette de 20 couleurs.",
     },
     {
-      q: "Y a-t-il un score ?",
+      q: "Y a-t-il un score ?",
       a: "Non, et c'est volontaire. C'est le seul jeu du site sans record, parce que noter le dessin d'un enfant serait le contraire de l'idée.",
     },
     {
-      q: "Peut-on imprimer le dessin ?",
+      q: "Peut-on imprimer le dessin ?",
       a: "Non. Tout reste à l'écran, dans le navigateur, sur l'appareil de l'enfant.",
     },
     {
-      q: "Faut-il un compte ?",
+      q: "Faut-il un compte ?",
       a: "Non, ni compte, ni adresse e-mail. Rien n'est envoyé nulle part.",
     },
     {
-      q: "Est-ce qu'il marche hors ligne ?",
+      q: "Est-ce qu'il marche hors ligne ?",
       a: "Oui, après la première visite. Les dessins sont enregistrés sur l'appareil, donc aucune connexion n'est nécessaire.",
     },
   ],

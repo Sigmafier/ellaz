@@ -12,9 +12,9 @@ export const shadowsFr: GameCopy = {
   body: [
     "Une ombre s'affiche au milieu de l'écran. En dessous, des images. Une seule correspond. L'enfant appuie dessus.",
     "Le facile propose 3 réponses, donc le hasard vaut 33,3%. Le moyen et le difficile en proposent 4, ce qui ramène le hasard à 25% sur les deux. La vraie différence entre ces deux niveaux n'est donc pas le nombre de choix, c'est ce qu'on met dedans.",
-    "Le facile et le moyen mélangent les catégories: une ombre de chat contre un camion, une maison et un poisson. Les silhouettes n'ont rien à voir entre elles et la réponse saute aux yeux. Le difficile tire ses 4 propositions dans une seule famille, donc 4 animaux, ou 4 véhicules. Il faut alors regarder la forme des oreilles ou le nombre de roues plutôt que la silhouette générale, et c'est un exercice complètement différent avec le même nombre de boutons à l'écran.",
+    "Le facile et le moyen mélangent les catégories : une ombre de chat contre un camion, une maison et un poisson. Les silhouettes n'ont rien à voir entre elles et la réponse saute aux yeux. Le difficile tire ses 4 propositions dans une seule famille, donc 4 animaux, ou 4 véhicules. Il faut alors regarder la forme des oreilles ou le nombre de roues plutôt que la silhouette générale, et c'est un exercice complètement différent avec le même nombre de boutons à l'écran.",
     "Le record compte les niveaux réussis. Chaque difficulté garde le sien.",
-    "L'aveu: le niveau facile s'épuise très vite. Un enfant de cinq ans y répond juste presque à chaque fois au bout de deux minutes, parce que distinguer un chat d'un camion n'est pas un problème passé trois ans. C'est voulu, cela sert de rampe d'accès, mais il ne faut pas y rester. Passez au difficile dès que deux tours de suite tombent sans hésitation.",
+    "L'aveu : le niveau facile s'épuise très vite. Un enfant de cinq ans y répond juste presque à chaque fois au bout de deux minutes, parce que distinguer un chat d'un camion n'est pas un problème passé trois ans. C'est voulu, cela sert de rampe d'accès, mais il ne faut pas y rester. Passez au difficile dès que deux tours de suite tombent sans hésitation.",
   ],
 
   howToPlay: [
@@ -83,7 +83,7 @@ export const shadowsFr: GameCopy = {
   together: [
     {
       title: "Décrire avant de montrer",
-      body: "L'enfant décrit l'ombre à voix haute avant de choisir: elle a quatre pattes et une longue queue. Le vocabulaire progresse autant que l'observation.",
+      body: "L'enfant décrit l'ombre à voix haute avant de choisir : elle a quatre pattes et une longue queue. Le vocabulaire progresse autant que l'observation.",
     },
     {
       title: "Les ombres de la maison",
@@ -97,27 +97,27 @@ export const shadowsFr: GameCopy = {
 
   faq: [
     {
-      q: "Ce jeu des ombres est-il gratuit ?",
+      q: "Ce jeu des ombres est-il gratuit ?",
       a: "Oui, les trois niveaux, sans publicité, sans compte et sans version payante.",
     },
     {
-      q: "Combien de propositions par tour ?",
+      q: "Combien de propositions par tour ?",
       a: "3 au niveau facile, ce qui donne 33,3% au hasard, et 4 aux niveaux moyen et difficile, soit 25%.",
     },
     {
-      q: "Quelle différence entre moyen et difficile ?",
+      q: "Quelle différence entre moyen et difficile ?",
       a: "Le nombre de propositions est le même. Le difficile les tire toutes d'une seule famille, donc il faut comparer des détails plutôt que des silhouettes différentes.",
     },
     {
-      q: "Faut-il savoir lire ?",
+      q: "Faut-il savoir lire ?",
       a: "Non. Le jeu est entièrement en images.",
     },
     {
-      q: "Convient-il à un enfant daltonien ?",
+      q: "Convient-il à un enfant daltonien ?",
       a: "Oui, particulièrement. L'ombre est noire et la réponse repose uniquement sur la forme.",
     },
     {
-      q: "Est-ce qu'il marche hors ligne ?",
+      q: "Est-ce qu'il marche hors ligne ?",
       a: "Oui, après la première visite, sans connexion.",
     },
   ],

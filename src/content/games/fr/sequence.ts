@@ -5,16 +5,16 @@ export const sequenceFr: GameCopy = {
   name: "La suite logique",
   metaTitle: "Jeu de suites logiques pour enfants | Ellaz",
   metaDescription:
-    "Devinez ce qui vient après: 8 familles de motifs, 3 niveaux, 6 couleurs. Jeu de logique gratuit, sans compte, sans publicité et hors ligne.",
+    "Devinez ce qui vient après : 8 familles de motifs, 3 niveaux, 6 couleurs. Jeu de logique gratuit, sans compte, sans publicité et hors ligne.",
 
   lede: "Une suite de formes, et une case vide à la fin. Huit familles de motifs, six couleurs, et rien à lire.",
 
   body: [
-    "Rouge, bleu, rouge, bleu, et ensuite. Un enfant de trois ans répond à celle-là sans qu'on lui explique quoi que ce soit, et c'est le point de départ. La question ne change jamais de forme: voici un début de suite, appuyez sur ce qui vient après.",
+    "Rouge, bleu, rouge, bleu, et ensuite. Un enfant de trois ans répond à celle-là sans qu'on lui explique quoi que ce soit, et c'est le point de départ. La question ne change jamais de forme : voici un début de suite, appuyez sur ce qui vient après.",
     "Il y a 8 familles de motifs et chaque niveau en propose 3. Le facile s'en tient aux cycles de 2 et de 3, ceux qui se voient immédiatement. Le moyen allonge et complique. Le difficile inclut 2 familles qui n'ont pas de cycle du tout, donc où la règle est autre chose qu'une répétition, et c'est là que le jeu devient un vrai exercice de logique plutôt qu'un exercice d'attention.",
     "La palette compte 6 couleurs, donc un enfant qui appuie au hasard a raison 16,7% du temps. Une réussite peut être un coup de chance. Cinq d'affilée, non. Personne n'y croit.",
-    "Le record compte les niveaux réussis, et chaque difficulté garde le sien. Passer du facile au difficile remet le compteur à zéro, ce qui est normal: ce ne sont pas les mêmes suites.",
-    "L'aveu: sur le niveau difficile, un enfant qui échoue ne comprend pas toujours pourquoi. Les familles sans cycle demandent de repérer une règle abstraite, et quand on ne la voit pas, aucune quantité d'essais ne la fait apparaître. Un adulte à côté qui dit la règle à voix haute une seule fois change complètement la suite de la séance, et nous préférons l'écrire ici que de laisser un enfant tourner en rond.",
+    "Le record compte les niveaux réussis, et chaque difficulté garde le sien. Passer du facile au difficile remet le compteur à zéro, ce qui est normal : ce ne sont pas les mêmes suites.",
+    "L'aveu : sur le niveau difficile, un enfant qui échoue ne comprend pas toujours pourquoi. Les familles sans cycle demandent de repérer une règle abstraite, et quand on ne la voit pas, aucune quantité d'essais ne la fait apparaître. Un adulte à côté qui dit la règle à voix haute une seule fois change complètement la suite de la séance, et nous préférons l'écrire ici que de laisser un enfant tourner en rond.",
   ],
 
   howToPlay: [
@@ -28,7 +28,7 @@ export const sequenceFr: GameCopy = {
     },
     {
       title: "Enchaîner",
-      body: "Une bonne réponse passe à la suite suivante. Une erreur ne coûte rien: la suite reste affichée et vous réessayez.",
+      body: "Une bonne réponse passe à la suite suivante. Une erreur ne coûte rien : la suite reste affichée et vous réessayez.",
     },
   ],
 
@@ -43,7 +43,7 @@ export const sequenceFr: GameCopy = {
     },
     {
       title: "Sur le difficile, cherchez autre chose qu'une répétition",
-      body: "Deux familles n'ont pas de cycle du tout. Si vous cherchez une répétition et n'en trouvez pas, la règle est ailleurs: une taille qui grandit, une position qui se déplace.",
+      body: "Deux familles n'ont pas de cycle du tout. Si vous cherchez une répétition et n'en trouvez pas, la règle est ailleurs : une taille qui grandit, une position qui se déplace.",
     },
   ],
 
@@ -97,27 +97,27 @@ export const sequenceFr: GameCopy = {
 
   faq: [
     {
-      q: "Ce jeu de suites est-il gratuit ?",
+      q: "Ce jeu de suites est-il gratuit ?",
       a: "Oui, les trois niveaux, sans publicité, sans compte et sans version payante.",
     },
     {
-      q: "Combien y a-t-il de motifs ?",
+      q: "Combien y a-t-il de motifs ?",
       a: "8 familles de motifs, dont 3 sont proposées à chaque niveau. Le difficile en inclut 2 qui n'ont aucun cycle.",
     },
     {
-      q: "Un enfant peut-il réussir au hasard ?",
-      a: "Une fois, oui: avec 6 couleurs, le hasard vaut 16,7%. Plusieurs réussites d'affilée ne s'expliquent pas par la chance.",
+      q: "Un enfant peut-il réussir au hasard ?",
+      a: "Une fois, oui : avec 6 couleurs, le hasard vaut 16,7%. Plusieurs réussites d'affilée ne s'expliquent pas par la chance.",
     },
     {
-      q: "Faut-il savoir lire ?",
+      q: "Faut-il savoir lire ?",
       a: "Non. Tout est en formes et en couleurs, et rien n'est écrit sur l'écran de jeu.",
     },
     {
-      q: "Le record est-il gardé par niveau ?",
+      q: "Le record est-il gardé par niveau ?",
       a: "Oui. Changer de difficulté remet le compteur à zéro, parce que les suites ne sont pas comparables.",
     },
     {
-      q: "Est-ce qu'il marche hors ligne ?",
+      q: "Est-ce qu'il marche hors ligne ?",
       a: "Oui, après la première visite. Les suites sont fabriquées sur l'appareil.",
     },
   ],

@@ -12,9 +12,9 @@ export const beesFr: GameCopy = {
   body: [
     "Des créatures traversent le pré. Certaines sont des abeilles. Les autres non. Appuyez sur les abeilles, laissez le reste passer.",
     "Un tour dure 40 secondes. Le facile envoie environ 28 créatures dont à peu près 17 abeilles. Le difficile en envoie 57 dont à peu près 29, donc plus de bestioles à trier dans le même temps et une proportion d'abeilles plus faible. C'est le seul jeu du site où la difficulté vient de la densité plutôt que de la vitesse.",
-    "Le code demande 65%, 60% et 50% d'abeilles selon le niveau. Il en sort 59% et 56% sur les deux premiers, mesurés sur 1 500 tours par niveau, et l'écart vient d'une règle qui prime sur la proportion: jamais plus de 3 créatures identiques d'affilée. Sans elle, un tour peut envoyer 8 abeilles à la suite, ce qui donne à un enfant l'impression de très bien jouer, puis 8 guêpes, ce qui lui donne l'impression du contraire. Nous préférons une proportion légèrement en dessous de la consigne à un tour qui ressemble à une punition.",
+    "Le code demande 65%, 60% et 50% d'abeilles selon le niveau. Il en sort 59% et 56% sur les deux premiers, mesurés sur 1 500 tours par niveau, et l'écart vient d'une règle qui prime sur la proportion : jamais plus de 3 créatures identiques d'affilée. Sans elle, un tour peut envoyer 8 abeilles à la suite, ce qui donne à un enfant l'impression de très bien jouer, puis 8 guêpes, ce qui lui donne l'impression du contraire. Nous préférons une proportion légèrement en dessous de la consigne à un tour qui ressemble à une punition.",
     "Le record est le nombre d'abeilles attrapées. Il est commun aux trois niveaux.",
-    "L'aveu: ce jeu est bruyant et il fatigue. 40 secondes d'attention continue sur un écran qui bouge partout est beaucoup pour un enfant de quatre ans, et deux ou trois tours d'affilée suffisent largement. Ce n'est pas un jeu qui occupe une demi-heure, et il ne prétend pas l'être.",
+    "L'aveu : ce jeu est bruyant et il fatigue. 40 secondes d'attention continue sur un écran qui bouge partout est beaucoup pour un enfant de quatre ans, et deux ou trois tours d'affilée suffisent largement. Ce n'est pas un jeu qui occupe une demi-heure, et il ne prétend pas l'être.",
   ],
 
   howToPlay: [
@@ -24,7 +24,7 @@ export const beesFr: GameCopy = {
     },
     {
       title: "Appuyer dessus",
-      body: "Un appui sur une abeille la compte. Les autres créatures ne demandent rien: laissez-les passer.",
+      body: "Un appui sur une abeille la compte. Les autres créatures ne demandent rien : laissez-les passer.",
     },
     {
       title: "Tenir 40 secondes",
@@ -73,7 +73,7 @@ export const beesFr: GameCopy = {
     },
     {
       title: "Adultes",
-      body: "Le difficile est un vrai test d'attention soutenue pour n'importe qui: 57 créatures en 40 secondes ne se trient pas distraitement.",
+      body: "Le difficile est un vrai test d'attention soutenue pour n'importe qui : 57 créatures en 40 secondes ne se trient pas distraitement.",
     },
   ],
 
@@ -97,27 +97,27 @@ export const beesFr: GameCopy = {
 
   faq: [
     {
-      q: "Ce jeu des abeilles est-il gratuit ?",
+      q: "Ce jeu des abeilles est-il gratuit ?",
       a: "Oui, les trois niveaux, sans publicité, sans compte et sans version payante.",
     },
     {
-      q: "Combien de temps dure un tour ?",
+      q: "Combien de temps dure un tour ?",
       a: "40 secondes, quel que soit le niveau. Ce qui change, c'est le nombre de créatures.",
     },
     {
-      q: "Combien d'abeilles passent ?",
+      q: "Combien d'abeilles passent ?",
       a: "Environ 17 sur 28 créatures en facile, et environ 29 sur 57 en difficile.",
     },
     {
-      q: "Peut-il y avoir une longue série de la même bestiole ?",
+      q: "Peut-il y avoir une longue série de la même bestiole ?",
       a: "Non. Jamais plus de 3 créatures identiques d'affilée, ce qui évite les séries qui donnent l'impression d'être puni.",
     },
     {
-      q: "Convient-il à un enfant daltonien ?",
+      q: "Convient-il à un enfant daltonien ?",
       a: "Oui. Les abeilles se reconnaissent à leurs rayures et à leur forme autant qu'à leur couleur.",
     },
     {
-      q: "Est-ce qu'il marche hors ligne ?",
+      q: "Est-ce qu'il marche hors ligne ?",
       a: "Oui, après la première visite, sans connexion.",
     },
   ],

@@ -11,8 +11,8 @@ export const minesweeperFr: GameCopy = {
 
   body: [
     "Chaque case ouverte affiche combien de mines la touchent, de 0 à 8. Tout le jeu tient là. Un 1 posé à côté d'une seule case fermée dit exactement où est la mine, et à partir de là chaque déduction en ouvre une autre.",
-    "Le premier appui est toujours sûr, et pas seulement lui: ses 8 voisines aussi sont vidées de toute mine avant le placement. Une partie ne se termine donc jamais au premier geste, ce qui arrivait dans les vieilles versions. Cela n'apprenait rien.",
-    "Nous voulions savoir combien de grilles se résolvent par pure logique, sans jamais avoir à parier. Sur 2 000 grilles par niveau: 79,8% en facile, 44,4% en moyen, 12,3% en difficile. Autrement dit, sur la grande grille, presque neuf parties sur dix finissent par une position où il ne reste plus qu'à choisir entre deux cases sans avoir de raison de préférer l'une. C'est la nature du démineur, ce n'est pas un défaut de notre générateur, et c'est une information qu'un joueur mérite d'avoir avant de s'énerver sur une défaite.",
+    "Le premier appui est toujours sûr, et pas seulement lui : ses 8 voisines aussi sont vidées de toute mine avant le placement. Une partie ne se termine donc jamais au premier geste, ce qui arrivait dans les vieilles versions. Cela n'apprenait rien.",
+    "Nous voulions savoir combien de grilles se résolvent par pure logique, sans jamais avoir à parier. Sur 2 000 grilles par niveau : 79,8% en facile, 44,4% en moyen, 12,3% en difficile. Autrement dit, sur la grande grille, presque neuf parties sur dix finissent par une position où il ne reste plus qu'à choisir entre deux cases sans avoir de raison de préférer l'une. C'est la nature du démineur, ce n'est pas un défaut de notre générateur, et c'est une information qu'un joueur mérite d'avoir avant de s'énerver sur une défaite.",
     "Les trois grilles font 9x9 avec 10 mines, 12x12 avec 24 et 14x14 avec 40. Les densités correspondantes sont 12,3%, 16,7% et 20,4%.",
     "Le record est le temps de résolution. Le plus court gagne. Chaque niveau garde le sien, parce qu'une grille de 9x9 et une grille de 14x14 ne sont pas deux versions du même problème.",
   ],
@@ -78,7 +78,7 @@ export const minesweeperFr: GameCopy = {
   ],
 
   accessibility:
-    "Un appui court ouvre une case, un appui long pose un drapeau, et rien ne demande de glisser. Les chiffres sont écrits en toutes lettres à l'écran et pas seulement codés par la couleur, donc un joueur daltonien les lit sans difficulté. Le chronomètre tourne mais il n'impose rien: une partie peut durer une heure sans conséquence, il enregistre simplement le temps.",
+    "Un appui court ouvre une case, un appui long pose un drapeau, et rien ne demande de glisser. Les chiffres sont écrits en toutes lettres à l'écran et pas seulement codés par la couleur, donc un joueur daltonien les lit sans difficulté. Le chronomètre tourne mais il n'impose rien : une partie peut durer une heure sans conséquence, il enregistre simplement le temps.",
 
   together: [
     {
@@ -97,27 +97,27 @@ export const minesweeperFr: GameCopy = {
 
   faq: [
     {
-      q: "Le démineur est-il gratuit ?",
+      q: "Le démineur est-il gratuit ?",
       a: "Oui, les trois grilles, sans publicité, sans compte et sans version payante.",
     },
     {
-      q: "Le premier appui peut-il exploser ?",
+      q: "Le premier appui peut-il exploser ?",
       a: "Non, jamais. La case du premier appui et ses 8 voisines sont exclues du placement des mines.",
     },
     {
-      q: "Faut-il parfois deviner ?",
-      a: "Oui, et c'est mesuré: 79,8% des grilles faciles se finissent par pure logique, 44,4% des moyennes et 12,3% des difficiles. Le reste finit sur un choix sans raison.",
+      q: "Faut-il parfois deviner ?",
+      a: "Oui, et c'est mesuré : 79,8% des grilles faciles se finissent par pure logique, 44,4% des moyennes et 12,3% des difficiles. Le reste finit sur un choix sans raison.",
     },
     {
-      q: "Quelles sont les tailles de grille ?",
+      q: "Quelles sont les tailles de grille ?",
       a: "9x9 avec 10 mines, 12x12 avec 24, et 14x14 avec 40, soit des densités de 12,3%, 16,7% et 20,4%.",
     },
     {
-      q: "Comment poser un drapeau ?",
+      q: "Comment poser un drapeau ?",
       a: "Un appui long sur la case. Un appui court l'ouvre.",
     },
     {
-      q: "Est-ce qu'il marche hors ligne ?",
+      q: "Est-ce qu'il marche hors ligne ?",
       a: "Oui, après la première visite. Les grilles sont fabriquées sur l'appareil.",
     },
   ],

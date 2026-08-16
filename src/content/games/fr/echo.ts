@@ -11,10 +11,10 @@ export const echoFr: GameCopy = {
 
   body: [
     "Une touche s'allume. Vous appuyez dessus. Deux touches s'allument, vous refaites les deux dans l'ordre. Trois, puis quatre, et ainsi de suite jusqu'à ce que la mémoire lâche. C'est le jeu le plus vieux du monde des jouets électroniques et il n'a jamais eu besoin d'une règle écrite.",
-    "Le nombre de touches change avec la difficulté: 4, 5 ou 6. Cela paraît peu. L'effet est énorme. Avec 4 touches, une suite de 3 a 64 formes possibles. Avec 6 touches, une suite de 5 en a 7 776, et une suite de 7 en a 279 936. La difficulté ne vient donc pas de la vitesse, elle vient du nombre de possibilités que la mémoire doit départager.",
-    "L'éclairage commence à 460 millisecondes par touche et se raccourcit au fil des tours jusqu'à un plancher de 260, avec un intervalle de 170 millisecondes entre deux. Le plancher existe pour la même raison que partout ailleurs sur ce site: une suite affichée trop vite ne teste plus la mémoire, elle teste la vue.",
+    "Le nombre de touches change avec la difficulté : 4, 5 ou 6. Cela paraît peu. L'effet est énorme. Avec 4 touches, une suite de 3 a 64 formes possibles. Avec 6 touches, une suite de 5 en a 7 776, et une suite de 7 en a 279 936. La difficulté ne vient donc pas de la vitesse, elle vient du nombre de possibilités que la mémoire doit départager.",
+    "L'éclairage commence à 460 millisecondes par touche et se raccourcit au fil des tours jusqu'à un plancher de 260, avec un intervalle de 170 millisecondes entre deux. Le plancher existe pour la même raison que partout ailleurs sur ce site : une suite affichée trop vite ne teste plus la mémoire, elle teste la vue.",
     "Rien n'est écrit. Le son n'est pas nécessaire pour jouer.",
-    "L'aveu, et il est important pour les parents: ce jeu produit une frustration réelle. On perd toujours, forcément, puisque la suite s'allonge sans fin, et un enfant qui rate au huitième tour a le sentiment d'avoir échoué alors qu'il vient de retenir sept choses de suite. Un adulte qui dit ce chiffre à voix haute change complètement la façon dont l'enfant vit la partie.",
+    "L'aveu, et il est important pour les parents : ce jeu produit une frustration réelle. On perd toujours, forcément, puisque la suite s'allonge sans fin, et un enfant qui rate au huitième tour a le sentiment d'avoir échoué alors qu'il vient de retenir sept choses de suite. Un adulte qui dit ce chiffre à voix haute change complètement la façon dont l'enfant vit la partie.",
   ],
 
   howToPlay: [
@@ -24,7 +24,7 @@ export const echoFr: GameCopy = {
     },
     {
       title: "Répéter dans l'ordre",
-      body: "Appuyez sur les touches dans le même ordre. Rien ne presse pendant votre tour: le jeu attend.",
+      body: "Appuyez sur les touches dans le même ordre. Rien ne presse pendant votre tour : le jeu attend.",
     },
     {
       title: "Un pas de plus",
@@ -43,7 +43,7 @@ export const echoFr: GameCopy = {
     },
     {
       title: "Ne regardez pas vos doigts",
-      body: "Beaucoup d'erreurs viennent d'un appui à côté plutôt que d'un oubli. Les touches sont grandes: regardez la suite dans votre tête, pas l'écran.",
+      body: "Beaucoup d'erreurs viennent d'un appui à côté plutôt que d'un oubli. Les touches sont grandes : regardez la suite dans votre tête, pas l'écran.",
     },
   ],
 
@@ -78,7 +78,7 @@ export const echoFr: GameCopy = {
   ],
 
   accessibility:
-    "Tout se joue en appuyant sur de grandes touches, sans glisser et sans limite de temps pendant votre tour. Chaque touche porte une couleur et une forme distincte, donc un enfant daltonien suit la suite sans difficulté. Le son accompagne l'éclairage mais n'est jamais nécessaire: le jeu se joue entièrement en silence. Le rythme d'affichage ne descend jamais sous 260 millisecondes par touche.",
+    "Tout se joue en appuyant sur de grandes touches, sans glisser et sans limite de temps pendant votre tour. Chaque touche porte une couleur et une forme distincte, donc un enfant daltonien suit la suite sans difficulté. Le son accompagne l'éclairage mais n'est jamais nécessaire : le jeu se joue entièrement en silence. Le rythme d'affichage ne descend jamais sous 260 millisecondes par touche.",
 
   together: [
     {
@@ -91,33 +91,33 @@ export const echoFr: GameCopy = {
     },
     {
       title: "Le record commun",
-      body: "Une seule partie, deux mémoires: l'un retient la première moitié de la suite, l'autre la seconde. Le score monte spectaculairement.",
+      body: "Une seule partie, deux mémoires : l'un retient la première moitié de la suite, l'autre la seconde. Le score monte spectaculairement.",
     },
   ],
 
   faq: [
     {
-      q: "Ce jeu de mémoire est-il gratuit ?",
+      q: "Ce jeu de mémoire est-il gratuit ?",
       a: "Oui, les trois niveaux, sans publicité, sans compte et sans version payante.",
     },
     {
-      q: "Combien de touches y a-t-il ?",
+      q: "Combien de touches y a-t-il ?",
       a: "4, 5 ou 6 selon la difficulté. Avec 6 touches, une suite de 5 a 7 776 formes possibles.",
     },
     {
-      q: "Le jeu accélère-t-il ?",
+      q: "Le jeu accélère-t-il ?",
       a: "Un peu. L'éclairage passe de 460 à 260 millisecondes par touche, et ne descend jamais plus bas.",
     },
     {
-      q: "Faut-il le son pour jouer ?",
+      q: "Faut-il le son pour jouer ?",
       a: "Non. Le son accompagne l'éclairage, mais la suite est entièrement visible sans lui.",
     },
     {
-      q: "Y a-t-il une fin ?",
+      q: "Y a-t-il une fin ?",
       a: "Non. La suite s'allonge tant que vous réussissez, donc toute partie finit par une erreur.",
     },
     {
-      q: "Est-ce qu'il marche hors ligne ?",
+      q: "Est-ce qu'il marche hors ligne ?",
       a: "Oui, après la première visite, sans connexion.",
     },
   ],

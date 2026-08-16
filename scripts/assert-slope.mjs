@@ -37,9 +37,17 @@
  *   node scripts/assert-slope.mjs --keep       # leave the temp tree for poking
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { firstVisit } from "./assert-payload.mjs";
 
@@ -114,23 +122,33 @@ const CONTROL_RECTS = 60;
 // the throwaway tree
 // ---------------------------------------------------------------------------
 
+/**
+ * Directories the throwaway tree must not carry. `node_modules` is symlinked
+ * back in below rather than copied; the rest are build output and scratch.
+ *
+ * Matched on the BASENAME anywhere in the tree, not on a top-level path, so a
+ * nested `holdem/node_modules` is skipped too. `dist` is a prefix match because
+ * the second base arm writes `dist-ellaz/`.
+ */
+const SKIP = new Set([".git", "node_modules", ".playwright-mcp", "screenshots", "shots"]);
+const skip = (name) => SKIP.has(name) || name.startsWith("dist");
+
+/**
+ * `cpSync` rather than `rsync`, and that is a portability fix rather than a
+ * style one: rsync is not installed everywhere node is, and this gate failed
+ * with a raw `spawnSync ENOENT` on a container that had a perfectly good tree.
+ *
+ * A gate that cannot run is a gate nobody runs, and it fails in the shape that
+ * reads as "the repo is broken" rather than "this machine lacks a tool" - the
+ * same reason `a-diagnostic-that-truncates-what-it-compares.md` exists.
+ */
 function makeTree() {
   const root = mkdtempSync(join(tmpdir(), "ellaz-slope-"));
-  execFileSync(
-    "rsync",
-    [
-      "-a",
-      "--exclude=node_modules",
-      "--exclude=.git",
-      "--exclude=dist*",
-      "--exclude=.playwright-mcp",
-      "--exclude=screenshots",
-      "--exclude=shots",
-      `${REPO}/`,
-      `${root}/`,
-    ],
-    { stdio: ["ignore", "ignore", "inherit"] },
-  );
+  cpSync(REPO, root, {
+    recursive: true,
+    // `dereference: false` keeps rsync -a's symlink behaviour.
+    filter: (src) => !skip(basename(src)),
+  });
   symlinkSync(join(REPO, "node_modules"), join(root, "node_modules"));
   return root;
 }

@@ -12,9 +12,9 @@ export const hiddenFr: GameCopy = {
   body: [
     "L'écran montre ce qu'il faut trouver, puis un fouillis d'objets par-dessus. On appuie sur les bons. C'est tout. Rien n'est écrit.",
     "Le facile pose 16 objets et en cache 3 à retrouver. Le moyen monte à 24 objets pour 4. Le difficile va à 32 objets pour 5, ce qui remplit l'écran d'un téléphone assez densément pour qu'il faille vraiment chercher plutôt que balayer du regard.",
-    "Ce jeu n'a pas de scènes. Rien n'est dessiné à l'avance et rien n'est réutilisé: chaque tour tire ses objets et leurs positions au moment où il démarre, ce qui veut dire qu'un enfant qui a joué cent tours n'a jamais vu deux fois la même image. C'est une différence importante avec un cherche-et-trouve classique, qui s'épuise dès que les images sont connues par coeur. Ici il n'y a rien à apprendre par coeur, donc rien ne s'use.",
+    "Ce jeu n'a pas de scènes. Rien n'est dessiné à l'avance et rien n'est réutilisé : chaque tour tire ses objets et leurs positions au moment où il démarre, ce qui veut dire qu'un enfant qui a joué cent tours n'a jamais vu deux fois la même image. C'est une différence importante avec un cherche-et-trouve classique, qui s'épuise dès que les images sont connues par coeur. Ici il n'y a rien à apprendre par coeur, donc rien ne s'use.",
     "Le record compte les tours réussis, et chaque niveau garde le sien. Un tour à 32 objets ne se compare pas à un tour à 16. Les deux vivent séparément.",
-    "La limite est le revers exact de ce qui précède. Comme les images sont fabriquées et non dessinées, elles ne racontent rien: ce sont des objets posés sur un fond, pas une forêt ni une chambre. Un enfant qui aime les grandes scènes illustrées trouvera celles-ci un peu sèches, et il aura raison. Nous avons échangé la beauté d'une image contre le fait de ne jamais rejouer la même.",
+    "La limite est le revers exact de ce qui précède. Comme les images sont fabriquées et non dessinées, elles ne racontent rien : ce sont des objets posés sur un fond, pas une forêt ni une chambre. Un enfant qui aime les grandes scènes illustrées trouvera celles-ci un peu sèches, et il aura raison. Nous avons échangé la beauté d'une image contre le fait de ne jamais rejouer la même.",
   ],
 
   howToPlay: [
@@ -78,7 +78,7 @@ export const hiddenFr: GameCopy = {
   ],
 
   accessibility:
-    "Tout se joue en appuyant, sans glisser, et les objets sont assez grands pour un doigt d'enfant. Rien n'est chronométré: le tour attend aussi longtemps qu'il faut, et une erreur ne coûte rien. Les objets se distinguent par leur forme autant que par leur couleur, et la consigne reste affichée pendant toute la recherche pour ne rien demander à la mémoire.",
+    "Tout se joue en appuyant, sans glisser, et les objets sont assez grands pour un doigt d'enfant. Rien n'est chronométré : le tour attend aussi longtemps qu'il faut, et une erreur ne coûte rien. Les objets se distinguent par leur forme autant que par leur couleur, et la consigne reste affichée pendant toute la recherche pour ne rien demander à la mémoire.",
 
   together: [
     {
@@ -97,27 +97,27 @@ export const hiddenFr: GameCopy = {
 
   faq: [
     {
-      q: "Ce jeu d'objets cachés est-il gratuit ?",
+      q: "Ce jeu d'objets cachés est-il gratuit ?",
       a: "Oui, les trois niveaux, sans publicité, sans compte et sans version payante.",
     },
     {
-      q: "Combien y a-t-il d'objets ?",
+      q: "Combien y a-t-il d'objets ?",
       a: "16 objets et 3 à trouver en facile, 24 et 4 en moyen, 32 et 5 en difficile.",
     },
     {
-      q: "Les scènes se répètent-elles ?",
+      q: "Les scènes se répètent-elles ?",
       a: "Non. Chaque tour est fabriqué au moment où il commence, avec des objets et des positions tirés au sort, donc la même image ne revient jamais.",
     },
     {
-      q: "Faut-il savoir lire ?",
+      q: "Faut-il savoir lire ?",
       a: "Non. La consigne est une image, pas un mot, et rien d'autre n'est écrit sur l'écran de jeu.",
     },
     {
-      q: "Le record est-il gardé par niveau ?",
+      q: "Le record est-il gardé par niveau ?",
       a: "Oui, chacun le sien. Le nombre de tours réussis en facile ne se compare pas à celui du difficile.",
     },
     {
-      q: "Est-ce qu'il marche hors ligne ?",
+      q: "Est-ce qu'il marche hors ligne ?",
       a: "Oui, après la première visite. Les tours sont fabriqués sur l'appareil, donc aucune connexion n'est nécessaire.",
     },
   ],
