@@ -64,7 +64,7 @@ src/
 │            (mount/unmount bridge), WalletChip, games (the ordered roster),
 │            catalog (roster + lazy loaders), paths/pageContext/legacyHash,
 │            world/ (the room + shop)
-├─ build/    BUILD-TIME ONLY - the 128 emitted pages. Pure strings, no DOM, no
+├─ build/    BUILD-TIME ONLY - the 132 emitted pages. Pure strings, no DOM, no
 │            React. Nothing in the app may import it (it reads src/content)
 └─ games/<id>/
    ├─ meta.ts         DOM-free GameMeta - catalog.ts imports it statically
@@ -73,9 +73,9 @@ src/
    └─ <Renderer>      React component (DOM) or Phaser scene (canvas)
 ```
 
-**Games (29)** — 21 `ageBand: "kids"` (balloons, bees, bubbles, coloring, echo,
+**Games (30)** — 22 `ageBand: "kids"` (balloons, bees, bubbles, coloring, echo,
 evolve, finddiff, frog, hidden, maze, math, memory, merge, music, pet, reaction,
-sequence, shadows, sort, sortsize, vanish) and 8 `"all"` (blocks, fit,
+sequence, shadows, sort, sortsize, spell, vanish) and 8 `"all"` (blocks, fit,
 minesweeper, n2048, snake, sudoku, tictactoe, wordguess).
 Counts here go stale fast — `src/portal/catalog.ts` is the source of truth and
 `catalog.test.ts` ratchets the count. This line said 25 for about six hours on
@@ -597,13 +597,13 @@ until the set is complete. Discovered 2026-08-13, building two games at once.
 ## Every game has a real web address
 
 The site used to be one document. It is now 85: `dist/index.html` (still the app,
-unchanged) plus **128 emitted pages** built by `src/build/**` inside a Vite plugin,
+unchanged) plus **132 emitted pages** built by `src/build/**` inside a Vite plugin,
 so `npm run build` cannot skip them and neither deploy workflow can forget.
 
 | URL | What it is |
 |---|---|
 | `/` | the application, and now also a document. **ENGLISH since 2026-08-14.** The emitter adds head tags AND the English home body; it never overwrites the file |
-| `/games/<id>/` · `/he/…` · `/es/…` · `/fr/…` | every game x every page locale, ~900 words each (29 games x 4 languages on 2026-08-16 — read both counts off the roster and `PAGE_LOCALES`, not off this line) |
+| `/games/<id>/` · `/he/…` · `/es/…` · `/fr/…` | every game x every page locale, ~900 words each (30 games x 4 languages on 2026-08-17 — read both counts off the roster and `PAGE_LOCALES`, not off this line) |
 | `/he/` · `/es/` · `/fr/` | the home screen in that language — **the app**, emitted as a shell (see below) |
 | `/world/` · `/he/world/` · `/es/world/` · `/fr/world/` | the room |
 | `/boards/` · `/he/boards/` · `/es/boards/` · `/fr/boards/` | the leaderboards (two screens - see below) |
@@ -1708,7 +1708,28 @@ is the failure `assert-first-visit.mjs` exists to catch and has now caught three
 times. It passed with its negative control rejecting 9 of 9 planted entries, so
 that green is a real one rather than a vacuous one.
 
-**Latest reading: 89,469 B gz, 531 spare** (2026-08-16, 29 games, **4 page
+**Latest reading: 89,595 B gz, 405 spare** (2026-08-17, 30 games, 4 page
+locales, after `spell` landed. It cost **134 B gz** — its `meta.ts` in the
+statically-imported roster and its `gameArt` scene in the grid, which is the
+per-game slope `assert-slope` measures at 120.1 B/game, plus its link in the
+emitted home. That figure IS attributable: nothing else in the change is
+shipped, since 4 more content pages and a provenance script are build-time
+only. **405 B is under four games' worth of headroom**, so the next one to
+land should run `assert:payload` FIRST and expect to do step 3 of
+`docs/scaling-the-first-visit.md` rather than to find room.
+
+This number was RE-MEASURED after merging with `main`, and the reason is the
+one this file keeps writing down: the same build read **89,603 / 397** an
+hour earlier on a tree without the D-pad and math-category commits, so the
+two lanes each had a correct figure for a tree that no longer existed. The
+difference is 8 B and it did not matter this time. It is 8 B of margin at a
+ceiling with 405 left, which is exactly when it starts to. Re-run the gate
+on the MERGED tree; do not add the deltas. See
+[`.claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md`](.claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md).
+Supersedes the 2026-08-16 reading below, which is kept because it is the
+record of a different tree.)
+
+(89,469 B gz, 531 spare — 2026-08-16, 29 games, **4 page
 locales**. French moved this by 29 B, which is noise rather than a cost: page
 content is build-time only, so a fourth language buys 32 more documents for
 nothing a child downloads. Supersedes 89,440 / 560 from earlier the same day, after the SHIPPED/PAGE locale split — +65 B for the two narrowing funnels, which buys removing a 9,120 B wall. Supersedes 89,375 / 625 from earlier the same day, after the

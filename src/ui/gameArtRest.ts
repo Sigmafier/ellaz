@@ -261,4 +261,31 @@ export const REST: Record<string, Scene> = {
       <rect x="118" y="104" width="28" height="28" rx="8" fill="${PAL.paper}"/>
       <rect x="154" y="104" width="28" height="28" rx="8" fill="${PAL.paper}"/></g>
     <text x="150" y="76" font-family="Fredoka,system-ui,sans-serif" font-size="46" font-weight="800" text-anchor="middle" fill="${I}">A</text>` },
+
+  /* A picture, the row of boxes its name goes in, and one tile on its way into
+     the gap. Two boxes are filled and the third is dashed and empty, which is
+     the whole game in one line: the word is built letter by letter and the
+     length is visible before the first tile lands.
+
+     NO LETTERS here, unlike its sibling `letters` one entry up, and that is
+     `wordguess`'s reasoning rather than an oversight: this card is shown to a
+     child spelling in Hebrew, English or Spanish, so a Latin glyph would make
+     it wrong for two of the three. The bars stand in for writing in any
+     direction, and the ONE letter `letters` can safely draw is exactly what
+     tells the two cards apart at thumbnail size. */
+  spell: { a: "#0E9F94", b: "#35C7BC", d: "band", s: `
+    <g stroke="${I}" stroke-width="3.5">
+      <rect x="14" y="34" width="56" height="56" rx="13" fill="${PAL.paper}"/>
+      <rect x="82" y="40" width="34" height="34" rx="9" fill="${PAL.jade}"/>
+      <rect x="120" y="40" width="34" height="34" rx="9" fill="${PAL.jade}"/>
+      <rect x="158" y="40" width="34" height="34" rx="9" fill="${PAL.paper}" stroke-dasharray="7 6"/>
+      <rect x="158" y="98" width="34" height="34" rx="9" fill="${PAL.sunflower}"/>
+    </g>
+    <circle cx="42" cy="64" r="17" fill="${PAL.raspberry}"/>
+    <path d="M42 45c-2-7 5-12 11-10-1 7-5 10-11 10z" fill="${PAL.lime}"/>
+    <path d="M93 51v12M105 51v12M131 51v12M143 51v12"
+          stroke="${PAL.paper}" stroke-width="4" stroke-linecap="round"/>
+    <path d="M175 109v12" stroke="${I}" stroke-width="4" stroke-linecap="round"/>
+    <path d="M175 92v-8M169 88l6-6 6 6" stroke="${I}" stroke-width="3.5"
+          stroke-linecap="round" stroke-linejoin="round" fill="none"/>` },
 };
