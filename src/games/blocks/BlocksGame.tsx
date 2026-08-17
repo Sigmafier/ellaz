@@ -80,13 +80,19 @@ const WELL_LINE = "#2E2652";
  * row as three arrows a thumb is already jabbing at. So it is the one control
  * that must not be reachable by accident.
  *
- * A second is long enough that no stray press survives it and short enough that
- * a player who means it does not feel held up. It is a constant rather than a
- * literal so the charge ANIMATION and the timer cannot disagree about how long
- * the wait is - a bar that fills in 600ms over a button that fires at 1000ms
- * reads as a broken button rather than as a deliberate one.
+ * Half a second, down from a full one on 2026-08-17 after playing it. A whole
+ * second is a long time to stand still in a game where the piece keeps falling
+ * while you wait, and the guard does not need it: a stray jab between two arrows
+ * lasts a few tens of milliseconds, so 500ms is still an order of magnitude
+ * clear of anything accidental.
+ *
+ * It is a constant rather than a literal so the charge ANIMATION and the timer
+ * cannot disagree about how long the wait is - a bar that fills in 600ms over a
+ * button that fires at 500ms reads as a broken button rather than a deliberate
+ * one. Changing this number changes both, and the prose on the game's own pages
+ * quotes it in three languages, so it moves with them or they start lying.
  */
-const HOLD_MS = 1000;
+const HOLD_MS = 500;
 
 /** How long the button stays lit after firing, so the drop has a visible end. */
 const FLASH_MS = 260;
@@ -181,8 +187,8 @@ const SESSION: SessionSpec<BlocksSession> = {
  * un-doing, so a cancel reads as a cancel rather than as a missed press.
  *
  * Everything is driven by `phase` rather than by a rAF loop: the browser
- * interpolates a single transform for a second, off the main thread, on a
- * screen that is already repainting a falling board several times a second.
+ * interpolates a single transform for the whole charge, off the main thread, on
+ * a screen that is already repainting a falling board several times a second.
  */
 function HoldPad({
   label,
@@ -614,9 +620,9 @@ export function BlocksGame({ ctx }: { ctx: GameContext }) {
   // inside a page that is not.
   const T = textFor(
     {
-      he: { rows: "שורות", left: "שמאלה", rotate: "סובב", right: "ימינה", down: "למטה", drop: "הפל", hold: "החזיקו שנייה", next: "הבא" },
-      en: { rows: "Rows", left: "Left", rotate: "Rotate", right: "Right", down: "Down", drop: "Drop", hold: "hold for a second", next: "Next" },
-      es: { rows: "Filas", left: "Izquierda", rotate: "Girar", right: "Derecha", down: "Abajo", drop: "Soltar", hold: "mantén pulsado un segundo", next: "Siguiente" },
+      he: { rows: "שורות", left: "שמאלה", rotate: "סובב", right: "ימינה", down: "למטה", drop: "הפל", hold: "החזיקו חצי שנייה", next: "הבא" },
+      en: { rows: "Rows", left: "Left", rotate: "Rotate", right: "Right", down: "Down", drop: "Drop", hold: "hold for half a second", next: "Next" },
+      es: { rows: "Filas", left: "Izquierda", rotate: "Girar", right: "Derecha", down: "Abajo", drop: "Soltar", hold: "mantén pulsado medio segundo", next: "Siguiente" },
     },
     ctx.locale,
   );
