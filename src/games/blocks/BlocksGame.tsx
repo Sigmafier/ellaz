@@ -1,5 +1,13 @@
 import { textFor } from "@i18n/index";
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 import type { GameContext, RewardTier, SessionSpec } from "@sdk/index";
 import { Button } from "@ui/components";
 import { GameChrome, type ChromeLevel } from "@ui/GameChrome";
@@ -63,6 +71,25 @@ const PIECE_COLORS: readonly string[] = [
 /** The well. Deliberately NOT a theme token - see the note in the board below. */
 const WELL = "#211B3D";
 const WELL_LINE = "#2E2652";
+
+/**
+ * How long the drop button must be held before it fires.
+ *
+ * A hard drop is the one IRREVERSIBLE move in this game - the piece is gone the
+ * instant it lands, and a run can end on it - and the button sits in the same
+ * row as three arrows a thumb is already jabbing at. So it is the one control
+ * that must not be reachable by accident.
+ *
+ * A second is long enough that no stray press survives it and short enough that
+ * a player who means it does not feel held up. It is a constant rather than a
+ * literal so the charge ANIMATION and the timer cannot disagree about how long
+ * the wait is - a bar that fills in 600ms over a button that fires at 1000ms
+ * reads as a broken button rather than as a deliberate one.
+ */
+const HOLD_MS = 1000;
+
+/** How long the button stays lit after firing, so the drop has a visible end. */
+const FLASH_MS = 260;
 
 function colorOf(v: number): string {
   return PIECE_COLORS[Math.abs(v)] ?? PIECE_COLORS[1];
@@ -139,6 +166,161 @@ const SESSION: SessionSpec<BlocksSession> = {
     );
   },
 };
+
+/* --------------------------------------------------------- the hold button */
+
+/**
+ * A button that fires only after `HOLD_MS` of sustained press, and SHOWS the
+ * wait while it happens.
+ *
+ * The animation is not decoration. A button that ignores a tap and says nothing
+ * is indistinguishable from a broken one, so the charge has to be visible from
+ * the first frame of the press: the fill sweeps DOWNWARD and the arrow slides
+ * down with it, which is the move being asked for, drawn at the speed it is
+ * being waited for. Releasing early snaps both back in 160ms - a fast, obvious
+ * un-doing, so a cancel reads as a cancel rather than as a missed press.
+ *
+ * Everything is driven by `phase` rather than by a rAF loop: the browser
+ * interpolates a single transform for a second, off the main thread, on a
+ * screen that is already repainting a falling board several times a second.
+ */
+function HoldPad({
+  label,
+  hint,
+  glyph,
+  onHold,
+}: {
+  label: string;
+  hint: string;
+  glyph: string;
+  onHold: () => void;
+}) {
+  const [phase, setPhase] = useState<"idle" | "holding" | "fired">("idle");
+  const holdRef = useRef(0);
+  const flashRef = useRef(0);
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(holdRef.current);
+      window.clearTimeout(flashRef.current);
+    },
+    [],
+  );
+
+  /** Let go before the second was up: nothing fires, and the fill retreats. */
+  const release = useCallback(() => {
+    if (!holdRef.current) return;
+    window.clearTimeout(holdRef.current);
+    holdRef.current = 0;
+    setPhase("idle");
+  }, []);
+
+  const press = useCallback(() => {
+    if (holdRef.current) return;
+    // A tick at the START of the charge, so a player who cannot see the button
+    // under their own thumb still knows the press registered.
+    haptic.tap();
+    setPhase("holding");
+    holdRef.current = window.setTimeout(() => {
+      holdRef.current = 0;
+      setPhase("fired");
+      onHold();
+      flashRef.current = window.setTimeout(() => setPhase("idle"), FLASH_MS);
+    }, HOLD_MS);
+  }, [onHold]);
+
+  /**
+   * A click with `detail === 0` has no pointer behind it: it is a keyboard or
+   * assistive-technology activation, which cannot express "hold" at all. Those
+   * fire immediately, because the guard here is against a stray THUMB landing
+   * between two arrows - a player who has focused this button and activated it
+   * has already committed, and making the drop unreachable to them would be a
+   * far worse bug than the one this solves.
+   */
+  const click = useCallback(
+    (e: ReactMouseEvent<HTMLButtonElement>) => {
+      if (e.detail === 0) onHold();
+    },
+    [onHold],
+  );
+
+  const charging = phase === "holding";
+  return (
+    <button
+      type="button"
+      // The hint rides in the accessible name because there is no room for it on
+      // a 58px button, and "hold" is exactly the thing a screen-reader user
+      // cannot discover by looking at the fill.
+      aria-label={`${label} — ${hint}`}
+      onPointerDown={press}
+      onPointerUp={release}
+      onPointerLeave={release}
+      onPointerCancel={release}
+      // A one-second press is a long-press: without these, mobile browsers offer
+      // to select the glyph or open a context menu right as the drop fires.
+      onContextMenu={(e) => e.preventDefault()}
+      onClick={click}
+      style={{
+        position: "relative",
+        overflow: "hidden",
+        flex: "1.4 1 0",
+        minWidth: 0,
+        height: 58,
+        border: "none",
+        borderRadius: "var(--radius-2)",
+        background: "var(--surface)",
+        boxShadow: "var(--shadow-1)",
+        color: "var(--text)",
+        fontSize: 24,
+        fontFamily: "inherit",
+        cursor: "pointer",
+        // `none`, where the other three pads are `manipulation`, and the
+        // difference is the whole reason this button works on a phone. A press
+        // that lasts a second is a press a thumb drifts during, and the browser
+        // reads that drift as the start of a page scroll: it claims the gesture,
+        // fires `pointercancel`, and the charge dies at 900ms for a player who
+        // never let go. Refusing to pan from this one 58px button costs nothing
+        // - the board above it does not scroll either.
+        touchAction: "none",
+        WebkitUserSelect: "none",
+        userSelect: "none",
+        WebkitTouchCallout: "none",
+        WebkitTapHighlightColor: "transparent",
+        transform: charging ? "scale(0.97)" : "none",
+        transition: "transform 140ms var(--ease)",
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: "var(--brand)",
+          transformOrigin: "top",
+          transform: phase === "idle" ? "scaleY(0)" : "scaleY(1)",
+          opacity: phase === "idle" ? 0 : charging ? 0.38 : 0.6,
+          // The charge is LINEAR and exactly `HOLD_MS`, so the moment the button
+          // is full is the moment it fires. An eased fill would spend its last
+          // third looking finished while the timer was still running.
+          transition: charging
+            ? `transform ${HOLD_MS}ms linear, opacity 120ms linear`
+            : `transform 160ms var(--ease), opacity ${FLASH_MS}ms linear`,
+        }}
+      />
+      <span
+        aria-hidden="true"
+        style={{
+          position: "relative",
+          display: "block",
+          transform: phase === "idle" ? "none" : "translateY(4px)",
+          transition: charging ? `transform ${HOLD_MS}ms linear` : "transform 160ms var(--ease)",
+        }}
+      >
+        {glyph}
+      </span>
+    </button>
+  );
+}
 
 export function BlocksGame({ ctx }: { ctx: GameContext }) {
   const [level, setLevel] = useRememberedLevel(ctx, LEVEL_OPTIONS.map((o) => o.id), "normal");
@@ -432,9 +614,9 @@ export function BlocksGame({ ctx }: { ctx: GameContext }) {
   // inside a page that is not.
   const T = textFor(
     {
-      he: { rows: "שורות", left: "שמאלה", rotate: "סובב", right: "ימינה", down: "למטה", drop: "הפל", next: "הבא" },
-      en: { rows: "Rows", left: "Left", rotate: "Rotate", right: "Right", down: "Down", drop: "Drop", next: "Next" },
-      es: { rows: "Filas", left: "Izquierda", rotate: "Girar", right: "Derecha", down: "Abajo", drop: "Soltar", next: "Siguiente" },
+      he: { rows: "שורות", left: "שמאלה", rotate: "סובב", right: "ימינה", down: "למטה", drop: "הפל", hold: "החזיקו שנייה", next: "הבא" },
+      en: { rows: "Rows", left: "Left", rotate: "Rotate", right: "Right", down: "Down", drop: "Drop", hold: "hold for a second", next: "Next" },
+      es: { rows: "Filas", left: "Izquierda", rotate: "Girar", right: "Derecha", down: "Abajo", drop: "Soltar", hold: "mantén pulsado un segundo", next: "Siguiente" },
     },
     ctx.locale,
   );
@@ -485,11 +667,16 @@ export function BlocksGame({ ctx }: { ctx: GameContext }) {
         // No soft-drop button: the single-step "▼" was fiddly on a phone and
         // the hard-drop "⤓" does the useful thing. Keyboard ArrowDown still
         // soft-drops for desktop players.
+        //
+        // The drop is the ONE button here that is held rather than tapped. It is
+        // the only irreversible control in the game and it sits inside a row of
+        // arrows a thumb is already moving across, so a tap is exactly the input
+        // it must not accept. Everything else stays a tap.
         <div dir="ltr" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {pad(T.left, "◀", () => nudge(-1))}
           {pad(T.rotate, "⟳", turn, true)}
           {pad(T.right, "▶", () => nudge(1))}
-          {pad(T.drop, "⤓", slam, true)}
+          <HoldPad label={T.drop} hint={T.hold} glyph="⤓" onHold={slam} />
         </div>
       }
     >
