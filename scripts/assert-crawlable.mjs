@@ -390,6 +390,18 @@ async function walk(urls, sitemapXml = "") {
   let measured = 0;
   /** Pages that answered like a page and carried nothing. See CONTENT_FLOOR. */
   const thin = [];
+  /**
+   * The language check's POPULATION, for the identical reason `measured` above
+   * exists: `wrongScript` speaks only on failure, so without a tally "every
+   * page served the language it claims" and "no page resolved a locale, so
+   * nothing was ever compared" print as the same silence.
+   *
+   * Counted per locale rather than as a total, because the regression this
+   * whole check exists for is a locale MOVE - and a move shows up as the
+   * breakdown shifting long before it shows up as a mismatch.
+   */
+  const byLocale = new Map();
+  let mismatched = 0;
   const queue = [...urls];
   const workers = Array.from({ length: CONCURRENCY }, async () => {
     for (;;) {
@@ -432,13 +444,18 @@ async function walk(urls, sitemapXml = "") {
         const s = bodyStats(res.body);
         if (belowFloor(s)) thin.push({ url, ...s });
         // ...and is it in the language this URL claims? See `wrongScript`.
-        const mismatch = wrongScript(localeOfUrl(sitemapXml, url), res.body);
-        if (mismatch) fail(`${url} — ${mismatch}`);
+        const locale = localeOfUrl(sitemapXml, url);
+        if (locale) byLocale.set(locale, (byLocale.get(locale) ?? 0) + 1);
+        const mismatch = wrongScript(locale, res.body);
+        if (mismatch) {
+          mismatched++;
+          fail(`${url} — ${mismatch}`);
+        }
       }
     }
   });
   await Promise.all(workers);
-  return { done, measured, thin };
+  return { done, measured, thin, byLocale, mismatched };
 }
 
 /**
@@ -488,7 +505,7 @@ async function main() {
     fail("the sitemap lists no URLs — nothing below was actually checked");
   } else {
     console.log(`sitemap: ${urls.length} URLs`);
-    const { done: checked, measured, thin } = await walk(urls, sm.body);
+    const { done: checked, measured, thin, byLocale, mismatched } = await walk(urls, sm.body);
     console.log(`walked:  ${checked} URLs as Googlebot`);
 
     // --- the content floor ---------------------------------------------------
@@ -520,6 +537,44 @@ async function main() {
         `(GPTBot, ClaudeBot, Perplexity - none of them run JavaScript):`;
       if (armed) fail(`${headline}\n${lines}`);
       else console.log(`\nADVISORY  ${headline}\n${lines}\n  (not failing: CRAWL_CONTENT_FLOOR is unset)`);
+    }
+
+    // --- the language population ---------------------------------------------
+    // `wrongScript` returns null both for "this page is correct" and for "I had
+    // nothing to compare", and it prints only when it objects. So every run
+    // where the locale resolved for NO url looked exactly like a clean sweep.
+    //
+    // That is one sitemap change away at all times: the locale is derived from
+    // each `<url>`'s self-referential hreflang, deliberately, so this script
+    // needs no copy of PAGE_LOCALES - and the cost of deriving it is that the
+    // derivation can silently stop matching. This line is what makes that
+    // visible, on the same principle as the zero-URL guard above.
+    //
+    // It FAILS rather than reporting, unlike the content floor: an empty
+    // population here is not a page anybody has to go and fix, it is this check
+    // having quietly stopped running, and there is no version of that worth
+    // waving through. (`declared` can in principle exceed what was truly
+    // compared - `wrongScript` also declines on a body with no letters - but
+    // such a page cannot reach 60 words, so the content line above has already
+    // named it.)
+    const declared = [...byLocale.values()].reduce((a, b) => a + b, 0);
+    if (measured > 0 && declared === 0) {
+      fail(
+        `no URL declared a locale, so the language check compared nothing on ${measured} pages. ` +
+          "Every <url> in the sitemap carries a self-referential hreflang and `localeOfUrl` reads it; " +
+          "if the sitemap still has them, the derivation has stopped matching.",
+      );
+    } else if (declared > 0) {
+      const breakdown = [...byLocale]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([loc, n]) => `${loc} ${n}`)
+        .join(", ");
+      console.log(
+        mismatched === 0
+          ? `language: all ${declared} URLs served the script their locale declares (${breakdown})`
+          : `language: ${declared - mismatched} of ${declared} URLs served the script their locale ` +
+            `declares (${breakdown}) — ${mismatched} did not, named above`,
+      );
     }
   }
 
@@ -612,6 +667,15 @@ async function main() {
          && localeOfUrl('<urlset><url><loc>https://ellaz.fun/games/snake/</loc><xhtml:link rel="alternate" hreflang="en" href="https://ellaz.fun/games/snake/"/><xhtml:link rel="alternate" hreflang="he" href="https://ellaz.fun/he/games/snake/"/></url><url><loc>https://ellaz.fun/he/games/snake/</loc><xhtml:link rel="alternate" hreflang="en" href="https://ellaz.fun/games/snake/"/><xhtml:link rel="alternate" hreflang="he" href="https://ellaz.fun/he/games/snake/"/></url></urlset>', "https://ellaz.fun/games/snake/") === "en"],
     ["a URL the sitemap does not list has no locale, rather than a guessed one",
       () => localeOfUrl('<urlset><url><loc>https://ellaz.fun/games/snake/</loc><xhtml:link rel="alternate" hreflang="en" href="https://ellaz.fun/games/snake/"/><xhtml:link rel="alternate" hreflang="he" href="https://ellaz.fun/he/games/snake/"/></url><url><loc>https://ellaz.fun/he/games/snake/</loc><xhtml:link rel="alternate" hreflang="en" href="https://ellaz.fun/games/snake/"/><xhtml:link rel="alternate" hreflang="he" href="https://ellaz.fun/he/games/snake/"/></url></urlset>', "https://ellaz.fun/nope/") === null],
+    // The way the POPULATION goes to zero, which is the failure the
+    // `language:` line was added to make visible. A `<url>` that lists
+    // alternates but never points at itself resolves to no locale - and
+    // before that line existed, a sitemap of these passed in silence.
+    ["a <url> whose alternates never point at itself yields no locale",
+      () => localeOfUrl('<urlset><url><loc>https://ellaz.fun/games/snake/</loc><xhtml:link rel="alternate" hreflang="he" href="https://ellaz.fun/he/games/snake/"/></url></urlset>', "https://ellaz.fun/games/snake/") === null],
+    ["...while the same sitemap WITH the self-reference resolves it",
+      () => localeOfUrl('<urlset><url><loc>https://ellaz.fun/games/snake/</loc><xhtml:link rel="alternate" hreflang="en" href="https://ellaz.fun/games/snake/"/><xhtml:link rel="alternate" hreflang="he" href="https://ellaz.fun/he/games/snake/"/></url></urlset>', "https://ellaz.fun/games/snake/") === "en"],
+
     ["a bare URL serving Hebrew is caught",
       () => wrongScript("en", "<body>משחק הנחש הקלאסי, חינם בדפדפן, על לוח גדול</body>") !== null],
     ["a /he/ URL serving English is caught",
