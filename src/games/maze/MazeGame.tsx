@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GameContext, SessionSpec } from "@sdk/index";
 import type { Locale } from "@i18n/index";
 import { GameChrome } from "@ui/GameChrome";
+import { DirectionPad } from "@ui/DirectionPad";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { burst, haptic } from "@juice/index";
 import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
@@ -95,6 +96,19 @@ const WALL = 4;
 
 /** The beat between finishing a maze and being handed the next one. */
 const NEXT_MAZE_MS = 1300;
+
+/**
+ * How often a HELD joystick takes another step. Deliberately unhurried.
+ *
+ * A press of an arrow is one square and always has been; the stick repeats so a
+ * child can lean on it down a long corridor instead of tapping down it. The
+ * cost of repeating at all is that an overshot junction is a step the route did
+ * not need, and `steps === par` is exactly what "perfect" means here - so the
+ * interval is set for a walk a five-year-old can stop, not for speed. A hedge
+ * stops the walk on its own: `stepMove` returns `blocked`, which takes no step
+ * and costs nothing, so holding the stick into a wall is free.
+ */
+const MOVE_REPEAT_MS = 260;
 
 /* ------------------------------------------------------------- the snapshot */
 
@@ -304,35 +318,6 @@ export function MazeGame({ ctx }: { ctx: GameContext }) {
 
   /* ----------------------------------------------------------- the screen */
 
-  // A D-pad key. `onPointerDown` (not click) so the mouse moves the instant a
-  // finger lands, and `preventDefault` so a press does not scroll the page.
-  const dpadBtn = (glyph: string, dir: Dir, place: { gridColumn: number; gridRow: number }) => (
-    <button
-      type="button"
-      aria-label={dir}
-      onPointerDown={(e) => {
-        e.preventDefault();
-        move(dir);
-      }}
-      style={{
-        ...place,
-        border: "none",
-        borderRadius: 14,
-        background: "var(--surface)",
-        boxShadow: "var(--shadow-1)",
-        color: "var(--text)",
-        fontSize: 24,
-        display: "grid",
-        placeItems: "center",
-        cursor: "pointer",
-        touchAction: "none",
-        userSelect: "none",
-      }}
-    >
-      {glyph}
-    </button>
-  );
-
   const size = state.size;
   // Sized against the VIEWPORT, not this container, like every board here. On a
   // 390px phone the hard board's cells come out ~49px, which is the biggest a
@@ -402,23 +387,11 @@ export function MazeGame({ ctx }: { ctx: GameContext }) {
             </b>
           </div>
 
-          {/* The D-pad — one step per press. `dir="ltr"` because these are
-              physical directions on a board pinned LTR. */}
-          <div
-            dir="ltr"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 58px)",
-              gridTemplateRows: "repeat(2, 58px)",
-              gap: 8,
-              touchAction: "none",
-            }}
-          >
-            {dpadBtn("▲", "up", { gridColumn: 2, gridRow: 1 })}
-            {dpadBtn("◀", "left", { gridColumn: 1, gridRow: 2 })}
-            {dpadBtn("▼", "down", { gridColumn: 2, gridRow: 2 })}
-            {dpadBtn("▶", "right", { gridColumn: 3, gridRow: 2 })}
-          </div>
+          {/* The pad — one step per press, and one step per `MOVE_REPEAT_MS`
+              while the stick is held, so a child can walk a long corridor by
+              leaning on it instead of tapping down it. `move` refuses a solved
+              board and a hedge on its own, so the repeat cannot run away. */}
+          <DirectionPad onDir={move} size={58} repeatMs={MOVE_REPEAT_MS} />
         </div>
       }
     >
