@@ -347,6 +347,7 @@ const LAZY_GROUNDS: Record<string, string> = {
   music: "#A855C9",
   maze: "#6FD44E",
   letters: "#6355E0",
+  spell: "#0E9F94",
 };
 
 /* ---------------------------------------------------------------------------
