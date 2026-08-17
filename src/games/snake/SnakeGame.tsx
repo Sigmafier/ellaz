@@ -207,7 +207,7 @@ export function SnakeGame({ ctx }: { ctx: GameContext }) {
           {/* On-screen controls — the old-school pad for a player with no
               keyboard who would rather tap than swipe, plus the stick in the
               middle for one who would rather steer. */}
-          <DirectionPad onDir={steer} size={56} />
+          <DirectionPad onDir={steer} />
         </div>
       }
     >

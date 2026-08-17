@@ -58,6 +58,25 @@ export const PAD_KEYS: readonly { dir: PadDir; glyph: string; column: number; ro
  */
 const DEAD_ZONE = 0.34;
 
+/**
+ * The edge of one cell, in px, and therefore the size of every key and of the
+ * well between them. The whole pad is three of these plus two gaps.
+ *
+ * ONE number for both games on purpose. Snake drew 56 and maze 58 in their own
+ * copies of this pad — nobody chose that, it is just what two files do over
+ * time, and it is the drift this component exists to end.
+ *
+ * 72 clears `--tap-kids` (64px, the age-five target of roughly 2cm) with room
+ * to spare, which `direction-pad.test.ts` pins: this pad is drawn on a phone,
+ * under a thumb, by a child, and a key that merely meets the adult 48px
+ * minimum is the wrong size for all three.
+ */
+export const PAD_CELL = 72;
+
+/** The knob, as a fraction of the well it sits in. Big enough to be a thing
+ *  you grab rather than a dot you aim at. */
+const KNOB = 0.6;
+
 /** Which direction a displacement means, or null inside the dead zone. */
 export function padDirection(dx: number, dy: number, radius: number): PadDir | null {
   if (radius <= 0) return null;
@@ -72,7 +91,8 @@ export function padDirection(dx: number, dy: number, radius: number): PadDir | n
 export function DirectionPad(props: {
   /** Called once when the stick enters a direction, and on every arrow press. */
   onDir: (dir: PadDir) => void;
-  /** Edge of one cell, in px. The whole pad is three of these plus two gaps. */
+  /** Edge of one cell, in px. Defaults to `PAD_CELL`, and both games take the
+   *  default — pass this only if a game genuinely needs a different pad. */
   size?: number;
   /**
    * Repeat the held direction every N ms while the stick stays in it. Omit for
@@ -81,7 +101,7 @@ export function DirectionPad(props: {
    */
   repeatMs?: number;
 }): ReactElement {
-  const { onDir, size = 54, repeatMs } = props;
+  const { onDir, size = PAD_CELL, repeatMs } = props;
 
   const wellRef = useRef<HTMLDivElement>(null);
   /** The direction the stick is currently in, so re-entering it does not refire. */
@@ -236,8 +256,8 @@ export function DirectionPad(props: {
       >
         <div
           style={{
-            width: size * 0.56,
-            height: size * 0.56,
+            width: size * KNOB,
+            height: size * KNOB,
             borderRadius: "50%",
             background: "var(--brand-fill)",
             boxShadow: "var(--shadow-2)",

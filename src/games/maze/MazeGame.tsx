@@ -425,7 +425,7 @@ export function MazeGame({ ctx }: { ctx: GameContext }) {
               while the stick is held, so a child can walk a long corridor by
               leaning on it instead of tapping down it. `move` refuses a solved
               board and a hedge on its own, so the repeat cannot run away. */}
-          <DirectionPad onDir={move} size={58} repeatMs={MOVE_REPEAT_MS} />
+          <DirectionPad onDir={move} repeatMs={MOVE_REPEAT_MS} />
         </div>
       }
     >
