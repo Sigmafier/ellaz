@@ -360,14 +360,20 @@ export function MazeGame({ ctx }: { ctx: GameContext }) {
   const size = state.size;
   // Sized against the VIEWPORT, not this container, like every board here. On a
   // 390px phone the hard board's cells come out ~49px and the expert board's
-  // ~43px, which is the biggest an eight-square maze can be and still fit beside
-  // its chrome. Nothing here is TAPPED - the arrows drive the mouse - so a cell
-  // is a picture rather than a target, and the ≥2cm rule that governs the D-pad
-  // does not bind on it; a smaller cell costs legibility and never accuracy. The
-  // 76px cap
-  // stops the easy board becoming five enormous tiles on a desktop, and sits
-  // well under what the 700px panel leaves (game-panel-clears-widest-board.test.ts).
-  const cell = `min(${(88 / size).toFixed(2)}vw, ${(52 / size).toFixed(2)}vh, 76px)`;
+  // ~34px. Nothing here is TAPPED - the arrows drive the mouse - so a cell is a
+  // picture rather than a target, and the >=2cm rule that governs the D-pad does
+  // not bind on it; a smaller cell costs legibility and never accuracy.
+  //
+  // The px cap stops the easy board becoming five enormous tiles on a tall
+  // desktop, where neither the vw nor the vh term binds. It is 64 rather than
+  // the 76 it was until the expert board went to ten cells: 10 x 76 is a 760px
+  // board and the 700px panel leaves 684, so the board would have grown a
+  // scrollbar INSIDE the play surface, silently, since it is `overflow: auto`.
+  // 10 x 64 = 640, which is exactly the widest board in the tree (bees,
+  // finddiff). `board-fits-the-panel.test.ts` asserts that arithmetic against
+  // both sources - the generic gate reads this number as one CELL and cannot
+  // see the board at all.
+  const cell = `min(${(88 / size).toFixed(2)}vw, ${(52 / size).toFixed(2)}vh, 64px)`;
 
   return (
     <GameChrome

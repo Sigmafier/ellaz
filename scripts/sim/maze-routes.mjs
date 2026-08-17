@@ -201,6 +201,11 @@ for (const level of DIFFICULTIES) {
     level,
     size: cfg.size,
     cheese: cfg.cheese,
+    // The carve, which is a shape lever rather than a size one: `bushy` keeps
+    // every dead end a frontier carve makes, and it makes about three times as
+    // many as the backtracker. Printed because two levels with the same size,
+    // crumb count and braid can still be different games.
+    style: cfg.style,
     braid: cfg.braid,
     par: Number((par / DEALS).toFixed(2)),
     worstOrder: Number((worst / DEALS).toFixed(2)),
@@ -219,6 +224,7 @@ for (const level of DIFFICULTIES) {
 const out = {
   deals: DEALS,
   boards: Object.fromEntries(DIFFICULTIES.map((d) => [d, LEVELS[d].size])),
+  styles: Object.fromEntries(DIFFICULTIES.map((d) => [d, LEVELS[d].style])),
   crumbs: Object.fromEntries(DIFFICULTIES.map((d) => [d, LEVELS[d].cheese])),
   rows,
 };
@@ -228,12 +234,12 @@ if (process.argv.includes("--json")) {
 } else {
   console.log(`way home: ${DEALS.toLocaleString("en-US")} fresh deals per level\n`);
   console.log(
-    "level    board  crumbs  braid  par    worst order  x par  order never matters  dead ends  nearest-first  matches par  reading order  matches par",
+    "level    board  crumbs  carve    braid  par    worst order  x par  order never matters  dead ends  nearest-first  matches par  reading order  matches par",
   );
   for (const r of rows) {
     console.log(
       `${r.level.padEnd(8)} ${`${r.size}x${r.size}`.padStart(5)} ${String(r.cheese).padStart(7)} ` +
-        `${String(r.braid).padStart(6)} ${String(r.par).padStart(6)} ` +
+        `${r.style.padStart(7)} ${String(r.braid).padStart(6)} ${String(r.par).padStart(6)} ` +
         `${String(r.worstOrder).padStart(12)} ${String(r.orderCost + "x").padStart(6)} ` +
         `${String(r.orderNeverMattersPct + "%").padStart(20)} ` +
         `${String(r.deadEnds).padStart(10)} ${String(r.nearestSteps).padStart(14)} ` +

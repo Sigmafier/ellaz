@@ -42,7 +42,7 @@ export const maze: GameContent = {
 
         "המיומנות כאן היא לבחור סדר, ואת זה אפשר למדוד במקום להבטיח. חילקנו 20,000 מבוכים טריים בכל גודל לוח והשווינו כל אחד מהם לריצה הקצרה ביותר שקיימת לו, כזו שנבדקה מול כל סדר אפשרי של הפירורים. עכבר שהולך תמיד אל הפירור הקרוב, המהלך שנראה מתבקש, קלע לדרך הקצרה ב-92.7 אחוז מהלוחות הקטנים ורק ב-68.6 אחוז מלוחות 7 על 7. מי שאוסף לפי סדר הקריאה יורד ל-44.6 אחוז. ובאותו לוח הסדר הגרוע ביותר עולה 84.35 צעדים מול 39.53 בדרך הקצרה, כך שההחלטה שווה יותר מכל ההליכה.",
 
-        "ויש לוח רביעי, למי שהמבוכים כבר נגמרו לו. 8 על 8, חמישה פירורים, ואף סמטה ללא מוצא לא נפתחת בחזרה, כך שבין כל שתי משבצות עוברת בדיוק דרך אחת וכל פנייה שגויה נמדדת בחזרה. הדרך הקצרה שם היא 55.17 צעדים בממוצע, והעכבר שהולך אל הקרוב קולע לה ב-61.6 אחוז מהחלוקות מול 68.6 אחוז בלוח שמתחתיו.",
+        "ויש לוח רביעי, למי שהמבוכים כבר נגמרו לו. 10 על 10, שישה פירורים, והוא נחצב אחרת לגמרי: שלושת האחרים גדלים מסדרון ארוך אחד בכל פעם, והוא מסתעף מכל מקום בבת אחת. התוצאה היא 32.94 סמטאות ללא מוצא מתוך 100 משבצות, מול 5.92 בלוח שמתחתיו. הדרך הקצרה היא 52.78 צעדים, והעכבר שהולך אל הקרוב קולע לה ב-33.0 אחוז מהחלוקות מול 68.6 אחוז שם, כך שהמהלך המתבקש מפסיק להיות הנכון בערך פי שניים יותר מבכל מקום אחר.",
 
         "החצים מזיזים את העכבר משבצת אחת בכל לחיצה, ואתם מנווטים אותו לאורך כל הדרך. המסלול שלכם. שום דבר לא מוחזק לחוץ, פשוט לוחצים חץ לכיוון שרוצים ללכת. ילד שהאצבע שלו עוד לא מכוונת משחק בדיוק את אותו משחק.",
 
@@ -52,7 +52,7 @@ export const maze: GameContent = {
       ],
 
       howToPlay: [
-        { title: "בוחרים גודל לוח", body: "5 על 5 עם שני פירורים, 6 על 6 עם שלושה, 7 על 7 עם ארבעה, או לוח המומחה 8 על 8 עם חמישה." },
+        { title: "בוחרים גודל לוח", body: "5 על 5 עם שני פירורים, 6 על 6 עם שלושה, 7 על 7 עם ארבעה, או לוח המומחה 10 על 10 עם שישה." },
         { title: "מסתכלים על הלוח", body: "הכול גלוי מהשנייה הראשונה. אין מה לחפש, יש מה להחליט." },
         { title: "מנווטים עם החצים", body: "כל לחיצה מזיזה את העכבר משבצת אחת, ואף פעם לא דרך גדר חיה." },
         { title: "אוספים בדרך", body: "כל פירור שהעכבר דורך עליו נאסף, גם אם לא כיוונתם אליו." },
@@ -62,7 +62,7 @@ export const maze: GameContent = {
       tips: [
         {
           title: "הפירור הקרוב הוא לא תמיד הראשון",
-          body: "זה המהלך המתבקש והוא מפספס את הדרך הקצרה בכשליש מהחלוקות בשני הלוחות הגדולים. שווה להסתכל איפה הפירור השני יושב לפני שיוצאים אל הראשון.",
+          body: "זה המהלך המתבקש והוא מפספס את הדרך הקצרה בכשליש מהחלוקות ב-7 על 7 ובשני שלישים מהן בלוח המומחה. שווה להסתכל איפה הפירור השני יושב לפני שיוצאים אל הראשון.",
         },
         {
           title: "תסתכלו איפה המאורה",
@@ -112,16 +112,16 @@ export const maze: GameContent = {
         },
         {
           title: "9 ומעלה",
-          body: "לוח המומחה. חמישה פירורים הם 120 סדרים אפשריים, ובלי שום סמטה שנפתחת בחזרה נשארות בממוצע 8.17 סמטאות ללא מוצא בכל חלוקה.",
+          body: "לוח המומחה. שישה פירורים הם 720 סדרים אפשריים, ושליש מתוך מאה המשבצות הוא סמטה ללא מוצא.",
         },
         {
           title: "מבוגרים",
-          body: "נסו רצף של מושלמים. הבוט שהולך לקרוב ביותר מגיע ל-68.6 אחוז ב-7 על 7 ול-61.6 אחוז בלוח המומחה, וזו רמה נוחה להשוות אליה.",
+          body: "נסו רצף של מושלמים. הבוט שהולך לקרוב ביותר מגיע ל-68.6 אחוז ב-7 על 7 ורק ל-33.0 אחוז בלוח המומחה, וזו רמה נוחה להשוות אליה.",
         },
       ],
 
       accessibility:
-        "החצים הם כפתורים גדולים ללחיצה בודדת, לא מחווה שצריך להחזיק, וכל לחיצה מזיזה את העכבר משבצת אחת. אפשר גם עם מקשי החצים במקלדת. אין שעון ואין ספירה לאחור, אז אפשר לעצור באמצע ולחשוב כמה שרוצים. אף משבצת על הלוח לא נלחצת, אז היא תמונה ולא מטרה: ב-7 על 7 היא יוצאת בערך 49 פיקסלים על טלפון של 390 פיקסלים, בלוח המומחה בערך 43, ובלוח הקטן הרבה יותר. כל משבצת נושאת תווית עם מה שיש בה ועם המספרים שלה בשורה ובעמודה, כך שקורא מסך מבחין בין 64 משבצות במקום להקריא אותו דבר 64 פעמים. אפשר לשחק בשקט מוחלט בלי לאבד מידע.",
+        "החצים הם כפתורים גדולים ללחיצה בודדת, לא מחווה שצריך להחזיק, וכל לחיצה מזיזה את העכבר משבצת אחת. אפשר גם עם מקשי החצים במקלדת. אין שעון ואין ספירה לאחור, אז אפשר לעצור באמצע ולחשוב כמה שרוצים. אף משבצת על הלוח לא נלחצת, אז היא תמונה ולא מטרה: ב-7 על 7 היא יוצאת בערך 49 פיקסלים על טלפון של 390 פיקסלים, בלוח המומחה בערך 34, ובלוח הקטן הרבה יותר. כל משבצת נושאת תווית עם מה שיש בה ועם המספרים שלה בשורה ובעמודה, כך שקורא מסך מבחין בין 100 משבצות במקום להקריא אותו דבר 100 פעמים. אפשר לשחק בשקט מוחלט בלי לאבד מידע.",
 
       together: [
         {
@@ -157,7 +157,7 @@ export const maze: GameContent = {
         },
         {
           q: "כמה צעדים לוקח מבוך?",
-          a: "הדרך הקצרה היא 13.58 צעדים בלוח הקטן, 24.41 בבינוני, 39.53 ב-7 על 7 ו-55.17 בלוח המומחה, בממוצע על 20,000 חלוקות. עכבר שהולך לפירור הקרוב תמיד מסיים ב-43.91 ב-7 על 7 וב-63.54 בלוח המומחה.",
+          a: "הדרך הקצרה היא 13.58 צעדים בלוח הקטן, 24.41 בבינוני, 39.53 ב-7 על 7 ו-52.78 בלוח המומחה, בממוצע על 20,000 חלוקות. עכבר שהולך לפירור הקרוב תמיד מסיים ב-43.91 ב-7 על 7 וב-60.92 בלוח המומחה.",
         },
         {
           q: "הלוח הקטן קל מדי?",
@@ -199,7 +199,7 @@ export const maze: GameContent = {
 
         "Which leaves exactly one thing worth being good at: the order. We dealt 20,000 fresh mazes at each board size and compared every deal against its own shortest possible run, brute-forced over every order of the crumbs. Walking to the nearest crumb first, which is the move everybody makes, matched that shortest run on 92.7% of the small boards and on only 68.6% of the seven-square ones. Take them in reading order instead and it falls to 44.6%. And on that board the worst order of the same four crumbs costs 84.35 steps against a shortest run of 39.53, so deciding is worth more than the entire walk.",
 
-        "There is a fourth board for anyone who has run out of maze. Eight squares to a side, five crumbs, and nothing braided back open, so exactly one route joins any two squares and a wrong turn gets walked back. Par there averages 55.17 steps, and our nearest-crumb mouse matches it on 61.6% of deals against 68.6% one board down.",
+        "There is a fourth board for anyone who has run out of maze. Ten squares to a side, six crumbs, and cut a different way: the other three grow one long corridor at a time, this one branches from everywhere at once. That leaves 32.94 of its 100 squares as dead ends against 5.92, par at 52.78 steps, and the nearest-crumb mouse down at 33.0%.",
 
         "The arrows move the mouse one square per press. You steer the whole way. The route is yours. Nothing at all is held down.",
 
@@ -207,7 +207,7 @@ export const maze: GameContent = {
       ],
 
       howToPlay: [
-        { title: "Pick a board", body: "Five by five with two crumbs, six by six with three, seven by seven with four, or the expert eight by eight with five." },
+        { title: "Pick a board", body: "Five by five with two crumbs, six by six with three, seven by seven with four, or the expert ten by ten with six." },
         { title: "Look at all of it", body: "Everything is visible from the first frame. Nothing is hidden, so nothing has to be hunted." },
         { title: "Steer with the arrows", body: "Each press moves the mouse one square, and never once through a hedge." },
         { title: "Collect on the way", body: "Any crumb the mouse walks onto is picked up, whether or not you were aiming at it." },
@@ -217,7 +217,7 @@ export const maze: GameContent = {
       tips: [
         {
           title: "The nearest crumb is not always first",
-          body: "It is the obvious move and it misses the shortest run on roughly a third of the deals on the two biggest boards. Look at where the second crumb sits before you set off for the first.",
+          body: "It is the obvious move, and it misses the shortest run on a third of seven-square deals and two thirds of expert ones. Look where the second crumb sits before setting off for the first.",
         },
         {
           title: "Find the burrow early",
@@ -256,12 +256,12 @@ export const maze: GameContent = {
         { title: "3 to 4", body: "The small board. Two crumbs, few hedges, and nearly every step moves something along." },
         { title: "5 to 6", body: "Six by six with three crumbs. The shortest run averages 24.41 steps, which is where order starts to pay." },
         { title: "7 and up", body: "Seven by seven: four crumbs, close to six dead ends per deal, and a perfect run that wants the whole board read." },
-        { title: "9 and up", body: "The expert board. Five crumbs is 120 orders to pick from, and with nothing braided open there are 8.17 dead ends waiting on an average deal." },
-        { title: "Grown-ups", body: "Go for a streak of perfect runs. Our nearest-crumb bot manages 68.6% on the seven-square board and 61.6% on the expert one, which is a fair thing to measure yourself against." },
+        { title: "9 and up", body: "The expert board. Six crumbs is 720 orders to pick from, and a third of the hundred squares is a dead end." },
+        { title: "Grown-ups", body: "Go for a streak of perfect runs. Our nearest-crumb bot manages 68.6% on the seven-square board and 33.0% on the expert one, which is a fair thing to measure yourself against." },
       ],
 
       accessibility:
-        "The arrows are big single-tap targets, not a gesture that has to be held, and each press moves the mouse one square. Arrow keys work too. There is no clock and no countdown, so you can stop and think for as long as you like. No square is ever tapped, so a square is a picture rather than a target: around 49 pixels on the seven-square board and 43 on the expert one on a 390 pixel phone, and a good deal larger on the small one. Every square is labelled with what is standing on it plus its own column and row, so a screen reader can tell sixty-four of them apart instead of reading the same thing sixty-four times. The whole game plays in silence without losing any information.",
+        "The arrows are big single-tap targets, not a gesture that has to be held, and each press moves the mouse one square. Arrow keys work too. There is no clock and no countdown, so you can stop and think for as long as you like. No square is ever tapped, so a square is a picture rather than a target: around 49 pixels on the seven-square board and 34 on the expert one on a 390 pixel phone. Every square is labelled with what is standing on it plus its own column and row, so a screen reader can tell a hundred of them apart instead of reading the same thing a hundred times. The whole game plays in silence without losing any information.",
 
       together: [
         {
@@ -297,7 +297,7 @@ export const maze: GameContent = {
         },
         {
           q: "How many steps does a maze take?",
-          a: "The shortest run averages 13.58 steps on the small board, 24.41 on the middle one, 39.53 on the seven-square one and 55.17 on the expert board, over 20,000 deals. A mouse that always heads for the nearest crumb finishes the seven-square board in 43.91 and the expert one in 63.54.",
+          a: "The shortest run averages 13.58 steps on the small board, 24.41 on the middle one, 39.53 on the seven-square one and 52.78 on the expert board, over 20,000 deals. A mouse that always heads for the nearest crumb finishes the seven-square board in 43.91 and the expert one in 60.92.",
         },
         {
           q: "Is the small board too easy?",
@@ -341,7 +341,7 @@ export const maze: GameContent = {
 
         "Y en ese tablero el peor orden de esas mismas cuatro migas cuesta 84,35 pasos frente a los 39,53 del recorrido mínimo. Decidir vale más que andar.",
 
-        "Hay un cuarto tablero para quien ya se haya cansado de los otros. Ocho por ocho, cinco migas y ni un solo callejón sin salida reabierto, así que entre dos casillas cualesquiera pasa un único camino y cada giro equivocado se deshace andando. El recorrido mínimo ronda ahí los 55,17 pasos, y el ratón de la miga cercana lo iguala en el 61,6% de los repartos frente al 68,6% del tablero de debajo.",
+        "Hay un cuarto tablero para quien ya se haya cansado de los otros. Diez por diez, seis migas y excavado de otra manera: los otros tres crecen un pasillo largo cada vez y este se ramifica desde todas partes a la vez, de modo que 32,94 de sus 100 casillas son callejones sin salida frente a los 5,92 del tablero de debajo. El recorrido mínimo son 52,78 pasos. El ratón de la miga cercana lo iguala en el 33,0% de los repartos frente al 68,6%, y el orden de lectura acierta el 8,2% de las veces, así que lo evidente deja de ser lo correcto el doble de a menudo que en cualquier otro sitio.",
 
         "Las flechas mueven al ratón una casilla por pulsación. Guías tú todo el camino. La ruta es tuya. Nada hay que mantener pulsado.",
 
@@ -349,7 +349,7 @@ export const maze: GameContent = {
       ],
 
       howToPlay: [
-        { title: "Elige tablero", body: "Cinco por cinco con dos migas, seis por seis con tres, siete por siete con cuatro, o el tablero experto de ocho por ocho con cinco." },
+        { title: "Elige tablero", body: "Cinco por cinco con dos migas, seis por seis con tres, siete por siete con cuatro, o el tablero experto de diez por diez con seis." },
         { title: "Míralo entero", body: "Todo está a la vista desde el primer momento. No hay nada escondido que buscar." },
         { title: "Guía con las flechas", body: "Cada pulsación mueve al ratón una casilla, y jamás a través de un seto." },
         { title: "Recoge de paso", body: "Cualquier miga que el ratón pise se recoge, aunque no apuntaras a ella." },
@@ -359,7 +359,7 @@ export const maze: GameContent = {
       tips: [
         {
           title: "La miga más cercana no siempre va primero",
-          body: "Es el movimiento evidente y falla el recorrido mínimo en cerca de un tercio de los repartos de los dos tableros mayores. Mira dónde está la segunda antes de salir hacia la primera.",
+          body: "Es el movimiento evidente y falla el recorrido mínimo en un tercio de los repartos de siete por siete y en dos tercios de los del experto. Mira dónde está la segunda antes de salir hacia la primera.",
         },
         {
           title: "Localiza la madriguera",
@@ -398,12 +398,12 @@ export const maze: GameContent = {
         { title: "3 a 4", body: "El tablero pequeño. Dos migas, pocos setos, y casi cualquier paso adelanta algo." },
         { title: "5 a 6", body: "Seis por seis con tres migas. El recorrido mínimo ronda los 24,41 pasos y el orden ya se nota." },
         { title: "7 en adelante", body: "Siete por siete: cuatro migas, casi seis callejones sin salida por reparto y una partida perfecta que pide leerlo todo." },
-        { title: "9 en adelante", body: "El tablero experto. Cinco migas son 120 órdenes posibles, y sin nada reabierto quedan 8,17 callejones sin salida por reparto." },
-        { title: "Adultos", body: "Id a por una racha de perfectos. Nuestro robot de la miga cercana se queda en el 68,6% en siete por siete y en el 61,6% en el experto." },
+        { title: "9 en adelante", body: "El tablero experto. Seis migas son 720 órdenes posibles, y un tercio de sus cien casillas es un callejón sin salida." },
+        { title: "Adultos", body: "Id a por una racha de perfectos. Nuestro robot de la miga cercana se queda en el 68,6% en siete por siete y en el 33,0% en el experto." },
       ],
 
       accessibility:
-        "Las flechas son botones grandes de una sola pulsación, no un gesto que haya que mantener, y cada pulsación mueve al ratón una casilla. También valen las teclas de flecha. No hay reloj ni cuenta atrás, así que se puede parar a pensar el rato que haga falta. Ninguna casilla se pulsa nunca, así que es un dibujo y no un objetivo: salen a unos 49 píxeles en el tablero de siete por siete y a unos 43 en el experto, en un teléfono de 390 píxeles, y bastante más en el pequeño. Cada casilla lleva en la etiqueta lo que hay encima más su columna y su fila, así que un lector de pantalla distingue las sesenta y cuatro en vez de repetir lo mismo sesenta y cuatro veces. Se juega entero en silencio sin perderse información.",
+        "Las flechas son botones grandes de una sola pulsación, no un gesto que haya que mantener, y cada pulsación mueve al ratón una casilla. También valen las teclas de flecha. No hay reloj ni cuenta atrás, así que se puede parar a pensar el rato que haga falta. Ninguna casilla se pulsa nunca, así que es un dibujo y no un objetivo: salen a unos 49 píxeles en el tablero de siete por siete y a unos 34 en el experto, en un teléfono de 390 píxeles, y bastante más en el pequeño. Cada casilla lleva en la etiqueta lo que hay encima más su columna y su fila, así que un lector de pantalla distingue las cien en vez de repetir lo mismo cien veces. Se juega entero en silencio sin perderse información.",
 
       together: [
         {
@@ -439,7 +439,7 @@ export const maze: GameContent = {
         },
         {
           q: "¿Cuántos pasos lleva un laberinto?",
-          a: "El recorrido mínimo es de 13,58 pasos en el tablero pequeño, 24,41 en el mediano, 39,53 en el de siete por siete y 55,17 en el experto, de media sobre 20.000 repartos. Un ratón que va siempre a la miga más cercana termina el de siete por siete en 43,91 y el experto en 63,54.",
+          a: "El recorrido mínimo es de 13,58 pasos en el tablero pequeño, 24,41 en el mediano, 39,53 en el de siete por siete y 52,78 en el experto, de media sobre 20.000 repartos. Un ratón que va siempre a la miga más cercana termina el de siete por siete en 43,91 y el experto en 60,92.",
         },
         {
           q: "¿El tablero pequeño es demasiado fácil?",
@@ -505,26 +505,26 @@ export const maze: GameContent = {
     },
     {
       claim:
-        "five by five with two crumbs, six by six with three, seven by seven with four, eight by eight with five",
+        "five by five with two crumbs, six by six with three, seven by seven with four, ten by ten with six",
       source: "src/games/maze/logic.ts",
     },
     {
       claim:
-        "four crumbs is 24 possible orders and five is 120, and par is brute-forced over all of them",
+        "four crumbs is 24 possible orders and six is 720, and par is brute-forced over all of them",
       source: "src/games/maze/logic.ts",
     },
     {
       claim:
-        "the expert board's shortest run averages 55.17 steps, a nearest-crumb mouse walks 63.54 and matches par on 61.6% of deals, reading order on 35.4%, with 8.17 dead ends per deal",
+        "the expert board's shortest run averages 52.78 steps, a nearest-crumb mouse walks 60.92 and matches par on 33.0% of deals, reading order on 8.2%, with 32.94 dead ends per deal against the seven-square board's 5.92",
       source: "scripts/sim/maze-routes.mjs",
     },
     {
-      claim: "the expert board braids nothing open, so it is a perfect maze",
+      claim: "the expert board is cut by a frontier carve and braids nothing open, so it is a perfect maze whose passages branch rather than wind",
       source: "src/games/maze/logic.ts",
     },
     {
       claim:
-        "squares are about 49 pixels on the seven-square board and 43 on the expert one on a 390 pixel phone, each labelled by contents, column and row",
+        "squares are about 49 pixels on the seven-square board and 34 on the expert one on a 390 pixel phone, each labelled by contents, column and row",
       source: "src/games/maze/MazeGame.tsx",
     },
     {

@@ -1118,61 +1118,108 @@ repaint `/` for a Hebrew speaker who followed one link. Spanish awaits its dicti
 before mounting, exactly as `bootContentPage` does — there is no flash to trade, since the
 emitted home is still on screen and React has not rendered a thing.
 
-## A fourth maze, for the child the third one stopped holding (2026-08-17)
+## A fourth maze, and the lever that turned out to matter (2026-08-17)
 
 Way Home shipped with three boards and its whole difficulty argument sitting on two
 levers, because it has no others: there is no clock to speed up and no lives to take
-away. So the harder mode is those two levers turned further and a third that only
-ever ran one way — `expert` is **8×8 with five crumbs and `braid: 0`**, a perfect
-maze where exactly one route joins any two cells, so a wrong turn is walked back
-rather than looped around. Still no failure state, still one tap at a time.
+away. The expert board is **10×10, six crumbs, `braid: 0`, and a different carve** —
+and the carve is the part worth reading.
 
-Measured through the shipped reducer, 20,000 fresh deals (`scripts/sim/maze-routes.mjs`,
-which iterates `DIFFICULTIES` and needed no edit): par **55.17** steps against hard's
-39.53, the worst order **133.24** (2.42× par against 2.13×), **8.17** dead ends per deal
-against 5.92, and the nearest-crumb bot matches par on **61.6%** of deals against 68.6%.
-Reading order collapses to 35.4%. Every previously published figure re-derived to the
-digit on the same run, so nothing in the prose moved except where a fourth board made
-"the big one" ambiguous.
+The first cut of this was 8×8 with five crumbs on the same depth-first backtracker,
+and it was a bigger board rather than a harder one. Asked for more dead ends, the
+honest answer was that a backtracker cannot give them: it carves one long corridor at
+a time, so **11.8% of cells are dead ends at any size**. Going to 10×10 buys 11.80 dead
+ends against 8.19 and an 82.09-step par — half again as much walking at one square per
+press, and a nearest-crumb bot still matching par on 58.7% of deals. Longer, not harder.
 
-**`Difficulty` and `RewardTier` stopped being the same three words**, which is the only
-structural change. `expert` is not a tier, so `MazeGame.tsx` now carries a `LEVEL_TIER`
-map — the sudoku and sort shape — and expert pays as `hard`. Passing `tier: level`
-through was a compile error the moment the fourth id existed, which is the arrangement
-working rather than a hurdle: the alternative is `grant()` handed a tier `economy.ts`
-has never heard of.
+A **frontier carve** (Prim's on a uniform grid) is the lever that exists. It grows from
+everything already reached rather than from wherever it is standing, so passages branch
+early: **32.94 dead ends per board, a third of every cell**, and the longest route
+across a 10×10 falls from 67.90 squares to 27.22. Both are still perfect mazes — a wall
+is only ever opened onto a cell nothing has reached, so the passages are a spanning tree
+however the frontier is shuffled.
 
-Two new gates in `logic.test.ts`, both mutation-proven. **The ramp is asserted on `par`
-and not on the knobs**: size and crumb count are declarations, and either can be raised
-while the level gets shorter, because a big board whose crumbs land in a huddle is a
-shorter walk than a small one whose crumbs are spread. And the perfect-maze property is
-counted as **passages** (`n-1` for a tree) rather than as dead ends, since a board can
-gain a dead end somewhere and lose the property elsewhere; the easy board is the control,
-so a build that quietly braided nothing anywhere would fail rather than pass.
+The trade is not the one it looks like. Bushy is not the same maze with stubs added:
+the stubs are SHORT, so the board is **quicker to cross and much harder to cross
+optimally**. Measured through the shipped reducer over 20,000 deals:
 
-The first test also caught its own author: `DIFFICULTIES.map(meanPar)` passes the INDEX
-as the second argument, so easy was averaged over zero deals and compared as `NaN`.
+| | hard 7×7 | expert 10×10 bushy | (the 8×8 it replaced) |
+|---|---|---|---|
+| par | 39.53 | **52.78** | 55.36 |
+| dead ends per board | 5.92 | **32.94** | 8.19 |
+| nearest-crumb bot matches par | 68.6% | **33.0%** | 60.2% |
+| reading order matches par | 44.6% | **8.2%** | 35.4% |
+
+The record here is perfect runs and nothing else, so that third row is the one that
+decides how hard a level is — and it is the row the size lever barely moved. Note the
+one that runs the *other* way: the worst order costs **1.89× par** on the expert board
+against 2.13× on hard. A bad order is punished less, and the right one is far harder to
+see, because a bushy board is full of near-ties.
+
+Six crumbs rather than five keeps par at roughly what it was (52.78 against 55.36), so
+the run stays a sane length while the ordering problem goes from 120 orders to 720.
+`optimalRoute` brute-forces all of them per deal, which is microseconds; the growth is
+factorial, so eight crumbs (40,320) needs a different algorithm rather than a bigger
+loop, and the comment there says so.
+
+### The mutation that survived, and what it was blind to
+
+Four mutations were planted and three died. The survivor is the useful one:
+**switching `LEVELS.expert.style` back to `"winding"` passed the entire suite.** One
+word, the whole difficulty of the level gone, nothing red.
+
+Each gate was individually right and none of them read the level. The carve test proved
+`carve` can cut both shapes — at a size it passed in itself. The ramp test proved the
+walk was longer — a winding 10×10 is longer still. The perfect-maze test proved the
+passages form a tree — both carves do. Same family as every other entry in this file:
+a check that cannot represent the thing it is looking for reports green about it forever.
+
+The gate added for it measures what a player is **dealt** rather than what the config
+says, and as a **density** so it cannot pass on a board that is merely bigger: expert's
+dead-end share must be more than double hard's (11.9% vs 32.9% measured). Asserted as a
+ratio rather than against 32.94, so an rng change moves the number without reding a
+build that still has the shape it is meant to have. It kills the survivor by name, and
+kills a 12×12 winding board too.
+
+### The panel gate could not see this board either
+
+`game-panel-clears-widest-board.test.ts` reads every game's `min()` px ceilings against
+the 700px panel. Maze sizes a **cell**, not a board, so it read 76 and the board was
+8 × 76 = 608. At ten cells that is **760px against the 684 the panel leaves** — and an
+oversized board here does not spill or throw, it grows a scrollbar inside a play surface
+that is `overflow: auto`.
+
+The cap is 64 now (10 × 64 = 640, exactly the widest board in the tree), and
+`board-fits-the-panel.test.ts` asserts that arithmetic by reading both sources — the
+literal out of the renderer, the cap out of the shipped stylesheet — with controls in
+both directions on each matcher. Restoring 76 fails it naming the two numbers.
 
 ### Measured
 
-- **first visit 89,469 → 89,476 B gz**, +7 for the whole thing. Two arms from one tree,
-  one variable, which is the only way this number means anything
-  ([`a-threshold-tuned-against-todays-tree-goes-stale.md`](../.claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md)).
-  A level lives in the lazy game chunk; only its meta reaches the shell, and this adds none.
-- **Driven in a real browser on the built artifact**, 390×844, expert selected from the
-  chrome: 64 cells, a **347px** board inside a 390px phone, five crumbs, and a route the
-  driver brute-forced from the walls the DOM actually renders — 38 steps walked, the
-  screen reading Moves 38, Perfect 1, Best 1, and the wallet 8 coins and a star. The par
-  agreeing across two independent implementations is the useful half; the payout is what
-  proves `LEVEL_TIER`.
-- 2,647 tests green, `tsc` clean, `build:check` green under the default base.
+- **first visit 89,469 → 89,455 B gz**, two arms from one tree. A level lives in the
+  lazy game chunk and only its meta reaches the shell, so the honest reading of a
+  14-byte fall is *unmoved*: `index.html` carries hashed asset names, and how well a
+  different hash string gzips is worth a handful of bytes in either direction. The
+  first cut of this change measured +7 on the same baseline. Do not read either as a
+  cost or a saving.
+- **Driven in a real browser on the built artifact**, 390×844, expert picked from the
+  chrome: 100 cells, a **347px** board inside a 390px phone (444px on a 1440×900
+  desktop), six crumbs, and a 60-step route the driver brute-forced from the walls the
+  DOM actually renders — walked, and the screen read Moves 60, Perfect 1, Best 1, wallet
+  8 coins and a star. Par agreeing across two independent implementations is the useful
+  half; the payout is what proves `LEVEL_TIER`.
+- 2,653 tests green, `tsc` clean, `build:check` green under the default base.
 
-Cells come out ~43px on a 390px phone rather than hard's 49. That is under the 2cm
-target floor and does not breach it: **no square on this board is ever tapped**, the
-D-pad drives the mouse, so a cell is a picture and the rule that governs a target does
-not govern it. Prose in all four languages says so now, along with the fourth board in
-every enumeration that listed the choices, and a screen reader is told about sixty-four
-squares rather than forty-nine.
+`Difficulty` and `RewardTier` stop spelling the same words at `expert`, so the renderer
+carries a `LEVEL_TIER` map and expert pays as `hard` — the sudoku and sort shape.
+Passing the level straight through became a compile error the moment the fourth id
+existed, which is that arrangement working.
+
+Cells come out ~34px on a 390px phone against hard's 49. That is under the 2cm target
+floor and does not breach it: **no square on this board is ever tapped**, the D-pad
+drives the mouse, so a cell is a picture and the rule that governs a target does not
+govern it. Prose in all four languages carries the fourth board, its numbers, and a
+screen reader being told about a hundred squares rather than forty-nine.
 
 ## Still open
 
