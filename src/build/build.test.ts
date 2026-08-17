@@ -6,7 +6,7 @@ import { SITE } from "../content/site";
 import { GAMES } from "../portal/games";
 import { CATALOG } from "../portal/catalog";
 import { escapeHtml, html, jsonLd, raw, toHtml } from "./html";
-import { CANONICAL_LOCALE, ENGLISH_NAME, dirOf } from "../i18n/locales";
+import { CANONICAL_LOCALE, DEFAULT_LOCALE, ENGLISH_NAME, dirOf } from "../i18n/locales";
 import { LOCALES, ROUTES, canonicalUrl, gamePath, homePath, href } from "./routes";
 import {
   allEmittedFiles,
@@ -627,6 +627,7 @@ describe("robots, sitemap and llms", () => {
     expect(rows.length).toBeGreaterThan(0);
 
     let checked = 0;
+    let defaults = 0;
     for (const row of rows) {
       const self = byUrl.get(/<loc>([^<]+)<\/loc>/.exec(row)![1])!;
       for (const [, locale, href] of row.matchAll(
@@ -636,13 +637,28 @@ describe("robots, sitemap and llms", () => {
         expect(target, `${href} is not a route this site emits`).toBeDefined();
         expect(target!.kind, `${self.path} claims ${href} as its ${locale}`).toBe(self.kind);
         expect(target!.id).toBe(self.id);
-        expect(target!.locale).toBe(locale);
-        checked += 1;
+        // x-default is the one entry that is not a language: it says "we have
+        // no page in yours", so it must point at THIS page in DEFAULT_LOCALE.
+        // Counted separately rather than skipped - an exemption nobody counts
+        // is how a row stops being checked at all.
+        if (locale === "x-default") {
+          expect(target!.locale, `${self.path}'s x-default`).toBe(DEFAULT_LOCALE);
+          defaults += 1;
+        } else {
+          expect(target!.locale).toBe(locale);
+          checked += 1;
+        }
       }
     }
     // A property test over zero alternates passes vacuously, which is exactly the
     // shape of the bug it replaces.
     expect(checked).toBe(rows.length * LOCALES.length);
+    // And every row carries exactly one x-default, because the sitemap's cluster
+    // and the page's own <link> tags are two statements about the same thing.
+    // The sitemap had none of these until 2026-08-17 while every page head had
+    // one, so the two artifacts disagreed - quietly, in the direction nobody
+    // opens, which is this test's whole subject.
+    expect(defaults).toBe(rows.length);
   });
 
   it("lists every game in llms.txt, in every page language", () => {

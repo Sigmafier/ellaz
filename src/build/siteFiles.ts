@@ -1,7 +1,7 @@
 import type { GameMeta } from "../sdk/types";
 import { gameName } from "./gameName";
 import { ORIGIN } from "../content/site";
-import { ENGLISH_NAME } from "../i18n/locales";
+import { DEFAULT_LOCALE, ENGLISH_NAME } from "../i18n/locales";
 import { LOCALES, ROUTES, canonicalUrl, gamePath, homePath } from "./routes";
 import { escapeHtml } from "./html";
 
@@ -84,15 +84,34 @@ export function sitemapXml(lastmods?: ReadonlyMap<string, string>): string {
     //
     // A lookup cannot go stale when a page kind is added: an unmatched sibling
     // emits no alternate at all, rather than a confidently wrong one.
-    const alternates = LOCALES
-      .map((locale) => {
-        const sibling = ROUTES.find(
-          (o) => o.kind === r.kind && o.id === r.id && o.locale === locale && o.indexable,
-        );
-        if (!sibling) return null;
-        return `    <xhtml:link rel="alternate" hreflang="${locale}" href="${xml(canonicalUrl(sibling.path))}"/>`;
-      })
-      .filter((line): line is string => line !== null);
+    const siblings: { locale: string; path: string }[] = [];
+    for (const locale of LOCALES) {
+      const sibling = ROUTES.find(
+        (o) => o.kind === r.kind && o.id === r.id && o.locale === locale && o.indexable,
+      );
+      if (sibling) siblings.push({ locale, path: sibling.path });
+    }
+    const alternates = siblings.map(
+      (s) =>
+        `    <xhtml:link rel="alternate" hreflang="${s.locale}" href="${xml(canonicalUrl(s.path))}"/>`,
+    );
+
+    // ...and `x-default`, which answers "we have no page in your language".
+    //
+    // Google reads the sitemap's cluster and the page's own `<link>` tags as
+    // two statements about the same thing, so they must not disagree - and
+    // `renderDocument` has always emitted x-default while this did not. It is
+    // derived HERE from the same lookup and the same DEFAULT_LOCALE that
+    // `renderDocument` uses, rather than pointed at a literal, for the reason
+    // the comment above gives about the alternates: a lookup cannot go stale
+    // when a page kind or a locale is added, and a page with no default-locale
+    // sibling emits nothing rather than something confidently wrong.
+    const xDefault = siblings.find((s) => s.locale === DEFAULT_LOCALE);
+    if (xDefault) {
+      alternates.push(
+        `    <xhtml:link rel="alternate" hreflang="x-default" href="${xml(canonicalUrl(xDefault.path))}"/>`,
+      );
+    }
     // Present only when git could answer honestly. `lastmod.ts` returns an
     // empty map rather than a guess, and an absent field is valid; a field
     // that says every page changed today is a lie Google stops trusting.
