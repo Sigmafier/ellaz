@@ -32,6 +32,7 @@ import { meta as fit } from "../games/fit/meta";
 import { meta as music } from "../games/music/meta";
 import { meta as maze } from "../games/maze/meta";
 import { meta as letters } from "../games/letters/meta";
+import { meta as spell } from "../games/spell/meta";
 
 /**
  * The roster, in the order the home grid renders it.
@@ -127,6 +128,15 @@ export const GAMES: ReadonlyArray<GameMeta> = [
   // between languages, so a Hebrew reader can practise the English alphabet
   // without changing the interface. Appended, so its card art stays lazy.
   letters,
+
+  // Wave 7. `spell` is the second game in `learn` and the step up from
+  // `letters`: the same picture-first design and the same content-language
+  // toggle, but the child builds the WHOLE word from a tray of tiles rather
+  // than choosing its first letter. A wrong tile is never placed, so the word
+  // on screen is correct at every moment, and a hint button fills the first
+  // letter still unknown - the way out of being stuck, which a four-year-old
+  // needs more than they need a score. Appended, so its card art stays lazy.
+  spell,
 ];
 
 export function metaFor(id: string): GameMeta | undefined {

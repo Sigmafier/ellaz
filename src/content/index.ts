@@ -28,6 +28,7 @@ import { fit } from "./games/fit";
 import { music } from "./games/music";
 import { maze } from "./games/maze";
 import { letters } from "./games/letters";
+import { spell } from "./games/spell";
 
 export type { GameContent, GameCopy, FaqItem, Titled, Provenance, Locale, PageLocale } from "./types";
 
@@ -76,6 +77,7 @@ export const CONTENT: Record<string, GameContent> = {
   [music.id]: music,
   [maze.id]: maze,
   [letters.id]: letters,
+  [spell.id]: spell,
 };
 
 /** The ids that have prose today. */
