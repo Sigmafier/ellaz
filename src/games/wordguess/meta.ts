@@ -23,7 +23,12 @@ export const meta: GameMeta = {
   // measures 5.07.
   color: "#af37c1",
   ageBand: "all",
-  category: "learn",
+  // `think`, not `learn`: the mechanic is deduction over the tiles you have
+  // already spent, not practice of something being taught. It sits with echo,
+  // sequence and vanish rather than with the alphabet games — and `learn` keeps
+  // three games (letters, bubbles, math) without it, so the 🔤 section does not
+  // disappear from the home grid.
+  category: "think",
   orientation: "any",
   renderer: "dom",
   ownsChrome: true,

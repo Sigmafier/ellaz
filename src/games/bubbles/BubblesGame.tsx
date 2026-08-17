@@ -45,6 +45,15 @@ const SURFACE_H = "min(56vh, 440px)";
 /** The `max(64px, …)` floor holds every bubble above the age-5 target on a small
  *  phone; the `min()` lets it grow on a tablet without four lanes colliding. */
 const BUBBLE = "max(64px, min(19vw, 11vh, 96px))";
+/**
+ * The disc in the footer carrying the character to catch.
+ *
+ * Sized in its own right rather than off `BUBBLE`: the bubbles shrink on a
+ * short screen because four of them share a width, and the QUESTION has no
+ * reason to shrink with them — it is one glyph with the whole footer to itself.
+ * The floor is what matters, since this is the thing a child looks back at.
+ */
+const TARGET_DISC = "max(72px, min(22vw, 92px))";
 
 const DIFF_OPTIONS: DifficultyOption<Difficulty>[] = [
   { id: "easy", label: { he: "קל", en: "Easy", es: "Fácil" } },
@@ -363,7 +372,56 @@ export function BubblesGame({ ctx }: { ctx: GameContext }) {
           <span style={{ fontSize: 12, fontWeight: 800, color: "var(--text-dim)" }}>
             {T.verb}
           </span>
-          <span style={{ fontSize: 46, lineHeight: 1, fontFamily: "Fredoka, inherit", fontWeight: 700 }}>
+          {/*
+            The character sits on a DISC in the bubbles' own palette — the same
+            pale-blue-to-white lighting and the same #0b2f4d ink the rising
+            bubbles carry — so the question and the answer look like the same
+            kind of thing. It was 46px of bare text on the panel surface, which
+            asked a four-year-old to hold a glyph in mind with nothing around it.
+
+            Flat and matte, with no highlight ellipse and no gloss: it must read
+            as a LABEL rather than as a bubble that failed to rise. It is also in
+            the footer, where nothing is tappable, and a child who tries to pop
+            it has been told the wrong thing by the picture.
+
+            `aria-hidden`, because <Prompt> above already says "Catch the ט" as
+            real text. Without it a screen reader reads the letter a second time
+            with no sentence around it, which is noise rather than emphasis.
+          */}
+          <span
+            aria-hidden="true"
+            style={{
+              width: TARGET_DISC,
+              height: TARGET_DISC,
+              borderRadius: "50%",
+              display: "grid",
+              placeItems: "center",
+              background: "radial-gradient(circle at 36% 30%, #f2fbff 0%, #cdeeff 52%, #96d3ee 100%)",
+              // The ring is INSET rather than a border: a border would grow the
+              // box past the sizes above, and this disc's floor is the one thing
+              // holding the question above a five-year-old's reading size.
+              boxShadow: "inset 0 0 0 3px rgba(255,255,255,0.9), var(--shadow-1)",
+              // 0.58 of the disc: 48px on a 390px phone and 53px on a desktop,
+              // against the 46px of bare text this replaced, so it is bigger at
+              // every viewport.
+              //
+              // The ratio has to clear the widest and the tallest glyph the pool
+              // can produce, and a CIRCLE is stricter than the box it is drawn
+              // in - the usable square inscribed in an 83px disc is 59px, not 83.
+              // Measured at this size, in the app's own font: W is 55px wide, Ñ
+              // is 47px tall with its tilde, and ק, ן and Q DO descend below the
+              // baseline (12, 12 and 8px). All of them sit inside the ring with
+              // room. Raising the ratio much past 0.58 spends that margin, and
+              // the first thing to touch the rim will be a Hebrew descender,
+              // which is the half of the pool least likely to be eyeballed.
+              fontSize: `calc(0.58 * ${TARGET_DISC})`,
+              lineHeight: 1,
+              fontFamily: "Fredoka, inherit",
+              fontWeight: 800,
+              color: "#0b2f4d",
+              textShadow: "0 1px 0 rgba(255,255,255,0.75)",
+            }}
+          >
             {round.target}
           </span>
         </div>
