@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { GameContext, SessionSpec } from "@sdk/index";
+import type { GameContext, RewardTier, SessionSpec } from "@sdk/index";
 import type { Locale } from "@i18n/index";
 import { GameChrome } from "@ui/GameChrome";
 import { DirectionPad } from "@ui/DirectionPad";
@@ -37,7 +37,31 @@ const LEVEL_OPTIONS: DifficultyOption<Difficulty>[] = [
   { id: "easy", label: { he: "קל", en: "Easy", es: "Fácil" } },
   { id: "medium", label: { he: "בינוני", en: "Med", es: "Media" } },
   { id: "hard", label: { he: "קשה", en: "Hard", es: "Difícil" } },
+  { id: "expert", label: { he: "מומחה", en: "Expert", es: "Experto" } },
 ];
+
+/**
+ * Two vocabularies that spell the same word three times out of four.
+ *
+ * A level is a board size; a tier is what the economy pays for finishing one.
+ * They agreed exactly while this game had three levels, and `expert` is where
+ * they part: it is written out here rather than passed through, because
+ * `grant()` takes a `RewardTier` and an id it has never heard of is not a
+ * compile error unless somebody makes it one.
+ *
+ * Expert pays as HARD rather than gaining a fourth rate. The earn table lives in
+ * `sdk/economy.ts` and is the same three numbers for all 29 games; a game that
+ * wanted a richer payout for its own top level would be inventing economics at a
+ * call site, which is the one thing the reasons-not-amounts rule exists to stop.
+ * A harder board already pays more per unit of effort in the only currency this
+ * game keeps score in - the streak, which is scoped per board.
+ */
+const LEVEL_TIER: Record<Difficulty, RewardTier> = {
+  easy: "easy",
+  medium: "medium",
+  hard: "hard",
+  expert: "hard",
+};
 
 // This game's own words, as a locale RECORD rather than a `locale === "he" ?`
 // ternary - promoting a language reds this block by name instead of leaving the
@@ -279,7 +303,7 @@ export function MazeGame({ ctx }: { ctx: GameContext }) {
       // separately, so a solve can never grant twice.
       const result = winMoment(ctx, {
         reason: "level_complete",
-        tier: level,
+        tier: LEVEL_TIER[level],
         level: `maze-${next.size}`,
         at,
         score: scoreReport(next, level),
@@ -320,11 +344,21 @@ export function MazeGame({ ctx }: { ctx: GameContext }) {
 
   const size = state.size;
   // Sized against the VIEWPORT, not this container, like every board here. On a
-  // 390px phone the hard board's cells come out ~49px, which is the biggest a
-  // seven-square maze can be and still fit beside its chrome; the 76px cap
-  // stops the easy board becoming five enormous tiles on a desktop, and sits
-  // well under what the 700px panel leaves (game-panel-clears-widest-board.test.ts).
-  const cell = `min(${(88 / size).toFixed(2)}vw, ${(52 / size).toFixed(2)}vh, 76px)`;
+  // 390px phone the hard board's cells come out ~49px and the expert board's
+  // ~34px. Nothing here is TAPPED - the arrows drive the mouse - so a cell is a
+  // picture rather than a target, and the >=2cm rule that governs the D-pad does
+  // not bind on it; a smaller cell costs legibility and never accuracy.
+  //
+  // The px cap stops the easy board becoming five enormous tiles on a tall
+  // desktop, where neither the vw nor the vh term binds. It is 64 rather than
+  // the 76 it was until the expert board went to ten cells: 10 x 76 is a 760px
+  // board and the 700px panel leaves 684, so the board would have grown a
+  // scrollbar INSIDE the play surface, silently, since it is `overflow: auto`.
+  // 10 x 64 = 640, which is exactly the widest board in the tree (bees,
+  // finddiff). `board-fits-the-panel.test.ts` asserts that arithmetic against
+  // both sources - the generic gate reads this number as one CELL and cannot
+  // see the board at all.
+  const cell = `min(${(88 / size).toFixed(2)}vw, ${(52 / size).toFixed(2)}vh, 64px)`;
 
   return (
     <GameChrome
@@ -391,7 +425,7 @@ export function MazeGame({ ctx }: { ctx: GameContext }) {
               while the stick is held, so a child can walk a long corridor by
               leaning on it instead of tapping down it. `move` refuses a solved
               board and a hedge on its own, so the repeat cannot run away. */}
-          <DirectionPad onDir={move} size={58} repeatMs={MOVE_REPEAT_MS} />
+          <DirectionPad onDir={move} repeatMs={MOVE_REPEAT_MS} />
         </div>
       }
     >

@@ -256,7 +256,14 @@ without going through the component; five mutations killed, including the old
 two-row block, which satisfies every other assertion in the file. It is **absent
 from the `@ui` barrel on purpose** and pinned to `page` in `manualChunks`, both for
 the `GameChrome` reason — a re-export would make the shell import from the page
-chunk. Measured on the artifact: first visit **unmoved at 89,465 B gz**.
+chunk. **One cell size for both games (`PAD_CELL = 72`)** — snake drew 56 and
+maze 58 in their own copies, which nobody chose; 72 clears `--tap-kids` (64px,
+the age-five target) rather than merely the adult 48px minimum, and the test
+pins it against BOTH tokens read out of `tokens.css`. The pad costs the first
+visit **nothing** — it is `page`-side, and the number moved by single digits
+across both commits. (The gate reads **89,596 B gz, 404 spare** on the tree this
+landed on, which carries another lane's new game; re-run it rather than quoting
+that figure as the pad's.)
 
 Two games that look adjacent are deliberately NOT on it. **blocks** has `◀ ⟳ ▶ ⤓` —
 an action row, not a cross, and its `▼` was removed on purpose (the comment says

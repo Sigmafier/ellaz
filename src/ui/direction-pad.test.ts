@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { PAD_KEYS, padDirection } from "./DirectionPad";
+import { PAD_CELL, PAD_KEYS, padDirection } from "./DirectionPad";
 
 /**
  * The four-way pad, in three parts.
@@ -65,6 +65,32 @@ describe("the pad is a cross", () => {
     const cells = PAD_KEYS.map((k) => `${k.column},${k.row}`);
     expect(new Set(cells).size).toBe(PAD_KEYS.length);
     expect(cells).not.toContain("2,2");
+  });
+});
+
+describe("the pad is sized for the thumb that uses it", () => {
+  /** `--tap` and `--tap-kids` from tokens.css, read rather than retyped: the
+   *  pad must not drift away from the sizes the rest of the app promises. */
+  const TOKENS = readFileSync(fileURLToPath(new URL("./tokens.css", import.meta.url)), "utf8");
+  const px = (name: string) => Number(new RegExp(`${name}:\\s*(\\d+)px`).exec(TOKENS)?.[1]);
+
+  it("reads the tap tokens", () => {
+    expect(px("--tap")).toBeGreaterThan(0);
+    expect(px("--tap-kids")).toBeGreaterThan(px("--tap"));
+  });
+
+  it("clears the KIDS target, not merely the adult minimum", () => {
+    // 48px is the floor for an adult pointing at a form. This pad is a
+    // five-year-old's thumb on a phone, and the platform already has a number
+    // for that. Meeting `--tap` and missing `--tap-kids` is the shape of a
+    // control that "passes accessibility" and is still too small to play.
+    expect(PAD_CELL).toBeGreaterThanOrEqual(px("--tap-kids"));
+  });
+
+  it("leaves room either side of a 390px phone", () => {
+    // Three cells and two 8px gaps. The pad is centred, so anything wider than
+    // the narrowest phone this platform targets is a pad with a key off-screen.
+    expect(PAD_CELL * 3 + 16).toBeLessThan(390);
   });
 });
 

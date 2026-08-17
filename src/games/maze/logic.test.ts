@@ -90,9 +90,9 @@ describe("the maze itself", () => {
     // The one property that cannot be allowed to fail: an unreachable cheese is
     // a puzzle a child cannot finish, and nothing on screen would say why.
     for (const level of DIFFICULTIES) {
-      const { size, braid } = LEVELS[level];
+      const { size, braid, style } = LEVELS[level];
       for (let s = 0; s < 40; s++) {
-        const walls = carve(size, braid, seeded(`${level}-${s}`));
+        const walls = carve(size, braid, style, seeded(`${level}-${s}`));
         const d = distances(walls, size, 0);
         expect(d.filter((x) => x < 0), `${level} seed ${s} left cells walled off`).toEqual([]);
       }
@@ -100,7 +100,7 @@ describe("the maze itself", () => {
   });
 
   it("keeps the two wall arrays one per cell", () => {
-    const walls = carve(6, 0, seeded("shape"));
+    const walls = carve(6, 0, "winding", seeded("shape"));
     expect(walls.right).toHaveLength(36);
     expect(walls.down).toHaveLength(36);
   });
@@ -110,7 +110,7 @@ describe("the maze itself", () => {
     // join nothing. If `isOpen` ever answered true for those, a path could wrap
     // from one row onto the next and the mouse would walk through the frame.
     const size = 5;
-    const walls = carve(size, 1, seeded("edge"));
+    const walls = carve(size, 1, "winding", seeded("edge"));
     for (let r = 0; r < size; r++) {
       const last = r * size + (size - 1);
       expect(isOpen(walls, size, last, last + 1), `row ${r} wrapped`).toBe(false);
@@ -122,7 +122,7 @@ describe("the maze itself", () => {
   });
 
   it("only calls two cells open when they are neighbours", () => {
-    const walls = carve(5, 1, seeded("adjacency"));
+    const walls = carve(5, 1, "winding", seeded("adjacency"));
     expect(isOpen(walls, 5, 0, 7)).toBe(false);
     expect(isOpen(walls, 5, 0, 0)).toBe(false);
   });
@@ -135,12 +135,135 @@ describe("the maze itself", () => {
     const open = (braid: number) => {
       let total = 0;
       for (let s = 0; s < 30; s++) {
-        const walls = carve(7, braid, seeded(`braid-${braid}-${s}`));
+        const walls = carve(7, braid, "winding", seeded(`braid-${braid}-${s}`));
         for (let i = 0; i < 49; i++) total += openNeighbours(walls, 7, i).length;
       }
       return total;
     };
     expect(open(0.9)).toBeGreaterThan(open(0));
+  });
+
+  it("cuts a bushy board into far more dead ends than a winding one", () => {
+    // The shape lever, and the reason the expert board is not simply a bigger
+    // hard board. Both carves are perfect mazes with the same number of
+    // passages, so openness cannot tell them apart at all - what differs is
+    // WHERE the passages go, and the dead-end count is the measure of that.
+    const ends = (style: "winding" | "bushy") => {
+      let total = 0;
+      for (let s = 0; s < 30; s++) {
+        const walls = carve(10, 0, style, seeded(`style-${style}-${s}`));
+        for (let i = 0; i < 100; i++) if (openNeighbours(walls, 10, i).length === 1) total++;
+      }
+      return total / 30;
+    };
+    const [winding, bushy] = [ends("winding"), ends("bushy")];
+    // Measured over 4,000 boards: 11.80 winding against 33.03 bushy. Asserted as
+    // "more than double" rather than against either figure, so an rng change
+    // moves the numbers without reding the build, while the SHAPE difference
+    // this level is built on still has to hold.
+    expect(bushy, `bushy ${bushy} vs winding ${winding}`).toBeGreaterThan(winding * 2);
+  });
+
+  it("makes the same bushy board twice from the same seed, and a different one from another", () => {
+    // The frontier carve draws from a list it splices, which is exactly the kind
+    // of loop that picks up a dependence on iteration order rather than on the
+    // rng. A deal that cannot be replayed makes every failure below unreportable.
+    expect(carve(8, 0, "bushy", seeded("same"))).toEqual(carve(8, 0, "bushy", seeded("same")));
+    expect(carve(8, 0, "bushy", seeded("one"))).not.toEqual(carve(8, 0, "bushy", seeded("two")));
+  });
+});
+
+describe("the ramp", () => {
+  /** Mean `par` over seeded deals - how long a level's shortest run actually is. */
+  const meanPar = (level: Difficulty, deals = 200): number => {
+    let total = 0;
+    for (let s = 0; s < deals; s++) total += newMaze(level, 0, seeded(`ramp-${level}-${s}`)).par;
+    return total / deals;
+  };
+
+  it("gets harder in the order it is listed", () => {
+    // Board size and crumb count are declarations, and either can be raised
+    // while the level gets SHORTER - a bigger board whose crumbs land in a
+    // huddle is a shorter walk than a small one whose crumbs are spread, and the
+    // bushy carve shortens every route it touches. `par` is the only measure of
+    // a deal's real length, so the ramp is asserted on the number a player
+    // walks rather than on the knobs that produce it.
+    //
+    // Length is not the same claim as DIFFICULTY, and this gate only makes the
+    // first one. What makes the expert board hard is its shape, which is
+    // measured in "cuts a bushy board into far more dead ends" above and in
+    // `scripts/sim/maze-routes.mjs` (a nearest-crumb bot matches par on 31.6% of
+    // expert deals against 68.6% on hard).
+    // `.map((d) => …)` and never `.map(meanPar)`: map passes the INDEX second,
+    // so the point-free version deals easy 0 times and averages NaN.
+    const pars = DIFFICULTIES.map((d) => meanPar(d));
+    for (let i = 1; i < DIFFICULTIES.length; i++) {
+      expect(
+        pars[i],
+        `${DIFFICULTIES[i]} (${pars[i].toFixed(2)} steps) is not longer than ` +
+          `${DIFFICULTIES[i - 1]} (${pars[i - 1].toFixed(2)})`,
+      ).toBeGreaterThan(pars[i - 1]);
+    }
+    for (let i = 1; i < DIFFICULTIES.length; i++) {
+      const [prev, cur] = [LEVELS[DIFFICULTIES[i - 1]], LEVELS[DIFFICULTIES[i]]];
+      expect(cur.size).toBeGreaterThanOrEqual(prev.size);
+      expect(cur.cheese).toBeGreaterThanOrEqual(prev.cheese);
+      // Braiding is the KIND lever and it only ever runs the other way.
+      expect(cur.braid).toBeLessThanOrEqual(prev.braid);
+    }
+  });
+
+  it("deals the expert board bushy, not merely big", () => {
+    // Written because switching `LEVELS.expert.style` back to "winding" passed
+    // every other test in this file. The carve test below it proves `carve` can
+    // cut both shapes; the ramp proves the walk is longer. Neither reads what
+    // the LEVEL declares, so a one-word edit took the whole difficulty of this
+    // level away and nothing said a thing.
+    //
+    // Measured on what a player is actually dealt rather than on the config, and
+    // as a DENSITY so it does not silently pass on a board that is merely
+    // bigger. Measured over 20,000 deals: 11.8% of cells on hard, 32.9% on
+    // expert. Asserted as a ratio, so the numbers can move without reding a
+    // build that still has the shape it is meant to have.
+    const density = (level: Difficulty) => {
+      let ends = 0;
+      let cells = 0;
+      for (let s = 0; s < 60; s++) {
+        const m = newMaze(level, 0, seeded(`density-${level}-${s}`));
+        for (let i = 0; i < m.size * m.size; i++) {
+          if (openNeighbours(m.walls, m.size, i).length === 1) ends++;
+        }
+        cells += m.size * m.size;
+      }
+      return ends / cells;
+    };
+    const [hard, expert] = [density("hard"), density("expert")];
+    expect(
+      expert,
+      `expert ${(expert * 100).toFixed(1)}% dead ends vs hard ${(hard * 100).toFixed(1)}%`,
+    ).toBeGreaterThan(hard * 2);
+  });
+
+  it("makes the expert board a perfect maze, and nothing below it one", () => {
+    // `braid: 0` is what "harder" means here beyond size: exactly one route
+    // between any two cells, so a wrong turn is walked back rather than looped
+    // around. Counted as PASSAGES rather than dead ends, because a maze can
+    // gain a dead end somewhere and lose the property elsewhere - a connected
+    // board with n cells has exactly n-1 passages if and only if it is a tree.
+    const passages = (level: Difficulty, label: string): number => {
+      const m = newMaze(level, 0, seeded(label));
+      let open = 0;
+      for (let i = 0; i < m.size * m.size; i++) open += openNeighbours(m.walls, m.size, i).length;
+      return open / 2; // each passage is counted from both of its cells
+    };
+    for (let s = 0; s < 20; s++) {
+      const n = LEVELS.expert.size ** 2;
+      expect(passages("expert", `perfect-${s}`), `expert seed ${s}`).toBe(n - 1);
+    }
+    // The control: without it the assertion above would pass on a build that
+    // braided nothing anywhere, which is a different game for the three levels
+    // a four-year-old plays.
+    expect(passages("easy", "braided")).toBeGreaterThan(LEVELS.easy.size ** 2 - 1);
   });
 });
 
