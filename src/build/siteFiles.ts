@@ -14,9 +14,20 @@ import { escapeHtml } from "./html";
  * be indexed at all. One `public/robots.txt` would be wrong on one of them.
  */
 
-/** Crawlers that fetch a page in order to CITE it in an answer. */
+/**
+ * Crawlers that fetch a page in order to CITE it in an answer.
+ *
+ * Each vendor ships TWO: an indexer that crawls ahead of time, and a
+ * user-triggered fetcher that goes and reads a page because somebody asked
+ * about it right now. Both are named, per vendor, because omitting one is
+ * invisible - the file still looks complete, and the gap is only findable by
+ * reading the three vendors side by side. `ChatGPT-User` was missing for
+ * exactly that reason while its Anthropic and Perplexity equivalents were
+ * both listed.
+ */
 const CITATION_BOTS = [
   "OAI-SearchBot",
+  "ChatGPT-User",
   "Claude-SearchBot",
   "Claude-User",
   "PerplexityBot",
