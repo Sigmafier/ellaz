@@ -144,6 +144,64 @@ describe("the maze itself", () => {
   });
 });
 
+describe("the ramp", () => {
+  /** Mean `par` over seeded deals - how long a level's shortest run actually is. */
+  const meanPar = (level: Difficulty, deals = 200): number => {
+    let total = 0;
+    for (let s = 0; s < deals; s++) total += newMaze(level, 0, seeded(`ramp-${level}-${s}`)).par;
+    return total / deals;
+  };
+
+  it("gets harder in the order it is listed", () => {
+    // The thing a "harder mode" has to actually be, and the one claim about it
+    // nothing else here checks. Board size and crumb count are declarations and
+    // could each be raised while the level got EASIER overall - a bigger board
+    // whose crumbs land in a huddle is a shorter walk than a small one whose
+    // crumbs are spread. `par` is the only measure of a deal's real length, so
+    // the ramp is asserted on the number a player walks rather than on the two
+    // knobs that produce it.
+    // `.map((d) => …)` and never `.map(meanPar)`: map passes the INDEX second,
+    // so the point-free version deals easy 0 times and averages NaN.
+    const pars = DIFFICULTIES.map((d) => meanPar(d));
+    for (let i = 1; i < DIFFICULTIES.length; i++) {
+      expect(
+        pars[i],
+        `${DIFFICULTIES[i]} (${pars[i].toFixed(2)} steps) is not longer than ` +
+          `${DIFFICULTIES[i - 1]} (${pars[i - 1].toFixed(2)})`,
+      ).toBeGreaterThan(pars[i - 1]);
+    }
+    for (let i = 1; i < DIFFICULTIES.length; i++) {
+      const [prev, cur] = [LEVELS[DIFFICULTIES[i - 1]], LEVELS[DIFFICULTIES[i]]];
+      expect(cur.size).toBeGreaterThanOrEqual(prev.size);
+      expect(cur.cheese).toBeGreaterThanOrEqual(prev.cheese);
+      // Braiding is the KIND lever and it only ever runs the other way.
+      expect(cur.braid).toBeLessThanOrEqual(prev.braid);
+    }
+  });
+
+  it("makes the expert board a perfect maze, and nothing below it one", () => {
+    // `braid: 0` is what "harder" means here beyond size: exactly one route
+    // between any two cells, so a wrong turn is walked back rather than looped
+    // around. Counted as PASSAGES rather than dead ends, because a maze can
+    // gain a dead end somewhere and lose the property elsewhere - a connected
+    // board with n cells has exactly n-1 passages if and only if it is a tree.
+    const passages = (level: Difficulty, label: string): number => {
+      const m = newMaze(level, 0, seeded(label));
+      let open = 0;
+      for (let i = 0; i < m.size * m.size; i++) open += openNeighbours(m.walls, m.size, i).length;
+      return open / 2; // each passage is counted from both of its cells
+    };
+    for (let s = 0; s < 20; s++) {
+      const n = LEVELS.expert.size ** 2;
+      expect(passages("expert", `perfect-${s}`), `expert seed ${s}`).toBe(n - 1);
+    }
+    // The control: without it the assertion above would pass on a build that
+    // braided nothing anywhere, which is a different game for the three levels
+    // a four-year-old plays.
+    expect(passages("easy", "braided")).toBeGreaterThan(LEVELS.easy.size ** 2 - 1);
+  });
+});
+
 describe("shortest paths", () => {
   it("returns a step-by-step route that never jumps", () => {
     const state = deal("hard", "path");

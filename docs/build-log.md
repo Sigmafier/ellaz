@@ -1118,6 +1118,62 @@ repaint `/` for a Hebrew speaker who followed one link. Spanish awaits its dicti
 before mounting, exactly as `bootContentPage` does — there is no flash to trade, since the
 emitted home is still on screen and React has not rendered a thing.
 
+## A fourth maze, for the child the third one stopped holding (2026-08-17)
+
+Way Home shipped with three boards and its whole difficulty argument sitting on two
+levers, because it has no others: there is no clock to speed up and no lives to take
+away. So the harder mode is those two levers turned further and a third that only
+ever ran one way — `expert` is **8×8 with five crumbs and `braid: 0`**, a perfect
+maze where exactly one route joins any two cells, so a wrong turn is walked back
+rather than looped around. Still no failure state, still one tap at a time.
+
+Measured through the shipped reducer, 20,000 fresh deals (`scripts/sim/maze-routes.mjs`,
+which iterates `DIFFICULTIES` and needed no edit): par **55.17** steps against hard's
+39.53, the worst order **133.24** (2.42× par against 2.13×), **8.17** dead ends per deal
+against 5.92, and the nearest-crumb bot matches par on **61.6%** of deals against 68.6%.
+Reading order collapses to 35.4%. Every previously published figure re-derived to the
+digit on the same run, so nothing in the prose moved except where a fourth board made
+"the big one" ambiguous.
+
+**`Difficulty` and `RewardTier` stopped being the same three words**, which is the only
+structural change. `expert` is not a tier, so `MazeGame.tsx` now carries a `LEVEL_TIER`
+map — the sudoku and sort shape — and expert pays as `hard`. Passing `tier: level`
+through was a compile error the moment the fourth id existed, which is the arrangement
+working rather than a hurdle: the alternative is `grant()` handed a tier `economy.ts`
+has never heard of.
+
+Two new gates in `logic.test.ts`, both mutation-proven. **The ramp is asserted on `par`
+and not on the knobs**: size and crumb count are declarations, and either can be raised
+while the level gets shorter, because a big board whose crumbs land in a huddle is a
+shorter walk than a small one whose crumbs are spread. And the perfect-maze property is
+counted as **passages** (`n-1` for a tree) rather than as dead ends, since a board can
+gain a dead end somewhere and lose the property elsewhere; the easy board is the control,
+so a build that quietly braided nothing anywhere would fail rather than pass.
+
+The first test also caught its own author: `DIFFICULTIES.map(meanPar)` passes the INDEX
+as the second argument, so easy was averaged over zero deals and compared as `NaN`.
+
+### Measured
+
+- **first visit 89,469 → 89,476 B gz**, +7 for the whole thing. Two arms from one tree,
+  one variable, which is the only way this number means anything
+  ([`a-threshold-tuned-against-todays-tree-goes-stale.md`](../.claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md)).
+  A level lives in the lazy game chunk; only its meta reaches the shell, and this adds none.
+- **Driven in a real browser on the built artifact**, 390×844, expert selected from the
+  chrome: 64 cells, a **347px** board inside a 390px phone, five crumbs, and a route the
+  driver brute-forced from the walls the DOM actually renders — 38 steps walked, the
+  screen reading Moves 38, Perfect 1, Best 1, and the wallet 8 coins and a star. The par
+  agreeing across two independent implementations is the useful half; the payout is what
+  proves `LEVEL_TIER`.
+- 2,647 tests green, `tsc` clean, `build:check` green under the default base.
+
+Cells come out ~43px on a 390px phone rather than hard's 49. That is under the 2cm
+target floor and does not breach it: **no square on this board is ever tapped**, the
+D-pad drives the mouse, so a cell is a picture and the rule that governs a target does
+not govern it. Prose in all four languages says so now, along with the fourth board in
+every enumeration that listed the choices, and a screen reader is told about sixty-four
+squares rather than forty-nine.
+
 ## Still open
 
 - **Wave C step 2b** — live two-way sync. Needs the profile to carry per-device

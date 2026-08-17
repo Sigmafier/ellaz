@@ -41,10 +41,19 @@ import { shuffle } from "@shared/rng";
 
 /* ------------------------------------------------------------------ levels */
 
-export type Difficulty = "easy" | "medium" | "hard";
+export type Difficulty = "easy" | "medium" | "hard" | "expert";
 
-/** Matches `RewardTier`, so a level id is also what the economy prices. */
-export const DIFFICULTIES: readonly Difficulty[] = ["easy", "medium", "hard"];
+/**
+ * The ramp, easiest first.
+ *
+ * The first three spell the same words as `RewardTier` and `expert` does not,
+ * which is deliberate: a level is a board size, a tier is what the economy pays
+ * for it, and the day those two vocabularies stopped agreeing is the day the
+ * renderer had to say out loud what an expert maze is worth. `LEVEL_TIER` in
+ * `MazeGame.tsx` is that sentence, and the compiler asks for it rather than
+ * letting `grant()` be handed a tier it has never heard of.
+ */
+export const DIFFICULTIES: readonly Difficulty[] = ["easy", "medium", "hard", "expert"];
 
 export interface LevelConfig {
   /** The board is square, `size` cells to a side. */
@@ -72,6 +81,14 @@ export const LEVELS: Record<Difficulty, LevelConfig> = {
   easy: { size: 5, cheese: 2, braid: 0.9 },
   medium: { size: 6, cheese: 3, braid: 0.45 },
   hard: { size: 7, cheese: 4, braid: 0.1 },
+  // THE HARDER MODE, and it is harder along the two levers this game HAS rather
+  // than along one it does not. There is no clock to speed up and no lives to
+  // take away, so an expert board is a bigger space (8x8, 64 cells against 49),
+  // one more crumb (120 orders to choose between rather than 24), and a braid of
+  // ZERO - a perfect maze, exactly one route between any two cells, so every
+  // wrong turn has to be walked back rather than looped around. Still no failure
+  // state: the maze is finished either way, and only `par` judges the run.
+  expert: { size: 8, cheese: 5, braid: 0 },
 };
 
 /* ------------------------------------------------------------------- walls */
@@ -237,8 +254,11 @@ function permutations(items: number[]): number[][] {
  * The shortest possible run: which order to collect the crumbs in, and what
  * that costs.
  *
- * Brute force over every order, which is 24 of them at four crumbs and is the
- * honest way to get an answer that is actually optimal. A greedy
+ * Brute force over every order, which is 24 of them at four crumbs and 120 at
+ * the expert board's five, and is the honest way to get an answer that is
+ * actually optimal. Both are nothing to enumerate once per deal; a level that
+ * ever wanted eight crumbs would need a different algorithm, not a bigger
+ * loop. A greedy
  * nearest-crumb-first walk is wrong often enough that `par` would be a number
  * nobody could match, and "perfect" would quietly become unreachable.
  */
