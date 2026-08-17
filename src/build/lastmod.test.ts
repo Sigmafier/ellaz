@@ -1,6 +1,9 @@
+import { existsSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { sitemapXml } from "./siteFiles";
+import { gameSources } from "./lastmod";
 import { ROUTES } from "./routes";
+import { GAMES } from "../portal/games";
 import { parseSitemap, urlsToSubmit } from "../../scripts/indexnow.mjs";
 
 /**
@@ -35,6 +38,70 @@ describe("sitemap lastmod", () => {
 
   it("still emits every indexable route when no dates are supplied", () => {
     expect((sitemapXml().match(/<url>/g) ?? []).length).toBe(indexable.length);
+  });
+});
+
+/**
+ * WHICH FILES A DATE IS DERIVED FROM - the half nothing asserted, and the half
+ * that was wrong.
+ *
+ * Every gate on lastmod until now read the EMITTER: is the field absent when
+ * git cannot answer, is it inside the right `<url>`, are the dates non-uniform.
+ * All of those passed while `/games/2048/` advertised the wrong date for four
+ * days, because the defect was upstream of everything they look at - the page
+ * asked git about a file that does not exist, `lastCommitISO` dropped the
+ * missing path without a word, and the answer that came back was a real date
+ * derived from the wrong sources. A plausible date is indistinguishable from a
+ * correct one downstream.
+ */
+describe("a game page's date is derived from its own prose", () => {
+  const ids = GAMES.map((g) => g.id);
+  const localeDirs = readdirSync("src/content/games", { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name);
+
+  it("resolves the renderer and at least one prose file for every game", () => {
+    const bare = ids.filter((id) => gameSources(id).length < 2);
+    expect(bare).toEqual([]);
+  });
+
+  it("resolves only paths that exist - a dropped one is silent, not loud", () => {
+    const missing = ids.flatMap((id) => gameSources(id).filter((p) => !existsSync(p)));
+    expect(missing).toEqual([]);
+  });
+
+  it("reaches into every locale directory, so a new language is not dropped", () => {
+    // Derived from the tree rather than named, because the failure this
+    // prevents arrives with a directory that does not exist yet.
+    expect(localeDirs.length).toBeGreaterThan(0);
+    for (const dir of localeDirs) {
+      const blind = ids.filter(
+        (id) => !gameSources(id).some((p) => p.startsWith(`src/content/games/${dir}/`)),
+      );
+      expect(blind, `no ${dir}/ prose reached for these games`).toEqual([]);
+    }
+  });
+
+  it("pins the game whose id is not its directory, by name", () => {
+    // 28 of 29 games have id === directory, which is precisely why assuming it
+    // survived review. This one does not, and both of its conventions differ.
+    const paths = gameSources("2048");
+    expect(paths).toContain("src/games/n2048");
+    expect(paths).toContain("src/content/games/n2048.ts"); // named for the DIRECTORY
+    expect(paths).toContain("src/content/games/fr/2048.ts"); // named for the ID
+  });
+
+  it("CONTROL: the assumption that shipped finds nothing for that game", () => {
+    // The mutation, kept as a test rather than performed once by hand. If this
+    // ever passes, `src/content/games/2048.ts` has been created and the three
+    // assertions above have quietly stopped proving anything.
+    expect(existsSync("src/content/games/2048.ts")).toBe(false);
+  });
+
+  it("CONTROL: resolves no prose for a name nothing is called", () => {
+    // Without this, "every game resolves prose" would also pass an index that
+    // matched everything - the vacuous green this repo keeps finding.
+    expect(gameSources("no-such-game")).toEqual([]);
   });
 });
 

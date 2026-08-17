@@ -23,6 +23,7 @@
 
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { basename } from "node:path";
 import { GAMES } from "../portal/games";
 import { ROUTES, type Route } from "./routes";
 
@@ -60,12 +61,67 @@ function gameDirs(): Map<string, string> {
   return out;
 }
 
+const CONTENT_ROOT = "src/content/games";
+
+/**
+ * Every prose file in the content tree, indexed by its bare name.
+ *
+ * TWO NAMING CONVENTIONS ARE LIVE AT ONCE, and reading the tree is the only
+ * thing that answers for both. The top-level file is named after the game's
+ * DIRECTORY (`n2048.ts`); the per-locale ones under `fr/` are named after its
+ * ID (`2048.ts`). Assume either and you silently drop the other, because
+ * `lastCommitISO` filters missing paths and then answers from whatever is
+ * left rather than failing.
+ *
+ * That shipped. `/games/2048/` advertised 2026-08-12 - the last change to its
+ * RENDERER - while its prose had been rewritten on the 16th, because the code
+ * here asked for `src/content/games/2048.ts`, which has never existed. The
+ * comment on `gameDirs()` above names this exact trap for the game directory
+ * and the next line then hardcoded it for the content file.
+ */
+function contentIndex(): Map<string, string[]> {
+  const out = new Map<string, string[]>();
+  const scan = (dir: string) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const path = `${dir}/${e.name}`;
+      if (e.isDirectory()) {
+        scan(path);
+      } else if (e.name.endsWith(".ts") && !e.name.endsWith(".test.ts")) {
+        const key = e.name.slice(0, -3);
+        out.set(key, [...(out.get(key) ?? []), path]);
+      }
+    }
+  };
+  if (existsSync(CONTENT_ROOT)) scan(CONTENT_ROOT);
+  return out;
+}
+
+/**
+ * The sources whose change genuinely changes what a GAME page says - its
+ * renderer, and every locale's prose wherever that lives and whatever it is
+ * called. Exported because the bug above was in this resolution and not in
+ * anything `lastmodByPath` does with the result, so this is the layer the
+ * control has to reach.
+ */
+export function gameSources(
+  id: string,
+  dirs: Map<string, string> = gameDirs(),
+  content: Map<string, string[]> = contentIndex(),
+): string[] {
+  const dir = dirs.get(id);
+  // A game answers to its id and to its directory name. They are the same for
+  // 28 of 29 games, which is exactly why assuming it held went unnoticed.
+  const names = new Set([id, ...(dir ? [basename(dir)] : [])]);
+  return [...(dir ? [dir] : []), ...[...names].flatMap((n) => content.get(n) ?? [])];
+}
+
 /** The sources whose change genuinely changes what this page says. */
-function sourcesFor(route: Route, dirs: Map<string, string>): string[] {
-  if (route.kind === "game" && route.id) {
-    const dir = dirs.get(route.id);
-    return [...(dir ? [dir] : []), `src/content/games/${route.id}.ts`];
-  }
+function sourcesFor(
+  route: Route,
+  dirs: Map<string, string>,
+  content: Map<string, string[]>,
+): string[] {
+  if (route.kind === "game" && route.id) return gameSources(route.id, dirs, content);
   // Home, world and boards are assembled from the roster and the shared copy,
   // so they change when either does.
   return ["src/portal", "src/content/site.ts", "src/build"];
@@ -106,8 +162,9 @@ export function lastmodByPath(): Map<string, string> {
   }
 
   const dirs = gameDirs();
+  const content = contentIndex();
   for (const route of ROUTES.filter((r) => r.indexable)) {
-    const iso = lastCommitISO(sourcesFor(route, dirs));
+    const iso = lastCommitISO(sourcesFor(route, dirs, content));
     if (iso) out.set(route.path, iso);
   }
 

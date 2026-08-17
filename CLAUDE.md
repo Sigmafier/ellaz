@@ -741,6 +741,30 @@ changed, and 50 identical dates answer "all of them" — as useful as saying not
 It returns on its own as the games diverge again. Do not make it emit uniform dates
 to make the number reappear; the gate rejects those, and the two would contradict.
 
+**It woke up on 2026-08-16 for four days, and it was a BUG that woke it.** The
+resolver asked git for `src/content/games/<id>.ts`, and the one game whose id is
+not its directory publishes its prose at `n2048.ts` — so `/games/2048/` was dated
+off its RENDERER alone and advertised 2026-08-12 while its prose had been rewritten
+on the 16th. `lastCommitISO` filters missing paths, so the wrong guess did not fail;
+it answered from whatever was left, and a plausible date is indistinguishable from a
+correct one downstream. **That one wrong row was the only thing keeping the field
+alive** — 28 games shared a date, 2048 differed, so `allSame()` never fired and 128
+dates shipped. Fixing it returned all 29 to one timestamp and the field went away
+again, which is the honest state.
+
+Two conventions live at once and the resolver now reads the tree instead of assuming
+either: the top-level file is named after the game's **directory** (`n2048.ts`), the
+per-locale ones under `fr/` after its **id** (`2048.ts`). The French prose was
+invisible to this for the same reason — a subdirectory nothing enumerated.
+
+Every gate here read the EMITTER (is the field absent when git cannot answer, is it
+in the right `<url>`, are the dates non-uniform) and all of them were green
+throughout, because the defect was upstream of everything they look at.
+`lastmod.test.ts` now asserts WHICH FILES a date is derived from, with the shipped
+assumption kept as a control; three mutations, each killed and named, and the
+subtlest — dropping `n2048.ts` while keeping `fr/2048.ts` — is caught only by the
+by-name pin on that game.
+
 **IndexNow pings Bing after a successful upload**, because ChatGPT Search and Copilot
 lean on Bing's index. Ownership is a key file the build publishes at `/<key>.txt`
 (primary host only — the Pages copy is noindex). `scripts/indexnow.mjs` submits **only
