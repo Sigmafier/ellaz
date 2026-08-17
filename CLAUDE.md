@@ -53,7 +53,8 @@ src/
 ├─ shared/   Neutral game helpers - rng (mulberry32/seedFrom/randInt/pick/shuffle),
 │            pentatonic notes, winMoment() (the canonical win)
 ├─ ui/       Design tokens + RTL-aware components (Hebrew-first fonts, big targets)
-│            + DifficultySelector (the shared level row)
+│            + DifficultySelector (the shared level row) + DirectionPad (the
+│            four-way cross + joystick, pinned to the `page` chunk like GameChrome)
 ├─ juice/    Game-feel kit - haptics, screen shake, particle burst, full-screen
 │            confetti, flyTo (coins arc to the wallet chip), tween
 ├─ i18n/     he (default, RTL) + en (LTR) strings + direction, and `locales.ts` -
@@ -239,6 +240,29 @@ changed with it, and `ytrofr.github.io/ellaz` is not it. Verify with
 **RTL gotcha**: a spatial game grid must carry `dir="ltr"` so it does NOT mirror in
 the Hebrew RTL app (else swipe/arrow directions invert — see `src/games/n2048`); the
 math equation is also pinned `dir="ltr"` for standard notation.
+
+**Steering is one component now, and it is a CROSS.** `DirectionPad` in `@ui`
+draws up / left-right / down in a 3×3, with a **draggable joystick in the middle
+cell** — so the down key sits BELOW the pair rather than between them, which is
+where snake and maze each drew it in their own byte-identical `dpadBtn` copy. The
+arrows stay plain `<button>`s carrying the labels and the stick is `aria-hidden`:
+drag is never REQUIRED here, so a pad that shipped as the stick alone would take
+those two games away from exactly the players this platform is for. `repeatMs`
+decides whether HOLDING a direction repeats — maze passes 260 ms (a direction is a
+STEP, so holding walks a corridor), snake passes nothing (steering is idempotent).
+`direction-pad.test.ts` pins the layout as DATA off the exported `PAD_KEYS` rather
+than grepping style objects, and refuses any renderer drawing all four glyphs
+without going through the component; five mutations killed, including the old
+two-row block, which satisfies every other assertion in the file. It is **absent
+from the `@ui` barrel on purpose** and pinned to `page` in `manualChunks`, both for
+the `GameChrome` reason — a re-export would make the shell import from the page
+chunk. Measured on the artifact: first visit **unmoved at 89,465 B gz**.
+
+Two games that look adjacent are deliberately NOT on it. **blocks** has `◀ ⟳ ▶ ⤓` —
+an action row, not a cross, and its `▼` was removed on purpose (the comment says
+the single-step soft drop was fiddly on a phone). **2048** has no on-screen buttons
+at all, only swipe and arrow keys. Giving either one a joystick is a control
+redesign, not this layout change.
 
 ## Rewards, the World, and speech
 

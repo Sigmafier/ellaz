@@ -349,7 +349,12 @@ export default defineConfig({
           // `assert-first-visit.mjs` failed the build by name - the third time
           // it has caught exactly this, and the reason the premise is written
           // down rather than assumed.
-          if (/\/src\/ui\/GameChrome\.tsx$/.test(path)) return "page";
+          //
+          // `DirectionPad.tsx` is here for the identical reason: the four-way
+          // pad is drawn by steering games and by nothing on the home screen,
+          // and it is deliberately absent from the `@ui` barrel so that
+          // re-exporting it cannot drag the shell into this chunk.
+          if (/\/src\/ui\/(GameChrome|DirectionPad)\.tsx$/.test(path)) return "page";
 
           // The card art below the fold. It lives under `src/ui/`, so the
           // catch-all further down would claim it for the shell - which is

@@ -2,6 +2,7 @@ import { textFor } from "@i18n/index";
 import { useEffect, useRef, useState } from "react";
 import type { GameContext } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
+import { DirectionPad } from "@ui/DirectionPad";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 // The MODULE, not the `@shared/index` barrel — sanctioned by that barrel's own
 // header, and deliberate here. Snake is the only game importing none of
@@ -155,35 +156,11 @@ export function SnakeGame({ ctx }: { ctx: GameContext }) {
     ctx.locale,
   );
 
-  // A D-pad key. `onPointerDown` (not click) so a turn registers on touch the
-  // instant the finger lands, and `preventDefault` so a press does not also
-  // scroll the page or fire a phantom click.
-  const dpadBtn = (glyph: string, dir: Dir, place: { gridColumn: number; gridRow: number }) => (
-    <button
-      type="button"
-      aria-label={dir}
-      onPointerDown={(e) => {
-        e.preventDefault();
-        sceneRef.current?.steer(dir);
-      }}
-      style={{
-        ...place,
-        border: "none",
-        borderRadius: 14,
-        background: "var(--surface)",
-        boxShadow: "var(--shadow-1)",
-        color: "var(--text)",
-        fontSize: 24,
-        display: "grid",
-        placeItems: "center",
-        cursor: "pointer",
-        touchAction: "none",
-        userSelect: "none",
-      }}
-    >
-      {glyph}
-    </button>
-  );
+  // The pad's four directions are this game's four directions, so the shared
+  // `PadDir` is `Dir` here rather than something to map. Steering is idempotent
+  // — the scene ignores a turn into the direction it is already going — so the
+  // joystick needs no repeat: entering a direction once is the whole message.
+  const steer = (dir: Dir) => sceneRef.current?.steer(dir);
 
   return (
     <GameChrome
@@ -227,24 +204,10 @@ export function SnakeGame({ ctx }: { ctx: GameContext }) {
             </b>
           </div>
 
-          {/* On-screen D-pad — the old-school control for a player with no
-              keyboard who would rather tap than swipe. `dir="ltr"` because these
-              are physical DIRECTIONS on a board pinned LTR. */}
-          <div
-            dir="ltr"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 56px)",
-              gridTemplateRows: "repeat(2, 56px)",
-              gap: 8,
-              touchAction: "none",
-            }}
-          >
-            {dpadBtn("▲", "up", { gridColumn: 2, gridRow: 1 })}
-            {dpadBtn("◀", "left", { gridColumn: 1, gridRow: 2 })}
-            {dpadBtn("▼", "down", { gridColumn: 2, gridRow: 2 })}
-            {dpadBtn("▶", "right", { gridColumn: 3, gridRow: 2 })}
-          </div>
+          {/* On-screen controls — the old-school pad for a player with no
+              keyboard who would rather tap than swipe, plus the stick in the
+              middle for one who would rather steer. */}
+          <DirectionPad onDir={steer} size={56} />
         </div>
       }
     >

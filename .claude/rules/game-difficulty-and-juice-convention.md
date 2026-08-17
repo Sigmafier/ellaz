@@ -15,6 +15,16 @@ success with **juice**. Follow the established pattern so every game feels consi
   run at that level (and clears any per-run reward latch - see the rewards rule).
 - **Levels/stages**: for content games (find-differences, hidden-object) prefer an
   endless auto-advancing "Level N" `Stat` over a dead end.
+- **Steering**: render `<DirectionPad>` from `@ui/DirectionPad` — do NOT hand-roll
+  another four-arrow grid. It is the CROSS (down below left/right, never beside
+  them) plus a draggable joystick in the middle cell, and it exists because snake
+  and maze each carried their own byte-identical `dpadBtn` and drifted on cell
+  size. Import it by its own path, never through the `@ui` barrel: it lives in the
+  `page` chunk, so a re-export would make the shell import from it. Pass `repeatMs`
+  only where a direction is a STEP and holding should walk (maze, 260 ms); a game
+  that steers once and keeps going (snake) passes nothing. The four arrows are
+  `<button>`s and the stick is `aria-hidden` — **never ship the stick alone**, or
+  the game stops being tap-completable.
 - **Juice on win**: call **`winMoment(ctx, {...})`** from `@shared`. It owns the
   confetti now, along with the reward grant, the sound, the haptic and the coin
   flight to the wallet chip, in that order. **Do not call `celebrate()` directly
