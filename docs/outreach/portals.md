@@ -16,7 +16,7 @@ Every line of this platform's public promise is the opposite of that:
 
 | The promise | Where it is written down |
 |---|---|
-| no ads, anywhere | the home page, all 52 emitted pages, both outreach drafts |
+| no ads, anywhere | the home page, all 144 emitted pages, both outreach drafts |
 | anonymous and kid-safe, no behavioural advertising | `CLAUDE.md` § Analytics; COPPA internal-operations framing |
 | no external network requests from games | a non-negotiable convention, and Poki's own rule |
 
@@ -67,7 +67,7 @@ time, and expect no reply from at least one of them - these inboxes receive a gr
 **Subject**:
 
 ```
-23 web games, HTML5, no engine dependency - looking at distribution options
+33 web games, HTML5, no engine dependency - looking at distribution options
 ```
 
 **Body**:
@@ -75,7 +75,7 @@ time, and expect no reply from at least one of them - these inboxes receive a gr
 ```
 Hello,
 
-I run ellaz.fun - a free browser games site, 23 games, playable on phone, tablet and
+I run ellaz.fun - a free browser games site, 33 games, playable on phone, tablet and
 desktop. It is Hebrew-first with an English version, which may be an unusual audience
 angle for you.
 
@@ -83,7 +83,7 @@ Some specifics that are probably the ones that matter:
 
 - Pure HTML5. Most of the games are plain web pages; one uses Phaser. Nothing needs a
   plugin, a download or an account.
-- The whole site is under 90 KB gzipped on a first visit, and each game loads on demand.
+- The whole site is about 90 KB gzipped on a first visit, and each game loads on demand.
   The largest single game is about 200 KB, and the Phaser one about 1.9 MB.
 - Game logic is separated from rendering already, and each game boots into a container we
   hand it, so wrapping one in a portal SDK is integration rather than a rewrite.
@@ -96,7 +96,7 @@ requests at all.]
 
 [FOR CRAZYGAMES: I have read that you have a time-to-gameplay expectation. I have not
 measured our games against your specific definition of it, so rather than quote a number
-at you: the shell is under 90 KB gzipped and a plain game adds around 200 KB, with no
+at you: the shell is about 90 KB gzipped and a plain game adds around 200 KB, with no
 loading screen between them.]
 
 Two things I would want to understand before going further, and I would rather ask than
@@ -123,11 +123,11 @@ dodges both is itself an answer.
 
 | Claim in the email | Where it comes from |
 |---|---|
-| 23 games | `src/portal/catalog.ts`, counted 2026-08-11 |
-| under 90 KB gz first visit | `scripts/assert-payload.mjs` ceiling 90,000; measured 88,234 on 2026-08-11 |
+| 33 games | `src/portal/catalog.ts`, counted 2026-08-18 |
+| about 90 KB gz first visit | `scripts/assert-payload.mjs` ceiling 90,500; measured 90,027 on 2026-08-18 |
 | ~200 KB largest plain game, 1.9 MB Phaser game | `du -sh dist-standalone/*` on the built artifacts |
 | one game uses Phaser | `grep -rln 'from "phaser"' src/` returns one file |
-| logic separated from rendering | the pure-`logic.ts` convention, enforced across all 23 games |
+| logic separated from rendering | the pure-`logic.ts` convention, enforced across all 33 games |
 | games boot into a supplied container | `GameContext.mount`; `src/standalone.tsx` is a working proof |
 | lifecycle built to the Poki + CrazyGames union | `CLAUDE.md` § Non-negotiable conventions |
 | games make no network requests | asserted by `scripts/assert-standalone.mjs`, which fails on any external origin |

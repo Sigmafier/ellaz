@@ -85,16 +85,19 @@ that are true and documented: no backend at all, a first load smaller than most 
 images, and a set of published post-mortems about failures that are invisible from a
 browser. Lead with the last of those - it is the only part nobody else has written.
 
-**Every number in the letter is derived**: 88,234 bytes gzipped is the first visit
+**Every number in the letter is derived**: 90,027 bytes gzipped is the first visit
 measured on the built artifact by `scripts/assert-payload.mjs`, which fails the build
-above 90,000. 23 games and 52 pages come from the roster and the emitted sitemap.
+above 90,500. 33 games and 144 pages come from the roster and the emitted sitemap.
 
-**That figure moved after this letter was first written, and the letter was wrong for a
-day.** It read 86,927, measured on a clean tree on 2026-08-11; eleven interface languages
-landed that evening and the same script now reports 88,234 on clean `HEAD` 799e2ef,
-re-measured 2026-08-12. Both numbers were honest when taken, which is the point: **a
-figure in an outgoing letter carries the tree it was measured on, so re-measure before
-sending rather than trusting a number written down yesterday.**
+<!-- outreach-facts:off -->
+**That figure has moved twice since this letter was first written, and the letter was
+wrong both times.** It read 86,927 on a clean tree on 2026-08-11; eleven interface
+languages landed that evening and the same script reported 88,234 at `799e2ef` on
+2026-08-12; ten more games landed and it reads 90,027 at `1e219fe` on 2026-08-18. Every
+one of those was honest when taken, which is the point: **a figure in an outgoing letter
+carries the tree it was measured on, so re-measure before sending rather than trusting a
+number written down last week.** `npm run assert:outreach` is that re-measurement.
+<!-- outreach-facts:on -->
 
 > **נושא:** אתר משחקים לילדים בעברית, בלי שרת ובלי פרסומות - והבאגים שאי אפשר לראות
 > מהדפדפן
@@ -103,9 +106,9 @@ sending rather than trusting a number written down yesterday.**
 >
 > בניתי אתר משחקים לילדים בעברית, ואני חושב שהחלק המעניין בו הוא דווקא ההנדסי.
 >
-> 23 משחקים, 52 עמודים, ואפס שרת. אין בסיס נתונים, אין הרשמה, אין איסוף מידע. הכל נשמר
-> על המכשיר עצמו. הטעינה הראשונה שוקלת 88,234 בתים דחוסים, פחות מתמונה בודדת בכתבה
-> ממוצעת, ויש בדיקה אוטומטית שמפילה את הבילד אם המספר עובר 90,000.
+> 33 משחקים, 144 עמודים, ואפס שרת. אין בסיס נתונים, אין הרשמה, אין איסוף מידע. הכל נשמר
+> על המכשיר עצמו. הטעינה הראשונה שוקלת 90,027 בתים דחוסים, פחות מתמונה בודדת בכתבה
+> ממוצעת, ויש בדיקה אוטומטית שמפילה את הבילד אם המספר עובר 90,500.
 >
 > אבל מה שהייתי כותב עליו הוא זה: תוך שבועיים האתר נשבר שלוש פעמים בשלוש דרכים שאף אחת
 > מהן לא נראית מהדפדפן.
@@ -150,7 +153,7 @@ paragraph.
 >
 > קראתי את [הכתבה הספציפית] ואני פונה בעקבותיה.
 >
-> בניתי אתר משחקים לילדים בעברית: 23 משחקים, 16 מהם לגיל הרך. אין פרסומות, אין הרשמה,
+> בניתי אתר משחקים לילדים בעברית: 33 משחקים, 24 מהם לגיל הרך. אין פרסומות, אין הרשמה,
 > אין הורדה, ואין שום מקום להקליד בו טקסט - הילד מקבל שם מתוך רשימה, אז אין צ'אט ואין מה
 > לפקח עליו. הכל נשמר על המכשיר ואין שרת.
 >

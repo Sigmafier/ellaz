@@ -78,7 +78,7 @@ One line, `README.md`, inserted after `Cybercar` (line 168) and before `Falling 
 
 ```diff
   * [Cybercar](https://cybercar.pages.dev): Free neon arcade survival game with power-ups, unlockable themes, boss battles, and global leaderboard.
-+ * [Ellaz](https://ellaz.fun/): 23 free browser games for kids and adults in Hebrew and English, works offline, no account and no ads.
++ * [Ellaz](https://ellaz.fun/): 33 free browser games for kids and adults in Hebrew and English, works offline, no account and no ads.
   * [Falling Nikochan](https://nikochan.utcode.net): Simple and cute rhythm game, where anyone can create and share charts.
 ```
 
@@ -97,7 +97,7 @@ Nothing else changes. The table of contents lists sections, not entries, so it n
 ```
 Adds Ellaz to Games and Entertainment.
 
-https://ellaz.fun/ - 23 browser games, Hebrew and English, installable, works
+https://ellaz.fun/ - 33 browser games, Hebrew and English, installable, works
 offline. No account, no ads, no analytics identity. Open source, MIT.
 
 I ran scripts/check-pwa.mjs against the entry before opening this: it passes
@@ -121,7 +121,7 @@ also earns nothing.
 
 **The fit is thin and we should say so rather than dress it up.** `Open Source Games` holds
 exactly one entry, a single game whose link points at its GitHub repository. Ellaz is a
-platform of 23 games of which **one** - snake - is built with Phaser
+platform of 33 games of which **one** - snake - is built with Phaser
 (`grep -rln 'from "phaser"' src/` returns one file). An entry implying otherwise would be
 inaccurate, and an accurate one is honest about being a small part of a larger project.
 
@@ -154,9 +154,9 @@ and the merge history says it is not.
 Not to both as originals - two copies of one article competing is the duplicate problem
 this project already documented once.
 
-**Title**: `23 browser games in 88 KB: what a no-backend PWA actually costs`
+**Title**: `33 browser games in 90 KB: what a no-backend PWA actually costs`
 
-Every number below was measured on clean `HEAD` **799e2ef** on 2026-08-12 and each one
+Every number below was measured on clean `HEAD` **1e219fe** on 2026-08-18 and each one
 names the file that produces it. Nothing is rounded up and nothing is estimated.
 
 ---
@@ -164,10 +164,10 @@ names the file that produces it. Nothing is rounded up and nothing is estimated.
 ### Draft
 
 I build a games site for kids. Hebrew first, English second, no accounts, no ads, no
-backend. Twenty-three games. The whole thing is a static site.
+backend. Thirty-three games. The whole thing is a static site.
 
-The number I care about most is the first visit: **88,234 bytes gzipped**, of a ceiling of
-90,000 that fails the build. 1,766 bytes of room left. That figure is measured on the built
+The number I care about most is the first visit: **90,027 bytes gzipped**, of a ceiling of
+90,500 that fails the build. 473 bytes of room left. That figure is measured on the built
 artifact by a script in the repo, not counted by hand, and it is the reason for most of the
 decisions below.
 
@@ -192,13 +192,13 @@ For a long time I described it as shared across the canvas games. It is imported
 one file. It is lazy and precache-excluded so it costs a first visit nothing, but "shared"
 was a story rather than a measurement, and one `grep -rln` ended it.
 
-**The interface speaks eleven languages; the pages exist in two.** Those are different
+**The interface speaks eleven languages; the pages exist in four.** Those are different
 lists on purpose. Google's documentation says localised versions count as duplicates when
 the main content stays untranslated, so a German header over an English article is not a
 smaller German page - it is the named anti-pattern, once per game. The list of languages
 with prose is a TypeScript type, which means promoting a language before writing its prose
 does not fail review, it fails the build. Nine of the eleven interface dictionaries are lazy
-chunks of about 1.3 KB gzipped each, fetched only by someone who picks that language.
+chunks of about 1.5 KB gzipped each, fetched only by someone who picks that language.
 
 **Those nine chunks first shipped empty.** Correctly named, correctly excluded from the
 precache, all sharing one content hash, zero bytes each, because the dictionaries landed
@@ -241,12 +241,12 @@ The code is MIT: https://github.com/Sigmafier/ellaz
 
 | Claim | Where it comes from |
 |---|---|
-| 23 games | `src/portal/catalog.ts` lazy loaders and `src/portal/games.ts` roster, both 23, counted on the artifact 2026-08-12 |
-| 88,234 B gz first visit, 1,766 spare | `node scripts/assert-payload.mjs` on a clean `git archive HEAD` tree at 799e2ef. The peer session measured the identical figure independently |
-| Phaser 379,855 B gz | `gzip -c dist/assets/vendor-phaser-*.js \| wc -c` on that build |
-| one game imports Phaser | `grep -rln 'from "phaser"' src/` returns `src/games/snake/SnakeGame.tsx` only |
-| 11 app locales, 2 page locales | `dist/pages.json` `locales.app` and `locales.page` |
-| 9 locale chunks, ~1.3 KB gz each | `ls dist/assets/locale-*.js`; per-chunk size from the build log |
+| 33 games | `src/portal/catalog.ts` lazy loaders and `src/portal/games.ts` roster, both 33, counted on the artifact 2026-08-18 |
+| 90,027 B gz first visit, 473 spare | `node scripts/assert-payload.mjs` on a clean tree at 1e219fe, 2026-08-18 |
+| Phaser 379,855 B gz | `gzip -c dist/assets/vendor-phaser-*.js \| wc -c` on that build. Unchanged since 2026-08-12 |
+| one game imports Phaser | `grep -rln 'from "phaser"' src/` returns `src/games/snake/SnakeScene.ts` only |
+| 11 app locales, 4 page locales | `dist/pages.json` `locales.app` and `locales.page`, 2026-08-18 |
+| 9 locale chunks, ~1.5 KB gz each | `gzip -c dist/assets/locale-*.js \| wc -c` on the built artifact, 2026-08-18 |
 | 27 KB dev-only chunk shipped | `.claude/rules/precache-glob-sweeps-new-chunks.md`, measured 2026-08-03 |
 | the deploy ledger outage | `.claude/rules/a-deploy-ledger-that-can-disagree-with-the-disk.md` |
 | empty locale chunks | `scripts/assert-first-visit.mjs`, and the peer's account on the bus 2026-08-11 |

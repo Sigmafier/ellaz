@@ -32,7 +32,7 @@ one lane where the reading is not optional.
 ## r/incremental_games is the wrong sub and is dropped
 
 The original plan named it. It is for idle and incremental games - the genre where a
-number goes up while you are not playing. **None of the 23 games is one.** 2048 gets
+number goes up while you are not playing. **None of the 33 games is one.** 2048 gets
 posted there occasionally and is tolerated rather than welcome.
 
 Replaced below with r/InternetIsBeautiful, which fits a free ad-free site far better and
@@ -47,7 +47,7 @@ Their audience is people who want a link to click right now. Short, no story.
 **Title**:
 
 ```
-Ellaz - 23 free browser games, no ads, no account, works offline
+Ellaz - 33 free browser games, no ads, no account, works offline
 ```
 
 **Body**:
@@ -55,12 +55,12 @@ Ellaz - 23 free browser games, no ads, no account, works offline
 ```
 https://ellaz.fun
 
-I built this for my own kids and then kept going. 23 games, sudoku and minesweeper and
+I built this for my own kids and then kept going. 33 games, sudoku and minesweeper and
 2048 and snake at one end, colouring and shape-matching for four-year-olds at the other.
 
 No ads, no account, no download. Nothing to type anywhere - you get given a name from a
 fixed list, so there is no text field for anybody to put anything in. It works offline
-after the first load, and the whole site is under 90 KB before you pick a game.
+after the first load, and the whole site is about 90 KB before you pick a game.
 
 The interface is in 11 languages. Hebrew is the default because that is where I am, but
 it opens in English for you.
@@ -80,7 +80,7 @@ Historically this sub also expects you to give feedback on other posts, so do th
 **Title**:
 
 ```
-[Feedback wanted] 23 browser games for kids and adults, Hebrew-first, no backend at all
+[Feedback wanted] 33 browser games for kids and adults, Hebrew-first, no backend at all
 ```
 
 **Body**:
@@ -93,16 +93,16 @@ saves there.
 
 What I would like eyes on, in order:
 
-1. The home screen on a phone. Does 23 games in a grid read as "plenty" or as "too many
+1. The home screen on a phone. Does 33 games in a grid read as "plenty" or as "too many
    to choose from"? That is my open question and I do not know the answer.
 2. Whether it is obvious that the coins the games pay out are spent in the room screen. I
    suspect it is not.
 3. Anything that feels slow. Every game is either plain web pages or, in one case, a game
    engine, and the difference should not be visible to a player.
 
-Some numbers, since this crowd asks: under 90 KB gzipped on a first visit before you pick
+Some numbers, since this crowd asks: about 90 KB gzipped on a first visit before you pick
 a game; each game loads on demand. 11 interface languages, each its own lazy chunk of
-about 1.3 KB. Real URLs per game rather than a hash router, so every game is linkable.
+about 1.5 KB. Real URLs per game rather than a hash router, so every game is linkable.
 
 The honest bit: there is no server, so there are no cross-device saves and no
 leaderboards against other people. You compete with yourself. That was a deliberate
@@ -128,7 +128,7 @@ A free games site with no ads, no accounts and no server - everything saves on y
 ```
 https://ellaz.fun
 
-23 games. Nothing to sign up for, nothing to install, no advertisement anywhere, and no
+33 games. Nothing to sign up for, nothing to install, no advertisement anywhere, and no
 back end at all - your progress lives in your own browser rather than on someone's
 database.
 
@@ -136,7 +136,7 @@ That last part is the whole design. There is no account because there is nothing
 in to, and there is nothing to type anywhere, so a child cannot enter a name that an adult
 would then have to moderate. You get a name from a fixed list of words.
 
-It works offline once it has loaded, and it is under 90 KB on a first visit.
+It works offline once it has loaded, and it is about 90 KB on a first visit.
 
 The trade-off, stated plainly: because it is all on your device, clearing your browser
 data erases the progress, and a phone and a tablet are two separate players. There is a
@@ -161,9 +161,9 @@ backup code to move between them.
 
 | Claim in the copy | Where it comes from |
 |---|---|
-| 23 games | `src/portal/catalog.ts`, counted 2026-08-11 |
-| under 90 KB first visit | `scripts/assert-payload.mjs` ceiling 90,000 B gz; measured 88,234 on 2026-08-11 |
-| 11 interface languages, ~1.3 KB each | `APP_LOCALES` in `src/i18n/locales.ts`; the per-locale chunk sizes measured on the artifact |
+| 33 games | `src/portal/catalog.ts`, counted 2026-08-18 |
+| about 90 KB first visit | `scripts/assert-payload.mjs` ceiling 90,500 B gz; measured 90,027 on 2026-08-18 |
+| 11 interface languages, ~1.5 KB each | `APP_LOCALES` in `src/i18n/locales.ts`; the per-locale chunk sizes measured on the artifact |
 | nothing to type anywhere | `src/sdk/names.ts` - a name is two word ids from a fixed pool |
 | works offline | the PWA precaches the shell (`vite.config.ts` workbox) |
 | real URL per game | `src/build/routes.ts` emits a document per game per page-language (52 on 2026-08-11; the count moves when a language is promoted, so do not quote it in copy). The hash router is retired |
