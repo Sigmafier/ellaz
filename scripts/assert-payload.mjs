@@ -51,7 +51,7 @@ function distBase(dist) {
 /**
  * Bytes, gzipped, for a first visit.
  *
- * 90,000 as of 2026-08-11 (was 86,000, was 82,000). History, so the next person
+ * 90,500 as of 2026-08-18 (was 90,000, was 86,000, was 82,000). History, so the next person
  * raising it can see what they are joining:
  *   69,624  2026-08-02  live baseline after the payload work
  *   72,984  2026-08-04  the app moved onto real URLs (page-* runtime)
@@ -168,8 +168,27 @@ function distBase(dist) {
  * that use them importing the direct module path first (snake already does).
  * It is its own change, with `build:check` watching, and it would buy back
  * several games' worth of ceiling instead of another 4 KB.
+ *
+ * 90,500 SINCE 2026-08-18, and the SIZE of this raise is the decision: 500 B,
+ * where the two above it were 4,000 B each.
+ *
+ * `match3` and `jigsaw` landed together and measured 90,027 B gz, 27 B over the
+ * previous 90,000. The 289 B they cost between them is entirely the roster's
+ * static `meta.ts` plus each game's link in the emitted home document - the
+ * shell chunk was checked for leakage and holds only their ids, titles, colours
+ * and emoji, with every line of rules and rendering in a lazy `game-*` chunk and
+ * both card scenes in `gameArtRest.ts`. So there was nothing in the change to
+ * make smaller; the term is the one `assert-slope.mjs` already measures and
+ * reports, and it passed at 122.0 B gz per game against its 140 budget.
+ *
+ * The ratchet above is still the real answer and it is still unshipped. This
+ * raise buys roughly three more games, which is deliberately not comfortable:
+ * step 3 of `docs/scaling-the-first-visit.md` (moving the roster metadata off
+ * the shell) is what turns 122 into 40, and the next raise should not happen
+ * before it. Raising to a number that felt roomy would have removed the only
+ * pressure that gets it done.
  */
-const CEILING = 90_000;
+const CEILING = 90_500;
 
 function gzBytes(path) {
   return gzipSync(readFileSync(path)).length;

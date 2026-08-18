@@ -64,7 +64,7 @@ src/
 │            (mount/unmount bridge), WalletChip, games (the ordered roster),
 │            catalog (roster + lazy loaders), paths/pageContext/legacyHash,
 │            world/ (the room + shop)
-├─ build/    BUILD-TIME ONLY - the 132 emitted pages. Pure strings, no DOM, no
+├─ build/    BUILD-TIME ONLY - the 144 emitted pages. Pure strings, no DOM, no
 │            React. Nothing in the app may import it (it reads src/content)
 └─ games/<id>/
    ├─ meta.ts         DOM-free GameMeta - catalog.ts imports it statically
@@ -73,10 +73,11 @@ src/
    └─ <Renderer>      React component (DOM) or Phaser scene (canvas)
 ```
 
-**Games (31)** — 22 `ageBand: "kids"` (balloons, bees, bubbles, coloring, echo,
-evolve, finddiff, frog, hidden, maze, math, memory, merge, music, pet, reaction,
-sequence, shadows, sort, sortsize, spell, vanish) and 9 `"all"` (blocks,
-bubbleshooter, fit, minesweeper, n2048, snake, sudoku, tictactoe, wordguess).
+**Games (33)** — 24 `ageBand: "kids"` (balloons, bees, bubbles, coloring, echo,
+evolve, finddiff, frog, hidden, jigsaw, match3, maze, math, memory, merge, music,
+pet, reaction, sequence, shadows, sort, sortsize, spell, vanish) and 9 `"all"`
+(blocks, bubbleshooter, fit, minesweeper, n2048, snake, sudoku, tictactoe,
+wordguess).
 Counts here go stale fast — `src/portal/catalog.ts` is the source of truth and
 `catalog.test.ts` ratchets the count. This line said 25 for about six hours on
 2026-08-13 while four more games shipped, which is the ordinary rate of decay:
@@ -604,7 +605,7 @@ until the set is complete. Discovered 2026-08-13, building two games at once.
 ## Every game has a real web address
 
 The site used to be one document. It is now 85: `dist/index.html` (still the app,
-unchanged) plus **132 emitted pages** built by `src/build/**` inside a Vite plugin,
+unchanged) plus **144 emitted pages** built by `src/build/**` inside a Vite plugin,
 so `npm run build` cannot skip them and neither deploy workflow can forget.
 
 | URL | What it is |
@@ -1715,7 +1716,24 @@ is the failure `assert-first-visit.mjs` exists to catch and has now caught three
 times. It passed with its negative control rejecting 9 of 9 planted entries, so
 that green is a real one rather than a vacuous one.
 
-**Latest reading: 89,738 B gz, 262 spare** (2026-08-18, 31 games, 4 page
+**Latest reading: 90,027 B gz of 90,500, 473 spare** (2026-08-18, 33 games, 4
+page locales, after `match3` and `jigsaw` landed together. **The ceiling moved, by 500 B
+where both previous raises were 4 KB** (82,000 to 86,000 to 90,000). The two games
+measured 90,027 against the old 90,000, 27 B over, and there was nothing in
+them to make smaller: the 289 B they cost between them is entirely their
+`meta.ts` in the statically-imported roster plus their links in the emitted
+home, with the shell chunk checked for leakage and holding only ids, titles,
+colours and emoji. Every line of rules and rendering is in a lazy `game-*`
+chunk and both card scenes are in `gameArtRest.ts`. The slope gate reads
+**122.0 B gz per game against its 140 budget**, so the O(1) property is intact
+and it is only the absolute budget that moved. 90,500 rather than a roomier
+number on purpose: it buys about three games, and step 3 of
+`docs/scaling-the-first-visit.md` is what turns 122 into 40. A comfortable
+ceiling would remove the only pressure that gets step 3 done.
+
+Supersedes the reading below.)
+
+(89,738 B gz, 262 spare — 2026-08-18, 31 games, 4 page
 locales, after `bubbleshooter` landed. It cost **134 B gz** against a 89,604
 baseline measured on this branch before it, and the slope gate reads
 **118.3 B gz per game against a 140 budget**, down from 120.1, because the
