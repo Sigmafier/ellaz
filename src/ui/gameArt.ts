@@ -349,6 +349,8 @@ const LAZY_GROUNDS: Record<string, string> = {
   letters: "#6355E0",
   spell: "#0E9F94",
   bubbleshooter: "#2BA8F0",
+  match3: "#B43594",
+  jigsaw: "#17798F",
 };
 
 /* ---------------------------------------------------------------------------

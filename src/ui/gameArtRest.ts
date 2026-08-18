@@ -332,4 +332,40 @@ export const REST: Record<string, Scene> = {
     <path d="M74 128a26 26 0 0 1 52 0z" fill="${PAL.inkSoft}" stroke="${I}" stroke-width="3"/>
     <circle cx="100" cy="120" r="14" fill="${PAL.orchid}" stroke="${I}" stroke-width="3"/>
     <path d="M100 114v12M94 120h12" stroke="${PAL.paper}" stroke-width="3" stroke-linecap="round"/>` },
+
+  /* three gems lining up, the row lit and one trade still arrowed */
+  match3: { a: "#B43594", b: "#D96BC0", d: "band", s: `
+    <rect x="30" y="56" width="140" height="40" rx="20" fill="${PAL.paper}" opacity=".22"/>
+    <g fill="${PAL.lagoon}">
+      <circle cx="58" cy="76" r="15"/><circle cx="100" cy="76" r="15"/><circle cx="142" cy="76" r="15"/></g>
+    <g fill="${PAL.raspberry}">
+      <path d="M58 24 73 38 58 52 43 38Z"/><path d="M142 100 157 114 142 128 127 114Z"/></g>
+    <g fill="${PAL.lime}">
+      <rect x="87" y="26" width="26" height="26" rx="5"/>
+      <rect x="45" y="102" width="26" height="26" rx="5"/></g>
+    <g fill="${PAL.sunflower}">
+      <path d="M142 24l14 26h-28z"/><path d="M100 102l14 26H86z"/></g>
+    <g stroke="${PAL.paper}" stroke-width="3.2" fill="none" stroke-linecap="round">
+      <path d="M176 92v22M170 98l6-6 6 6M182 108l-6 6-6-6"/></g>
+    <g fill="${PAL.paper}" opacity=".9">
+      <circle cx="26" cy="30" r="3.6"/><circle cx="176" cy="40" r="2.8"/><circle cx="20" cy="128" r="2.8"/></g>` },
+
+  /* five pieces in, one held above the gap it belongs in */
+  jigsaw: { a: "#17798F", b: "#4FB6CC", d: "hill", s: `
+    <g stroke="${I}" stroke-width="3">
+      <rect x="34" y="36" width="38" height="38" rx="6" fill="${PAL.raspberry}"/>
+      <rect x="76" y="36" width="38" height="38" rx="6" fill="${PAL.sunflower}"/>
+      <rect x="34" y="78" width="38" height="38" rx="6" fill="${PAL.lime}"/>
+      <rect x="76" y="78" width="38" height="38" rx="6" fill="${PAL.orchid}"/>
+      <rect x="118" y="78" width="38" height="38" rx="6" fill="${PAL.tangerine}"/>
+    </g>
+    <rect x="118" y="36" width="38" height="38" rx="6" fill="${PAL.ink}" opacity=".28"
+          stroke="${PAL.paper}" stroke-width="3" stroke-dasharray="6 5"/>
+    <g transform="rotate(-12 160 24)">
+      <rect x="141" y="6" width="38" height="38" rx="6" fill="${PAL.lagoon}"
+            stroke="${I}" stroke-width="3"/>
+      <circle cx="160" cy="25" r="6" fill="${PAL.paper}" opacity=".5"/>
+    </g>
+    <g fill="${PAL.paper}" opacity=".85">
+      <circle cx="20" cy="26" r="3.4"/><circle cx="186" cy="70" r="2.8"/><circle cx="24" cy="132" r="2.8"/></g>` },
 };
