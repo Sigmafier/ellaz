@@ -73,10 +73,10 @@ src/
    └─ <Renderer>      React component (DOM) or Phaser scene (canvas)
 ```
 
-**Games (30)** — 22 `ageBand: "kids"` (balloons, bees, bubbles, coloring, echo,
+**Games (31)** — 22 `ageBand: "kids"` (balloons, bees, bubbles, coloring, echo,
 evolve, finddiff, frog, hidden, maze, math, memory, merge, music, pet, reaction,
-sequence, shadows, sort, sortsize, spell, vanish) and 8 `"all"` (blocks, fit,
-minesweeper, n2048, snake, sudoku, tictactoe, wordguess).
+sequence, shadows, sort, sortsize, spell, vanish) and 9 `"all"` (blocks,
+bubbleshooter, fit, minesweeper, n2048, snake, sudoku, tictactoe, wordguess).
 Counts here go stale fast — `src/portal/catalog.ts` is the source of truth and
 `catalog.test.ts` ratchets the count. This line said 25 for about six hours on
 2026-08-13 while four more games shipped, which is the ordinary rate of decay:
@@ -1715,7 +1715,24 @@ is the failure `assert-first-visit.mjs` exists to catch and has now caught three
 times. It passed with its negative control rejecting 9 of 9 planted entries, so
 that green is a real one rather than a vacuous one.
 
-**Latest reading: 89,595 B gz, 405 spare** (2026-08-17, 30 games, 4 page
+**Latest reading: 89,738 B gz, 262 spare** (2026-08-18, 31 games, 4 page
+locales, after `bubbleshooter` landed. It cost **134 B gz** against a 89,604
+baseline measured on this branch before it, and the slope gate reads
+**118.3 B gz per game against a 140 budget**, down from 120.1, because the
+game's card art went into `gameArtRest.ts` where a new scene costs the first
+visit nothing and its whole 8 KB renderer is a lazy `game-*` chunk - so it
+joins the divisor without adding to the delta. **262 B is under two
+games' worth of headroom**, so the next game to land will very likely have to do
+step 3 of `docs/scaling-the-first-visit.md` rather than find room.
+
+An earlier run of the same gate on the same branch read **89,753 / 247**, 15 B
+heavier, and the only change between the two was a fix inside the game's own
+LAZY chunk, which cannot reach the shell. So do not read a 15 B move here as
+anything: at this ceiling the gate's own run-to-run floor is the same order as
+a game's whole cost, which is one more reason the rule below says re-run rather
+than subtract. Supersedes the 2026-08-17 reading below.)
+
+(89,595 B gz, 405 spare — 2026-08-17, 30 games, 4 page
 locales, after `spell` landed. It cost **134 B gz** — its `meta.ts` in the
 statically-imported roster and its `gameArt` scene in the grid, which is the
 per-game slope `assert-slope` measures at 120.1 B/game, plus its link in the
