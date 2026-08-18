@@ -19,7 +19,8 @@
     "assert:crawlable": "node scripts/assert-crawlable.mjs",
     "assert:live": "node scripts/assert-live.mjs",
     "build:standalone": "vite build --config vite.standalone.config.ts",
-    "assert:standalone": "node scripts/assert-standalone.mjs"
+    "assert:standalone": "node scripts/assert-standalone.mjs",
+    "assert:outreach": "node scripts/assert-outreach.mjs"
   },
   "dependencies": {
     "phaser": "^4.2.1",

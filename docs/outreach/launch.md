@@ -36,10 +36,10 @@ Ellaz fits their stated criteria unusually well:
 
 | Their rule | Us |
 |---|---|
-| "something you've made that other people can play with" | 23 games, playable in one tap |
+| "something you've made that other people can play with" | 33 games, playable in one tap |
 | "easy for users to try your thing out, ideally without barriers such as signups" | no account, no email, nothing to install |
 | "must be something you've worked on personally and which you're around to discuss" | **the operator's, not this session's** - see below |
-| "The project should be non-trivial" | 23 games, 52 pages, two languages |
+| "The project should be non-trivial" | 33 games, 144 pages, four languages |
 | off topic: "blog posts, sign-up pages, newsletters, lists" | not one of those |
 
 **The one condition that is not about the project.** They require the author to be present
@@ -49,7 +49,7 @@ Pick a morning when there are two or three hours free afterwards; do not post it
 **Title** (theirs must begin with `Show HN:`):
 
 ```
-Show HN: Ellaz - 23 browser games for kids, Hebrew and English, no accounts or ads
+Show HN: Ellaz - 33 browser games for kids, Hebrew and English, no accounts or ads
 ```
 
 **First comment** - posted immediately after submitting, as their tips describe:
@@ -57,14 +57,14 @@ Show HN: Ellaz - 23 browser games for kids, Hebrew and English, no accounts or a
 ```
 I built this for my own kids and it grew into a platform.
 
-Twenty-three games, Hebrew first and English second, playable on a phone, a
+Thirty-three games, Hebrew first and English second, playable on a phone, a
 tablet or a PC. No account, no ads, no analytics identity, no backend at all -
 progress lives in localStorage, which also means a phone and a tablet are two
 separate players. That is a real limitation and I have not solved it.
 
 Some things I did not expect going in:
 
-- The first visit is 88,234 bytes gzipped and the build fails above 90,000.
+- The first visit is 90,027 bytes gzipped and the build fails above 90,500.
   Adding a game costs the shell about 300 bytes even though every game is a
   lazy chunk, because its metadata is in the statically imported roster.
 - Making an import lazy is three changes, not one. Miss the third (the
@@ -100,13 +100,13 @@ no launch, and it cannot be repeated.
 **Tagline** (their limit is short - trim to fit whatever the form says):
 
 ```
-23 free browser games for kids. No ads, no accounts, works offline.
+33 free browser games for kids. No ads, no accounts, works offline.
 ```
 
 **Description**:
 
 ```
-Ellaz is a games site for children and the adults playing beside them. Twenty-three
+Ellaz is a games site for children and the adults playing beside them. Thirty-three
 games, in Hebrew and English, on a phone, a tablet or a PC.
 
 Nothing to install and nothing to sign up for. No ads, no in-app purchases, no
@@ -165,7 +165,7 @@ on an assumption nobody has checked. The operator has a browser; one search sett
 
 **And the framing may be wrong even if Poki is listed.** `docs/outreach/portals.md` already
 records the strategic question: Poki and CrazyGames are advertising businesses, and this
-site says "no ads" on all 52 of its pages. Positioning against them on a comparison site
+site says "no ads" on all 144 of its pages. Positioning against them on a comparison site
 is a public statement of that position. It is defensible and it is the operator's to make,
 not a copywriting choice.
 
@@ -175,7 +175,7 @@ If it goes ahead:
 **Description**:
 
 ```
-A free browser games site for kids and adults. 23 games in Hebrew and English,
+A free browser games site for kids and adults. 33 games in Hebrew and English,
 playable on phone, tablet and PC. No account, no ads, no tracking, and it works
 offline. Open source, MIT.
 ```
@@ -213,9 +213,9 @@ spends its one shot, and this project has had that exact outage once already.
 | Claim | Where it comes from |
 |---|---|
 | Show HN rules, quoted | `news.ycombinator.com/showhn.html`, fetched 2026-08-12, 200 with 684 words |
-| 23 games | `src/portal/catalog.ts` and `src/portal/games.ts`, both 23 |
-| 88,234 B gz first visit | `scripts/assert-payload.mjs` on a clean `git archive HEAD` at 799e2ef, 2026-08-12 |
-| ~300 B shell cost per game | `CLAUDE.md`, measured when Falling Blocks shipped (306 B) |
+| 33 games | `src/portal/catalog.ts` and `src/portal/games.ts`, both 33, counted 2026-08-18 |
+| 90,027 B gz first visit | `scripts/assert-payload.mjs` on a clean tree at 1e219fe, 2026-08-18 |
+| ~122 B gz shell cost per game | `npm run assert:slope`, which measures the marginal game rather than quoting one commit's delta |
 | the deploy ledger outage | `.claude/rules/a-deploy-ledger-that-can-disagree-with-the-disk.md` |
 | the three-change lazy import | `.claude/rules/precache-glob-sweeps-new-chunks.md` |
 | no child types anything | `.claude/rules/name-pool-convention.md` |
