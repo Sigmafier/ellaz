@@ -33,6 +33,7 @@ import { meta as music } from "../games/music/meta";
 import { meta as maze } from "../games/maze/meta";
 import { meta as letters } from "../games/letters/meta";
 import { meta as spell } from "../games/spell/meta";
+import { meta as bubbleshooter } from "../games/bubbleshooter/meta";
 
 /**
  * The roster, in the order the home grid renders it.
@@ -137,6 +138,16 @@ export const GAMES: ReadonlyArray<GameMeta> = [
   // letter still unknown - the way out of being stuck, which a four-year-old
   // needs more than they need a score. Appended, so its card art stays lazy.
   spell,
+
+  // Wave 8. `bubbleshooter` is the arcade shape this catalogue had no answer to:
+  // the only game here where a shot TRAVELS, bounces off a wall and lands
+  // somewhere the player predicted. It is the second game in `classics` to be
+  // drawn on a canvas and the FIRST to do it with no engine at all - a full
+  // board is 115 circles, three orders of magnitude under where sprite batching
+  // starts to pay, and `logic.ts` solves each shot in one call rather than
+  // stepping a simulation, so there is no fixed timestep to match a display to.
+  // Appended, so its card art stays lazy.
+  bubbleshooter,
 ];
 
 export function metaFor(id: string): GameMeta | undefined {

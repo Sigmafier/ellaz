@@ -29,6 +29,7 @@ import { music } from "./games/music";
 import { maze } from "./games/maze";
 import { letters } from "./games/letters";
 import { spell } from "./games/spell";
+import { bubbleshooter } from "./games/bubbleshooter";
 
 export type { GameContent, GameCopy, FaqItem, Titled, Provenance, Locale, PageLocale } from "./types";
 
@@ -78,6 +79,7 @@ export const CONTENT: Record<string, GameContent> = {
   [maze.id]: maze,
   [letters.id]: letters,
   [spell.id]: spell,
+  [bubbleshooter.id]: bubbleshooter,
 };
 
 /** The ids that have prose today. */
