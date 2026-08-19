@@ -4,9 +4,11 @@ import {
   DIFFICULTIES,
   LEVELS,
   correctCount,
+  frameSides,
   isSolved,
   newGame,
   pieceCount,
+  pieceEdges,
   scoreReport,
   shuffledTray,
   tapSlot,
@@ -312,5 +314,66 @@ describe("there is no drag entry point at all", () => {
     // is a rules module with nowhere to put one.
     const api = Object.keys({ tapTray, tapSlot, newGame, isSolved });
     expect(api.some((k) => /drag|drop/i.test(k))).toBe(false);
+  });
+});
+
+/**
+ * The frame.
+ *
+ * These read like arithmetic and they are the difference between a puzzle a
+ * child can start and one they can only brute-force: the page has always told
+ * players to build the border first, and until the renderer could ask which
+ * sides are flat, there was no border to find.
+ */
+describe("the frame", () => {
+  it("gives a corner two flat sides, an edge one and the middle none", () => {
+    // The medium cut, 4x3, laid out as the renderer lays it out:
+    //   0  1  2  3
+    //   4  5  6  7
+    //   8  9 10 11
+    const sides = (p: number) => frameSides(p, 4, 3);
+    expect([0, 3, 8, 11].map(sides)).toEqual([2, 2, 2, 2]);
+    expect([1, 2, 4, 7, 9, 10].map(sides)).toEqual([1, 1, 1, 1, 1, 1]);
+    expect([5, 6].map(sides)).toEqual([0, 0]);
+  });
+
+  it("names WHICH sides are flat, not merely how many", () => {
+    // The count alone would let a rim be drawn on the wrong side of a piece -
+    // a corner with its flat edges facing inward reads as a corner, sorts as a
+    // corner, and points the whole border the wrong way round.
+    expect(pieceEdges(0, 4, 3)).toEqual({ top: true, right: false, bottom: false, left: true });
+    expect(pieceEdges(3, 4, 3)).toEqual({ top: true, right: true, bottom: false, left: false });
+    expect(pieceEdges(8, 4, 3)).toEqual({ top: false, right: false, bottom: true, left: true });
+    expect(pieceEdges(11, 4, 3)).toEqual({ top: false, right: true, bottom: true, left: false });
+    expect(pieceEdges(5, 4, 3)).toEqual({ top: false, right: false, bottom: false, left: false });
+  });
+
+  it("puts exactly four corners on every cut this game ships", () => {
+    for (const level of DIFFICULTIES) {
+      const { cols, rows } = LEVELS[level];
+      const count = cols * rows;
+      const all = Array.from({ length: count }, (_, i) => frameSides(i, cols, rows));
+      expect(all.filter((n) => n === 2)).toHaveLength(4);
+      // And the border is the whole outside: every piece not in the interior.
+      expect(all.filter((n) => n >= 1)).toHaveLength(count - (cols - 2) * (rows - 2));
+    }
+  });
+
+  it("agrees with the row and column the renderer draws a piece at", () => {
+    // The rim and the picture are positioned from the same two lines of
+    // arithmetic in two different files. Drifting apart would paint a flat
+    // edge across the middle of a drawing with no error anywhere.
+    for (const level of DIFFICULTIES) {
+      const { cols, rows } = LEVELS[level];
+      for (let piece = 0; piece < cols * rows; piece += 1) {
+        const col = piece % cols;
+        const row = Math.floor(piece / cols);
+        const e = pieceEdges(piece, cols, rows);
+        expect(e.left).toBe(col === 0);
+        expect(e.right).toBe(col === cols - 1);
+        expect(e.top).toBe(row === 0);
+        expect(e.bottom).toBe(row === rows - 1);
+      }
+    }
   });
 });

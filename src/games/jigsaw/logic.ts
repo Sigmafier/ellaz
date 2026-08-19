@@ -48,6 +48,54 @@ export const LEVELS: Record<Difficulty, LevelSpec> = {
 export const pieceCount = (level: Difficulty): number =>
   LEVELS[level].cols * LEVELS[level].rows;
 
+/** Which sides of a piece lie on the OUTSIDE of the picture. */
+export interface PieceEdges {
+  top: boolean;
+  right: boolean;
+  bottom: boolean;
+  left: boolean;
+}
+
+/**
+ * The flat sides of a piece — a real jigsaw's frame, derived rather than drawn.
+ *
+ * This is still a permutation module: `piece` is a number, `cols`/`rows` are
+ * numbers, and nothing here knows what is printed on anything. But WHICH sides
+ * of a piece face outward is a fact about the cut, not about the picture, so it
+ * belongs with the rules and can be tested in node.
+ *
+ * It exists because the game shipped without it and the page already promised
+ * it: `src/content/games/jigsaw.ts` tells a child that "the four corners are
+ * the only pieces with two flat sides, so they are the easiest to recognise",
+ * which was advice about a cardboard puzzle rather than about this one. Every
+ * piece here was an identical rectangle, so the whole corners-first strategy —
+ * the way people actually solve a jigsaw — was unavailable, and the only
+ * remaining approach was to try pieces one at a time. The renderer draws the
+ * sides this returns as a flat rim, so a corner reads as a corner at a glance.
+ */
+export function pieceEdges(piece: number, cols: number, rows: number): PieceEdges {
+  const col = piece % cols;
+  const row = Math.floor(piece / cols);
+  return {
+    top: row === 0,
+    right: col === cols - 1,
+    bottom: row === rows - 1,
+    left: col === 0,
+  };
+}
+
+/**
+ * How many flat sides a piece has: 2 for a corner, 1 for an edge, 0 for the
+ * middle. The one number a child sorting a tray is actually looking for.
+ *
+ * A single-column or single-row cut would report 2 on every piece, which is
+ * correct — such a board is all frame. No level here is shaped that way.
+ */
+export function frameSides(piece: number, cols: number, rows: number): number {
+  const e = pieceEdges(piece, cols, rows);
+  return Number(e.top) + Number(e.right) + Number(e.bottom) + Number(e.left);
+}
+
 export interface JigsawState {
   level: Difficulty;
   cols: number;

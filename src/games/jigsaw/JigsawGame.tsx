@@ -11,8 +11,10 @@ import {
   DIFFICULTIES,
   LEVELS,
   correctCount,
+  frameSides,
   isSolved,
   newGame,
+  pieceEdges,
   scoreReport,
   tapSlot,
   tapTray,
@@ -48,6 +50,11 @@ const WORDS: Record<
     piece: (n: number) => string;
     slot: (n: number) => string;
     held: string;
+    guide: string;
+    /** Two flat sides. */
+    corner: string;
+    /** One flat side. */
+    edge: string;
   }
 > = {
   he: {
@@ -58,6 +65,9 @@ const WORDS: Record<
     piece: (n) => `חלק ${n}`,
     slot: (n) => `משבצת ${n}`,
     held: "נבחר",
+    guide: "רמז",
+    corner: "פינה",
+    edge: "שוליים",
   },
   en: {
     hint: "Pick a piece, then tap where it goes",
@@ -67,6 +77,9 @@ const WORDS: Record<
     piece: (n) => `piece ${n}`,
     slot: (n) => `space ${n}`,
     held: "picked",
+    guide: "Hint",
+    corner: "corner",
+    edge: "edge",
   },
   es: {
     hint: "Elige una pieza y toca dónde va",
@@ -76,6 +89,9 @@ const WORDS: Record<
     piece: (n) => `pieza ${n}`,
     slot: (n) => `hueco ${n}`,
     held: "elegida",
+    guide: "Pista",
+    corner: "esquina",
+    edge: "borde",
   },
 };
 
@@ -190,6 +206,94 @@ function Piece({
   );
 }
 
+/* ------------------------------------------------------------------ the rim */
+
+/**
+ * The flat outer edge of a frame piece, and the reason it exists.
+ *
+ * Every piece here was an identical rectangle, so the first thing anybody does
+ * with a real jigsaw — pull the frame out of the pile and build the border —
+ * could not be done at all, and the only way through the board was to try
+ * pieces one at a time. `src/content/games/jigsaw.ts` has meanwhile been
+ * telling players that "the four corners are the only pieces with two flat
+ * sides", which was true of cardboard and false of this game.
+ *
+ * TWO cues, because either one alone is missable and they fail on different
+ * backgrounds:
+ *
+ *   the BAND, drawn here — a strip of the art's own paper along each outward
+ *   side, which is what an uncut edge looks like;
+ *
+ *   the SHAPE, drawn by `pieceRadius` below — a flat side runs corner to
+ *   corner, so the corners it touches are square while every other corner
+ *   stays round. That one survives a scene whose own background is pale, and
+ *   it is visible in silhouette rather than needing to be looked at.
+ *
+ * The colour is a LITERAL rather than a theme token because it sits on the
+ * art: `@ui/gameArt` scenes are drawn on their own paper and do not follow the
+ * theme, so a rim that did would go dark on a drawing that did not. It is
+ * `gameArt`'s own paper tone, copied rather than imported — that file reserves
+ * `PAL` for the scenes themselves.
+ *
+ * MEASURED, and this is why the hairline is here: the band alone was invisible
+ * in the tray. The tray card is `--surface`, which is `#fffdf8` in the light
+ * theme — the same cream — so a paper band on a paper card read as nothing at
+ * all, and the frame pieces looked exactly like the middle ones. The hairline
+ * inside the band is what separates it from whatever it is lying on, and the
+ * matching one on the button separates the piece from the card.
+ */
+const RIM = 4;
+const RIM_PAPER = "#FFF7EC";
+/** The band, told apart from the card under it. */
+const RIM_HAIRLINE = "inset 0 0 0 1px rgba(36,28,59,0.28)";
+/** The piece, told apart from the card under it. Not clipped by `overflow`. */
+const PIECE_EDGE = "0 0 0 1px rgba(36,28,59,0.22)";
+
+/**
+ * Square where the cut is flat, round everywhere else.
+ *
+ * A corner of the piece is square when EITHER side meeting there is flat,
+ * because a straight edge runs the full width of the piece — so a top-row
+ * piece has a square top-left and top-right, and a corner piece has one
+ * square corner facing the outside of the picture.
+ */
+function pieceRadius(piece: number, cols: number, rows: number, round: number): string {
+  const e = pieceEdges(piece, cols, rows);
+  const r = (a: boolean, b: boolean) => (a || b ? 2 : round);
+  return [
+    r(e.top, e.left),
+    r(e.top, e.right),
+    r(e.bottom, e.right),
+    r(e.bottom, e.left),
+  ]
+    .map((n) => `${n}px`)
+    .join(" ");
+}
+
+function Rim({ piece, cols, rows }: { piece: number; cols: number; rows: number }) {
+  const e = pieceEdges(piece, cols, rows);
+  const side = `${RIM}px solid ${RIM_PAPER}`;
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        position: "absolute",
+        inset: 0,
+        borderRadius: "inherit",
+        // The rim is decoration over a button that must stay tappable — a
+        // 4 px frame swallowing the tap at the exact edge of a piece is the
+        // kind of miss a five-year-old cannot diagnose.
+        pointerEvents: "none",
+        borderTop: e.top ? side : undefined,
+        borderRight: e.right ? side : undefined,
+        borderBottom: e.bottom ? side : undefined,
+        borderLeft: e.left ? side : undefined,
+        boxShadow: RIM_HAIRLINE,
+      }}
+    />
+  );
+}
+
 /* ----------------------------------------------------------------- the game */
 
 export function JigsawGame({ ctx }: { ctx: GameContext }) {
@@ -211,6 +315,24 @@ export function JigsawGame({ ctx }: { ctx: GameContext }) {
     () => resume?.state ?? newGame(level, PICTURES.length),
   );
   const [best, setBest] = useState<number | undefined>(() => ctx.score?.best(level));
+  /**
+   * Whether the empty spaces show a ghost of the piece that belongs in them.
+   *
+   * ON by default, because the complaint this answers is that the board gives
+   * no way to see how the pieces combine: twenty fragments of a drawing nobody
+   * has seen whole is a memory test, not a jigsaw. The ghost is the box lid,
+   * laid out in place rather than beside the board — it costs no layout space,
+   * it is exactly aligned by construction, and each space stops showing one the
+   * moment a piece covers it, so the board fills in with the real picture as it
+   * is solved.
+   *
+   * It is a TOGGLE and not a level, so a child who wants the harder game can
+   * turn it off without giving up the twenty-piece cut, and the choice is
+   * remembered per device. It is deliberately NOT in the session snapshot: a
+   * preference outlives one puzzle, and a snapshot is cleared the moment a
+   * picture is finished.
+   */
+  const [guide, setGuide] = useState<boolean>(() => ctx.storage.get("guide", true));
   /** The slot a piece just landed in, for one short pop. */
   const [popped, setPopped] = useState<number | null>(null);
 
@@ -249,6 +371,19 @@ export function JigsawGame({ ctx }: { ctx: GameContext }) {
   );
 
   const restart = useCallback(() => startLevel(level), [startLevel, level]);
+
+  // Everything here runs in the HANDLER and reads `guide` from the closure
+  // rather than from a `setState` updater. React may run an updater twice, and
+  // a doubled write here would toggle the stored preference back — the setting
+  // would flip on screen and be forgotten by the next visit.
+  const toggleGuide = useCallback(() => {
+    ctx.audio.unlock();
+    const next = !guide;
+    setGuide(next);
+    ctx.storage.set("guide", next);
+    ctx.audio.play("tap");
+    haptic.tap();
+  }, [ctx, guide]);
 
   useEffect(() => {
     if (!startedRef.current) {
@@ -330,6 +465,14 @@ export function JigsawGame({ ctx }: { ctx: GameContext }) {
   const { cols, rows } = state;
   const trayPieceWidth = Math.round(240 / cols);
 
+  /** " — corner" / " — edge", or nothing for a middle piece. */
+  const frameWord = (piece: number) => {
+    const sides = frameSides(piece, cols, rows);
+    if (sides >= 2) return ` — ${T.corner}`;
+    if (sides === 1) return ` — ${T.edge}`;
+    return "";
+  };
+
   return (
     <GameChrome
       ctx={ctx}
@@ -378,7 +521,13 @@ export function JigsawGame({ ctx }: { ctx: GameContext }) {
                 <button
                   key={piece}
                   type="button"
-                  aria-label={`${T.piece(piece + 1)}${held ? ` — ${T.held}` : ""}`}
+                  // The rim says "corner" to anyone who can see it. This says
+                  // the same thing to anyone who cannot, which is the point of
+                  // marking the frame at all — sorting the border out first is
+                  // the strategy, not a decoration.
+                  aria-label={`${T.piece(piece + 1)}${frameWord(piece)}${
+                    held ? ` — ${T.held}` : ""
+                  }`}
                   aria-pressed={held}
                   onClick={() => onTray(piece)}
                   style={{
@@ -387,8 +536,11 @@ export function JigsawGame({ ctx }: { ctx: GameContext }) {
                     aspectRatio: `${4 / cols} / ${3 / rows}`,
                     border: "none",
                     padding: 0,
-                    borderRadius: 8,
+                    // Square where the cut is flat. `Piece` and `Rim` both
+                    // inherit this, so the art and the band follow the shape.
+                    borderRadius: pieceRadius(piece, cols, rows, 8),
                     background: artGround(picture),
+                    boxShadow: PIECE_EDGE,
                     outline: held ? "3px solid var(--brand)" : "none",
                     outlineOffset: 2,
                     transform: held ? "scale(0.94)" : "none",
@@ -399,20 +551,67 @@ export function JigsawGame({ ctx }: { ctx: GameContext }) {
                   }}
                 >
                   <Piece picture={picture} piece={piece} cols={cols} rows={rows} />
+                  {/* The flat sides, so the frame can be pulled out of the
+                      tray the way it is out of a box. */}
+                  <Rim piece={piece} cols={cols} rows={rows} />
                 </button>
               );
             })}
           </div>
-          <b
+          <div
             style={{
-              fontSize: 15,
-              fontFamily: "Fredoka, inherit",
-              textAlign: "center",
-              color: "var(--text-dim)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              // The catalogue's own wrapping rule: this row holds a sentence
+              // whose length is a translator's decision, so it wraps rather
+              // than pushing the button off a 390 px phone
+              // (a-row-that-grows-with-the-catalog-must-wrap.md).
+              flexWrap: "wrap",
+              gap: 10,
             }}
           >
-            {solved ? T.done : T.hint}
-          </b>
+            <b
+              style={{
+                fontSize: 15,
+                fontFamily: "Fredoka, inherit",
+                textAlign: "center",
+                color: "var(--text-dim)",
+              }}
+            >
+              {solved ? T.done : T.hint}
+            </b>
+            <button
+              type="button"
+              // The guide is ON by default, so this button is how the harder
+              // game is reached rather than how the easier one is. It says what
+              // it controls and holds `aria-pressed`, because "eye" alone is a
+              // symbol a child has to have been taught.
+              aria-label={T.guide}
+              aria-pressed={guide}
+              onClick={toggleGuide}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                minHeight: 34,
+                padding: "4px 12px",
+                borderRadius: 999,
+                border: "none",
+                fontSize: 14,
+                fontFamily: "Fredoka, inherit",
+                background: guide ? "var(--brand-fill)" : "var(--surface-2)",
+                color: guide ? "var(--on-brand)" : "var(--text-dim)",
+                cursor: "pointer",
+              }}
+            >
+              {/* One glyph in both states — the pill's fill says which
+                  state it is in, and a second emoji nobody recognises would
+                  say it worse. */}
+              <span aria-hidden="true">👁️</span>
+              {T.guide}
+            </button>
+          </div>
         </div>
       }
     >
@@ -454,8 +653,8 @@ export function JigsawGame({ ctx }: { ctx: GameContext }) {
             // cannot tell apart, so each carries its own column and row.
             // One-based, because nobody counts from zero out loud.
             aria-label={`${T.slot(i + 1)} ${(i % cols) + 1}, ${Math.floor(i / cols) + 1}${
-              piece === null ? "" : ` — ${T.piece(piece + 1)}`
-            }`}
+              frameWord(i)
+            }${piece === null ? "" : ` — ${T.piece(piece + 1)}`}`}
             className={popped === i ? "ellaz-pop" : undefined}
             onClick={(e) => onSlot(i, e.currentTarget)}
             style={{
@@ -464,16 +663,46 @@ export function JigsawGame({ ctx }: { ctx: GameContext }) {
               minHeight: 0,
               border: "none",
               padding: 0,
-              borderRadius: 6,
-              background: piece === null ? "rgba(0,0,0,0.10)" : artGround(picture),
+              borderRadius: pieceRadius(i, cols, rows, 6),
+              // An empty space is a dark hole, EXCEPT under the guide - the
+              // wash sits over the ghost and greys the one thing it is there
+              // to show, and a space holding a ghost is not empty to look at.
+              background:
+                piece !== null
+                  ? artGround(picture)
+                  : guide
+                    ? "transparent"
+                    : "rgba(0,0,0,0.10)",
               cursor: "pointer",
               touchAction: "none",
               overflow: "hidden",
             }}
           >
-            {piece === null ? null : (
+            {piece === null ? (
+              // THE GUIDE. A faint copy of the piece that belongs here, in the
+              // place it belongs — so a child can see what the finished picture
+              // is and where each fragment sits in it, which is the whole
+              // question a tray of twenty rectangles could not answer. It is
+              // covered the moment a real piece lands, so the board fills in
+              // with the drawing rather than with a hint.
+              guide ? (
+                <span
+                  aria-hidden="true"
+                  // Faint enough to read as a hint rather than as the answer,
+                  // strong enough that a tray piece can be matched to it. It is
+                  // the picture's own colours at a fraction of their strength,
+                  // so a placed piece reads as the same thing turned up.
+                  style={{ position: "absolute", inset: 0, opacity: 0.34 }}
+                >
+                  <Piece picture={picture} piece={i} cols={cols} rows={rows} />
+                </span>
+              ) : null
+            ) : (
               <Piece picture={picture} piece={piece} cols={cols} rows={rows} />
             )}
+            {/* On the board too, so a frame piece and the space it belongs in
+                carry the same mark and match by shape rather than by trial. */}
+            <Rim piece={i} cols={cols} rows={rows} />
           </button>
         ))}
       </div>
