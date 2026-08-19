@@ -21,6 +21,8 @@ export const ru: Record<StringKey, string> = {
   gameOver: "Игра окончена",
   loading: "Загрузка…",
   sound: "Звук",
+  pause: "Пауза",
+  resume: "Продолжить",
   language: "Язык",
   rotateHint: "Поверни устройство",
   allGames: "Все игры",

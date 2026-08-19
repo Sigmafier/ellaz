@@ -19,6 +19,8 @@ export const pt: Record<StringKey, string> = {
   gameOver: "Fim de jogo",
   loading: "Carregando…",
   sound: "Som",
+  pause: "Pausa",
+  resume: "Continuar",
   language: "Idioma",
   rotateHint: "Gire o aparelho",
   allGames: "Todos os jogos",

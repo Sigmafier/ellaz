@@ -24,6 +24,8 @@ export const ar: Record<StringKey, string> = {
   gameOver: "انتهت اللعبة",
   loading: "جاري التحميل…",
   sound: "الصوت",
+  pause: "إيقاف مؤقت",
+  resume: "متابعة",
   language: "اللغة",
   rotateHint: "أدر الجهاز",
   allGames: "كل الألعاب",

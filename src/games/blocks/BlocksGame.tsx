@@ -382,7 +382,20 @@ export function BlocksGame({ ctx }: { ctx: GameContext }) {
    * `setState` exists only to repaint.
    */
   const gameRef = useRef(state);
+  /**
+   * TWO pauses, and they must not be one flag.
+   *
+   * `portalPausedRef` is the tab going away — a phone call, a switched tab, the
+   * portal's own pause — and it is undone by the matching resume. `paused` is
+   * the player's own button, and it is undone by nobody but them. Merged into a
+   * single ref, backgrounding a deliberately-paused game and coming back to it
+   * fires `onResume` and starts the piece falling under a cover the player
+   * never dismissed. The clock is stopped when EITHER is set.
+   */
+  const portalPausedRef = useRef(false);
+  const [paused, setPaused] = useState(false);
   const pausedRef = useRef(false);
+  pausedRef.current = paused;
   const lastStepRef = useRef(0);
   /**
    * Rows at the last milestone, so one ping fires per five rows, not per row.
@@ -406,11 +419,29 @@ export function BlocksGame({ ctx }: { ctx: GameContext }) {
     return r ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : undefined;
   }, []);
 
+  /**
+   * The chrome's pause button. Resuming RESETS the step clock, and that line is
+   * the whole reason this is a callback rather than a bare `setPaused`: the
+   * gravity tick asks how long it has been since the last step, and after a
+   * two-minute pause the honest answer is two minutes — so the first frame back
+   * satisfies the interval instantly and the piece drops the moment the cover
+   * lifts, which is exactly the fall the pause was there to prevent.
+   */
+  const togglePause = useCallback((next: boolean) => {
+    setPaused(next);
+    if (!next) lastStepRef.current = performance.now();
+  }, []);
+
   const start = useCallback(
     (key: LevelKey) => {
       setLevel(key);
       milestoneRef.current = 0;
       scoredRef.current = false;
+      // A new board is never a paused one. Without this a level change made
+      // from behind the cover deals a fresh piece into a game the player still
+      // cannot see, and the only way out is the pause button they did not
+      // press to get there.
+      setPaused(false);
       lastStepRef.current = 0;
       setBest(ctx.score?.best(key) ?? 0);
       apply(newGame(key));
@@ -514,7 +545,7 @@ export function BlocksGame({ ctx }: { ctx: GameContext }) {
   useEffect(() => {
     const id = window.setInterval(() => {
       const s = gameRef.current;
-      if (s.over || pausedRef.current) return;
+      if (s.over || pausedRef.current || portalPausedRef.current) return;
       const now = performance.now();
       if (!lastStepRef.current) lastStepRef.current = now;
       if (now - lastStepRef.current < intervalFor(s.level, s.lines)) return;
@@ -529,10 +560,10 @@ export function BlocksGame({ ctx }: { ctx: GameContext }) {
   useEffect(() => {
     const off = [
       ctx.onPause(() => {
-        pausedRef.current = true;
+        portalPausedRef.current = true;
       }),
       ctx.onResume(() => {
-        pausedRef.current = false;
+        portalPausedRef.current = false;
         lastStepRef.current = performance.now();
       }),
     ];
@@ -541,32 +572,48 @@ export function BlocksGame({ ctx }: { ctx: GameContext }) {
 
   /* ------------------------------------------------------------- the input */
 
+  /**
+   * Every action goes through here first.
+   *
+   * The cover the chrome draws blocks the BOARD, and the pad is in the footer
+   * below it, so without this guard a paused game is fully playable by its own
+   * buttons and by the keyboard — the piece just moves somewhere the player
+   * cannot see, and lands there. Gating the four callbacks rather than the
+   * three input surfaces means a fifth surface added later is covered by
+   * construction.
+   */
+  const accepting = useCallback(() => !pausedRef.current, []);
+
   const nudge = useCallback(
     (dc: number) => {
+      if (!accepting()) return;
       ctx.audio.unlock();
       const r = shift(gameRef.current, dc);
       if (r.moved) apply(r.state);
     },
-    [apply, ctx],
+    [accepting, apply, ctx],
   );
 
   const turn = useCallback(() => {
+    if (!accepting()) return;
     ctx.audio.unlock();
     const r = spin(gameRef.current);
     if (r.moved) {
       apply(r.state);
       ctx.audio.play("tap");
     }
-  }, [apply, ctx]);
+  }, [accepting, apply, ctx]);
 
   /** One row down, by hand. Resets the clock so it does not land a beat later. */
   const soften = useCallback(() => {
+    if (!accepting()) return;
     ctx.audio.unlock();
     lastStepRef.current = performance.now();
     gravity();
-  }, [ctx, gravity]);
+  }, [accepting, ctx, gravity]);
 
   const slam = useCallback(() => {
+    if (!accepting()) return;
     ctx.audio.unlock();
     if (gameRef.current.over) return;
     const r = hardDrop(gameRef.current);
@@ -574,7 +621,7 @@ export function BlocksGame({ ctx }: { ctx: GameContext }) {
     apply(r.state);
     haptic.tap();
     settle(r.state, r.cleared);
-  }, [apply, ctx, settle]);
+  }, [accepting, apply, ctx, settle]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -700,6 +747,11 @@ export function BlocksGame({ ctx }: { ctx: GameContext }) {
       level={level}
       onLevel={start}
       onRestart={restart}
+      // Absent once the well has stacked out: the piece is not falling any
+      // more, so there is nothing left to stop, and the sheet under the board
+      // already owns that screen.
+      paused={state.over ? undefined : paused}
+      onPaused={state.over ? undefined : togglePause}
       footer={
         // The pad. Row order is fixed LTR because these are DIRECTIONS on a
         // board that is itself pinned LTR - mirroring them in Hebrew would put

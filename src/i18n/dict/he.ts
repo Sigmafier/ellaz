@@ -23,6 +23,8 @@ export const he = {
   gameOver: "המשחק נגמר",
   loading: "טוען…",
   sound: "צליל",
+  pause: "הפסקה",
+  resume: "ממשיכים",
   language: "שפה",
   rotateHint: "סובבו את המכשיר",
   allGames: "כל המשחקים",

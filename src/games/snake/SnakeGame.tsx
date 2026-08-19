@@ -51,6 +51,7 @@ export function SnakeGame({ ctx }: { ctx: GameContext }) {
   // would be honest but useless; this is the half we actually call.
   const sceneRef = useRef<{
     setSpeed: (k: SpeedKey) => void;
+    setPaused: (p: boolean) => void;
     restartFromChrome: () => void;
     steer: (dir: Dir) => void;
   } | null>(null);
@@ -70,6 +71,7 @@ export function SnakeGame({ ctx }: { ctx: GameContext }) {
     level: 1,
     speed,
     phase: "ready",
+    paused: false,
   });
   const [best] = useState(() => ctx.score?.best() ?? 0);
 
@@ -179,6 +181,17 @@ export function SnakeGame({ ctx }: { ctx: GameContext }) {
         sceneRef.current?.setSpeed(k);
       }}
       onRestart={() => sceneRef.current?.restartFromChrome()}
+      // Only while it is actually moving. On the ready screen and the game-over
+      // screen the snake is already stopped, and a cover over either hides the
+      // one line telling the player how to leave it.
+      //
+      // Both read from the SCENE's published status rather than from a state
+      // beside it, so a restart taken from behind the cover lifts it: the scene
+      // clears its own flag and the next publish says so.
+      paused={status.phase === "playing" ? status.paused : undefined}
+      onPaused={
+        status.phase === "playing" ? (next) => sceneRef.current?.setPaused(next) : undefined
+      }
       footer={
         <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
           <div

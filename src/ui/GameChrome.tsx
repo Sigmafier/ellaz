@@ -75,6 +75,8 @@ export function GameChrome<T extends string>({
   level,
   onLevel,
   onRestart,
+  paused,
+  onPaused,
   footer,
   children,
 }: {
@@ -86,6 +88,22 @@ export function GameChrome<T extends string>({
   /** Called with the NEXT level. The toggle owns the cycling, not the game. */
   onLevel?: (next: T) => void;
   onRestart: () => void;
+  /**
+   * Opt into the pause control. Only a game that KEEPS RUNNING while nobody is
+   * playing it needs one — a falling piece, a moving snake, a countdown. A
+   * turn-based game already pauses itself the moment a hand leaves the screen,
+   * and a button there is a control that does nothing.
+   *
+   * Pass BOTH or neither. `paused` is the game's own state, not this
+   * component's: the game is what stops, so the game owns the flag and this
+   * only draws it. Omitting `onPaused` while passing `paused` would render a
+   * button that cannot be pressed, so the two are one optional pair.
+   *
+   * Hide it (pass `undefined`) once the run is over. A pause button on a dead
+   * board is offering to stop something that already stopped.
+   */
+  paused?: boolean;
+  onPaused?: (next: boolean) => void;
   /** The game's own secondary area, under the board. */
   footer?: ReactNode;
   /** The board. */
@@ -172,6 +190,10 @@ export function GameChrome<T extends string>({
           {navBtn("home", t("home"), () => ctx.requestExit())}
           {navBtn("redo", t("restart"), onRestart)}
           {navBtn(muted ? "muted" : "sound", t("sound"), () => ctx.audio.toggleMute())}
+          {onPaused &&
+            navBtn(paused ? "play" : "pause", paused ? t("resume") : t("pause"), () =>
+              onPaused(!paused),
+            )}
           {levels && current && onLevel && (
             <button
               type="button"
@@ -179,8 +201,18 @@ export function GameChrome<T extends string>({
               onClick={() => onLevel(levels[(i + 1) % levels.length].id)}
               style={{
                 height: TAP,
-                flex: "1 1 0",
-                minWidth: 0,
+                flex: "1 1 auto",
+                // A FLOOR, not zero, and it is what makes the row's `flexWrap`
+                // do anything. At `minWidth: 0` a flex item shrinks instead of
+                // wrapping, so a fourth nav button leaves this toggle 94px on a
+                // 390px phone and "Classic" is clipped INSIDE the card - no
+                // element wider than its frame, no overflow anywhere, and the
+                // only symptom a missing glyph. 132 is what the widest shipped
+                // label plus its dots actually needs, so past that the toggle
+                // takes its own row rather than losing letters. See
+                // .claude/rules/a-row-that-grows-with-the-catalog-must-wrap.md,
+                // which is the same defect one component over.
+                minWidth: 132,
                 border: "none",
                 borderRadius: "var(--radius-2)",
                 background: "var(--surface)",
@@ -283,6 +315,11 @@ export function GameChrome<T extends string>({
         style={{
           flex: 1,
           minHeight: 0,
+          // The anchor for the pause cover below. Harmless when nothing is
+          // paused, and the cover has to live INSIDE this box rather than over
+          // the whole panel: the header must stay reachable, because the button
+          // that ends the pause is in it.
+          position: "relative",
           display: "flex",
           // COLUMN, not row. Most games pass one board, but the kids games pass
           // a <Prompt> above it, and a row would sit the question BESIDE the
@@ -303,6 +340,63 @@ export function GameChrome<T extends string>({
         }}
       >
         {children}
+
+        {/* The cover. It HIDES the board rather than dimming it, and that is
+            the decision: a see-through pause is a way to study a falling stack
+            for as long as you like, which turns the one control meant for
+            putting the tablet down into the cheapest strategy in the game.
+            It also swallows every pointer event aimed at the board, so a
+            paused game cannot be played through its own cover.
+
+            One tap anywhere on it resumes. The whole surface is the target
+            because that is what a four-year-old aims at, and the button inside
+            is what says so - it is drawn, not wired, and the click it would
+            handle is caught by this parent either way. */}
+        {paused && onPaused && (
+          <button
+            type="button"
+            aria-label={t("resume")}
+            onClick={() => onPaused(false)}
+            style={{
+              position: "absolute",
+              inset: 0,
+              border: "none",
+              // Opaque in BOTH themes, and explicitly coloured rather than
+              // inheriting: `--text` is near-black on the light theme, so an
+              // inherited colour paints this heading black on near-black - the
+              // exact thing blocks' game-over sheet has a comment about.
+              background: "var(--bg)",
+              color: "var(--text)",
+              fontFamily: "inherit",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 14,
+              cursor: "pointer",
+            }}
+          >
+            <span
+              aria-hidden="true"
+              style={{
+                width: 96,
+                height: 96,
+                borderRadius: "50%",
+                background: "var(--surface)",
+                boxShadow: "var(--shadow-1)",
+                color: "var(--brand)",
+                display: "grid",
+                placeItems: "center",
+                fontSize: 46,
+              }}
+            >
+              <Icon name="play" />
+            </span>
+            <span style={{ fontSize: 20, fontWeight: 800, fontFamily: "Fredoka, inherit" }}>
+              {t("resume")}
+            </span>
+          </button>
+        )}
       </div>
 
       {footer && (

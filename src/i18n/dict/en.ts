@@ -24,6 +24,8 @@ export const en: Record<StringKey, string> = {
   gameOver: "Game over",
   loading: "Loading…",
   sound: "Sound",
+  pause: "Pause",
+  resume: "Resume",
   language: "Language",
   rotateHint: "Rotate your device",
   allGames: "All games",

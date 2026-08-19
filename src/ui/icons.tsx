@@ -35,7 +35,9 @@ export type IconName =
   | "heart"
   | "coin"
   | "back"
-  | "expand";
+  | "expand"
+  | "pause"
+  | "play";
 
 const PATHS: Record<IconName, string> = {
   home:
@@ -110,6 +112,18 @@ const PATHS: Record<IconName, string> = {
   // is measured from the previous corner's end point and throws the shape off
   // the grid entirely.
   expand: "M4.6 9.4V4.6h4.8M19.4 9.4V4.6h-4.8M4.6 14.6v4.8h4.8M19.4 14.6v4.8h-4.8",
+
+  // The pause pair. Two STROKED bars rather than two filled rectangles, so the
+  // glyph is built the same way `draw` is and sits at the same weight as every
+  // other icon in the row it appears in - a filled pair reads noticeably heavier
+  // beside a hollow home and a hollow speaker, which is the exact mixture this
+  // set was drawn to end.
+  pause: "M9.4 5.6v12.8M14.6 5.6v12.8",
+  // The resume triangle, closed with `z` so the round joins meet at all three
+  // corners. Left edge at 8.6 rather than 8: a triangle centred on its own
+  // bounding box reads as sitting left of centre, because its mass is on that
+  // side. Every other glyph here is centred by eye for the same reason.
+  play: "M8.6 5.4 18.2 12l-9.6 6.6z",
 };
 
 const SVG_NS = "http://www.w3.org/2000/svg";

@@ -25,6 +25,8 @@ export const id: Record<StringKey, string> = {
   gameOver: "Permainan selesai",
   loading: "Memuat…",
   sound: "Suara",
+  pause: "Jeda",
+  resume: "Lanjutkan",
   language: "Bahasa",
   rotateHint: "Putar perangkatmu",
   allGames: "Semua permainan",

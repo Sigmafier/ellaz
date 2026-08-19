@@ -271,6 +271,57 @@ paragraph carried one for about three hours and it went stale twice in that
 window, once because another lane shipped two games and once because another
 raised the ceiling. Run `npm run assert:payload` on the tree in front of you.
 
+**Pausing is a chrome control and only TWO games have one** — blocks and snake,
+since 2026-08-19. `GameChrome` takes an optional `paused` / `onPaused` PAIR: it
+draws a fourth nav button and, more importantly, an **opaque cover over the play
+surface**. The cover is the feature. A see-through pause renders perfectly and
+is simply the cheapest strategy in a falling-block game — unlimited time to read
+a stack — so it hides the board rather than dimming it.
+
+**The game owns the flag, never the chrome**, because the game is what stops.
+Snake publishes `paused` out of the scene alongside its score, exactly as it
+already published its phase; a `useState` beside it would be two owners of one
+fact, disagreeing the first time a restart cleared the scene's copy and left the
+chrome holding a lid over a snake that had already set off.
+
+Three traps, all of which draw a perfect cover over a broken game, and all three
+pinned in `pause-stops-the-game.test.ts` (13 mutations planted, 13 killed):
+
+- **The portal's pause is a SECOND flag, not the same one.** `ctx.onResume`
+  fires when a backgrounded tab returns. Sharing one ref means pausing on
+  purpose, switching apps, and coming back starts the game under a cover nobody
+  dismissed — which is the precise sequence a "put the tablet down" control
+  exists to serve. Blocks holds `pausedRef` and `portalPausedRef` and stops on
+  either.
+- **Every steering control is in the FOOTER, outside the cover.** The D-pad and
+  blocks' arrow row stay tappable, and so does the keyboard, so a paused game is
+  fully playable behind its own lid unless the game refuses input itself. Blocks
+  gates one `accepting()` predicate that all four actions call; snake guards its
+  four input surfaces in the scene.
+- **Resuming must reset the step clock.** The gravity tick asks how long since
+  the last step, and after a two-minute pause the honest answer is two minutes —
+  so the piece drops on the first frame back, which is the fall the pause
+  prevented. Snake needs no equivalent: `update` returns before touching its
+  accumulator, so nothing is banked while it is stopped.
+
+**The level toggle grew a `minWidth` floor for this**, and it is a fix rather
+than a tweak. A fourth 56px button leaves the toggle 94 px on a 390 px phone, and
+at `flex: "1 1 0"` a flex item SHRINKS rather than wraps — so "Classic" is
+clipped inside its own card with no element wider than its frame and no overflow
+anywhere to measure. Both halves are needed: `minWidth: 132` and a non-zero
+basis. Same defect as
+[`a-row-that-grows-with-the-catalog-must-wrap.md`](.claude/rules/a-row-that-grows-with-the-catalog-must-wrap.md),
+one component over.
+
+**Do not add one to a turn-based game.** A game that only moves when a hand
+moves already pauses itself, and the button would be a control that does
+nothing. The test above pins that exclusion by name for memory, sudoku,
+reaction, tictactoe and coloring; `reaction` is the sharp case, since pausing a
+reflex test pauses the thing being measured. The honest remaining candidate is
+**bees**, whose round is a real countdown — and `balloons`, `bubbles` and `frog`
+are NOT, despite looking adjacent: their spawners' own comments say an expired
+prop costs nothing, so walking away from one costs a player nothing either.
+
 Two games that look adjacent are deliberately NOT on it. **blocks** has `◀ ⟳ ▶ ⤓` —
 an action row, not a cross, and its `▼` was removed on purpose (the comment says
 the single-step soft drop was fiddly on a phone). **2048** has no on-screen buttons
@@ -1721,7 +1772,22 @@ is the failure `assert-first-visit.mjs` exists to catch and has now caught three
 times. It passed with its negative control rejecting 9 of 9 planted entries, so
 that green is a real one rather than a vacuous one.
 
-**Latest reading: 90,027 B gz of 90,500, 473 spare** (2026-08-18, 33 games, 4
+**Latest reading: 90,082 B gz of 90,500, 418 spare** (2026-08-19, 33 games, 4
+page locales, after the pause control landed. It cost **66 B gz**, and that
+figure is two arms from one tree rather than a subtraction: the same tree
+without it measured **90,016**, which is itself 11 B off the 90,027 the reading
+below records — a difference of nothing, on a branch whose only other content is
+this work, and exactly the run-to-run drift that makes subtracting from a written
+number the wrong method. Only two of the six changed places are shell-side: the
+`pause`/`play` glyphs in `icons.tsx`, and two strings in each of the two STATIC
+dictionaries. `GameChrome` is pinned to `page`, both games are lazy `game-*`
+chunks, and the other nine dictionaries are `locale-*`, so none of them reaches
+a first visit. The slope gate reads **120.5 B gz per game against its 140
+budget**, unmoved — this adds no per-game term.
+
+Supersedes the reading below.)
+
+(90,027 B gz of 90,500, 473 spare — 2026-08-18, 33 games, 4
 page locales, after `match3` and `jigsaw` landed together. **The ceiling moved, by 500 B
 where both previous raises were 4 KB** (82,000 to 86,000 to 90,000). The two games
 measured 90,027 against the old 90,000, 27 B over, and there was nothing in

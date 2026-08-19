@@ -30,6 +30,15 @@ export type SnakeStatus = {
   level: number;
   speed: SpeedKey;
   phase: Phase;
+  /**
+   * Published rather than mirrored in React, for the reason the whole type
+   * exists: the scene is what stops moving, so the scene is the one that knows.
+   * A `useState` in the chrome beside a flag in here is two owners of one fact,
+   * and they disagree the first time anything but the button changes it — a
+   * restart, say, which clears the pause down here and would leave a chrome
+   * still drawing its cover over a snake that had already set off.
+   */
+  paused: boolean;
 };
 
 // Phaser scene: draws the pure SnakeState and feeds it input. The snake does not
@@ -39,6 +48,14 @@ export class SnakeScene extends Phaser.Scene {
   private ctx!: GameContext;
   private state!: SnakeState;
   private phase: Phase = "ready";
+  /**
+   * NOT a fourth `Phase`. A phase is where the run is — waiting to start,
+   * running, dead — and a pause is a lid over whichever of those is current.
+   * As a phase it would have to remember what it interrupted in order to give
+   * it back, and every `phase !== "playing"` test in this file (there are five)
+   * would have to learn about it separately.
+   */
+  private paused = false;
   private cell = 20;
   private acc = 0;
   // Base speed the player selected; persists across restarts within the session.
@@ -82,7 +99,27 @@ export class SnakeScene extends Phaser.Scene {
       level: this.level(),
       speed: this.selectedSpeed,
       phase: this.phase,
+      paused: this.paused,
     });
+  }
+
+  /**
+   * The chrome's pause button.
+   *
+   * `acc` is deliberately left alone. `update` returns before touching it while
+   * paused, so no delta is banked in the meantime and the snake resumes with
+   * whatever fraction of a step it had — it does not lurch forward by however
+   * long the tablet was face-down, which is what a running accumulator would
+   * have made it do.
+   */
+  setPaused(next: boolean) {
+    // Only a moving snake can be stopped. On the ready screen or the game-over
+    // screen there is nothing to hold, and a lid over either hides the words
+    // telling the player how to leave it.
+    if (this.phase !== "playing") return;
+    if (this.paused === next) return;
+    this.paused = next;
+    this.draw();
   }
 
   /**
@@ -108,6 +145,11 @@ export class SnakeScene extends Phaser.Scene {
    * Kept here (not in the chrome) so the canvas stays the single owner of input.
    */
   steer(dir: Dir) {
+    // Behind the cover, and that is the whole point of checking here rather
+    // than in the chrome: the D-pad is in the FOOTER, outside the cover the
+    // chrome draws, so it stays tappable. Without this a paused snake can be
+    // steered into a wall the player cannot see.
+    if (this.paused) return;
     this.ctx.audio.unlock();
     this.ctx.speech.unlock();
     if (this.phase === "over") {
@@ -146,6 +188,7 @@ export class SnakeScene extends Phaser.Scene {
         w: "up", s: "down", a: "left", d: "right",
       };
       const dir = map[e.key];
+      if (this.paused) return;
       this.ctx.audio.unlock();
       this.ctx.speech.unlock();
       if (this.phase === "over") {
@@ -163,6 +206,11 @@ export class SnakeScene extends Phaser.Scene {
     // Swipe via pointer; a plain tap starts the game (or restarts after game over).
     let sx = 0, sy = 0;
     this.input.on("pointerdown", (p: Phaser.Input.Pointer) => {
+      // The canvas IS covered while paused, so these two should never fire.
+      // They are guarded anyway because Phaser's input runs off the canvas
+      // element rather than off the DOM node the cover sits over, and a
+      // pointer the cover lets through would restart a finished run.
+      if (this.paused) return;
       sx = p.x;
       sy = p.y;
       this.ctx.audio.unlock();
@@ -170,6 +218,7 @@ export class SnakeScene extends Phaser.Scene {
       if (this.phase === "over") this.restart();
     });
     this.input.on("pointerup", (p: Phaser.Input.Pointer) => {
+      if (this.paused) return;
       const dx = p.x - sx;
       const dy = p.y - sy;
       if (Math.abs(dx) < 18 && Math.abs(dy) < 18) {
@@ -242,6 +291,10 @@ export class SnakeScene extends Phaser.Scene {
   private restart() {
     this.state = newGame(COLS, ROWS);
     this.phase = "ready";
+    // A new run is never a paused one. Restarting from behind the cover
+    // otherwise leaves the chrome holding a lid over a ready screen whose
+    // "tap to start" nobody can read or reach.
+    this.paused = false;
     this.acc = 0;
     // NB: baseStepMs / selectedSpeed intentionally kept — speed persists across restarts.
     this.ctx.analytics.levelStart("classic");
@@ -249,7 +302,7 @@ export class SnakeScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number) {
-    if (this.phase !== "playing") return;
+    if (this.phase !== "playing" || this.paused) return;
     this.acc += delta;
     const stepMs = this.effectiveStep();
     while (this.acc >= stepMs) {

@@ -23,6 +23,8 @@ export const tr: Record<StringKey, string> = {
   gameOver: "Oyun bitti",
   loading: "Yükleniyor…",
   sound: "Ses",
+  pause: "Duraklat",
+  resume: "Devam et",
   language: "Dil",
   rotateHint: "Cihazı çevir",
   allGames: "Tüm oyunlar",
