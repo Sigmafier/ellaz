@@ -551,6 +551,23 @@ separate three.js / Babylon / PlayCanvas bake-off.
   try/catch (incognito-safe). Unlock audio on the first user gesture.
 - **Input:** Pointer Events only (`pointerdown/move/up` + `setPointerCapture`);
   `touch-action: none` on play surfaces; `keydown` state map for desktop.
+- **Nothing a game draws is selectable**, and a game needs no line of its own for
+  that. `.ellaz-game-stage` on `GameHost`'s mount — the one element every game
+  lives inside — carries `user-select: none` **plus the `-webkit-` prefix** (iOS
+  Safari before 17 reads only the prefixed one) and `-webkit-touch-callout: none`
+  (long press is a game gesture here; minesweeper flags a mine with it). It sat
+  on `.ellaz-play-surface` before, which is only the BOARD — measured on the
+  artifact at 390px, a drag across sudoku's header selected `"Level\nHard\n5/6"`
+  while the same drag across the board selected nothing, because the level
+  toggle, the stat row and the footer are SIBLINGS of the play surface.
+  **CSS is only half of it**: a highlight made on the ~900 words of prose under
+  the frame survives every gesture and stays drawn across the board, since a
+  `user-select: none` region cannot take a selection off one that has it.
+  `portal/selectionDismiss.ts` clears that on the first pointer down on the
+  board, and is pinned to the `page` chunk beside `GameHost` rather than left to
+  the `src/portal/` catch-all that would ship it to every first visit. Both
+  defects, both controls and the before/after are
+  `scripts/repro/repro-board-text-selection.mjs`.
 - **Responsive:** size boards with `min(<vw>, <vh>, <cap>px)` so they fit portrait,
   landscape, and tablet. `GameHost`'s mount is a scroll container with `minHeight:0`
   (flexbox scroll trap) — tall games scroll, never clip.
@@ -1772,7 +1789,29 @@ is the failure `assert-first-visit.mjs` exists to catch and has now caught three
 times. It passed with its negative control rejecting 9 of 9 planted entries, so
 that green is a real one rather than a vacuous one.
 
-**Latest reading: 90,096 B gz of 90,500, 404 spare** (2026-08-19, 33 games, 4
+**Latest reading: 90,108 B gz of 90,500, 392 spare** (2026-08-19, 33 games, 4
+page locales, after the board text-selection fix, on the tree that
+merges it with the pause control and match3's swipe. Its own share is
+**12 B gz** — two arms off THIS tree, which reads 90,096 with the change
+backed out. All of it is the three declarations on `.ellaz-game-stage` in the
+shell stylesheet; the comment above them costs nothing, because Vite strips CSS
+comments in production, and the JS half is pinned to the `page` chunk.
+
+**The identical change measured 22 B, then 9 B, then 12 B, on three trees in one
+afternoon** (90,016 → 90,038, then 90,024 → 90,033, then 90,096 → 90,108, as
+match3's swipe and the pause control landed between the runs). Nothing about
+the change moved. Gzip compresses three declarations differently against a
+different neighbourhood, so
+a delta this small is a property of the change AND the tree — and the spread
+across those three readings is larger than a whole game's slope. That is the
+third lane in a row to write this down here, which is the finding: at 90,500
+with a few hundred bytes of room, **the only honest per-change figure is one
+measured on the tree in front of you, both arms, today.** Never subtract one of
+these numbers from another. See
+[`a-threshold-tuned-against-todays-tree-goes-stale.md`](.claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md).
+Supersedes the reading below.)
+
+(90,096 B gz of 90,500, 404 spare — 2026-08-19, 33 games, 4
 page locales, on the tree that merges the pause control with match3's swipe
 work. **Read on the MERGED tree, and it is 14 B off the one measured before the
 merge** — the pause branch alone read 90,082 / 418, match3 landed on `main` in
@@ -1797,6 +1836,7 @@ budget**, unmoved — this adds no per-game term.
 
 Supersedes the reading below.)
 
+
 (90,027 B gz of 90,500, 473 spare — 2026-08-18, 33 games, 4
 page locales, after `match3` and `jigsaw` landed together. **The ceiling moved, by 500 B
 where both previous raises were 4 KB** (82,000 to 86,000 to 90,000). The two games
@@ -1810,7 +1850,7 @@ chunk and both card scenes are in `gameArtRest.ts`. The slope gate reads
 and it is only the absolute budget that moved. 90,500 rather than a roomier
 number on purpose: it buys about three games, and step 3 of
 `docs/scaling-the-first-visit.md` is what turns 122 into 40. A comfortable
-ceiling would remove the only pressure that gets step 3 done.
+ceiling would remove the only pressure that gets step 3 done.)
 
 Supersedes the reading below.)
 

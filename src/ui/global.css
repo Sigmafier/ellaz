@@ -149,7 +149,42 @@ button {
 /* The active play surface disables browser gestures (scroll/pinch) during play. */
 .ellaz-play-surface {
   touch-action: none;
+}
+
+/* NOTHING A GAME DRAWS IS PROSE, SO NOTHING A GAME DRAWS IS SELECTABLE.
+
+   `.ellaz-game-stage` is GameHost's mount - the one element every game lives
+   inside, DOM or Phaser, chrome or ownsChrome - so one rule covers all of them
+   and a new game inherits it without knowing this file exists.
+
+   It used to sit on `.ellaz-play-surface`, which is only the BOARD. The stat
+   row, the level toggle and the footer (sudoku's number pad, sequence's choice
+   row) are SIBLINGS of that box, so none of them was covered - measured on the
+   built artifact at 390px, a drag across sudoku's header selected
+   `"Level\nHard\n5/6"` while the identical drag across the board selected
+   nothing. That header is 30% of the panel and it sits directly above where a
+   player's finger already is.
+
+   Three declarations, and the two prefixed ones are not decoration:
+
+   - `-webkit-user-select` is the only one iOS Safari before 17 reads, and those
+     tablets are a large share of who plays here. A desktop Chromium probe
+     cannot see the difference this makes, which is exactly why it is written
+     down rather than measured away.
+   - `-webkit-touch-callout` stops the long-press callout and magnifier. Long
+     press IS a game gesture here (minesweeper flags a mine with it), so without
+     it the flag arrives underneath a "Copy / Look Up" bubble.
+
+   A selection made OUTSIDE the stage still paints over it - the ~900 words of
+   prose under the frame on a game page, the header, the home screen a child
+   came from - and CSS cannot reach that. Measured in the same run: a highlight
+   in the page prose survived a pointer down on the board and stayed drawn
+   across it. `selectionDismiss.ts` clears those, on the first touch of the
+   board. `scripts/repro/repro-board-text-selection.mjs` is both measurements. */
+.ellaz-game-stage {
+  -webkit-user-select: none;
   user-select: none;
+  -webkit-touch-callout: none;
 }
 
 /* Scoped for the ordering reason above: unscoped, `margin: 0` won over the

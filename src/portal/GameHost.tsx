@@ -4,6 +4,7 @@ import type { AppLocale } from "@i18n/locales";
 import { createHostControls, audioPort, wallet } from "@sdk/index";
 import { Button, IconButton } from "@ui/components";
 import { findEntry } from "./catalog";
+import { attachSelectionDismissal, dismissSelection } from "./selectionDismiss";
 import { WalletChip } from "./WalletChip";
 
 // Loads a game module, builds its GameContext, mounts it into a neutral element,
@@ -62,6 +63,15 @@ export function GameHost({
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("resize", onResize);
 
+    // A highlight the player left somewhere else - the prose under the frame on
+    // a game page, the header, the home screen they came from - paints straight
+    // across the board and survives every gesture the game makes, because the
+    // board is `user-select: none` and so cannot take the selection off it.
+    // Cleared once as the game opens, then on every touch of the board. See
+    // `selectionDismiss.ts`.
+    dismissSelection(window.getSelection());
+    const detachSelectionDismissal = attachSelectionDismissal(el, window);
+
     entry
       .load()
       .then(async ({ default: gameModule }) => {
@@ -91,6 +101,7 @@ export function GameHost({
     return () => {
       cancelled = true;
       offMute();
+      detachSelectionDismissal();
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("resize", onResize);
       host.context.lifecycle.gameplayStop();
@@ -149,7 +160,13 @@ export function GameHost({
 
       <div
         ref={mountRef}
-        className="ellaz-scroll"
+        // `ellaz-game-stage` is what makes a game unselectable, and it belongs
+        // HERE rather than on each board: this is the one element every game
+        // mounts inside, so the level toggle, the stat row and the footer are
+        // covered too - and those, not the board, were the ones still selecting
+        // (measured: a drag across sudoku's header took `"Level\nHard\n5/6"`).
+        // `user-select` inherits, so the whole subtree comes with it.
+        className="ellaz-scroll ellaz-game-stage"
         style={{
           flex: 1,
           minHeight: 0, // flex child must allow shrink for overflow-y to scroll

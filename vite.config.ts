@@ -319,6 +319,13 @@ export default defineConfig({
 
           if (/\/src\/portal\/(PageApp|GameHost|Boards)\.tsx$/.test(path)) return "page";
           if (/\/src\/portal\/world\/(World|Backup)\.tsx$/.test(path)) return "page";
+          // `selectionDismiss.ts` clears a stray highlight off a game board and
+          // is imported by `GameHost` alone. It is named HERE rather than left
+          // to the catch-all below, which claims everything under src/portal/
+          // for the shell - so without this line a child downloads it before
+          // choosing a game, for a screen they may never open. Same reasoning as
+          // `Boards.tsx` above, and the shell has 473 B of headroom.
+          if (/\/src\/portal\/selectionDismiss\.ts$/.test(path)) return "page";
 
           // EVERY OTHER portal module goes to the shell side, explicitly.
           //
