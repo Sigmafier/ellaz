@@ -1221,6 +1221,125 @@ drives the mouse, so a cell is a picture and the rule that governs a target does
 govern it. Prose in all four languages carries the fourth board, its numbers, and a
 screen reader being told about a hundred squares rather than forty-nine.
 
+## The outreach drafts were the only unmeasured surface (2026-08-18)
+
+`docs/outreach/` holds eight drafts — Show HN, Product Hunt, dev.to, three Reddit
+posts, itch.io, Newgrounds, a Hebrew press letter, two pull requests into other
+people's lists. They were written on 2026-08-11 and 2026-08-12 and every one of
+them had gone stale by the 18th: **57 wrong figures.**
+
+| Claim | Drafts said | The tree said |
+|---|---|---|
+| games | 23 | **33** |
+| games for young children | 16 | **24** |
+| emitted pages | 52 | **144** |
+| page locales | 2 | **4** |
+| first visit | 88,234 B gz | **90,027** |
+| ceiling / room left | 90,000 / 1,766 B | **90,500 / 473** |
+| sudoku · 2048 standalone | 224 KB · 204 KB | **226 KB · 207 KB** |
+| locale chunks | ~1.3 KB gz | **~1.5 KB gz** |
+
+**Two were not drift — they were wrong when written**, in the `provenance` column
+whose entire purpose is to make a claim checkable: a row naming
+`src/games/snake/SnakeGame.tsx`, which has never existed under that name, and an
+itch table saying sudoku has four difficulty tiers eight lines above a row
+correctly saying six. Both survived because nobody re-ran the check the column
+names.
+
+**One claim flipped from true to false rather than drifting.** "under 90 KB"
+appears nine times across three drafts. It was true at 88,234 B gz and is false at
+90,027 — by 27 bytes, in the most-repeated sentence in the folder. A numeric
+matcher cannot see that: the number in the sentence is the THRESHOLD, not the
+measurement, and it never changed. Only the world did. The copy now says
+*about 90 KB*, which is accurate and does not re-break on the next 200 bytes.
+
+### Why this folder and no other
+
+Every other number-bearing surface here is derived. The sitemap, `llms.txt` and
+the emitted home read the roster, so they cannot be wrong about how many games
+there are — measured on the same build, `llms.txt` listed 33 games in each of
+four languages without an edit. `src/content/` carries a `provenance` row per
+figure and `content.test.ts` checks the deriving script still exists.
+
+The outreach drafts have the provenance column and nothing that reads it. That
+would be a documentation problem anywhere else; here it is a publishing problem,
+because this is also the only folder whose contents are meant to LEAVE the
+repository. `launch.md` says it itself: a Show HN happens once.
+
+### The gate
+
+`scripts/assert-outreach.mjs` (`npm run assert:outreach`, plus `--fix` and
+`--control`). It derives the facts from the roster, `src/i18n/locales.ts`,
+`assert-payload.mjs` and the built artifact, then scans every draft.
+
+**Not in `build:check`, on purpose** — the same placement as `assert:standalone`,
+a gate for an artifact published by hand. Wiring it into the build would red every
+lane that adds a game until somebody edited eight markdown files, and a gate that
+reds on work it is not about is a gate people learn to skip. `--fix` makes the
+correction one command instead of eight files.
+
+Three things earn their place, and each was found by the gate failing rather than
+by reasoning:
+
+- **`minHits` is the positive control.** Each claim declares how many occurrences
+  the corpus is known to hold; fewer is reported as **BLIND**, never as clean. It
+  caught two of its own holes immediately — the first matcher could not see
+  `measured 88,234 on <date>` in three provenance rows, nor `one game out of 23`
+  in three more, and had reported the folder clean over both.
+- **Hebrew is in the population.** `press.md` carries a Hebrew press letter and
+  `hebrew.md` two Hebrew posts, all quoting the counts. An English-only matcher
+  reports the folder clean while the one document written for a journalist stays
+  wrong — the same shape as the `LOCALES` literal that ran zero Spanish pages
+  through the voice gate.
+- **`--fix` cannot tell a claim from a history.** `press.md` recounts that its own
+  payload figure moved and names both numbers; the auto-fix rewrote the history
+  into a sentence contradicting itself. Historical passages are now wrapped in
+  `<!-- outreach-facts:off -->`, and the count of exempted regions prints on every
+  run — an exemption that could be applied quietly is a way to make a gate pass by
+  deleting its job.
+
+Six controls: a fixed corpus is clean, a planted count is caught, a rephrased
+corpus reports BLIND, and the `under 90 KB` predicate answers **both ways** against
+a literal fixture — FALSE at 90,027 and clean at 89,000. That last pair is the one
+that matters; a control which only ever produces the failing reading cannot tell a
+working predicate from one wired to a constant.
+
+### What held, and the two targets re-measured
+
+An audit that only reports failures is not one. Unchanged on the same build:
+**Phaser 379,855 B gz** to the digit, exactly one importer (`SnakeScene.ts`),
+snake's 1.9 MB standalone, six sudoku levels, 11 interface languages, MIT with a
+real `LICENSE`, and the `awesome-pwa` patch still applying at the same two anchor
+lines (`Cybercar` 168, `Falling Nikochan` 169).
+
+`dev.md`'s method — rank candidate lists by **merge recency**, not by stars —
+survives a week: `awesome-pwa` merged a batch of 9 on 2026-08-10 and 11 on
+2026-08-01; `awesome-phaser` has not moved since 2025-04-14. Open the first, skip
+the second, as drafted. Two things did change: **PR #441, a Games and
+Entertainment addition, is still unmerged since 2026-07-14** across two batches
+that merged other sections, so the "merges within the day" caveat now has two data
+points rather than one; and a direct positioning collision landed in that section
+— `Play Park (harborplay.us)`, described as *"Free family games … No account, no
+ads"* — so our entry should lead on Hebrew, RTL and offline rather than on the
+same two negatives.
+
+### What this audit could NOT see
+
+**Egress to ellaz.fun is refused in the environment this ran in** (the proxy
+answers 403 to CONNECT), so `assert:crawlable` and `assert:live` did not run and
+**the live site was not observed**. Every figure above is the tree and a local
+build. In a repo whose sharpest lesson is that every gate reads `dist/` and none
+reads what a visitor receives, that is the limitation to hold on to.
+
+And there is **no inbound-link data here at all** — no Search Console, no index,
+nothing in the repo that records a link. This audits the claims we are about to
+make, not the links we have.
+
+Full record: [`docs/outreach/audit.md`](outreach/audit.md). Rule:
+[`a-hand-authored-number-that-leaves-the-repo.md`](../.claude/rules/a-hand-authored-number-that-leaves-the-repo.md).
+
+---
+
 ## Still open
 
 - **Wave C step 2b** — live two-way sync. Needs the profile to carry per-device
@@ -1261,3 +1380,13 @@ screen reader being told about a hundred squares rather than forty-nine.
 - **Bing Webmaster Tools is not claimed.** IndexNow submits fine without it, but the
   coverage reports need the site added at <https://www.bing.com/webmasters> — an
   operator action, not a code one.
+- **There is no backlink data anywhere in this project.** Nothing measures inbound
+  links, and the outreach audit of 2026-08-18 deliberately did not claim to. Any
+  verdict on whether the outreach worked needs Search Console or a third-party
+  index, and — per the 90-day rule this project already keeps — not before then.
+- **The GitHub repository description is stale and is public now.** It reads
+  "Free browser games for kids, in Hebrew and English"; the site has four written
+  languages, eleven interface languages, and 9 of 33 games are `ageBand: "all"`.
+  It is the About box on the page every outreach link points at, and no gate here
+  can reach it. Homepage, topics and licence on that repo are correct. An operator
+  action, not a code one.

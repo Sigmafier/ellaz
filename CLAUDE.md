@@ -604,14 +604,18 @@ until the set is complete. Discovered 2026-08-13, building two games at once.
 
 ## Every game has a real web address
 
-The site used to be one document. It is now 85: `dist/index.html` (still the app,
-unchanged) plus **144 emitted pages** built by `src/build/**` inside a Vite plugin,
-so `npm run build` cannot skip them and neither deploy workflow can forget.
+The site used to be one document. It is now **145**: `dist/index.html` (still the
+app, head-enhanced in place and `emitted: false` in the manifest) plus the **144
+written by `src/build/**`** inside a Vite plugin — 143 pages and `404.html` — so
+`npm run build` cannot skip them and neither deploy workflow can forget. The
+sitemap carries 144 URLs, which is every route except the `noindex` 404. Read
+those off `dist/pages.json` rather than off this line; it said 85 for days beside
+a 144 in the same sentence.
 
 | URL | What it is |
 |---|---|
 | `/` | the application, and now also a document. **ENGLISH since 2026-08-14.** The emitter adds head tags AND the English home body; it never overwrites the file |
-| `/games/<id>/` · `/he/…` · `/es/…` · `/fr/…` | every game x every page locale, ~900 words each (30 games x 4 languages on 2026-08-17 — read both counts off the roster and `PAGE_LOCALES`, not off this line) |
+| `/games/<id>/` · `/he/…` · `/es/…` · `/fr/…` | every game x every page locale, ~900 words each (33 games x 4 languages on 2026-08-18 — read both counts off the roster and `PAGE_LOCALES`, not off this line) |
 | `/he/` · `/es/` · `/fr/` | the home screen in that language — **the app**, emitted as a shell (see below) |
 | `/world/` · `/he/world/` · `/es/world/` · `/fr/world/` | the room |
 | `/boards/` · `/he/boards/` · `/es/boards/` · `/fr/boards/` | the leaderboards (two screens - see below) |
@@ -1038,6 +1042,59 @@ a git repository**. Outside one it fails with a message about *webfonts*, becaus
 commit-stamp step shells out to git and a later step reports the CSS that was never
 written. Both deploy workflows always have git, so this is a trap for a source unpack
 rather than a live defect.
+
+## The numbers we tell strangers
+
+`docs/outreach/` holds eight drafts meant to leave this repository — Show HN,
+Product Hunt, dev.to, three Reddit posts, itch.io, Newgrounds, a Hebrew press
+letter, two pull requests into other people's lists. **Nothing is published.**
+
+It is also **the only place here where a number about this site is written by
+hand.** The sitemap, `llms.txt` and the emitted home read the roster, so they
+cannot be wrong about how many games there are; `src/content/` carries a
+`provenance` row per figure and `content.test.ts` checks the deriving script still
+exists. The drafts have the provenance column and nothing that reads it.
+
+Measured 2026-08-18, six days after they were written: **57 wrong figures.** 23
+games against a roster of 33, 52 pages against 144, two page languages against
+four, 88,234 B gz against 90,027, a ceiling of 90,000 against 90,500. Two were
+wrong when written rather than stale — a provenance row naming
+`src/games/snake/SnakeGame.tsx`, which has never existed, and a table saying
+sudoku has four difficulty tiers eight lines above a row correctly saying six.
+
+**One claim flipped rather than drifted, and no numeric matcher can see that
+class.** "under 90 KB" appears nine times; it was true at 88,234 and is false at
+90,027, by 27 bytes. The number in the sentence is the THRESHOLD, not the
+measurement, and it never changed — only the world did. It is carried as a
+PREDICATE in the gate, and the copy now says *about 90 KB*.
+
+**`npm run assert:outreach`** derives the facts and scans every draft; `--fix`
+rewrites the numeric drift in one command and `--control` runs six controls. It is
+**not in `build:check`, on purpose** — the same placement as `assert:standalone`,
+a gate for an artifact published by hand. Wiring it into the build would red every
+lane that adds a game until somebody edited eight markdown files.
+
+Three things in it earn their place, each found by the gate failing rather than by
+reasoning: **`minHits` per claim** is the positive control, so a matcher finding
+fewer occurrences than the corpus holds reports **BLIND** rather than clean (it
+caught two of its own holes immediately — `measured 88,234 on <date>` in three
+provenance rows and `one game out of 23` in three more); **Hebrew is in the
+population**, because `press.md` carries a Hebrew press letter quoting the counts
+and an English-only matcher would report the folder clean; and **`--fix` cannot
+tell a claim from a history** — it rewrote `press.md`'s account of its own figure
+moving into a sentence contradicting itself, so historical passages are wrapped in
+`<!-- outreach-facts:off -->` and the count of exempted regions prints every run.
+
+**Two things no gate here can reach.** There is **no inbound-link data in this
+project at all** — no Search Console, no index — so nothing here says whether any
+outreach ever produced a link. And the **GitHub repository description** still
+reads "in Hebrew and English" beside every link the outreach points at; homepage,
+topics and licence on that repo are correct. Enumerate the published SURFACES
+before enumerating the files.
+
+Full audit, including what held and both PR targets re-measured:
+[`docs/outreach/audit.md`](docs/outreach/audit.md). Rule:
+[`.claude/rules/a-hand-authored-number-that-leaves-the-repo.md`](.claude/rules/a-hand-authored-number-that-leaves-the-repo.md).
 
 ## THREE locale sets, and the difference between them is the whole point
 
