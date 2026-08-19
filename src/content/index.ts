@@ -25,10 +25,13 @@ import { sort } from "./games/sort";
 import { merge } from "./games/merge";
 import { pet } from "./games/pet";
 import { fit } from "./games/fit";
+import { match3 } from "./games/match3";
+import { jigsaw } from "./games/jigsaw";
 import { music } from "./games/music";
 import { maze } from "./games/maze";
 import { letters } from "./games/letters";
 import { spell } from "./games/spell";
+import { bubbleshooter } from "./games/bubbleshooter";
 
 export type { GameContent, GameCopy, FaqItem, Titled, Provenance, Locale, PageLocale } from "./types";
 
@@ -74,10 +77,13 @@ export const CONTENT: Record<string, GameContent> = {
   [merge.id]: merge,
   [pet.id]: pet,
   [fit.id]: fit,
+  [match3.id]: match3,
+  [jigsaw.id]: jigsaw,
   [music.id]: music,
   [maze.id]: maze,
   [letters.id]: letters,
   [spell.id]: spell,
+  [bubbleshooter.id]: bubbleshooter,
 };
 
 /** The ids that have prose today. */

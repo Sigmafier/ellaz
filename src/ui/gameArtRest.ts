@@ -288,4 +288,84 @@ export const REST: Record<string, Scene> = {
     <path d="M175 109v12" stroke="${I}" stroke-width="4" stroke-linecap="round"/>
     <path d="M175 92v-8M169 88l6-6 6 6" stroke="${I}" stroke-width="3.5"
           stroke-linecap="round" stroke-linejoin="round" fill="none"/>` },
+
+  /* The whole game in one glance: a packed field with one gap in it, and a
+     dashed shot leaving the launcher, bouncing off the right wall and arriving
+     exactly at that gap. The BOUNCE is the point - it is what separates this
+     card from every other circle-on-a-grid game in the catalogue, and it is the
+     one thing a player has to learn to be good at.
+
+     The bubbles carry their MARKS here as well as on the board, because the
+     card is where somebody with red-green colour blindness first decides
+     whether this game is for them. Geometry: the reflection is real - unfold
+     the target across the wall at x=186 and the two segments are one straight
+     line, so the picture is not merely suggestive of a bounce. */
+  bubbleshooter: { a: "#2BA8F0", b: "#7FD0F7", d: "arc", s: `
+    <g stroke="${I}" stroke-width="3">
+      <circle cx="22" cy="32" r="13" fill="${PAL.raspberry}"/>
+      <circle cx="50" cy="32" r="13" fill="${PAL.lagoon}"/>
+      <circle cx="78" cy="32" r="13" fill="${PAL.lime}"/>
+      <circle cx="106" cy="32" r="13" fill="${PAL.sunflower}"/>
+      <circle cx="134" cy="32" r="13" fill="${PAL.lagoon}"/>
+      <circle cx="162" cy="32" r="13" fill="${PAL.raspberry}"/>
+      <circle cx="36" cy="56" r="13" fill="${PAL.lime}"/>
+      <circle cx="64" cy="56" r="13" fill="${PAL.raspberry}"/>
+      <circle cx="92" cy="56" r="13" fill="${PAL.sunflower}"/>
+      <circle cx="148" cy="56" r="13" fill="${PAL.lagoon}"/>
+    </g>
+    <circle cx="120" cy="56" r="12" fill="none" stroke="${PAL.paper}"
+            stroke-width="3" stroke-dasharray="5 5"/>
+    <g fill="${PAL.paper}" opacity="0.85">
+      <circle cx="22" cy="32" r="3.4"/>
+      <circle cx="64" cy="56" r="3.4"/>
+      <circle cx="162" cy="32" r="3.4"/>
+    </g>
+    <g stroke="${PAL.paper}" stroke-width="3" fill="none" opacity="0.85">
+      <circle cx="50" cy="32" r="4.6"/>
+      <circle cx="134" cy="32" r="4.6"/>
+      <circle cx="148" cy="56" r="4.6"/>
+      <path d="M78 27l5.4 9H72.6zM36 51l5.4 9H30.6z" fill="${PAL.paper}" stroke="none"/>
+      <path d="M106 27v10M101 32h10M92 51v10M87 56h10"/>
+    </g>
+    <path d="M100 126 186 86 120 56" fill="none" stroke="${PAL.paper}" stroke-width="3.4"
+          stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 9" opacity="0.95"/>
+    <path d="M74 128a26 26 0 0 1 52 0z" fill="${PAL.inkSoft}" stroke="${I}" stroke-width="3"/>
+    <circle cx="100" cy="120" r="14" fill="${PAL.orchid}" stroke="${I}" stroke-width="3"/>
+    <path d="M100 114v12M94 120h12" stroke="${PAL.paper}" stroke-width="3" stroke-linecap="round"/>` },
+
+  /* three gems lining up, the row lit and one trade still arrowed */
+  match3: { a: "#B43594", b: "#D96BC0", d: "band", s: `
+    <rect x="30" y="56" width="140" height="40" rx="20" fill="${PAL.paper}" opacity=".22"/>
+    <g fill="${PAL.lagoon}">
+      <circle cx="58" cy="76" r="15"/><circle cx="100" cy="76" r="15"/><circle cx="142" cy="76" r="15"/></g>
+    <g fill="${PAL.raspberry}">
+      <path d="M58 24 73 38 58 52 43 38Z"/><path d="M142 100 157 114 142 128 127 114Z"/></g>
+    <g fill="${PAL.lime}">
+      <rect x="87" y="26" width="26" height="26" rx="5"/>
+      <rect x="45" y="102" width="26" height="26" rx="5"/></g>
+    <g fill="${PAL.sunflower}">
+      <path d="M142 24l14 26h-28z"/><path d="M100 102l14 26H86z"/></g>
+    <g stroke="${PAL.paper}" stroke-width="3.2" fill="none" stroke-linecap="round">
+      <path d="M176 92v22M170 98l6-6 6 6M182 108l-6 6-6-6"/></g>
+    <g fill="${PAL.paper}" opacity=".9">
+      <circle cx="26" cy="30" r="3.6"/><circle cx="176" cy="40" r="2.8"/><circle cx="20" cy="128" r="2.8"/></g>` },
+
+  /* five pieces in, one held above the gap it belongs in */
+  jigsaw: { a: "#17798F", b: "#4FB6CC", d: "hill", s: `
+    <g stroke="${I}" stroke-width="3">
+      <rect x="34" y="36" width="38" height="38" rx="6" fill="${PAL.raspberry}"/>
+      <rect x="76" y="36" width="38" height="38" rx="6" fill="${PAL.sunflower}"/>
+      <rect x="34" y="78" width="38" height="38" rx="6" fill="${PAL.lime}"/>
+      <rect x="76" y="78" width="38" height="38" rx="6" fill="${PAL.orchid}"/>
+      <rect x="118" y="78" width="38" height="38" rx="6" fill="${PAL.tangerine}"/>
+    </g>
+    <rect x="118" y="36" width="38" height="38" rx="6" fill="${PAL.ink}" opacity=".28"
+          stroke="${PAL.paper}" stroke-width="3" stroke-dasharray="6 5"/>
+    <g transform="rotate(-12 160 24)">
+      <rect x="141" y="6" width="38" height="38" rx="6" fill="${PAL.lagoon}"
+            stroke="${I}" stroke-width="3"/>
+      <circle cx="160" cy="25" r="6" fill="${PAL.paper}" opacity=".5"/>
+    </g>
+    <g fill="${PAL.paper}" opacity=".85">
+      <circle cx="20" cy="26" r="3.4"/><circle cx="186" cy="70" r="2.8"/><circle cx="24" cy="132" r="2.8"/></g>` },
 };

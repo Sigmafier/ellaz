@@ -33,6 +33,9 @@ import { meta as music } from "../games/music/meta";
 import { meta as maze } from "../games/maze/meta";
 import { meta as letters } from "../games/letters/meta";
 import { meta as spell } from "../games/spell/meta";
+import { meta as bubbleshooter } from "../games/bubbleshooter/meta";
+import { meta as match3 } from "../games/match3/meta";
+import { meta as jigsaw } from "../games/jigsaw/meta";
 
 /**
  * The roster, in the order the home grid renders it.
@@ -137,6 +140,33 @@ export const GAMES: ReadonlyArray<GameMeta> = [
   // letter still unknown - the way out of being stuck, which a four-year-old
   // needs more than they need a score. Appended, so its card art stays lazy.
   spell,
+
+  // Wave 8. `bubbleshooter` is the arcade shape this catalogue had no answer to:
+  // the only game here where a shot TRAVELS, bounces off a wall and lands
+  // somewhere the player predicted. It is the second game in `classics` to be
+  // drawn on a canvas and the FIRST to do it with no engine at all - a full
+  // board is 115 circles, three orders of magnitude under where sprite batching
+  // starts to pay, and `logic.ts` solves each shot in one call rather than
+  // stepping a simulation, so there is no fixed timestep to match a display to.
+  // Appended, so its card art stays lazy.
+  bubbleshooter,
+
+  // Wave 9. `match3` is the swap-three shape - the most recognised casual
+  // mechanic there is, and the one this catalogue had no answer to: `merge`
+  // combines two into one and `bubbleshooter` fires at a ceiling, but nothing
+  // here let a child trade two neighbours and watch a column fall. It is a
+  // kids game rather than a classic because there is no clock and no way to
+  // lose: the board is guaranteed to always hold a legal move, so the only
+  // thing a round asks for is looking. Appended, so its card art stays lazy.
+  match3,
+
+  // Wave 9. `jigsaw` cuts this catalogue's OWN key art into pieces, which is
+  // why it needed no new drawing: every scene is already built from one shared
+  // vocabulary and already in the shell, so the game costs a picture list and
+  // nothing else. Tap a piece, tap where it goes - a wrong space accepts the
+  // piece, because trying one somewhere and seeing that it does not belong IS
+  // the puzzle. Appended, so its card art stays lazy.
+  jigsaw,
 ];
 
 export function metaFor(id: string): GameMeta | undefined {
