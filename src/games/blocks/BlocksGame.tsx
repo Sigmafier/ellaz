@@ -80,19 +80,22 @@ const WELL_LINE = "#2E2652";
  * row as three arrows a thumb is already jabbing at. So it is the one control
  * that must not be reachable by accident.
  *
- * Half a second, down from a full one on 2026-08-17 after playing it. A whole
- * second is a long time to stand still in a game where the piece keeps falling
- * while you wait, and the guard does not need it: a stray jab between two arrows
- * lasts a few tens of milliseconds, so 500ms is still an order of magnitude
- * clear of anything accidental.
+ * 250ms, arrived at by playing it: 1000 first, then 500, then this.
+ *
+ * The margin is now the thing to know about. A deliberate tap runs 60-120ms, so
+ * a full second cleared that by an order of magnitude and this clears it by
+ * roughly two. That is still a real guard - a jab in passing does not linger for
+ * a quarter of a second - but it is no longer an enormous one, and shortening it
+ * further starts to trade the guard for the wait rather than trimming slack.
+ * Below about 150ms there is nothing left to protect.
  *
  * It is a constant rather than a literal so the charge ANIMATION and the timer
  * cannot disagree about how long the wait is - a bar that fills in 600ms over a
- * button that fires at 500ms reads as a broken button rather than a deliberate
+ * button that fires at 250ms reads as a broken button rather than a deliberate
  * one. Changing this number changes both, and the prose on the game's own pages
  * quotes it in three languages, so it moves with them or they start lying.
  */
-const HOLD_MS = 500;
+const HOLD_MS = 250;
 
 /** How long the button stays lit after firing, so the drop has a visible end. */
 const FLASH_MS = 260;
@@ -201,7 +204,22 @@ function HoldPad({
   glyph: string;
   onHold: () => void;
 }) {
-  const [phase, setPhase] = useState<"idle" | "holding" | "fired">("idle");
+  /**
+   * TWO signals, deliberately not one.
+   *
+   * The charge and the after-flash were a single three-state `phase` driving a
+   * single element, and that conflated them: "fully charged" and "still lit from
+   * the last drop" were both `scaleY(1)`, so pressing again inside the flash
+   * showed no charge at all - the button was already full - and the flash's own
+   * timer landed mid-charge and reset it. At 1000ms that needed a press within
+   * 260ms of a drop; at 250ms the flash outlives the charge, so ordinary quick
+   * dropping hits it every time.
+   *
+   * Separated, `charging` always starts from empty and the flash fades over the
+   * top of it. Neither can reach the other.
+   */
+  const [charging, setCharging] = useState(false);
+  const [flash, setFlash] = useState(false);
   const holdRef = useRef(0);
   const flashRef = useRef(0);
 
@@ -213,12 +231,12 @@ function HoldPad({
     [],
   );
 
-  /** Let go before the second was up: nothing fires, and the fill retreats. */
+  /** Let go before the charge is up: nothing fires, and the fill retreats. */
   const release = useCallback(() => {
     if (!holdRef.current) return;
     window.clearTimeout(holdRef.current);
     holdRef.current = 0;
-    setPhase("idle");
+    setCharging(false);
   }, []);
 
   const press = useCallback(() => {
@@ -226,12 +244,16 @@ function HoldPad({
     // A tick at the START of the charge, so a player who cannot see the button
     // under their own thumb still knows the press registered.
     haptic.tap();
-    setPhase("holding");
+    setCharging(true);
     holdRef.current = window.setTimeout(() => {
       holdRef.current = 0;
-      setPhase("fired");
+      // Empty first, lit second: the charge is spent, and what remains on screen
+      // is the confirmation rather than a bar that never came down.
+      setCharging(false);
+      setFlash(true);
       onHold();
-      flashRef.current = window.setTimeout(() => setPhase("idle"), FLASH_MS);
+      window.clearTimeout(flashRef.current);
+      flashRef.current = window.setTimeout(() => setFlash(false), FLASH_MS);
     }, HOLD_MS);
   }, [onHold]);
 
@@ -250,7 +272,6 @@ function HoldPad({
     [onHold],
   );
 
-  const charging = phase === "holding";
   return (
     <button
       type="button"
@@ -262,8 +283,8 @@ function HoldPad({
       onPointerUp={release}
       onPointerLeave={release}
       onPointerCancel={release}
-      // A one-second press is a long-press: without these, mobile browsers offer
-      // to select the glyph or open a context menu right as the drop fires.
+      // A held press is a long-press: without these, mobile browsers offer to
+      // select the glyph or open a context menu right as the drop fires.
       onContextMenu={(e) => e.preventDefault()}
       onClick={click}
       style={{
@@ -282,10 +303,10 @@ function HoldPad({
         cursor: "pointer",
         // `none`, where the other three pads are `manipulation`, and the
         // difference is the whole reason this button works on a phone. A press
-        // that lasts a second is a press a thumb drifts during, and the browser
-        // reads that drift as the start of a page scroll: it claims the gesture,
-        // fires `pointercancel`, and the charge dies at 900ms for a player who
-        // never let go. Refusing to pan from this one 58px button costs nothing
+        // that is HELD is a press a thumb drifts during, and the browser reads
+        // that drift as the start of a page scroll: it claims the gesture, fires
+        // `pointercancel`, and the charge dies just short for a player who never
+        // let go. Refusing to pan from this one 58px button costs nothing
         // - the board above it does not scroll either.
         touchAction: "none",
         WebkitUserSelect: "none",
@@ -296,6 +317,7 @@ function HoldPad({
         transition: "transform 140ms var(--ease)",
       }}
     >
+      {/* the charge: sweeps down over exactly HOLD_MS, retreats in 120ms */}
       <span
         aria-hidden="true"
         style={{
@@ -303,14 +325,26 @@ function HoldPad({
           inset: 0,
           background: "var(--brand)",
           transformOrigin: "top",
-          transform: phase === "idle" ? "scaleY(0)" : "scaleY(1)",
-          opacity: phase === "idle" ? 0 : charging ? 0.38 : 0.6,
+          transform: charging ? "scaleY(1)" : "scaleY(0)",
+          opacity: charging ? 0.38 : 0,
           // The charge is LINEAR and exactly `HOLD_MS`, so the moment the button
           // is full is the moment it fires. An eased fill would spend its last
           // third looking finished while the timer was still running.
           transition: charging
-            ? `transform ${HOLD_MS}ms linear, opacity 120ms linear`
-            : `transform 160ms var(--ease), opacity ${FLASH_MS}ms linear`,
+            ? `transform ${HOLD_MS}ms linear, opacity 100ms linear`
+            : `transform 120ms var(--ease), opacity 120ms linear`,
+        }}
+      />
+      {/* the confirmation, on its own element so a quick second press charges
+          from empty instead of inheriting this one's full bar */}
+      <span
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: "var(--brand)",
+          opacity: flash ? 0.55 : 0,
+          transition: flash ? "opacity 60ms linear" : `opacity ${FLASH_MS}ms linear`,
         }}
       />
       <span
@@ -318,8 +352,8 @@ function HoldPad({
         style={{
           position: "relative",
           display: "block",
-          transform: phase === "idle" ? "none" : "translateY(4px)",
-          transition: charging ? `transform ${HOLD_MS}ms linear` : "transform 160ms var(--ease)",
+          transform: charging ? "translateY(4px)" : "none",
+          transition: charging ? `transform ${HOLD_MS}ms linear` : "transform 120ms var(--ease)",
         }}
       >
         {glyph}
@@ -620,9 +654,9 @@ export function BlocksGame({ ctx }: { ctx: GameContext }) {
   // inside a page that is not.
   const T = textFor(
     {
-      he: { rows: "שורות", left: "שמאלה", rotate: "סובב", right: "ימינה", down: "למטה", drop: "הפל", hold: "החזיקו חצי שנייה", next: "הבא" },
-      en: { rows: "Rows", left: "Left", rotate: "Rotate", right: "Right", down: "Down", drop: "Drop", hold: "hold for half a second", next: "Next" },
-      es: { rows: "Filas", left: "Izquierda", rotate: "Girar", right: "Derecha", down: "Abajo", drop: "Soltar", hold: "mantén pulsado medio segundo", next: "Siguiente" },
+      he: { rows: "שורות", left: "שמאלה", rotate: "סובב", right: "ימינה", down: "למטה", drop: "הפל", hold: "החזיקו רגע", next: "הבא" },
+      en: { rows: "Rows", left: "Left", rotate: "Rotate", right: "Right", down: "Down", drop: "Drop", hold: "hold for a moment", next: "Next" },
+      es: { rows: "Filas", left: "Izquierda", rotate: "Girar", right: "Derecha", down: "Abajo", drop: "Soltar", hold: "mantén pulsado un momento", next: "Siguiente" },
     },
     ctx.locale,
   );

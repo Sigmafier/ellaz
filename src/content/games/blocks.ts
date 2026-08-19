@@ -41,7 +41,7 @@ export const blocks: GameContent = {
         { title: "מסובבים", body: "כפתור הסיבוב, נגיעה על הלוח, או חץ למעלה. ליד קיר הצורה נדחפת פנימה לבד." },
         {
           title: "מפילים",
-          body: "מחזיקים את הכפתור האחרון חצי שנייה והצורה יורדת ישר למקום הצל. הכפתור מתמלא בזמן ההחזקה, אז רואים את ההמתנה עוברת. החלקה למטה על הלוח מפילה מיד, וגם מקש הרווח. אפשר גם רק לחכות.",
+          body: "מחזיקים את הכפתור האחרון רבע שנייה והצורה יורדת ישר למקום הצל. הכפתור מתמלא בזמן ההחזקה, אז רואים את ההמתנה עוברת. החלקה למטה על הלוח מפילה מיד, וגם מקש הרווח. אפשר גם רק לחכות.",
         },
         { title: "ממלאים שורה", body: "שורה שלמה נעלמת. המשחק נגמר כשלערימה אין יותר מקום להיכנס מלמעלה." },
       ],
@@ -84,7 +84,7 @@ export const blocks: GameContent = {
       ],
 
       accessibility:
-        "ארבעה כפתורים גדולים בתחתית המסך עושים הכול. שלושה מהם הם נגיעה אחת. הרביעי, ההפלה, מוחזק חצי שנייה בכוונה, כי זו הפעולה היחידה שאי אפשר לבטל והיא יושבת בדיוק ליד החצים. מי שלא יכול להחזיק אצבע לחוצה לא נשאר בחוץ: מקש הרווח מפיל מיד, גם החלקה למטה על הלוח, וצורה שלא הופלה נוחתת בעצמה ממילא. מי שמעדיף יכול להחליק על הלוח או להשתמש בחצים במקלדת. הצל המקווקו מראה איפה הצורה תנחת, כך שאין צורך לספור עמודות בעין. כל צורה בצבע משלה וגם בצורה משלה, אז אפשר לזהות אותן בלי להסתמך על הצבע. אין הבהובים מהירים ואין צליל שהמשחק תלוי בו.",
+        "ארבעה כפתורים גדולים בתחתית המסך עושים הכול. שלושה מהם הם נגיעה אחת. הרביעי, ההפלה, מוחזק רבע שנייה בכוונה, כי זו הפעולה היחידה שאי אפשר לבטל והיא יושבת בדיוק ליד החצים. מי שלא יכול להחזיק אצבע לחוצה לא נשאר בחוץ: מקש הרווח מפיל מיד, גם החלקה למטה על הלוח, וצורה שלא הופלה נוחתת בעצמה ממילא. מי שמעדיף יכול להחליק על הלוח או להשתמש בחצים במקלדת. הצל המקווקו מראה איפה הצורה תנחת, כך שאין צורך לספור עמודות בעין. כל צורה בצבע משלה וגם בצורה משלה, אז אפשר לזהות אותן בלי להסתמך על הצבע. אין הבהובים מהירים ואין צליל שהמשחק תלוי בו.",
 
       together: [
         { title: "אחד מסובב ואחד מזיז", body: "שני אנשים, אותו טלפון. מצחיק בערך שלוש ריצות, ואז נהיה תחרותי." },
@@ -100,7 +100,7 @@ export const blocks: GameContent = {
         },
         {
           q: "איך משחקים בטלפון?",
-          a: "ארבעה כפתורים בתחתית: שמאלה, סיבוב, ימינה והפלה. את כפתור ההפלה מחזיקים חצי שנייה, כדי שלא ייפול בטעות. אפשר גם להחליק על הלוח עצמו ולגעת בו כדי לסובב.",
+          a: "ארבעה כפתורים בתחתית: שמאלה, סיבוב, ימינה והפלה. את כפתור ההפלה מחזיקים רבע שנייה, כדי שלא ייפול בטעות. אפשר גם להחליק על הלוח עצמו ולגעת בו כדי לסובב.",
         },
         {
           q: "מה ההבדל בין הרמות?",
@@ -159,7 +159,7 @@ export const blocks: GameContent = {
         { title: "Turn it", body: "The rotate button, a tap on the board, or the up arrow. Against a wall it nudges itself clear." },
         {
           title: "Drop it",
-          body: "Hold the last button down for half a second and the shape goes straight to the dashed shadow. The button fills up while you hold it, so you can see the wait passing. A swipe down the board does it at once, and so does the space bar. Waiting works too.",
+          body: "Hold the last button down for a quarter of a second and the shape goes straight to the dashed shadow. The button fills up while you hold it, so you can see the wait passing. A swipe down the board does it at once, and so does the space bar. Waiting works too.",
         },
         { title: "Fill a row", body: "It disappears. The run ends when the next shape has no room to come in." },
       ],
@@ -202,7 +202,7 @@ export const blocks: GameContent = {
       ],
 
       accessibility:
-        "Four large buttons under the board do all of it. Three of them are single taps. The fourth, the drop, is held down for half a second on purpose, because it is the one move that cannot be taken back and it sits right next to the arrows. Nobody who cannot hold a finger down is locked out of it: the space bar drops at once, so does a swipe down the board, and a shape that is never dropped still lands by itself. Swiping the board and the keyboard arrows both work if you prefer them. The dashed shadow marks the landing square so nobody has to line up columns by eye. Every shape has its own colour and its own outline, so they stay distinguishable without relying on colour. There are no rapid flashes and no sound the game depends on.",
+        "Four large buttons under the board do all of it. Three of them are single taps. The fourth, the drop, is held down for a quarter of a second on purpose, because it is the one move that cannot be taken back and it sits right next to the arrows. Nobody who cannot hold a finger down is locked out of it: the space bar drops at once, so does a swipe down the board, and a shape that is never dropped still lands by itself. Swiping the board and the keyboard arrows both work if you prefer them. The dashed shadow marks the landing square so nobody has to line up columns by eye. Every shape has its own colour and its own outline, so they stay distinguishable without relying on colour. There are no rapid flashes and no sound the game depends on.",
 
       together: [
         { title: "One turns, one slides", body: "Two people, one phone. Funny for about three runs, then competitive." },
@@ -218,7 +218,7 @@ export const blocks: GameContent = {
         },
         {
           q: "How do I play it on a phone?",
-          a: "Four buttons under the board: left, rotate, right and drop. The drop is held for half a second rather than tapped, so a stray thumb cannot throw a shape away. You can also swipe across the board and tap it to turn the shape.",
+          a: "Four buttons under the board: left, rotate, right and drop. The drop is held for a quarter of a second rather than tapped, so a stray thumb cannot throw a shape away. You can also swipe across the board and tap it to turn the shape.",
         },
         {
           q: "What is different about each level?",
@@ -276,7 +276,7 @@ export const blocks: GameContent = {
         { title: "Gírala", body: "El botón de giro, un toque en el tablero, o la flecha arriba. Pegada a una pared se aparta sola." },
         {
           title: "Suéltala",
-          body: "Mantén pulsado medio segundo el último botón y la forma se va directa a la sombra de rayas. El botón se llena mientras lo aguantas, así que la espera se ve pasar. Un deslizamiento hacia abajo la suelta al momento, y la barra espaciadora también. Esperar también vale.",
+          body: "Mantén pulsado un cuarto de segundo el último botón y la forma se va directa a la sombra de rayas. El botón se llena mientras lo aguantas, así que la espera se ve pasar. Un deslizamiento hacia abajo la suelta al momento, y la barra espaciadora también. Esperar también vale.",
         },
         { title: "Completa una fila", body: "Desaparece. La partida acaba cuando la siguiente forma ya no tiene sitio para entrar." },
       ],
@@ -319,7 +319,7 @@ export const blocks: GameContent = {
       ],
 
       accessibility:
-        "Cuatro botones grandes bajo el tablero hacen absolutamente todo. Tres son toques sueltos. El cuarto, el de soltar, se mantiene pulsado medio segundo a propósito, porque es la única jugada que no se puede deshacer y está justo al lado de las flechas. Nadie que no pueda aguantar el dedo se queda fuera: la barra espaciadora suelta al instante, un deslizamiento hacia abajo también, y una forma que nunca se suelta aterriza sola. Deslizar por el tablero y las flechas del teclado también funcionan si os van más. La sombra de rayas marca la casilla de aterrizaje, así que nadie tiene que alinear columnas a ojo. Cada forma tiene su propio color y su propio contorno, de modo que se siguen distinguiendo sin depender del color. No hay destellos rápidos ni ningún sonido del que dependa el juego.",
+        "Cuatro botones grandes bajo el tablero hacen absolutamente todo. Tres son toques sueltos. El cuarto, el de soltar, se mantiene pulsado un cuarto de segundo a propósito, porque es la única jugada que no se puede deshacer y está justo al lado de las flechas. Nadie que no pueda aguantar el dedo se queda fuera: la barra espaciadora suelta al instante, un deslizamiento hacia abajo también, y una forma que nunca se suelta aterriza sola. Deslizar por el tablero y las flechas del teclado también funcionan si os van más. La sombra de rayas marca la casilla de aterrizaje, así que nadie tiene que alinear columnas a ojo. Cada forma tiene su propio color y su propio contorno, de modo que se siguen distinguiendo sin depender del color. No hay destellos rápidos ni ningún sonido del que dependa el juego.",
 
       together: [
         { title: "Uno gira, otro mueve", body: "Dos personas, un móvil. Divertido durante unas tres partidas y competitivo a partir de ahí." },
@@ -335,7 +335,7 @@ export const blocks: GameContent = {
         },
         {
           q: "¿Cómo se juega en el móvil?",
-          a: "Cuatro botones bajo el tablero: izquierda, girar, derecha y soltar. El de soltar se mantiene pulsado medio segundo en vez de tocarlo, para que un dedo despistado no tire una forma. También puedes deslizar por el tablero y tocarlo para girar la forma.",
+          a: "Cuatro botones bajo el tablero: izquierda, girar, derecha y soltar. El de soltar se mantiene pulsado un cuarto de segundo en vez de tocarlo, para que un dedo despistado no tire una forma. También puedes deslizar por el tablero y tocarlo para girar la forma.",
         },
         {
           q: "¿Qué cambia en cada nivel?",
