@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { PAD_CELL, PAD_KEYS, padDirection } from "./DirectionPad";
+import { PAD_CELL, PAD_GAP, PAD_KEYS, padDirection } from "./DirectionPad";
 
 /**
  * The four-way pad, in three parts.
@@ -88,9 +88,16 @@ describe("the pad is sized for the thumb that uses it", () => {
   });
 
   it("leaves room either side of a 390px phone", () => {
-    // Three cells and two 8px gaps. The pad is centred, so anything wider than
-    // the narrowest phone this platform targets is a pad with a key off-screen.
-    expect(PAD_CELL * 3 + 16).toBeLessThan(390);
+    // Three cells and two gaps, measured off the constants the component
+    // actually renders rather than off this file's memory of them. The pad is
+    // centred, so anything wider than the narrowest phone this platform targets
+    // is a pad with a key hanging off the side - and "make it bigger" has been
+    // asked three times now, each time from a desktop where that is invisible.
+    const width = PAD_CELL * 3 + PAD_GAP * 2;
+    expect(width).toBeLessThan(390);
+    // A real margin, not a hairline: the pad sits inside the panel's own
+    // padding, so touching the viewport edge means touching the gutter first.
+    expect(390 - width).toBeGreaterThanOrEqual(48);
   });
 });
 

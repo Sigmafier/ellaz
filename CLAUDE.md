@@ -257,14 +257,19 @@ without going through the component; five mutations killed, including the old
 two-row block, which satisfies every other assertion in the file. It is **absent
 from the `@ui` barrel on purpose** and pinned to `page` in `manualChunks`, both for
 the `GameChrome` reason — a re-export would make the shell import from the page
-chunk. **One cell size for both games (`PAD_CELL = 72`)** — snake drew 56 and
-maze 58 in their own copies, which nobody chose; 72 clears `--tap-kids` (64px,
-the age-five target) rather than merely the adult 48px minimum, and the test
-pins it against BOTH tokens read out of `tokens.css`. The pad costs the first
+chunk. **One cell size for both games (`PAD_CELL = 88`)** — snake drew 56 and
+maze 58 in their own copies, which nobody chose. The test pins it from BOTH
+ends, off constants the component actually renders: a FLOOR at `--tap-kids`
+(64px, the age-five target, read out of `tokens.css` rather than retyped) and a
+CEILING at the 390px phone with 48px of margin to spare. The ceiling is the one
+that earns its place — "make it bigger" was asked three times running, each time
+from a desktop, and the failure it ends in is a key hanging off the side of a
+screen nobody in that conversation is looking at. The pad costs the first
 visit **nothing** — it is `page`-side, and the number moved by single digits
-across both commits. (The gate reads **89,596 B gz, 404 spare** on the tree this
-landed on, which carries another lane's new game; re-run it rather than quoting
-that figure as the pad's.)
+across all three commits. **Do not look for a payload figure here**: this
+paragraph carried one for about three hours and it went stale twice in that
+window, once because another lane shipped two games and once because another
+raised the ceiling. Run `npm run assert:payload` on the tree in front of you.
 
 Two games that look adjacent are deliberately NOT on it. **blocks** has `◀ ⟳ ▶ ⤓` —
 an action row, not a cross, and its `▼` was removed on purpose (the comment says
