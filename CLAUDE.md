@@ -1772,13 +1772,23 @@ is the failure `assert-first-visit.mjs` exists to catch and has now caught three
 times. It passed with its negative control rejecting 9 of 9 planted entries, so
 that green is a real one rather than a vacuous one.
 
-**Latest reading: 90,082 B gz of 90,500, 418 spare** (2026-08-19, 33 games, 4
-page locales, after the pause control landed. It cost **66 B gz**, and that
-figure is two arms from one tree rather than a subtraction: the same tree
-without it measured **90,016**, which is itself 11 B off the 90,027 the reading
-below records — a difference of nothing, on a branch whose only other content is
-this work, and exactly the run-to-run drift that makes subtracting from a written
-number the wrong method. Only two of the six changed places are shell-side: the
+**Latest reading: 90,096 B gz of 90,500, 404 spare** (2026-08-19, 33 games, 4
+page locales, on the tree that merges the pause control with match3's swipe
+work. **Read on the MERGED tree, and it is 14 B off the one measured before the
+merge** — the pause branch alone read 90,082 / 418, match3 landed on `main` in
+between, and neither number describes what actually ships. 14 B is nothing and
+that is the point: the two lanes each held a correct figure for a tree that no
+longer existed, which is the whole of
+[`a-threshold-tuned-against-todays-tree-goes-stale.md`](.claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md)
+happening again on a day with 404 B of room. Re-run the gate; do not add the
+deltas.
+
+The pause control's own share is **66 B gz**, and that figure is two arms from
+one tree rather than a subtraction: the same tree without it measured
+**90,016**, which is itself 11 B off the 90,027 the reading below records — a
+difference of nothing, on a branch whose only other content was this work, and
+exactly the run-to-run drift that makes subtracting from a written number the
+wrong method. Only two of the six changed places are shell-side: the
 `pause`/`play` glyphs in `icons.tsx`, and two strings in each of the two STATIC
 dictionaries. `GameChrome` is pinned to `page`, both games are lazy `game-*`
 chunks, and the other nine dictionaries are `locale-*`, so none of them reaches
