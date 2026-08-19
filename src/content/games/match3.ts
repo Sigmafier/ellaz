@@ -50,7 +50,7 @@ export const match3: GameContent = {
       howToPlay: [
         { title: "בוחרים רמה", body: "קל, בינוני או קשה. ההבדל הוא מספר הצבעים וגודל הלוח, אף פעם לא הזמן." },
         { title: "נוגעים באבן", body: "היא מקבלת מסגרת. נגיעה שנייה באותה אבן מוותרת עליה." },
-        { title: "נוגעים בשכנה", body: "למעלה, למטה, ימינה או שמאלה. באלכסון לא נחשב." },
+        { title: "נוגעים בשכנה", body: "למעלה, למטה, ימינה או שמאלה. באלכסון לא נחשב. אפשר גם להחליק אבן לכיוון שכנה במקום שתי נגיעות." },
         { title: "מסתכלים על הנפילה", body: "אם נוצרה שלישייה חדשה בדרך, היא נעלמת גם, והצליל עולה בכל שלב." },
         { title: "סוגרים סיבוב", body: "כל סיבוב מבקש מספר אבנים. הפס הכחול מתחת ללוח מראה כמה נשאר." },
       ],
@@ -89,7 +89,7 @@ export const match3: GameContent = {
       ],
 
       accessibility:
-        "נגיעה אחת לכל פעולה, בלי גרירה ובלי החזקה ממושכת, כך שהמשחק עובד גם עם אמצעי קלט חלופיים וגם עם יד קטנה שעדיין לא מדייקת. לכל צבע יש גם צורה משלו, מעוין, עיגול, ריבוע, משולש, כוכב ומשושה, כי כאחד מכל שנים עשר בנים לא מפריד בין אדום לירוק, ומשחק שכל הסימן שלו הוא גוון הוא משחק שהם לא יכולים לשחק בכלל. אין שעון ואין ספירה לאחור, אז אפשר לעצור באמצע ולחשוב כמה שרוצים. החלפה שלא יוצרת שלישייה עונה במסגרת כתומה ולא בצליל שגיאה, והלוח נשאר בדיוק כפי שהיה. כל משבצת בלוח נושאת תווית עם מספר העמודה והשורה שלה, כך שקורא מסך מבחין ביניהן במקום להקריא ארבעים ותשע פעמים אותו דבר. אפשר לשחק בשקט מוחלט בלי לאבד שום מידע.",
+        "אפשר לשחק את כל המשחק בנגיעות בלבד, בלי החזקה ממושכת. החלקה מחליפה שתי אבנים בתנועה אחת למי שנוח לו כך, אבל היא תמיד רק קיצור דרך, כך שהמשחק עובד גם עם אמצעי קלט חלופיים וגם עם יד קטנה שעדיין לא מדייקת. לכל צבע יש גם צורה משלו, מעוין, עיגול, ריבוע, משולש, כוכב ומשושה, כי כאחד מכל שנים עשר בנים לא מפריד בין אדום לירוק, ומשחק שכל הסימן שלו הוא גוון הוא משחק שהם לא יכולים לשחק בכלל. אין שעון ואין ספירה לאחור, אז אפשר לעצור באמצע ולחשוב כמה שרוצים. החלפה שלא יוצרת שלישייה עונה במסגרת כתומה ולא בצליל שגיאה, והלוח נשאר בדיוק כפי שהיה. כל משבצת בלוח נושאת תווית עם מספר העמודה והשורה שלה, כך שקורא מסך מבחין ביניהן במקום להקריא ארבעים ותשע פעמים אותו דבר. אפשר לשחק בשקט מוחלט בלי לאבד שום מידע.",
 
       together: [
         { title: "מי מוצא קודם", body: "מסתכלים על אותו לוח, ומי שמזהה החלפה ראשון מצביע. הילד יזהה לפניכם יותר פעמים משתצפו." },
@@ -151,7 +151,7 @@ export const match3: GameContent = {
       howToPlay: [
         { title: "Pick a level", body: "Easy, medium or hard. The difference is how many colours are in play and how big the board is." },
         { title: "Tap a gem", body: "It gets a ring around it. Tapping the same gem again puts it back down." },
-        { title: "Tap a neighbour", body: "Up, down, left or right. Diagonals do not count." },
+        { title: "Tap a neighbour", body: "Up, down, left or right. Diagonals do not count. Sliding a gem towards a neighbour does the same trade in one go." },
         { title: "Watch it fall", body: "If the falling gems line up three more, those clear too, and the note goes up a step." },
         { title: "Finish the round", body: "Each round asks for a number of gems. The bar under the board shows what is left." },
       ],
@@ -190,7 +190,7 @@ export const match3: GameContent = {
       ],
 
       accessibility:
-        "One tap per action, with no dragging and no sustained press, so the game works with alternative input and with a small hand that does not aim well yet. Every colour also has its own shape, a diamond, a circle, a square, a triangle, a star and a hexagon, because roughly one boy in twelve cannot separate the red gem from the green one and a match three whose only signal is hue is a game they cannot play at all. There is no clock and no countdown, so you can stop in the middle and think for as long as you want. A swap that makes no line answers with an orange ring rather than an error sound, and the board stays exactly as it was. Every square carries its own column and row in its label, so a screen reader can tell them apart instead of reading the same word forty-nine times. The whole game can be played in silence with nothing lost.",
+        "The whole game is reachable with taps, and nothing has to be held down. A swipe trades two gems in one motion for anyone who prefers that, but it is only ever a shortcut, so the game still works with alternative input and with a small hand that does not aim well yet. Every colour also has its own shape, a diamond, a circle, a square, a triangle, a star and a hexagon, because roughly one boy in twelve cannot separate the red gem from the green one and a match three whose only signal is hue is a game they cannot play at all. There is no clock and no countdown, so you can stop in the middle and think for as long as you want. A swap that makes no line answers with an orange ring rather than an error sound, and the board stays exactly as it was. Every square carries its own column and row in its label, so a screen reader can tell them apart instead of reading the same word forty-nine times. The whole game can be played in silence with nothing lost.",
 
       together: [
         { title: "Who sees it first", body: "Look at the same board and point when you find a swap. The child will beat you more often than you expect." },
@@ -252,7 +252,7 @@ export const match3: GameContent = {
       howToPlay: [
         { title: "Elige un nivel", body: "Fácil, media o difícil. Lo que cambia es cuántos colores hay y cómo de grande es el tablero." },
         { title: "Toca una gema", body: "Se le pone un borde. Si la vuelves a tocar, la sueltas." },
-        { title: "Toca una vecina", body: "Arriba, abajo, izquierda o derecha. En diagonal no vale." },
+        { title: "Toca una vecina", body: "Arriba, abajo, izquierda o derecha. En diagonal no vale. Deslizar una gema hacia su vecina hace el mismo cambio de una vez." },
         { title: "Mira la caída", body: "Si al caer se alinean otras tres, también desaparecen y la nota sube un escalón." },
         { title: "Cierra la ronda", body: "Cada ronda pide un número de gemas. La barra bajo el tablero dice cuántas faltan." },
       ],
@@ -291,7 +291,7 @@ export const match3: GameContent = {
       ],
 
       accessibility:
-        "Un toque por acción, sin arrastrar y sin mantener pulsado, así que el juego funciona con entradas alternativas y con una mano pequeña que todavía no apunta bien. Cada color tiene además su propia forma, un rombo, un círculo, un cuadrado, un triángulo, una estrella y un hexágono, porque aproximadamente uno de cada doce niños no distingue la gema roja de la verde y un tres en línea cuyo único aviso es el tono es un juego que no pueden jugar. No hay reloj ni cuenta atrás, así que se puede parar a mitad y pensar todo lo que haga falta. Un intercambio que no forma línea responde con un borde naranja y no con un sonido de error, y el tablero se queda igual que estaba. Cada casilla lleva su columna y su fila en la etiqueta, para que un lector de pantalla las distinga en vez de leer cuarenta y nueve veces lo mismo. Se puede jugar en silencio absoluto sin perder nada.",
+        "El juego entero se puede jugar a base de toques, sin mantener pulsado. Deslizar cambia dos gemas de un solo gesto, para quien lo prefiera, pero siempre es un atajo y nunca la única vía, así que el juego funciona con entradas alternativas y con una mano pequeña que todavía no apunta bien. Cada color tiene además su propia forma, un rombo, un círculo, un cuadrado, un triángulo, una estrella y un hexágono, porque aproximadamente uno de cada doce niños no distingue la gema roja de la verde y un tres en línea cuyo único aviso es el tono es un juego que no pueden jugar. No hay reloj ni cuenta atrás, así que se puede parar a mitad y pensar todo lo que haga falta. Un intercambio que no forma línea responde con un borde naranja y no con un sonido de error, y el tablero se queda igual que estaba. Cada casilla lleva su columna y su fila en la etiqueta, para que un lector de pantalla las distinga en vez de leer cuarenta y nueve veces lo mismo. Se puede jugar en silencio absoluto sin perder nada.",
 
       together: [
         { title: "Quién lo ve antes", body: "Mirad el mismo tablero y señalad al encontrar un intercambio. El niño ganará más veces de las que esperáis." },

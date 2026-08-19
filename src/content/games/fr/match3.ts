@@ -29,7 +29,7 @@ export const match3Fr: GameCopy = {
   howToPlay: [
     { title: "Choisir un niveau", body: "Facile, moyen ou difficile. Ce qui change, c'est le nombre de couleurs et la taille de la grille." },
     { title: "Appuyer sur une gemme", body: "Un contour apparaît autour d'elle. Si vous appuyez à nouveau dessus, vous la reposez." },
-    { title: "Appuyer sur une voisine", body: "En haut, en bas, à gauche ou à droite. La diagonale ne compte pas." },
+    { title: "Appuyer sur une voisine", body: "En haut, en bas, à gauche ou à droite. La diagonale ne compte pas. Faire glisser une gemme vers sa voisine réalise le même échange en un seul geste." },
     { title: "Regarder la chute", body: "Si les gemmes qui tombent en alignent trois autres, celles-là disparaissent aussi et la note monte d'un cran." },
     { title: "Terminer le tour", body: "Chaque tour demande un nombre de gemmes. La barre sous la grille indique combien il en reste." },
   ],
@@ -68,7 +68,7 @@ export const match3Fr: GameCopy = {
   ],
 
   accessibility:
-    "Un appui par action, sans faire glisser et sans maintenir, donc le jeu fonctionne avec des entrées alternatives comme avec une petite main qui vise encore mal. Chaque couleur possède aussi sa propre forme, un losange, un cercle, un carré, un triangle, une étoile et un hexagone, parce qu'environ un garçon sur douze ne sépare pas la gemme rouge de la verte et qu'un trois d'affilée dont le seul indice est la teinte est un jeu qui leur est fermé. Aucune horloge et aucun compte à rebours, on peut donc s'arrêter au milieu et réfléchir autant qu'on veut. Un échange qui ne forme aucune ligne répond par un contour orange et non par un son d'erreur, et la grille reste exactement telle qu'elle était. Chaque case porte sa colonne et sa ligne dans son étiquette, pour qu'un lecteur d'écran les distingue au lieu de lire quarante-neuf fois la même chose. On peut jouer en silence complet sans rien perdre.",
+    "Le jeu entier se joue à l'appui, sans rien maintenir. Un glissement échange deux gemmes en un seul geste pour qui le préfère, mais ce n'est jamais qu'un raccourci, donc le jeu fonctionne avec des entrées alternatives comme avec une petite main qui vise encore mal. Chaque couleur possède aussi sa propre forme, un losange, un cercle, un carré, un triangle, une étoile et un hexagone, parce qu'environ un garçon sur douze ne sépare pas la gemme rouge de la verte et qu'un trois d'affilée dont le seul indice est la teinte est un jeu qui leur est fermé. Aucune horloge et aucun compte à rebours, on peut donc s'arrêter au milieu et réfléchir autant qu'on veut. Un échange qui ne forme aucune ligne répond par un contour orange et non par un son d'erreur, et la grille reste exactement telle qu'elle était. Chaque case porte sa colonne et sa ligne dans son étiquette, pour qu'un lecteur d'écran les distingue au lieu de lire quarante-neuf fois la même chose. On peut jouer en silence complet sans rien perdre.",
 
   together: [
     { title: "Qui le voit en premier", body: "Regardez la même grille et montrez du doigt dès que vous trouvez un échange. L'enfant gagnera plus souvent que vous ne le pensez." },

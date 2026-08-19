@@ -9,10 +9,12 @@ import {
   findMatches,
   goalFor,
   hasMove,
+  neighbourIn,
   newGame,
   scoreReport,
   shuffleBoard,
   swapAt,
+  swipeCell,
   tapCell,
   type Match3State,
 } from "./logic";
@@ -435,11 +437,116 @@ describe("tapping", () => {
     expect(outcome.kind).toBe("matched");
   });
 
-  it("has no drag entry point at all", () => {
-    // The kids rule is that drag is never REQUIRED. The strongest form of that
-    // is a rules module with nowhere to put one.
-    const api = Object.keys({ swapAt, tapCell, newGame, hasMove });
-    expect(api.some((k) => /drag/i.test(k))).toBe(false);
+  it("reaches every swap a swipe reaches, so drag is never REQUIRED", () => {
+    // The kids rule. Since swipe landed, "there is no drag entry point" is no
+    // longer the invariant - this is: every swap a gesture can make, two taps
+    // can also make, on the same board, to the same result. A swipe that could
+    // reach a swap the tap path cannot would take this game away from exactly
+    // the players it is for.
+    const dirs = ["up", "down", "left", "right"] as const;
+    const start = stateOf(`
+      a a b
+      c c a
+      b a c
+    `);
+    let checked = 0;
+    for (let i = 0; i < start.size * start.size; i += 1) {
+      for (const dir of dirs) {
+        const target = neighbourIn(i, dir, start.size);
+        if (target === null) continue;
+        const swiped = swipeCell(start, i, dir, mulberry32(11));
+        // The same trade by hand: pick the gem up, then tap the neighbour.
+        const picked = tapCell(start, i, mulberry32(11)).state;
+        const tapped = tapCell(picked, target, mulberry32(11));
+        expect(swiped.outcome).toEqual(tapped.outcome);
+        expect(swiped.state.grid).toEqual(tapped.state.grid);
+        checked += 1;
+      }
+    }
+    // A control: an empty loop would satisfy every assertion above. A 3x3 board
+    // has 12 orthogonal adjacencies, each reachable from both ends.
+    expect(checked).toBe(24);
+  });
+});
+
+describe("swiping", () => {
+  const fresh = () =>
+    stateOf(`
+      a b a
+      b a b
+      a b a
+    `);
+
+  it("pushes a gem into each of its four neighbours", () => {
+    expect(neighbourIn(4, "up", 3)).toBe(1);
+    expect(neighbourIn(4, "down", 3)).toBe(7);
+    expect(neighbourIn(4, "left", 3)).toBe(3);
+    expect(neighbourIn(4, "right", 3)).toBe(5);
+  });
+
+  it("stops at the board edge instead of wrapping to the next row", () => {
+    // Index arithmetic is what makes this the interesting one: cell 2 plus one
+    // is cell 3, which is the far side of the board on the row below.
+    expect(neighbourIn(2, "right", 3)).toBeNull();
+    expect(neighbourIn(3, "left", 3)).toBeNull();
+    expect(neighbourIn(1, "up", 3)).toBeNull();
+    expect(neighbourIn(7, "down", 3)).toBeNull();
+  });
+
+  it("makes the swap when the push lands a line", () => {
+    const s = stateOf(`
+      a a b
+      c c a
+      b a c
+    `);
+    // Gem 2 pushed down trades with gem 5, which puts an `a` beside `a a`.
+    const { outcome } = swipeCell(s, 2, "down", mulberry32(11));
+    expect(outcome.kind).toBe("matched");
+  });
+
+  it("bumps a push that makes no line, and leaves the board alone", () => {
+    const s = fresh();
+    const { state, outcome } = swipeCell(s, 0, "right", mulberry32(11));
+    expect(outcome.kind).toBe("rejected");
+    expect(state.grid).toEqual(s.grid);
+    // Not a mistake being scored: the move count does not move either.
+    expect(state.moves).toBe(0);
+  });
+
+  it("ignores a push off the edge and changes nothing at all", () => {
+    // Not a refusal and not a bump: a finger that left the board did not ask
+    // for anything, so it must not clear a gem the child had already picked up.
+    const held = { ...fresh(), selected: 8 };
+    const { state, outcome } = swipeCell(held, 8, "right", mulberry32(11));
+    expect(outcome.kind).toBe("ignored");
+    expect(state).toBe(held);
+  });
+
+  it("does not need a gem picked up first", () => {
+    // The whole point of the gesture: one motion rather than two taps, so it
+    // must not quietly depend on the selection the tap path builds.
+    const s = stateOf(`
+      a a b
+      c c a
+      b a c
+    `);
+    expect(s.selected).toBeNull();
+    expect(swipeCell(s, 2, "down", mulberry32(11)).outcome.kind).toBe("matched");
+  });
+
+  it("clears the selection once a swipe has traded", () => {
+    // Otherwise the ring stays on a gem that is no longer there, and the next
+    // tap trades against a cell the child is not looking at.
+    const held = stateOf(
+      `
+      a a b
+      c c a
+      b a c
+    `,
+      { selected: 8 },
+    );
+    const { state } = swipeCell(held, 2, "down", mulberry32(11));
+    expect(state.selected).toBeNull();
   });
 });
 
