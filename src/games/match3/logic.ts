@@ -108,6 +108,11 @@ export interface CascadeStep {
 }
 
 export type SwapOutcome =
+  /**
+   * Nothing happened, and the state is either untouched or carries a moved
+   * selection. Both input paths produce it: a tap that picks a gem up, and a
+   * swipe that pushed at the board edge.
+   */
   | { kind: "ignored" }
   /**
    * A legal adjacent swap that makes no line. The board is UNCHANGED and this
@@ -453,13 +458,14 @@ export function swapAt(
 }
 
 /**
- * The whole input model: TAP, never drag.
+ * The whole input model: TAP, and swipe as a shortcut over it.
  *
  * First tap picks a gem up. A second tap on a NEIGHBOUR attempts the swap; a
  * second tap anywhere else picks that gem up instead, and a second tap on the
- * same gem puts it down. Drag may be layered on top of this later; it may never
- * replace it — a five-year-old on a phone, and anyone on assistive input,
- * cannot reliably hold a sustained pointer gesture (CLAUDE.md § kids games).
+ * same gem puts it down. `swipeCell` below does the same swap in one gesture
+ * and is never the only way to reach one — a five-year-old on a phone, and
+ * anyone on assistive input, cannot reliably hold a sustained pointer gesture
+ * (CLAUDE.md § kids games), so the two-tap path stays complete.
  */
 export function tapCell(
   state: Match3State,
@@ -479,6 +485,46 @@ export function tapCell(
     return { state: { ...state, selected: index }, outcome: { kind: "ignored" } };
   }
   return swapAt(state, state.selected, index, rng);
+}
+
+/** The four ways a gem can be pushed. Screen directions on an LTR board. */
+export type SwipeDir = "up" | "down" | "left" | "right";
+
+/**
+ * The cell one step from `index` in `dir`, or null at the board edge.
+ *
+ * It walks the ROW and COLUMN rather than adding ±1 / ±size to the index,
+ * because index arithmetic wraps: cell 5 on a 6-wide board plus one is cell 6,
+ * which is the first cell of the NEXT row and not a neighbour at all. That is
+ * the same edge case `areAdjacent` refuses, and a swipe off the right edge is
+ * exactly how a child finds it.
+ */
+export function neighbourIn(index: number, dir: SwipeDir, size: number): number | null {
+  const n = size * size;
+  if (!Number.isInteger(index) || index < 0 || index >= n) return null;
+  const r = Math.floor(index / size) + (dir === "down" ? 1 : dir === "up" ? -1 : 0);
+  const c = (index % size) + (dir === "right" ? 1 : dir === "left" ? -1 : 0);
+  if (r < 0 || c < 0 || r >= size || c >= size) return null;
+  return at(size, r, c);
+}
+
+/**
+ * Push a gem one cell in a direction — the same trade two taps make.
+ *
+ * It resolves the direction to a neighbour and hands straight to `swapAt`, so
+ * there is one implementation of what a swap DOES and a gesture cannot acquire
+ * rules of its own. A swipe off the edge is `ignored` and leaves the state
+ * untouched, selection included: nothing happened, so nothing changes.
+ */
+export function swipeCell(
+  state: Match3State,
+  index: number,
+  dir: SwipeDir,
+  rng: Rng = Math.random,
+): { state: Match3State; outcome: SwapOutcome } {
+  const target = neighbourIn(index, dir, state.size);
+  if (target === null) return { state, outcome: { kind: "ignored" } };
+  return swapAt(state, index, target, rng);
 }
 
 /**
