@@ -66,12 +66,22 @@ const DEAD_ZONE = 0.34;
  * copies of this pad — nobody chose that, it is just what two files do over
  * time, and it is the drift this component exists to end.
  *
- * 72 clears `--tap-kids` (64px, the age-five target of roughly 2cm) with room
- * to spare, which `direction-pad.test.ts` pins: this pad is drawn on a phone,
- * under a thumb, by a child, and a key that merely meets the adult 48px
- * minimum is the wrong size for all three.
+ * 88 is well past `--tap-kids` (64px, the age-five target of roughly 2cm), which
+ * `direction-pad.test.ts` pins as the FLOOR: this pad is drawn on a phone, under
+ * a thumb, by a child, and a key that merely meets the adult 48px minimum is the
+ * wrong size for all three.
+ *
+ * The CEILING is the phone. Three cells and two gaps must fit across the
+ * narrowest screen this platform targets (390px), which puts the hard limit at
+ * 124 — and the test pins that too, because the way this number goes wrong is
+ * one more "bigger please" pushing a key off the side where nobody looking at a
+ * desktop would see it. 88 spends 280 of those 390px and leaves a real margin.
  */
-export const PAD_CELL = 72;
+export const PAD_CELL = 88;
+
+/** The gap between keys. Exported so the width guard in the test measures the
+ *  pad that ships rather than a remembered copy of this arithmetic. */
+export const PAD_GAP = 8;
 
 /** The knob, as a fraction of the well it sits in. Big enough to be a thing
  *  you grab rather than a dot you aim at. */
@@ -186,7 +196,7 @@ export function DirectionPad(props: {
         display: "grid",
         gridTemplateColumns: `repeat(3, ${size}px)`,
         gridTemplateRows: `repeat(3, ${size}px)`,
-        gap: 8,
+        gap: PAD_GAP,
         touchAction: "none",
       }}
     >
