@@ -27,15 +27,36 @@
  *
  * ## What it therefore does
  *
- * - `client_storage: 'none'` is PRESENT and is NOT load-bearing, and this
- *   comment said the opposite for about ten minutes. Measured in a clean
- *   browser on the built artifact: with `analytics_storage: 'denied'` it sets
- *   zero cookies; with `'granted'` it sets `_ga` and `_ga_<id>` anyway, on
- *   every one of three pages, and supplying an explicit `client_id` does not
- *   change that. So the cookie is governed by CONSENT here, not by this
- *   parameter. It is kept because it costs nothing and is correct in the denied
- *   arm, and the claim about it is now what was observed rather than what the
- *   documentation implies.
+ * - `analytics_storage: 'denied'` plus `client_storage: 'none'`. Measured in a
+ *   clean browser on the built artifact: ZERO cookies, on every page tried, in
+ *   three languages. Flipping consent to `'granted'` sets `_ga` and
+ *   `_ga_<id>` regardless of `client_storage`, and an explicit `client_id`
+ *   does not prevent it - so the cookie is governed by CONSENT here, not by
+ *   that parameter, whatever the documentation implies.
+ *
+   This was briefly `'granted'` on 2026-08-20, and the round trip is the most
+ *   useful thing in this file, because BOTH moves were made on stale readings
+ *   from three different instruments in one hour:
+ *
+ *     - GA4 Realtime, read four times through a hash-route SPA that never
+ *       reloaded. It showed a control event for twenty minutes after that
+ *       event had stopped being current, and showed no pageviews - which is
+ *       what sent the config to `granted`. A genuinely fresh tab showed no
+ *       data under EITHER setting.
+ *     - `vite preview`, which served a cached `granted` document for several
+ *       minutes after the build on disk said `denied` - which produced a
+ *       measurement of "denied sets cookies too", contradicting the earlier
+ *       correct one and nearly sending the config back again.
+ *     - and before either, a compression probe that never sent
+ *       `Accept-Encoding` and reported a site serving brotli as uncompressed.
+ *
+ *   Every one of the three returned a confident, stable, wrong value that
+ *   looked exactly like a correct one. The settled measurement, taken after
+ *   killing the preview by pid and confirming the SERVED bytes matched the
+ *   disk: three pages, three languages, 204 on every collect, zero cookies.
+ *
+ *   Whether ANY of this reports is still unverified - see the note at the
+ *   bottom - and until it is, the setting stays where the operator put it.
  * - `consent default` DENIED for all three AD keys, so no ad identifier is sent.
  * - `analytics_storage: 'granted'`, and that word is doing something specific.
  *   It does NOT grant storage - `client_storage: 'none'` has already taken that
@@ -96,9 +117,30 @@ export function analyticsTag(base: string): string {
     `<script async src="https://www.googletagmanager.com/gtag/js?id=${id}"></script>` +
     `<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}` +
     `gtag('consent','default',{ad_storage:'denied',ad_user_data:'denied',` +
-    `ad_personalization:'denied',analytics_storage:'granted'});` +
+    `ad_personalization:'denied',analytics_storage:'denied'});` +
     `gtag('set','ads_data_redaction',true);gtag('js',new Date());` +
     `gtag('config','${id}',{client_storage:'none',allow_google_signals:false,` +
     `allow_ad_personalization_signals:false});</script>`
   );
 }
+
+/*
+ * UNVERIFIED, and deliberately left saying so.
+ *
+ * What was measured on 2026-08-20: the tag is on all 143 emitted documents and
+ * the app shell, absent from the 404 and from the whole noindex mirror; it
+ * loads `gtag/js` (200) and POSTs `/g/collect` (204) from a clean headless
+ * browser with no extensions; it sets no cookie.
+ *
+ * What was NOT measured: that any of it arrives in the GA4 property. Realtime
+ * showed nothing at 19:11, and GA4's Home still said "No data received from
+ * your website yet". Google documents a delay before a new property reports,
+ * and the site had not yet been deployed with the emitted-page half of the
+ * wiring, so an empty Realtime is the expected reading either way - which is
+ * exactly why it is not evidence of anything.
+ *
+ * The check, tomorrow: load ellaz.fun, open GA4 Realtime IN A FRESH TAB, and
+ * look. Still empty after 24h means the property's data stream is the thing to
+ * examine, not this file. A 204 means Google accepted the packet; it has never
+ * meant anybody counted it.
+ */
