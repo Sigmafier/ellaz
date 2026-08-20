@@ -91,11 +91,21 @@ export function check(repo) {
     if (!ds.some((d) => d.file === r.file)) { problems.push({ kind: "GHOST", text: `${LEDGER} names ${r.file}, which does not exist` }); continue; }
     if (!STATUSES.includes(r.status)) { problems.push({ kind: "UNREADABLE", text: `${r.surface}: status "${r.status}" is not one of ${STATUSES.join("/")}` }); continue; }
     const claimed = ds.find((d) => d.file === r.file).claimed;
-    // A file holding several surfaces (launch.md holds two) can legitimately be
-    // "draft" overall while one row is fired - so only the reverse is a defect:
-    // a draft that says it was sent while its row still says draft.
-    if (claimed !== "draft" && r.status === "draft")
-      problems.push({ kind: "DISAGREE", text: `${r.file} says "${claimed}" but ${r.surface} is still "draft" in the ledger` });
+    // A file holding several surfaces (dev.md holds three, launch.md two) can
+    // legitimately be "draft" overall while one row is fired - so only the reverse
+    // is a defect: a draft that says it was SENT while no row of its own agrees.
+    //
+    // The comparison is against the file's rows AS A SET, not row by row. Row by
+    // row it reported dev.md - correctly marked fired for PR #465, which is open
+    // on a 4,900-star list right now - as disagreeing with its own two unfired
+    // siblings. That reading makes the honest header the one the gate refuses, so
+    // the header goes back to claiming everything is a draft, which is precisely
+    // the "a draft cannot be its own record" failure this file exists to stop.
+    // (2026-08-20, found the day #465 turned out to have been open for eight days
+    // under a header saying nothing was opened.)
+    const anyFired = rs.some((x) => x.file === r.file && x.status !== "draft");
+    if (claimed !== "draft" && !anyFired)
+      problems.push({ kind: "DISAGREE", text: `${r.file} says "${claimed}" but no surface of its own is fired in the ledger` });
     if ((r.status === "fired" || r.status === "spent") && (!/\d/.test(r.fired ?? "") || !/\d/.test(r.due ?? "")))
       problems.push({ kind: "UNDATED", text: `${r.surface} is "${r.status}" with no fired date and verdict date - a verdict that is not scheduled is not taken` });
   }

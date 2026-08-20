@@ -49,7 +49,7 @@ Pick a morning when there are two or three hours free afterwards; do not post it
 **Title** (theirs must begin with `Show HN:`):
 
 ```
-Show HN: Ellaz - 33 browser games for kids, Hebrew and English, no accounts or ads
+Show HN: Ellaz - 33 browser games for kids in four languages, no accounts or ads
 ```
 
 **First comment** - posted immediately after submitting, as their tips describe:
@@ -107,7 +107,7 @@ no launch, and it cannot be repeated.
 
 ```
 Ellaz is a games site for children and the adults playing beside them. Thirty-three
-games, in Hebrew and English, on a phone, a tablet or a PC.
+games, in Hebrew, English, Spanish and French, on a phone, a tablet or a PC.
 
 Nothing to install and nothing to sign up for. No ads, no in-app purchases, no
 tracking identity, and every game works offline once the page has loaded.
@@ -175,7 +175,8 @@ If it goes ahead:
 **Description**:
 
 ```
-A free browser games site for kids and adults. 33 games in Hebrew and English,
+A free browser games site for kids and adults. 33 games in Hebrew, English,
+Spanish and French,
 playable on phone, tablet and PC. No account, no ads, no tracking, and it works
 offline. Open source, MIT.
 ```

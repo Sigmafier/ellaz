@@ -30,7 +30,7 @@ reverses a correct strategy (`seo-doctrine` SEO11).
 
 | Surface | Draft | Status | Fired | Verdict due | Notes |
 |---|---|---|---|---|---|
-| awesome-pwa (list PR) | `dev.md` | draft | — | — | list merges in batches, last 2026-08-10; PR #441 in the same section unmerged 35 days |
+| awesome-pwa (list PR) | `dev.md` | fired | 2026-08-12 | 2026-11-10 | **PR [#465](https://github.com/hemanth/awesome-pwa/pull/465), open, mergeable.** Found already open on 2026-08-20 while preparing to open it — the draft said "nothing is opened" for eight days. Entry corrected the same day: it advertised 23 games in Hebrew and English. List batches merges; last batch 2026-08-10, 10 PRs queued |
 | awesome-phaser (list PR) | `dev.md` | dropped | — | — | dormant 16 months, every open PR unanswered. Ranked by merge recency, not stars |
 | dev.to article | `dev.md` | draft | — | — | operator's to publish or discard |
 | Hebrew communities ×3 | `hebrew.md` | draft | — | — | rules must be re-read on the day of posting |

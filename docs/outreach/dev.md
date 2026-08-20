@@ -1,6 +1,6 @@
 # Developer surfaces - two list PRs and one article
 
-**Status**: drafts. **Nothing is opened and nothing is published.** Both pull requests go
+**Status**: fired. **PR #465 is OPEN** (awesome-pwa, since 2026-08-12; entry corrected 2026-08-20). The phaser PR and the article are still drafts. Both pull requests go
 out under the operator's GitHub account, so each one waits for an explicit ACK naming that
 list. The article is the operator's to publish or to discard.
 
@@ -78,7 +78,7 @@ One line, `README.md`, inserted after `Cybercar` (line 168) and before `Falling 
 
 ```diff
   * [Cybercar](https://cybercar.pages.dev): Free neon arcade survival game with power-ups, unlockable themes, boss battles, and global leaderboard.
-+ * [Ellaz](https://ellaz.fun/): 33 free browser games for kids and adults in Hebrew and English, works offline, no account and no ads.
++ * [Ellaz](https://ellaz.fun/): 33 free browser games for kids and adults in Hebrew, English, Spanish and French, works offline, no account and no ads.
   * [Falling Nikochan](https://nikochan.utcode.net): Simple and cute rhythm game, where anyone can create and share charts.
 ```
 
@@ -97,7 +97,8 @@ Nothing else changes. The table of contents lists sections, not entries, so it n
 ```
 Adds Ellaz to Games and Entertainment.
 
-https://ellaz.fun/ - 33 browser games, Hebrew and English, installable, works
+https://ellaz.fun/ - 33 browser games, in Hebrew, English, Spanish and French,
+installable, works
 offline. No account, no ads, no analytics identity. Open source, MIT.
 
 I ran scripts/check-pwa.mjs against the entry before opening this: it passes

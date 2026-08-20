@@ -82,8 +82,8 @@ phone, a tablet or a computer, and it works offline once it has loaded.
 One honest thing: the expert board frustrates most adults, and that is on purpose. Start
 at the animals with a young child and move up when they ask to.
 
-This page is one game out of 33. The rest live at https://ellaz.fun - in Hebrew and
-English, with a room you decorate using coins the games pay out.
+This page is one game out of 33. The rest live at https://ellaz.fun - in Hebrew,
+English, Spanish and French, with a room you decorate using coins the games pay out.
 
 Your coins and your room live at ellaz.fun. This page is a copy of one game, so progress
 here may not be saved between visits. Everything is free in both places.
@@ -93,7 +93,10 @@ here may not be saved between visits. Everything is free in both places.
 `puzzle` `sudoku` `casual` `family-friendly` `kids` `html5` `mobile` `relaxing`
 `no-ads` `singleplayer`
 
-**Languages**: English, Hebrew. **Inputs**: Mouse, Touchscreen, Keyboard.
+**Languages**: English. (`standalone.html` is hardcoded `lang="en"`, so the uploaded
+bundle resolves one shipped locale and it is English. The SITE has four written
+languages; this listing describes the BUNDLE, and promising Hebrew here would ship a
+listing the download cannot honour.) **Inputs**: Mouse, Touchscreen, Keyboard.
 **Accessibility**: Interactive tutorial / One button (both true; do not tick colour-blind
 support, which has not been tested).
 
@@ -124,8 +127,8 @@ the board is still there.
 One honest thing: this mechanic is thirty seconds to learn and roughly forever to put
 down. It is not a game to hand a child ten minutes before bedtime.
 
-This page is one game out of 33. The rest live at https://ellaz.fun - in Hebrew and
-English, with a room you decorate using coins the games pay out.
+This page is one game out of 33. The rest live at https://ellaz.fun - in Hebrew,
+English, Spanish and French, with a room you decorate using coins the games pay out.
 
 Your coins and your room live at ellaz.fun. This page is a copy of one game, so progress
 here may not be saved between visits. Everything is free in both places.
@@ -163,8 +166,8 @@ One honest thing: this is the largest of our games to load, because it is the on
 that runs on a game engine rather than plain web pages. On a slow connection give it a
 few seconds the first time.
 
-This page is one game out of 33. The rest live at https://ellaz.fun - in Hebrew and
-English, with a room you decorate using coins the games pay out.
+This page is one game out of 33. The rest live at https://ellaz.fun - in Hebrew,
+English, Spanish and French, with a room you decorate using coins the games pay out.
 
 Your coins and your room live at ellaz.fun. This page is a copy of one game, so progress
 here may not be saved between visits. Everything is free in both places.

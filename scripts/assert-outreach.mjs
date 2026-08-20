@@ -96,6 +96,15 @@ function facts() {
 
   const locales = read("src/i18n/locales.ts");
   const pageLocales = constArrayLength(locales, "PAGE_LOCALES");
+  // The NAMES, not just how many. A count matcher cannot see "in Hebrew and
+  // English" - there is no digit in it - which is how that exact phrase rode an
+  // open pull request on a 4,900-star list for eight days while every check here
+  // stayed green, and how the repository's own About box was wrong for weeks. The
+  // set of languages a reader is promised is a claim like any other.
+  const pageLangs = ((locales.match(/export const PAGE_LOCALES = \[([^\]]*)\]/) ?? [, ""])[1]
+    .match(/"([a-z-]+)"/g) ?? []).map((s) => s.replace(/"/g, ""));
+  if (pageLangs.length !== pageLocales)
+    throw new Error(`assert-outreach: read ${pageLangs.length} PAGE_LOCALES names but ${pageLocales} entries.`);
   const appLocales = constArrayLength(locales, "APP_LOCALES");
 
   // A page per game plus home, world and boards, per page language. Derived
@@ -132,7 +141,7 @@ function facts() {
   // the one figure that moves when EITHER of its two inputs does.
   const spareB = firstVisitB === null ? null : ceiling - firstVisitB;
 
-  return { games, kidsGames, pageLocales, appLocales, pages, ceiling, firstVisitB, spareB };
+  return { games, kidsGames, pageLocales, pageLangs, appLocales, pages, ceiling, firstVisitB, spareB };
 }
 
 /* --------------------------------------------------------------- spelling */
@@ -305,13 +314,78 @@ function corpus(dir) {
     });
 }
 
+/* --------------------------------------------------- the languages we promise */
+
+// English names for the locales this site can WRITE in, plus the app-only ones a
+// draft might name by mistake. Only the page set may be advertised as a language
+// the site is available in - the interface speaks eleven, the prose exists in four.
+const LANG_NAME = {
+  en: "English", he: "Hebrew", es: "Spanish", fr: "French", pt: "Portuguese",
+  de: "German", ar: "Arabic", it: "Italian", ru: "Russian", tr: "Turkish",
+  id: "Indonesian",
+};
+
+/**
+ * Find every place a draft LISTS languages by name - "in Hebrew and English",
+ * "Hebrew, English, Spanish and French" - and require the set to be the whole
+ * page set. A proper SUBSET is the failure: it undersells the site and, worse,
+ * it is the shape that goes stale silently, because no digit ever changes.
+ *
+ * A run of ONE name is left alone on purpose. "the Hebrew press letter" and "a
+ * Spanish-speaking reader" are ordinary sentences, and a gate that reds on them
+ * is a gate somebody switches off - the lesson the French glossary already cost
+ * us three times (`.claude/rules/a-gate-that-reds-on-day-one-teaches-you-to-ignore-it.md`).
+ */
+function languageRuns(text, pageLangs) {
+  const names = Object.values(LANG_NAME).join("|");
+  const re = new RegExp(`\\b(?:${names})(?:\\s*(?:,|and|&|\\+)\\s*(?:${names}))+`, "g");
+  const want = new Set(pageLangs.map((l) => LANG_NAME[l]).filter(Boolean));
+  const out = [];
+  for (const m of text.matchAll(re)) {
+    const got = new Set(m[0].match(new RegExp(names, "g")) ?? []);
+    const missing = [...want].filter((w) => !got.has(w));
+    // Only a SUBSET of what we can write is a defect. A run naming languages we
+    // do not publish in is a different claim (an app-locale list, a roadmap) and
+    // is not this check's business.
+    if (missing.length && [...got].every((g) => want.has(g))) {
+      out.push({ found: m[0], missing, index: m.index });
+    }
+  }
+  return out;
+}
+
 function run(dir, f, fix = FIX) {
   const files = corpus(dir);
   if (files.length === 0) throw new Error(`assert-outreach: no markdown under ${dir}.`);
 
   const drift = [];
   const blind = [];
+  const langs = [];
   const edited = new Map();
+
+  // The language-name check runs over the SAME blanked text as the numbers, so a
+  // historical passage marked outreach-facts:off is exempt from both.
+  let langRuns = 0;
+  for (const file of files) {
+    for (const hit of languageRuns(file.scan, f.pageLangs)) {
+      langRuns++;
+      langs.push({
+        file: file.name,
+        line: file.scan.slice(0, hit.index).split("\n").length,
+        found: hit.found,
+        missing: hit.missing,
+      });
+    }
+    langRuns += 0;
+  }
+  // The positive control. The corpus describes the site's languages somewhere, so
+  // a matcher that finds no RUN at all - not even a correct one - is blind rather
+  // than satisfied. Counted separately from the failures above.
+  const anyRun = files.some((file) => {
+    const names = Object.values(LANG_NAME).join("|");
+    return new RegExp(`\\b(?:${names})(?:\\s*(?:,|and|&|\\+)\\s*(?:${names}))+`).test(file.scan);
+  });
+  if (!anyRun) blind.push("languages - no draft lists the site's languages by name; the matcher is reading nothing");
 
   for (const claim of CLAIMS) {
     const want = f[claim.fact];
@@ -382,7 +456,7 @@ function run(dir, f, fix = FIX) {
   if (fix) for (const [name, text] of edited) writeFileSync(join(dir, name), text);
 
   const skipped = files.reduce((n, f) => n + f.regions, 0);
-  return { drift, blind, broken, skipped, edited: [...edited.keys()] };
+  return { drift, blind, broken, langs, skipped, edited: [...edited.keys()] };
 }
 
 function report(f, r) {
@@ -400,6 +474,9 @@ function report(f, r) {
   for (const b of r.broken) {
     console.log(`FALSE  "${b.id}" appears ${b.hits}x and no longer holds - ${b.say}`);
   }
+  for (const l of r.langs) {
+    console.log(`LANGS  ${l.file}:${l.line}  "${l.found}" - the site also has ${l.missing.join(", ")}`);
+  }
 
   // The LEDGER half. A number goes stale on its own because the tree moved; a
   // status goes stale because a PERSON did something and did not write it down,
@@ -414,7 +491,7 @@ function report(f, r) {
   console.log(`${RECORDS.size} record(s) frozen and not rewritten: ${[...RECORDS].join(", ")}`);
   if (r.edited.length) console.log(`\nrewrote ${r.edited.length} file(s): ${r.edited.join(", ")}`);
 
-  const bad = r.blind.length + r.drift.length + r.broken.length + led.problems.length;
+  const bad = r.blind.length + r.drift.length + r.broken.length + r.langs.length + led.problems.length;
   if (bad === 0) {
     console.log("OK  every quoted number matches the tree, and every surface has a row.");
     return 0;
@@ -501,6 +578,24 @@ function control(f) {
     } else {
       check("the record control had a record to run against", false, true);
     }
+
+    // The language check, both arms. A subset must be caught and the FULL set must
+    // not - a matcher that reds on every language run is indistinguishable from one
+    // that reds on the right ones until you show it a correct sentence it accepts.
+    const langVictim = join(dir, "launch.md");
+    const lBefore = readFileSync(langVictim, "utf8");
+    writeFileSync(langVictim, lBefore + "\n\nAvailable in Hebrew and English.\n");
+    const subset = run(dir, f);
+    check("a language SUBSET is caught", subset.langs.some((l) => l.file === "launch.md"), true);
+    const full = f.pageLangs.length === 4 ? "Hebrew, English, Spanish and French" : null;
+    if (full) {
+      writeFileSync(langVictim, lBefore + `\n\nAvailable in ${full}.\n`);
+      const whole = run(dir, f);
+      check("the FULL set is accepted", whole.langs.length, 0);
+    } else {
+      check("the control knew how many page languages there are", false, true);
+    }
+    writeFileSync(langVictim, lBefore);
 
     // The predicate must be able to answer BOTH ways against the same prose.
     // A control that only ever produces the failing reading cannot tell a
