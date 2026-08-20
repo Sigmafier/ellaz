@@ -327,6 +327,80 @@ function main() {
 
   // The other delivery path. Runs last so its failure is the last thing printed.
   checkIndexHtml();
+  checkPageCacheIsEmptiable();
+}
+
+/**
+ * The runtime PAGE cache must be emptiable, and here is why that belongs in a
+ * gate rather than in a comment.
+ *
+ * `ellaz-pages` is a NetworkFirst cache of whole DOCUMENTS with a 30-day life.
+ * Workbox's own `cleanupOutdatedCaches` cleans the PRECACHE and nothing else,
+ * so until `sw-purge.js` existed a returning visitor whose network took longer
+ * than the 3-second timeout was served a page from whatever build happened to
+ * be cached - possibly a month old - while the server served today's.
+ *
+ * That is this repo's recurring shape one layer further in: correct for every
+ * population we can check (curl, a fresh browser, a crawler, assert-live) and
+ * wrong for returning players, who are most of them. It cost a live deploy that
+ * was correct, verified and reported as never having shipped.
+ *
+ * Three ways for it to rot silently, so three assertions. The nastiest is the
+ * third: a purge script that deletes the WRONG cache name runs, throws nothing,
+ * logs nothing, and reads exactly like one that works.
+ */
+function checkPageCacheIsEmptiable() {
+  const sw = readFileSync(join(DIST, "sw.js"), "utf8");
+  const problems = [];
+
+  const imports = /importScripts\(\s*["']sw-purge\.js["']/.test(sw);
+  if (!imports) problems.push("sw.js does not import sw-purge.js - nothing ever empties ellaz-pages");
+
+  const purgePath = join(DIST, "sw-purge.js");
+  let purge = "";
+  if (!existsSync(purgePath)) {
+    problems.push("sw-purge.js is missing from the build - sw.js imports a file that is not there");
+  } else {
+    purge = readFileSync(purgePath, "utf8");
+    if (!/addEventListener\(\s*["']activate["']/.test(purge))
+      problems.push("sw-purge.js has no activate handler - it would never run");
+    if (!/caches\.delete\(\s*["']ellaz-pages["']\s*\)/.test(purge))
+      problems.push("sw-purge.js does not delete ellaz-pages - it deletes nothing and reads as if it does");
+  }
+
+  // It must not ALSO be precached: sw.js stores an imported script with the
+  // registration, so a precache entry is a second copy on every first visit -
+  // and the ALLOWLIST above is what would red on it.
+  if (/url:"sw-purge\.js"/.test(sw))
+    problems.push("sw-purge.js is precached as well as imported - add it to globIgnores");
+
+  // Negative controls, run against the SAME matchers, because every assertion
+  // above passes vacuously if a regex quietly stopped matching.
+  const controls = [
+    ["an sw.js importing nothing", !/importScripts\(\s*["']sw-purge\.js["']/.test("precacheAndRoute([]);")],
+    [
+      "a purge deleting the wrong cache",
+      !/caches\.delete\(\s*["']ellaz-pages["']\s*\)/.test(
+        'self.addEventListener("activate",(e)=>e.waitUntil(caches.delete("ellaz-games")));',
+      ),
+    ],
+    ["a purge with no activate handler", !/addEventListener\(\s*["']activate["']/.test('caches.delete("ellaz-pages");')],
+    ["a purge that is precached too", /url:"sw-purge\.js"/.test('precacheAndRoute([{url:"sw-purge.js",revision:null}]);')],
+  ];
+  const fired = controls.filter(([, ok]) => ok).length;
+  console.log(`negative control: ${fired}/${controls.length} planted defects detected`);
+  if (fired !== controls.length) {
+    for (const [name, ok] of controls) if (!ok) console.error(`  DEAD: ${name}`);
+    console.error("FAIL  a matcher did not fire on a planted defect. Every result above is void.");
+    process.exit(1);
+  }
+
+  if (problems.length > 0) {
+    console.error("\nFAIL  the runtime page cache can never be emptied:");
+    for (const m of problems) console.error(`  ${m}`);
+    process.exit(1);
+  }
+  console.log("OK  a new build empties the runtime page cache.");
 }
 
 main();

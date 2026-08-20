@@ -3,6 +3,7 @@ import { gamePage } from "./gamePage";
 import { boardsPage, homePage, worldPage } from "./sitePages";
 import { GAMES } from "../portal/games";
 import { snake as snakeContent } from "../content/games/snake";
+import { DOCUMENT_CSS } from "./layout";
 
 /**
  * The three screens that hold a playable surface - a game, the room, the
@@ -201,5 +202,53 @@ describe("a document is NOT a screen", () => {
     expect(home).not.toMatch(/<body class="screen"/);
     expect(home).not.toContain("data-fullscreen");
     expect(home).not.toContain('class="hbtn home"');
+  });
+});
+
+describe("the breadcrumb on the utility row", () => {
+  /* Declarations only. Every colour word below also appears in the comment
+     explaining it, and a matcher that cannot tell those apart either fails on
+     its own documentation or passes on the real thing. */
+  const declarations = DOCUMENT_CSS.replace(/\/\*[\s\S]*?\*\//g, "");
+  const rule = (() => {
+    const m = /body\.screen \.urow \.bc\{([^}]*)\}/.exec(declarations);
+    expect(m, "the utility row's breadcrumb rule is missing").not.toBeNull();
+    return m![1];
+  })();
+
+  it("is a PILL, not a line of text", () => {
+    // The regression this exists for is a deletion, and it renders perfectly:
+    // plain text on the page ground, which is what shipped and was reported
+    // as "the header we decided is not live". Nothing else here would see it.
+    expect(rule).toMatch(/border-radius:\s*99px/);
+    expect(rule).toMatch(/padding:\s*7px 16px/);
+  });
+
+  it("takes both colours from the theme, never a literal", () => {
+    // The subtle mutation, and the one that looks correct in a screenshot: a
+    // hardcoded dark chip with cream text is a dark chip on a DARK ground for
+    // everyone on the night theme - legible in exactly one theme, which is the
+    // trap the pause cover carries a comment about. Inverting the doc tokens
+    // cannot go wrong in either.
+    expect(rule).toMatch(/background:[^;]*var\(--doc-ink\)/);
+    expect(rule).toMatch(/color:\s*var\(--doc-bg\)/);
+    expect(rule, "a literal colour is legible in one theme only").not.toMatch(/#[0-9a-f]{3,8}/i);
+  });
+
+  it("hugs its words and still survives the longest trail", () => {
+    // flex:1 1 auto stretches the pill the whole width of the row, which reads
+    // as a second bar rather than a chip. And without the ellipsis a long
+    // locale (French runs longest) overflows a row that clips rather than
+    // scrolls - the defect a-row-that-grows-with-the-catalog-must-wrap.md is
+    // about, one component over.
+    expect(rule).toContain("flex:0 1 auto");
+    expect(rule).toContain("margin-inline-end:auto");
+    expect(rule).toContain("text-overflow:ellipsis");
+  });
+
+  it("gives the link the pill's own colour", () => {
+    // The page's brand pink on a near-black pill is the one combination here
+    // that is actually unreadable, and "Home" is a link.
+    expect(declarations).toMatch(/body\.screen \.urow \.bc a\{[^}]*color:inherit/);
   });
 });

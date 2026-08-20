@@ -254,8 +254,30 @@ body[data-page="game"] #game-frame,body[data-page="world"] #game-frame{flex:0 0 
    See .claude/rules/game-controls-and-platform-chrome-never-share-a-bar.md */
 body.screen .urow{display:flex;align-items:center;gap:10px;height:var(--uh);
   padding-inline:var(--hpad);background:var(--doc-bg)}
-body.screen .urow .bc{margin:0;flex:1 1 auto;min-width:0;white-space:nowrap;
-  overflow:hidden;text-overflow:ellipsis}
+/* A PILL, not a line of text - restored 2026-08-20 to the arrangement that was
+   approved. It went plain when the row stopped floating over the board, and
+   nothing needed it to: the reason the old one was removed was WHERE it sat,
+   never what it looked like.
+
+   The two colours are the doc tokens INVERTED, never literals. The app ships a
+   cream theme and a night one, so a hardcoded dark chip with cream text is a
+   dark chip on a dark ground for half the catalogue's readers - the same trap
+   the pause cover carries a comment about. Inverting the pair cannot go wrong
+   in either: whatever the page is, the pill is its opposite.
+
+   flex:0 1 auto plus margin-inline-end:auto makes it hug its own words and
+   push the tools to the far edge, and it still shrinks and ellipsises rather
+   than overflowing when a locale spells the trail long (French runs longest).
+   Logical properties, so RTL flips it for free. */
+body.screen .urow .bc{margin:0;flex:0 1 auto;margin-inline-end:auto;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  padding:7px 16px;border-radius:99px;font-weight:700;
+  background:var(--doc-ink);
+  background:color-mix(in srgb,var(--doc-ink) 82%,transparent);
+  color:var(--doc-bg)}
+/* The trail reads as one object, so the link takes the pill's colour rather
+   than the page's brand pink, which on this ground is unreadable. */
+body.screen .urow .bc a{color:inherit}
 body.screen .urow .tools{display:flex;align-items:center;gap:8px;flex:0 0 auto}
 .ubtn{display:inline-flex;align-items:center;justify-content:center;
   width:var(--tap);height:var(--tap);flex:0 0 auto;border:0;padding:0;
