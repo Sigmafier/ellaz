@@ -21,7 +21,9 @@
     "build:standalone": "vite build --config vite.standalone.config.ts",
     "assert:standalone": "node scripts/assert-standalone.mjs",
     "assert:outreach": "node scripts/assert-outreach.mjs",
-    "assert:outreach:control": "node scripts/control/outreach-ledger-control.mjs && node scripts/assert-outreach.mjs --control"
+    "assert:outreach:control": "node scripts/control/outreach-ledger-control.mjs && node scripts/assert-outreach.mjs --control",
+    "reach:links": "node scripts/reach/gsc-links.mjs",
+    "reach:links:control": "node scripts/reach/gsc-links.mjs --control"
   },
   "dependencies": {
     "phaser": "^4.2.1",
