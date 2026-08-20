@@ -353,13 +353,13 @@ function checkPageCacheIsEmptiable() {
   const sw = readFileSync(join(DIST, "sw.js"), "utf8");
   const problems = [];
 
-  const imports = /importScripts\(\s*["']sw-purge\.js["']/.test(sw);
-  if (!imports) problems.push("sw.js does not import sw-purge.js - nothing ever empties ellaz-pages");
+  const named = /importScripts\(\s*["']([^"']*sw-purge-[0-9a-f]+\.js)["']/.exec(sw);
+  if (!named) problems.push("sw.js does not import a hashed sw-purge script - nothing ever empties ellaz-pages");
 
-  const purgePath = join(DIST, "sw-purge.js");
+  const purgePath = named ? join(DIST, named[1]) : null;
   let purge = "";
-  if (!existsSync(purgePath)) {
-    problems.push("sw-purge.js is missing from the build - sw.js imports a file that is not there");
+  if (!purgePath || !existsSync(purgePath)) {
+    if (named) problems.push(`${named[1]} is missing from the build - sw.js imports a file that is not there`);
   } else {
     purge = readFileSync(purgePath, "utf8");
     if (!/addEventListener\(\s*["']activate["']/.test(purge))
@@ -371,13 +371,17 @@ function checkPageCacheIsEmptiable() {
   // It must not ALSO be precached: sw.js stores an imported script with the
   // registration, so a precache entry is a second copy on every first visit -
   // and the ALLOWLIST above is what would red on it.
-  if (/url:"sw-purge\.js"/.test(sw))
-    problems.push("sw-purge.js is precached as well as imported - add it to globIgnores");
+  if (/url:"[^"]*sw-purge-[0-9a-f]+\.js"/.test(sw))
+    problems.push("the purge script is precached as well as imported - add it to globIgnores");
 
   // Negative controls, run against the SAME matchers, because every assertion
   // above passes vacuously if a regex quietly stopped matching.
   const controls = [
-    ["an sw.js importing nothing", !/importScripts\(\s*["']sw-purge\.js["']/.test("precacheAndRoute([]);")],
+    ["an sw.js importing nothing", !/importScripts\(\s*["'][^"']*sw-purge-[0-9a-f]+\.js["']/.test("precacheAndRoute([]);")],
+    // An UNHASHED name is the regression: it shipped once, and the .htaccess
+    // rule meant to protect it measurably did not apply, pinning for a year a
+    // file a service worker fetches through the ordinary HTTP cache.
+    ["an unhashed purge script", !/importScripts\(\s*["'][^"']*sw-purge-[0-9a-f]+\.js["']/.test('importScripts("sw-purge.js")')],
     [
       "a purge deleting the wrong cache",
       !/caches\.delete\(\s*["']ellaz-pages["']\s*\)/.test(
@@ -385,7 +389,7 @@ function checkPageCacheIsEmptiable() {
       ),
     ],
     ["a purge with no activate handler", !/addEventListener\(\s*["']activate["']/.test('caches.delete("ellaz-pages");')],
-    ["a purge that is precached too", /url:"sw-purge\.js"/.test('precacheAndRoute([{url:"sw-purge.js",revision:null}]);')],
+    ["a purge that is precached too", /url:"[^"]*sw-purge-[0-9a-f]+\.js"/.test('precacheAndRoute([{url:"assets/sw-purge-deadbeef.js",revision:null}]);')],
   ];
   const fired = controls.filter(([, ok]) => ok).length;
   console.log(`negative control: ${fired}/${controls.length} planted defects detected`);

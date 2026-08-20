@@ -57,6 +57,35 @@ ALSO precached. The third is the nasty one: a purge naming the wrong cache runs,
 nothing, logs nothing, and reads exactly like one that works. Four negative controls,
 because every assertion here passes vacuously if a regex quietly stops matching.
 
+## The name carries a hash, and that is a fix rather than tidiness
+
+The first version shipped as a bare `sw-purge.js` at the root, held out of the
+year-long `immutable` rule for `*.js` by naming it in the `.htaccess`. **Measured on
+the live server, that did not work:**
+
+```
+sw.js                  no-cache, must-revalidate     <- same FilesMatch
+manifest.webmanifest   no-cache, must-revalidate     <- same FilesMatch
+404.html               no-cache, must-revalidate     <- same FilesMatch
+sw-purge.js            public, max-age=31536000, immutable
+```
+
+Three files took the rule and the fourth did not, hours after the deploy that
+carried it, with the block order correct and the regex right. A service worker
+fetches its imported scripts through the **ordinary HTTP cache** (`updateViaCache`
+defaults to `"imports"`), so that is a file nobody could ever fix.
+
+The three correct rows are what make this diagnosable at all - a control inside the
+measurement, rather than beside it. Without `sw.js` in the same block reading
+correctly, "a header is wrong" could not be narrowed to "this narrowing did not take".
+
+**A hash in the name removes the dependency on the header instead of arguing with
+it.** `immutable` becomes correct, because a changed file is a new file - the same
+property everything under `assets/` already has, and the same one the deploy leans on:
+*the thing deciding what to send must not be able to be wrong about what is already
+there.* The `.htaccess` special case is gone with it, which matters for the next
+reader: a rule naming a file it does not actually govern reads as covered.
+
 ## Where the file lives, and why not `public/`
 
 `public/` is copied by the STANDALONE build too, and `assert-standalone.mjs` refuses a

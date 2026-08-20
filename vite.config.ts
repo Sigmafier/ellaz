@@ -1,4 +1,5 @@
 import { defineConfig, type PluginOption } from "vite";
+import { createHash } from "node:crypto";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import { fileURLToPath, URL } from "node:url";
@@ -88,13 +89,34 @@ const base = process.env.BASE_PATH ?? "/";
    deploy is no longer available offline until it is visited online once more.
    The shell at `/` is precached and unaffected. A page from a build that no
    longer exists is worth strictly less than that. */
-const SW_PURGE_FILE = "sw-purge.js";
+
 const SW_PURGE_SOURCE = `// Emitted by vite.config.ts - see the note beside SW_PURGE_SOURCE there.
 // Imported by sw.js, so it runs in the service worker and not in any page.
 self.addEventListener("activate", (event) => {
   event.waitUntil(caches.delete("ellaz-pages"));
 });
 `;
+
+/* CONTENT-HASHED, and that is a fix rather than tidiness.
+   The first version shipped as a bare `sw-purge.js` at the root, relying on a
+   FilesMatch in the .htaccess to hold it out of the year-long immutable rule
+   that every other .js gets. Measured on the live server: sw.js, 404.html and
+   manifest.webmanifest all took the no-cache rule from that same block and
+   sw-purge.js did not, so the file a service worker imports through the
+   ORDINARY HTTP CACHE (updateViaCache defaults to "imports") was pinned for a
+   year - a file that could never be fixed, which is the exact trap this repo
+   keeps writing rules about.
+
+   A hash in the name removes the dependency on the header instead of arguing
+   with it: immutable becomes CORRECT, because a changed file is a new file.
+   Same reason everything under assets/ is hashed, and the same property the
+   deploy relies on - the thing deciding what to send cannot be wrong about
+   what is already there. It lives in assets/ so the upload's mirror pass,
+   which is exact only there, is what carries it. */
+const SW_PURGE_FILE = `assets/sw-purge-${createHash("sha256")
+  .update(SW_PURGE_SOURCE)
+  .digest("hex")
+  .slice(0, 8)}.js`;
 
 /** Writes the script above into the build so `importScripts` has something to
  *  import. It is emitted here rather than dropped in `public/` for one reason:
@@ -148,8 +170,8 @@ export default defineConfig({
       },
       workbox: {
         // Relative, so it resolves against sw.js's own URL and is therefore
-        // right under both bases - `/sw-purge.js` on Hostinger and
-        // `/ellaz/sw-purge.js` on Pages - with no BASE_PATH branch to get wrong.
+        // right under both bases - `/assets/sw-purge-<hash>.js` on Hostinger and
+        // `/ellaz/assets/...` on Pages - with no BASE_PATH branch to get wrong.
         importScripts: [SW_PURGE_FILE],
         // THE MOST DANGEROUS LINE IN THIS FILE, and it is a deletion.
         //
@@ -196,7 +218,7 @@ export default defineConfig({
           // the registration, so precaching it as well would ship a second copy to
           // every first visit for nothing - and `assert-first-visit.mjs` is an
           // ALLOWLIST, so it reds rather than letting that pass quietly.
-          SW_PURGE_FILE,
+          "**/sw-purge-*.js",
           "**/game-*.js",
           "**/vendor-phaser-*.js",
           "**/vendor-analytics-*.js",
