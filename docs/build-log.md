@@ -1340,6 +1340,76 @@ Full record: [`docs/outreach/audit.md`](outreach/audit.md). Rule:
 
 ---
 
+## Reach: a doctrine for the half of being found that is not the site (2026-08-20)
+
+**The audit came back clean on everything a gate here can reach, and that was the
+finding.** Fetched live as Googlebot: the home serves 197 words, 38 links and one
+`h1`; `/he/`, `/es/`, `/fr/`, both snake pages, the room and the boards all serve
+real prose; 144 sitemap URLs each with a `lastmod`; hreflang reciprocal with
+`x-default` on the English home; `HEAD` and `GET` agree; `/nope/` returns 404 with
+a body byte-identical to `404.html`; the Pages mirror still `noindex` and
+`Disallow: /`. Eleven of thirteen crawler agents get 200.
+
+So the site is not the problem. **Nothing has ever been done with it.** Eight
+outreach drafts, none fired. No link report ever read. A repository description
+that has been wrong in public for weeks while every check of the *link* passed.
+
+### What was built
+
+`reach-doctrine` and `reach-playbook` in the doctrine console, with `seo-doctrine`
+now inheriting the first — so a session loading only the SEO book still carries
+the cross-channel law. Seven routines, one per channel: SEO, AEO, GEO, backlinks
+and curated lists, social and community, launch surfaces and portals, and
+measuring any of it. 34 citations, 0 broken; roughly half the steps are `ref`s
+into `seo-playbook` rather than copies, so rewording a step there updates every
+channel that reuses it. Ten clauses sit in the tray as proposals.
+
+Two new bands, and the distinction they draw is the useful part: **everything
+above them is a machine deciding whether to show us, and these two are a person
+deciding.** A machine can be satisfied by construction, which is why it is
+gateable. A moderator cannot, the cost of getting it wrong is the account rather
+than a ranking, and nothing under those bands can be gamed by markup.
+
+### Three instrument failures, in one afternoon, all in our favour to catch
+
+**A compression probe reported no encoding on four URLs** and named it a real
+performance defect. It had never sent an `Accept-Encoding` header. Every page is
+brotli. The reading was stable, repeated and confident, which is exactly what a
+correct reading looks like.
+
+**A `site:` query returned ten results, none of them this site**, beside a claim
+of 102,000 — an engine serving generic content to a script-shaped client, with
+nothing in the response saying so. That is why `scripts/reach/gsc-links.mjs`
+reads Search Console's own export and exits 2 with UNMEASURED rather than 0.
+Zero is a finding; unmeasured is a gap; a script printing 0 because it could not
+read its input has told a lie with a number in it.
+
+**And the console accepted ten writes into the wrong book, reporting success ten
+times.** A POST reads its tenant from the body, and a `?skill=` on the URL was
+silently ignored — which is not a 404, because the fallback is a real tenant. Ten
+reach clauses landed in `campaign-doctrine`, a peer's book with work in flight,
+and the only thing that revealed it was checking where they actually were. The
+mismatch now refuses with a 400 naming both sides, mutation-proved three ways
+including the control that matters: a body-only write must still succeed, or a
+guard that refuses everything passes both negative tests.
+
+### The ledger, and why a draft cannot be its own record
+
+Every draft says "Status: drafts, nothing is posted", because that is how a draft
+is written — and it keeps saying it after somebody posts. For Show HN and Product
+Hunt, which fire once ever, that is the whole risk.
+[`docs/outreach/ledger.md`](outreach/ledger.md) is the record and
+`scripts/outreach-ledger.mjs` checks the two agree. **The disagreement is the
+signal**: a draft claiming it was sent while its row still says draft means
+somebody posted and did not write it down, and neither file can detect that
+alone. A fired row with no verdict date fails too, because a verdict nobody
+scheduled is one taken at three weeks — which measures the freshness boost and
+reverses a correct strategy.
+
+Seven mutation controls plus a positive one, in the repo rather than in a
+session. The gate also caught eleven fresh drifts on the day it landed: the first
+visit had moved 81 bytes since the drafts were corrected two days earlier.
+
 ## Still open
 
 - **Wave C step 2b** — live two-way sync. Needs the profile to carry per-device
@@ -1380,10 +1450,11 @@ Full record: [`docs/outreach/audit.md`](outreach/audit.md). Rule:
 - **Bing Webmaster Tools is not claimed.** IndexNow submits fine without it, but the
   coverage reports need the site added at <https://www.bing.com/webmasters> — an
   operator action, not a code one.
-- **There is no backlink data anywhere in this project.** Nothing measures inbound
-  links, and the outreach audit of 2026-08-18 deliberately did not claim to. Any
-  verdict on whether the outreach worked needs Search Console or a third-party
-  index, and — per the 90-day rule this project already keeps — not before then.
+- **There is still no backlink data, but there is now somewhere to put it.**
+  `npm run reach:links` reads a Search Console "Top linking sites" export from
+  `docs/outreach/exports/` and prints UNMEASURED, exit 2, until one is dropped
+  there. Exporting it is an operator action. Per the 90-day rule, no verdict on
+  any lane before then either way.
 - **The GitHub repository description is stale and is public now.** It reads
   "Free browser games for kids, in Hebrew and English"; the site has four written
   languages, eleven interface languages, and 9 of 33 games are `ageBand: "all"`.

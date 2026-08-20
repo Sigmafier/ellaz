@@ -1169,6 +1169,28 @@ Full audit, including what held and both PR targets re-measured:
 [`docs/outreach/audit.md`](docs/outreach/audit.md). Rule:
 [`.claude/rules/a-hand-authored-number-that-leaves-the-repo.md`](.claude/rules/a-hand-authored-number-that-leaves-the-repo.md).
 
+**And a draft cannot be its own record.** Every file in that folder says "Status:
+drafts, nothing is posted", because that is how a draft is written - and it keeps
+saying it after somebody posts. For Show HN and Product Hunt, which fire once
+ever, that is the whole risk. [`docs/outreach/ledger.md`](docs/outreach/ledger.md)
+is the record; `scripts/outreach-ledger.mjs` (inside `npm run assert:outreach`)
+fails when the two disagree, when a surface has no row, or when a fired row
+carries no verdict date - a verdict nobody scheduled is one taken at three weeks,
+which measures the freshness boost and reverses a correct strategy. Controls:
+`npm run assert:outreach:control`.
+
+**Nothing here can see an inbound link.** Every gate reads `dist/` or fetches the
+live site as a crawler, which answers whether we can be *fetched*, never whether
+anyone points at us. `npm run reach:links` reads a Search Console "Top linking
+sites" export from `docs/outreach/exports/` and prints **UNMEASURED, exit 2**
+until one is dropped there - never `0`, because zero is a finding and unmeasured
+is a gap. Do not substitute a `site:` query: measured 2026-08-20, fetched by a
+script it returned ten results, none of them this site, beside a claimed 102,000.
+
+The law for all of this now lives in `/reach-doctrine` and `/reach-playbook`
+(seven routines, one per channel), with `/reach` as the hand-written map over
+them and `/seo-doctrine` inheriting the umbrella.
+
 ## THREE locale sets, and the difference between them is the whole point
 
 `src/i18n/locales.ts` holds all three. **`APP_LOCALES`** is what the interface
