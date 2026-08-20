@@ -36,9 +36,15 @@ describe("the pause control", () => {
   it("is an optional PAIR, so neither half can ship alone", () => {
     // `paused` without `onPaused` is a cover nobody can dismiss; `onPaused`
     // without `paused` is a button that never reflects what it did. Both the
-    // nav button and the cover are gated on the CALLBACK, which is the half
-    // that cannot be inferred.
-    expect(SRC).toContain("{onPaused &&");
+    // button and the cover are gated on the CALLBACK, which is the half that
+    // cannot be inferred.
+    //
+    // The BUTTON is normally drawn by the page, in the utility row above the
+    // stage - `hasPause` is what hands this game's state to it, and the
+    // fallback below it only fires in the standalone bundle, which has no
+    // emitted chrome at all. The COVER is always this component's.
+    expect(SRC).toContain("const hasPause = onPaused !== undefined;");
+    expect(SRC).toContain("onPaused &&");
     expect(SRC).toContain("{paused && onPaused && (");
   });
 

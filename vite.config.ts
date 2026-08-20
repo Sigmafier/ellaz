@@ -361,7 +361,16 @@ export default defineConfig({
           // pad is drawn by steering games and by nothing on the home screen,
           // and it is deliberately absent from the `@ui` barrel so that
           // re-exporting it cannot drag the shell into this chunk.
+          //
+          // `gameTools.ts` is here for the third time over, and it is the one
+          // that cost bytes before it was noticed: it is chrome talking to
+          // chrome - the slot a mounted game fills so the page's own utility
+          // row can drive its pause and restart - so its only importers are
+          // `GameChrome` and `PageApp`, both of which are on this side. Left to
+          // the `src/ui/` catch-all below it went to the SHELL, and the payload
+          // gate reded 81 B over the ceiling naming it.
           if (/\/src\/ui\/(GameChrome|DirectionPad)\.tsx$/.test(path)) return "page";
+          if (/\/src\/ui\/gameTools\.ts$/.test(path)) return "page";
 
           // The card art below the fold. It lives under `src/ui/`, so the
           // catch-all further down would claim it for the shell - which is

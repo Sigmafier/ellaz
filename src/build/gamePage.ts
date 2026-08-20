@@ -170,19 +170,29 @@ export function gamePage(opts: GamePageOptions): string {
         <a href="${href(homePath(locale), base)}">${site.home}</a> ›
         ${site.categories[meta.category] ?? ""} › ${gameName(meta.id, locale)}
       </nav>`,
-      // Emitted `hidden`, like the sound and full-screen buttons and for the
-      // same reason: the build cannot know whether a game ever mounts, and a
-      // restart that restarts nothing is worse than no restart at all. The
-      // runtime reveals it when a game fills the slot.
+      // Both emitted `hidden`, like the sound and full-screen buttons and for
+      // the same reason: the build cannot know whether a game ever mounts, and
+      // a restart that restarts nothing is worse than no restart at all. The
+      // runtime reveals each one when a game fills its slot.
+      //
+      // PAUSE first, then RESTART, because pause is the one a player reaches
+      // for mid-run and restart is the one they must not hit by accident.
+      // Pause stays hidden on the 31 games that never pass one - a turn-based
+      // game already pauses itself when a hand leaves the screen.
       html`<button
-        type="button"
-        class="ubtn"
-        data-restart
-        aria-label="${site.chrome.restart}"
-        hidden
-      >
-        ${icon("redo")}
-      </button>`,
+          type="button"
+          class="ubtn"
+          data-pause
+          data-label-pause="${site.chrome.pause}"
+          data-label-resume="${site.chrome.resume}"
+          aria-label="${site.chrome.pause}"
+          hidden
+        >
+          ${icon("pause")}
+        </button>
+        <button type="button" class="ubtn" data-restart aria-label="${site.chrome.restart}" hidden>
+          ${icon("redo")}
+        </button>`,
     )}
     ${stage(meta.emoji, site)}
 

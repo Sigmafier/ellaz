@@ -131,29 +131,48 @@ describe.each(Object.entries(PAGES))("the %s screen's header", (_name, html) => 
 });
 
 describe("the utility row carries the game's own control, and only there", () => {
-  it("gives a GAME page a restart button, hidden until a game mounts", () => {
-    const row = PAGES.game.slice(
-      PAGES.game.indexOf('class="urow"'),
-      PAGES.game.indexOf('class="stage'),
-    );
-    expect(row).toContain("data-restart");
-    expect(row).toContain("aria-label");
+  const gameRow = PAGES.game.slice(
+    PAGES.game.indexOf('class="urow"'),
+    PAGES.game.indexOf('class="stage'),
+  );
+
+  it("gives a GAME page pause and restart, both hidden until a game mounts", () => {
+    for (const d of ["data-pause", "data-restart"]) {
+      expect(gameRow, `${d} belongs in the utility row`).toContain(d);
+    }
+    expect(gameRow).toContain("aria-label");
     // Hidden, like data-sound and data-fullscreen: the build cannot know
     // whether a game ever mounts, and a restart that restarts nothing is the
     // same dead control as a full-screen button on a browser with no API.
-    expect(row).toContain("hidden");
+    // Pause is hidden on the 31 games that never pass one, too.
+    expect(gameRow).toContain("hidden");
   });
 
-  it("gives the room and the boards NONE, because neither has a game", () => {
-    // The positive control for the test above. Without it, an emitter that
-    // stopped drawing the button anywhere would pass every assertion here.
-    expect(PAGES.world).not.toContain("data-restart");
-    expect(PAGES.boards).not.toContain("data-restart");
+  it("puts pause BEFORE restart, so the mid-run button is not the destructive one", () => {
+    expect(gameRow.indexOf("data-pause")).toBeLessThan(gameRow.indexOf("data-restart"));
   });
 
-  it("keeps it out of the header on every screen", () => {
+  it("ships pause's BOTH labels, because the runtime cannot read the page copy", () => {
+    // The runtime may not import `src/content` - that would put every word of
+    // every page into the precached shell - so a button whose label changes
+    // with its state has to carry both strings with it.
+    expect(gameRow).toContain("data-label-pause");
+    expect(gameRow).toContain("data-label-resume");
+  });
+
+  it("gives the room and the boards NEITHER, because neither has a game", () => {
+    // The positive control for the tests above. Without it, an emitter that
+    // stopped drawing the buttons anywhere would pass every assertion here.
+    for (const html of [PAGES.world, PAGES.boards]) {
+      expect(html).not.toContain("data-restart");
+      expect(html).not.toContain("data-pause");
+    }
+  });
+
+  it("keeps them out of the header on every screen", () => {
     for (const html of Object.values(PAGES)) {
       expect(headerOf(html)).not.toContain("data-restart");
+      expect(headerOf(html)).not.toContain("data-pause");
     }
   });
 });

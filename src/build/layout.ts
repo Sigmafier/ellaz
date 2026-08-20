@@ -552,7 +552,10 @@ function groundStyle(chrome: HeaderChrome | undefined): string {
  * stops being one set. Both come from `ICON_PATHS`, so a glyph redrawn in the
  * app is redrawn here with no second edit.
  */
-export function icon(name: "back" | "expand" | "home" | "redo" | "sound", cls = ""): RawHtml {
+export function icon(
+  name: "back" | "expand" | "home" | "pause" | "play" | "redo" | "sound",
+  cls = "",
+): RawHtml {
   // Every subpath its own <path>: `home` is three of them concatenated, and a
   // single `d` holding all three still draws - so this is not a bug you would
   // see, only one you would measure. Splitting on the absolute M is what

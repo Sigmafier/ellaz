@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { GameContext } from "@sdk/index";
 import type { Locale } from "@i18n/index";
 import { Icon, type IconName } from "./icons";
-import { pageOwnsRestart, setRestart } from "./gameTools";
+import { pageOwnsRestart, setPause, setRestart } from "./gameTools";
 
 /**
  * The one screen shape every game wears.
@@ -163,6 +163,28 @@ export function GameChrome<T extends string>({
   // Read once at mount: the page claims the slot before React ever mounts.
   const [ownRestart] = useState(() => !pageOwnsRestart());
 
+  // PAUSE goes to the same place and for the same reason. blocks is the only
+  // game carrying pause AND two numbers, so it was the one game still wrapping
+  // with restart already out: 56 + 132 + 88 + 88 + gaps is 388 against 350.
+  //
+  // It carries STATE as well as a handler, so the slot is re-announced when
+  // `paused` flips - a button stuck on the pause glyph is how a player loses
+  // track of which state they are in. Refs for the same reason as restart: the
+  // click listener is attached once and must read the CURRENT values.
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
+  const onPausedRef = useRef(onPaused);
+  onPausedRef.current = onPaused;
+  const hasPause = onPaused !== undefined;
+  useEffect(() => {
+    setPause(
+      hasPause
+        ? { paused: Boolean(paused), toggle: () => onPausedRef.current?.(!pausedRef.current) }
+        : null,
+    );
+    return () => setPause(null);
+  }, [hasPause, paused]);
+
   const navBtn = (name: IconName, ariaLabel: string, onClick: () => void) => (
     <button
       type="button"
@@ -238,7 +260,8 @@ export function GameChrome<T extends string>({
             not, and this container clips rather than scrolls. See
             a-row-that-grows-with-the-catalog-must-wrap. */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          {onPaused &&
+          {ownRestart &&
+            onPaused &&
             navBtn(paused ? "play" : "pause", paused ? t("resume") : t("pause"), () =>
               onPaused(!paused),
             )}
