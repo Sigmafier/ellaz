@@ -87,3 +87,45 @@ instrument is broken rather than young, and that is a different finding.
 - **On-site behaviour**: `VITE_POSTHOG_KEY` has never been set, so every analytics
   event since launch has been discarded. We know 8 people arrived. We know nothing
   about what they did.
+
+## The 13 "Crawled - currently not indexed", named
+
+Read out of Search Console on 2026-08-20, all 13 rows, `sc-domain:ellaz.fun`.
+The count was already recorded above; this is which URLs, because a count of 13
+and a list of 13 lead to completely different work.
+
+| URL | Last crawled |
+|---|---|
+| `https://ellaz.fun/fr/games/snake/` | 18 Aug |
+| `https://ellaz.fun/he/games/spell/` | 18 Aug |
+| `https://www.ellaz.fun/fr/games/memory/` | 18 Aug |
+| `https://ellaz.fun/games/spell/` | 18 Aug |
+| `https://www.ellaz.fun/fr/games/bubbles/` | 18 Aug |
+| `https://ellaz.fun/es/games/music/` | 18 Aug |
+| `https://www.ellaz.fun/fr/games/letters/` | 18 Aug |
+| `https://ellaz.fun/fr/games/balloons/` | 18 Aug |
+| `https://www.ellaz.fun/es/games/letters/` | 18 Aug |
+| `https://ellaz.fun/es/games/maze/` | 18 Aug |
+| `https://ellaz.fun/fr/games/spell/` | 18 Aug |
+| `https://www.ellaz.fun/es/games/spell/` | 18 Aug |
+| `https://ellaz.fun/sitemap.xml` | 9 Aug |
+
+**Nothing here needs fixing today, and that is the finding.** The check was run
+expecting thin or orphaned pages, because that is what this bucket usually holds.
+It holds none.
+
+- **5 of 13 are the `www.` host.** Measured as Googlebot the same day: `www.ellaz.fun`
+  answers **200**, not a redirect, and serves the correct canonical - `https://ellaz.fun/…`
+  on every one. So Google is crawling a second hostname and correctly declining to
+  index it. The canonical is doing exactly its job. It is still crawl budget spent on
+  a mirror that can never rank, and one `RewriteCond %{HTTP_HOST} ^www\.` in
+  `deploy/hostinger.htaccess` would end it - beside the `/en/*` rule already there.
+- **7 of 13 are young.** French was promoted on 2026-08-16 and Spanish on 2026-08-12;
+  this window closes on the 18th. A page crawled and not yet indexed four days after
+  it first existed is a page Google has not got round to, not a page it rejected.
+- **1 of 13 is `sitemap.xml`**, which is not a page and cannot be indexed. Its presence
+  in this bucket is normal.
+
+The transferable half is that a not-indexed COUNT is not a defect count. Three
+different situations - a duplicate host, a new page, and a file that was never a
+page - arrived in this report under one heading, and only the list separates them.

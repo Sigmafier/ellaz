@@ -124,7 +124,7 @@ dodges both is itself an answer.
 | Claim in the email | Where it comes from |
 |---|---|
 | 33 games | `src/portal/catalog.ts`, counted 2026-08-18 |
-| about 90 KB gz first visit | `scripts/assert-payload.mjs` ceiling 90,500; measured 90,232 on 2026-08-18 |
+| about 90 KB gz first visit | `scripts/assert-payload.mjs` ceiling 90,500; measured 90,494 on 2026-08-18 |
 | ~200 KB largest plain game, 1.9 MB Phaser game | `du -sh dist-standalone/*` on the built artifacts |
 | one game uses Phaser | `grep -rln 'from "phaser"' src/` returns one file |
 | logic separated from rendering | the pure-`logic.ts` convention, enforced across all 33 games |
