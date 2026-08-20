@@ -17,11 +17,22 @@ and it is how this app ended up with four ways home and two things called
 | | **Platform** | **Game** |
 |---|---|---|
 | means | true on every screen | only meaningful inside this game |
-| today | home, wallet, sound, full screen | difficulty, restart, pause, the game's own numbers |
-| lives in | the ONE screen header, on all three screens | the game panel — `GameChrome` |
+| today | home, wallet, sound, full screen | pause, restart, difficulty, the game's own numbers |
+| lives in | the ONE screen header, on all three screens | below it — the utility row, then `GameChrome` |
+
+**Inside the game family there is a second split, and it is about WIDTH rather
+than meaning: the BUTTONS go in the utility row, the difficulty and the NUMBERS
+go in the game panel.** Both are game controls either way. The panel's row is
+350 px inside on a 390 px phone and difficulty plus two stats plus gaps already
+spends 344, so every button added to it costs 64 px it does not have — measured
+on the built artifact, restart alone wrapped 25 of 33 games onto two lines, and
+with restart out but pause still in, blocks was the last one wrapping. With both
+out it is 0 of 33.
 
 **The test, and it is one question:** *would this control still make sense on
-the World screen or the Boards?* Yes → platform. No → game.
+the World screen or the Boards?* Yes → platform. No → game. Then, for a game
+control: *is it a button or a number?* Button → the utility row. Number, or the
+difficulty toggle → the panel.
 
 Sound and full screen pass that test — muting is global and the API is the
 browser's, so both are platform even though a player reaches for them while

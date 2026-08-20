@@ -43,7 +43,7 @@ export interface SiteCopy {
   /** Shown instead, when the visitor has data saver on and we wait for a tap. */
   dataSaver: string;
   /** The two controls in a game page's header. */
-  chrome: { back: string; fullScreen: string; sound: string; restart: string };
+  chrome: { back: string; fullScreen: string; sound: string; restart: string; pause: string; resume: string };
   /** Section headings on a game page, in render order. */
   headings: {
     howToPlay: string;
@@ -77,7 +77,7 @@ const he: SiteCopy = {
   noScript: "המשחק דורש JavaScript. שאר העמוד לא.",
   loading: "המשחק נטען מעצמו. אין מה ללחוץ.",
   dataSaver: "חיסכון בנתונים פעיל, אז אנחנו מחכים לאישור ולא מורידים לבד.",
-  chrome: { back: "כל המשחקים", fullScreen: "מסך מלא", sound: "צליל", restart: "מהתחלה" },
+  chrome: { back: "כל המשחקים", fullScreen: "מסך מלא", sound: "צליל", restart: "מהתחלה", pause: "השהיה", resume: "המשך" },
   headings: {
     howToPlay: "איך משחקים?",
     about: "על המשחק",
@@ -153,7 +153,7 @@ const en: SiteCopy = {
   noScript: "The game needs JavaScript. The rest of this page does not.",
   loading: "The game loads by itself. Nothing to tap.",
   dataSaver: "Data saver is on, so we wait for your tap instead of downloading on our own.",
-  chrome: { back: "All games", fullScreen: "Full screen", sound: "Sound", restart: "Restart" },
+  chrome: { back: "All games", fullScreen: "Full screen", sound: "Sound", restart: "Restart", pause: "Pause", resume: "Resume" },
   headings: {
     howToPlay: "How do you play?",
     about: "About this game",
@@ -241,7 +241,7 @@ const es: SiteCopy = {
   noScript: "El juego necesita JavaScript. El resto de la página, no.",
   loading: "El juego se carga solo. No hay que tocar nada.",
   dataSaver: "Tienes el ahorro de datos activado, así que esperamos a que toques tú.",
-  chrome: { back: "Todos los juegos", fullScreen: "Pantalla completa", sound: "Sonido", restart: "Reiniciar" },
+  chrome: { back: "Todos los juegos", fullScreen: "Pantalla completa", sound: "Sonido", restart: "Reiniciar", pause: "Pausa", resume: "Continuar" },
   headings: {
     howToPlay: "¿Cómo se juega?",
     about: "Sobre el juego",
@@ -325,7 +325,7 @@ const fr: SiteCopy = {
   noScript: "Le jeu a besoin de JavaScript. Le reste de la page, non.",
   loading: "Le jeu se charge tout seul. Il n'y a rien à toucher.",
   dataSaver: "L'économiseur de données est actif, alors nous attendons que vous appuyiez.",
-  chrome: { back: "Tous les jeux", fullScreen: "Plein écran", sound: "Son", restart: "Recommencer" },
+  chrome: { back: "Tous les jeux", fullScreen: "Plein écran", sound: "Son", restart: "Recommencer", pause: "Pause", resume: "Reprendre" },
   headings: {
     howToPlay: "Comment on joue ?",
     about: "À propos du jeu",

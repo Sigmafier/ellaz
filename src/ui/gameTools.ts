@@ -38,6 +38,42 @@ export function hasRestart(): boolean {
 }
 
 /**
+ * The PAUSE slot, and it carries STATE where restart carries only a handler.
+ *
+ * A pause button has to say which of the two things it will do next, so the
+ * page needs the flag as well as the toggle - and the game owns that flag
+ * (`.claude/rules/...` and `GameChrome`'s own note: the game is what stops).
+ * Passing `null` means this game has no pause at all, or its run is over, and
+ * the button hides itself - a pause on a dead board offers to stop something
+ * that already stopped.
+ */
+export type PauseSlot = { paused: boolean; toggle: () => void };
+
+let pause: PauseSlot | null = null;
+const pauseListeners = new Set<(state: PauseSlot | null) => void>();
+
+export function setPause(next: PauseSlot | null): void {
+  // Compared FIELD BY FIELD, not by identity: the game rebuilds this object on
+  // every render, so an identity check would announce a change on every
+  // keystroke and repaint the button under the player's finger.
+  if (pause === next) return;
+  if (pause && next && pause.paused === next.paused && pause.toggle === next.toggle) return;
+  pause = next;
+  pauseListeners.forEach((cb) => cb(next));
+}
+
+export function getPause(): PauseSlot | null {
+  return pause;
+}
+
+export function onPauseChange(cb: (state: PauseSlot | null) => void): () => void {
+  pauseListeners.add(cb);
+  return () => {
+    pauseListeners.delete(cb);
+  };
+}
+
+/**
  * The page tells the chrome it has already drawn a restart button.
  *
  * `GameChrome` is mounted by TWO entries: `PageApp`, on an emitted page that

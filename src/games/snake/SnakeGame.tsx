@@ -33,10 +33,18 @@ import type { Dir } from "./logic";
 // KB of engine into this module's chunk at parse time; snake is the only game
 // that imports it at all, and it must stay that way.
 
+// NO EMOJI IN THESE LABELS, and that is a measurement rather than a taste.
+// The toggle's floor is 132px (see `GameChrome`), and "🙂 Normal" needs 146
+// where the next widest label in the whole catalogue needs 128 - so snake was
+// the ONE game whose difficulty read "Nor..." on a 390px phone. Raising the
+// floor to fit it wrapped sudoku instead, whose third cell is a 99px compact
+// one: the honest window was [146, 147], one pixel, in English only. Measured
+// on the live site 2026-08-20. The dots beside the label already say which of
+// the three you are on, which is what the animals were doing.
 const SPEED_OPTIONS: DifficultyOption<SpeedKey>[] = [
-  { id: "slow", label: { he: "🐢 איטי", en: "🐢 Slow", es: "🐢 Lento" } },
-  { id: "normal", label: { he: "🙂 רגיל", en: "🙂 Normal", es: "🙂 Normal" } },
-  { id: "fast", label: { he: "🐇 מהיר", en: "🐇 Fast", es: "🐇 Rápido" } },
+  { id: "slow", label: { he: "איטי", en: "Slow", es: "Lento" } },
+  { id: "normal", label: { he: "רגיל", en: "Normal", es: "Normal" } },
+  { id: "fast", label: { he: "מהיר", en: "Fast", es: "Rápido" } },
 ];
 
 // A fixed LOGICAL size, scaled to the parent by Phaser.Scale.FIT. Booting at a

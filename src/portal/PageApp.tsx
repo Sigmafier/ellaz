@@ -9,7 +9,15 @@ import { World } from "./world/World";
 import { WalletChip } from "./WalletChip";
 import { audioPort } from "@sdk/audio";
 import { iconNode } from "@ui/icons";
-import { claimRestartSlot, hasRestart, onRestartChange, runRestart } from "@ui/gameTools";
+import {
+  claimRestartSlot,
+  getPause,
+  hasRestart,
+  onPauseChange,
+  onRestartChange,
+  runRestart,
+  type PauseSlot,
+} from "@ui/gameTools";
 import { DailyChip } from "./DailyChip";
 import { homeHref } from "./paths";
 import type { PageContext } from "./pageContext";
@@ -151,6 +159,41 @@ function wireRestart(): () => void {
   });
 }
 
+/**
+ * Reveal and wire the utility row's pause.
+ *
+ * It carries STATE where restart carries only a handler, so this repaints the
+ * glyph and the label on every change - a pause button stuck on the pause icon
+ * is the single most likely way for a player to lose track of which state they
+ * are in, and it is why the game owns the flag rather than this.
+ *
+ * The two labels ride on `data-` attributes rather than being looked up in the
+ * app dictionary: the runtime may not import `src/content`, and this button is
+ * emitted by the build, so the strings come with it. Same arrangement as the
+ * poster's three.
+ */
+function wirePause(): () => void {
+  const button = document.querySelector<HTMLButtonElement>("[data-pause]");
+  if (!button) return () => {};
+
+  const paint = (state: PauseSlot | null) => {
+    button.hidden = state === null;
+    if (!state) return;
+    button.innerHTML = "";
+    button.append(iconNode(state.paused ? "play" : "pause"));
+    const label = state.paused
+      ? button.dataset.labelResume
+      : button.dataset.labelPause;
+    if (label) button.setAttribute("aria-label", label);
+    button.setAttribute("aria-pressed", String(state.paused));
+  };
+  paint(getPause());
+  // Read the slot at CLICK time, never close over it: this listener is
+  // attached once and the game replaces the slot object on every toggle.
+  button.addEventListener("click", () => getPause()?.toggle());
+  return onPauseChange(paint);
+}
+
 function wireFullScreen(): void {
   const button = document.querySelector<HTMLButtonElement>("[data-fullscreen]");
   const target = document.querySelector<HTMLElement>(".stage .box");
@@ -194,6 +237,7 @@ export function bootContentPage(ctx: PageContext): void {
   wireFullScreen();
   wireSound();
   wireRestart();
+  wirePause();
 
   const poster = document.getElementById("game-poster");
   const message = document.getElementById("game-msg");
