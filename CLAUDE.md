@@ -1187,6 +1187,17 @@ until one is dropped there - never `0`, because zero is a finding and unmeasured
 is a gap. Do not substitute a `site:` query: measured 2026-08-20, fetched by a
 script it returned ten results, none of them this site, beside a claimed 102,000.
 
+**The About box is derived too.** The GitHub repository description is the one
+sentence a list maintainer reads before deciding, it lives in a vendor panel no
+gate here can reach, and it said "in Hebrew and English" for weeks while the site
+served four written languages - with homepage, topics and licence all correct, so
+every audit that checked the *link* passed. `npm run reach:about` compares the
+live description against one DERIVED from the roster and `PAGE_LOCALES`;
+`node scripts/reach/repo-about.mjs --apply` writes it and reads it back. A typed
+count would re-break on the next game, silently, in public. The daily
+`crawlable.yml` runs the check `continue-on-error`, because a stale sentence is
+not an outage and a crawl block is.
+
 The law for all of this now lives in `/reach-doctrine` and `/reach-playbook`
 (seven routines, one per channel), with `/reach` as the hand-written map over
 them and `/seo-doctrine` inheriting the umbrella.
