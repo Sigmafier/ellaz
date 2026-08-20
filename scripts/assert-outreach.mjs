@@ -46,7 +46,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { firstVisit } from "./assert-payload.mjs";
-import { check as ledgerCheck } from "./outreach-ledger.mjs";
+import { check as ledgerCheck, RECORDS } from "./outreach-ledger.mjs";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const FIX = process.argv.includes("--fix");
@@ -283,8 +283,20 @@ function blankHistory(text) {
 }
 
 function corpus(dir) {
+  // A RECORD is frozen. Every number in it is a QUOTATION - what Search Console
+  // reported on a date, what the ledger says was fired - so re-deriving it against
+  // today's tree is not a correction, it is corruption. Measured 2026-08-20, within
+  // a minute of this file existing: --fix rewrote Google's "104 pages are indexed"
+  // into our own emitted-page count of 144, silently, in a file whose whole purpose
+  // is to say what somebody else measured. The matcher cannot tell a claim ABOUT OUR
+  // TREE from a claim about SOMEBODY ELSE'S REPORT, and no amount of pattern work
+  // will teach it to - the two are the same sentence.
+  //
+  // Excluding files from a population is how a gate goes blind, so the count is
+  // PRINTED on every run beside the outreach-facts:off regions, and the list is
+  // three named files imported from one place rather than a second copy.
   return readdirSync(dir)
-    .filter((n) => n.endsWith(".md"))
+    .filter((n) => n.endsWith(".md") && !RECORDS.has(n))
     .sort()
     .map((name) => {
       const text = readFileSync(join(dir, name), "utf8");
@@ -399,6 +411,7 @@ function report(f, r) {
   for (const p of led.problems) console.log(`${p.kind}  ${p.text}`);
 
   if (r.skipped) console.log(`\n${r.skipped} region(s) marked outreach-facts:off and not checked.`);
+  console.log(`${RECORDS.size} record(s) frozen and not rewritten: ${[...RECORDS].join(", ")}`);
   if (r.edited.length) console.log(`\nrewrote ${r.edited.length} file(s): ${r.edited.join(", ")}`);
 
   const bad = r.blind.length + r.drift.length + r.broken.length + led.problems.length;
@@ -465,6 +478,29 @@ function control(f) {
     }
     const blinded = run(dir, f);
     check("a rephrased corpus reports BLIND", blinded.blind.some((b) => b.startsWith("games")), true);
+
+    // A RECORD must survive --fix untouched, and the same planted number in a DRAFT
+    // must not. Both arms, because "the fixer skipped it" and "the fixer is broken"
+    // look identical from one file. Measured 2026-08-20: before this, --fix silently
+    // turned Search Console's "104 pages are indexed" into our own 144.
+    const record = join(dir, "measured.md");
+    if (existsSync(record)) {
+      const rBefore = readFileSync(record, "utf8");
+      const quote = `${f.pages + 40} pages are indexed`;
+      writeFileSync(record, rBefore + `\n<!-- control -->\nSomebody else reported ${quote}.\n`);
+      const draftVictim = join(dir, "dev.md");
+      const dBefore = readFileSync(draftVictim, "utf8");
+      writeFileSync(draftVictim, dBefore + `\n\nThis site emits ${f.pages + 40} pages.\n`);
+      run(dir, f, true);
+      check("a record's quoted number survives --fix",
+            readFileSync(record, "utf8").includes(quote), true);
+      check("the same number in a draft is still fixed",
+            readFileSync(draftVictim, "utf8").includes(`${f.pages + 40} pages`), false);
+      writeFileSync(record, rBefore);
+      writeFileSync(draftVictim, dBefore);
+    } else {
+      check("the record control had a record to run against", false, true);
+    }
 
     // The predicate must be able to answer BOTH ways against the same prose.
     // A control that only ever produces the failing reading cannot tell a

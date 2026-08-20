@@ -26,13 +26,21 @@ import { join } from "node:path";
 const LEDGER = "docs/outreach/ledger.md";
 const STATUSES = ["draft", "fired", "spent", "dropped"];
 
+// The folder holds two KINDS of file and only one of them is a proposal. A RECORD
+// describes what already happened - the ledger itself, the audit of these drafts, the
+// search-console reading - so it has no surface, no status and nothing to fire. Naming
+// them here rather than inferring from "does it have a **Status**: line" is deliberate:
+// the missing-status check is what catches a real draft whose header was lost, and an
+// inference would turn that check off for exactly the file it exists to catch.
+export const RECORDS = new Set(["ledger.md", "audit.md", "measured.md"]);
+
 /** Every draft in the folder, and the status its own header claims. */
 export function drafts(repo) {
   const dir = join(repo, "docs/outreach");
   if (!existsSync(dir)) throw new Error(`outreach-ledger: ${dir} is missing.`);
   const out = [];
   for (const f of readdirSync(dir).sort()) {
-    if (!f.endsWith(".md") || f === "ledger.md" || f === "audit.md") continue;
+    if (!f.endsWith(".md") || RECORDS.has(f)) continue;
     const body = readFileSync(join(dir, f), "utf8");
     // The status line is a claim in prose. Read the FIRST word after the marker and
     // map it onto the vocabulary; anything unrecognised is reported, never assumed.

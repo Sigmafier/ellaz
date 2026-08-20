@@ -102,7 +102,7 @@ frame on somebody else's domain. At ellaz.fun it is saved.
 | Claim in the copy | Where it comes from |
 |---|---|
 | 33 games | `src/portal/catalog.ts`, counted 2026-08-18 |
-| about 90 KB first load | `scripts/assert-payload.mjs` ceiling is 90,500 B gz; measured 90,108 on 2026-08-18 |
+| about 90 KB first load | `scripts/assert-payload.mjs` ceiling is 90,500 B gz; measured 90,232 on 2026-08-18 |
 | 207 KB for 2048 | `dist-standalone/2048` summed on the built artifact, 2026-08-18 |
 | works offline | the PWA precaches the shell (`vite.config.ts` workbox) |
 | no tracking | analytics is anonymous-events-only and has never had a key set in production (`CLAUDE.md` § Firebase) |
