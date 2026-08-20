@@ -78,6 +78,22 @@ const ALLOWED = [
   { re: /^assets\/index-[A-Za-z0-9_-]+\.js$/, why: "entry chunk" },
   { re: /^assets\/vendor-react-[A-Za-z0-9_-]+\.js$/, why: "React runtime" },
   { re: /^assets\/workbox-window\.prod\.es5-[A-Za-z0-9_-]+\.js$/, why: "SW registration" },
+  // The one THIRD-PARTY entry, and it is here because it was refused first.
+  //
+  // Analytics is a first-visit fetch by construction - the whole point is to
+  // count the visit - so there is no arrangement of chunks or globIgnores that
+  // makes it free. Adding it to an allowlist is therefore the honest move and a
+  // clean bypass is not: this line is the record that somebody decided to spend
+  // a request here, on 2026-08-20, at the operator's ask.
+  //
+  // What it costs, measured on the artifact both ways: 136 B gz in index.html,
+  // leaving 132 B under the ceiling. The script itself is `async`, so it does
+  // not block the first paint, and it is not precached - the service worker
+  // never sees a cross-origin URL through the glob.
+  {
+    re: /^https:\/\/www\.googletagmanager\.com\/gtag\/js\?id=G-[A-Z0-9]+$/,
+    why: "Google Analytics, async, deliberate - see src/build/analytics.ts",
+  },
 ];
 
 /** Known offenders, used only to print a more useful message. Not the gate. */

@@ -12,6 +12,7 @@ import {
   dirOf,
   type PageLocale,
 } from "../i18n/locales";
+import { analyticsTag } from "./analytics";
 import { LOCALES, ROUTES, canonicalUrl, gamePath, homePath, type Route } from "./routes";
 import { gamePage } from "./gamePage";
 import { boardsPage, homePage, homeShellBody, notFoundPage, worldPage } from "./sitePages";
@@ -146,7 +147,12 @@ export function indexHeadTags(base: string): string {
     `<meta property="og:image:alt" content="${escapeAttr(copy.title)}" />`,
     `<meta name="twitter:image" content="${canonicalUrl(ogImagePath(HOME_CANONICAL))}" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
-  ];
+    // Measurement. Empty string on any non-primary base, so the noindex GitHub
+    // Pages mirror never reports - its traffic is not the product and counting
+    // it would pollute the one measurement this project has. The reasoning for
+    // the config, and what it deliberately gives up, is in `analytics.ts`.
+    analyticsTag(base),
+  ].filter(Boolean);
   if (!indexable) tags.push(`<meta name="robots" content="noindex, follow" />`);
   tags.push(
     `<script type="application/ld+json">${toHtml(jsonLd(homeGraph(CANONICAL_LOCALE, GAMES, copy)))}</script>`,

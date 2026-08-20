@@ -953,6 +953,39 @@ function main() {
     (n, p) => n + (existsSync(join(DIST, p.file)) ? statSync(join(DIST, p.file)).size : 0),
     0,
   );
+  // --- GATE: measurement is on every document, or on none ------------------
+  //
+  // Emitter-level tests already assert this across both bases. They are blind
+  // to what the FILE carries, which is the whole reason this script exists: a
+  // call site and a served byte are different claims, and every outage recorded
+  // in this repo lived in the gap between them.
+  //
+  // The two arms are opposite by design. On the primary host a document without
+  // the tag is a page whose arrivals are invisible; on the mirror a document
+  // WITH it pollutes the only measurement this project has. A single-arm check
+  // would pass on a build that tagged everything everywhere.
+  const GA_ID = "G-E25QBB8420";
+  const reads = emitted.map((p) => ({ p, html: readFileSync(join(DIST, p.file), "utf8") }));
+  const tagged = reads.filter((r) => r.html.includes(GA_ID));
+  if (primary) {
+    for (const r of reads) {
+      // The 404 is excluded by design: it is the one pure document left, and a
+      // document fetches nothing eagerly. The gate two hundred lines up says so
+      // and caught this on the first run.
+      if (r.p.kind === "notFound") continue;
+      if (!r.html.includes(GA_ID)) fail(`${r.p.path} carries no analytics tag`);
+    }
+    const four04 = reads.find((r) => r.p.kind === "notFound");
+    if (!four04) fail("no 404 in the manifest - the analytics exclusion cannot be checked");
+    else if (four04.html.includes(GA_ID)) fail("404.html carries the analytics tag; a document fetches nothing eagerly");
+    // The positive control: a matcher that finds nothing anywhere would satisfy
+    // the mirror arm perfectly and report this one clean by vacuum.
+    if (tagged.length === 0) fail(`no emitted page carries ${GA_ID} - the matcher is reading nothing`);
+  } else {
+    for (const r of tagged) fail(`${r.p.path} carries the analytics tag on a noindex mirror`);
+  }
+  console.log(`analytics: ${tagged.length} of ${emitted.length} documents tagged (base ${base})`);
+
   console.log(
     `\npages: ${emitted.length} emitted, ${(bytes / 1024).toFixed(0)} KiB total, base ${base}`,
   );
