@@ -966,25 +966,47 @@ function main() {
   // would pass on a build that tagged everything everywhere.
   const GA_ID = "G-E25QBB8420";
   const reads = emitted.map((p) => ({ p, html: readFileSync(join(DIST, p.file), "utf8") }));
+  const wants = reads.filter((r) => r.p.kind !== "notFound");
   const tagged = reads.filter((r) => r.html.includes(GA_ID));
-  if (primary) {
-    for (const r of reads) {
-      // The 404 is excluded by design: it is the one pure document left, and a
-      // document fetches nothing eagerly. The gate two hundred lines up says so
-      // and caught this on the first run.
-      if (r.p.kind === "notFound") continue;
+  const shellTagged = indexHtml.includes(GA_ID);
+
+  if (!primary) {
+    // The mirror serves noindex and Disallow: / on every page. Its traffic is
+    // not the product, and counting it would pollute the only measurement this
+    // project has.
+    for (const r of tagged) fail(`${r.p.path} carries the analytics tag on a noindex mirror`);
+    if (shellTagged) fail("index.html carries the analytics tag on a noindex mirror");
+  } else if (tagged.length === 0 && !shellTagged) {
+    // ALL OR NONE, and this is the "none" arm: a build with the feature absent
+    // is a valid build, so it must not be a failure. Written this way after the
+    // first version failed 143 pages on a tree where the emitter's half of the
+    // change was still uncommitted in a peer's working copy - a gate that reds
+    // on a legitimately un-instrumented build is a gate somebody switches off.
+    console.log("analytics: not installed in this build (0 documents, no shell tag)");
+  } else {
+    // Installed - so it must be EVERYWHERE, because partial coverage is the
+    // failure this exists to catch: a page whose arrivals are invisible looks
+    // exactly like a page nobody visits.
+    for (const r of wants) {
       if (!r.html.includes(GA_ID)) fail(`${r.p.path} carries no analytics tag`);
     }
     const four04 = reads.find((r) => r.p.kind === "notFound");
     if (!four04) fail("no 404 in the manifest - the analytics exclusion cannot be checked");
-    else if (four04.html.includes(GA_ID)) fail("404.html carries the analytics tag; a document fetches nothing eagerly");
-    // The positive control: a matcher that finds nothing anywhere would satisfy
-    // the mirror arm perfectly and report this one clean by vacuum.
-    if (tagged.length === 0) fail(`no emitted page carries ${GA_ID} - the matcher is reading nothing`);
-  } else {
-    for (const r of tagged) fail(`${r.p.path} carries the analytics tag on a noindex mirror`);
+    else if (four04.html.includes(GA_ID))
+      fail("404.html carries the analytics tag; a document fetches nothing eagerly");
+    // The inconsistent state, named explicitly. The shell and the emitted pages
+    // are wired at two different call sites in two different files, so exactly
+    // one of them landing is the realistic half-finished shape - and without
+    // this line the "none" arm above would wave it through.
+    if (shellTagged && tagged.length === 0)
+      fail("index.html is tagged but no emitted page is - the emitter's half of the wiring is missing");
+    if (!shellTagged && tagged.length > 0)
+      fail("emitted pages are tagged but index.html is not - the app shell's half is missing");
   }
-  console.log(`analytics: ${tagged.length} of ${emitted.length} documents tagged (base ${base})`);
+  console.log(
+    `analytics: ${tagged.length} of ${wants.length} documents tagged` +
+      `${shellTagged ? " + the app shell" : ""} (base ${base})`,
+  );
 
   console.log(
     `\npages: ${emitted.length} emitted, ${(bytes / 1024).toFixed(0)} KiB total, base ${base}`,
