@@ -1,0 +1,95 @@
+/**
+ * The ledger check: every draft has a row, and the two agree about its status.
+ *
+ * WHY IT IS SEPARATE FROM THE GATE THAT IMPORTS IT. `assert-outreach.mjs` answers
+ * "is every NUMBER in this folder still true". This answers "is every SURFACE
+ * accounted for" - a different question with a different failure. A number goes
+ * stale on its own, silently, because the tree moved. A status goes stale because
+ * a PERSON did something and did not write it down, and the cost is not a wrong
+ * figure in a draft: it is a one-shot surface fired twice.
+ *
+ * THE DISAGREEMENT IS THE SIGNAL, NOT EITHER SIDE ALONE. A draft saying "drafts,
+ * nothing is posted" while the ledger says `fired` means somebody posted and did
+ * not update the draft. The reverse means somebody updated a draft and the ledger
+ * never learned. Both are the same defect - two records of one fact - and neither
+ * file can detect it alone, which is why this reads both.
+ *
+ * POPULATION FIRST, ALWAYS. The count of drafts found is printed on every run. A
+ * matcher that stops seeing the status line - because a draft was rephrased -
+ * reports a clean sweep over prose it never read, which is the shape
+ * `.claude/rules/a-diagnostic-that-truncates-what-it-compares.md` is about. Zero
+ * drafts, or zero rows, is a FAILURE here and never a pass.
+ */
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
+const LEDGER = "docs/outreach/ledger.md";
+const STATUSES = ["draft", "fired", "spent", "dropped"];
+
+/** Every draft in the folder, and the status its own header claims. */
+export function drafts(repo) {
+  const dir = join(repo, "docs/outreach");
+  if (!existsSync(dir)) throw new Error(`outreach-ledger: ${dir} is missing.`);
+  const out = [];
+  for (const f of readdirSync(dir).sort()) {
+    if (!f.endsWith(".md") || f === "ledger.md" || f === "audit.md") continue;
+    const body = readFileSync(join(dir, f), "utf8");
+    // The status line is a claim in prose. Read the FIRST word after the marker and
+    // map it onto the vocabulary; anything unrecognised is reported, never assumed.
+    const m = body.match(/^\*\*Status\*\*:\s*(\S+)/m);
+    const word = m ? m[1].toLowerCase().replace(/[^a-z]/g, "") : "";
+    const claimed = word.startsWith("draft") ? "draft"
+      : STATUSES.find((s) => word.startsWith(s)) ?? (m ? `unrecognised:${word}` : "missing");
+    out.push({ file: f, claimed });
+  }
+  return out;
+}
+
+/** Every row of the ledger table, keyed by the draft it names. */
+export function rows(repo) {
+  const path = join(repo, LEDGER);
+  if (!existsSync(path)) throw new Error(`outreach-ledger: ${LEDGER} is missing.`);
+  const out = [];
+  for (const line of readFileSync(path, "utf8").split("\n")) {
+    if (!line.startsWith("|")) continue;
+    const cells = line.split("|").map((c) => c.trim());
+    // cells[0] is the empty string before the leading pipe.
+    const [, surface, draft, status, fired, due] = cells;
+    if (!surface || surface.startsWith("---") || surface === "Surface") continue;
+    const file = (draft ?? "").replace(/`/g, "");
+    if (!file.endsWith(".md")) continue;
+    out.push({ surface, file, status: (status ?? "").toLowerCase(), fired, due });
+  }
+  return out;
+}
+
+/** Returns a list of problems. Empty means clean. */
+export function check(repo) {
+  const problems = [];
+  const ds = drafts(repo);
+  const rs = rows(repo);
+
+  // The population, printed by the caller. Zero of either is the blind case.
+  if (ds.length === 0) problems.push({ kind: "BLIND", text: "no drafts found in docs/outreach/ - the matcher is reading nothing" });
+  if (rs.length === 0) problems.push({ kind: "BLIND", text: `no rows found in ${LEDGER} - the table matcher is reading nothing` });
+
+  const covered = new Set(rs.map((r) => r.file));
+  for (const d of ds) {
+    if (!covered.has(d.file)) problems.push({ kind: "UNLEDGERED", text: `${d.file} has no row in ${LEDGER}` });
+    if (d.claimed.startsWith("unrecognised")) problems.push({ kind: "UNREADABLE", text: `${d.file} status "${d.claimed.split(":")[1]}" is not one of ${STATUSES.join("/")}` });
+    if (d.claimed === "missing") problems.push({ kind: "UNREADABLE", text: `${d.file} has no **Status**: line` });
+  }
+  for (const r of rs) {
+    if (!ds.some((d) => d.file === r.file)) { problems.push({ kind: "GHOST", text: `${LEDGER} names ${r.file}, which does not exist` }); continue; }
+    if (!STATUSES.includes(r.status)) { problems.push({ kind: "UNREADABLE", text: `${r.surface}: status "${r.status}" is not one of ${STATUSES.join("/")}` }); continue; }
+    const claimed = ds.find((d) => d.file === r.file).claimed;
+    // A file holding several surfaces (launch.md holds two) can legitimately be
+    // "draft" overall while one row is fired - so only the reverse is a defect:
+    // a draft that says it was sent while its row still says draft.
+    if (claimed !== "draft" && r.status === "draft")
+      problems.push({ kind: "DISAGREE", text: `${r.file} says "${claimed}" but ${r.surface} is still "draft" in the ledger` });
+    if ((r.status === "fired" || r.status === "spent") && (!/\d/.test(r.fired ?? "") || !/\d/.test(r.due ?? "")))
+      problems.push({ kind: "UNDATED", text: `${r.surface} is "${r.status}" with no fired date and verdict date - a verdict that is not scheduled is not taken` });
+  }
+  return { problems, population: { drafts: ds.length, rows: rs.length } };
+}

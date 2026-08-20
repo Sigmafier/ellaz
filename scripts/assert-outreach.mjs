@@ -46,6 +46,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { firstVisit } from "./assert-payload.mjs";
+import { check as ledgerCheck } from "./outreach-ledger.mjs";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const FIX = process.argv.includes("--fix");
@@ -388,15 +389,24 @@ function report(f, r) {
     console.log(`FALSE  "${b.id}" appears ${b.hits}x and no longer holds - ${b.say}`);
   }
 
+  // The LEDGER half. A number goes stale on its own because the tree moved; a
+  // status goes stale because a PERSON did something and did not write it down,
+  // and that failure costs a one-shot surface rather than a wrong figure. The
+  // population is printed either way - zero drafts or zero rows is the blind
+  // case, and it must never read as clean.
+  const led = ledgerCheck(REPO);
+  console.log(`\nledger: ${led.population.drafts} draft(s), ${led.population.rows} row(s)`);
+  for (const p of led.problems) console.log(`${p.kind}  ${p.text}`);
+
   if (r.skipped) console.log(`\n${r.skipped} region(s) marked outreach-facts:off and not checked.`);
   if (r.edited.length) console.log(`\nrewrote ${r.edited.length} file(s): ${r.edited.join(", ")}`);
 
-  const bad = r.blind.length + r.drift.length + r.broken.length;
+  const bad = r.blind.length + r.drift.length + r.broken.length + led.problems.length;
   if (bad === 0) {
-    console.log("OK  every quoted number matches the tree.");
+    console.log("OK  every quoted number matches the tree, and every surface has a row.");
     return 0;
   }
-  if (FIX && r.blind.length === 0 && r.drift.length > 0 && r.broken.length === 0) {
+  if (FIX && r.blind.length === 0 && r.drift.length > 0 && r.broken.length === 0 && led.problems.length === 0) {
     console.log("\nfixed. Re-run without --fix to confirm.");
     return 0;
   }

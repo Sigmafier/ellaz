@@ -20,7 +20,8 @@
     "assert:live": "node scripts/assert-live.mjs",
     "build:standalone": "vite build --config vite.standalone.config.ts",
     "assert:standalone": "node scripts/assert-standalone.mjs",
-    "assert:outreach": "node scripts/assert-outreach.mjs"
+    "assert:outreach": "node scripts/assert-outreach.mjs",
+    "assert:outreach:control": "node scripts/control/outreach-ledger-control.mjs && node scripts/assert-outreach.mjs --control"
   },
   "dependencies": {
     "phaser": "^4.2.1",
