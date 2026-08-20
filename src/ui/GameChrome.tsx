@@ -1,7 +1,8 @@
-import { type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { GameContext } from "@sdk/index";
 import type { Locale } from "@i18n/index";
 import { Icon, type IconName } from "./icons";
+import { pageOwnsRestart, setRestart } from "./gameTools";
 
 /**
  * The one screen shape every game wears.
@@ -47,6 +48,24 @@ export type ChromeStat = {
    * all 21 games is the point of this component.
    */
   ltr?: boolean;
+  /**
+   * The RECORD for this same number, drawn under it.
+   *
+   * A value and its record are one fact, so they are one cell: `Score 0` beside
+   * `Best 0` spent two thirds of a row saying one thing, and it is the row a
+   * six-figure score has to fit in. Attach it to the stat it is the record OF -
+   * sudoku's best is a time, not a count of filled cells.
+   */
+  record?: string | number;
+  /**
+   * Size this cell to its CONTENT instead of an equal share of the row.
+   *
+   * For a short number that would otherwise take a third of the width and leave
+   * none for the difficulty, which is the only cell carrying a word: a stage
+   * counter, a fraction, a lives count. Measured at 390px, a compact stage cell
+   * is 77px where an equal share is 105.
+   */
+  compact?: boolean;
 };
 
 export type ChromeLevel<T extends string> = {
@@ -113,9 +132,36 @@ export function GameChrome<T extends string>({
   // eleven-language dictionary, so a hand-written he/en pair was strictly
   // less translated than the shared bar it sits in.
   const t = ctx.t;
-  const muted = ctx.audio.muted;
   const i = levels && level ? levels.findIndex((l) => l.id === level) : -1;
   const current = i >= 0 && levels ? levels[i] : undefined;
+
+  // Restart is a GAME control and it is NOT drawn here - it is drawn by the
+  // page, in the utility row above the board, and this hands it the handler.
+  //
+  // It lived in this row for a day and the row could not hold it: the row is
+  // 350px inside the panel on a 390px phone, and difficulty + two stats + gaps
+  // already spends 344 of that - a fourth 56px cell takes it to 408. Measured
+  // on the built artifact: 25 of 33 games wrapped onto two lines and snake's
+  // difficulty label read "Nor...". With restart out of the row it is 1 of 33,
+  // and that one is blocks, the only game carrying a pause button as well.
+  //
+  // A ref so the slot is filled ONCE per mount: `onRestart` is an inline arrow
+  // in nearly every game, so a fresh identity on every render would re-announce
+  // the slot on every state change.
+  // See .claude/rules/game-controls-and-platform-chrome-never-share-a-bar.md
+  const restartRef = useRef(onRestart);
+  restartRef.current = onRestart;
+  useEffect(() => {
+    setRestart(() => restartRef.current());
+    return () => setRestart(null);
+  }, []);
+
+  // Unless nobody drew one. The standalone single-game bundle mounts this from
+  // its own entry, on a page with no emitted chrome at all, and a published
+  // artifact quietly missing its restart button is exactly the class of defect
+  // no gate in this repo can see - nothing here fetches an itch upload back.
+  // Read once at mount: the page claims the slot before React ever mounts.
+  const [ownRestart] = useState(() => !pageOwnsRestart());
 
   const navBtn = (name: IconName, ariaLabel: string, onClick: () => void) => (
     <button
@@ -181,37 +227,57 @@ export function GameChrome<T extends string>({
           borderRadius: `${SURFACE_RADIUS} ${SURFACE_RADIUS} 0 0`,
         }}
       >
-        {/* Row 1 - the buttons, and the difficulty absorbing what is left.
-            flexWrap because the item count is fixed but the WIDTH is not: three
-            56px squares plus the toggle is 324px of unshrinkable content inside
-            296px of usable width on a 320px phone, and this container clips
-            rather than scrolls. See a-row-that-grows-with-the-catalog-must-wrap. */}
+        {/* ONE row, and everything in it is a GAME control: pause, the
+            difficulty and the game's own numbers. Restart is a game control
+            too and is in the utility row above, for width rather than for
+            family - see the note by `setRestart`. Home, sound, full screen and
+            the wallet are PLATFORM chrome and live in the page header.
+            See .claude/rules/game-controls-and-platform-chrome-never-share-a-bar.md
+
+            flexWrap because the cell count is fixed per game but the WIDTH is
+            not, and this container clips rather than scrolls. See
+            a-row-that-grows-with-the-catalog-must-wrap. */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          {navBtn("home", t("home"), () => ctx.requestExit())}
-          {navBtn("redo", t("restart"), onRestart)}
-          {navBtn(muted ? "muted" : "sound", t("sound"), () => ctx.audio.toggleMute())}
           {onPaused &&
             navBtn(paused ? "play" : "pause", paused ? t("resume") : t("pause"), () =>
               onPaused(!paused),
             )}
+          {ownRestart && navBtn("redo", t("restart"), onRestart)}
           {levels && current && onLevel && (
             <button
               type="button"
-              aria-label={`${t("level")}: ${current.label[ctx.locale]}`}
+              aria-label={`${t("difficulty")}: ${current.label[ctx.locale]}`}
               onClick={() => onLevel(levels[(i + 1) % levels.length].id)}
               style={{
                 height: TAP,
-                flex: "1 1 auto",
+                // BASIS 0, not auto. On `auto` this card's basis is its own
+                // CONTENT - an emoji, a word and three dots - so it grows to
+                // fit that and takes the row's slack with it: measured on the
+                // built artifact, snake's difficulty took 184px and left the
+                // score cell 60, which rendered its record as "Be...". The
+                // floor below is what makes the row wrap rather than shrink;
+                // the basis has never been what did that.
+                flex: "1 1 0",
                 // A FLOOR, not zero, and it is what makes the row's `flexWrap`
                 // do anything. At `minWidth: 0` a flex item shrinks instead of
-                // wrapping, so a fourth nav button leaves this toggle 94px on a
-                // 390px phone and "Classic" is clipped INSIDE the card - no
-                // element wider than its frame, no overflow anywhere, and the
-                // only symptom a missing glyph. 132 is what the widest shipped
-                // label plus its dots actually needs, so past that the toggle
-                // takes its own row rather than losing letters. See
-                // .claude/rules/a-row-that-grows-with-the-catalog-must-wrap.md,
-                // which is the same defect one component over.
+                // wrapping, so this toggle is left 94px on a 390px phone and
+                // "Classic" is clipped INSIDE the card - no element wider than
+                // its frame, no overflow anywhere, and the only symptom a
+                // missing glyph. 132 is what the widest shipped label plus its
+                // dots actually needs, so past that the toggle takes its own
+                // row rather than losing letters.
+                //
+                // DO NOT RAISE IT TO FIT SNAKE. Measured on the artifact at
+                // 390px: snake's "🙂 Normal" is the one label carrying an emoji
+                // and needs 146, where the next widest (wordguess, "4 letters")
+                // needs 128. Raising the floor to 152 fixed snake and WRAPPED
+                // sudoku, whose two flexible cells plus a 99px compact one
+                // leave this a ceiling of 147. The honest window is [146, 147]
+                // - one pixel, in English only, with Hebrew labels a different
+                // width entirely. Snake's 14px is a snake problem (its own
+                // labels) and not this constant's.
+                // See .claude/rules/a-row-that-grows-with-the-catalog-must-wrap.md
+                // and .claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md
                 minWidth: 132,
                 border: "none",
                 borderRadius: "var(--radius-2)",
@@ -227,11 +293,17 @@ export function GameChrome<T extends string>({
                 cursor: "pointer",
               }}
             >
-              <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.12 }}>
+              <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.12, minWidth: 0, maxWidth: "100%" }}>
                 <span style={{ fontSize: 10, fontWeight: 800, color: "var(--text-dim)" }}>
-                  {t("level")}
+                  {t("difficulty")}
                 </span>
-                <span style={{ fontSize: 16, fontWeight: 800, fontFamily: "Fredoka, inherit" }}>
+                {/* nowrap + ellipsis, and both are load-bearing. A long label
+                    (sudoku's "Animals 4x4") does not clip and does not overflow
+                    - it WRAPS, which passes a clip check, an overflow check and
+                    a right-edge check while quietly making this card taller than
+                    the cells beside it. Measured on the mock; three instruments
+                    said clean. */}
+                <span style={{ fontSize: 16, fontWeight: 800, fontFamily: "Fredoka, inherit", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
                   {current.label[ctx.locale]}
                 </span>
               </span>
@@ -243,7 +315,7 @@ export function GameChrome<T extends string>({
                   facts become "3/12", which is legible at any length. */}
               <span
                 dir="ltr"
-                style={{ display: "flex", gap: 4, alignItems: "center", marginInlineStart: 8 }}
+                style={{ display: "flex", gap: 4, alignItems: "center", marginInlineStart: 8, flex: "0 0 auto" }}
               >
                 {levels.length <= DOT_MAX ? (
                   levels.map((l, k) => (
@@ -266,20 +338,20 @@ export function GameChrome<T extends string>({
               </span>
             </button>
           )}
-        </div>
 
-        {/* Row 2 - the numbers, equal thirds so none of them leaves a hole.
-            Absent entirely when a game keeps no numbers: coloring has no score
-            and never will, and an empty row would still cost its gap and read
-            as something that failed to load. */}
-        {stats.length > 0 && (
-        <div style={{ display: "flex", gap: 8 }}>
           {stats.map((s) => (
             <div
               key={s.label}
               style={{
-                flex: "1 1 0",
-                minWidth: 0,
+                // A compact cell is sized by its number; everything else splits
+                // what the difficulty leaves.
+                flex: s.compact ? "0 0 auto" : "1 1 0",
+                // A floor for the same reason the difficulty has one: a cell
+                // squeezed below this ellipsises its own record rather than
+                // wrapping the row, and an ellipsised "Best" is a number the
+                // player simply cannot read.
+                minWidth: s.compact ? 0 : 88,
+                height: TAP,
                 background: "var(--surface)",
                 borderRadius: "var(--radius-2)",
                 boxShadow: "var(--shadow-1)",
@@ -287,27 +359,34 @@ export function GameChrome<T extends string>({
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 8,
-                padding: "9px 4px",
+                padding: s.compact ? "0 13px" : "0 8px",
               }}
             >
-              <span style={{ color: "var(--text-dim)", fontSize: 18, display: "block" }}>
+              <span style={{ color: "var(--text-dim)", fontSize: 18, display: "flex", flex: "0 0 auto" }}>
                 <Icon name={s.icon} />
               </span>
-              <span style={{ minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 10, fontWeight: 800, color: "var(--text-dim)" }}>
+              <span style={{ minWidth: 0, display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.05, maxWidth: "100%" }}>
+                <span style={{ fontSize: 10, fontWeight: 800, color: "var(--text-dim)" }}>
                   {s.label}
                 </span>
                 <span
                   dir={s.ltr ? "ltr" : undefined}
-                  style={{ display: "block", fontSize: 18, fontWeight: 800, fontFamily: "Fredoka, inherit", lineHeight: 1.1 }}
+                  style={{ display: "block", fontSize: 18, fontWeight: 800, fontFamily: "Fredoka, inherit", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}
                 >
                   {s.value}
                 </span>
+                {s.record !== undefined && (
+                  <span
+                    dir={s.ltr ? "ltr" : undefined}
+                    style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-dim)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}
+                  >
+                    {t("best")} {s.record}
+                  </span>
+                )}
               </span>
             </div>
           ))}
         </div>
-        )}
       </div>
 
       <div

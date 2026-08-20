@@ -7,6 +7,9 @@ import { fitStage } from "./fitStage";
 import { GameHost } from "./GameHost";
 import { World } from "./world/World";
 import { WalletChip } from "./WalletChip";
+import { audioPort } from "@sdk/audio";
+import { iconNode } from "@ui/icons";
+import { claimRestartSlot, hasRestart, onRestartChange, runRestart } from "@ui/gameTools";
 import { DailyChip } from "./DailyChip";
 import { homeHref } from "./paths";
 import type { PageContext } from "./pageContext";
@@ -70,17 +73,13 @@ function connectionIsStingy(): boolean {
  * `DailyChip` renders null until there is a streak, so on a page belonging to a
  * player who has never finished a daily puzzle this is exactly what it was.
  */
-function mountWallet(
-  slot: HTMLElement | undefined,
-  bare: boolean,
-  locale: PageLocale,
-): Root | null {
+function mountWallet(slot: HTMLElement | undefined, locale: PageLocale): Root | null {
   if (!slot) return null;
   const root = createRoot(slot);
   root.render(
     <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-3)" }}>
-      <WalletChip bare={bare} />
-      <DailyChip locale={locale} bare={bare} />
+      <WalletChip bare />
+      <DailyChip locale={locale} bare />
     </span>,
   );
   return root;
@@ -100,6 +99,58 @@ function mountWallet(
  * Plain DOM on an element the emitter owns and React never reconciles - the
  * same arrangement as the poster, for the same reason.
  */
+/**
+ * Reveal and wire the header's mute control.
+ *
+ * Emitted `hidden` like the full-screen button, and for a related reason: the
+ * build cannot know whether this player is muted, so a button drawn at build
+ * time would draw the wrong glyph until the runtime corrected it. Hidden until
+ * we can draw it right.
+ *
+ * Plain DOM on an element the emitter owns and React never reconciles - the
+ * same arrangement as the poster and the full-screen button. `onMuteChange`
+ * is what keeps the glyph honest when the mute is toggled somewhere else.
+ */
+function wireSound(): () => void {
+  const button = document.querySelector<HTMLButtonElement>("[data-sound]");
+  if (!button) return () => {};
+
+  const paint = (muted: boolean) => {
+    button.innerHTML = "";
+    button.append(iconNode(muted ? "muted" : "sound"));
+    button.setAttribute("aria-pressed", String(muted));
+  };
+  paint(audioPort.muted);
+  button.hidden = false;
+  button.addEventListener("click", () => audioPort.toggleMute());
+  return audioPort.onMuteChange(paint);
+}
+
+/**
+ * Reveal and wire the utility row's restart.
+ *
+ * Emitted `hidden` like the other two, and here it is not a cosmetic detail:
+ * the build cannot know whether a game ever mounts, and a restart button that
+ * restarts nothing is a dead control - the same failure as a full-screen
+ * button on a browser with no API. `onRestartChange` reveals it when a game
+ * fills the slot and hides it again when one unmounts.
+ *
+ * `claimRestartSlot` is what stops `GameChrome` drawing a SECOND one. It is
+ * called whether or not the button is found, because the answer to "does this
+ * page own the restart" is about the page, not about one query succeeding.
+ */
+function wireRestart(): () => void {
+  claimRestartSlot();
+  const button = document.querySelector<HTMLButtonElement>("[data-restart]");
+  if (!button) return () => {};
+
+  button.hidden = !hasRestart();
+  button.addEventListener("click", () => runRestart());
+  return onRestartChange((available) => {
+    button.hidden = !available;
+  });
+}
+
 function wireFullScreen(): void {
   const button = document.querySelector<HTMLButtonElement>("[data-fullscreen]");
   const target = document.querySelector<HTMLElement>(".stage .box");
@@ -135,10 +186,14 @@ export function bootContentPage(ctx: PageContext): void {
   analytics.init();
   analytics.track("session_start", { locale });
   startCloudSync();
-  // Only the game page draws its own pill around the wallet; the room and the
-  // boards still float the chip over the scene, where it needs its own.
-  mountWallet(ctx.walletSlot, ctx.kind === "game", locale);
+  // Always bare: every screen that has a wallet slot draws the pill around it
+  // in the header (`.wallet-wrap`), so a chip carrying its own would be a
+  // lozenge inside a lozenge. The room used to float its own chip over the
+  // scene instead, which is exactly the per-screen difference this removed.
+  mountWallet(ctx.walletSlot, locale);
   wireFullScreen();
+  wireSound();
+  wireRestart();
 
   const poster = document.getElementById("game-poster");
   const message = document.getElementById("game-msg");
@@ -171,9 +226,9 @@ export function bootContentPage(ctx: PageContext): void {
     const root = createRoot(frame);
     root.render(
       ctx.kind === "world" ? (
-        <World locale={locale} onExit={exitTo(locale)} />
+        <World locale={locale} />
       ) : ctx.kind === "boards" ? (
-        <Boards locale={locale} onExit={exitTo(locale)} />
+        <Boards locale={locale} />
       ) : (
         <GameHost
           gameId={ctx.gameId ?? ""}

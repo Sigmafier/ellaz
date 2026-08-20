@@ -486,8 +486,7 @@ export function MusicGame({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "layers", label: T.notes, value: notes },
-        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+        { icon: "layers", label: T.notes, value: notes, record: best ?? "-", compact: true },
       ]}
       levels={LEVEL_OPTIONS}
       level={level}

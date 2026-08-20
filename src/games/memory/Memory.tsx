@@ -342,9 +342,15 @@ export function Memory({ ctx }: { ctx: GameContext }) {
                 label: ctx.t("pairs"),
                 value: `${state.matchedPairs}/${state.totalPairs}`,
                 ltr: true,
+                compact: true,
               },
-              { icon: "moves", label: ctx.t("moves"), value: state.moves },
-              { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+              {
+                icon: "moves",
+                label: ctx.t("moves"),
+                value: state.moves,
+                record: best ?? "-",
+                compact: true,
+              },
             ]
       }
       levels={LEVEL_OPTIONS}

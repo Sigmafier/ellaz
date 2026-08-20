@@ -168,9 +168,8 @@ export function SnakeGame({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "bolt", label: ctx.t("score"), value: status.score },
-        { icon: "layers", label: ctx.t("level"), value: status.level },
-        { icon: "trophy", label: ctx.t("best"), value: Math.max(best, status.score) },
+        { icon: "bolt", label: ctx.t("score"), value: status.score, record: Math.max(best, status.score) },
+        { icon: "layers", label: ctx.t("stage"), value: status.level, compact: true },
       ]}
       levels={SPEED_OPTIONS}
       level={status.speed}

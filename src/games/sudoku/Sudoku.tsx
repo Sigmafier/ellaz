@@ -225,9 +225,14 @@ export function Sudoku({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "clock", label: ctx.t("time"), value: formatScore(timer.elapsedMs, "ms"), ltr: true },
-        { icon: "check", label: T.filled, value: `${cells - empties}/${cells}`, ltr: true },
-        { icon: "trophy", label: ctx.t("best"), value: best === undefined ? "-" : formatScore(best, "ms"), ltr: true },
+        {
+          icon: "clock",
+          label: ctx.t("time"),
+          value: formatScore(timer.elapsedMs, "ms"),
+          ltr: true,
+          record: best === undefined ? "-" : formatScore(best, "ms"),
+        },
+        { icon: "check", label: T.filled, value: `${cells - empties}/${cells}`, ltr: true, compact: true },
       ]}
       levels={LEVEL_OPTIONS}
       level={level}

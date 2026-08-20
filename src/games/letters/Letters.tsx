@@ -235,8 +235,7 @@ export function Letters({ ctx }: { ctx: GameContext }): ReactElement {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "layers", label: ctx.t("stage"), value: round },
-        { icon: "trophy", label: ctx.t("best"), value: best },
+        { icon: "layers", label: ctx.t("stage"), value: round, record: best, compact: true },
       ]}
       levels={LEVEL_OPTIONS}
       level={levelId}

@@ -321,14 +321,13 @@ export function Game2048({ ctx, skin }: { ctx: GameContext; skin?: TileSkin }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "bolt", label: ctx.t("score"), value: score },
+        { icon: "bolt", label: ctx.t("score"), value: score, record: best },
         {
           icon: "layers",
           label: T.highest,
           value: topPaint ? topPaint.glyph : topTile,
           ltr: true,
         },
-        { icon: "trophy", label: ctx.t("best"), value: best },
       ]}
       levels={LEVEL_OPTIONS}
       level={level}

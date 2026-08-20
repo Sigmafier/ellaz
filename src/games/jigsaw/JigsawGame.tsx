@@ -334,9 +334,8 @@ export function JigsawGame({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "layers", label: T.placed, value: `${done}/${state.slots.length}`, ltr: true },
-        { icon: "bolt", label: ctx.t("moves"), value: state.moves },
-        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+        { icon: "layers", label: T.placed, value: `${done}/${state.slots.length}`, ltr: true, compact: true },
+        { icon: "bolt", label: ctx.t("moves"), value: state.moves, record: best ?? "-", compact: true },
       ]}
       levels={LEVEL_OPTIONS}
       level={level}

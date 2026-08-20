@@ -589,9 +589,8 @@ export function BubbleShooterGame({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "bolt", label: ctx.t("score"), value: state.score },
-        { icon: "layers", label: WORDS[ctx.locale].shots, value: state.shotsLeft },
-        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+        { icon: "bolt", label: ctx.t("score"), value: state.score, record: best ?? "-" },
+        { icon: "layers", label: WORDS[ctx.locale].shots, value: state.shotsLeft, compact: true },
       ]}
       levels={LEVEL_OPTIONS}
       level={state.level}

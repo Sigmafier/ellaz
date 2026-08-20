@@ -1,6 +1,7 @@
 import type { Locale } from "../content/types";
 import { AUTONYM, DEFAULT_LOCALE, OG_LOCALE, dirOf } from "../i18n/locales";
 import { SITE } from "../content/site";
+import { analyticsTag } from "./analytics";
 import { html, raw, jsonLd, toHtml, type RawHtml } from "./html";
 import type { HeadAssets } from "./assets";
 import { LOCALES, canonicalUrl, homePath, href, OG_ROUTES } from "./routes";
@@ -92,6 +93,11 @@ a{color:var(--doc-brand)}
 #wallet-slot{flex:0 0 auto}
 .bc{font-size:.82rem;font-weight:600;color:var(--doc-soft);margin-block:18px 0}
 .bc a{text-decoration:none}
+/* The BREADCRUMB sits with the prose, under the stage, on every screen that
+   has one. It used to float over the stage as a dark pill - which is where a
+   44px row of buttons then landed on top of the board, because a game that
+   fitStage has scaled reaches the top edge every time. Nothing floats now:
+   the header is the only thing above the stage, and it is a real element. */
 .lede{font-size:1.12rem;color:var(--doc-ink)}
 .facts{list-style:none;display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:18px 0 0}
 .facts li{border:1px solid var(--doc-line);background:var(--doc-card);border-radius:999px;
@@ -205,49 +211,68 @@ body[data-page="game"] main,body[data-page="world"] main{max-width:none;padding-
 body[data-page="game"] main>:not(.stage),
 body[data-page="world"] main>:not(.stage){max-width:44rem;margin-inline:auto;
   padding-inline:20px}
-/* The ROOM still floats its header over the stage. The GAME page no longer
-   does - see the header section below, which puts the bar back in flow and
-   takes var(--hh) off the stage in exchange. The two pages are deliberately
-   split here rather than sharing one rule: the room is a composed scene with
-   its own margins and nothing in it reaches the top edge, while a game that
-   fitStage has scaled to fill its box reaches it every time, which is what
-   put the chrome on top of the board in the first place. */
-body[data-page="world"] .top{position:absolute;
-  inset-inline:0;top:0;z-index:6;background:transparent;border-block-end:0;
-  pointer-events:none}
-/* The bar itself stops catching clicks so the room beneath stays reachable to
-   its full width; the row inside it takes them back, because the wallet chip
-   lives there. */
-body[data-page="world"] .top .in{pointer-events:auto}
-body[data-page="game"] .bc,body[data-page="world"] .bc{position:absolute;z-index:7;
-  top:72px;inset-inline-start:20px;margin:0;padding:5px 14px;border-radius:999px;
-  background:var(--badge-fill,rgba(0,0,0,.55))}
-/* Measured from the viewport, so on a game page it has to clear the bar the
-   header now actually occupies. Written against --hh rather than as a literal
-   so a density change cannot leave the crumb sitting on the wordmark. */
-body[data-page="game"] .bc{top:calc(var(--hh) + 12px)}
-body[data-page="game"] .bc,body[data-page="game"] .bc a,
-body[data-page="world"] .bc,body[data-page="world"] .bc a{color:var(--on-brand,#fff)}
+/* The ROOM's header used to float, transparent, over its scene, while the
+   GAME's was a real tinted bar. They are one bar now - see the header section
+   below - so the room pays var(--hh) exactly as the game does, and in exchange
+   nothing on either page is drawn on top of anything else. */
 body[data-page="game"] .stage,body[data-page="world"] .stage{margin-block:0;
   margin-inline:0}
-body[data-page="world"] .stage .box{
-  height:100dvh;min-height:0;border-radius:0;box-shadow:none;border:0;
-  justify-content:center}
-/* The game's box is the screen MINUS the bar, because the bar is a real
-   element again. fitStage reads this height and scales the mounted game to
-   it, so a game is never clipped and never falls below the fold - it is
-   simply drawn at the size that fits underneath the chrome instead of behind
-   it. The cost is var(--hh) of scale, and it buys back the guarantee that
-   nothing overlaps the board. */
-body[data-page="game"] .stage .box{
-  height:calc(100dvh - var(--hh));min-height:0;border-radius:0;box-shadow:none;
-  border:0;justify-content:center}
-/* Content-sized rather than flex:1, so fitStage can read the game's NATURAL
+/* The box is the screen MINUS the bar, because the bar is a real element.
+   fitStage reads this height and scales the mounted screen to it, so nothing
+   is clipped and nothing falls below the fold - it is simply drawn at the size
+   that fits underneath the chrome instead of behind it. */
+body[data-page="game"] .stage .box,body[data-page="world"] .stage .box{
+  height:calc(100dvh - var(--hh) - var(--uh));min-height:0;border-radius:0;
+  box-shadow:none;border:0;justify-content:center}
+/* Content-sized rather than flex:1, so fitStage can read the screen's NATURAL
    height. A frame that stretches to fill the box reports the box's height back
    and the scale factor comes out as 1 every time. */
 body[data-page="game"] #game-frame,body[data-page="world"] #game-frame{flex:0 0 auto}
 
-/* --- the game-page header -------------------------------------------------
+/* --- the UTILITY row ------------------------------------------------------
+
+   The page's own line, between the bar and the screen: where you are on the
+   reading side, and on the other the one control that belongs to the GAME and
+   cannot fit inside the game's own panel.
+
+   IN FLOW, and that is the whole of it. It floated over the stage as a dark
+   pill for a day, which is what put a 44px row of buttons on top of a board:
+   fitStage scales a screen to fill its box, so a game reaches the top edge
+   every time and anything drawn over that edge is drawn over the game. The box
+   pays for this row in var(--uh) exactly as it pays for the bar in var(--hh),
+   so an overlap is impossible rather than merely avoided.
+
+   RESTART IS HERE and not in the game panel, because four cells do not fit a
+   390px phone. The panel's row is 350px wide inside, and difficulty plus two
+   stats plus gaps already spends 344 - a 56px button takes it to 408, so the
+   row wraps to two lines and the difficulty label ellipsises. Measured on the
+   built artifact: 25 of 33 games wrapped with it there, 1 of 33 with it here.
+
+   It is still not sharing a bar with platform chrome: home, sound, full screen
+   and the wallet are all in the header above, and this row holds a breadcrumb
+   and the game's own button.
+   See .claude/rules/game-controls-and-platform-chrome-never-share-a-bar.md */
+body.screen .urow{display:flex;align-items:center;gap:10px;height:var(--uh);
+  padding-inline:var(--hpad);background:var(--doc-bg)}
+body.screen .urow .bc{margin:0;flex:1 1 auto;min-width:0;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+body.screen .urow .tools{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.ubtn{display:inline-flex;align-items:center;justify-content:center;
+  width:var(--tap);height:var(--tap);flex:0 0 auto;border:0;padding:0;
+  cursor:pointer;border-radius:14px;background:var(--doc-card);
+  color:var(--doc-ink);box-shadow:0 2px 0 var(--doc-line)}
+.ubtn[hidden]{display:none}
+.ubtn .gl{display:flex}
+.ubtn .gl svg{display:block;width:22px;height:22px;fill:none;
+  stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+
+/* --- the SCREEN header ----------------------------------------------------
+
+   ONE bar, on every screen that holds a playable surface: a game, the room,
+   the boards. It used to be three different bars - a tinted one on a game, a
+   transparent floating one over the room, a white document row on the boards -
+   and none of them offered the same controls, so "how do I get home" and "how
+   do I mute" had a different answer on each screen of one product.
 
    Decided brick by brick against real production builds, one axis per round,
    with everything else frozen. What each round settled, and the trap in it:
@@ -257,7 +282,7 @@ body[data-page="game"] #game-frame,body[data-page="world"] #game-frame{flex:0 0 
      finding: the previous header was already these same lozenges, so the
      pills were never what looked wrong. The bar was.
 
-   2 SURFACE - a deep tone of THIS GAME's own ground. The old bar was
+   2 SURFACE - a deep tone of THIS SCREEN's own ground. The old bar was
      rgba(0,0,0,.55), and black alpha over a saturated colour drops lightness
      and chroma TOGETHER: over 2048's rgb(255,199,48) it composites to
      rgb(115,90,22), olive, and a different mud on every game. Two ways out -
@@ -272,50 +297,70 @@ body[data-page="game"] #game-frame,body[data-page="world"] #game-frame{flex:0 0 
      because #0C0812 is a purple-black. The color-mix line is only the
      fallback for a browser without relative colour syntax.
 
-   3 CONTENTS - wordmark + back | game name | wallet + full screen. The link
-     down to the article is gone: a page scrolls, and the words start directly
-     under the game. The coin and star are DRAWN, not typed - an emoji is a
-     different picture on every device, is monochrome on some, and cannot take
-     the header's ink. That fix lives in WalletChip now.
+   3 CONTENTS - home | the screen's name | full screen, sound, wallet. Every
+     one of those is PLATFORM chrome: it would mean the same thing on any of
+     the three screens, which is the test
+     (.claude/rules/game-controls-and-platform-chrome-never-share-a-bar.md).
+     Difficulty and restart fail that test and live in the game panel. The
+     coin and star are DRAWN, not typed - an emoji is a different picture on
+     every device, is monochrome on some, and cannot take the header's ink.
 
    4 DENSITY - 60px bar, 44px controls. The only non-aesthetic axis in the
      four: 44 is Apple's stated minimum and 36 (what shipped) is about 9.5mm,
      under it. Android asks 48dp, which this still does not meet.
 
+     Five controls do not fit a 390px phone at desktop spacing - measured, the
+     name is left 20px and renders as a bare ellipsis. So the PHONE tightens
+     the gap and the gutter and squares the icon-only buttons, and none of
+     that touches the 44px height: an icon button becomes 44x44 rather than
+     50x44, still square and still over the floor. Measured after: the name
+     keeps ~75px, which holds "Snake" and ellipsises "Bubble Shooter" - and
+     the h1 directly below says the full name either way.
+
    --g IS NOT AMBIENT. It is emitted per page from artGround(), because
    nothing in the app or the document defines it. Without that, every rule
    here resolves to the same fallback indigo and all 21 bars come out
    identical - a plausible picture, one flat colour, no error anywhere. */
-body[data-page="game"]{--hh:60px;--tap:44px;--hgap:12px;--hpad:20px;
+body.screen{--hh:60px;--uh:52px;--tap:44px;--hgap:12px;--hpad:20px;
   --hbrand:22px;--hfont:14.5px;--hdr-ink:#FFF6E9}
-@media (max-width:719px){body[data-page="game"]{--hh:58px;--hbrand:20px}}
+@media (max-width:719px){body.screen{--hh:58px;--uh:46px;--hbrand:20px;--hgap:8px;--hpad:12px}}
 
-body[data-page="game"] .top{position:relative;z-index:6;height:var(--hh);
+body.screen .top{position:relative;z-index:6;height:var(--hh);
   display:flex;align-items:center;padding:0;border-block-end:0;
   color:var(--hdr-ink);
   background:color-mix(in oklch, var(--g,#4F5BD5) 46%, #0C0812);
   background:oklch(from var(--g,#4F5BD5) .30 calc(c * 1.05) h)}
-/* Full width, and the three groups pushed apart. space-between is direction
+/* Full width, and the groups pushed apart. space-between is direction
    agnostic, so this is correct in Hebrew with no second rule. */
-body[data-page="game"] .top .in{max-width:none;margin:0;width:100%;
+body.screen .top .in{max-width:none;margin:0;width:100%;
   padding:0 var(--hpad);gap:var(--hgap);justify-content:space-between}
-body[data-page="game"] .brand{color:var(--hdr-ink);font-size:var(--hbrand)}
-body[data-page="game"] .tagline{display:none}
-
-.hgrp{display:flex;align-items:center;gap:var(--hgap);min-width:0}
-.hgrp-c{flex:1 1 auto;flex-direction:column;gap:2px;align-items:center;
-  text-align:center;min-width:0}
-.hgrp-c b{font:600 calc(var(--hfont) * 1.08)/1.15 Fredoka,system-ui,sans-serif;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.hgrp-c .cat{font-size:calc(var(--hfont) * .8);color:rgba(255,246,233,.78)}
+body.screen .tagline{display:none}
+/* The screen's NAME, which a phone has never shown. It takes the middle and
+   ellipsises rather than wrapping: a two-line name makes the bar taller than
+   the 58px every measurement here was taken against, and a wrapped label
+   passes a clip check, an overflow check and a right-edge check while doing
+   it. See a-diagnostic-that-truncates-what-it-compares. */
+body.screen .gname{flex:1 1 0;min-width:0;
+  font:600 16px/1 Fredoka,system-ui,sans-serif;color:var(--hdr-ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-inline:2px}
+/* ONE way home, and it says where it goes: the arrow tells you it is a back
+   affordance and the house tells you what is behind it. Two glyphs in one
+   pill rather than two buttons - they are one destination, and this is the
+   button that replaced four of them. */
+.hbtn.home{gap:7px;padding:0 15px}
 
 /* One height variable for the buttons AND the wallet. They used to be 36 and
    48, which is why they never sat on a line together. */
-.hbtn{display:inline-flex;align-items:center;gap:8px;height:var(--tap);
+.hbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  height:var(--tap);
   border:0;margin:0;cursor:pointer;text-decoration:none;flex:0 0 auto;
   border-radius:99px;padding:0 calc(var(--tap) * .39);white-space:nowrap;
   font:600 var(--hfont)/1 inherit;
   background:rgba(255,255,255,.12);color:var(--hdr-ink)}
+/* An icon-only control is SQUARE. At the pill padding it is 50 wide around a
+   17px glyph, which is 33px of nothing either side of the thing you are
+   aiming at - and five of those do not fit a phone. */
+.hbtn.ico{width:var(--tap);padding:0}
 .hbtn:hover{background:rgba(255,255,255,.2)}
 .hbtn.pri{background:#FFF6E9;color:#241C2B}
 .hbtn.pri:hover{background:#fff}
@@ -327,25 +372,24 @@ body[data-page="game"] .tagline{display:none}
 /* An arrow is not bidi-mirrored by the renderer - U+2190 draws pointing left
    whatever the direction is - so a back affordance in Hebrew has to be
    flipped deliberately. Drawn rather than typed for the same reason the coin
-   is: a glyph is a different picture per device, and ⛶ in particular is
-   missing from plenty of fonts. */
+   is: a glyph is a different picture per device, and the fullscreen glyph in
+   particular is missing from plenty of fonts. */
 [dir="rtl"] .hbtn .gl .arw{transform:scaleX(-1);transform-origin:center}
 
 .wallet-wrap{display:inline-flex;align-items:center;height:var(--tap);
-  border-radius:99px;padding:0 calc(var(--tap) * .39);
+  border-radius:99px;padding:0 calc(var(--tap) * .34);
   background:rgba(255,255,255,.12)}
-body[data-page="game"] #wallet-slot>*{background:none;box-shadow:none;border:0;
-  padding:0;color:var(--hdr-ink);height:var(--tap);gap:12px}
+body.screen #wallet-slot>*{background:none;box-shadow:none;border:0;
+  padding:0;color:var(--hdr-ink);height:var(--tap);gap:10px}
 
-/* On a phone the labels go and the glyphs stay, and the game's name goes with
-   them - the middle of a two-ended row only stays centred while the two ends
-   are about equal, and once the labels drop they are not. */
+/* On a phone the labels go and the glyphs stay. The screen's NAME used to go
+   with them, because the middle of a two-ended row only stays centred while
+   the two ends are about equal - it is start-aligned now and no longer needs
+   them to be. */
 @media (max-width:719px){
   .hbtn .tx{display:none}
-  .hgrp-c{display:none}
-  body[data-page="game"] .top .in{padding:0 calc(var(--hpad) * .75)}
+  .wallet-wrap{padding:0 10px}
 }
-
 @media (max-width:480px){body{font-size:16px}h1{font-size:1.6rem}.play{width:100%}
   .stage .box{min-height:clamp(420px,calc(100dvh - 120px),860px)}
   .tagline{display:none}}
@@ -391,6 +435,24 @@ export interface DocumentOptions {
    *   and a second wordmark row above its own reads as a bug.
    */
   shell?: boolean;
+
+  /**
+   * Whether this document may carry the analytics tag. True everywhere except
+   * the 404.
+   *
+   * The 404 is the one PURE document left - served for URLs that do not exist,
+   * where booting anything is a download nobody asked for - and
+   * `assert-pages.mjs` has enforced "a document should fetch nothing eagerly"
+   * on it since long before there was a tag to exclude. That gate caught this
+   * on the first run and it was right: an error page pulling a third-party
+   * script is exactly what it exists to prevent.
+   *
+   * Explicit rather than derived from `indexable`. On the primary host those two
+   * happen to coincide today, and a coincidence is not a rule - the day another
+   * noindex page is emitted, deriving it would silently stop measuring a page
+   * somebody does want measured.
+   */
+  analytics?: boolean;
   /**
    * `<link rel="modulepreload">` for the chunks THIS page will go on to fetch
    * by itself - the content-page runtime, and on a game page that one game.
@@ -412,30 +474,50 @@ export interface DocumentOptions {
    */
   headerSlot?: RawHtml;
   /**
-   * The game-page chrome. Present ONLY on a game page, and its absence is what
-   * keeps the other 27 emitted documents byte-identical to what they were -
-   * the home index, the room, the boards and the 404 all still render the
-   * plain wordmark-and-tagline row.
+   * The SCREEN chrome: present on the three pages that hold a playable
+   * surface - every game, the room, the boards - and absent everywhere else.
+   * Its presence is also what puts `class="screen"` on the body, so the bar
+   * and its scoping can never disagree about which pages have one.
+   *
+   * The pages without it - the home index and the 404 - still render the
+   * plain wordmark-and-tagline row, which is the right header for a document.
    */
   headerChrome?: HeaderChrome;
 }
 
-/** What the game-page header needs that the document itself does not know. */
+/** What the screen header needs that the document itself does not know. */
 export interface HeaderChrome {
   /**
-   * The game's own ground colour, from `artGround`. Emitted as `--g` on the
-   * header, because nothing else on the page defines it and the tint rule
-   * reads it - without the attribute every game's bar falls back to one
-   * indigo, which is a perfectly plausible header that happens to be
-   * identical on all 21 games.
+   * This screen's own ground colour: `artGround` for a game, the room's and
+   * the boards' own for those. Emitted as `--g` on the header, because
+   * nothing else on the page defines it and the tint rule reads it - without
+   * the attribute every bar falls back to one indigo, which is a perfectly
+   * plausible header that happens to be identical on all 35 screens.
    */
   ground: string;
-  /** The game's title, already in this page's language. */
+  /** The screen's name, already in this page's language. */
   title: string;
   /** Its category, already localised. Optional: not every page has one. */
   cat?: string;
   backLabel: string;
+  /** For the header's mute control, which the runtime reveals. */
+  soundLabel: string;
+  /** For the header's full-screen control, which the runtime reveals. */
   fullLabel: string;
+}
+
+/**
+ * `class="app-shell"`, `class="screen"`, or nothing.
+ *
+ * DERIVED from the same fields that decide what the page IS, rather than
+ * passed in beside them: `screen` scopes every header rule, so a page that
+ * carries the chrome and not the class renders the bar with none of its
+ * styling - a white row of unstyled links, on a page that looks otherwise
+ * perfect. Two flags for one fact is how that ships.
+ */
+function bodyClass(opts: DocumentOptions): string {
+  if (opts.shell) return 'class="app-shell"';
+  return opts.headerChrome ? 'class="screen"' : "";
 }
 
 /** `data-page="game" data-game="2048"`, escaped, or nothing at all. */
@@ -470,39 +552,74 @@ function groundStyle(chrome: HeaderChrome | undefined): string {
  * stops being one set. Both come from `ICON_PATHS`, so a glyph redrawn in the
  * app is redrawn here with no second edit.
  */
-function icon(name: "back" | "expand", cls = ""): RawHtml {
+export function icon(name: "back" | "expand" | "home" | "redo" | "sound", cls = ""): RawHtml {
+  // Every subpath its own <path>: `home` is three of them concatenated, and a
+  // single `d` holding all three still draws - so this is not a bug you would
+  // see, only one you would measure. Splitting on the absolute M is what
+  // `Icon` does in React, from the same table.
+  const paths = ICON_PATHS[name]
+    .split(/(?=M)/)
+    .map((d) => `<path d="${d}"/>`)
+    .join("");
   return raw(
     `<span class="gl"><svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true" ` +
       `fill="none" stroke="currentColor" stroke-width="${ICON_STROKE}" ` +
       `stroke-linecap="round" stroke-linejoin="round">` +
-      `<path d="${ICON_PATHS[name]}"/></svg></span>`,
+      `${paths}</svg></span>`,
   );
 }
 
 /**
- * The game page's header row: wordmark + back | game name | wallet + full screen.
+ * The page's own line, under the bar and above the screen.
  *
- * The full-screen control is emitted `hidden` and revealed by the runtime only
- * once it has confirmed the API exists. A button that silently does nothing is
- * worse than no button, and this page is served to browsers that have no
- * fullscreen at all.
+ * Two things live here and they are both about the PAGE rather than the
+ * platform: the breadcrumb, which says where you are, and a slot for the one
+ * control a game owns that has nowhere else to go. Emitting it once, here,
+ * rather than inside each screen is what makes the three screens agree - the
+ * room and the boards pass no tools and get the same row with nothing in it.
  */
-function gameChrome(chrome: HeaderChrome, homeHref: string, brand: string, slot: RawHtml | undefined): RawHtml {
+export function utilityRow(crumb: RawHtml, tools?: RawHtml): RawHtml {
+  return html`<div class="urow">
+    ${crumb}${tools ? html`<div class="tools">${tools}</div>` : raw("")}
+  </div>`;
+}
+
+/**
+ * The header row every playable screen wears: home | its name | full screen,
+ * sound, wallet.
+ *
+ * PLATFORM CONTROLS ONLY, and that is the whole test - every one of these
+ * means the same thing on a game, in the room and on the boards, which is why
+ * one row can serve all three. Difficulty and restart do not, so they live in
+ * the game panel.
+ * See .claude/rules/game-controls-and-platform-chrome-never-share-a-bar.md
+ *
+ * ONE way home, drawn as arrow-plus-house. There used to be four on a game
+ * page - the wordmark, this arrow, the breadcrumb's Home link and a house
+ * button in the row below - which is what a bar with no rule about what
+ * belongs in it turns into. The room and the boards had the opposite problem:
+ * their only way out was a back button drawn inside the scene, so the answer
+ * to "how do I leave" was in a different place on every screen.
+ *
+ * Sound and full screen are emitted `hidden` and revealed by the runtime.
+ * They need it for different reasons and both are real: the build cannot know
+ * whether this player is muted, and iOS Safari has no Fullscreen API for an
+ * arbitrary element. A control drawn in the wrong state, or one that does
+ * nothing when tapped, is worse than one that arrives a frame later.
+ */
+function screenChrome(chrome: HeaderChrome, homeHref: string, slot: RawHtml | undefined): RawHtml {
   return html`
-    <div class="hgrp">
-      <a class="brand" href="${homeHref}">${brand}</a>
-      <a class="hbtn" href="${homeHref}">${icon("back", "arw")}<span class="tx">${chrome.backLabel}</span></a>
-    </div>
-    <div class="hgrp hgrp-c">
-      <b>${chrome.title}</b>
-      ${chrome.cat ? html`<span class="cat">${chrome.cat}</span>` : raw("")}
-    </div>
-    <div class="hgrp">
-      <div class="wallet-wrap">${slot ?? raw("")}</div>
-      <button type="button" class="hbtn pri" data-fullscreen hidden>
-        ${icon("expand")}<span class="tx">${chrome.fullLabel}</span>
-      </button>
-    </div>
+    <a class="hbtn home" href="${homeHref}" aria-label="${chrome.backLabel}">
+      ${icon("back", "arw")}${icon("home")}
+    </a>
+    <b class="gname">${chrome.title}</b>
+    <button type="button" class="hbtn ico" data-fullscreen aria-label="${chrome.fullLabel}" hidden>
+      ${icon("expand")}
+    </button>
+    <button type="button" class="hbtn ico" data-sound aria-label="${chrome.soundLabel}" hidden>
+      ${icon("sound")}
+    </button>
+    <div class="wallet-wrap">${slot ?? raw("")}</div>
   `;
 }
 
@@ -565,7 +682,7 @@ export function renderDocument(opts: DocumentOptions): string {
     <header class="top" ${raw(groundStyle(opts.headerChrome))}>
       <div class="in">
         ${opts.headerChrome
-          ? gameChrome(opts.headerChrome, href(homePath(locale), base), site.brand, opts.headerSlot)
+          ? screenChrome(opts.headerChrome, href(homePath(locale), base), opts.headerSlot)
           : html`<a class="brand" href="${href(homePath(locale), base)}">${site.brand}</a>
               <span class="tagline">${site.tagline}</span>
               ${opts.headerSlot}`}
@@ -638,6 +755,13 @@ export function renderDocument(opts: DocumentOptions): string {
           <meta name="twitter:image" content="${ogImage}" />`}
         <meta name="twitter:card" content="${ogImage ? "summary_large_image" : "summary"}" />
         <link rel="icon" type="image/svg+xml" href="${base}favicon.svg" />
+        <!-- Measurement, on EVERY emitted document and not only the app shell.
+             Search Console says the arrivals land on GAME pages from Hebrew
+             queries, so a shell-only tag would have measured almost none of
+             them. Empty on any non-primary base, so the noindex mirror never
+             reports. Config and its deliberate limits: src/build/analytics.ts. -->
+        
+${raw(opts.analytics === false ? "" : analyticsTag(base))}
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link rel="stylesheet" href="${FONTS}" />
         ${!opts.shell &&
@@ -651,7 +775,7 @@ export function renderDocument(opts: DocumentOptions): string {
         ${(opts.headAssets?.tags ?? []).map((t) => raw(t))}
         ${(opts.preloads ?? []).map((t) => raw(t))}
       </head>
-      <body ${raw(opts.shell ? 'class="app-shell"' : "")}${raw(bodyAttrs(opts.bodyData))}>
+      <body ${raw(bodyClass(opts))}${raw(bodyAttrs(opts.bodyData))}>
         ${opts.shell ? opts.body : chrome}
       </body>
     </html>`)

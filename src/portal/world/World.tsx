@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { AppLocale } from "@i18n/locales";
-import { backArrow, makeT, textFor } from "@i18n/index";
+import { makeT, textFor } from "@i18n/index";
 import {
   audioPort,
   dailyStreak,
@@ -13,7 +13,6 @@ import {
 import { IconButton } from "@ui/components";
 import { Icon } from "@ui/icons";
 import { burst, popEl, shake } from "@juice/index";
-import { WalletChip } from "../WalletChip";
 import { Scene } from "./Scene";
 import { Backup } from "./Backup";
 import {
@@ -67,7 +66,7 @@ const CATEGORY_KEY: Record<ItemCategory, string> = {
   pet: "catPet",
 };
 
-export function World({ locale, onExit }: { locale: AppLocale; onExit: () => void }) {
+export function World({ locale }: { locale: AppLocale }) {
   const t = makeT(locale);
   const [profile, setProfile] = useState<ProfileV1>(() => wallet.snapshot());
   // The streak lives in its own key beside the profile, so the shop reads it
@@ -121,14 +120,14 @@ export function World({ locale, onExit }: { locale: AppLocale; onExit: () => voi
   return (
     <div className="ellaz-scroll" style={{ flex: 1 }}>
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "8px 16px 32px" }}>
-        <header style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0 16px" }}>
-          <IconButton ariaLabel={t("back")} onClick={onExit}>
-            {backArrow(locale)}
-          </IconButton>
-          {/* h2 — the emitted page already has the h1. See Boards.tsx. */}
-          <h2 style={{ flex: 1, fontSize: 26, lineHeight: 1, margin: 0 }}>{t("world")}</h2>
-          <WalletChip />
-        </header>
+        {/* NO header row here, and that is the normalisation.
+            The way out and the wallet are PLATFORM chrome, so they are in the
+            page header - the same bar, in the same place, carrying the same
+            controls as every game and the boards. This row used to draw its
+            own back arrow and its own chip, which is how "where are my coins"
+            came to have a different answer on every screen of one product.
+            The screen's NAME is up there too, so the h2 goes with it.
+            See .claude/rules/game-controls-and-platform-chrome-never-share-a-bar.md */}
 
         <NamePlate profile={profile} locale={locale} t={t} />
 

@@ -289,9 +289,8 @@ export function PetGame({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "heart", label: T.care, value: care },
-        { icon: "layers", label: T.size, value: `${g.stage + 1}/${MAX_STAGE + 1}`, ltr: true },
-        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+        { icon: "heart", label: T.care, value: care, record: best ?? "-" },
+        { icon: "layers", label: T.size, value: `${g.stage + 1}/${MAX_STAGE + 1}`, ltr: true, compact: true },
       ]}
       levels={PET_OPTIONS}
       level={petId}

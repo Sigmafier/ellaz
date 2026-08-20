@@ -214,10 +214,15 @@ export function Minesweeper({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "flag", label: T.flags, value: state.flagsLeft },
+        { icon: "flag", label: T.flags, value: state.flagsLeft, compact: true },
         // A clock reads right-to-left in Hebrew and "1:30" becomes "30:1".
-        { icon: "clock", label: ctx.t("time"), value: formatScore(timer.elapsedMs, "ms"), ltr: true },
-        { icon: "trophy", label: ctx.t("best"), value: best === undefined ? "-" : formatScore(best, "ms"), ltr: true },
+        {
+          icon: "clock",
+          label: ctx.t("time"),
+          value: formatScore(timer.elapsedMs, "ms"),
+          ltr: true,
+          record: best === undefined ? "-" : formatScore(best, "ms"),
+        },
       ]}
       levels={DIFF_OPTIONS}
       level={levelName(diff)}

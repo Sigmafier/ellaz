@@ -193,9 +193,8 @@ export function MergeGame({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "bolt", label: ctx.t("score"), value: state.score },
+        { icon: "bolt", label: ctx.t("score"), value: state.score, record: best ?? "-" },
         { icon: "layers", label: T.highest, value: top.emoji, ltr: true },
-        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
       ]}
       levels={LEVEL_OPTIONS}
       level={level}

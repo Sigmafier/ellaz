@@ -3,7 +3,7 @@ import { gameName } from "./gameName";
 import type { GameCopy, Locale, Titled } from "../content/types";
 import { SITE, type SiteCopy } from "../content/site";
 import { html, type RawHtml } from "./html";
-import { renderDocument } from "./layout";
+import { icon, renderDocument, utilityRow } from "./layout";
 import { LOCALES, gamePath, homePath, href } from "./routes";
 import { gameGraph } from "./schema";
 import { lazyPreloadTags, type HeadAssets } from "./assets";
@@ -151,12 +151,39 @@ export function gamePage(opts: GamePageOptions): string {
   const h = site.headings;
   const related = relatedTo(meta, opts.all);
 
+  // The BREADCRUMB and the RESTART share the utility row, above the stage.
+  //
+  // That row floated over the stage as a dark pill once, which is what put a
+  // 44px band of buttons on top of the board. The fix was to put it in FLOW
+  // and make the box pay for its height - not to delete it. Deleting it sent
+  // restart into the game panel, where a fourth 56px cell wrapped the panel's
+  // one row onto two lines in 25 of 33 games and clipped snake's difficulty
+  // label to "Nor...".
+  //
+  // Full screen does NOT come back up here with it: it means the same thing on
+  // a game, in the room and on the boards, so it is platform chrome and it is
+  // in the header. Restart means nothing with no game mounted, so it is not.
+  // See .claude/rules/game-controls-and-platform-chrome-never-share-a-bar.md
   const body = html`
-    <nav class="bc">
-      <a href="${href(homePath(locale), base)}">${site.home}</a> ›
-      ${site.categories[meta.category] ?? ""} › ${gameName(meta.id, locale)}
-    </nav>
-
+    ${utilityRow(
+      html`<nav class="bc">
+        <a href="${href(homePath(locale), base)}">${site.home}</a> ›
+        ${site.categories[meta.category] ?? ""} › ${gameName(meta.id, locale)}
+      </nav>`,
+      // Emitted `hidden`, like the sound and full-screen buttons and for the
+      // same reason: the build cannot know whether a game ever mounts, and a
+      // restart that restarts nothing is worse than no restart at all. The
+      // runtime reveals it when a game fills the slot.
+      html`<button
+        type="button"
+        class="ubtn"
+        data-restart
+        aria-label="${site.chrome.restart}"
+        hidden
+      >
+        ${icon("redo")}
+      </button>`,
+    )}
     ${stage(meta.emoji, site)}
 
     <h1>${headingFor(meta, locale)}</h1>
@@ -221,6 +248,7 @@ export function gamePage(opts: GamePageOptions): string {
       title: gameName(meta.id, locale),
       cat: site.categories[meta.category],
       backLabel: site.chrome.back,
+      soundLabel: site.chrome.sound,
       fullLabel: site.chrome.fullScreen,
     },
   });

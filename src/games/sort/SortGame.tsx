@@ -331,9 +331,8 @@ export function SortGame({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "moves", label: ctx.t("moves"), value: state.moves },
-        { icon: "check", label: T.sorted, value: `${sorted}/${LEVELS[level].colors}`, ltr: true },
-        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+        { icon: "moves", label: ctx.t("moves"), value: state.moves, compact: true, record: best ?? "-" },
+        { icon: "check", label: T.sorted, value: `${sorted}/${LEVELS[level].colors}`, ltr: true, compact: true },
       ]}
       levels={LEVEL_OPTIONS}
       level={level}

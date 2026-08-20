@@ -364,9 +364,8 @@ export function MazeGame({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "moves", label: ctx.t("moves"), value: state.steps },
-        { icon: "check", label: T.streak, value: state.streak },
-        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+        { icon: "moves", label: ctx.t("moves"), value: state.steps, compact: true },
+        { icon: "check", label: T.streak, value: state.streak, record: best ?? "-", compact: true },
       ]}
       levels={LEVEL_OPTIONS}
       level={level}

@@ -281,8 +281,7 @@ export function Echo({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "layers", label: ctx.t("stage"), value: seq.round },
-        { icon: "trophy", label: ctx.t("best"), value: best },
+        { icon: "layers", label: ctx.t("stage"), value: seq.round, record: best, compact: true },
       ]}
       levels={LEVEL_OPTIONS}
       level={levelId}

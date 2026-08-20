@@ -191,8 +191,7 @@ export function Sequence({ ctx }: { ctx: GameContext }): ReactElement {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "layers", label: ctx.t("stage"), value: level },
-        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+        { icon: "layers", label: ctx.t("stage"), value: level, compact: true, record: best ?? "-" },
       ]}
       levels={DIFF_OPTIONS}
       level={difficulty}

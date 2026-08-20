@@ -298,13 +298,13 @@ export function WordGuess({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "trophy", label: T.streak, value: streak },
-        { icon: "star", label: ctx.t("best"), value: best ?? "-" },
+        { icon: "trophy", label: T.streak, value: streak, compact: true, record: best ?? "-" },
         {
           icon: "moves",
           label: T.tries,
           value: `${Math.min(state.guesses.length, MAX_GUESSES)}/${MAX_GUESSES}`,
           ltr: true,
+          compact: true,
         },
       ]}
       levels={LEVEL_OPTIONS}
