@@ -4,7 +4,7 @@ import type { GameCopy, Locale, Titled } from "../content/types";
 import { SITE, type SiteCopy } from "../content/site";
 import { html, type RawHtml } from "./html";
 import { icon, renderDocument, utilityRow } from "./layout";
-import { LOCALES, gamePath, homePath, href } from "./routes";
+import { LOCALES, PAGED_CATEGORIES, categoryPath, gamePath, homePath, href } from "./routes";
 import { gameGraph } from "./schema";
 import { lazyPreloadTags, type HeadAssets } from "./assets";
 // Build-time only, and the same module the share cards read. `src/build` may
@@ -77,6 +77,32 @@ export function gameCards(
       </li>`,
     )}
   </ul>`;
+}
+
+/**
+ * The middle step of the breadcrumb, as a LINK when that group has a page.
+ *
+ * This is where the category pages get their inbound links, and the choice of
+ * place was made on a measurement rather than on taste. The obvious home is
+ * the home page - but the home body is emitted into `index.html`, so five
+ * links there cost the FIRST VISIT 81 B gz (two arms, one tree, 2026-08-21)
+ * against 63 B of headroom. Here they cost it nothing: a game page is an
+ * emitted document that no child downloads before choosing a game, and there
+ * are 33 of them in each of four languages rather than one.
+ *
+ * It is also the better link. A breadcrumb is contextual, it is where a reader
+ * expects to find the group, and it already carried the group's NAME as plain
+ * text - so this adds an href and no words at all.
+ *
+ * Plain text when the group has no page. `create` holds one game today, and a
+ * breadcrumb linking to a page the build did not emit is exactly the internal
+ * 404 that `assert-pages.mjs` fails on - which is the gate working, and a
+ * reason to ask `PAGED_CATEGORIES` rather than to assume.
+ */
+function categoryCrumb(meta: GameMeta, locale: Locale, base: string): RawHtml {
+  const label = SITE[locale].categories[meta.category] ?? "";
+  if (!PAGED_CATEGORIES.includes(meta.category)) return html`${label}`;
+  return html`<a href="${href(categoryPath(meta.category, locale), base)}">${label}</a>`;
 }
 
 /**
@@ -168,7 +194,7 @@ export function gamePage(opts: GamePageOptions): string {
     ${utilityRow(
       html`<nav class="bc">
         <a href="${href(homePath(locale), base)}">${site.home}</a> ›
-        ${site.categories[meta.category] ?? ""} › ${gameName(meta.id, locale)}
+        ${categoryCrumb(meta, locale, base)} › ${gameName(meta.id, locale)}
       </nav>`,
       // Both emitted `hidden`, like the sound and full-screen buttons and for
       // the same reason: the build cannot know whether a game ever mounts, and

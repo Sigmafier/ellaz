@@ -10,8 +10,20 @@ import { stage } from "./gamePage";
 // room and the boards are tinted out of the app's own colours rather than out
 // of two literals nobody would ever find again.
 import { PAL } from "../ui/gameArt";
-import { LOCALES, boardsPath, gamePath, homePath, href, worldPath } from "./routes";
-import { homeGraph, worldGraph } from "./schema";
+import {
+  LOCALES,
+  PAGED_CATEGORIES,
+  boardsPath,
+  categoryPath,
+  gamePath,
+  homePath,
+  href,
+  worldPath,
+} from "./routes";
+import { categoryGraph, homeGraph, worldGraph } from "./schema";
+import { CATEGORY_CHROME, categoryCopy } from "../content/categories";
+import { gameCards } from "./gamePage";
+import type { Category } from "../sdk/types";
 import { lazyPreloadTags, type HeadAssets } from "./assets";
 
 /**
@@ -164,6 +176,92 @@ function otherHomeLinks(locale: Locale, base: string): RawHtml {
         <a href="${href(homePath(l), base)}" hreflang="${l}" lang="${l}">${AUTONYM[l]}</a>
       </p>`,
   )}`;
+}
+
+/**
+ * A category landing page: one group of games, the article that group deserves,
+ * and every game in it as a link.
+ *
+ * WHY THIS PAGE KIND EXISTS
+ * Search Console, 2026-08-20: "memory games for kids" was in the top ten
+ * queries reaching this site. That is a CATEGORY query, and there were 144
+ * pages here of which not one was written to answer it - every impression it
+ * earned landed on `/games/memory/`, a page about one game rather than a page
+ * about a group. `seo-doctrine` SEO16 is the clause it ratified.
+ *
+ * WHY IT IS A PURE DOCUMENT AND BOOTS NOTHING
+ * The home page, the room and the boards are all SCREENS in the app, and an
+ * emitted document served at a screen's own URL is the defect written up in
+ * `homePage` above - a person calls it broken and they are right. A category
+ * page is not a screen: there is no `#/games/kids` in this app, nothing is
+ * missing from it, and every link on it goes somewhere that does boot. So it
+ * carries no `headAssets`, fetches no chunk, and costs a first visit nothing.
+ *
+ * The measurement tag is the one exception, and it is deliberate: these are
+ * the pages the whole exercise exists to measure, so a document that is
+ * indexable carries it while the 404 still does not. `assert-pages.mjs` allows
+ * exactly that one script on a non-booting page and nothing else.
+ *
+ * THE LIST COMES FIRST, ON PURPOSE. Somebody arriving from a search for
+ * "puzzle games for kids" wants the games, not our prose about them. The
+ * article sits under the list, where it is still read by a crawler in full and
+ * ignored by a visitor in a hurry, which is the correct order for both.
+ */
+export function categoryPage(
+  opts: SitePageOptions & { category: Category },
+): string {
+  const { locale, base, category } = opts;
+  const site = SITE[locale];
+  const chrome = CATEGORY_CHROME[locale];
+  // `opts.games` is ALREADY this group's games - the caller filters, so the
+  // count in the copy and the list on the page cannot come from two different
+  // answers to "which games are in this group".
+  const games = opts.games;
+  const copy = categoryCopy(locale, category, games.length);
+
+  const body = html`
+    ${utilityRow(
+      html`<nav class="bc">
+        <a href="${href(homePath(locale), base)}">${site.home}</a> › ${copy.h1}
+      </nav>`,
+    )}
+    <h1>${copy.h1}</h1>
+    <p class="lede">${copy.lede}</p>
+
+    <h2>${chrome.games}</h2>
+    ${gameCards(games, locale, base)}
+
+    ${copy.body.map((p) => html`<p>${p}</p>`)}
+
+    <h2>${site.headings.faq}</h2>
+    ${copy.faq.map((f) => html`<h3>${f.q}</h3>
+      <p>${f.a}</p>`)}
+
+    <h2>${chrome.more}</h2>
+    <ul>
+      ${PAGED_CATEGORIES.filter((c) => c !== category).map(
+        (c) =>
+          html`<li>
+            <a href="${href(categoryPath(c, locale), base)}"
+              >${categoryCopy(locale, c, 0).h1}</a
+            >
+          </li>`,
+      )}
+    </ul>
+    <p><a href="${href(homePath(locale), base)}">${site.chrome.back}</a></p>
+  `;
+
+  return renderDocument({
+    locale,
+    title: copy.metaTitle,
+    description: copy.metaDescription,
+    path: categoryPath(category, locale),
+    alternates: LOCALES.map((l) => ({ locale: l, path: categoryPath(category, l) })),
+    schema: categoryGraph(category, locale, games, copy),
+    body,
+    base,
+    indexable: opts.indexable,
+  });
 }
 
 export function worldPage(opts: SitePageOptions): string {

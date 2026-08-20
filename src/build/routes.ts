@@ -1,6 +1,8 @@
 import type { Locale } from "../content/types";
+import type { Category } from "../sdk/types";
 import { PAGE_LOCALES, CANONICAL_LOCALE, localePrefix } from "../i18n/locales";
 import { ORIGIN } from "../content/site";
+import { CATEGORY_CONTENT, MIN_GAMES_FOR_A_PAGE } from "../content/categories";
 import { GAMES } from "../portal/games";
 
 /**
@@ -18,13 +20,15 @@ import { GAMES } from "../portal/games";
  * translated. See `.claude/rules/a-locale-page-without-a-translated-body-is-a-duplicate.md`.
  */
 
-export type PageKind = "home" | "game" | "world" | "boards" | "notFound";
+export type PageKind = "home" | "game" | "category" | "world" | "boards" | "notFound";
 
 export interface Route {
   kind: PageKind;
   locale: Locale;
   /** Game id, for `kind === "game"` only. */
   id?: string;
+  /** The group, for `kind === "category"` only. */
+  category?: Category;
   /**
    * The canonical path, ALWAYS base-free and always what appears after
    * `https://ellaz.fun`. The base belongs to a host, not to an identity.
@@ -60,6 +64,53 @@ export function gamePath(gameId: string, locale: Locale): string {
 
 export function homePath(locale: Locale): string {
   return `${localePrefix(locale)}/`;
+}
+
+/**
+ * Every category, in reading order, taken from the copy record rather than
+ * from a second list.
+ *
+ * `CATEGORY_CONTENT` is `Record<Category, ...>`, so this cannot omit a
+ * category the SDK declares and cannot invent one it does not. The KEY ORDER
+ * of that record is the reading order, and `categories.test.ts` pins it
+ * against `CATEGORY_ORDER` in the catalog - the build must not import the
+ * catalog itself, because its lazy loaders name every game and a stray
+ * evaluation at config time would pull Phaser into `vite.config.ts`.
+ */
+export const CATEGORY_IDS = Object.keys(
+  CATEGORY_CONTENT[CANONICAL_LOCALE],
+) as Category[];
+
+/** The games in one group, in roster order. */
+export function gamesIn(category: Category): typeof GAMES {
+  return GAMES.filter((m) => m.category === category);
+}
+
+/**
+ * The groups big enough to deserve a page, measured against the LIVE roster.
+ *
+ * Derived rather than listed, so a group crossing the threshold gets its
+ * pages, its sitemap rows and its share cards on the next build with no edit
+ * anywhere - and a group falling below it loses them the same way rather than
+ * leaving four documents about two games. See `MIN_GAMES_FOR_A_PAGE`.
+ */
+export const PAGED_CATEGORIES: Category[] = CATEGORY_IDS.filter(
+  (c) => gamesIn(c).length >= MIN_GAMES_FOR_A_PAGE,
+);
+
+/**
+ * `/games/kids/`, deliberately sharing the `/games/` prefix with the game
+ * pages themselves.
+ *
+ * It is the URL a person would guess and the one a search result reads best,
+ * and the collision it invites - a game whose id equals a category id - is a
+ * red test rather than a silent overwrite (`categories.test.ts`). Nothing in
+ * this build routes by path shape: every gate keys on `kind` out of
+ * `pages.json`, so `/games/kids/` and `/games/snake/` are told apart by the
+ * manifest and never by a regex over the URL.
+ */
+export function categoryPath(category: Category, locale: Locale): string {
+  return `${localePrefix(locale)}/games/${category}/`;
 }
 
 export function worldPath(locale: Locale): string {
@@ -100,6 +151,19 @@ export const ROUTES: Route[] = [
         id: meta.id,
         path: gamePath(meta.id, locale),
         file: fileFor(gamePath(meta.id, locale)),
+        emit: true,
+        indexable: true,
+      }),
+    ),
+  ),
+  ...LOCALES.flatMap((locale) =>
+    PAGED_CATEGORIES.map(
+      (category): Route => ({
+        kind: "category",
+        locale,
+        category,
+        path: categoryPath(category, locale),
+        file: fileFor(categoryPath(category, locale)),
         emit: true,
         indexable: true,
       }),

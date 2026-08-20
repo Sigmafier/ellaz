@@ -39,7 +39,7 @@ Ellaz fits their stated criteria unusually well:
 | "something you've made that other people can play with" | 33 games, playable in one tap |
 | "easy for users to try your thing out, ideally without barriers such as signups" | no account, no email, nothing to install |
 | "must be something you've worked on personally and which you're around to discuss" | **the operator's, not this session's** - see below |
-| "The project should be non-trivial" | 33 games, 144 pages, four languages |
+| "The project should be non-trivial" | 33 games, 164 pages, four languages |
 | off topic: "blog posts, sign-up pages, newsletters, lists" | not one of those |
 
 **The one condition that is not about the project.** They require the author to be present
@@ -64,7 +64,7 @@ separate players. That is a real limitation and I have not solved it.
 
 Some things I did not expect going in:
 
-- The first visit is 90,494 bytes gzipped and the build fails above 90,500.
+- The first visit is 90,356 bytes gzipped and the build fails above 90,500.
   Adding a game costs the shell about 300 bytes even though every game is a
   lazy chunk, because its metadata is in the statically imported roster.
 - Making an import lazy is three changes, not one. Miss the third (the
@@ -165,7 +165,7 @@ on an assumption nobody has checked. The operator has a browser; one search sett
 
 **And the framing may be wrong even if Poki is listed.** `docs/outreach/portals.md` already
 records the strategic question: Poki and CrazyGames are advertising businesses, and this
-site says "no ads" on all 144 of its pages. Positioning against them on a comparison site
+site says "no ads" on all 164 of its pages. Positioning against them on a comparison site
 is a public statement of that position. It is defensible and it is the operator's to make,
 not a copywriting choice.
 
@@ -215,7 +215,7 @@ spends its one shot, and this project has had that exact outage once already.
 |---|---|
 | Show HN rules, quoted | `news.ycombinator.com/showhn.html`, fetched 2026-08-12, 200 with 684 words |
 | 33 games | `src/portal/catalog.ts` and `src/portal/games.ts`, both 33, counted 2026-08-18 |
-| 90,494 B gz first visit | `scripts/assert-payload.mjs` on a clean tree at 1e219fe, 2026-08-18 |
+| 90,356 B gz first visit | `scripts/assert-payload.mjs` on a clean tree at 1e219fe, 2026-08-18 |
 | ~122 B gz shell cost per game | `npm run assert:slope`, which measures the marginal game rather than quoting one commit's delta |
 | the deploy ledger outage | `.claude/rules/a-deploy-ledger-that-can-disagree-with-the-disk.md` |
 | the three-change lazy import | `.claude/rules/precache-glob-sweeps-new-chunks.md` |

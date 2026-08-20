@@ -37,6 +37,7 @@ import type { GameMeta } from "@sdk/index";
 import type { Locale } from "../content/types";
 import { dirOf } from "../i18n/locales";
 import { SITE } from "../content/site";
+import { CATEGORY_CONTENT } from "../content/categories";
 import { artGround, gameArt, registerArt } from "../ui/gameArt";
 import { REST } from "../ui/gameArtRest";
 import type { Route } from "./routes";
@@ -78,9 +79,18 @@ export const OG_HEIGHT = 630;
  */
 export const OG_MAX_BYTES = 600 * 1024;
 
-/** `og/game-snake-he.png`. Flat, because a nested tree buys nothing for 48 files. */
+/**
+ * `og/game-snake-he.png`. Flat, because a nested tree buys nothing here.
+ *
+ * The discriminator is `id` OR `category`, and both are needed. With `id`
+ * alone all five category pages in a language resolved to `og/category-en.png`
+ * - one file, five pages, four of them advertising the wrong group in every
+ * share and every preview. Caught by the distinctness assertion in
+ * `ogCard.test.ts`, which is the only thing in the build that could have.
+ */
 export function ogImageFile(route: Route): string {
-  const parts = route.id ? [route.kind, route.id, route.locale] : [route.kind, route.locale];
+  const what = route.id ?? route.category;
+  const parts = what ? [route.kind, what, route.locale] : [route.kind, route.locale];
   return `og/${parts.join("-")}.png`;
 }
 
@@ -159,9 +169,19 @@ function text(value: string, style: Record<string, unknown>): CardNode {
  */
 export function ogCardText(route: Route, meta?: GameMeta): { title: string; sub: string } {
   const site = SITE[route.locale];
+  // A category card names the GROUP. Falling through to the brand would give
+  // twenty pages one identical picture, and a share of "Thinking games" that
+  // shows the site's own tagline is a preview that says nothing about the link
+  // it is previewing. The count is not filled in here: `{games}` never reaches
+  // an h1, and a card is not the place to start.
+  const group = route.category
+    ? CATEGORY_CONTENT[route.locale][route.category].h1
+    : undefined;
+  const title = meta ? gameName(meta.id, route.locale) : (group ?? site.brand);
+  const sub = meta || group ? site.brand : site.tagline;
   return {
-    title: toVisualOrder(meta ? gameName(meta.id, route.locale) : site.brand, route.locale),
-    sub: toVisualOrder(meta ? site.brand : site.tagline, route.locale),
+    title: toVisualOrder(title, route.locale),
+    sub: toVisualOrder(sub, route.locale),
   };
 }
 

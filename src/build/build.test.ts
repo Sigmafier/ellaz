@@ -152,6 +152,8 @@ describe("every page renders", () => {
    * route table which pages are homes cannot be wrong about it.
    */
   const HOME_FILES = new Set(ROUTES.filter((r) => r.kind === "home" && r.emit).map((r) => r.file));
+  /** Emitted file -> the kind the route table says it is. */
+  const KIND_OF = new Map(ROUTES.map((r) => [r.file, r.kind]));
 
   it.each(BASES)("base %s: all 48 documents, and none of them empty", (base) => {
     const files = allEmittedFiles(base);
@@ -186,11 +188,18 @@ describe("every page renders", () => {
     };
     for (const f of allEmittedFiles("/", assets).filter((x) => x.fileName.endsWith(".html"))) {
       const shell = HOME_FILES.has(f.fileName);
+      // ASK THE ROUTE TABLE, never the filename. This was a path regex until
+      // category pages landed, and `/(^|\/)games\//` is right about
+      // `games/snake/index.html` and wrong about `games/kids/index.html` - a
+      // landing page that boots nothing, matched by a pattern that means
+      // "a game lives here". Held to the booting rules it failed on an element
+      // it is not supposed to have, which is the third time a predicate over
+      // file paths has answered confidently about a page kind it had never
+      // heard of. The table knows.
+      const kind = KIND_OF.get(f.fileName);
+      expect(kind, `${f.fileName} is not in the route table`).toBeDefined();
       const boots =
-        shell ||
-        /(^|\/)games\//.test(f.fileName) ||
-        f.fileName.includes("world/") ||
-        f.fileName.includes("boards/");
+        shell || kind === "game" || kind === "world" || kind === "boards";
       expect(f.source.includes("/assets/index-abc.js"), f.fileName).toBe(boots);
       if (!boots) continue;
       if (shell) {
@@ -318,8 +327,16 @@ describe("every page renders", () => {
         if (lang === route?.locale) offenders.push(`${f.fileName}: links to its own language`);
         // The 404 is the sanctioned exception: one document for the whole
         // site, so the only honest target is that language's home.
+        // `category` is part of the key, not decoration. Without it every
+        // category page in a language matched the FIRST one, so 48 of the 60
+        // category hreflangs were compared against `/xx/games/kids/` and the
+        // failure read as 48 broken links rather than as one missing field.
         const sibling = ROUTES.find(
-          (r) => r.kind === route?.kind && r.id === route?.id && r.locale === lang,
+          (r) =>
+            r.kind === route?.kind &&
+            r.id === route?.id &&
+            r.category === route?.category &&
+            r.locale === lang,
         );
         const want = sibling ? sibling.path : homePath(lang as (typeof LOCALES)[number]);
         if (target !== want) offenders.push(`${f.fileName}: ${lang} -> ${target}, want ${want}`);

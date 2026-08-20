@@ -1,8 +1,8 @@
-import type { GameMeta } from "../sdk/types";
+import type { Category, GameMeta } from "../sdk/types";
 import { gameName } from "./gameName";
-import type { GameCopy, Locale } from "../content/types";
+import type { FaqItem, GameCopy, Locale } from "../content/types";
 import { ORIGIN, SITE } from "../content/site";
-import { canonicalUrl, gamePath, homePath } from "./routes";
+import { PAGED_CATEGORIES, canonicalUrl, categoryPath, gamePath, homePath } from "./routes";
 
 /**
  * The JSON-LD each page carries.
@@ -75,18 +75,28 @@ function ageRange(meta: GameMeta): string {
 
 function breadcrumb(locale: Locale, meta: GameMeta) {
   const site = SITE[locale];
-  return {
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: site.home, item: canonicalUrl(homePath(locale)) },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: gameName(meta.id, locale),
-        item: canonicalUrl(gamePath(meta.id, locale)),
-      },
-    ],
-  };
+  // The GROUP is the middle step whenever it has a page of its own, because
+  // the visible breadcrumb says so and Google requires the markup to match
+  // what a reader sees. Skipped for a group with no page: a `ListItem` whose
+  // `item` is a URL this build never wrote is a broken node in the graph, and
+  // an item with no `item` at all is worse than one step fewer.
+  const items: unknown[] = [
+    { "@type": "ListItem", position: 1, name: site.home, item: canonicalUrl(homePath(locale)) },
+  ];
+  if (PAGED_CATEGORIES.includes(meta.category))
+    items.push({
+      "@type": "ListItem",
+      position: 2,
+      name: site.categories[meta.category] ?? "",
+      item: canonicalUrl(categoryPath(meta.category, locale)),
+    });
+  items.push({
+    "@type": "ListItem",
+    position: items.length + 1,
+    name: gameName(meta.id, locale),
+    item: canonicalUrl(gamePath(meta.id, locale)),
+  });
+  return { "@type": "BreadcrumbList", itemListElement: items };
 }
 
 export function gameGraph(meta: GameMeta, copy: GameCopy, locale: Locale) {
@@ -184,6 +194,67 @@ export function homeGraph(
       ORGANIZATION,
     ],
   };
+}
+
+/**
+ * A category page: a CollectionPage whose ItemList is the games in the group,
+ * plus the FAQ, plus a two-step breadcrumb.
+ *
+ * Every value comes from the roster or from the copy record - nothing here
+ * restates a fact a page could get wrong. `numberOfItems` in particular is
+ * `games.length` rather than a number an author typed, which is the same rule
+ * that took the roster count off the home page's meta description after it
+ * spent a day contradicting the ItemList on its own document.
+ */
+export function categoryGraph(
+  category: Category,
+  locale: Locale,
+  games: ReadonlyArray<GameMeta>,
+  copy: { metaTitle: string; metaDescription: string; h1: string; faq: FaqItem[] },
+) {
+  const site = SITE[locale];
+  const url = canonicalUrl(categoryPath(category, locale));
+  const graph: unknown[] = [
+    {
+      "@type": "CollectionPage",
+      "@id": `${url}#page`,
+      url,
+      name: copy.metaTitle,
+      description: copy.metaDescription,
+      inLanguage: locale,
+      isPartOf: { "@id": `${ORIGIN}/#website` },
+      publisher: PUBLISHER,
+    },
+    {
+      "@type": "ItemList",
+      name: copy.h1,
+      numberOfItems: games.length,
+      itemListElement: games.map((meta, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        name: gameName(meta.id, locale),
+        url: canonicalUrl(gamePath(meta.id, locale)),
+      })),
+    },
+    {
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: site.home, item: canonicalUrl(homePath(locale)) },
+        { "@type": "ListItem", position: 2, name: copy.h1, item: url },
+      ],
+    },
+  ];
+  if (copy.faq.length)
+    graph.push({
+      "@type": "FAQPage",
+      mainEntity: copy.faq.map((f) => ({
+        "@type": "Question",
+        name: f.q,
+        acceptedAnswer: { "@type": "Answer", text: f.a },
+      })),
+    });
+  graph.push(ORGANIZATION);
+  return { "@context": "https://schema.org", "@graph": graph };
 }
 
 export function worldGraph(locale: Locale, copy: { title: string; description: string }) {

@@ -94,6 +94,27 @@ function facts() {
   const kidsGames = metas.filter((s) => /ageBand:\s*"kids"/.test(s)).length;
   if (kidsGames === 0) throw new Error('assert-outreach: no meta declares ageBand: "kids".');
 
+  // How many CATEGORY landing pages the build emits, per language. Derived the
+  // same way the emitter derives it - count the roster's games per category,
+  // keep the groups at or above the threshold - so this gate needs no build
+  // and still cross-checks against the sitemap below.
+  //
+  // The threshold is READ from the source rather than typed here. A second
+  // copy of a number is a second thing to forget, and this one moves the page
+  // count by twenty every time it changes.
+  const mMin = /MIN_GAMES_FOR_A_PAGE = (\d+)/.exec(read("src/content/categories.ts"));
+  if (!mMin) throw new Error("assert-outreach: cannot find MIN_GAMES_FOR_A_PAGE.");
+  const minPerCategory = Number(mMin[1]);
+  const byCategory = new Map();
+  for (const src of metas) {
+    const c = /category:\s*"([a-z]+)"/.exec(src)?.[1];
+    if (c) byCategory.set(c, (byCategory.get(c) ?? 0) + 1);
+  }
+  if (byCategory.size === 0) throw new Error("assert-outreach: no meta declares a category.");
+  const pagedCategories = [...byCategory.values()].filter((n) => n >= minPerCategory).length;
+  if (pagedCategories === 0)
+    throw new Error("assert-outreach: no category reaches the threshold - the parse is wrong.");
+
   const locales = read("src/i18n/locales.ts");
   const pageLocales = constArrayLength(locales, "PAGE_LOCALES");
   // The NAMES, not just how many. A count matcher cannot see "in Hebrew and
@@ -107,11 +128,12 @@ function facts() {
     throw new Error(`assert-outreach: read ${pageLangs.length} PAGE_LOCALES names but ${pageLocales} entries.`);
   const appLocales = constArrayLength(locales, "APP_LOCALES");
 
-  // A page per game plus home, world and boards, per page language. Derived
-  // rather than read off `dist/` so the gate works without a build - and
-  // cross-checked against the sitemap below when a build is present, because
-  // two independent derivations that agree are the only kind worth quoting.
-  const pages = pageLocales * (games + 3);
+  // A page per game, plus home, world and boards, plus one per category big
+  // enough to have a page - per page language. Derived rather than read off
+  // `dist/` so the gate works without a build, and cross-checked against the
+  // sitemap below when a build is present, because two independent
+  // derivations that agree are the only kind worth quoting.
+  const pages = pageLocales * (games + 3 + pagedCategories);
 
   // The payload CEILING is quoted beside the measurement in four provenance
   // rows, and it moves on its own schedule - it has been raised three times.

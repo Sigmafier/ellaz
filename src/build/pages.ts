@@ -13,9 +13,24 @@ import {
   type PageLocale,
 } from "../i18n/locales";
 import { analyticsTag } from "./analytics";
-import { LOCALES, ROUTES, canonicalUrl, gamePath, homePath, type Route } from "./routes";
+import {
+  LOCALES,
+  ROUTES,
+  canonicalUrl,
+  gamePath,
+  gamesIn,
+  homePath,
+  type Route,
+} from "./routes";
 import { gamePage } from "./gamePage";
-import { boardsPage, homePage, homeShellBody, notFoundPage, worldPage } from "./sitePages";
+import {
+  boardsPage,
+  categoryPage,
+  homePage,
+  homeShellBody,
+  notFoundPage,
+  worldPage,
+} from "./sitePages";
 import { homeGraph } from "./schema";
 import { jsonLd, toHtml } from "./html";
 import { lastmodByPath } from "./lastmod";
@@ -65,6 +80,21 @@ export function renderRoute(route: Route, base: string, headAssets?: HeadAssets)
   }
   if (route.kind === "boards") {
     return boardsPage({ locale: route.locale, games: GAMES, base, indexable, headAssets });
+  }
+  // A category page is an ARTICLE about a group, not a screen in the app, so
+  // it gets no `headAssets` and boots nothing. `gamesIn` rather than a filter
+  // written here: the count in the copy, the ItemList in the JSON-LD and the
+  // cards on the page must all come from one answer to "which games are in
+  // this group", and that answer lives beside the route table that decided
+  // the page was worth emitting at all.
+  if (route.kind === "category") {
+    return categoryPage({
+      locale: route.locale,
+      category: route.category!,
+      games: gamesIn(route.category!),
+      base,
+      indexable,
+    });
   }
 
   const meta = metaFor(route.id!);

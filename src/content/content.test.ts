@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CONTENT, CONTENT_IDS } from "./index";
 import { SITE, homeCopy } from "./site";
+import { CATEGORY_CHROME, CATEGORY_CONTENT } from "./categories";
 import { analyse, violations, proseOf } from "./voice";
 import { CATALOG } from "../portal/catalog";
 import type { GameCopy, Locale } from "./types";
@@ -317,7 +318,18 @@ describe("code supplies the game count, an author never types it", () => {
       else if (node && typeof node === "object")
         for (const [k, v] of Object.entries(node)) walk(v, `${path}.${k}`);
     };
-    for (const locale of LOCALES) walk(SITE[locale], locale);
+    for (const locale of LOCALES) {
+      walk(SITE[locale], locale);
+      // The category pages are in this population too. They are prose about
+      // groups of games, so a roster-count claim or a banned phrase is exactly
+      // as wrong there as it is anywhere else - and a walk that reads `SITE`
+      // and stops is the shape that reported a clean sweep over 23 unmeasured
+      // Spanish pages. The full voice gate runs on them in
+      // `categories.test.ts`; this walk is what puts them inside the
+      // count-claim and tell-vocabulary checks below.
+      walk(CATEGORY_CONTENT[locale], `${locale}.categories`);
+      walk(CATEGORY_CHROME[locale], `${locale}.categoryChrome`);
+    }
     return out;
   };
 
@@ -436,6 +448,12 @@ describe("code supplies the game count, an author never types it", () => {
     const FILLED: Array<[string, string]> = [
       ["homePage", "homeCopy() in src/content/site.ts"],
       ["gameHeading", "headingFor() in src/build/gamePage.ts"],
+      // Asserted in `categories.test.ts` § "fills the token, everywhere it
+      // appears", which walks every field of every category in every language
+      // and carries its own control - a filler that quietly stopped covering
+      // one field would be invisible here, because most fields never carry a
+      // token in the first place.
+      [".categories.", "categoryCopy() in src/content/categories.ts"],
     ];
     const leftover = siteStrings()
       .filter(([, text]) => text.includes("{"))

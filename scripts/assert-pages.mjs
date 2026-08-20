@@ -48,6 +48,17 @@ const MAX_TITLE = 70;
    that day is one people learn to ignore. */
 const MAX_DESC = 160;
 
+/**
+ * The measurement tag's id, and the one script src an indexable DOCUMENT is
+ * allowed to fetch.
+ *
+ * One constant, two gates. The eager-assets arm needs the SRC and the coverage
+ * gate needs the ID; deriving one from the other is what stops a future tag
+ * change from being made in one place and silently loosening the other.
+ */
+const GA_ID = "G-E25QBB8420";
+const GA_SRC = `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`;
+
 const failures = [];
 const fail = (msg) => failures.push(msg);
 
@@ -235,6 +246,19 @@ export function eagerAssets(html) {
   for (const m of html.matchAll(/<link[^>]+rel="modulepreload"[^>]+href="([^"]+)"/gi)) out.push(m[1]);
   for (const m of html.matchAll(/<link[^>]+href="([^"]+)"[^>]*rel="modulepreload"/gi)) out.push(m[1]);
   return out;
+}
+
+/**
+ * What a NON-BOOTING document is still not allowed to fetch.
+ *
+ * Pure, and beside the other extractors, so the negative controls at the
+ * bottom of this file exercise the SAME code the gate runs rather than a
+ * restatement of it. The arm this replaced was inline and therefore had no
+ * control at all - and it is an arm with an EXCEPTION in it, which is the kind
+ * most worth proving can still fire.
+ */
+export function documentEagerFaults(eager, kind) {
+  return kind !== "notFound" ? eager.filter((a) => a !== GA_SRC) : eager;
 }
 
 /** Local stylesheet links, base-relative. The Google Fonts one is skipped. */
@@ -659,8 +683,33 @@ function main() {
       if (!/<body[^>]+data-page="/.test(html)) {
         fail(`${where} carries no data-page — the runtime cannot tell what page it is on`);
       }
-    } else if (eager.length > 0) {
-      fail(`${where} is a document and should fetch nothing eagerly: ${eager.join(", ")}`);
+    } else {
+      // A DOCUMENT: an article, not a screen. It must not download the app -
+      // that is what this arm has always been for, and it caught the whole
+      // class the first time a category page shipped.
+      //
+      // The measurement tag is the single exception, and it is a narrower rule
+      // than "nothing eagerly" rather than a hole in it. Until category pages
+      // existed the only non-booting page was the 404, so "no scripts at all"
+      // and "no measurement on an error page" were the same sentence; they are
+      // two different rules and this is where they come apart. An INDEXABLE
+      // document is a page somebody arrives on deliberately, and a page whose
+      // arrivals are invisible looks exactly like a page nobody visits - which
+      // is the failure the analytics gate below exists to prevent. The 404
+      // still carries none, and that is asserted there by name.
+      //
+      // `kind !== "notFound"` is the SAME predicate the coverage gate uses for
+      // `wants`, deliberately and not by coincidence: one of them demands the
+      // tag and the other permits it, so writing the population twice is how
+      // they end up disagreeing and failing a build in both directions at
+      // once. (The manifest carries no `indexable` field - the first version
+      // of this line read one, got `undefined` on every page, and failed all
+      // twenty category pages with a message about a script it was supposed
+      // to be allowing.)
+      const allowed = documentEagerFaults(eager, page.kind);
+      if (allowed.length > 0) {
+        fail(`${where} is a document and should fetch nothing eagerly: ${allowed.join(", ")}`);
+      }
     }
     if (!shell && /id="root"/.test(html)) {
       fail(`${where} contains #root — the app shell would boot over the prose`);
@@ -880,6 +929,7 @@ function main() {
   if (!/ellaz-pages/.test(sw)) {
     fail("sw.js has no navigate runtimeCaching rule — offline navigation is gone entirely");
   }
+
   for (const page of emitted) {
     if (sw.includes(`url:"${page.file}"`)) {
       fail(`${page.file} is PRECACHED — add its directory to workbox.globIgnores`);
@@ -964,7 +1014,6 @@ function main() {
   // the tag is a page whose arrivals are invisible; on the mirror a document
   // WITH it pollutes the only measurement this project has. A single-arm check
   // would pass on a build that tagged everything everywhere.
-  const GA_ID = "G-E25QBB8420";
   const reads = emitted.map((p) => ({ p, html: readFileSync(join(DIST, p.file), "utf8") }));
   const wants = reads.filter((r) => r.p.kind !== "notFound");
   const tagged = reads.filter((r) => r.html.includes(GA_ID));
@@ -1260,6 +1309,22 @@ function runControls() {
     [
       "a title of pure punctuation is rejected rather than passing as 'no foreign script'",
       () => titleScriptFault("— / |", "latin") !== null,
+    ],
+    // The document arm carries an EXCEPTION, so all three directions need
+    // proving: the app is still refused on a document, the tag is still
+    // refused on the 404, and the exception itself still lets the tag through
+    // - a filter that quietly matched everything would pass the first two.
+    [
+      "a document that pulls the app is refused",
+      () => documentEagerFaults(["assets/shell-abc.js", GA_SRC], "category").length === 1,
+    ],
+    [
+      "the 404 is refused the measurement tag",
+      () => documentEagerFaults([GA_SRC], "notFound").length === 1,
+    ],
+    [
+      "and the exception is real: the tag alone passes on an indexable document",
+      () => documentEagerFaults([GA_SRC], "category").length === 0,
     ],
   ];
 
