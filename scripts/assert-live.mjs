@@ -284,6 +284,41 @@ async function runChecks() {
     } else {
       notes.push(`/en/ 301s to the bare URLs, and /games/snake/ still answers 200`);
     }
+
+    /* The www mirror, added 2026-08-20. Search Console showed five of the
+       thirteen "Crawled - currently not indexed" URLs were www.ellaz.fun, which
+       answered 200 rather than redirecting - so Google was crawling a second
+       host it will never index. Same failure shape as the /en/ rule above: it
+       lives entirely in a RewriteRule, and nothing in dist/ can see whether it
+       fired.
+
+       Its control is already two lines up, and the pair is unusually tight: the
+       apex /games/snake/ must answer 200 while the www copy of the SAME path
+       must 301. One path, two hosts, opposite readings - a checker that cannot
+       tell them apart fails one of the two.
+
+       Skipped when SITE_URL is already a www host, because then there is no
+       mirror to test and the string surgery below would build www.www. */
+    const apex = new URL(SITE);
+    if (!apex.host.startsWith("www.")) {
+      const wwwSite = `${apex.protocol}//www.${apex.host}`;
+      const w = await raw(`${wwwSite}/games/snake/`);
+      if (w.status !== 301) {
+        failures.push(
+          `${wwwSite}/games/snake/  HTTP ${w.status || "transport"}, expected 301` +
+            " - the www mirror is serving pages, so Google is crawling two hosts",
+        );
+      } else {
+        const to = new URL(w.location, wwwSite);
+        if (to.host !== apex.host || to.pathname !== "/games/snake/") {
+          failures.push(
+            `www/games/snake/  301 but to ${w.location}, expected ${SITE}/games/snake/`,
+          );
+        } else {
+          notes.push(`www 301s to the canonical host`);
+        }
+      }
+    }
   }
 
   return { failures, notes, count: wanted.size };

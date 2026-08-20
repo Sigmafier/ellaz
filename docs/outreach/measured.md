@@ -117,9 +117,14 @@ It holds none.
 - **5 of 13 are the `www.` host.** Measured as Googlebot the same day: `www.ellaz.fun`
   answers **200**, not a redirect, and serves the correct canonical - `https://ellaz.fun/…`
   on every one. So Google is crawling a second hostname and correctly declining to
-  index it. The canonical is doing exactly its job. It is still crawl budget spent on
-  a mirror that can never rank, and one `RewriteCond %{HTTP_HOST} ^www\.` in
-  `deploy/hostinger.htaccess` would end it - beside the `/en/*` rule already there.
+  index it. The canonical is doing exactly its job. It was still crawl budget spent on
+  a mirror that can never rank, so `deploy/hostinger.htaccess` now 301s `www.` to the
+  apex, beside the `/en/*` rule already there, and `assert-live.mjs` fails the deploy
+  if that redirect stops firing. The gate's control is unusually tight and was already
+  in the file: the apex `/games/snake/` must answer **200** while the www copy of the
+  same path must answer **301** - one path, two hosts, opposite readings, so a checker
+  that cannot tell them apart fails one of the two. Measured before the fix, both
+  answered 200, which is the red arm.
 - **7 of 13 are young.** French was promoted on 2026-08-16 and Spanish on 2026-08-12;
   this window closes on the 18th. A page crawled and not yet indexed four days after
   it first existed is a page Google has not got round to, not a page it rejected.

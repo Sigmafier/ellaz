@@ -51,6 +51,26 @@ ErrorDocument 404 /404.html
 <IfModule mod_rewrite.c>
   RewriteEngine On
 
+  # --- One hostname ---------------------------------------------------------
+  # www.ellaz.fun answers 200 rather than redirecting, so Google crawls both
+  # hosts. Measured as Googlebot on 2026-08-20: every www page serves the
+  # CORRECT canonical (https://ellaz.fun/...), so the mirror is already being
+  # declined for the index - this is crawl budget spent on a host that can
+  # never rank, not duplicate content. Five of the thirteen URLs in Search
+  # Console's "Crawled - currently not indexed" bucket that day were www.
+  #
+  # Unlike the /en/ flip below, this one is safe in both directions, and the
+  # difference is worth naming so nobody reads the warning there as applying
+  # here: www is a HOSTNAME, not a locale. There is no page on the other side
+  # that must keep answering 200, nothing we publish links to www, and no
+  # canonical anywhere points at it.
+  #
+  # First in the file so the ordinary case costs one hop. A request for
+  # www.ellaz.fun/en/games/snake/ takes two - host, then the locale rule below
+  # - which is fine. It cannot loop: the target never matches ^www\.
+  RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+  RewriteRule ^(.*)$ https://%1/$1 [R=301,L]
+
   # Anchored at the start and requiring the boundary slash, so it matches the
   # /en/ DIRECTORY and nothing that merely begins with those letters. Without
   # the `/` a future /english-rules/ page would be swept into it silently.
