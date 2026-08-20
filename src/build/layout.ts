@@ -275,15 +275,10 @@ body.screen .urow .bc{margin:0;flex:0 1 auto;margin-inline-end:auto;min-width:0;
   background:var(--doc-ink);
   background:color-mix(in srgb,var(--doc-ink) 82%,transparent);
   color:var(--doc-bg)}
-/* The trail reads as one object, so the link takes the pill's colour rather
-   than the page's brand pink, which on this ground is unreadable.
-   Colour is therefore not available to say which words are tappable, and two
-   of the three are: the root and - since the category pages shipped - the
-   group. The leaf is where you already are and stays plain, which is the
-   breadcrumb's own semantics rather than a style choice. So the affordance is
-   an underline, hairline and held back to 55% so it reads as an offer instead
-   of shouting. Costs the first visit nothing: DOCUMENT_CSS is not in the
-   shell. */
+/* The link takes the pill's colour - brand pink on this ground is unreadable -
+   so colour cannot say which words are tappable and an underline does. The
+   leaf stays plain because you are already there. (Comments in DOCUMENT_CSS
+   are SERVED, unlike the ones in global.css; keep them short here.) */
 body.screen .urow .bc a{color:inherit;text-decoration:underline;
   text-underline-offset:3px;text-decoration-thickness:1px;
   text-decoration-color:color-mix(in srgb,currentColor 55%,transparent)}
