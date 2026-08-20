@@ -418,9 +418,8 @@ export function FrogGame({ ctx }: { ctx: GameContext }): ReactElement {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "layers", label: ctx.t("stage"), value: level },
-        { icon: "check", label: T.caught, value: `${caught}/${ROUND_GOAL[difficulty]}`, ltr: true },
-        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+        { icon: "layers", label: ctx.t("stage"), value: level, record: best ?? "-", compact: true },
+        { icon: "check", label: T.caught, value: `${caught}/${ROUND_GOAL[difficulty]}`, ltr: true, compact: true },
       ]}
       levels={DIFF_OPTIONS}
       level={difficulty}

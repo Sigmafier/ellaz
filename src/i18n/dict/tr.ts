@@ -109,6 +109,7 @@ export const tr: Record<StringKey, string> = {
   cardsIcons: "Simgeler",
   home: "Ana sayfa",
   level: "Seviye",
+  difficulty: "Zorluk",
   stage: "Aşama",
   share: "Paylaş",
   shareToday: "Bugün şunu oynadım",

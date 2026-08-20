@@ -319,13 +319,12 @@ export function TicTacToe({ ctx }: { ctx: GameContext }) {
             // the solo numbers would be stale the moment two people sit down.
             // What is left is the only thing that IS true of this sitting.
             [
-              { icon: "flag", label: versusWords(ctx.locale).matches, value: versus.matches },
-              { icon: "draw", label: T.draws, value: versus.draws },
+              { icon: "flag", label: versusWords(ctx.locale).matches, value: versus.matches, compact: true },
+              { icon: "draw", label: T.draws, value: versus.draws, compact: true },
             ]
           : [
-              { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
-              { icon: "star", label: T.wins, value: score.wins },
-              { icon: "draw", label: T.draws, value: score.draws },
+              { icon: "star", label: T.wins, value: score.wins, compact: true, record: best ?? "-" },
+              { icon: "draw", label: T.draws, value: score.draws, compact: true },
             ]
       }
       // The difficulty tunes the AI, and in two-player mode there is no AI. A

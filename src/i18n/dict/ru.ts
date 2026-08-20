@@ -107,6 +107,7 @@ export const ru: Record<StringKey, string> = {
   cardsIcons: "Значки",
   home: "Главная",
   level: "Уровень",
+  difficulty: "Сложность",
   stage: "Этап",
   share: "Поделиться",
   shareToday: "Сегодня я играл в",

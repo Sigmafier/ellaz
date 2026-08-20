@@ -205,7 +205,7 @@ export function Vanish({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "layers", label: t.round, value: roundNo },
+        { icon: "layers", label: t.round, value: roundNo, compact: true, record: best ?? "-" },
         // The middle cell CHANGES with the beat: a countdown while the child is
         // memorising, then how many they have found. Two facts, one slot, and
         // only ever one of them is true at a time.
@@ -213,8 +213,8 @@ export function Vanish({ ctx }: { ctx: GameContext }) {
           icon: phase === "study" ? "clock" : "check",
           label: phase === "study" ? t.time : t.found,
           value: phase === "study" ? secondsLeft : foundCount,
+          compact: true,
         },
-        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
       ]}
       levels={LEVEL_OPTIONS}
       level={level}

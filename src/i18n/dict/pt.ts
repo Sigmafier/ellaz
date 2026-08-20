@@ -105,6 +105,7 @@ export const pt: Record<StringKey, string> = {
   cardsIcons: "Ícones",
   home: "Início",
   level: "Nível",
+  difficulty: "Dificuldade",
   stage: "Fase",
   share: "Compartilhar",
   shareToday: "Hoje eu joguei",

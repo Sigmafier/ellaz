@@ -186,8 +186,7 @@ export function MathGame({ ctx }: { ctx: GameContext }) {
       ctx={ctx}
       stats={[
         { icon: "bolt", label: ctx.t("score"), value: score },
-        { icon: "check", label: T.streak, value: `${streak} 🔥` },
-        { icon: "trophy", label: ctx.t("best"), value: best },
+        { icon: "check", label: T.streak, value: `${streak} 🔥`, record: best, compact: true },
       ]}
       levels={LEVEL_OPTIONS}
       level={level}

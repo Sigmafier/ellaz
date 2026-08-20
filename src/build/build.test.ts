@@ -947,55 +947,61 @@ describe("the game gets the whole first screen", () => {
     expect(declarations).toMatch(/main>:not\(\.stage\)/);
   });
 
-  it("floats the room's header over the stage, and the game's no longer", () => {
-    // The room still floats: it is a composed scene with its own margins and
-    // nothing in it reaches the top edge.
-    expect(declarations).toMatch(/body\[data-page="world"\] \.top[^{]*\{[^}]*position:absolute/);
-
-    // The game does NOT, and this is the deliberate reversal. A game that
-    // fitStage has scaled to fill its box reaches the top edge every time, so
-    // a floating bar sits on the board - which is the complaint the header
-    // tournament started from. In flow, overlap is impossible by construction
-    // rather than avoided by arithmetic.
-    const top = /body\[data-page="game"\] \.top\{([^}]*)\}/.exec(declarations);
-    expect(top, "the game's own header rule is missing").not.toBeNull();
+  it("puts EVERY screen's header in flow - nothing floats over a stage now", () => {
+    // The room used to float a transparent bar over its scene while the game
+    // carried a real one, so the same product had two headers with two
+    // geometries. Both are in flow: overlap is impossible by construction
+    // rather than avoided by arithmetic, on either screen.
+    const top = /body\.screen \.top\{([^}]*)\}/.exec(declarations);
+    expect(top, "the screen header rule is missing").not.toBeNull();
     expect(top![1]).toContain("position:relative");
     expect(top![1]).toContain("height:var(--hh)");
+    expect(declarations).not.toMatch(/\.top[^{]*\{[^}]*position:absolute/);
 
-    // The breadcrumb still floats over the stage on both, because it is a
-    // small badge that costs nothing and would otherwise push the game down.
-    expect(declarations).toMatch(/body\[data-page="game"\] \.bc[^{]*\{[^}]*position:absolute/);
+    // And neither does the utility row that carries the breadcrumb and the
+    // restart, which is what a 44px band of buttons landed on the board from.
+    // It is a real row now and the box pays for its height.
+    expect(declarations).not.toMatch(/\.bc[^{]*\{[^}]*position:absolute/);
+    expect(declarations).not.toMatch(/\.urow[^{]*\{[^}]*position:absolute/);
+    expect(declarations).not.toContain(".pagerow");
   });
 
-  it("gives the room the whole screen and the game the screen minus its bar", () => {
-    const room = /body\[data-page="world"\] \.stage \.box\{([^}]*)\}/.exec(declarations);
-    expect(room, "the room's full-screen box rule is missing").not.toBeNull();
-    expect(room![1]).toContain("height:100dvh");
-
-    const game = /body\[data-page="game"\] \.stage \.box\{([^}]*)\}/.exec(declarations);
-    expect(game, "the game's box rule is missing").not.toBeNull();
-    expect(game![1]).toContain("height:calc(100dvh - var(--hh))");
-    for (const box of [room![1], game![1]]) {
-      expect(box).toContain("border-radius:0");
-      expect(box).toContain("min-height:0");
-    }
+  it("gives the room and the game the same box: the screen minus BOTH rows", () => {
+    const box = /body\[data-page="game"\] \.stage \.box,body\[data-page="world"\] \.stage \.box\{([^}]*)\}/.exec(
+      declarations,
+    );
+    expect(box, "the shared full-screen box rule is missing").not.toBeNull();
+    // BOTH rows, not just the bar. The utility row is in flow above the stage,
+    // so a box measured against --hh alone is exactly --uh too tall and pushes
+    // that much of every screen below the fold - the overlap this arrangement
+    // removed, wearing a scrollbar instead.
+    expect(box![1]).toContain("height:calc(100dvh - var(--hh) - var(--uh))");
+    expect(box![1]).toContain("border-radius:0");
+    expect(box![1]).toContain("min-height:0");
   });
 
-  it("measures the bar, the box and the breadcrumb from ONE variable", () => {
+  it("measures the bar and the box from ONE variable", () => {
     // The three have to agree or the chrome sits on the board again, and they
-    // are in three separate rules. Written against --hh in all three, so a
-    // density change moves them together instead of moving one and leaving a
-    // gap nobody looks for. --hh is declared exactly once per breakpoint.
-    const decl = declarations.match(/--hh:\s*\d+px/g) ?? [];
-    expect(decl.length, "--hh should be declared for the base and one breakpoint").toBe(2);
-    expect(declarations).toMatch(/body\[data-page="game"\] \.bc\{top:calc\(var\(--hh\)/);
-    expect(declarations).toContain("height:calc(100dvh - var(--hh))");
+    // are in separate rules. Written against --hh and --uh in all of them, so
+    // a density change moves them together instead of moving one and leaving a
+    // gap nobody looks for. Each is declared exactly once per breakpoint.
+    const hh = declarations.match(/--hh:\s*\d+px/g) ?? [];
+    const uh = declarations.match(/--uh:\s*\d+px/g) ?? [];
+    expect(hh.length, "--hh should be declared for the base and one breakpoint").toBe(2);
+    expect(uh.length, "--uh should be declared for the base and one breakpoint").toBe(2);
+    expect(declarations).toContain("height:var(--hh)");
+    expect(declarations).toContain("height:var(--uh)");
+    expect(declarations).toContain("height:calc(100dvh - var(--hh) - var(--uh))");
   });
 
   it("leaves the boards, the home index and the 404 as ordinary documents", () => {
     // The boards are a short column of records. Given a screen-sized box they
     // sit in the top third of a large empty rectangle with the page's own
     // heading stranded below, which is the bug the boards rule already fixes.
+    // The boards KEEP the document layout for their stage - they are a list,
+    // not a scene - even though they now wear the same HEADER as the other
+    // two. Chrome and layout are separate questions and only one of them
+    // normalised.
     expect(declarations).not.toContain('body[data-page="boards"]');
     expect(declarations).toContain(".stage.boards .box{min-height:clamp(");
   });

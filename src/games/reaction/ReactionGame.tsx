@@ -430,8 +430,13 @@ export function ReactionGame({ ctx }: { ctx: GameContext }): ReactElement {
       ctx={ctx}
       stats={[
         // Numbers stay LTR inside the Hebrew app - "0.41" must not mirror.
-        { icon: "clock", label: ctx.t("time"), value: measured ? seconds(attempt.reactionMs) : "-", ltr: true },
-        { icon: "trophy", label: ctx.t("best"), value: best > 0 ? seconds(best) : "-", ltr: true },
+        {
+          icon: "clock",
+          label: ctx.t("time"),
+          value: measured ? seconds(attempt.reactionMs) : "-",
+          ltr: true,
+          record: best > 0 ? seconds(best) : "-",
+        },
       ]}
       levels={DIFF_OPTIONS}
       level={difficulty}

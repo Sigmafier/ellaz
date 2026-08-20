@@ -86,7 +86,7 @@ function boardLabel(board: string): Record<Locale, string> {
   return BOARD_LABELS[board] ?? { he: board, en: board, es: board };
 }
 
-export function Boards({ locale, onExit }: { locale: AppLocale; onExit: () => void }) {
+export function Boards({ locale }: { locale: AppLocale }) {
   const t = makeT(locale);
   // Read once per mount. The wallet and the record store both change only when
   // a game is played, and no game is playable from this screen.
@@ -101,7 +101,7 @@ export function Boards({ locale, onExit }: { locale: AppLocale; onExit: () => vo
         {game ? (
           <GameBoard game={game} locale={locale} t={t} onBack={() => setOpenId(null)} />
         ) : (
-          <GameGrid games={games} locale={locale} t={t} onOpen={setOpenId} onExit={onExit} />
+          <GameGrid games={games} locale={locale} t={t} onOpen={setOpenId} />
         )}
       </div>
     </div>
@@ -114,44 +114,26 @@ const METAS = CATALOG.map((e) => e.meta);
 /**
  * The screen a player lands on: their games, each already showing their record.
  *
- * The back arrow leaves the boards entirely, which is the only place it can go
- * from here — the detail view has its own, pointing at this grid.
+ * NO back arrow, and no heading. The way out is in the page header, where it
+ * is on every screen - this drew its own, so leaving the boards and leaving a
+ * game were two different-looking actions. The detail view below still has one
+ * of its own, and that is a different control: it goes back to THIS grid, which
+ * is a move inside the screen rather than out of it.
  */
 function GameGrid({
   games,
   locale,
   t,
   onOpen,
-  onExit,
 }: {
   games: Playable[];
   locale: AppLocale;
   t: (key: string) => string;
   onOpen: (id: string) => void;
-  onExit: () => void;
 }) {
   const records = readRecords();
   return (
     <>
-      <header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          padding: "10px 0 16px",
-        }}
-      >
-        <IconButton ariaLabel={t("back")} onClick={onExit}>
-          {backArrow(locale)}
-        </IconButton>
-        {/* h2, not h1. The document this mounts into already carries an h1
-            naming the page; a second one appears only once JavaScript has run,
-            so it is invisible to every crawler and visible to exactly the
-            screen-reader user who is worst served by two of them. The World
-            header is the same shape and the same fix. */}
-        <h2 style={{ flex: 1, fontSize: 26, lineHeight: 1, margin: 0 }}>{t("boards")}</h2>
-      </header>
-
       {games.length === 0 ? (
         // Not an error and not an empty board — this player simply has not
         // played anything yet, and saying so is friendlier than a blank list.

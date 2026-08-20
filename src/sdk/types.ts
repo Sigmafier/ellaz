@@ -298,6 +298,18 @@ export interface GameMeta {
    *
    * Absent means the old shape: the host owns the bar.
    */
+  /**
+   * The game draws its own `<GameChrome>` rather than relying on the host bar.
+   *
+   * NOTHING READS THIS ANY MORE (2026-08-20). It used to suppress `GameHost`'s
+   * bar, because `GameChrome` drew back, restart and sound itself; those are
+   * platform controls now and live in the page header, so the host bar is
+   * needed on the standalone variant whatever a game declares here, and is
+   * never wanted on a page. The flag and `chrome-is-declared.test.ts` are kept
+   * because the meta-to-renderer correspondence they pin is still true and
+   * still worth knowing - but do not cite this as protection for anything.
+   * See .claude/rules/game-controls-and-platform-chrome-never-share-a-bar.md
+   */
   ownsChrome?: boolean;
   title: Record<Locale, string>;
   emoji: string; // simple icon for the home grid (icon-first, kid-friendly)

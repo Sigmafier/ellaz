@@ -110,6 +110,7 @@ export const ar: Record<StringKey, string> = {
   cardsIcons: "رموز",
   home: "الرئيسية",
   level: "المستوى",
+  difficulty: "الصعوبة",
   stage: "المرحلة",
   share: "مشاركة",
   shareToday: "اليوم لعبت",

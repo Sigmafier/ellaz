@@ -151,9 +151,8 @@ export function Hidden({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "layers", label: ctx.t("stage"), value: round },
-        { icon: "check", label: T.found, value: `${foundCount}/${targets.length}`, ltr: true },
-        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+        { icon: "layers", label: ctx.t("stage"), value: round, record: best ?? "-", compact: true },
+        { icon: "check", label: T.found, value: `${foundCount}/${targets.length}`, ltr: true, compact: true },
       ]}
       levels={DIFF_OPTIONS}
       level={difficulty}

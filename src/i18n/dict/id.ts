@@ -111,6 +111,7 @@ export const id: Record<StringKey, string> = {
   cardsIcons: "Ikon",
   home: "Beranda",
   level: "Tingkat",
+  difficulty: "Kesulitan",
   stage: "Tahap",
   share: "Bagikan",
   shareToday: "Hari ini aku main",

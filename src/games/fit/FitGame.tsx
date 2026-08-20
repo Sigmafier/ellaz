@@ -447,9 +447,8 @@ export function FitGame({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "bolt", label: ctx.t("score"), value: state.score },
-        { icon: "layers", label: T.lines, value: state.cleared },
-        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+        { icon: "bolt", label: ctx.t("score"), value: state.score, record: best ?? "-" },
+        { icon: "layers", label: T.lines, value: state.cleared, compact: true },
       ]}
       levels={LEVEL_OPTIONS}
       level={level}

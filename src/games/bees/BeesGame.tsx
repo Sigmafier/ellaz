@@ -495,8 +495,7 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
       ctx={ctx}
       stats={[
         { icon: "clock", label: ctx.t("time"), value: secs, ltr: true },
-        { icon: "check", label: T.bees, value: score.caught },
-        { icon: "trophy", label: ctx.t("best"), value: best },
+        { icon: "check", label: T.bees, value: score.caught, record: best, compact: true },
       ]}
       levels={DIFF_OPTIONS}
       level={difficulty}

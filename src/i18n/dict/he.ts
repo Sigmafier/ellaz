@@ -109,6 +109,7 @@ export const he = {
   cardsIcons: "סמלים",
   home: "בית",
   level: "רמה",
+  difficulty: "קושי",
   stage: "שלב",
   share: "שיתוף",
   shareToday: "היום שיחקתי",

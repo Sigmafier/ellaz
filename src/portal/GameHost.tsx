@@ -116,15 +116,23 @@ export function GameHost({
   }, [gameId, locale, onExit]);
 
   const onPage = variant === "page";
-  // A game that renders its own <GameChrome> already offers back, restart and
-  // sound. Drawing the host bar as well puts two mute buttons in one viewport,
-  // which reads as a bug rather than as emphasis - and on the app variant it
-  // would also stack two ways home.
-  const ownsChrome = findEntry(gameId)?.meta.ownsChrome === true;
+  // WHO DRAWS BACK AND MUTE depends on the variant, and it no longer depends on
+  // whether the game owns its chrome.
+  //
+  // On a PAGE the emitted header draws both - they are platform controls and
+  // that is where platform controls live now
+  // (.claude/rules/game-controls-and-platform-chrome-never-share-a-bar.md), so
+  // this bar would be a second mute button in the same viewport.
+  //
+  // On the APP variant - the standalone single-game bundle, which has no
+  // emitted header at all - this bar is the ONLY platform chrome there is, so
+  // it draws back and mute. It does NOT draw restart: <GameChrome> has that
+  // one again, in the game panel where the rule puts it, and every game in the
+  // catalogue renders <GameChrome>.
 
   return (
     <div style={{ position: "relative", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-      {!ownsChrome && (
+      {!onPage && (
       <div
         style={{
           display: "flex",

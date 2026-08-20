@@ -526,9 +526,8 @@ export function BalloonsGame({ ctx }: { ctx: GameContext }): ReactElement {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "layers", label: ctx.t("stage"), value: level },
-        { icon: "check", label: T.popped, value: `${popped}/${round.goal}`, ltr: true },
-        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+        { icon: "layers", label: ctx.t("stage"), value: level, record: best ?? "-", compact: true },
+        { icon: "check", label: T.popped, value: `${popped}/${round.goal}`, ltr: true, compact: true },
       ]}
       levels={DIFF_OPTIONS}
       level={difficulty}

@@ -307,12 +307,11 @@ export function Spell({ ctx }: { ctx: GameContext }): ReactElement {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "layers", label: ctx.t("stage"), value: round },
+        { icon: "layers", label: ctx.t("stage"), value: round, compact: true, record: best },
         // `bolt` rather than `star`: a star is this platform's trophy currency,
         // and putting one over a hint counter would read as a reward for asking
         // for help. It counts, it does not judge.
-        { icon: "bolt", label: T.hints, value: hintsUsed },
-        { icon: "trophy", label: ctx.t("best"), value: best },
+        { icon: "bolt", label: T.hints, value: hintsUsed, compact: true },
       ]}
       levels={LEVEL_OPTIONS}
       level={levelId}

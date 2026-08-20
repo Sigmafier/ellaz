@@ -512,8 +512,7 @@ export function Match3Game({ ctx }: { ctx: GameContext }) {
       ctx={ctx}
       stats={[
         { icon: "bolt", label: ctx.t("score"), value: state.score },
-        { icon: "layers", label: T.round, value: state.round },
-        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+        { icon: "layers", label: T.round, value: state.round, record: best ?? "-", compact: true },
       ]}
       levels={LEVEL_OPTIONS}
       level={level}

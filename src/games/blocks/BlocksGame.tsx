@@ -739,9 +739,8 @@ export function BlocksGame({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "bolt", label: ctx.t("score"), value: state.score },
-        { icon: "layers", label: T.rows, value: state.lines },
-        { icon: "trophy", label: ctx.t("best"), value: best },
+        { icon: "bolt", label: ctx.t("score"), value: state.score, record: best },
+        { icon: "layers", label: T.rows, value: state.lines, compact: true },
       ]}
       levels={LEVEL_OPTIONS}
       level={level}

@@ -125,9 +125,8 @@ export function FindDiff({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "layers", label: ctx.t("stage"), value: level },
-        { icon: "check", label: T.left, value: remaining(state) },
-        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+        { icon: "layers", label: ctx.t("stage"), value: level, record: best ?? "-", compact: true },
+        { icon: "check", label: T.left, value: remaining(state), compact: true },
       ]}
       // finddiff has no difficulty - it is one endless ladder of scenes, so the
       // toggle is simply absent rather than showing a single dead option.

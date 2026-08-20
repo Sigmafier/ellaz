@@ -532,6 +532,33 @@ separate three.js / Babylon / PlayCanvas bake-off.
 - **Games talk only to `GameContext`** (`@sdk`) — never to portal internals. The
   lifecycle + ads shape matches the **Poki + CrazyGames** union so games can list on
   those portals later with no rewrites.
+- **A control is either GAME or PLATFORM, and they never share a bar.** Home,
+  the wallet, sound and full screen are platform and live in the emitted
+  header; difficulty, restart, pause and the game's own numbers are game and
+  live below it. The test is one question: would this control still make
+  sense on the World screen or the Boards? Mixing the two is how this page
+  ended up with four ways home and two things called "Level" 8px apart.
+  **Restart is the one game control drawn OUTSIDE `GameChrome`**, in the
+  UTILITY ROW that carries the breadcrumb above the stage - for WIDTH, not for
+  family. The panel's row is 350px inside on a 390px phone and difficulty plus
+  two stats plus gaps already spends 344, so a fourth 56px cell takes it to
+  408: measured on the artifact, 25 of 33 games wrapped onto two lines with
+  restart in there and 1 of 33 with it out (blocks, the only game carrying a
+  pause button too). The row is in FLOW and `.box` is
+  `calc(100dvh - var(--hh) - var(--uh))`, so it cannot land on the board the
+  way the old floating breadcrumb pill did. The emitted button is `hidden`
+  until a game fills the slot (`src/ui/gameTools.ts`), and `claimRestartSlot()`
+  is what stops `GameChrome` drawing a second one - without it the standalone
+  single-game bundle, which has no emitted chrome at all, would ship with no
+  restart and no gate here could see it.
+  **And a platform control is on EVERY screen**: one `screenChrome` bar serves
+  a game, the room and the boards, tinted per screen from `--g`, and
+  `screen-header-is-platform-only.test.ts` reduces all three headers to a
+  SHAPE and requires the three to be equal (the home page is the positive
+  control that proves the shape can disagree). Before that they were three
+  different bars, and the room drew its own way-out and its own wallet inside
+  the scene while the boards showed no wallet at all.
+  [`.claude/rules/game-controls-and-platform-chrome-never-share-a-bar.md`](.claude/rules/game-controls-and-platform-chrome-never-share-a-bar.md)
 - **Wins go through `winMoment()`** (`@shared`), never a hand-rolled
   celebrate-plus-grant block. And **games report reward REASONS, never amounts**:
   `grant()` takes `level_complete`/`milestone`/`personal_best` plus a tier, and the

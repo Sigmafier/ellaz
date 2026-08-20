@@ -84,7 +84,14 @@ describe("the level toggle survives a fourth button", () => {
     // `flex: "1 1 0"` sets the basis to zero, which lets the item shrink past
     // `minWidth` in the same way `minWidth: 0` does. Both halves are needed:
     // fixing one and leaving the other clips exactly as before.
-    expect(SRC).toContain("flex: \"1 1 auto\"");
+    // BASIS 0, not auto - changed 2026-08-20 with a measurement behind it.
+    // The floor is what makes the row wrap instead of shrinking; the basis
+    // never was. On `auto` the card's basis is its own content, so it grows
+    // past the floor and starves the cells beside it: snake's difficulty took
+    // 184px on the built artifact and left the score cell 60, which rendered
+    // its record as "Be...". What this test is really pinning is the FLOOR
+    // above, which is unchanged.
+    expect(SRC).toContain("flex: \"1 1 0\"");
   });
 
   it("sits in a row that wraps, which is what the floor makes use of", () => {

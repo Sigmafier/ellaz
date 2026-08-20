@@ -4,8 +4,12 @@ import type { Locale } from "../content/types";
 import { SITE, homeCopy } from "../content/site";
 import { AUTONYM } from "../i18n/locales";
 import { html, raw, toHtml, type RawHtml } from "./html";
-import { renderDocument } from "./layout";
+import { renderDocument, utilityRow } from "./layout";
 import { stage } from "./gamePage";
+// Build-time only, and the same palette every game's ground comes from, so the
+// room and the boards are tinted out of the app's own colours rather than out
+// of two literals nobody would ever find again.
+import { PAL } from "../ui/gameArt";
 import { LOCALES, boardsPath, gamePath, homePath, href, worldPath } from "./routes";
 import { homeGraph, worldGraph } from "./schema";
 import { lazyPreloadTags, type HeadAssets } from "./assets";
@@ -168,7 +172,11 @@ export function worldPage(opts: SitePageOptions): string {
   const copy = site.worldPage;
 
   const body = html`
-    <nav class="bc"><a href="${href(homePath(locale), base)}">${site.home}</a> › ${copy.h1}</nav>
+    ${utilityRow(
+      html`<nav class="bc">
+        <a href="${href(homePath(locale), base)}">${site.home}</a> › ${copy.h1}
+      </nav>`,
+    )}
     ${stage("🏠", site, "room")}
     <h1>${copy.h1}</h1>
     <p class="lede">${copy.lede}</p>
@@ -190,8 +198,19 @@ export function worldPage(opts: SitePageOptions): string {
     // because no game mounts here.
     preloads: lazyPreloadTags(opts.headAssets, base),
     bodyData: { page: "world", locale },
-    // No wallet slot here: the room screen shows its own chip, and two of them
+    // The wallet lives in the HEADER now, the way it does on a game page. The
+    // room used to draw its own chip and its own back arrow inside the scene,
+    // so the answer to "where are my coins" and "how do I leave" moved when
+    // you moved between screens. Both are gone from `World.tsx`; two of either
     // in one viewport reads as a bug rather than as emphasis.
+    headerSlot: html`<span id="wallet-slot"></span>`,
+    headerChrome: {
+      ground: PAL.lagoon,
+      title: copy.h1,
+      backLabel: site.chrome.back,
+      soundLabel: site.chrome.sound,
+      fullLabel: site.chrome.fullScreen,
+    },
   });
 }
 
@@ -210,7 +229,11 @@ export function boardsPage(opts: SitePageOptions): string {
   const copy = site.boardsPage;
 
   const body = html`
-    <nav class="bc"><a href="${href(homePath(locale), base)}">${site.home}</a> › ${copy.h1}</nav>
+    ${utilityRow(
+      html`<nav class="bc">
+        <a href="${href(homePath(locale), base)}">${site.home}</a> › ${copy.h1}
+      </nav>`,
+    )}
     ${stage("🏆", site, "boards")}
     <h1>${copy.h1}</h1>
     <p class="lede">${copy.lede}</p>
@@ -233,6 +256,17 @@ export function boardsPage(opts: SitePageOptions): string {
     // game chunk belongs on it.
     preloads: lazyPreloadTags(opts.headAssets, base),
     bodyData: { page: "boards", locale },
+    // The same bar the room and every game wear. The boards' stage stays a
+    // short card inside the document gutter - it is a list, not a scene - but
+    // the CHROME above it is the platform's, and the platform is one thing.
+    headerSlot: html`<span id="wallet-slot"></span>`,
+    headerChrome: {
+      ground: PAL.sunflower,
+      title: copy.h1,
+      backLabel: site.chrome.back,
+      soundLabel: site.chrome.sound,
+      fullLabel: site.chrome.fullScreen,
+    },
     // Same call as the room: the boards screen carries the wallet in its own
     // header, and two chips in one viewport reads as a bug.
   });
@@ -277,5 +311,7 @@ export function notFoundPage(base: string): string {
     body,
     base,
     indexable: false,
+    // A 404 fetches nothing eagerly, tag included - see `analytics` in layout.ts.
+    analytics: false,
   });
 }

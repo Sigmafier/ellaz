@@ -333,9 +333,8 @@ export function BubblesGame({ ctx }: { ctx: GameContext }) {
     <GameChrome
       ctx={ctx}
       stats={[
-        { icon: "layers", label: ctx.t("stage"), value: level },
-        { icon: "check", label: T.caught, value: `${round.caught}/${round.needed}`, ltr: true },
-        { icon: "trophy", label: ctx.t("best"), value: best ?? "-" },
+        { icon: "layers", label: ctx.t("stage"), value: level, record: best ?? "-", compact: true },
+        { icon: "check", label: T.caught, value: `${round.caught}/${round.needed}`, ltr: true, compact: true },
       ]}
       levels={DIFF_OPTIONS}
       level={difficulty}
