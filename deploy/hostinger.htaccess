@@ -110,7 +110,11 @@ ErrorDocument 404 /404.html
   # nested content pages too: `games/2048/index.html` matches `^index\.html$`
   # the same way the shell does. They carry no content hash, so a revalidate on
   # every visit is exactly right for them.
-  <FilesMatch "^(index\.html|404\.html|sw\.js|manifest\.webmanifest)$">
+  # `sw-purge.js` is imported BY sw.js and carries no content hash, so the
+  # immutable rule above would freeze it for a year - and a service worker
+  # imports its scripts through the ordinary HTTP cache (updateViaCache
+  # defaults to "imports"), so a frozen copy is one that can never be fixed.
+  <FilesMatch "^(index\.html|404\.html|sw\.js|sw-purge\.js|manifest\.webmanifest)$">
     Header set Cache-Control "no-cache, must-revalidate"
   </FilesMatch>
 

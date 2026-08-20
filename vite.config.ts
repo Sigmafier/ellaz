@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, type PluginOption } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import { fileURLToPath, URL } from "node:url";
@@ -63,12 +63,63 @@ function themeBootPlugin() {
 //   (a project site is served under /<repo>/). Set via BASE_PATH in CI.
 const base = process.env.BASE_PATH ?? "/";
 
+/* --- the runtime page cache, and the one thing that empties it --------------
+
+   `ellaz-pages` below is a NetworkFirst cache of whole DOCUMENTS with a 30-day
+   life, and until this existed nothing ever cleared it. Workbox's
+   `cleanupOutdatedCaches` cleans the PRECACHE and only the precache, so a
+   returning visitor whose network took longer than the 3-second timeout was
+   served a page from whatever build happened to be cached - possibly a month
+   old - while the server served today's.
+
+   That is this repo's recurring shape, one layer further in: correct for every
+   population we can check (curl, a fresh browser, a crawler, the deploy gate)
+   and wrong for the one that matters, returning players. It cost a live G1
+   deploy that was reported as missing while every check was green.
+
+   The fix runs in the SERVICE WORKER rather than in the page, and that choice
+   is the whole point: a client stuck on a stale document is running the stale
+   BUNDLE too, so page-side code would be the one copy that never gets to run.
+   sw.js is always revalidated (`no-cache` in the .htaccess, and browsers bypass
+   the HTTP cache for it anyway), so a new build always reaches `activate` even
+   on a client that is otherwise a month behind.
+
+   The cost, stated rather than discovered: a game page visited before the
+   deploy is no longer available offline until it is visited online once more.
+   The shell at `/` is precached and unaffected. A page from a build that no
+   longer exists is worth strictly less than that. */
+const SW_PURGE_FILE = "sw-purge.js";
+const SW_PURGE_SOURCE = `// Emitted by vite.config.ts - see the note beside SW_PURGE_SOURCE there.
+// Imported by sw.js, so it runs in the service worker and not in any page.
+self.addEventListener("activate", (event) => {
+  event.waitUntil(caches.delete("ellaz-pages"));
+});
+`;
+
+/** Writes the script above into the build so `importScripts` has something to
+ *  import. It is emitted here rather than dropped in `public/` for one reason:
+ *  `public/` is copied by the STANDALONE build too, and a file carrying
+ *  `self.addEventListener` plus `caches.delete` is exactly what
+ *  `assert-standalone.mjs` refuses - a service-worker trace inside a bundle
+ *  uploaded to somebody else's origin. The standalone config does not use this
+ *  plugin, so the file cannot reach it. */
+function swPurgePlugin(): PluginOption {
+  return {
+    name: "ellaz-sw-purge",
+    apply: "build",
+    generateBundle() {
+      this.emitFile({ type: "asset", fileName: SW_PURGE_FILE, source: SW_PURGE_SOURCE });
+    },
+  };
+}
+
 export default defineConfig({
   base,
   plugins: [
     // First, so its head-prepend lands above everything else in <head>.
     themeBootPlugin(),
     react(),
+    swPurgePlugin(),
     VitePWA({
       // autoUpdate: a new deploy activates on the user's next load and reloads the
       // page, so returning players always get new games/fixes. (Prompt mode left
@@ -96,6 +147,10 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Relative, so it resolves against sw.js's own URL and is therefore
+        // right under both bases - `/sw-purge.js` on Hostinger and
+        // `/ellaz/sw-purge.js` on Pages - with no BASE_PATH branch to get wrong.
+        importScripts: [SW_PURGE_FILE],
         // THE MOST DANGEROUS LINE IN THIS FILE, and it is a deletion.
         //
         // vite-plugin-pwa defaults `navigateFallback` to "index.html", which
@@ -137,6 +192,11 @@ export default defineConfig({
         // has not chosen a game yet. They are served from the network and
         // cached as they are visited (the navigate rule below).
         globIgnores: [
+          // The purge script above. It is IMPORTED by sw.js, which stores it with
+          // the registration, so precaching it as well would ship a second copy to
+          // every first visit for nothing - and `assert-first-visit.mjs` is an
+          // ALLOWLIST, so it reds rather than letting that pass quietly.
+          SW_PURGE_FILE,
           "**/game-*.js",
           "**/vendor-phaser-*.js",
           "**/vendor-analytics-*.js",
