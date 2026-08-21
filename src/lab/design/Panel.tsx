@@ -62,6 +62,18 @@ export function tokensOf(css: string): Record<string, number> {
 
 const STYLE_TAG = "ellaz-panel-bench";
 
+/**
+ * The preview URL, base-aware.
+ *
+ * An absolute `/games/<id>/` is right on ellaz.fun and 404s on the GitHub
+ * Pages copy, whose base is `/ellaz/` - so the bench would show a broken frame
+ * on one of the two hosts we publish and be fine on the other, which is the
+ * shape of defect nobody notices until they open the wrong URL.
+ * `import.meta.env.BASE_URL` is Vite's own constant and already ends in a
+ * slash, the same way `portal/paths.ts` uses it.
+ */
+const previewSrc = (game: string) => `${import.meta.env.BASE_URL}games/${game}/`;
+
 export function Panel() {
   const [game, setGame] = useState("sudoku");
   const [styleId, setStyleId] = useState("shipped");
@@ -159,7 +171,7 @@ export function Panel() {
             ref={frame}
             key={`${game}-${wide}`}
             title="the game"
-            src={`/games/${game}/`}
+            src={previewSrc(game)}
             style={{
               width: wide ? 1100 : 390,
               height: 560,

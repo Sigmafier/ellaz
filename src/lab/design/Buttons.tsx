@@ -209,6 +209,18 @@ function readFooter(doc: Document): Btn[] {
 const sizeKey = (b: Btn) => `${b.w}x${b.h}`;
 const under = (b: Btn) => b.w < TAP_FLOOR || b.h < TAP_FLOOR;
 
+/**
+ * The preview URL, base-aware.
+ *
+ * An absolute `/games/<id>/` is right on ellaz.fun and 404s on the GitHub
+ * Pages copy, whose base is `/ellaz/` - so the bench would show a broken frame
+ * on one of the two hosts we publish and be fine on the other, which is the
+ * shape of defect nobody notices until they open the wrong URL.
+ * `import.meta.env.BASE_URL` is Vite's own constant and already ends in a
+ * slash, the same way `portal/paths.ts` uses it.
+ */
+const previewSrc = (game: string) => `${import.meta.env.BASE_URL}games/${game}/`;
+
 export function Buttons() {
   const [mode, setMode] = useState<"chrome" | "panel" | "one" | "wall">("chrome");
   const [std, setStd] = useState<Standard>(DEFAULT_STANDARD);
@@ -423,7 +435,7 @@ function Chrome() {
             ref={frame}
             key={game}
             title="the screen"
-            src={`/games/${game}/`}
+            src={previewSrc(game)}
             style={{
               width: wide ? 1100 : 390,
               height: 560,
@@ -602,7 +614,7 @@ function OneGame({ std, on }: { std: Standard; on: boolean }) {
           ref={frame}
           key={game}
           title="the game"
-          src={`/games/${game}/`}
+          src={previewSrc(game)}
           style={{ width: 390, height: 844, border: "1px solid #334155", borderRadius: 10 }}
         />
       </div>
