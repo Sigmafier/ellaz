@@ -85,7 +85,7 @@ that are true and documented: no backend at all, a first load smaller than most 
 images, and a set of published post-mortems about failures that are invisible from a
 browser. Lead with the last of those - it is the only part nobody else has written.
 
-**Every number in the letter is derived**: 90,413 bytes gzipped is the first visit
+**Every number in the letter is derived**: 89,983 bytes gzipped is the first visit
 measured on the built artifact by `scripts/assert-payload.mjs`, which fails the build
 above 90,500. 33 games and 164 pages come from the roster and the emitted sitemap.
 
@@ -107,7 +107,7 @@ number written down last week.** `npm run assert:outreach` is that re-measuremen
 > בניתי אתר משחקים לילדים בעברית, ואני חושב שהחלק המעניין בו הוא דווקא ההנדסי.
 >
 > 33 משחקים, 164 עמודים, ואפס שרת. אין בסיס נתונים, אין הרשמה, אין איסוף מידע. הכל נשמר
-> על המכשיר עצמו. הטעינה הראשונה שוקלת 90,413 בתים דחוסים, פחות מתמונה בודדת בכתבה
+> על המכשיר עצמו. הטעינה הראשונה שוקלת 89,983 בתים דחוסים, פחות מתמונה בודדת בכתבה
 > ממוצעת, ויש בדיקה אוטומטית שמפילה את הבילד אם המספר עובר 90,500.
 >
 > אבל מה שהייתי כותב עליו הוא זה: תוך שבועיים האתר נשבר שלוש פעמים בשלוש דרכים שאף אחת

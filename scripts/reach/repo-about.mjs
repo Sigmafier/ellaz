@@ -36,18 +36,18 @@ const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const SLUG = "Sigmafier/ellaz";
 const LIMIT = 350; // GitHub's own cap on the description field.
 
-/** How many games the roster holds. The same source the sitemap and llms.txt read. */
-export function gameCount(repo = REPO) {
-  const src = readFileSync(join(repo, "src/portal/games.ts"), "utf8");
-  const block = src.match(/export const GAMES[^=]*=\s*\[([\s\S]*?)\n\]/);
-  if (!block) throw new Error("repo-about: could not find the GAMES array in src/portal/games.ts");
-  // Each row is a bare identifier, one per line. Count them rather than commas: a
-  // trailing comma or a wrapped line would otherwise move the number silently.
-  const n = block[1].split("\n").map((l) => l.trim().replace(/,$/, ""))
-    .filter((l) => /^[A-Za-z_$][\w$]*$/.test(l)).length;
-  if (n === 0) throw new Error("repo-about: the GAMES array parsed as empty - refusing to publish a count of zero");
-  return n;
-}
+/**
+ * How many games the roster holds. The same source the sitemap and llms.txt read,
+ * through the ONE reader in `scripts/lib/roster.mjs` - this parsed the `GAMES`
+ * array literal until 2026-08-21, when the roster split into two halves and that
+ * literal stopped existing. A count that reaches a public GitHub field is the
+ * last place a quietly-wrong parse should be able to land, so a zero throws
+ * rather than publishes.
+ */
+// Imported AND re-exported, not `export ... from`: a bare re-export does not bind
+// the name locally, so `describe()` below would throw ReferenceError at run time.
+import { gameCount } from "../lib/roster.mjs";
+export { gameCount };
 
 /** How many languages have written pages. */
 export function pageLocaleCount(repo = REPO) {

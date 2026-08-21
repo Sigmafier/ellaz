@@ -41,12 +41,13 @@
  *   node scripts/assert-outreach.mjs --fix      # rewrite the stale numbers in place
  *   node scripts/assert-outreach.mjs --control  # the negative controls
  */
-import { existsSync, readdirSync, readFileSync, writeFileSync, mkdtempSync, cpSync, rmSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync, mkdtempSync, mkdirSync, cpSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { firstVisit } from "./assert-payload.mjs";
 import { check as ledgerCheck, RECORDS } from "./outreach-ledger.mjs";
+import { heTitles, rosterIds } from "./lib/roster.mjs";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const FIX = process.argv.includes("--fix");
@@ -78,9 +79,13 @@ function constArrayLength(src, name) {
 }
 
 function facts() {
-  const games = [...read("src/portal/games.ts").matchAll(/^import \{ meta as /gm)].length;
+  // Read through the ONE roster reader. This used to count `import { meta as`
+  // lines in `games.ts`, which stopped matching the day the roster split at the
+  // fold and left this gate refusing with "zero games" - correctly, and a file
+  // away from the change. `scripts/lib/roster.mjs` says why there is one now.
+  const games = rosterIds(REPO).length;
+  const titles = heTitles(REPO);
   const loaders = [...read("src/portal/catalog.ts").matchAll(/\(\) => import\(/g)].length;
-  if (games === 0) throw new Error("assert-outreach: the roster parsed to zero games.");
   // The two lists are deliberately separate files and `build.test.ts` already
   // pins them equal. Reading both here means a broken parse of either shows up
   // as a disagreement rather than as a confident wrong number.
@@ -163,7 +168,7 @@ function facts() {
   // the one figure that moves when EITHER of its two inputs does.
   const spareB = firstVisitB === null ? null : ceiling - firstVisitB;
 
-  return { games, kidsGames, pageLocales, pageLangs, appLocales, pages, ceiling, firstVisitB, spareB };
+  return { games, kidsGames, pageLocales, pageLangs, appLocales, pages, ceiling, firstVisitB, spareB, titles };
 }
 
 /* --------------------------------------------------------------- spelling */
@@ -478,7 +483,83 @@ function run(dir, f, fix = FIX) {
   if (fix) for (const [name, text] of edited) writeFileSync(join(dir, name), text);
 
   const skipped = files.reduce((n, f) => n + f.regions, 0);
-  return { drift, blind, broken, langs, skipped, edited: [...edited.keys()] };
+  // Read from the RAW text, never the blanked scan: an `outreach-facts:off`
+  // region exempts a historical NUMBER, and a game name is not one.
+  const names = gameNames(files, f.titles);
+  return { drift, blind, broken, langs, names, skipped, edited: [...edited.keys()] };
+}
+
+
+/* ------------------------------------------------------------- game names */
+/**
+ * A GAME NAME that leaves the repository is a hand-authored fact with no digits
+ * in it, and every other matcher here reads numbers.
+ *
+ * Measured 2026-08-21: `hebrew.md` offered kindergarten teachers a game called
+ * גדול וקטן. `sortsize` was deleted from the tree in `0207a33`, and the roster's
+ * sorting game is `sort` - which is about COLOUR. Nine days, a clean gate run,
+ * and a teacher following the post to a game that is not there.
+ *
+ * The author declares which games a post names; the gate checks BOTH directions,
+ * and both halves are load-bearing:
+ *
+ *   id in the roster       - a deleted or renamed game reds, by id
+ *   title in the prose     - a RETITLED game reds, because the declaration still
+ *                            resolves while the Hebrew words underneath do not
+ *
+ * The second is the one a lazier design misses. Checking only that ids resolve
+ * passes forever on prose quoting a title the site stopped using.
+ */
+const NAMES_RE = /<!--\s*outreach-games:\s*([^>]*?)-->/g;
+
+/**
+ * Both sides are normalised before comparing, and BOTH normalisations were found
+ * by the gate reding on prose that was correct:
+ *
+ *   a title's trailing "?"  - `vanish` is "מה נעלם?" and a post naming it inside
+ *                             a list writes "מה נעלם", which is the same game
+ *   a blockquote line wrap  - "מצא\n> הבדלים" is "מצא הבדלים" to every reader and
+ *                             two different strings to `includes`
+ *
+ * A gate that reds on correct copy is a gate somebody switches off, which is the
+ * same lesson the French glossary rules had to learn from the other end. This
+ * loosens WHITESPACE and TRAILING punctuation only - a retitled game still reds,
+ * because the words themselves have to be there in order.
+ */
+function flatten(text) {
+  return text.replace(/\n\s*>?\s*/g, " ").replace(/\s+/g, " ");
+}
+const bare = (title) => title.replace(/[?!.]+$/, "").trim();
+
+function gameNames(files, titles) {
+  const problems = [];
+  let declared = 0;
+  let blocks = 0;
+
+  for (const file of files) {
+    const src = file.text;
+    const hits = [...src.matchAll(NAMES_RE)];
+    for (const hit of hits) {
+      blocks++;
+      const line = src.slice(0, hit.index).split("\n").length;
+      const ids = hit[1].split(",").map((s) => s.trim()).filter(Boolean);
+      // The prose this block speaks for: up to the next declaration, or the end.
+      const from = hit.index + hit[0].length;
+      const nextAt = src.slice(from).search(/<!--\s*outreach-games:/);
+      const prose = flatten(nextAt < 0 ? src.slice(from) : src.slice(from, from + nextAt));
+
+      for (const id of ids) {
+        declared++;
+        const he = titles.get(id);
+        if (he === undefined) {
+          problems.push({ file: file.name, line, id, why: "is not in the roster" });
+        } else if (!prose.includes(bare(he))) {
+          problems.push({ file: file.name, line, id, why: `is titled "${he}", which the post never says` });
+        }
+      }
+    }
+  }
+  return { problems, declared, blocks };
 }
 
 function report(f, r) {
@@ -499,6 +580,9 @@ function report(f, r) {
   for (const l of r.langs) {
     console.log(`LANGS  ${l.file}:${l.line}  "${l.found}" - the site also has ${l.missing.join(", ")}`);
   }
+  for (const n of r.names.problems) {
+    console.log(`NAME   ${n.file}:${n.line}  "${n.id}" ${n.why}`);
+  }
 
   // The LEDGER half. A number goes stale on its own because the tree moved; a
   // status goes stale because a PERSON did something and did not write it down,
@@ -513,12 +597,15 @@ function report(f, r) {
   console.log(`${RECORDS.size} record(s) frozen and not rewritten: ${[...RECORDS].join(", ")}`);
   if (r.edited.length) console.log(`\nrewrote ${r.edited.length} file(s): ${r.edited.join(", ")}`);
 
-  const bad = r.blind.length + r.drift.length + r.broken.length + r.langs.length + led.problems.length;
+  console.log(`game names: ${r.names.declared} declared across ${r.names.blocks} block(s)`);
+  const bad = r.blind.length + r.drift.length + r.broken.length + r.langs.length +
+    r.names.problems.length + led.problems.length;
   if (bad === 0) {
     console.log("OK  every quoted number matches the tree, and every surface has a row.");
     return 0;
   }
-  if (FIX && r.blind.length === 0 && r.drift.length > 0 && r.broken.length === 0 && led.problems.length === 0) {
+  if (FIX && r.blind.length === 0 && r.drift.length > 0 && r.broken.length === 0 &&
+      r.names.problems.length === 0 && led.problems.length === 0) {
     console.log("\nfixed. Re-run without --fix to confirm.");
     return 0;
   }
@@ -631,6 +718,37 @@ function control(f) {
     const under = run(fixtureDir, { ...f, firstVisitB: 89_000 });
     check("'under 90 KB' is FALSE at 90,027 B gz", over.broken.length, 1);
     check("'under 90 KB' holds at 89,000 B gz", under.broken.length, 0);
+
+    // --- game names ------------------------------------------------------
+    // Three arms, because the check has three ways to be useless: it can miss a
+    // deleted game, it can miss a RETITLED one, or - after the whitespace and
+    // trailing-"?" loosening that stopped it reding on correct prose - it can
+    // have stopped discriminating at all. The third is why the last arm is here.
+    const namesDir = join(tmp, "names");
+    mkdirSync(namesDir, { recursive: true });
+    const post = (ids, prose) => `<!-- outreach-games: ${ids} -->\n\n> ${prose}\n`;
+    const writeNames = (body) => writeFileSync(join(namesDir, "names.md"), body);
+
+    // A real pair: `sort` is titled "מיון צבעים", wrapped across a blockquote line.
+    writeNames(post("sort, memory", "משחקים: מיון\n> צבעים, זיכרון."));
+    check("a correct post passes, wrapped mid-name", run(namesDir, f).names.problems.length, 0);
+
+    // The defect this gate was written for: `sortsize` was deleted in 0207a33.
+    writeNames(post("sortsize", "משחקים: גדול וקטן."));
+    const gone = run(namesDir, f).names;
+    check("a deleted game is caught", gone.problems.length, 1);
+    check("...and named as absent from the roster", gone.problems[0]?.why ?? "", "is not in the roster");
+
+    // The half a lazier design misses: the id resolves, the words do not.
+    writeNames(post("sort", "משחקים: גדול וקטן."));
+    const retitled = run(namesDir, f).names;
+    check("a game the post never names is caught", retitled.problems.length, 1);
+    check("...even though its id resolves", retitled.problems[0]?.why?.startsWith("is titled") ?? false, true);
+
+    // The population control. Every assertion above passes vacuously over a file
+    // with no declarations, which is what a broken block matcher produces.
+    writeNames("> משחקים: מיון צבעים, זיכרון.\n");
+    check("no declaration means nothing is checked", run(namesDir, f).names.declared, 0);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

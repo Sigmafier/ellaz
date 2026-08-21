@@ -50,6 +50,7 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { firstVisit } from "./assert-payload.mjs";
+import { rosterIdsFrom } from "./lib/roster.mjs";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const CONTROL = process.argv.includes("--control");
@@ -225,14 +226,7 @@ function rosterOrder(src, name = "REST") {
 const REST_FILE = "src/portal/gamesRest.ts";
 const IDS_FILE = "src/portal/shellRoster.ts";
 
-/** Every id the shell carries, in roster order - all 33, loaded or not. */
-function rosterIds(src) {
-  const open = src.indexOf("export const ROSTER_IDS");
-  const start = src.indexOf("[", open);
-  const end = src.indexOf("\n];", start);
-  if (open < 0 || start < 0 || end < 0) throw new Error("shellRoster.ts: cannot find ROSTER_IDS");
-  return [...src.slice(start, end).matchAll(/^\s{2}"([^"]+)",\s*$/gm)].map((m) => m[1]);
-}
+
 
 /** A game's published slug, which is `meta.id` and NOT its directory name. */
 function idOf(root, dir) {
@@ -415,7 +409,7 @@ function main() {
   // The SIZE is the whole roster; the CUT happens in the lazy half, which is
   // where every appended game lands. Reporting the lazy half's length here would
   // say "catalogue: 18 games" on a site with 33.
-  const allIds = rosterIds(readFileSync(join(root, IDS_FILE), "utf8"));
+  const allIds = rosterIdsFrom(readFileSync(join(root, IDS_FILE), "utf8"));
   const order = rosterOrder(readFileSync(join(root, REST_FILE), "utf8"));
   console.log(`  catalogue: ${allIds.length} games, arm B drops the last ${REMOVE_N}`);
 

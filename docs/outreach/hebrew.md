@@ -9,7 +9,15 @@ different opening, a different structure, a different admission, and a different
 for the reader to care. If you find yourself wanting to shorten this to one, post only
 the first and skip the others.
 
-**Every number below is derived, not estimated.**
+**Every number below is derived, not estimated - and so is every game NAME.**
+
+Each post declares the games it names in an `outreach-games` comment, and
+`npm run assert:outreach` checks both directions: every id must be in the roster,
+and its Hebrew title must appear verbatim in the prose beneath. That is the
+`provenance` pattern one step over, and it exists because this file offered
+kindergarten teachers a game called **גדול וקטן** for nine days after it was
+deleted from the tree (`0207a33`). Every gate here read numbers; a name that
+leaves the repository is the same defect with no digits in it.
 
 | Claim | Where it comes from |
 |---|---|
@@ -26,6 +34,8 @@ dash. One honest limitation per post, stated before anyone discovers it themselv
 ---
 
 ## Post 1 - parents of 3 to 8 year olds
+
+<!-- outreach-games: -->
 
 **Where**: general parenting groups. **Tone**: a parent, not a company.
 
@@ -60,6 +70,8 @@ dash. One honest limitation per post, stated before anyone discovers it themselv
 
 ## Post 2 - gananot
 
+<!-- outreach-games: memory, sort, vanish, shadows, sequence, finddiff, math, coloring -->
+
 **Where**: kindergarten-teacher groups. **Tone**: a colleague offering a tool, with the
 age-appropriateness reasoning shown rather than claimed.
 
@@ -68,7 +80,7 @@ age-appropriateness reasoning shown rather than claimed.
 > שלום. בניתי אתר משחקים לילדים ואני חושב שהוא יכול להתאים לפינת המחשב בגן, אז אני משתף
 > כאן.
 >
-> 24 מהמשחקים מיועדים לגיל הרך, בהם: זיכרון, גדול וקטן, מה נעלם, צל ותמונה, מה בא אחר כך, מצא
+> 24 מהמשחקים מיועדים לגיל הרך, בהם: זיכרון, מיון צבעים, מה נעלם, צל ותמונה, מה בא אחר כך, מצא
 > הבדלים, חשבון וצביעה.
 >
 > שלושה דברים שחשבנו עליהם בגלל הגיל:
@@ -93,6 +105,8 @@ age-appropriateness reasoning shown rather than claimed.
 ---
 
 ## Post 3 - primary school teachers
+
+<!-- outreach-games: math, sudoku, minesweeper, 2048, wordguess, memory, finddiff -->
 
 **Where**: teacher groups, grades 1 to 3. **Tone**: practical, and it leads with the
 limitation because this audience will ask about tracking within the first two replies.
