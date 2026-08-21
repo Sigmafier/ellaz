@@ -1,7 +1,15 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState, type CSSProperties } from "react";
 import type { AppLocale } from "@i18n/locales";
 import { makeT, textFor, pageLocaleFor } from "@i18n/index";
-import { CATALOG, CATEGORY_ORDER, findEntry, type CatalogEntry } from "./catalog";
+import {
+  catalog,
+  CATEGORY_ORDER,
+  ensureFullCatalog,
+  findEntry,
+  subscribeCatalog,
+  type CatalogEntry,
+} from "./catalog";
+import { ROSTER_CATEGORY, ROSTER_IDS } from "./shellRoster";
 import {
   audioPort,
   dailyStreak,
@@ -74,11 +82,35 @@ export function Home({
   // what was played last, so one subscription feeds every part of this screen.
   useEffect(() => wallet.subscribe(setProfile), []);
 
-  const shown = filter === ALL ? CATALOG : CATALOG.filter((e) => e.meta.category === filter);
+  // The shell carries full metadata for only the games above the fold. Pull in
+  // the rest and re-render when they land - the cards below the fold fill in
+  // their label and colour, the same beat the card art has had since 2026-08-13.
+  // Their SPACE is already reserved (`pending` below), so nothing reflows.
+  const [, catalogArrived] = useReducer((n: number) => n + 1, 0);
+  useEffect(() => {
+    const stop = subscribeCatalog(catalogArrived);
+    void ensureFullCatalog();
+    return stop;
+  }, []);
+
+  const shown = filter === ALL ? catalog() : catalog().filter((e) => e.meta.category === filter);
+
+  // How many cards are still on their way, in THIS filter. The grid draws an
+  // empty slot for each, so the page height is right from the first paint -
+  // which is the whole reason the shell still carries every id.
+  const loaded = new Set(catalog().map((e) => e.meta.id));
+  const pending = ROSTER_IDS.filter(
+    (id) => !loaded.has(id) && (filter === ALL || ROSTER_CATEGORY[id] === filter),
+  );
 
   // Only categories that actually have a game are offered. A chip that filters
   // to an empty grid is a dead end, and an empty grid gives a child no way back.
-  const chips = CATEGORY_ORDER.filter((c) => CATALOG.some((e) => e.meta.category === c.category));
+  // From `ROSTER_CATEGORY`, never from the loaded catalogue: `learn`, `speed`
+  // and `create` have ALL of their games below the fold, so deriving these from
+  // what has ARRIVED would pop three chips into the nav row a beat after paint.
+  const chips = CATEGORY_ORDER.filter((c) =>
+    ROSTER_IDS.some((id) => ROSTER_CATEGORY[id] === c.category),
+  );
 
   // Filter FIRST, slice second. The wallet is below the portal in the module
   // graph, so it cannot know the catalog and happily returns ids for games that
@@ -106,7 +138,7 @@ export function Home({
     const now = new Date();
     return {
       date: localDay(now),
-      plays: CATALOG.filter((e) => playedOn(profile.games[e.meta.id]?.lastPlayedAt, now)).map(
+      plays: catalog().filter((e) => playedOn(profile.games[e.meta.id]?.lastPlayedAt, now)).map(
         (e) => ({ gameId: e.meta.id, title: textFor(e.meta.title, locale), emoji: e.meta.emoji }),
       ),
     };
@@ -381,6 +413,16 @@ export function Home({
             gap: 12,
           }}
         >
+          {pending.map((id) => (
+            // Deliberately empty and unlabelled: a placeholder TITLE would flash
+            // the wrong text, and a spinner on a card nobody has scrolled to is
+            // noise. It holds the space and nothing else.
+            <div
+              key={`pending-${id}`}
+              aria-hidden
+              style={{ aspectRatio: "1 / 1", borderRadius: "var(--radius-3)" }}
+            />
+          ))}
           {shown.map((e) => (
             <GameCard
               key={e.meta.id}

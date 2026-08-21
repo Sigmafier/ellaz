@@ -1,5 +1,6 @@
 import { defineConfig, type PluginOption } from "vite";
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import { fileURLToPath, URL } from "node:url";
@@ -9,6 +10,35 @@ import { DEFAULT_THEME, needsThemeBoot, themeBootScript, themeById } from "./src
 // leaf that imports nothing. Never reach for a game module at config time -
 // a stray `import("./src/games/snake")` would load Phaser inside this file.
 import { CANONICAL_LOCALE, PAGE_LOCALES } from "./src/i18n/locales";
+
+/**
+ * Which games' `meta.ts` the SHELL carries - parsed out of `shellRoster.ts`,
+ * never typed here.
+ *
+ * The fold is one decision and it lives in one file. A second list in this
+ * config would be a third copy of it (after `shellRoster.ts` and
+ * `gamesRest.ts`), and the way it would go wrong is silent: a game in the wrong
+ * set still builds, still renders, and simply costs - or does not cost - a first
+ * visit, with nothing anywhere to notice.
+ *
+ * Parsed rather than imported because this file is loaded by NODE at config
+ * time, where no Vite alias exists yet - `shellRoster.ts` names `@sdk/index`
+ * and importing it here dies on a package that does not exist. Same trap as the
+ * one at the top of `src/build/langOffer.ts`.
+ */
+const SHELL_META_DIRS = new Set(
+  [
+    ...readFileSync(new URL("./src/portal/shellRoster.ts", import.meta.url), "utf8").matchAll(
+      /import \{ meta as \w+ \} from "\.\.\/games\/([\w-]+)\/meta";/g,
+    ),
+  ].map((m) => m[1]),
+);
+// A matcher that quietly stops matching would send EVERY meta to the lazy half,
+// which builds and ships a home grid with no cards in it. Empty is not a valid
+// answer to "which games are above the fold".
+if (SHELL_META_DIRS.size === 0) {
+  throw new Error("vite.config: parsed 0 shell metas out of shellRoster.ts - refusing to build");
+}
 
 // The default theme, read from the one file that declares it. `themes.ts`
 // imports nothing precisely so it can be imported HERE - Vite's resolve.alias
@@ -234,6 +264,11 @@ export default defineConfig({
           // entry the glob above precaches it anyway, the first visit is exactly
           // as heavy as before, and the build is green - which is the entire
           // reason this list exists.
+          // The roster metadata below the fold, fetched on idle beside the art.
+          // Precaching it charges a first visit for the very records the split
+          // exists to keep off it - green build, unmoved payload, which is the
+          // failure `precache-glob-sweeps-new-chunks.md` is named after.
+          "**/meta-rest-*.js",
           "**/art-rest-*.js",
           // The share sheet, its card and the rasteriser. Opened from a button
           // that only appears once a child has played something TODAY, so most
@@ -336,7 +371,16 @@ export default defineConfig({
           // `meta.ts` is imported STATICALLY by the portal catalog so the home grid
           // can render without any game code. It must never land in a lazy game
           // chunk — that would make the shell pull all 32 games in on first paint.
-          if (/\/src\/games\/[^/]+\/meta\.tsx?$/.test(path)) return "shell";
+          // ...but only for the games ABOVE THE FOLD. The rest belong beside their
+          // own roster half, or the split buys nothing: this rule fires FIRST, so
+          // pinning every meta here would hold all 33 in the shell however the
+          // roster files are chunked. Which half a game is in is read out of
+          // `shellRoster.ts` at config time, so there is still exactly ONE list -
+          // a second one typed here is a third copy of the fold.
+          if (/\/src\/games\/[^/]+\/meta\.tsx?$/.test(path)) {
+            const dir = /\/src\/games\/([^/]+)\/meta\.tsx?$/.exec(path)?.[1] ?? "";
+            return SHELL_META_DIRS.has(dir) ? "shell" : "meta-rest";
+          }
 
           // One dictionary per language, so a visitor fetches the one language
           // they picked instead of all eleven. NAMING it is half of what makes
@@ -419,6 +463,15 @@ export default defineConfig({
           // wrote a `<link rel="modulepreload">` for the whole content-page
           // runtime into index.html. The lazy import was still there, still
           // correct, and buying nothing. `assert-first-visit.mjs` caught it.
+          // The roster's lazy half, and the full roster that spreads it. BOTH must
+          // clear the catch-all on the next line, and putting this rule anywhere
+          // below it is INERT - measured 2026-08-21, a pin added down beside the
+          // `gameArtRest` rule emitted no chunk at all and nothing failed.
+          //
+          // `games.ts` is build-and-test only, but the DESIGN BENCH imports it to
+          // walk every game. Without this the bench's import does not land in the
+          // lab chunk - it lands in the shell, for a screen no child opens.
+          if (/\/src\/portal\/(games|gamesRest)\.ts$/.test(path)) return "meta-rest";
           if (path.includes("/src/portal/")) return "shell";
 
           // The game chrome. It lives under `src/ui/`, so the catch-all below

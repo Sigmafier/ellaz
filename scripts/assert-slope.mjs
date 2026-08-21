@@ -199,13 +199,39 @@ function rosterImports(src) {
   );
 }
 
-/** The identifiers inside `export const GAMES = [ ... ]`, in order. */
-function rosterOrder(src) {
-  const open = src.indexOf("export const GAMES");
+/**
+ * The identifiers inside `export const <NAME> = [ ... ]`, in order.
+ *
+ * The roster used to be one array in `games.ts` and this read it by name. It is
+ * two arrays now - `SHELL_GAMES` in `shellRoster.ts` and `REST` in
+ * `gamesRest.ts` - because the shell stopped carrying a record per game, and
+ * `games.ts` is their spread with no array literal left to find. This gate threw
+ * rather than reporting a number, which is the correct failure and is why it was
+ * noticed within the hour.
+ */
+function rosterOrder(src, name = "REST") {
+  const open = src.indexOf(`export const ${name}`);
   const start = src.indexOf("[", open);
   const end = src.indexOf("\n];", start);
-  if (open < 0 || start < 0 || end < 0) throw new Error("games.ts: cannot find the GAMES array");
+  if (open < 0 || start < 0 || end < 0) throw new Error(`cannot find the ${name} array`);
   return [...src.slice(start, end).matchAll(/^\s{2}(\w+),\s*$/gm)].map((m) => m[1]);
+}
+
+/**
+ * Where the MARGINAL game lives. A game is appended to the roster, so it lands
+ * in the lazy half by construction (`roster-split.test.ts` pins that), and the
+ * lazy half is the only place arm B needs to cut.
+ */
+const REST_FILE = "src/portal/gamesRest.ts";
+const IDS_FILE = "src/portal/shellRoster.ts";
+
+/** Every id the shell carries, in roster order - all 33, loaded or not. */
+function rosterIds(src) {
+  const open = src.indexOf("export const ROSTER_IDS");
+  const start = src.indexOf("[", open);
+  const end = src.indexOf("\n];", start);
+  if (open < 0 || start < 0 || end < 0) throw new Error("shellRoster.ts: cannot find ROSTER_IDS");
+  return [...src.slice(start, end).matchAll(/^\s{2}"([^"]+)",\s*$/gm)].map((m) => m[1]);
 }
 
 /** A game's published slug, which is `meta.id` and NOT its directory name. */
@@ -266,14 +292,14 @@ function removeArt(root, file, ids) {
 
 /** Remove the last `n` games from the copy - roster, loader and art. */
 function removeTailGames(root, n) {
-  const gamesPath = join(root, "src/portal/games.ts");
+  const gamesPath = join(root, REST_FILE);
   const gamesSrc = readFileSync(gamesPath, "utf8");
   const imports = rosterImports(gamesSrc);
   const order = rosterOrder(gamesSrc);
   const dirOf = new Map(imports.map((i) => [i.ident, i.dir]));
 
   if (order.length !== imports.length) {
-    throw new Error(`games.ts: ${imports.length} imports but ${order.length} roster entries`);
+    throw new Error(`${REST_FILE}: ${imports.length} imports but ${order.length} entries`);
   }
   if (n >= order.length) throw new Error(`cannot remove ${n} of ${order.length} games`);
 
@@ -292,9 +318,9 @@ function removeTailGames(root, n) {
     .join("\n");
   const leftOrder = rosterOrder(next);
   if (leftOrder.length !== order.length - n) {
-    throw new Error(`games.ts: roster went ${order.length} -> ${leftOrder.length}, wanted -${n}`);
+    throw new Error(`${REST_FILE}: went ${order.length} -> ${leftOrder.length}, wanted -${n}`);
   }
-  if (idents.some((i) => leftOrder.includes(i))) throw new Error("games.ts: a removed game survived");
+  if (idents.some((i) => leftOrder.includes(i))) throw new Error(`${REST_FILE}: a removed game survived`);
   writeFileSync(gamesPath, next);
 
   // --- loaders ------------------------------------------------------------
@@ -319,6 +345,18 @@ function removeTailGames(root, n) {
   if (artless.length > 0) {
     throw new Error(`no scene found for ${artless.join(", ")} - the art cut did not land`);
   }
+
+  // --- the shell's id list ------------------------------------------------
+  // The shell carries every game's id even for the games whose metadata is lazy,
+  // so the grid can reserve their space and not reflow. Leaving them here would
+  // make arm B carry 33 ids for 25 games, which UNDER-reports the slope - the
+  // direction that reads green, so it is the one worth asserting.
+  const idsPath = join(root, IDS_FILE);
+  const idsSrc = readFileSync(idsPath, "utf8");
+  const keptIds = idsSrc.split("\n").filter((l) => !ids.some((id) => l.trim() === `"${id}",`));
+  const idsDropped = idsSrc.split("\n").length - keptIds.length;
+  if (idsDropped !== n) throw new Error(`shellRoster.ts: dropped ${idsDropped} ids, wanted ${n}`);
+  writeFileSync(idsPath, keptIds.join("\n"));
 
   return ids;
 }
@@ -374,14 +412,18 @@ function main() {
   const root = makeTree();
   console.log(`assert-slope: two arms from one copy at ${root}`);
 
-  const order = rosterOrder(readFileSync(join(root, "src/portal/games.ts"), "utf8"));
-  console.log(`  catalogue: ${order.length} games, arm B drops the last ${REMOVE_N}`);
+  // The SIZE is the whole roster; the CUT happens in the lazy half, which is
+  // where every appended game lands. Reporting the lazy half's length here would
+  // say "catalogue: 18 games" on a site with 33.
+  const allIds = rosterIds(readFileSync(join(root, IDS_FILE), "utf8"));
+  const order = rosterOrder(readFileSync(join(root, REST_FILE), "utf8"));
+  console.log(`  catalogue: ${allIds.length} games, arm B drops the last ${REMOVE_N}`);
 
   if (CONTROL) {
     // Plant BEFORE arm A, so arm A carries the fat scenes and arm B removes
     // them - which is exactly the shape of a catalogue whose art is back in the
     // shell.
-    const gamesSrc = readFileSync(join(root, "src/portal/games.ts"), "utf8");
+    const gamesSrc = readFileSync(join(root, REST_FILE), "utf8");
     const dirOf = new Map(rosterImports(gamesSrc).map((i) => [i.ident, i.dir]));
     const targets = rosterOrder(gamesSrc)
       .slice(-REMOVE_N)
@@ -415,8 +457,11 @@ function main() {
   }
 
   console.log(
-    `\n  arm A  ${a.total.toLocaleString()} B gz  (${order.length} games)\n` +
-      `  arm B  ${b.total.toLocaleString()} B gz  (${order.length - REMOVE_N} games)\n` +
+    // `allIds`, not `order`: `order` is the LAZY half, so printing it labelled a
+    // 33-game catalogue "18 games" - a true number under a false name, which is
+    // the shape a reader believes and never re-derives.
+    `\n  arm A  ${a.total.toLocaleString()} B gz  (${allIds.length} games)\n` +
+      `  arm B  ${b.total.toLocaleString()} B gz  (${allIds.length - REMOVE_N} games)\n` +
       `  delta  ${delta.toLocaleString()} B gz over ${REMOVE_N} games\n` +
       `  SLOPE  ${slope.toFixed(1)} B gz per game, budget ${PER_GAME_BUDGET}`,
   );

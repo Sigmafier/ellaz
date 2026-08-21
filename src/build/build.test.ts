@@ -4,7 +4,7 @@ import { describe, it, expect } from "vitest";
 import { CONTENT } from "../content/index";
 import { SITE } from "../content/site";
 import { GAMES } from "../portal/games";
-import { CATALOG } from "../portal/catalog";
+import { FULL_CATALOG } from "../testing/fullCatalog";
 import { escapeHtml, html, jsonLd, raw, toHtml } from "./html";
 import { CANONICAL_LOCALE, DEFAULT_LOCALE, ENGLISH_NAME, dirOf } from "../i18n/locales";
 import { LOCALES, ROUTES, canonicalUrl, gamePath, homePath, href } from "./routes";
@@ -119,11 +119,11 @@ describe("the roster the emitter reads", () => {
   it("is the same roster the app plays, in the same order", () => {
     // Two consumers, one list. If these drift, a page exists for a game the
     // home grid cannot open, or the reverse.
-    expect(CATALOG.map((e) => e.meta.id)).toEqual(GAMES.map((m) => m.id));
+    expect(FULL_CATALOG.map((e) => e.meta.id)).toEqual(GAMES.map((m) => m.id));
   });
 
   it("gives every game a loader", () => {
-    for (const e of CATALOG) expect(typeof e.load, `no loader for ${e.meta.id}`).toBe("function");
+    for (const e of FULL_CATALOG) expect(typeof e.load, `no loader for ${e.meta.id}`).toBe("function");
   });
 });
 

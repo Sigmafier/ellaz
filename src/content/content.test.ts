@@ -6,7 +6,7 @@ import { CONTENT, CONTENT_IDS } from "./index";
 import { SITE, homeCopy } from "./site";
 import { CATEGORY_CHROME, CATEGORY_CONTENT } from "./categories";
 import { analyse, violations, proseOf } from "./voice";
-import { CATALOG } from "../portal/catalog";
+import { FULL_CATALOG } from "../testing/fullCatalog";
 import type { GameCopy, Locale } from "./types";
 import { PAGE_LOCALES } from "../i18n/locales";
 
@@ -26,7 +26,7 @@ const PAGES = CONTENT_IDS.flatMap((id) => LOCALES.map((l) => [id, l, CONTENT[id]
 
 describe("the content roster lines up with the catalog", () => {
   it("every page has a game", () => {
-    const known = new Set(CATALOG.map((e) => e.meta.id));
+    const known = new Set(FULL_CATALOG.map((e) => e.meta.id));
     const orphans = CONTENT_IDS.filter((id) => !known.has(id));
     expect(orphans, `content with no game in the catalog: ${orphans.join(", ")}`).toEqual([]);
   });
@@ -48,7 +48,7 @@ describe("the content roster lines up with the catalog", () => {
   // the whole point of step 6 in the add-a-game recipe.
   it("every catalogued game has content", () => {
     const written = new Set(CONTENT_IDS);
-    const missing = CATALOG.map((e) => e.meta.id).filter((id) => !written.has(id));
+    const missing = FULL_CATALOG.map((e) => e.meta.id).filter((id) => !written.has(id));
     expect(missing, `games in the catalog with no page: ${missing.join(", ")}`).toEqual([]);
   });
 });
@@ -430,8 +430,8 @@ describe("code supplies the game count, an author never types it", () => {
 
   it("homeCopy fills {games} with the real catalog length", () => {
     for (const locale of LOCALES) {
-      const filled = homeCopy(locale, CATALOG.length);
-      expect(filled.description).toContain(String(CATALOG.length));
+      const filled = homeCopy(locale, FULL_CATALOG.length);
+      expect(filled.description).toContain(String(FULL_CATALOG.length));
       expect(filled.description).not.toContain("{games}");
       expect(filled.title).not.toContain("{games}");
     }

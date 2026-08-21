@@ -103,26 +103,12 @@ describe("src/content is build-time only", () => {
     const offenders = APP_FILES.filter((f) => IMPORTS_ROSTER.test(readFileSync(f, "utf8"))).map(
       (f) => relative(SRC, f),
     );
-    // ADVISORY until ROSTER_GATE=1, and the arming condition is written here so
-    // whoever removes the last offender finds the switch: `catalog.ts` must merge
-    // `gamesRest` on idle and `dailyRotation.ts` must resolve today's game
-    // through it. Both are known, both are named on every run, and neither can
-    // be fixed by the commit that added this gate - a gate that reds on day one
-    // for something nobody can fix that day teaches its reader to ignore it.
-    // See .claude/rules/a-gate-that-reds-on-day-one-teaches-you-to-ignore-it.md
-    const message =
+    expect(
+      offenders,
       `These modules ship to a browser and import the full roster:\n  ${offenders.join("\n  ")}\n` +
-      `That is ~91 B gz per game in the shell, paid by every child on their first ` +
-      `visit, for cards most of them never scroll to. Import ./shellRoster instead.`;
-    if (process.env.ROSTER_GATE === "1") {
-      expect(offenders, message).toEqual([]);
-      return;
-    }
-    // Not an assertion-free test: it still fails if the SPLIT itself is undone,
-    // which is the regression this guards. Only the last two known callers are
-    // tolerated, by name, and a THIRD one reds immediately.
-    expect(offenders.sort()).toEqual(["portal/catalog.ts", "portal/dailyRotation.ts"]);
-    console.warn(`ADVISORY (set ROSTER_GATE=1 to enforce)\n${message}`);
+        `That is ~91 B gz per game in the shell, paid by every child on their first ` +
+        `visit, for cards most of them never scroll to. Import ./shellRoster instead.`,
+    ).toEqual([]);
   });
 
   it("the matcher fires on the shape it claims to catch", () => {

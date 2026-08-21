@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { SHIPPED_LOCALES } from "@i18n/locales";
-import { CATALOG, CATEGORY_ORDER, findEntry } from "./catalog";
+import { CATEGORY_ORDER, ensureFullCatalog, entryFor, findEntry } from "./catalog";
+import { FULL_CATALOG } from "../testing/fullCatalog";
+const CATALOG = FULL_CATALOG;
 // The two static dictionaries, read directly. They used to be reached through a
 // `STRINGS` Proxy on the old key-first table, which was kept alive purely for
 // this test and shipped its whole implementation to every child on first load.
@@ -39,11 +41,25 @@ describe("catalog", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("findEntry round-trips every id and rejects unknown", () => {
-    for (const e of CATALOG) {
-      expect(findEntry(e.meta.id)).toBe(e);
+  it("findEntry round-trips every id and rejects unknown", async () => {
+    // The shell carries metadata for the games above the fold only, so before
+    // the rest land `findEntry` answers undefined for most of the roster - which
+    // is why anything that must MOUNT a game uses `entryFor` instead. Pinned in
+    // both directions rather than awaited away: the pre-merge state is the one
+    // that used to render "we couldn't find that game" on a game that works.
+    const early = FULL_CATALOG.filter((e) => findEntry(e.meta.id) === undefined);
+    expect(early.length, "nothing is lazy - the split has been undone").toBeGreaterThan(0);
+
+    await ensureFullCatalog();
+    for (const e of FULL_CATALOG) {
+      // By id, not by identity: `FULL_CATALOG` pairs the roster fresh for the
+      // build-time emitter, so its entries are equal to the catalogue's and are
+      // deliberately not the same objects.
+      expect(findEntry(e.meta.id)?.meta.id, e.meta.id).toBe(e.meta.id);
+      expect(typeof findEntry(e.meta.id)?.load).toBe("function");
     }
     expect(findEntry("nope")).toBeUndefined();
+    expect(await entryFor("nope")).toBeUndefined();
   });
 
   it("keeps at least the games we shipped (ratchet)", () => {

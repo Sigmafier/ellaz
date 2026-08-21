@@ -22,7 +22,7 @@ import { IconButton } from "@ui/components";
 import { DifficultySelector } from "@ui/DifficultySelector";
 import { GameArt } from "@ui/gameArtView";
 import { inkFor } from "@ui/ink";
-import { CATALOG } from "./catalog";
+import { catalog, ensureFullCatalog, subscribeCatalog } from "./catalog";
 import { cardBest, firstBoard, myGames, type Playable } from "./boardsView";
 import { gameHref } from "./paths";
 
@@ -90,7 +90,22 @@ export function Boards({ locale }: { locale: AppLocale }) {
   const t = makeT(locale);
   // Read once per mount. The wallet and the record store both change only when
   // a game is played, and no game is playable from this screen.
-  const [games] = useState(() => myGames(wallet.recentlyPlayed(), METAS, readRecords()));
+  // Recomputed when the rest of the catalogue lands, never captured once. The
+  // shell carries metadata for the games above the fold only, and a player's
+  // records are spread across the WHOLE roster - so a one-shot `useState` here
+  // would quietly show a player only the games that happen to be in the shell,
+  // with no error and a screen that looks complete.
+  const metas = () => catalog().map((e) => e.meta);
+  const [games, setGames] = useState(() =>
+    myGames(wallet.recentlyPlayed(), metas(), readRecords()),
+  );
+  useEffect(() => {
+    const stop = subscribeCatalog(() =>
+      setGames(myGames(wallet.recentlyPlayed(), metas(), readRecords())),
+    );
+    void ensureFullCatalog();
+    return stop;
+  }, []);
   const [openId, setOpenId] = useState<string | null>(null);
 
   const game = games.find((g) => g.meta.id === openId);
@@ -107,9 +122,6 @@ export function Boards({ locale }: { locale: AppLocale }) {
     </div>
   );
 }
-
-/** Every game's DOM-free meta. The catalog holds loaders too; this needs neither. */
-const METAS = CATALOG.map((e) => e.meta);
 
 /**
  * The screen a player lands on: their games, each already showing their record.

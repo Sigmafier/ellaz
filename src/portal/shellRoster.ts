@@ -1,4 +1,4 @@
-import type { GameMeta } from "@sdk/index";
+import type { Category, GameMeta } from "@sdk/index";
 
 /**
  * The roster the SHELL carries: every game's id, and full metadata for only the
@@ -86,6 +86,54 @@ export const ROSTER_IDS: ReadonlyArray<string> = [
   "match3",
   "jigsaw",
 ];
+
+/**
+ * Every game's CATEGORY, for the games whose metadata has not arrived yet.
+ *
+ * The home screen's filter chips are drawn from the categories that actually
+ * hold a game, and three of them - `learn`, `speed` and `create` - have ALL of
+ * their games below the fold. Without this, those three chips would appear a
+ * beat after first paint and shift a row a four-year-old navigates by. The cards
+ * they filter to can fill in late; the chips cannot.
+ *
+ * Measured at 5.1 B gz per game on the served artifact, which keeps the per-game
+ * slope near 37 against the 40 B target. It is the one field worth buying back.
+ */
+export const ROSTER_CATEGORY: Readonly<Record<string, Category>> = {
+  memory: "kids",
+  evolve: "kids",
+  coloring: "kids",
+  finddiff: "kids",
+  hidden: "kids",
+  math: "learn",
+  "2048": "classics",
+  tictactoe: "classics",
+  minesweeper: "classics",
+  sudoku: "classics",
+  snake: "classics",
+  blocks: "classics",
+  wordguess: "learn",
+  sequence: "think",
+  vanish: "think",
+  shadows: "think",
+  echo: "think",
+  balloons: "kids",
+  bubbles: "learn",
+  bees: "speed",
+  frog: "speed",
+  reaction: "speed",
+  sort: "think",
+  merge: "think",
+  pet: "kids",
+  fit: "think",
+  music: "create",
+  maze: "kids",
+  letters: "learn",
+  spell: "learn",
+  bubbleshooter: "classics",
+  match3: "think",
+  jigsaw: "kids",
+};
 
 /** Full metadata for the games above the fold. The rest are in `gamesRest.ts`. */
 export const SHELL_GAMES: ReadonlyArray<GameMeta> = [

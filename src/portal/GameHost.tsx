@@ -3,7 +3,7 @@ import { backArrow, makeT, shippedLocaleFor } from "@i18n/index";
 import type { AppLocale } from "@i18n/locales";
 import { createHostControls, audioPort, wallet } from "@sdk/index";
 import { Button, IconButton } from "@ui/components";
-import { findEntry } from "./catalog";
+import { entryFor } from "./catalog";
 import { attachSelectionDismissal, dismissSelection } from "./selectionDismiss";
 import { WalletChip } from "./WalletChip";
 
@@ -35,9 +35,8 @@ export function GameHost({
   const t = makeT(locale);
 
   useEffect(() => {
-    const entry = findEntry(gameId);
     const el = mountRef.current;
-    if (!entry || !el) {
+    if (!el) {
       setError("not-found");
       return;
     }
@@ -72,10 +71,25 @@ export function GameHost({
     dismissSelection(window.getSelection());
     const detachSelectionDismissal = attachSelectionDismissal(el, window);
 
-    entry
-      .load()
-      .then(async ({ default: gameModule }) => {
-        if (cancelled) return;
+    // `entryFor`, not `findEntry`: the shell only carries metadata for the games
+    // above the fold, so a below-the-fold game is absent from the catalogue until
+    // `gamesRest` lands. Resolving it synchronously would report "we couldn't
+    // find that game" for 18 of 33 games - a real, permanent-looking error on a
+    // game that exists and works. It fetches the rest only when that is what is
+    // missing, and returns undefined for an id the roster genuinely does not
+    // hold. The fetch runs beside the game's own chunk, not before it.
+    entryFor(gameId)
+      .then((entry) => {
+        if (cancelled) return undefined;
+        if (!entry) {
+          setError("not-found");
+          return undefined;
+        }
+        return entry.load();
+      })
+      .then(async (loaded) => {
+        if (cancelled || !loaded) return;
+        const { default: gameModule } = loaded;
         await gameModule.mount(host.context);
         mod = gameModule;
         setLoading(false);

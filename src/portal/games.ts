@@ -28,3 +28,4 @@ export const GAMES: ReadonlyArray<GameMeta> = [...SHELL_GAMES, ...REST];
 export function metaFor(id: string): GameMeta | undefined {
   return GAMES.find((m) => m.id === id);
 }
+

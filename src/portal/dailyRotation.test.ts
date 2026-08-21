@@ -4,7 +4,8 @@ import { fileURLToPath } from "node:url";
 import { dailyGameId, todayKey, todaysGame } from "./dailyRotation";
 import { dailyPick, isDateKey, shiftDateKey } from "@sdk/daily";
 import { GAMES } from "./games";
-import { CATALOG } from "./catalog";
+import { ensureFullCatalog } from "./catalog";
+import { FULL_CATALOG } from "../testing/fullCatalog";
 
 /**
  * The binding between the pure rotation and the real roster.
@@ -19,7 +20,7 @@ const YEAR = Array.from({ length: 365 }, (_, i) => shiftDateKey("2026-01-01", i)
 
 describe("today's puzzle", () => {
   it("is always a game that is really in the catalogue", () => {
-    const ids = new Set(CATALOG.map((e) => e.meta.id));
+    const ids = new Set(FULL_CATALOG.map((e) => e.meta.id));
     for (const day of YEAR) {
       const id = dailyGameId(day);
       expect(id, day).toBeDefined();
@@ -27,10 +28,25 @@ describe("today's puzzle", () => {
     }
   });
 
-  it("hands back the same game as a meta, so a card can be drawn from it", () => {
+  it("hands back the same game as a meta, so a card can be drawn from it", async () => {
+    // Undefined for a game whose metadata has not arrived - the home screen
+    // already skips a daily card it cannot link to, and re-renders when the
+    // catalogue lands. The ID is available immediately either way, which is what
+    // makes the rotation itself stable; only the CARD waits.
+    await ensureFullCatalog();
     for (const day of YEAR.slice(0, 60)) {
       expect(todaysGame(day)?.id, day).toBe(dailyGameId(day));
     }
+  });
+
+  it("picks from the whole roster even before the catalogue has arrived", () => {
+    // The load-bearing half. `dailyGameId` reads ROSTER_IDS, never the loaded
+    // catalogue - so today's puzzle is the same on a fast connection and a slow
+    // one, and cannot change under a player mid-session as the rest land.
+    const picked = new Set(YEAR.map((d) => dailyGameId(d)));
+    expect(picked.size, "the rotation is drawing from a slice of the roster").toBe(
+      FULL_CATALOG.length,
+    );
   });
 
   it("is fed the WHOLE roster, not a slice of it", () => {
@@ -87,7 +103,8 @@ describe("todayKey", () => {
     }
   });
 
-  it("gives today's puzzle without being told the date", () => {
+  it("gives today's puzzle without being told the date", async () => {
+    await ensureFullCatalog();
     expect(todaysGame()?.id).toBe(dailyGameId(todayKey()));
   });
 });

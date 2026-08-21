@@ -13,10 +13,19 @@
 // only `@shared/rng` and `./profile`, neither of which comes back this way.
 import { dailyPick, localDateKey } from "@sdk/daily";
 import type { GameMeta } from "@sdk/types";
-import { GAMES } from "./games";
+import { findEntry } from "./catalog";
+import { ROSTER_IDS } from "./shellRoster";
 
-/** The roster as ids, in catalogue order. Derived once — the roster is a constant. */
-const IDS: readonly string[] = GAMES.map((m) => m.id);
+/**
+ * The roster as ids, in catalogue order.
+ *
+ * `ROSTER_IDS` and not the loaded catalogue: the pick must be the same on every
+ * device and at every moment of a page's life, and the catalogue GROWS once as
+ * the games below the fold arrive. Deriving the rotation from what has arrived
+ * would make today's puzzle change under a player mid-session, and differ
+ * between a fast connection and a slow one.
+ */
+const IDS: readonly string[] = ROSTER_IDS;
 
 /** Today, in the DEVICE's timezone. Never `toISOString()` — see `localDateKey`. */
 export function todayKey(now: Date = new Date()): string {
@@ -44,5 +53,9 @@ export function dailyGameId(dateKey: string): string | undefined {
  */
 export function todaysGame(dateKey: string = todayKey()): GameMeta | undefined {
   const id = dailyGameId(dateKey);
-  return id === undefined ? undefined : GAMES.find((m) => m.id === id);
+  // Undefined while today's game is one of the ones still arriving. The home
+  // screen already skips a daily card it cannot link to, and re-renders when the
+  // catalogue lands - the same beat on which that card's PICTURE arrives anyway,
+  // since its art is in `art-rest` for every game below the fold.
+  return id === undefined ? undefined : findEntry(id)?.meta;
 }
