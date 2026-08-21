@@ -1544,6 +1544,77 @@ the runtime paid nothing; the movement is the breadcrumb's markup and CSS. Slope
 Live: 164/164 URLs a real body as Googlebot, `/games/create/` 404, 36/36 and
 35/35 planted defects caught by the two gates' controls.
 
+## Every page offers the reader their own language (2026-08-21)
+
+The Search Console export said the site was found and the arrivals were landing
+in the wrong language. 76% of the queries Hebrew, 65% of the impressions Israel,
+**11% of those impressions on a `/he/` URL**. Six Hebrew minesweeper queries
+earned 19 impressions and `/he/games/minesweeper/` earned zero of them - Google
+served the English page, which had 33.
+
+The Hebrew pages were not the weak lane, which is the finding that inverts the
+obvious reading. Where Google served one it ranked around **6**; the English
+game pages averaged **27**. The hreflang cluster was reciprocal, self-referencing
+and correct throughout. It is addressed to a crawler, and there was nothing
+anywhere on any page that told a reader the Hebrew version existed.
+
+**So the bar is EMITTED, not rendered, and that decision is what made "every
+language" free.** `src/build/langOffer.ts` writes one row per language the page
+actually has - derived from its own alternates, so a fifth locale gets a fifth
+row with no edit - all hidden, and one attribute on `<html>` chooses which shows.
+No script ever writes text, a href or a direction, so a wrong-language bar is
+impossible rather than unlikely. Cost to a first visit: **zero**, on a ceiling
+with 30 B of room, because `src/build/**` ships to nobody. And it is on screen in
+the first paint rather than after the bundle, which is the right moment for
+somebody who arrived from a search result.
+
+The React version was written first, as the mock the operator eyeballed, and
+deleted in the same change that emitted the real one. Two implementations of one
+feature is how they drift.
+
+**Never a redirect** (SEO3): a crawler follows one too, and every other language
+drops out of the index.
+
+**The four home shells are the gap, deliberately.** `/`, `/he/`, `/es/`, `/fr/`
+render no `DOCUMENT_CSS` and no emitted chrome - the app draws all of it - so a
+bar there would have to live in the bundle, which is the cost this design exists
+to avoid. 4 of 164 documents, 11% of the impressions.
+
+Measured in five fresh browser contexts at 390px: `he`, `es` and `fr` each get
+their own row with the right text, href and direction; an English reader on the
+English page and a Hebrew reader already on `/he/` get nothing; a German reader
+whose second preference is English gets nothing; dismissal survives a reload.
+
+**The measurement trap, and it nearly shipped as a finding.** The offer arms read
+**CLS 0.28** and the no-offer arms 0.003 - damning, and false. Re-run with the
+arms interleaved, an `en-US` arm with no offer at all read **0.283**: the shift is
+the game mounting into a 48px poster and becoming a 581px board, it predates this
+work entirely, and the arm ORDER is what made it look like the offer's. The
+offer's own contribution is 0.005 against a 0.004 control. **Parked, not chased:
+that 0.28 is real and is somebody's next piece of work.**
+
+Seven planted defects, seven killed. The eighth SURVIVED and is why the copy
+table is pinned directly rather than through a rendered page: a page never offers
+its own language, so a row copied from the page's language is absent from that
+page's markup and a rendered-row check reports every remaining line distinct -
+green, over the one mistake it exists to catch.
+
+Three clauses went to the console and wait on a verdict: **SEO17** (hreflang
+speaks to the crawler, the reader needs an offer), **SEO18** (cross the queries
+against the URL that earns each one, per language) and **RCH11** (a row in a
+search report is a historic record, not a live fact - fetch before filing).
+Three playbook steps cite them.
+
+Two rules came out of the same day, both measured rather than reasoned:
+[`a-number-belongs-to-the-toolchain-that-ships-it.md`](../.claude/rules/a-number-belongs-to-the-toolchain-that-ships-it.md)
+(CI is Node 22, this machine is Node 24, and the same commit differs by 54 B gz
+against 141 B of headroom) and
+[`a-script-that-runs-on-import-prints-its-importers-verdict.md`](../.claude/rules/a-script-that-runs-on-import-prints-its-importers-verdict.md).
+The second one found three live instances in `scripts/reach/`, including a guard
+written for exactly this defect that **threw** - `pathToFileURL(process.argv[1])`
+raises when there is no `argv[1]`, so the line written to stop a hijack crashed
+the importer instead. Nobody had imported it.
+
 ## Still open
 
 - **Wave C step 2b** — live two-way sync. Needs the profile to carry per-device

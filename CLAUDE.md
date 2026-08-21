@@ -1529,6 +1529,42 @@ items), `sdk/names.ts` (the name pool) and the per-game strings are all still
 `he | en`. They live behind lazy chunks and fall back to English, so nothing
 breaks — a Spanish child gets Spanish chrome and English animal names.
 
+## The reader is told, not just the crawler
+
+**Every emitted page carries a one-line offer of the other languages it exists
+in** - `src/build/langOffer.ts`, first thing in `<body>`, one hidden row per
+alternate, and one attribute on `<html>` choosing which shows. It is **emitted,
+never rendered**: `src/build/**` ships to nobody, so it costs a first visit
+zero, it is on screen in the first paint rather than after the bundle, and the
+rows derive from the page's own hreflang cluster - a fifth locale gets a fifth
+row with no edit.
+
+Measured, Search Console 2026-08-04 to 08-18: **76% of the queries are Hebrew
+and 11% of the impressions land on a `/he/` URL.** Six Hebrew minesweeper
+queries earned 19 impressions and `/he/games/minesweeper/` earned zero of them.
+The hreflang cluster was reciprocal and correct throughout - it is addressed to
+a crawler, and nothing on the page told a reader the Hebrew version existed.
+The Hebrew pages are not the weak lane either: where Google serves one it ranks
+around 6 against a mean of 27 for the English twins.
+
+**Never a redirect.** A crawler follows one too, so every other language drops
+out of the index; Google says so in writing.
+
+**`--oh` is how the stage pays for it** - 0px unless the offer showed, and
+subtracted unconditionally in `.box`'s `calc`. Declared only in the override,
+the calc resolves to nothing on the pages with no offer, which is most of them,
+and the box loses its height entirely.
+
+**The four home shells carry no bar and that is deliberate.** `/`, `/he/`,
+`/es/`, `/fr/` render no `DOCUMENT_CSS` and no emitted chrome, so a bar there
+would have to live in the bundle - the cost this whole design avoids. 4 of 164
+documents, 11% of the impressions. Stated rather than left to be found.
+
+**`src/build/**` may not use the `@i18n`/`@ui` aliases.** It is loaded by NODE
+from `vite.config.ts` at config time, where no Vite alias exists yet, so an
+aliased import fails the whole config to load and reads as a broken build rather
+than a wrong import. Every module in there uses relative paths; follow them.
+
 ## The words on a game page
 
 Each game gets ~750 words per language at `src/content/games/<id>.ts`. Three rules,
