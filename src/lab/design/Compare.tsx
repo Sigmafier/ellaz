@@ -25,7 +25,8 @@ import { VARIANTS } from "./spec";
  * at the games somebody remembered is the same failure the bench exists to
  * end. `games.ts` is already in the shell, so this costs the lab nothing.
  */
-const GAMES = ROSTER.map((g) => g.id);
+/** Exported ONLY so `the-bench-sees-every-game.test.ts` can count it. */
+export const GAMES = ROSTER.map((g) => g.id);
 
 /**
  * Phone widths and desktop widths, and the arm matters.

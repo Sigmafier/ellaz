@@ -25,7 +25,8 @@ import { GAMES as ROSTER } from "../../portal/games";
  * they all obeyed one rule" is to really override them and really look.
  */
 
-const GAMES = ROSTER.map((g) => g.id);
+/** Exported ONLY so `the-bench-sees-every-game.test.ts` can count it. */
+export const GAMES = ROSTER.map((g) => g.id);
 
 /** The floor a tap target may not go under. Same number `--tap-kids` pins. */
 const TAP_FLOOR = 44;
