@@ -1615,13 +1615,123 @@ written for exactly this defect that **threw** - `pathToFileURL(process.argv[1])
 raises when there is no `argv[1]`, so the line written to stop a hijack crashed
 the importer instead. Nobody had imported it.
 
+## The catalogue arrives in two beats (2026-08-21)
+
+The first visit was **84 bytes** from refusing the next game. The operator chose
+step 3 of [`docs/scaling-the-first-visit.md`](scaling-the-first-visit.md) over
+raising the ceiling again, so the shell stopped carrying a record for every game.
+
+Measured first, and the measurement is what killed the obvious fix. Deleting each
+field's occurrences from the served shell and re-compressing: the five fields the
+home grid never reads (`orientation`, `ageBand`, `renderer`, `ownsChrome`,
+`scoreUnit`) come to **181 B gz = 5.5 B/game**. A game costs ~122. So pruning
+does not buy even one game and cannot be the answer - which §6c of the plan had
+anticipated, and the honest move was to say it with a number rather than raise
+the ceiling.
+
+What shipped instead: `shellRoster.ts` holds 15 games' metadata plus **every**
+game's id and category, `gamesRest.ts` holds the other 18, and `catalog()` grows
+once - from 15 to 33 - on browser idle. The ids buy 33 laid-out slots at first
+paint so nothing reflows; the categories keep `learn`, `speed` and `create` in
+the nav row, since all three have every one of their games below the fold and a
+row a four-year-old navigates by must not pop three chips a beat after paint.
+2.8 and 3.8 B per game, against a card that costs 91.
+
+**Slope 122.1 -> 70.1 B gz per game. First visit 90,484 -> 89,985, 515 spare.**
+Two arms from one tree, on the tree in front of me, today.
+
+**`catalog()` is a FUNCTION, and that is the safety property rather than a style
+choice.** `Boards.tsx` had `const METAS = CATALOG.map(...)` at module scope;
+after the split that captures 15 games forever, and a player's own records screen
+then shows half their games and looks complete. A call cannot be captured stale.
+
+Four places needed the second beat and each fails silently without it:
+`GameHost` must resolve through `entryFor` (`findEntry` alone says "we couldn't
+find that game" for 18 of 33 - a permanent-looking error on a game that works);
+`dailyRotation` picks from `ROSTER_IDS` rather than the loaded catalogue, or
+today's puzzle differs between a fast connection and a slow one; `Home` reserves
+an empty slot per pending id, with no label and no spinner; `Boards` recomputes
+on the catalogue event.
+
+**The import gate is ARMED, not advisory** - one import of the full roster from
+anything that ships undoes all of it behind a green build. `FULL_CATALOG` moved
+to `src/testing/` because inside `src/portal/` the gate counted it as a module
+that ships, correctly, since it cannot tell a test helper from a screen by its
+path. An exemption list would have been the wrong fix.
+
+**Two `manualChunks` ordering traps, both found by the chunk being ABSENT rather
+than by anything failing.** A pin added beside the `gameArtRest` rule emitted no
+chunk at all and nothing went red; the `src/portal/**` catch-all fires first. And
+line 344 pins every `src/games/*/meta.ts` to the shell before either, so it now
+asks which half a meta is in - by parsing `shellRoster.ts` at config time rather
+than holding a second list, because a second list here is a third copy of the fold.
+
+**40 is not reachable from here, and the number says why.** Of the 70 that remain,
+~29.5 is the emitted home's link row, which is load-bearing - it is what made `/`
+visible to answer engines - and stays. The rest is the LOADER map: 33 chunk names
+at 431 B gz and the import expressions at 649 B. `catalog.ts`'s own comment
+claimed the loaders "cost nothing next to 33 records", written without measuring
+and wrong; corrected in place. Moving the below-fold loaders beside their metas
+is the next honest cut.
+
+**A peer caught `assert:slope` broken by the commit before this one.** It parses
+the roster textually and looked for `export const GAMES = [`, which is a spread
+now. Two more defects fixed while in there, and the first is the dangerous one:
+arm B also has to cut the ids, or it carries 33 for 25 games and **under-reports
+the slope** - the direction that reads green. And the report labelled the lazy
+half's length as the catalogue, printing "18 games" for a site with 33: a true
+number under a false name.
+
+## A game name that leaves the repository is a fact with no digits in it (2026-08-21)
+
+`docs/outreach/hebrew.md` offered kindergarten teachers a game called **גדול
+וקטן**. It was deleted in `0207a33` nine days earlier; the sorting game is
+`sort`, and it is about colour. The draft was three days from being posted.
+
+Every matcher in `assert-outreach.mjs` reads NUMBERS - that gate exists precisely
+because hand-authored figures leave this repo and go stale
+([`a-hand-authored-number-that-leaves-the-repo.md`](../.claude/rules/a-hand-authored-number-that-leaves-the-repo.md)).
+A name is the same defect with no digits in it, so nothing could see it.
+
+Each post now declares its games in an `<!-- outreach-games: -->` comment and the
+gate checks **both directions**: every id must be in the roster, and its Hebrew
+title must appear verbatim in the prose beneath. Both halves are needed - an
+id-only check passes a RETITLED game forever. 16 controls, up from 10.
+
+**Two normalisations, and they are the French-glossary lesson from the other
+end.** The gate went red on three CORRECT posts: a title ending in `?`
+(`מה נעלם?`) and a name split across a markdown blockquote wrap (`מצא\n> הבדלים`).
+It loosens whitespace and trailing punctuation only, so a retitled game still
+reds. A gate that reds on correct copy is a gate somebody switches off.
+
+**It also found that three scripts each parsed the roster with their own regex**,
+and my own split had broken two of them at once - `assert-outreach` crashed with
+"the roster parsed to zero games" (refusing rather than reporting zero, which is
+the design working) and `repo-about.mjs` would have published a wrong count to a
+public GitHub field. One reader now: `scripts/lib/roster.mjs`. Same argument as
+`firstBoard()` in `boardsView.ts`.
+
+**RCH5 cannot be satisfied from here for a Facebook group, and saying so is the
+finding.** Measured twice: a direct fetch returns the group's TITLE and nothing
+else - no rules, no pinned post, no About panel, public or private alike. A
+search index holds more, but that is somebody else's crawl on somebody else's
+date, which is exactly what "fetched the way its readers see it" excludes. So
+six destinations are NAMED with what is known about each, and the rules are read
+by the operator, in the group, on the day, against a six-item checklist.
+
+One rule IS readable without login and it generalises: **מורות משקיעות brokers
+promotion through a named person.** A room with a paid or brokered channel reads
+an unbrokered link as somebody dodging it, and the thing being free changes
+nothing about how it reads. Look for that channel before posting anywhere.
+
 ## Still open
 
 - **Wave C step 2b** — live two-way sync. Needs the profile to carry per-device
   earned/spent counters before a merge can be correct; until then the cloud is a
   backup and a transfer, and the UI says so.
-- **The first-visit budget — 90,356 B gz of 90,500, 144 spare, measured
-  2026-08-21 on `main`.** The ceiling has moved three times (86,000 → 90,000 →
+- **The first-visit budget — 89,985 B gz of 90,500, 515 spare, measured
+  2026-08-21 on `main` after the catalogue split (Node 24; CI is Node 22 and
+  reads ~54 B lighter).** The ceiling has moved three times (86,000 → 90,000 →
   90,500) and this line has been stale twice, so **re-run `npm run build:check`
   before designing anything near the edge rather than quoting this number**. The
   history it records: two lanes raised the ceiling within hours on 2026-08-11,
@@ -1629,8 +1739,10 @@ the importer instead. Nobody had imported it.
   neither described the merged tree. **Adding two deltas measured from different
   baselines does not describe any tree that exists.** The slope gate is the
   durable half — 121.5 B gz per game against a 140 budget, so the first visit is
-  O(1) in the catalogue even while the absolute number drifts. The O(1) target
-  of 40 is not met; `docs/scaling-the-first-visit.md` step 3 is what closes it.
+  O(1) in the catalogue even while the absolute number drifts. **Step 3 landed:
+  the slope is 70.1, not 121.5.** The O(1) target of 40 is not reachable from
+  here and the section above says why with a number — the remaining 70 is the
+  emitted home's link row (~29.5, load-bearing) plus the loader map.
   See [`a-threshold-tuned-against-todays-tree-goes-stale.md`](../.claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md).
 - **Nobody has published a real score yet**, so every board renders empty and
   the own-best line carries the screen. Firestore's free daily quota stays the
