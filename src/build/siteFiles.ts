@@ -1,7 +1,8 @@
 import type { GameMeta } from "../sdk/types";
 import { gameName } from "./gameName";
 import { ORIGIN } from "../content/site";
-import { DEFAULT_LOCALE, ENGLISH_NAME } from "../i18n/locales";
+import { DEFAULT_LOCALE, ENGLISH_NAME, localePrefix } from "../i18n/locales";
+import type { PageLocale } from "../i18n/locales";
 import { LOCALES, ROUTES, canonicalUrl, gamePath, homePath } from "./routes";
 import { escapeHtml } from "./html";
 
@@ -25,6 +26,19 @@ import { escapeHtml } from "./html";
  * exactly that reason while its Anthropic and Perplexity equivalents were
  * both listed.
  */
+/**
+ * A route's path with its locale prefix removed - the thing two pages share
+ * when they are the same page in two languages. `/he/games/snake/` and
+ * `/games/snake/` are both `/games/snake/`.
+ */
+function familyOf(path: string): string {
+  for (const l of LOCALES) {
+    const p = localePrefix(l as PageLocale);
+    if (p && (path === p || path.startsWith(`${p}/`))) return path.slice(p.length) || "/";
+  }
+  return path;
+}
+
 const CITATION_BOTS = [
   "OAI-SearchBot",
   "ChatGPT-User",
@@ -95,10 +109,19 @@ export function sitemapXml(lastmods?: ReadonlyMap<string, string>): string {
     //
     // A lookup cannot go stale when a page kind is added: an unmatched sibling
     // emits no alternate at all, rather than a confidently wrong one.
+    //
+    // The key is the page FAMILY - its path with the locale prefix removed -
+    // and not a list of discriminator fields. `kind` + `id` was the list, and
+    // it was correct until a route kind arrived carrying NEITHER: a category
+    // route has no `id`, so `o.id === r.id` was `undefined === undefined` for
+    // every category in the locale and `find` returned whichever came first.
+    // 16 of 20 category pages named `kids` as their twin in every language,
+    // while their own tags were perfect. A field list must be extended by hand
+    // each time the route type grows; a path family cannot fall behind it.
     const siblings: { locale: string; path: string }[] = [];
     for (const locale of LOCALES) {
       const sibling = ROUTES.find(
-        (o) => o.kind === r.kind && o.id === r.id && o.locale === locale && o.indexable,
+        (o) => familyOf(o.path) === familyOf(r.path) && o.locale === locale && o.indexable,
       );
       if (sibling) siblings.push({ locale, path: sibling.path });
     }

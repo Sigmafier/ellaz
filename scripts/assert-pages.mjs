@@ -223,6 +223,30 @@ export function longSentences(text, minWords = 5) {
     .filter((s) => s.split(" ").filter(Boolean).length >= minWords);
 }
 
+/**
+ * The sitemap's own hreflang clusters: `<loc>` -> the set of alternate hrefs
+ * that `<url>` block advertises, x-default excluded.
+ *
+ * Exported because the sitemap is the artifact NOBODY OPENS. A page's own
+ * `<link rel="alternate">` tags and the sitemap's `xhtml:link` rows are two
+ * statements about the same thing, made by two different code paths, and the
+ * only way they are ever found to disagree is by comparing them.
+ */
+export function sitemapClusters(xml) {
+  const out = new Map();
+  for (const m of xml.matchAll(/<url>([\s\S]*?)<\/url>/g)) {
+    const block = m[1];
+    const loc = /<loc>([^<]+)<\/loc>/.exec(block);
+    if (!loc) continue;
+    const alts = new Set();
+    for (const a of block.matchAll(/hreflang="([^"]+)"\s+href="([^"]+)"/g)) {
+      if (a[1] !== "x-default") alts.add(a[2]);
+    }
+    out.set(loc[1], alts);
+  }
+  return out;
+}
+
 /** Every `rel="alternate"` in the head, as `{ hreflang, href }`. */
 export function alternatesOf(html) {
   const out = [];
@@ -947,6 +971,36 @@ function main() {
     for (const loc of locs) {
       if (!indexable.some((p) => p.canonical === loc)) fail(`sitemap advertises ${loc}, which this build does not emit`);
     }
+
+    // --- the sitemap's cluster must equal the page's own ------------------
+    //
+    // Two code paths emit the same hreflang cluster: `renderDocument` writes
+    // the page's <link rel="alternate"> tags from an explicit list, and
+    // `siteFiles.ts` derives the sitemap's <xhtml:link> rows by LOOKING UP a
+    // sibling route. When those disagree, the page is right and the sitemap is
+    // wrong - and nobody opens the sitemap, so nothing notices.
+    //
+    // It has now happened twice. First the boards declared the ROOM as their
+    // twin, for as long as the boards existed. Then category pages: the lookup
+    // keyed on `kind` and `id`, a category route carries no `id`, so 16 of 20
+    // pages named `kids` as their alternate in every language while their own
+    // tags were perfect. Reciprocity passed both times, because it reads the
+    // PAGE tags. This gate is the one that reads the other artifact.
+    const smClusters = sitemapClusters(sitemap);
+    for (const [loc, smAlts] of smClusters) {
+      const own = cluster.get(loc);
+      if (!own) continue; // already reported by the bijection check above
+      const missing = [...own].filter((h) => !smAlts.has(h));
+      const extra = [...smAlts].filter((h) => !own.has(h));
+      if (missing.length || extra.length) {
+        fail(
+          `sitemap cluster for ${loc} disagrees with the page's own alternates` +
+            (extra.length ? ` - sitemap names ${extra.join(", ")}` : "") +
+            (missing.length ? ` - page names ${missing.join(", ")}` : ""),
+        );
+      }
+    }
+
     if (!existsSync(join(DIST, "robots.txt"))) fail("no robots.txt");
     const robots = readFileSync(join(DIST, "robots.txt"), "utf8");
     // --- lastmod is honest, or absent -------------------------------------
@@ -1325,6 +1379,32 @@ function runControls() {
     [
       "and the exception is real: the tag alone passes on an indexable document",
       () => documentEagerFaults([GA_SRC], "category").length === 0,
+    ],
+    // The sitemap-vs-page comparison, both directions. A parser that returned
+    // an empty map would pass every "they agree" assertion vacuously, so the
+    // positive control is the one that earns its place here.
+    [
+      "a sitemap cluster naming another page's twin is caught",
+      () => {
+        const xml =
+          '<url><loc>https://e.fun/games/think/</loc>' +
+          '<xhtml:link rel="alternate" hreflang="he" href="https://e.fun/he/games/kids/"/>' +
+          "</url>";
+        const c = sitemapClusters(xml).get("https://e.fun/games/think/");
+        return c.size === 1 && !c.has("https://e.fun/he/games/think/");
+      },
+    ],
+    [
+      "and a correct cluster parses as correct - the parser can see 'present'",
+      () => {
+        const xml =
+          '<url><loc>https://e.fun/games/think/</loc>' +
+          '<xhtml:link rel="alternate" hreflang="he" href="https://e.fun/he/games/think/"/>' +
+          '<xhtml:link rel="alternate" hreflang="x-default" href="https://e.fun/games/think/"/>' +
+          "</url>";
+        const c = sitemapClusters(xml).get("https://e.fun/games/think/");
+        return c.size === 1 && c.has("https://e.fun/he/games/think/");
+      },
     ],
   ];
 
