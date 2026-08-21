@@ -36,7 +36,7 @@ describe("applySpec", () => {
     // If a token stops being written the bench silently stops controlling that
     // dimension, and a knob that moves nothing looks exactly like a knob whose
     // value happens to be right.
-    for (const t of ["--hh", "--uh", "--tap", "--gc-tap", "--gc-gap", "--gc-level-min", "--gc-stat-min", "--gc-radius"]) {
+    for (const t of ["--hh", "--uh", "--tap", "--gc-tap", "--gc-gap", "--gc-radius"]) {
       expect(p.get(t), `${t} not written`).toBeTruthy();
     }
     expect(p.get("--gc-tap")).toBe("56px");

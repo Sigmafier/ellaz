@@ -56,7 +56,7 @@ function chromeFallback(token: string): number {
 /** What the two source files ACTUALLY say, right now. */
 function readShipped(): Pick<
   ChromeSpec,
-  "hh" | "hhNarrow" | "uh" | "uhNarrow" | "headerTap" | "panelTap" | "levelMinWidth" | "breadcrumb"
+  "hh" | "hhNarrow" | "uh" | "uhNarrow" | "headerTap" | "panelTap" | "breadcrumb"
 > {
   return {
     hh: emittedToken("--hh", "wide"),
@@ -65,7 +65,6 @@ function readShipped(): Pick<
     uhNarrow: emittedToken("--uh", "narrow"),
     headerTap: emittedToken("--tap", "wide"),
     panelTap: chromeFallback("--gc-tap"),
-    levelMinWidth: chromeFallback("--gc-level-min"),
     breadcrumb: /\.urow\s*\.bc\{[^}]*border-radius:\s*99px/s.test(LAYOUT) ? "pill" : "plain",
   };
 }
@@ -83,7 +82,6 @@ describe("the shipped chrome matches the variant that says it is shipped", () =>
   it("agrees on every panel number", () => {
     const live = readShipped();
     expect(live.panelTap).toBe(SHIPPED.panelTap);
-    expect(live.levelMinWidth).toBe(SHIPPED.levelMinWidth);
   });
 
   it("agrees on the breadcrumb shape", () => {

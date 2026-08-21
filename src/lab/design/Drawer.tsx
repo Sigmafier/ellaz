@@ -49,7 +49,6 @@ const KNOBS: Knob[] = [
   { key: "headerTap", label: "Header button", min: 32, max: 72, note: "home, sound, full screen" },
   { key: "panelTap", label: "Game cell", min: 40, max: 88, note: "level toggle + stat cards" },
   { key: "panelGap", label: "Panel gap", min: 0, max: 24, note: "between the cells of that row" },
-  { key: "levelMinWidth", label: "Level floor", min: 88, max: 200, note: "below this a label clips" },
   { key: "statMinWidth", label: "Stat floor", min: 56, max: 180, note: "below this a record ellipsises" },
 ];
 

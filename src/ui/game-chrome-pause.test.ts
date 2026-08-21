@@ -76,45 +76,41 @@ describe("the pause control", () => {
   });
 });
 
-describe("the level toggle survives a fourth button", () => {
-  it("has a shrink FLOOR, not zero", () => {
-    // The mutation this exists for is one character: `minWidth: 0`. It
-    // type-checks, renders, passes every width assertion, and clips the level
-    // name inside its own card on a 390px phone.
-    // The floor is a TOKEN now (`--gc-level-min`, declared in tokens.css so the
-    // Design Bench can turn it), so this reads the fallback the component
-    // carries. Both shapes are accepted deliberately: reverting to a bare
-    // literal is a legitimate state of the file, and a matcher that refused it
-    // would fail over the thing it is measuring rather than over the defect.
-    const floor =
-      /minWidth: "var\(--gc-level-min,\s*(\d+)px\)",/.exec(SRC) ??
-      /minWidth: (\d+),\n\s*border: "none"/.exec(SRC);
-    expect(floor, "the level toggle no longer declares a minWidth").toBeTruthy();
-    expect(Number(floor![1])).toBeGreaterThanOrEqual(120);
+describe("the row is three fixed tracks, so it cannot wrap", () => {
+  it("is a grid, not a flex row", () => {
+    // The mechanism CHANGED on 2026-08-21 and this test changed with it. Flex
+    // sized each cell from its own content, which is what produced 25
+    // different row shapes across 33 games; tracks make every game's row the
+    // same row by construction. Pinning the old floors here would now be
+    // pinning a mechanism the component no longer uses.
+    expect(SRC).toMatch(/display: "grid",\s*\n\s*gridTemplateColumns: COLS,/);
   });
 
-  it("is allowed to keep that floor, rather than being basis-zero", () => {
-    // `flex: "1 1 0"` sets the basis to zero, which lets the item shrink past
-    // `minWidth` in the same way `minWidth: 0` does. Both halves are needed:
-    // fixing one and leaving the other clips exactly as before.
-    // BASIS 0, not auto - changed 2026-08-20 with a measurement behind it.
-    // The floor is what makes the row wrap instead of shrinking; the basis
-    // never was. On `auto` the card's basis is its own content, so it grows
-    // past the floor and starves the cells beside it: snake's difficulty took
-    // 184px on the built artifact and left the score cell 60, which rendered
-    // its record as "Be...". What this test is really pinning is the FLOOR
-    // above, which is unchanged.
-    expect(SRC).toContain("flex: \"1 1 0\"");
+  it("declares exactly three tracks", () => {
+    // Two tracks and a game's second number has nowhere to go; four and the
+    // dash slots stop lining up with the cells beside them. The count is the
+    // whole standard, so it is pinned as a COUNT rather than as a string.
+    const m = /const COLS = "var\(--gc-cols, ([^"]*)\)";/.exec(SRC);
+    expect(m, "COLS is no longer a --gc-cols read").toBeTruthy();
+    expect(m![1].match(/minmax\(/g)?.length).toBe(3);
   });
 
-  it("sits in a row that wraps, which is what the floor makes use of", () => {
-    // Without `flexWrap` a floor that cannot be met overflows the container
-    // instead - and this container clips rather than scrolls, so the toggle
-    // would be sliced off at the edge rather than moved to its own line.
-    // The gap is a token now (`GAP`), so this pins the property rather than the
-    // literal 8 - which is the part that matters and the part a restyle must
-    // not be able to remove. The 8 itself is pinned by the panel bench's test,
-    // against the fallback in the component.
-    expect(SRC).toMatch(/gap: GAP,\s*\n\s*flexWrap: "wrap"/);
+  it("gives every cell a zero floor, because a floor overflows a track", () => {
+    // The mutation this exists for is the OPPOSITE of the one it used to
+    // guard: restoring `minWidth: "var(--gc-level-min, 132px)"`. Under flex a
+    // floor made the row wrap; under a grid it makes the item wider than its
+    // track and the row overflows a container that clips rather than scrolls,
+    // so the cell is sliced off at the edge with nothing to measure.
+    expect(SRC).not.toMatch(/minWidth: "var\(--gc-level-min/);
+    expect(SRC).not.toMatch(/minWidth: s\.compact \? 0 :/);
+    // Three cells declare it: the level, the stat, the dash slot.
+    expect(SRC.match(/minWidth: 0,/g)?.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("draws the dash slot rather than hiding it", () => {
+    // `none` here is the pre-2026-08-21 default and renders a row that
+    // collapses to whatever a game happens to have - which is the thing the
+    // operator asked to end. It is still a token so the bench can compare.
+    expect(SRC).toMatch(/EMPTY_DISPLAY = "var\(--gc-empty-display, flex\)"/);
   });
 });

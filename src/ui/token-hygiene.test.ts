@@ -108,12 +108,12 @@ export function readTokens(source: string): string[] {
 /** Set on the root by the Design Bench, never declared in the token file. */
 const BENCH_TOKENS = new Set([
   // The chrome bench's, pinned by `lab/design/variant-is-shipped.test.ts`.
-  "--gc-tap", "--gc-gap", "--gc-level-min", "--gc-stat-min", "--gc-radius",
+  "--gc-tap", "--gc-gap", "--gc-radius",
   // The panel bench's, pinned by `lab/design/panel-tokens-are-shipped.test.ts`.
   "--gc-cell-radius", "--gc-cell-bg", "--gc-cell-shadow", "--gc-label", "--gc-value",
   "--gc-record", "--gc-stat-icon", "--gc-level-value", "--gc-head-gap", "--gc-head-pad",
   // The same-slots switch - a style sets these three, never a knob.
-  "--gc-row-display", "--gc-empty-display", "--gc-cols",
+  "--gc-empty-display", "--gc-cols", "--gc-icon-display",
 ]);
 
 export const COLOUR_LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\([0-9 ,.%/]+\)|["'](white|black)["']/;

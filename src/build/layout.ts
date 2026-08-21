@@ -360,6 +360,13 @@ body.screen{--hh:60px;--uh:52px;--oh:0px;--tap:44px;--hgap:12px;--hpad:20px;
   --hbrand:22px;--hfont:14.5px;--hicon:22px;--hrad:99px;--urad:14px;
   --hdr-ink:#FFF6E9}
 @media (max-width:719px){body.screen{--hh:58px;--uh:46px;--hbrand:20px;--hgap:8px;--hpad:12px}}
+/* The game row's cards, washed in this game's own hue. The plain surface is
+   declared FIRST and unconditionally, so a browser without color-mix keeps a
+   readable card rather than a transparent one; @supports upgrades it. The
+   standalone bundle emits none of this and falls back to the surface too. */
+body.screen{--gc-cell-bg:var(--surface)}
+@supports (background:color-mix(in oklab,red 10%,blue)){
+body.screen{--gc-cell-bg:color-mix(in oklab,var(--g,var(--brand)) 16%,var(--surface))}}
 
 body.screen .top{position:relative;z-index:6;height:var(--hh);
   display:flex;align-items:center;padding:0;border-block-end:0;
@@ -580,7 +587,16 @@ function escapeAttribute(value: string): string {
 }
 
 /**
- * `--g` on the header, and nowhere else.
+ * `--g` on the header AND on the body.
+ *
+ * The body copy is what the GAME PANEL reads - it is a sibling of the header,
+ * several levels down, so a tint rule resolving `--g` at body level would find
+ * nothing there and fall back to one indigo on all 33 games. That is the same
+ * plausible-picture-no-error failure this comment already warns about, one
+ * element over. Both come from the same `chrome.ground` in the same call, so
+ * they cannot disagree.
+ *
+ * Historically:
  *
  * The tint rule reads this. Nothing in the app or in the emitted document
  * defines it - it only ever existed on the tournament's own scaffold - so
@@ -850,7 +866,7 @@ ${raw(opts.analytics === false ? "" : analyticsTag(base))}
         ${(opts.headAssets?.tags ?? []).map((t) => raw(t))}
         ${(opts.preloads ?? []).map((t) => raw(t))}
       </head>
-      <body ${raw(bodyClass(opts))}${raw(bodyAttrs(opts.bodyData))}>
+      <body ${raw(bodyClass(opts))}${raw(groundStyle(opts.headerChrome))}${raw(bodyAttrs(opts.bodyData))}>
         ${opts.shell ? opts.body : chrome}
       </body>
     </html>`)

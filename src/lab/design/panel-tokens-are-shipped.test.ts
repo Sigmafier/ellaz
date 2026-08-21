@@ -85,9 +85,10 @@ const NOT_A_KNOB = new Set([
   // The same-slots switch. Not numbers, so no knob shows them - a style sets
   // them, and `the panel bench > declares only tokens the bench lists` would
   // otherwise refuse the style that does.
-  "--gc-row-display",
   "--gc-empty-display",
   "--gc-cols",
+  // Not a number either: the glyph is on or off, and a style flips it.
+  "--gc-icon-display",
 ]);
 
 describe("the panel bench knows what ships", () => {

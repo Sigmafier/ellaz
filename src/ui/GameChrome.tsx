@@ -141,8 +141,35 @@ const LEVEL_SIZE = "var(--gc-level-value, 16px)";
  * games ride the same switch, in the stylesheet, since a grid needs the
  * container to be a grid.
  */
-const ROW_DISPLAY = "var(--gc-row-display, flex)";
-const EMPTY_DISPLAY = "var(--gc-empty-display, none)";
+/**
+ * THREE FIXED TRACKS, and this is what makes every game's row the same row.
+ *
+ * Flex sized each cell from its own content, so "Time" in sudoku and "Score"
+ * in snake landed at different widths and the two rows did not line up -
+ * measured 2026-08-21, 25 different row shapes across 33 games. Tracks fix
+ * that by construction rather than by tuning.
+ *
+ * It also retires the FLOORS. A `min-width` on a grid item overflows its track
+ * instead of wrapping the row, so `--gc-level-min` and `--gc-stat-min` are
+ * gone and every cell is `minWidth: 0`. The row cannot wrap now because there
+ * is nothing to wrap: three tracks, always, whatever is in them.
+ *
+ * The ratio is 1.25 / 1 / 0.85 because the difficulty is the only cell
+ * carrying a WORD and the third is usually a short counter.
+ */
+const COLS = "var(--gc-cols, minmax(0,1.25fr) minmax(0,1fr) minmax(0,0.85fr))";
+/** The dash slots are DRAWN now - the operator's call, 2026-08-21. */
+const EMPTY_DISPLAY = "var(--gc-empty-display, flex)";
+/**
+ * The glyph is OFF.
+ *
+ * Measured on the artifact across all 33 games: with it, sudoku's `42/81`
+ * ellipsises inside its own card - nothing overflows, nothing is wider than
+ * its frame, and the number is simply unreadable. Without it, nothing clips
+ * anywhere. It is a token rather than a deleted element so the bench can put
+ * it back and look at the trade rather than argue about it.
+ */
+const ICON_DISPLAY = "var(--gc-icon-display, none)";
 /**
  * Three cells in the row: the difficulty and two numbers. Measured across the
  * roster - 23 games pass two numbers, 6 pass one, and none passes three.
@@ -312,7 +339,11 @@ export function GameChrome<T extends string>({
         height: "100%",
         minHeight: 0,
         background: "var(--surface-2)",
-        padding: 8,
+        // NO horizontal padding. Measured on the artifact at 390px: this 8 plus
+        // the head's 12 spent 40px - 10.3% of a phone - before a card started,
+        // and the panel is edge-to-edge on a phone anyway (`.box` drops its
+        // radius under 720px). The head's own padding is the only gutter now.
+        padding: "8px 0",
         // WIDTH + BORDER-BOX, both load-bearing. Without them this is a flex
         // item sized by its content: the board inside asks for `min(94vw, …)`,
         // which is nearly the whole frame, and then this padding ADDS 16px on
@@ -331,7 +362,7 @@ export function GameChrome<T extends string>({
           display: "flex",
           flexDirection: "column",
           gap: "var(--gc-head-gap, 9px)",
-          padding: "var(--gc-head-pad, 12px 12px 9px)",
+          padding: "var(--gc-head-pad, 10px 10px 8px)",
           background: "var(--bg)",
           borderRadius: `${SURFACE_RADIUS} ${SURFACE_RADIUS} 0 0`,
         }}
@@ -349,15 +380,10 @@ export function GameChrome<T extends string>({
         <div
           className="gc-row"
           style={{
-            display: ROW_DISPLAY,
+            display: "grid",
+            gridTemplateColumns: COLS,
             alignItems: "center",
             gap: GAP,
-            flexWrap: "wrap",
-            // Only meaningful once the row is a grid. Written unconditionally
-            // because a grid property on a flex container is inert, and the
-            // alternative is a second style object that can disagree with this
-            // one about everything else.
-            gridTemplateColumns: "var(--gc-cols, none)",
           }}
         >
           {ownRestart &&
@@ -374,6 +400,11 @@ export function GameChrome<T extends string>({
               onClick={() => onLevel(levels[(i + 1) % levels.length].id)}
               style={{
                 height: TAP_CSS,
+                // GRID TRACK, not flex. See COLS above - the basis and the
+                // floor that used to live here are both retired, because a
+                // track already decides this cell's width and a floor would
+                // overflow it rather than wrap the row. Kept verbatim below,
+                // because it is the measurement the ratio came from:
                 // BASIS 0, not auto. On `auto` this card's basis is its own
                 // CONTENT - an emoji, a word and three dots - so it grows to
                 // fit that and takes the row's slack with it: measured on the
@@ -381,7 +412,7 @@ export function GameChrome<T extends string>({
                 // score cell 60, which rendered its record as "Be...". The
                 // floor below is what makes the row wrap rather than shrink;
                 // the basis has never been what did that.
-                flex: "1 1 0",
+                minWidth: 0,
                 // A FLOOR, not zero, and it is what makes the row's `flexWrap`
                 // do anything. At `minWidth: 0` a flex item shrinks instead of
                 // wrapping, so this toggle is left 94px on a 390px phone and
@@ -402,7 +433,6 @@ export function GameChrome<T extends string>({
                 // labels) and not this constant's.
                 // See .claude/rules/a-row-that-grows-with-the-catalog-must-wrap.md
                 // and .claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md
-                minWidth: "var(--gc-level-min, 132px)",
                 border: "none",
                 borderRadius: CELL_RADIUS,
                 background: CELL_BG,
@@ -479,8 +509,7 @@ export function GameChrome<T extends string>({
                 aria-hidden="true"
                 style={{
                   display: EMPTY_DISPLAY,
-                  flex: "1 1 0",
-                  minWidth: "var(--gc-stat-min, 88px)",
+                  minWidth: 0,
                   height: TAP_CSS,
                   background: CELL_BG,
                   borderRadius: CELL_RADIUS,
@@ -500,14 +529,10 @@ export function GameChrome<T extends string>({
               key={s.label}
               className={s.compact ? "gc-cell gc-stat gc-compact" : "gc-cell gc-stat"}
               style={{
-                // A compact cell is sized by its number; everything else splits
-                // what the difficulty leaves.
-                flex: s.compact ? "0 0 auto" : "1 1 0",
-                // A floor for the same reason the difficulty has one: a cell
-                // squeezed below this ellipsises its own record rather than
-                // wrapping the row, and an ellipsised "Best" is a number the
-                // player simply cannot read.
-                minWidth: s.compact ? 0 : "var(--gc-stat-min, 88px)",
+                // Every cell takes its track. `compact` no longer sizes a cell
+                // to its own number - that is exactly what made 25 different
+                // rows - so the flag now only decides nothing at all here.
+                minWidth: 0,
                 height: TAP_CSS,
                 background: CELL_BG,
                 borderRadius: CELL_RADIUS,
@@ -516,13 +541,13 @@ export function GameChrome<T extends string>({
                 alignItems: "center",
                 justifyContent: "center",
                 gap: GAP,
-                padding: s.compact ? "0 13px" : "0 8px",
+                padding: "0 8px",
               }}
             >
-              <span className="gc-icon" style={{ color: "var(--text-dim)", fontSize: STAT_ICON, display: "flex", flex: "0 0 auto" }}>
+              <span className="gc-icon" style={{ color: "var(--text-dim)", fontSize: STAT_ICON, display: ICON_DISPLAY, flex: "0 0 auto" }}>
                 <Icon name={s.icon} />
               </span>
-              <span className="gc-text" style={{ minWidth: 0, display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.05, maxWidth: "100%" }}>
+              <span className="gc-text" style={{ minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", lineHeight: 1.05, maxWidth: "100%" }}>
                 <span className="gc-label" style={{ fontSize: LABEL_SIZE, fontWeight: 800, color: "var(--text-dim)" }}>
                   {s.label}
                 </span>

@@ -40,9 +40,6 @@ export const PANEL_TOKENS: PanelToken[] = [
   { name: "--gc-record", label: "record size", shipped: 10.5, min: 7, max: 16, what: "the Best line" },
   { name: "--gc-stat-icon", label: "icon size", shipped: 18, min: 0, max: 30, what: "the glyph in each card" },
   { name: "--gc-level-value", label: "level size", shipped: 16, min: 10, max: 26, what: "Easy / Normal / Hard" },
-  { name: "--gc-level-min", label: "level width", shipped: 132, min: 90, max: 200, what: "floor before the row wraps" },
-  { name: "--gc-stat-min", label: "card width", shipped: 88, min: 60, max: 160, what: "floor for a wide card" },
-  // `--gc-row-display`, `--gc-empty-display` and `--gc-cols` are the same-slots
   // switch. They are not numbers, so they are not knobs - a style sets them,
   // and `panel-tokens-are-shipped.test.ts` exempts them BY NAME.
 ];
@@ -65,29 +62,31 @@ export const PANEL_STYLES: PanelStyle[] = [
   {
     id: "shipped",
     name: "A · today",
-    what: "three floating cards, tiny label over the number, glyph on the left",
+    what: "same slots, three fixed tracks, no glyph, cards in the game's own hue",
     css: "",
   },
   {
-    id: "strip",
-    name: "B · one strip",
-    what: "one surface, hairline dividers - the row reads as a single instrument",
+    id: "glyph",
+    name: "B · put the glyph back",
+    what: "a clock, a bolt, a flag - and sudoku's 42/81 ellipsises inside its card",
     css: `
-.gc-row{background:var(--surface);border-radius:var(--gc-cell-radius,14px);
-  box-shadow:var(--shadow-1);padding:0 4px}
-.gc-cell{background:transparent!important;box-shadow:none!important;border-radius:0!important}
-.gc-cell + .gc-cell{box-shadow:inset 1px 0 0 var(--line)!important}
+:root{--gc-icon-display:flex}
+.gc-stat .gc-text{align-items:flex-start!important;text-align:start!important}
+.gc-stat{justify-content:flex-start!important}
 `,
   },
   {
+    id: "flat",
+    name: "C · no game colour",
+    what: "one plain surface for every game instead of each in its own hue",
+    css: `:root{--gc-cell-bg:var(--surface)}`,
+  },
+  {
     id: "big",
-    name: "C · number first",
-    what: "the number is the card and the word sits under it; no glyph",
+    name: "D · number first",
+    what: "the number is the card and the word sits under it, in small caps",
     css: `
-:root{--gc-value:22px;--gc-label:9.5px;--gc-record:10px}
-.gc-icon{display:none!important}
-.gc-stat .gc-text{align-items:center!important}
-.gc-stat{justify-content:center!important}
+:root{--gc-value:21px;--gc-label:9px;--gc-record:9.5px}
 .gc-stat .gc-value{order:1;line-height:1.05}
 .gc-stat .gc-label{order:2;letter-spacing:.06em;text-transform:uppercase}
 .gc-stat .gc-record{order:3}
@@ -95,58 +94,28 @@ export const PANEL_STYLES: PanelStyle[] = [
   },
   {
     id: "quiet",
-    name: "D · quiet outline",
-    what: "no shadows and no fills - a hairline round each card, flatter and calmer",
+    name: "E · quiet outline",
+    what: "no fill at all - a hairline round each card, flatter and calmer",
     css: `
 :root{--gc-cell-radius:12px}
 /* INSET, never a border. A 1px border on a fixed-height content-box cell makes
-   it 58px where the row is 56, so every card would grow by two pixels and the
-   row would wrap one game earlier - a layout change wearing a colour change. */
+   it 58px where the row is 56, so every card would grow by two pixels - a
+   layout change wearing a colour change. */
 .gc-cell{background:transparent!important;box-shadow:inset 0 0 0 1px var(--line)!important}
-`,
-  },
-  {
-    id: "tinted",
-    name: "E · the game's colour",
-    what: "each card washed in this game's own hue, glyph in it - playful, per game",
-    css: `
-.gc-cell{background:color-mix(in oklab, var(--g, var(--brand)) 16%, var(--surface))!important;
-  box-shadow:none!important}
-.gc-icon{color:var(--g, var(--brand))!important}
-.gc-level .gc-value{color:var(--text)}
-`,
-  },
-  {
-    id: "slots",
-    name: "G · same slots, every game",
-    what: "difficulty, a main number, a second number - a dash where a game has none",
-    css: `
-/* A GRID, not flex. Flex sizes each cell from its own content, so \"Time\" in
-   sudoku and \"Score\" in snake land at different widths and the two rows do
-   not line up - which is the whole complaint. Fixed tracks make every game's
-   row the same row. The ratio is 1.25 / 1 / 0.85 because the difficulty is the
-   only cell carrying a WORD and the third is usually a short counter. */
-:root{--gc-row-display:grid;--gc-empty-display:flex;
-  --gc-cols:minmax(0,1.25fr) minmax(0,1fr) minmax(0,0.85fr)}
-/* The floors have to go, or a grid track cannot shrink to its share and the
-   row overflows instead of fitting. minmax(0,..) above is the other half. */
-.gc-cell{min-width:0!important}
-/* A compact cell asked to be sized by its content; in a fixed grid nothing is,
-   so it takes its track like everything else. */
-.gc-compact{flex:unset!important;padding:0 8px!important}
 `,
   },
   {
     id: "pill",
     name: "F · pills",
-    what: "fully round cards, bigger number, glyph dropped - the chip look",
-    css: `
-:root{--gc-cell-radius:99px;--gc-value:20px;--gc-label:9px}
-.gc-icon{display:none!important}
-.gc-cell{box-shadow:none!important;background:var(--surface-2)!important}
-.gc-stat{justify-content:center!important}
-.gc-stat .gc-text{align-items:center!important}
-`,
+    what: "fully round cards, bigger number - the chip look",
+    css: `:root{--gc-cell-radius:99px;--gc-value:20px;--gc-label:9px}
+.gc-cell{box-shadow:none!important}`,
+  },
+  {
+    id: "roomy",
+    name: "G · wider still",
+    what: "the gutter cut to 4px a side and the gap to 6 - as wide as it goes",
+    css: `:root{--gc-head-pad:10px 4px 8px;--gc-gap:6px}`,
   },
 ];
 

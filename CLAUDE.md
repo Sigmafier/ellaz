@@ -368,61 +368,74 @@ measurement traps:
 
 ## The game row - difficulty, the score, the stage
 
-**The row under the header is three cells: the difficulty, a main number and a
-second number.** `GameChrome` draws it, every game wears it, and until
-2026-08-21 nobody could compare it against anything - so it drifted into 25
-different rows across 33 games.
+**One row, three cells, the same in every game: the difficulty, a main number
+and a second number.** `GameChrome` draws it. Until 2026-08-21 nobody could
+compare it against anything, and it had drifted into **25 different row shapes
+across 33 games** - which is the complaint stated as a number.
 
-**Every number in it is a token whose FALLBACK is the shipped literal**
-(`var(--gc-value, 18px)` and eight more), so nothing renders differently and
-`?design` can turn each one over the real component. Every part of a cell also
-carries a class - `gc-row`, `gc-cell`, `gc-level`, `gc-stat`, `gc-icon`,
-`gc-label`, `gc-value`, `gc-record` - because a token can change a size but it
-cannot move a label under its number or drop a glyph, and those are the
-decisions being asked about. A candidate style is therefore a STYLESHEET the
-bench injects into a real game page, never a drawing beside one.
+**It is a GRID with three fixed tracks** (`1.25 / 1 / 0.85`), and that is what
+makes the cells line up across games rather than each being sized by its own
+content. Two consequences worth knowing before touching it:
+
+- **The FLOORS are retired.** `--gc-level-min` (132) and `--gc-stat-min` (88)
+  are gone and every cell is `minWidth: 0`. Under flex a floor made the row
+  WRAP; under a grid it makes the item wider than its track and the row
+  overflows a container that clips rather than scrolls - so the cell is sliced
+  off at the edge with nothing anywhere to measure. Do not put one back.
+- **`compact` no longer sizes a cell to its own number.** That flag is exactly
+  what produced the 25 shapes.
+
+**A game with nothing gets no row.** `coloring` has neither a difficulty nor a
+number, and three dashes on the one game that deliberately keeps no score would
+be the opposite of the point. The pad counts the DIFFICULTY as a cell - keying
+it on the stats alone left `finddiff` (two numbers, no difficulty) at two cells
+in a three-track grid, a row that does not wrap, does not clip, and is simply a
+different row. It was the only game to differ and it surfaced only because the
+shape count was VERIFIED rather than trusted.
+
+**No glyph in a number card**, because the glyph is what costs the third cell:
+measured across all 33 games, with it sudoku's `42/81` ellipsises inside its
+own card - nothing overflows, nothing is wider than its frame, and the number
+is simply unreadable - and without it nothing clips anywhere. It is a token
+(`--gc-icon-display`) rather than a deleted element, so the bench can put it
+back and show the trade instead of arguing it.
+
+**The cards carry the game's own hue**, `color-mix(in oklab, var(--g) 16%,
+var(--surface))`, declared in `DOCUMENT_CSS` behind an `@supports` with the
+plain surface declared first and unconditionally - so a browser without
+`color-mix` gets a readable card rather than a transparent one, and the
+standalone bundle (which emits no `DOCUMENT_CSS`) falls back the same way.
+
+**`--g` is on the BODY as well as the header, and that is load-bearing.** The
+panel is a sibling of the header several levels down, so a tint resolving `--g`
+at body level would have found nothing there and painted all 33 games one
+indigo - the same plausible-picture-no-error failure `layout.ts` already warns
+about for the header bar, one element over. Both copies come from the same
+`chrome.ground` in the same call, so they cannot disagree.
+
+**The side gutters were cut in half.** Measured on the artifact at 390px, the
+panel's 8px plus the head's 12px spent **40px - 10.3% of a phone** before a
+card started. The panel's horizontal padding is gone (it is edge-to-edge on a
+phone anyway, `.box` drops its radius under 720px) and the head's is 10, so the
+row went **350 -> 370px**. Note the trap in measuring this: a desktop probe
+reports the viewport 15px narrower because of its scrollbar, and that 15px is
+not a gutter - kill the scrollbar before reading any of these numbers.
+
+**Every number in the row is a token whose FALLBACK is the shipped value**
+(`var(--gc-value, 18px)` and eight more), and every part of a cell carries a
+class - `gc-row`, `gc-cell`, `gc-level`, `gc-stat`, `gc-icon`, `gc-label`,
+`gc-value`, `gc-record`, `gc-slot-empty`. A token can change a size; it cannot
+move a label under its number or drop a glyph, and those are the decisions
+being asked about - so a candidate style is a STYLESHEET the bench injects into
+a real game page, never a drawing beside one.
 `panel-tokens-are-shipped.test.ts` reads each fallback back out of the
-component, through all three shapes a fallback comes in - a px literal, a
+component, through all three shapes a fallback comes in: a px literal, a
 `${TAP}` const, and a `var(--radius-2)` a whole file away.
 
-**Same slots in every game** (operator, 2026-08-21). The row always renders
-three cells and pads with a dash where a game has none, so you know what a game
-looks like before you open it. CSS cannot invent a cell that was never
-rendered, so the empty slots are ALWAYS in the DOM and `--gc-empty-display`
-decides whether they are drawn - `none` by default, which is byte-identical to
-what shipped before and costs **8 B gz**. `--gc-row-display` + `--gc-cols` turn
-the row into a fixed grid, which is what makes the cells LINE UP across games
-rather than each being sized by its own content.
+Dial it at **`#/lab/buttons` -> SHARED · the game row**, which also measures
+what the row actually does - how many lines, and which text is ellipsised
+inside its own card while every overflow check reads clean.
 
-**Two exceptions, both measured rather than reasoned.** `coloring` has neither
-a difficulty nor a number and gets no row at all - three dashes on the one game
-that deliberately keeps no score would be the opposite of the point. And the
-pad counts the DIFFICULTY as a cell: keying on the stats alone left `finddiff`
-(two numbers, no difficulty) at two cells in a three-track grid - a row that
-does not wrap, does not clip, and is simply a different row. It was the only
-game to differ and it surfaced only because the shape count was VERIFIED rather
-than trusted.
-
-**Measured on the artifact, 390px, all 33 games** (`#/lab/buttons` -> SHARED ·
-the game row):
-
-| | wraps | clipped | distinct row shapes |
-|---|---|---|---|
-| today | sudoku | 0 | **25** |
-| same slots, glyph kept | 0 | sudoku `42/81` | 2 |
-| same slots, no glyph | 0 | 0 | 2 |
-
-**Sudoku wraps today by ONE PIXEL** - the difficulty floor (132) plus the stat
-floor (88) plus its content-sized `Filled` cell (100) plus two 8px gaps is 336
-against a 335px row. The compact cell is sized by its own TEXT, so which side
-of that pixel a game lands on moves with the score's digit count: a row whose
-fit is a function of game state cannot be settled by choosing a better
-constant, which is the argument for the fixed grid rather than better floors.
-
-**The glyph is what costs the third cell.** With it, sudoku's `42/81`
-ellipsises inside its own card - no overflow, nothing wider than its frame,
-just a number the player cannot read. Without it, nothing clips in any of the
-33.
 
 ## Rewards, the World, and speech
 

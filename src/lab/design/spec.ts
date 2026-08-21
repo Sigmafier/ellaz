@@ -35,7 +35,6 @@ export type ChromeSpec = {
   /** Gap between the cells of the level+stats row. */
   panelGap: number;
   /** Floor under the level toggle, so a fourth word cannot be clipped. */
-  levelMinWidth: number;
   /** Floor under a full-size stat card. */
   statMinWidth: number;
   /** Corner of the panel's surfaces. A CSS length, because it is a token. */
@@ -63,7 +62,6 @@ export const SHIPPED: ChromeSpec = {
   headerTap: 44,
   panelTap: 56,
   panelGap: 8,
-  levelMinWidth: 132,
   statMinWidth: 88,
   radius: "var(--radius-3)",
   statShape: "merged",
@@ -91,7 +89,6 @@ const TOKEN: Record<string, string> = {
   headerTap: "--tap",
   panelTap: "--gc-tap",
   panelGap: "--gc-gap",
-  levelMinWidth: "--gc-level-min",
   statMinWidth: "--gc-stat-min",
 };
 
@@ -116,7 +113,6 @@ export function applySpec(spec: ChromeSpec, el: HTMLElement, narrow = false): vo
   el.style.setProperty(TOKEN.headerTap, px("headerTap"));
   el.style.setProperty(TOKEN.panelTap, px("panelTap"));
   el.style.setProperty(TOKEN.panelGap, px("panelGap"));
-  el.style.setProperty(TOKEN.levelMinWidth, px("levelMinWidth"));
   el.style.setProperty(TOKEN.statMinWidth, px("statMinWidth"));
   el.style.setProperty("--gc-radius", spec.radius);
   el.dataset.designStat = spec.statShape;
@@ -145,7 +141,6 @@ const NUMERIC = [
   "headerTap",
   "panelTap",
   "panelGap",
-  "levelMinWidth",
   "statMinWidth",
 ] as const;
 
