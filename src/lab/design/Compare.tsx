@@ -59,6 +59,7 @@ export function Compare() {
   const [width, setWidth] = useState(WIDTHS[0]);
   const [rows, setRows] = useState<Row[]>([]);
   const [err, setErr] = useState("");
+  const ready = useRef(false);
   const left = useRef<HTMLIFrameElement>(null);
   const right = useRef<HTMLIFrameElement>(null);
 
@@ -74,7 +75,17 @@ export function Compare() {
     if (!a.querySelector(".ellaz-game-panel") || !b.querySelector(".ellaz-game-panel")) {
       return setErr("an arm has no game panel yet - give it a moment, then measure again");
     }
+    // AND the variant arm must have APPLIED. The bench arrives as a dynamic
+    // import, so there is a window where the page is fully painted and still
+    // showing the shipped values - measure inside it and every row agrees,
+    // which is the one answer this screen must never produce by accident.
+    // Measured 2026-08-21: a capture at 900px reported both breadcrumbs at
+    // 99px while the screenshot beside it plainly showed one of them square.
+    if (!b.documentElement.dataset.designCrumb) {
+      return setErr("the variant arm has not applied yet - measure again in a moment");
+    }
     setErr("");
+    ready.current = true;
     const pa = probe(a);
     const pb = probe(b);
     setRows(
@@ -90,8 +101,17 @@ export function Compare() {
   // Re-measure when the arms change, once they have had a chance to paint.
   useEffect(() => {
     setRows([]);
-    const t = setTimeout(measure, 1400);
-    return () => clearTimeout(t);
+    // Poll rather than guess a single delay: how long the arms take depends on
+    // the game, the machine and whether this is a cold dev module graph, and a
+    // single timeout that fires early is what produced the false agreement
+    // above. `measure` refuses while an arm is unready, so this is cheap.
+    ready.current = false;
+    let n = 0;
+    const t = setInterval(() => {
+      measure();
+      if (ready.current || ++n >= 10) clearInterval(t);
+    }, 900);
+    return () => clearInterval(t);
   }, [game, variant, width, measure]);
 
   return (
