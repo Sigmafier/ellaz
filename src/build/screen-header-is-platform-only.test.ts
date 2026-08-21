@@ -41,6 +41,26 @@ const PAGES = {
 const headerOf = (html: string) => html.slice(html.indexOf("<header"), html.indexOf("</header>"));
 
 /**
+ * The UTILITY ROW, which is now part of this file's population.
+ *
+ * Full screen moved out of the header and onto this row on 2026-08-21 (the
+ * operator's call - `mockups/mobile-header.html` draws it there). It is still
+ * platform chrome, so the thing this file exists to protect is unchanged:
+ * one control, one place, the same place on all three screens. What changed is
+ * WHICH row that place is - so the assertions moved down here rather than
+ * being deleted, which is the difference between a decision and a regression.
+ *
+ * Sliced to the row's own div, so a `.ubtn` anywhere else on the page - and
+ * a game page has none, but that is not something this test may assume -
+ * cannot answer for it.
+ */
+const urowOf = (html: string) => {
+  const start = html.indexOf('<div class="urow"');
+  const stage = html.indexOf("<div class=\"stage", start);
+  return html.slice(start, stage === -1 ? start + 4000 : stage);
+};
+
+/**
  * The header's SHAPE: the ordered list of what it draws, with the words taken
  * out. Two screens whose headers reduce to the same string offer the same
  * controls in the same order, whatever they are called.
@@ -80,16 +100,21 @@ describe.each(Object.entries(PAGES))("the %s screen's header", (_name, html) => 
     expect(header).toContain('id="wallet-slot"');
   });
 
-  it("holds mute and full screen, emitted hidden so neither is ever drawn dead", () => {
+  it("holds mute, emitted hidden so it is never drawn in the wrong state", () => {
     expect(header).toMatch(/data-sound[^>]*hidden/);
-    expect(header).toMatch(/data-fullscreen[^>]*hidden/);
   });
 
-  it("labels them, because they are glyph-only", () => {
-    for (const d of ["data-sound", "data-fullscreen"]) {
-      const tag = header.slice(header.indexOf(d) - 200, header.indexOf(d) + 200);
-      expect(tag, `${d} needs an aria-label`).toContain("aria-label");
-    }
+  it("no longer holds full screen - that moved DOWN to the utility row", () => {
+    // Not a deletion. The negative here is only meaningful beside the
+    // positive in the next block, which finds it on the row below; on its
+    // own this assertion passes just as well on a build that lost the
+    // button entirely.
+    expect(header).not.toContain("data-fullscreen");
+  });
+
+  it("labels mute, because it is glyph-only", () => {
+    const tag = header.slice(header.indexOf("data-sound") - 200, header.indexOf("data-sound") + 200);
+    expect(tag, "data-sound needs an aria-label").toContain("aria-label");
   });
 
   it("holds no GAME control", () => {
@@ -193,6 +218,55 @@ describe("the three screens are the SAME header", () => {
     const grounds = Object.values(PAGES).map((h) => /<header[^>]*--g:([^;"]+)/.exec(h)?.[1]);
     expect(grounds.every(Boolean), "every screen emits --g on its header").toBe(true);
     expect(new Set(grounds).size, "three screens, three grounds").toBe(3);
+  });
+});
+
+describe.each(Object.entries(PAGES))("the %s screen's utility row", (_name, html) => {
+  const urow = urowOf(html);
+
+  it("exists at all", () => {
+    // The positive control for the negatives below. Every assertion in this
+    // block passes vacuously on an empty string, which is what a renamed
+    // class would hand it.
+    expect(urow, "no utility row was found on this screen").toContain('class="urow"');
+    expect(urow).toContain('class="bc"');
+  });
+
+  it("carries full screen, emitted hidden so it is never drawn dead on iOS", () => {
+    expect(urow).toMatch(/data-fullscreen[^>]*hidden/);
+  });
+
+  it("labels it, because it is glyph-only", () => {
+    // Math.max, because the room and the boards pass no `tools` and the
+    // button lands within 200 characters of the row's start - and a NEGATIVE
+    // slice index counts from the END, so the unclamped version handed this
+    // assertion the wrong 400 characters of a correct page and failed on two
+    // screens out of three. A window that can silently address the wrong
+    // region is the same family as every other instrument in this repo that
+    // could not express the failure it was looking for.
+    const at = urow.indexOf("data-fullscreen");
+    const tag = urow.slice(Math.max(0, at - 200), at + 200);
+    expect(tag, "data-fullscreen needs an aria-label").toContain("aria-label");
+  });
+
+  it("draws it LAST, at the far edge, after any game control", () => {
+    // The acked mock puts expand at the end of the row, and it is also the
+    // one button here nobody reaches for mid-run. A game page has pause and
+    // restart before it; the room and the boards have nothing before it.
+    const buttons = urow.match(/data-(pause|restart|fullscreen)\b/g) ?? [];
+    expect(buttons[buttons.length - 1]).toBe("data-fullscreen");
+  });
+});
+
+describe("full screen is in ONE place on all three screens", () => {
+  it("is on the utility row of every screen and in no header", () => {
+    // The whole rule in one assertion: a platform control the player has to
+    // hunt for is the failure this file was written about, and it does not
+    // matter which row it is on as long as it is the same row every time.
+    for (const [name, html] of Object.entries(PAGES)) {
+      expect(headerOf(html), `${name}'s header`).not.toContain("data-fullscreen");
+      expect(urowOf(html), `${name}'s utility row`).toContain("data-fullscreen");
+    }
   });
 });
 

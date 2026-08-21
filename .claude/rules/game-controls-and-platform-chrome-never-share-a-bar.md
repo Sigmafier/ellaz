@@ -18,7 +18,18 @@ and it is how this app ended up with four ways home and two things called
 |---|---|---|
 | means | true on every screen | only meaningful inside this game |
 | today | home, wallet, sound, full screen | pause, restart, difficulty, the game's own numbers |
-| lives in | the ONE screen header, on all three screens | below it — the utility row, then `GameChrome` |
+| lives in | home, wallet and sound in the ONE screen header; full screen on the utility row, on all three screens | below it — the utility row, then `GameChrome` |
+
+**Full screen is platform chrome that sits on the utility row, and that is not
+a contradiction.** The operator acked that arrangement on 2026-08-21 — it is
+what `mockups/mobile-header.html` draws, and what they were looking for while
+the header carried it. What the rule protects is that a control is in ONE
+place, the same place on every screen, so a player learns it once. Which ROW
+that place is was never the load-bearing part. `utilityRow` emits it for the
+game, the room and the boards, so the guarantee is intact; the pin in
+`screen-header-is-platform-only.test.ts` asserts both halves at once — absent
+from all three headers AND present on all three utility rows — because either
+assertion alone passes on a build that simply lost the button.
 
 **Inside the game family there is a second split, and it is about WIDTH rather
 than meaning: the BUTTONS go in the utility row, the difficulty and the NUMBERS
@@ -39,6 +50,11 @@ browser's, so both are platform even though a player reaches for them while
 playing. Difficulty and restart fail it: neither means anything with no game
 mounted, so neither belongs in the site header, however much room is going
 spare there.
+
+Full screen answering "platform" is what decides it is emitted once, in one
+shared function, on every screen. It does not decide which row — that was the
+operator's call, and the two questions are worth keeping apart, because
+answering the first one settles the thing that actually goes wrong.
 
 **The breadcrumb is neither, and that is why it kept moving.** It is a
 navigation aid for the DOCUMENT, so it belongs with the document — under the
@@ -109,3 +125,12 @@ something a game actually wants to say.
   — what happens to a row that keeps accepting controls.
 - `src/build/layout.ts` § the SCREEN header · `src/ui/GameChrome.tsx` ·
   `src/build/screen-header-is-platform-only.test.ts` (the gate)
+
+---
+
+**Last Updated**: 2026-08-21 — full screen moved out of the screen header and
+onto the utility row, on the operator's explicit YES. It is still platform
+chrome and still in one place on all three screens; only the row changed. The
+pin moved with it rather than being deleted: 7 mutations planted and all 7
+killed, including the two that matter most — the button back in the header, and
+the button gone from one screen out of three.

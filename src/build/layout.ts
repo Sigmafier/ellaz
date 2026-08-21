@@ -6,6 +6,7 @@ import { html, raw, jsonLd, toHtml, type RawHtml } from "./html";
 import type { HeadAssets } from "./assets";
 import { LOCALES, canonicalUrl, homePath, href, OG_ROUTES } from "./routes";
 import { OG_HEIGHT, OG_WIDTH, ogImagePath } from "./ogCard";
+import { OFFER_CSS, offerBar } from "./langOffer";
 // themes.ts imports nothing, which is what lets both the Vite config and this
 // build-time renderer read the same theme list. See src/ui/themes.ts.
 import { DEFAULT_THEME, themeBootScript, themeById } from "../ui/themes";
@@ -39,7 +40,7 @@ const FONTS =
  * `padding-inline-start`, `text-align: start`) so one sheet serves the RTL
  * Hebrew tree and the LTR English tree with no mirroring work.
  */
-export const DOCUMENT_CSS = `
+const BASE_CSS = `
 /* Every custom property here is --doc-*, and that prefix is load-bearing.
    A page that boots the app also links tokens.css, so a bare --bg or --ink
    declared here would collide with an app token. Never reuse an app name.
@@ -222,7 +223,7 @@ body[data-page="game"] .stage,body[data-page="world"] .stage{margin-block:0;
    is clipped and nothing falls below the fold - it is simply drawn at the size
    that fits underneath the chrome instead of behind it. */
 body[data-page="game"] .stage .box,body[data-page="world"] .stage .box{
-  height:calc(100dvh - var(--hh) - var(--uh));min-height:0;border-radius:0;
+  height:calc(100dvh - var(--hh) - var(--uh) - var(--oh));min-height:0;border-radius:0;
   box-shadow:none;border:0;justify-content:center}
 /* Content-sized rather than flex:1, so fitStage can read the screen's NATURAL
    height. A frame that stretches to fill the box reports the box's height back
@@ -248,9 +249,10 @@ body[data-page="game"] #game-frame,body[data-page="world"] #game-frame{flex:0 0 
    row wraps to two lines and the difficulty label ellipsises. Measured on the
    built artifact: 25 of 33 games wrapped with it there, 1 of 33 with it here.
 
-   It is still not sharing a bar with platform chrome: home, sound, full screen
-   and the wallet are all in the header above, and this row holds a breadcrumb
-   and the game's own button.
+   Home, sound and the wallet are in the header above. This row holds the
+   breadcrumb, the game's own buttons and full screen - which is platform
+   chrome sitting on the page's row, the one arrangement the operator acked.
+   It is on EVERY screen here, so the row still has a rule you can learn.
    See .claude/rules/game-controls-and-platform-chrome-never-share-a-bar.md */
 body.screen .urow{display:flex;align-items:center;gap:10px;height:var(--uh);
   padding-inline:var(--hpad);background:var(--doc-bg)}
@@ -347,7 +349,7 @@ body.screen .urow .tools{display:flex;align-items:center;gap:8px;flex:0 0 auto}
    nothing in the app or the document defines it. Without that, every rule
    here resolves to the same fallback indigo and all 21 bars come out
    identical - a plausible picture, one flat colour, no error anywhere. */
-body.screen{--hh:60px;--uh:52px;--tap:44px;--hgap:12px;--hpad:20px;
+body.screen{--hh:60px;--uh:52px;--oh:0px;--tap:44px;--hgap:12px;--hpad:20px;
   --hbrand:22px;--hfont:14.5px;--hdr-ink:#FFF6E9}
 @media (max-width:719px){body.screen{--hh:58px;--uh:46px;--hbrand:20px;--hgap:8px;--hpad:12px}}
 
@@ -420,6 +422,12 @@ body.screen #wallet-slot>*{background:none;box-shadow:none;border:0;
   .stage .box{min-height:clamp(420px,calc(100dvh - 120px),860px)}
   .tagline{display:none}}
 `.trim();
+
+/* The language offer's rules live in their own module beside its markup and its
+   script - three pieces of one feature that have to agree about a class name,
+   an attribute and a height, so they are read together or not at all. */
+export const DOCUMENT_CSS = `${BASE_CSS}
+${OFFER_CSS.trim()}`;
 
 export interface DocumentOptions {
   locale: Locale;
@@ -601,21 +609,48 @@ export function icon(
 /**
  * The page's own line, under the bar and above the screen.
  *
- * Two things live here and they are both about the PAGE rather than the
- * platform: the breadcrumb, which says where you are, and a slot for the one
- * control a game owns that has nowhere else to go. Emitting it once, here,
- * rather than inside each screen is what makes the three screens agree - the
- * room and the boards pass no tools and get the same row with nothing in it.
+ * The breadcrumb, which says where you are, then the buttons. Emitting it
+ * once, here, rather than inside each screen is what makes the three screens
+ * agree - the room and the boards pass no `tools` and still get the same row
+ * with the same full-screen button at the same edge.
+ *
+ * FULL SCREEN LIVES HERE, not in the header above, and that is the operator's
+ * call of 2026-08-21 - the arrangement they acked in `mockups/mobile-header.html`
+ * puts `expand` on this row and nothing else in the header changed. It is
+ * still PLATFORM chrome by the rule's own test (it means the same thing on a
+ * game, in the room and on the boards), which is why `fullLabel` is what
+ * decides whether it is drawn: every screen passes one, and a document passes
+ * none. That keeps the "one bar, every screen" corollary intact - the bar it
+ * is on simply moved down by one row.
+ * See .claude/rules/game-controls-and-platform-chrome-never-share-a-bar.md
+ *
+ * Emitted `hidden`, exactly as it was in the header and for the same reason:
+ * iOS Safari has no Fullscreen API for an arbitrary element, so the runtime
+ * reveals it only where it will work. A control that does nothing when tapped
+ * is worse than one that arrives a frame later.
+ *
+ * LAST in the row, after the game's own buttons. The mock draws it at the far
+ * edge, and it is also the one button here a player presses once a session -
+ * pause and restart are the ones reached for mid-run, so they take the
+ * positions nearer the thumb.
  */
-export function utilityRow(crumb: RawHtml, tools?: RawHtml): RawHtml {
+export function utilityRow(
+  crumb: RawHtml,
+  opts: { tools?: RawHtml; fullLabel?: string } = {},
+): RawHtml {
+  const full = opts.fullLabel
+    ? html`<button type="button" class="ubtn" data-fullscreen aria-label="${opts.fullLabel}" hidden>
+        ${icon("expand")}
+      </button>`
+    : raw("");
+  const tools = opts.tools ?? raw("");
   return html`<div class="urow">
-    ${crumb}${tools ? html`<div class="tools">${tools}</div>` : raw("")}
+    ${crumb}${opts.tools || opts.fullLabel ? html`<div class="tools">${tools}${full}</div>` : raw("")}
   </div>`;
 }
 
 /**
- * The header row every playable screen wears: home | its name | full screen,
- * sound, wallet.
+ * The header row every playable screen wears: home | its name | sound, wallet.
  *
  * PLATFORM CONTROLS ONLY, and that is the whole test - every one of these
  * means the same thing on a game, in the room and on the boards, which is why
@@ -630,11 +665,11 @@ export function utilityRow(crumb: RawHtml, tools?: RawHtml): RawHtml {
  * their only way out was a back button drawn inside the scene, so the answer
  * to "how do I leave" was in a different place on every screen.
  *
- * Sound and full screen are emitted `hidden` and revealed by the runtime.
- * They need it for different reasons and both are real: the build cannot know
- * whether this player is muted, and iOS Safari has no Fullscreen API for an
- * arbitrary element. A control drawn in the wrong state, or one that does
- * nothing when tapped, is worse than one that arrives a frame later.
+ * Sound is emitted `hidden` and revealed by the runtime, because the build
+ * cannot know whether this player is muted and a control drawn in the wrong
+ * state is worse than one that arrives a frame later. Full screen used to sit
+ * beside it and now sits on the utility row - see `utilityRow` for why, and
+ * note that it is still platform chrome, just one row lower.
  */
 function screenChrome(chrome: HeaderChrome, homeHref: string, slot: RawHtml | undefined): RawHtml {
   return html`
@@ -642,9 +677,6 @@ function screenChrome(chrome: HeaderChrome, homeHref: string, slot: RawHtml | un
       ${icon("back", "arw")}${icon("home")}
     </a>
     <b class="gname">${chrome.title}</b>
-    <button type="button" class="hbtn ico" data-fullscreen aria-label="${chrome.fullLabel}" hidden>
-      ${icon("expand")}
-    </button>
     <button type="button" class="hbtn ico" data-sound aria-label="${chrome.soundLabel}" hidden>
       ${icon("sound")}
     </button>
@@ -708,6 +740,7 @@ export function renderDocument(opts: DocumentOptions): string {
    * them inside `#home-doc`, where they belong to the page's own content.
    */
   const chrome = html`
+    ${offerBar(locale, alternates, (p) => href(p, base))}
     <header class="top" ${raw(groundStyle(opts.headerChrome))}>
       <div class="in">
         ${opts.headerChrome

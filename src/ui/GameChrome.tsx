@@ -518,6 +518,13 @@ export function GameChrome<T extends string>({
 
       {footer && (
         <div
+          /* The one hook anything outside this component has on a game's own
+             secondary controls. Without it the footer is an anonymous div and
+             a question like "how big are this game's buttons" cannot even be
+             asked - which is why 31 different sizes went unnoticed across 21
+             games. `GameChrome` is in the `page` chunk, so the class costs a
+             first visit nothing. */
+          className="ellaz-game-footer"
           style={{
             flex: "0 0 auto",
             padding: "0 12px 14px",

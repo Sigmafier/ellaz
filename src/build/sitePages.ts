@@ -274,6 +274,10 @@ export function worldPage(opts: SitePageOptions): string {
       html`<nav class="bc">
         <a href="${href(homePath(locale), base)}">${site.home}</a> › ${copy.h1}
       </nav>`,
+      // The room passes no `tools` - it has no game control - and still gets
+      // the same full-screen button at the same edge as a game page. That is
+      // the point of emitting it here rather than per screen.
+      { fullLabel: site.chrome.fullScreen },
     )}
     ${stage("🏠", site, "room")}
     <h1>${copy.h1}</h1>
@@ -331,6 +335,7 @@ export function boardsPage(opts: SitePageOptions): string {
       html`<nav class="bc">
         <a href="${href(homePath(locale), base)}">${site.home}</a> › ${copy.h1}
       </nav>`,
+      { fullLabel: site.chrome.fullScreen },
     )}
     ${stage("🏆", site, "boards")}
     <h1>${copy.h1}</h1>

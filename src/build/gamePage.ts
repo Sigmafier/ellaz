@@ -186,9 +186,13 @@ export function gamePage(opts: GamePageOptions): string {
   // one row onto two lines in 25 of 33 games and clipped snake's difficulty
   // label to "Nor...".
   //
-  // Full screen does NOT come back up here with it: it means the same thing on
-  // a game, in the room and on the boards, so it is platform chrome and it is
-  // in the header. Restart means nothing with no game mounted, so it is not.
+  // Full screen came down here TOO, on 2026-08-21, and for a DIFFERENT reason
+  // than restart - the difference is what stops this being read as one rule.
+  // Restart is a GAME control and could never have been in the header. Full
+  // screen is PLATFORM chrome that changed rows: `utilityRow` emits it on all
+  // three screens, so it is still in exactly one place everywhere, which is
+  // the thing the rule actually protects. The operator acked that arrangement
+  // in `mockups/mobile-header.html`, where the page row carries expand.
   // See .claude/rules/game-controls-and-platform-chrome-never-share-a-bar.md
   const body = html`
     ${utilityRow(
@@ -196,29 +200,35 @@ export function gamePage(opts: GamePageOptions): string {
         <a href="${href(homePath(locale), base)}">${site.home}</a> ›
         ${categoryCrumb(meta, locale, base)} › ${gameName(meta.id, locale)}
       </nav>`,
-      // Both emitted `hidden`, like the sound and full-screen buttons and for
-      // the same reason: the build cannot know whether a game ever mounts, and
-      // a restart that restarts nothing is worse than no restart at all. The
-      // runtime reveals each one when a game fills its slot.
-      //
-      // PAUSE first, then RESTART, because pause is the one a player reaches
-      // for mid-run and restart is the one they must not hit by accident.
-      // Pause stays hidden on the 31 games that never pass one - a turn-based
-      // game already pauses itself when a hand leaves the screen.
-      html`<button
-          type="button"
-          class="ubtn"
-          data-pause
-          data-label-pause="${site.chrome.pause}"
-          data-label-resume="${site.chrome.resume}"
-          aria-label="${site.chrome.pause}"
-          hidden
-        >
-          ${icon("pause")}
-        </button>
-        <button type="button" class="ubtn" data-restart aria-label="${site.chrome.restart}" hidden>
-          ${icon("redo")}
-        </button>`,
+      {
+        // Both emitted `hidden`, like the sound and full-screen buttons and for
+        // the same reason: the build cannot know whether a game ever mounts, and
+        // a restart that restarts nothing is worse than no restart at all. The
+        // runtime reveals each one when a game fills its slot.
+        //
+        // PAUSE first, then RESTART, because pause is the one a player reaches
+        // for mid-run and restart is the one they must not hit by accident.
+        // Pause stays hidden on the 31 games that never pass one - a turn-based
+        // game already pauses itself when a hand leaves the screen.
+        tools: html`<button
+            type="button"
+            class="ubtn"
+            data-pause
+            data-label-pause="${site.chrome.pause}"
+            data-label-resume="${site.chrome.resume}"
+            aria-label="${site.chrome.pause}"
+            hidden
+          >
+            ${icon("pause")}
+          </button>
+          <button type="button" class="ubtn" data-restart aria-label="${site.chrome.restart}" hidden>
+            ${icon("redo")}
+          </button>`,
+        // LAST in the row, at the far edge. `utilityRow` appends it after
+        // whatever is in `tools`, so the order is decided in one place
+        // rather than by whichever screen happened to pass what.
+        fullLabel: site.chrome.fullScreen,
+      },
     )}
     ${stage(meta.emoji, site)}
 
