@@ -128,7 +128,12 @@ export function Panel() {
 
   return (
     <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
-      <div>
+      {/* The preview stays a REAL 390px viewport even on a 390px phone, so it
+          scrolls inside its own box rather than making the whole page scroll
+          sideways. Narrowing it instead would be worse than useless: the thing
+          being previewed is what a 390px screen does, and a 366px preview
+          answers a question nobody asked. */}
+      <div style={{ maxWidth: "100%", minWidth: 0 }}>
         <div style={{ ...ROW, marginBottom: 6 }}>
           <select value={game} onChange={(e) => setGame(e.currentTarget.value)} style={BTN}>
             {PANEL_GAMES.map((g) => (
@@ -149,21 +154,24 @@ export function Panel() {
             measure
           </button>
         </div>
-        <iframe
-          ref={frame}
-          key={`${game}-${wide}`}
-          title="the game"
-          src={`/games/${game}/`}
-          style={{
-            width: wide ? 1100 : 390,
-            height: 560,
-            border: "1px solid #334155",
-            borderRadius: 10,
-          }}
-        />
+        <div style={{ overflowX: "auto", maxWidth: "100%" }}>
+          <iframe
+            ref={frame}
+            key={`${game}-${wide}`}
+            title="the game"
+            src={`/games/${game}/`}
+            style={{
+              width: wide ? 1100 : 390,
+              height: 560,
+              border: "1px solid #334155",
+              borderRadius: 10,
+              display: "block",
+            }}
+          />
+        </div>
       </div>
 
-      <div style={{ minWidth: 300 }}>
+      <div style={{ minWidth: 260, flex: "1 1 260px" }}>
         <h3 style={H3}>the style</h3>
         <div style={{ display: "grid", gap: 6, marginBottom: 14 }}>
           {PANEL_STYLES.map((s) => (
@@ -211,7 +219,7 @@ export function Panel() {
         )}
       </div>
 
-      <div style={{ minWidth: 300 }}>
+      <div style={{ minWidth: 260, flex: "1 1 260px" }}>
         <h3 style={H3}>what the row actually does</h3>
         {read.err ? <p style={{ color: "#f59e0b" }}>{read.err}</p> : null}
         <p style={{ ...NOTE, margin: "0 0 8px" }}>
@@ -239,7 +247,7 @@ export function Panel() {
             ))}
           </tbody>
         </table>
-        <p style={{ ...NOTE, maxWidth: 300, marginTop: 10 }}>
+        <p style={{ ...NOTE, maxWidth: "100%", marginTop: 10 }}>
           Two lines means the row wrapped. &quot;clipped&quot; means the text is
           ellipsised inside its own card - nothing overflows, nothing is wider
           than its frame, and the player simply cannot read it.
@@ -329,6 +337,6 @@ const PRE: React.CSSProperties = {
   padding: 8,
   borderRadius: 6,
   whiteSpace: "pre-wrap",
-  maxWidth: 300,
+  maxWidth: "100%",
   marginTop: 10,
 };

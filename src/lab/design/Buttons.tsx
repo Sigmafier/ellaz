@@ -221,7 +221,17 @@ export function Buttons() {
          cream one, and slate text on cream is invisible - which is exactly
          what the first screenshot of this screen showed: a heading nobody
          could read sitting above a wall that was fine. */
-      style={{ padding: 12, color: "#e2e8f0", minHeight: "100vh", background: "#020617" }}
+      /* `clamp` rather than a media query: this file has no stylesheet of its
+         own, and 8px on a phone is what keeps a 390px preview from pushing the
+         page sideways. `overflowX: hidden` is the backstop - a lab you cannot
+         read on the device you are dogfooding on is not a lab. */
+      style={{
+        padding: "clamp(6px, 2vw, 12px)",
+        color: "#e2e8f0",
+        minHeight: "100vh",
+        background: "#020617",
+        overflowX: "hidden",
+      }}
     >
       <div style={ROW}>
         <b style={{ fontSize: 15 }}>games buttons</b>

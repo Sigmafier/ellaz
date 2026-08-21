@@ -225,6 +225,14 @@ body[data-page="game"] .stage,body[data-page="world"] .stage{margin-block:0;
 body[data-page="game"] .stage .box,body[data-page="world"] .stage .box{
   height:calc(100dvh - var(--hh) - var(--uh) - var(--oh));min-height:0;border-radius:0;
   box-shadow:none;border:0;justify-content:center}
+/* A GAME starts under the chrome, not floating in the middle of the box.
+   The frame is content-sized here (see below), so centring it in a taller box
+   leaves the slack ABOVE as well as below - measured on the artifact at 390px,
+   48px of empty ground between the utility row and the difficulty card, which
+   reads as the page not having started yet. Flex-start moves that slack under
+   the board, where the footer already lives. The ROOM keeps center: it is a
+   composed scene rather than a control panel with a board under it. */
+body[data-page="game"] .stage .box{justify-content:flex-start}
 /* Content-sized rather than flex:1, so fitStage can read the screen's NATURAL
    height. A frame that stretches to fill the box reports the box's height back
    and the scale factor comes out as 1 every time. */
