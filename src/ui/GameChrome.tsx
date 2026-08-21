@@ -102,6 +102,31 @@ const TAP_GLYPH = `calc(${TAP_CSS} * 0.52)`;
 const DOT_MAX = 5;
 const SURFACE_RADIUS = "var(--gc-radius, var(--radius-3))";
 
+/**
+ * The panel row, as CSS the Design Bench can turn.
+ *
+ * Same shape as TAP_CSS above and for the same reason: every number here is a
+ * decision somebody made once, and a decision nobody can look at drifts into a
+ * different one. Each reads a token whose FALLBACK is the shipped literal, so
+ * with no token set the render is byte-identical - `?design` is what sets them.
+ * `src/lab/design/panel-tokens-are-shipped.test.ts` pins every fallback.
+ *
+ * The class names beside them are the OTHER half. A token can change a size; it
+ * cannot move a label under its number or turn three cards into one strip, and
+ * those are shape decisions a style has to be able to make. So each part of a
+ * cell is addressable, and a candidate style is a stylesheet the bench injects
+ * rather than a second copy of this component.
+ */
+const GAP = "var(--gc-gap, 8px)";
+const CELL_RADIUS = "var(--gc-cell-radius, var(--radius-2))";
+const CELL_BG = "var(--gc-cell-bg, var(--surface))";
+const CELL_SHADOW = "var(--gc-cell-shadow, var(--shadow-1))";
+const LABEL_SIZE = "var(--gc-label, 10px)";
+const VALUE_SIZE = "var(--gc-value, 18px)";
+const RECORD_SIZE = "var(--gc-record, 10.5px)";
+const STAT_ICON = "var(--gc-stat-icon, 18px)";
+const LEVEL_SIZE = "var(--gc-level-value, 16px)";
+
 export function GameChrome<T extends string>({
   ctx,
   stats,
@@ -157,7 +182,10 @@ export function GameChrome<T extends string>({
   // 350px inside the panel on a 390px phone, and difficulty + two stats + gaps
   // already spends 344 of that - a fourth 56px cell takes it to 408. Measured
   // on the built artifact: 25 of 33 games wrapped onto two lines and snake's
-  // difficulty label read "Nor...". With restart out of the row it is 1 of 33,
+  // difficulty label read "Nor...". With restart out of the row it is 1 of 33
+  // - SUDOKU as of 2026-08-21, by one pixel: 132 + 88 + a 100px content-sized
+  // compact cell + two 8px gaps is 336 against a 335px row. See CLAUDE.md.
+  // (Historically:)
   // and that one is blocks, the only game carrying a pause button as well.
   //
   // A ref so the slot is filled ONCE per mount: `onRestart` is an inline arrow
@@ -203,6 +231,7 @@ export function GameChrome<T extends string>({
   const navBtn = (name: IconName, ariaLabel: string, onClick: () => void) => (
     <button
       type="button"
+      className="gc-nav"
       aria-label={ariaLabel}
       onClick={onClick}
       style={{
@@ -254,12 +283,13 @@ export function GameChrome<T extends string>({
       }}
     >
       <div
+        className="gc-head"
         style={{
           flex: "0 0 auto",
           display: "flex",
           flexDirection: "column",
-          gap: 9,
-          padding: "12px 12px 9px",
+          gap: "var(--gc-head-gap, 9px)",
+          padding: "var(--gc-head-pad, 12px 12px 9px)",
           background: "var(--bg)",
           borderRadius: `${SURFACE_RADIUS} ${SURFACE_RADIUS} 0 0`,
         }}
@@ -274,7 +304,10 @@ export function GameChrome<T extends string>({
             flexWrap because the cell count is fixed per game but the WIDTH is
             not, and this container clips rather than scrolls. See
             a-row-that-grows-with-the-catalog-must-wrap. */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <div
+          className="gc-row"
+          style={{ display: "flex", alignItems: "center", gap: GAP, flexWrap: "wrap" }}
+        >
           {ownRestart &&
             onPaused &&
             navBtn(paused ? "play" : "pause", paused ? t("resume") : t("pause"), () =>
@@ -284,6 +317,7 @@ export function GameChrome<T extends string>({
           {levels && current && onLevel && (
             <button
               type="button"
+              className="gc-cell gc-level"
               aria-label={`${t("difficulty")}: ${current.label[ctx.locale]}`}
               onClick={() => onLevel(levels[(i + 1) % levels.length].id)}
               style={{
@@ -318,21 +352,21 @@ export function GameChrome<T extends string>({
                 // and .claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md
                 minWidth: "var(--gc-level-min, 132px)",
                 border: "none",
-                borderRadius: "var(--radius-2)",
-                background: "var(--surface)",
-                boxShadow: "var(--shadow-1)",
+                borderRadius: CELL_RADIUS,
+                background: CELL_BG,
+                boxShadow: CELL_SHADOW,
                 color: "var(--text)",
                 fontFamily: "inherit",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 8,
+                gap: GAP,
                 padding: "0 12px",
                 cursor: "pointer",
               }}
             >
-              <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.12, minWidth: 0, maxWidth: "100%" }}>
-                <span style={{ fontSize: 10, fontWeight: 800, color: "var(--text-dim)" }}>
+              <span className="gc-text" style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.12, minWidth: 0, maxWidth: "100%" }}>
+                <span className="gc-label" style={{ fontSize: LABEL_SIZE, fontWeight: 800, color: "var(--text-dim)" }}>
                   {t("difficulty")}
                 </span>
                 {/* nowrap + ellipsis, and both are load-bearing. A long label
@@ -341,7 +375,7 @@ export function GameChrome<T extends string>({
                     a right-edge check while quietly making this card taller than
                     the cells beside it. Measured on the mock; three instruments
                     said clean. */}
-                <span style={{ fontSize: 16, fontWeight: 800, fontFamily: "Fredoka, inherit", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
+                <span className="gc-value" style={{ fontSize: LEVEL_SIZE, fontWeight: 800, fontFamily: "Fredoka, inherit", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
                   {current.label[ctx.locale]}
                 </span>
               </span>
@@ -353,6 +387,7 @@ export function GameChrome<T extends string>({
                   facts become "3/12", which is legible at any length. */}
               <span
                 dir="ltr"
+                className="gc-dots"
                 style={{ display: "flex", gap: 4, alignItems: "center", marginInlineStart: 8, flex: "0 0 auto" }}
               >
                 {levels.length <= DOT_MAX ? (
@@ -380,6 +415,7 @@ export function GameChrome<T extends string>({
           {stats.map((s) => (
             <div
               key={s.label}
+              className={s.compact ? "gc-cell gc-stat gc-compact" : "gc-cell gc-stat"}
               style={{
                 // A compact cell is sized by its number; everything else splits
                 // what the difficulty leaves.
@@ -390,33 +426,35 @@ export function GameChrome<T extends string>({
                 // player simply cannot read.
                 minWidth: s.compact ? 0 : "var(--gc-stat-min, 88px)",
                 height: TAP_CSS,
-                background: "var(--surface)",
-                borderRadius: "var(--radius-2)",
-                boxShadow: "var(--shadow-1)",
+                background: CELL_BG,
+                borderRadius: CELL_RADIUS,
+                boxShadow: CELL_SHADOW,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 8,
+                gap: GAP,
                 padding: s.compact ? "0 13px" : "0 8px",
               }}
             >
-              <span style={{ color: "var(--text-dim)", fontSize: 18, display: "flex", flex: "0 0 auto" }}>
+              <span className="gc-icon" style={{ color: "var(--text-dim)", fontSize: STAT_ICON, display: "flex", flex: "0 0 auto" }}>
                 <Icon name={s.icon} />
               </span>
-              <span style={{ minWidth: 0, display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.05, maxWidth: "100%" }}>
-                <span style={{ fontSize: 10, fontWeight: 800, color: "var(--text-dim)" }}>
+              <span className="gc-text" style={{ minWidth: 0, display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.05, maxWidth: "100%" }}>
+                <span className="gc-label" style={{ fontSize: LABEL_SIZE, fontWeight: 800, color: "var(--text-dim)" }}>
                   {s.label}
                 </span>
                 <span
                   dir={s.ltr ? "ltr" : undefined}
-                  style={{ display: "block", fontSize: 18, fontWeight: 800, fontFamily: "Fredoka, inherit", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}
+                  className="gc-value"
+                  style={{ display: "block", fontSize: VALUE_SIZE, fontWeight: 800, fontFamily: "Fredoka, inherit", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}
                 >
                   {s.value}
                 </span>
                 {s.record !== undefined && (
                   <span
                     dir={s.ltr ? "ltr" : undefined}
-                    style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-dim)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}
+                    className="gc-record"
+                    style={{ fontSize: RECORD_SIZE, fontWeight: 700, color: "var(--text-dim)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}
                   >
                     {t("best")} {s.record}
                   </span>

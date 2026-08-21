@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GAMES as ROSTER } from "../../portal/games";
+import { Panel } from "./Panel";
 
 /**
  * The games-buttons bench, at `#/lab/buttons`.
@@ -209,7 +210,7 @@ const sizeKey = (b: Btn) => `${b.w}x${b.h}`;
 const under = (b: Btn) => b.w < TAP_FLOOR || b.h < TAP_FLOOR;
 
 export function Buttons() {
-  const [mode, setMode] = useState<"chrome" | "one" | "wall">("chrome");
+  const [mode, setMode] = useState<"chrome" | "panel" | "one" | "wall">("chrome");
   const [std, setStd] = useState<Standard>(DEFAULT_STANDARD);
   const [on, setOn] = useState(false);
 
@@ -227,13 +228,14 @@ export function Buttons() {
         <Seg
           value={mode}
           options={[
-            ["chrome", "SHARED · every game"],
+            ["chrome", "SHARED · the bar"],
+            ["panel", "SHARED · the game row"],
             ["one", "PER GAME · one footer"],
             ["wall", "PER GAME · all 33 footers"],
           ]}
-          onPick={(m) => setMode(m as "chrome" | "one" | "wall")}
+          onPick={(m) => setMode(m as "chrome" | "panel" | "one" | "wall")}
         />
-        {mode !== "chrome" ? (
+        {mode === "one" || mode === "wall" ? (
           <label style={{ ...NOTE, display: "flex", gap: 6, alignItems: "center" }}>
             <input type="checkbox" checked={on} onChange={(e) => setOn(e.currentTarget.checked)} />
             apply the standard
@@ -244,9 +246,9 @@ export function Buttons() {
       {/* The knobs belong to the FOOTER standard. Leaving them on screen
           during the chrome screen would offer five controls that do nothing,
           which is the defect this bench caught in its own first hour. */}
-      {mode !== "chrome" ? <Knobs std={std} setStd={setStd} disabled={!on} /> : null}
+      {mode === "one" || mode === "wall" ? <Knobs std={std} setStd={setStd} disabled={!on} /> : null}
 
-      {mode === "chrome" ? <Chrome /> : mode === "one" ? (
+      {mode === "chrome" ? <Chrome /> : mode === "panel" ? <Panel /> : mode === "one" ? (
         <OneGame std={std} on={on} />
       ) : (
         <Wall std={std} on={on} />

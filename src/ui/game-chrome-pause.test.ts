@@ -111,6 +111,10 @@ describe("the level toggle survives a fourth button", () => {
     // Without `flexWrap` a floor that cannot be met overflows the container
     // instead - and this container clips rather than scrolls, so the toggle
     // would be sliced off at the edge rather than moved to its own line.
-    expect(SRC).toMatch(/gap: 8, flexWrap: "wrap"/);
+    // The gap is a token now (`GAP`), so this pins the property rather than the
+    // literal 8 - which is the part that matters and the part a restyle must
+    // not be able to remove. The 8 itself is pinned by the panel bench's test,
+    // against the fallback in the component.
+    expect(SRC).toMatch(/gap: GAP, flexWrap: "wrap"/);
   });
 });

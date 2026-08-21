@@ -583,7 +583,16 @@ separate three.js / Babylon / PlayCanvas bake-off.
   two stats plus gaps already spends 344, so a fourth 56px cell takes it to
   408: measured on the artifact, 25 of 33 games wrapped onto two lines with
   restart in there, 1 of 33 with restart out (blocks, the only game carrying a
-  pause button too), and **0 of 33** with both buttons up in the row. The row is in FLOW and `.box` is
+  pause button too), and **0 of 33** with both buttons up in the row.
+  **Re-measured on the artifact 2026-08-21, 33 games x 390px: still 1 of 33,
+  and it is SUDOKU, not blocks.** The row has 335px; the difficulty floor
+  (132) plus the stat floor (88) plus sudoku's content-sized `Filled` cell
+  (100) plus two 8px gaps is 336. One pixel, so `Filled` drops to a second
+  line and is clipped by the panel. And the compact cell is sized by its own
+  TEXT, so which side of that pixel a game lands on moves with the score's
+  digit count - a row whose fit is a function of game state cannot be settled
+  by choosing a better constant. Both games named here were correct when
+  written; read the number off `#/lab/buttons` -> SHARED - the game row. The row is in FLOW and `.box` is
   `calc(100dvh - var(--hh) - var(--uh))`, so it cannot land on the board the
   way the old floating breadcrumb pill did. The emitted button is `hidden`
   until a game fills the slot (`src/ui/gameTools.ts`), and `claimRestartSlot()`
