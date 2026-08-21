@@ -1410,21 +1410,156 @@ Seven mutation controls plus a positive one, in the repo rather than in a
 session. The gate also caught eleven fresh drifts on the day it landed: the first
 visit had moved 81 bytes since the drafts were corrected two days earlier.
 
+## A query with nowhere to land (2026-08-21)
+
+**SEO16 says to read the search report's own query list before planning a page,
+because a query already producing impressions that no page answers is the
+highest-value page to write next — the demand is measured rather than assumed.**
+This site had 33 game pages and four homes, and nothing at all for the shape
+people actually type: *math games for kids*, *jigsaw puzzles online*, *free
+sudoku*. A category query arrived, found a home page listing everything, and
+left.
+
+There are 20 more documents now — five groups across four page locales, at
+`/games/<category>/` and its `/he/`, `/es/`, `/fr/` siblings. 164 URLs in the
+sitemap, all walked live as Googlebot, all carrying a real body.
+
+### The threshold is derived, so a sixth group joins on its own
+
+`MIN_GAMES_FOR_A_PAGE = 3`, and `PAGED_CATEGORIES` is `CATEGORY_IDS` filtered by
+`gamesIn(c).length >= MIN_GAMES_FOR_A_PAGE`. `create` holds one game today and
+gets no page; the day it holds three it gets four, in every written language,
+with no edit anywhere. **`/games/create/` returning 404 is the control that
+proves the filter can actually exclude something** — it is asserted in the tests
+and it was checked on the live site.
+
+`CATEGORY_IDS` comes off the copy record rather than the catalog, and that is
+not a stylistic choice: `src/build` may never import `src/portal/catalog.ts`,
+whose lazy loaders would pull Phaser into `vite.config.ts`.
+
+### Authors write prose, code supplies facts — one layer up from a game page
+
+No article states its own group size. `{games}` is a token the emitter fills
+from the roster at render time, the same shape `homeCopy` already used, so a
+page cannot be wrong about how many games it lists. 24 articles, written
+natively in four languages, every one through the same `voice.ts` analyser the
+game pages use — paragraph spread, the short-sentence floor, the per-language
+banned vocabulary, one rule-of-three.
+
+The gate has a **population positive control**, because a voice check that
+silently ran over zero articles reads exactly like a clean sweep. That is the
+`LOCALES = ["he","en"]` literal from the Spanish promotion wearing a different
+hat, and it is the second time a content gate here has needed one.
+
+`CategoryContent` is `Record<PageLocale, Record<Category, CategoryCopy>>`. A
+language promoted before its prose exists is a red build; so is an SDK category
+added with no copy. Neither is a review miss.
+
+### Where the inbound links went, and why it was a measurement
+
+The instinct is to link the category pages from the home body, where every
+visitor and every crawler lands. **Measured on the artifact, two arms from one
+tree: five links in `homeShellBody` cost 81 B gz on the first visit — 90,356
+against 90,437 — with 63 B of headroom at the time.** So the obvious placement
+was over budget by 18 bytes before anything else landed that week.
+
+They went into the game-page breadcrumb instead: `Home › Classics › Snake`, with
+the middle crumb a link only when `PAGED_CATEGORIES` holds that category. It
+costs the shell **zero** — the breadcrumb is emitted, build-time, shipped to
+nobody's first visit — and it produces 132 contextual links instead of 4, each
+on a page about a game in that exact group. The better placement was also the
+free one, and only the measurement said so.
+
+### Three gates broke, and all three were real defects
+
+None of them was the gate being fussy.
+
+**The `boots` predicate was a path regex.** `build.test.ts` decided which pages
+mount the app with `/(^|\/)games\//`, which is true of `/games/snake/` and also
+true of `/games/kids/` — so a pure document was held to the app-shell rules and
+failed for a reason unrelated to what was wrong. It reads `KIND_OF.get(fileName)`
+off the route table now, which cannot be wrong about what a page is. That is the
+same list-of-page-kinds trap the English home hit, on its fourth outing.
+
+**Every category page in a language resolved to one share card.** `ogImageFile`
+built its name from `route.kind` and `route.id`, and a category route has no
+`id` — so all five collapsed onto `og/category-en.png`. A valid PNG, of the
+wrong group, on four pages out of five.
+
+**The hreflang sibling key ignored the category**, so a cluster could point at
+the wrong group's page in another language.
+
+### And a fourth, found by the `/document` pass rather than by any gate
+
+**16 of the 20 category pages named `kids` as their twin in every language, in
+the sitemap.** The sibling lookup in `siteFiles.ts` keyed on `kind` and `id`; a
+category route carries no `id`, so `o.id === r.id` was `undefined === undefined`
+for every category in a locale and `find` returned whichever came first.
+`/games/kids/` was correct by position alone.
+
+Three things make it worth writing down. **The page's own `<link
+rel="alternate">` tags were perfect throughout** — two code paths emit the same
+cluster and only the one nobody opens was wrong. **The reciprocity gate passed**,
+because it reads the page tags, so a real hreflang defect sat under a check
+written for hreflang defects. And **the comment four lines above the buggy line
+describes this exact bug**, from the time the boards declared the room as their
+twin: a documented trap is not a closed one.
+
+The previous fix replaced a branch with a lookup, which stopped a new page KIND
+from falling into a wrong else. It could not stop a new DISCRIMINATOR from being
+absent from the key. The key is the page **family** now — the path with its
+locale prefix removed — because a field list has to be extended by hand every
+time the route type grows and a path family cannot fall behind it.
+
+The gate that would have caught it reads the sitemap's clusters and requires
+them to equal the pages' own. It went RED on the shipped `dist/` naming all 16,
+then GREEN, with both directions controlled: a parser returning an empty map
+would pass every "they agree" assertion vacuously, so the control that matters
+is the one proving it can see *present*.
+
+### A rule written when the 404 was the only non-booting page
+
+`assert-pages.mjs` asserts a document fetches nothing eagerly. That was written
+when `404.html` was the only page in the population, and it failed all 20 new
+pages over the Google Analytics tag they are *supposed* to carry. The first fix
+keyed the exemption on `page.indexable`, which the manifest does not publish —
+so it failed all 20 again, this time with a message about the very script it was
+meant to allow. It keys on `page.kind !== "notFound"` now, **the same predicate
+the coverage gate uses**, so the two cannot demand and refuse the same thing.
+
+### Comments in `DOCUMENT_CSS` are served
+
+Trimming one explanatory comment on the breadcrumb rule took it from 615 B raw
+to 304, which is 248 → 133 B gz **on every content page**. The CSS in
+`layout.ts` is emitted into the document; unlike the comments in `global.css`,
+which Vite strips, these ship. Roughly 41% of each page's CSS, compressed, is
+commentary. Only the one block was cut — the rest is a whether-question, not a
+sweep.
+
+### What it cost
+
+First visit **90,356 B gz of 90,500**, 144 spare — the pages are documents, so
+the runtime paid nothing; the movement is the breadcrumb's markup and CSS. Slope
+121.5 B gz per game against a 140 budget, unmoved: this adds no per-game term.
+Live: 164/164 URLs a real body as Googlebot, `/games/create/` 404, 36/36 and
+35/35 planted defects caught by the two gates' controls.
+
 ## Still open
 
 - **Wave C step 2b** — live two-way sync. Needs the profile to carry per-device
   earned/spent counters before a merge can be correct; until then the cloud is a
   backup and a transfer, and the UI says so.
-- **The first-visit budget — the ceiling is now 90,000 and the figure under it is
-  UNMEASURED.** Two lanes raised it on 2026-08-11 within hours of each other:
-  88,000 argued from a measured 86,653 (a tree without Word Guess) and 90,000 from
-  a measured 86,004 (a tree without the emitted Hebrew home). The merge kept
-  90,000. **Neither number describes the merged tree, and adding the two deltas
-  does not either** — each was measured from a baseline that no longer exists. Run
-  `npm run build:check` on the merged tree before designing anything near the
-  edge, and add the row to the history block in `assert-payload.mjs`, which
-  currently records Word Guess (+234) and nothing for the home document (+1,770).
-  A new game still costs the shell ~300 B.
+- **The first-visit budget — 90,356 B gz of 90,500, 144 spare, measured
+  2026-08-21 on `main`.** The ceiling has moved three times (86,000 → 90,000 →
+  90,500) and this line has been stale twice, so **re-run `npm run build:check`
+  before designing anything near the edge rather than quoting this number**. The
+  history it records: two lanes raised the ceiling within hours on 2026-08-11,
+  each arguing from a measured baseline the other was about to change, and
+  neither described the merged tree. **Adding two deltas measured from different
+  baselines does not describe any tree that exists.** The slope gate is the
+  durable half — 121.5 B gz per game against a 140 budget, so the first visit is
+  O(1) in the catalogue even while the absolute number drifts. The O(1) target
+  of 40 is not met; `docs/scaling-the-first-visit.md` step 3 is what closes it.
   See [`a-threshold-tuned-against-todays-tree-goes-stale.md`](../.claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md).
 - **Nobody has published a real score yet**, so every board renders empty and
   the own-best line carries the screen. Firestore's free daily quota stays the

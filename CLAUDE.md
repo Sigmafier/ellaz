@@ -64,7 +64,7 @@ src/
 │            (mount/unmount bridge), WalletChip, games (the ordered roster),
 │            catalog (roster + lazy loaders), paths/pageContext/legacyHash,
 │            world/ (the room + shop)
-├─ build/    BUILD-TIME ONLY - the 144 emitted pages. Pure strings, no DOM, no
+├─ build/    BUILD-TIME ONLY - the 164 emitted pages. Pure strings, no DOM, no
 │            React. Nothing in the app may import it (it reads src/content)
 └─ games/<id>/
    ├─ meta.ts         DOM-free GameMeta - catalog.ts imports it statically
@@ -710,18 +710,20 @@ until the set is complete. Discovered 2026-08-13, building two games at once.
 
 ## Every game has a real web address
 
-The site used to be one document. It is now **145**: `dist/index.html` (still the
-app, head-enhanced in place and `emitted: false` in the manifest) plus the **144
-written by `src/build/**`** inside a Vite plugin — 143 pages and `404.html` — so
+The site used to be one document. It is now **165**: `dist/index.html` (still the
+app, head-enhanced in place and `emitted: false` in the manifest) plus the **164
+written by `src/build/**`** inside a Vite plugin — 163 pages and `404.html` — so
 `npm run build` cannot skip them and neither deploy workflow can forget. The
-sitemap carries 144 URLs, which is every route except the `noindex` 404. Read
+sitemap carries 164 URLs, which is every route except the `noindex` 404. Read
 those off `dist/pages.json` rather than off this line; it said 85 for days beside
-a 144 in the same sentence.
+a 144 in the same sentence, and it said 144 for days after the category pages
+landed.
 
 | URL | What it is |
 |---|---|
 | `/` | the application, and now also a document. **ENGLISH since 2026-08-14.** The emitter adds head tags AND the English home body; it never overwrites the file |
 | `/games/<id>/` · `/he/…` · `/es/…` · `/fr/…` | every game x every page locale, ~900 words each (33 games x 4 languages on 2026-08-18 — read both counts off the roster and `PAGE_LOCALES`, not off this line) |
+| `/games/<category>/` · `/he/…` · `/es/…` · `/fr/…` | a landing page per game GROUP, ~250 words each (5 groups x 4 languages on 2026-08-21 — the group list is DERIVED, see below) |
 | `/he/` · `/es/` · `/fr/` | the home screen in that language — **the app**, emitted as a shell (see below) |
 | `/world/` · `/he/world/` · `/es/world/` · `/fr/world/` | the room |
 | `/boards/` · `/he/boards/` · `/es/boards/` · `/fr/boards/` | the leaderboards (two screens - see below) |
@@ -825,6 +827,32 @@ the first predicate written for "which files are homes" was
 `fileName.split("/").length === 2`, which is right about `en/index.html` and
 also matches `world/index.html`. It is `ROUTES.filter(r => r.kind === "home")`
 now — the route table cannot be wrong about which pages are homes.
+
+**A group gets a landing page once it holds three games, and nothing decides
+that by hand.** `MIN_GAMES_FOR_A_PAGE = 3` in `src/content/categories.ts`;
+`PAGED_CATEGORIES` in `src/build/routes.ts` is the category list filtered by it.
+`create` holds one game and gets no page — **`/games/create/` returning 404 is
+the control that proves the filter can exclude something**, and it is asserted.
+The day `create` holds three it gets four pages, in every written language, with
+no edit anywhere.
+
+`CATEGORY_IDS` is derived from the COPY record, not the catalog, because
+`src/build` may never import `src/portal/catalog.ts` — its lazy loaders would
+pull Phaser into `vite.config.ts`. `CategoryContent` is
+`Record<PageLocale, Record<Category, CategoryCopy>>`, so a locale promoted
+before its prose exists and a category added with no copy are both red builds.
+No article states its own group size: `{games}` is a token the emitter fills
+from the roster, so a page cannot be wrong about how many games it lists.
+
+**They are pure DOCUMENTS — no `headAssets`, nothing boots** — so they cost the
+first visit zero. **Their inbound links are in the game-page breadcrumb**
+(`Home › Classics › Snake`, the middle crumb a link only for a paged category),
+and that placement was a measurement rather than a preference: five links in
+`homeShellBody` measured **81 B gz** on the first visit against 63 B of headroom,
+while the breadcrumb costs the shell nothing and yields 132 contextual links
+instead of 4. Adding a page kind means walking the three lists that say which
+pages boot the app — `build.test.ts`, `assert-pages.mjs`, `pageContext.ts` — and
+`build.test.ts`'s used to be a path regex that matched `/games/kids/` as a game.
 
 **The slug is `meta.id`, never the directory name.** `src/games/n2048/` publishes at
 `/games/2048/`, so a hand-written `/games/n2048/` is a 404 that only the link
