@@ -29,7 +29,7 @@
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const DIR = join(REPO, "docs/outreach/exports");
@@ -146,12 +146,18 @@ function control() {
   return failures === 0 ? 0 : 1;
 }
 
-const arg = process.argv[2];
-if (arg === "--control") process.exit(control());
-const named = arg ? resolve(arg) : null;
-if (named && !existsSync(named)) {
-  console.log(`UNMEASURED  ${arg} does not exist.`);
-  process.exit(2);
+// Everything below RUNS. Guard it, or importing this module for `splitCsvLine`
+// executes the whole report and calls process.exit - which is not a crash but
+// something worse: the importer's own test run prints THIS file's verdict and
+// exits 0, so a sibling's controls read as "all behaved" without one of them
+// having been evaluated. Measured 2026-08-21, building gsc-performance.mjs.
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const arg = process.argv[2];
+    if (arg === "--control") process.exit(control());
+  const named = arg ? resolve(arg) : null;
+  if (named && !existsSync(named)) {
+    console.log(`UNMEASURED  ${arg} does not exist.`);
+    process.exit(2);
 }
 const target = named ?? newestExport()?.path;
 if (!target) {
@@ -165,3 +171,4 @@ if (!target) {
   process.exit(2);
 }
 process.exit(report(target));
+}

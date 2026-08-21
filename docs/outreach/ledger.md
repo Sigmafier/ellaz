@@ -30,7 +30,7 @@ reverses a correct strategy (`seo-doctrine` SEO11).
 
 | Surface | Draft | Status | Fired | Verdict due | Notes |
 |---|---|---|---|---|---|
-| awesome-pwa (list PR) | `dev.md` | fired | 2026-08-12 | 2026-11-10 | **PR [#465](https://github.com/hemanth/awesome-pwa/pull/465), open, mergeable.** Found already open on 2026-08-20 while preparing to open it — the draft said "nothing is opened" for eight days. Entry corrected the same day: it advertised 23 games in Hebrew and English. List batches merges; last batch 2026-08-10, 10 PRs queued |
+| awesome-pwa (list PR) | `dev.md` | fired | 2026-08-12 | 2026-11-10 | **PR [#465](https://github.com/hemanth/awesome-pwa/pull/465), open, mergeable.** Found already open on 2026-08-20 while preparing to open it — the draft said "nothing is opened" for eight days. Entry corrected the same day: it advertised 23 games in Hebrew and English. List batches merges; last batch 2026-08-10, 10 PRs queued | **2026-08-21: that list has merged nothing since 2026-08-10 and its open queue has gone 10 -> 24.** The "merges every ~9 days" evidence that justified this lane no longer holds. Not dead (it batches), but do not wait on it. |
 | awesome-phaser (list PR) | `dev.md` | dropped | — | — | dormant 16 months, every open PR unanswered. Ranked by merge recency, not stars |
 | dev.to article | `dev.md` | draft | — | — | operator's to publish or discard |
 | Hebrew communities ×3 | `hebrew.md` | draft | — | — | rules must be re-read on the day of posting |
@@ -41,6 +41,37 @@ reverses a correct strategy (`seo-doctrine` SEO11).
 | Israeli tech press | `press.md` | draft | — | — | contacts verified 2026-08-11; re-verify before sending |
 | Show HN | `launch.md` | draft | — | — | **one shot.** Fires last, after every lane above is green |
 | Product Hunt | `launch.md` | draft | — | — | **one shot.** Same gate |
+
+## What the outside world has sent back (2026-08-21, first real measurement)
+
+Search Console, Performance, last 3 months, in
+[`exports/performance-2026-08-21/`](exports/performance-2026-08-21/). Read it
+with `npm run reach:perf`.
+
+| | |
+|---|---|
+| indexed? | **yes** — 55 distinct URLs earn impressions, in all four written languages |
+| impressions | 4 in the 9 days before 2026-08-10; **227** in the 9 days from it |
+| clicks | 8 |
+| where | **Israel 65%**, United States 6%, Spain 1% |
+| what they search in | **Hebrew 76%**, Latin 24% |
+| which URLs earn it | bare/English 66%, `/en/` 16%, **`/he/` 11%**, `/es/` 5%, `/fr/` 3% |
+| position | only **26%** of impressions come from pages averaging page one |
+| linking sites | **0. Measured** — the Links report was empty on the same visit |
+
+Three things follow, and none of them was guessable from inside the repository.
+
+**The crawl block is behind us.** The 08-10 step is the 2026-08-08 CDN fix
+landing, two days later, as a recrawl.
+
+**This is not a crawling or a content problem. It is an authority problem.** The
+pages are indexed and they sit at 11 to 50. Zero links is exactly the curve a
+three-week-old domain with no links produces, and links are the only lever that
+moves it.
+
+**The audience is Israeli and the English pages are absorbing their searches.**
+That decides the order of the lanes below: the Hebrew communities are no longer
+the best guess, they are where the measured demand already is.
 
 ## What has actually reached the outside world
 

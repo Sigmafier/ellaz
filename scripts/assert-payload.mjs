@@ -188,6 +188,31 @@ function distBase(dist) {
  * before it. Raising to a number that felt roomy would have removed the only
  * pressure that gets it done.
  */
+/**
+ * The Node major the DEPLOY builds on, read out of the workflow so there is one
+ * source of truth rather than a number typed here that can go stale.
+ *
+ * WHY THIS IS HERE. Measured 2026-08-21, same commit and same lockfile: Node 22
+ * produced a first visit of 90,359 B gz and Node 24 produced 90,413. **54 bytes
+ * of difference from the toolchain alone**, against 141 bytes of headroom - so
+ * which Node you happen to run is nearly as large as the whole remaining budget,
+ * and every figure written into CLAUDE.md and the outreach drafts had been
+ * measured on the one that does NOT ship.
+ *
+ * The number is not wrong on either machine. It is a number about a DIFFERENT
+ * ARTIFACT, and nothing said so. This prints the difference instead of leaving
+ * it to be discovered.
+ */
+function ciNodeMajor() {
+  for (const wf of ["deploy-hostinger.yml", "deploy-pages.yml"]) {
+    const p = join(".github/workflows", wf);
+    if (!existsSync(p)) continue;
+    const m = /node-version:\s*['"]?(\d+)/.exec(readFileSync(p, "utf8"));
+    if (m) return Number(m[1]);
+  }
+  return null;
+}
+
 const CEILING = 90_500;
 
 function gzBytes(path) {
@@ -255,6 +280,15 @@ function main() {
     console.log(`  ${String(size).padStart(7)} B gz  ${name}`);
   }
 
+  const ci = ciNodeMajor();
+  const here = Number(process.versions.node.split(".")[0]);
+  if (ci !== null && ci !== here) {
+    console.log(
+      `\nNOTE  this is Node ${here}; the deploy builds on Node ${ci}. Measured 2026-08-21,\n` +
+        `      the same commit differs by ~54 B gz between the two. Quote the number\n` +
+        `      from a CI run before writing it anywhere a reader will act on.`,
+    );
+  }
   const pct = Math.round((total / CEILING) * 100);
   console.log(
     `\nfirst visit: ${total.toLocaleString()} B gz of ${CEILING.toLocaleString()} (${pct}%)`,

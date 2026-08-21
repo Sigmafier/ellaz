@@ -64,7 +64,7 @@ separate players. That is a real limitation and I have not solved it.
 
 Some things I did not expect going in:
 
-- The first visit is 90,356 bytes gzipped and the build fails above 90,500.
+- The first visit is 90,413 bytes gzipped and the build fails above 90,500.
   Adding a game costs the shell about 300 bytes even though every game is a
   lazy chunk, because its metadata is in the statically imported roster.
 - Making an import lazy is three changes, not one. Miss the third (the
@@ -215,7 +215,7 @@ spends its one shot, and this project has had that exact outage once already.
 |---|---|
 | Show HN rules, quoted | `news.ycombinator.com/showhn.html`, fetched 2026-08-12, 200 with 684 words |
 | 33 games | `src/portal/catalog.ts` and `src/portal/games.ts`, both 33, counted 2026-08-18 |
-| 90,356 B gz first visit | `scripts/assert-payload.mjs` on a clean tree at 1e219fe, 2026-08-18 |
+| 90,413 B gz first visit | `scripts/assert-payload.mjs` on a clean tree at 1e219fe, 2026-08-18 |
 | ~122 B gz shell cost per game | `npm run assert:slope`, which measures the marginal game rather than quoting one commit's delta |
 | the deploy ledger outage | `.claude/rules/a-deploy-ledger-that-can-disagree-with-the-disk.md` |
 | the three-change lazy import | `.claude/rules/precache-glob-sweeps-new-chunks.md` |

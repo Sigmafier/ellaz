@@ -1572,24 +1572,58 @@ Live: 164/164 URLs a real body as Googlebot, `/games/create/` 404, 36/36 and
   shipping it behind a green checkmark.
 - **Nobody has played Wave 2** on a real device, and Hebrew TTS has never run
   with `he-IL` on real hardware.
-- **Recovery from the crawl block is unconfirmed.** The server side is clean and
-  `assert:crawlable` is green, but only Search Console can prove Google's own IPs
-  are through. Watch the Sitemaps panel; "could not be read" can linger for days
-  after the underlying fix.
+- **Recovery from the crawl block is CONFIRMED** (2026-08-21, Search Console
+  Performance export, in `docs/outreach/exports/performance-2026-08-21/`). The
+  step is unmistakable: **4 impressions across the 9 days before 2026-08-10, and
+  227 across the 9 days from it** — 25 a day where there had been one every
+  other day. The CDN fix of 2026-08-08 is what Google was waiting on, and the
+  two-day lag is a recrawl, not a doubt. 55 distinct URLs earn impressions
+  across all four written languages, so the pages are indexed. Read it with
+  `npm run reach:perf`.
 - **First-visit EXECUTION is proven for 5 of 22 games**, not all of them. A fresh
   browser context per game covers bubbles, coloring, snake, sudoku and memory; the
   other 17 are verified mounting as a *returning* visitor plus byte-identical
   delivery from the network, which is a strong argument and not a measurement.
   Residual risk is low and it is not zero. `blocks` (2026-08-09) is one of the 17:
   it was driven end to end in dev, and live only by byte equality.
+- **76% of the demand is Hebrew and 11% of the impressions are on Hebrew URLs.**
+  Measured 2026-08-21. Israel is 65% of all impressions; the query list is Hebrew
+  long-tail game names (`שולה המוקשים`, `מצא את ההבדלים`, `משחקי זיכרון לילדים`).
+  But `/he/games/minesweeper/` earns **zero** impressions while its six Hebrew
+  queries earn 19 between them, and `/games/minesweeper/` — English since the
+  2026-08-14 flip — earns 33. **The Hebrew demand is landing on English URLs.**
+  The most likely cause is that flip: the bare paths were Hebrew when Google
+  first indexed them on 08-10, so they hold the Hebrew rankings and now serve
+  English. Every page is technically correct (200, `lang="he"`, self-canonical,
+  reciprocal hreflang, in the sitemap), which is why nothing here could see it.
+  If it is the flip, hreflang resolves it on recrawl and the fix is patience —
+  but that is a hypothesis with a test, not a finding. Re-export in 30 days and
+  compare the `he` supply share. **No verdict before ~2026-11-19 either way**
+  (SEO11).
 - **Bing Webmaster Tools is not claimed.** IndexNow submits fine without it, but the
   coverage reports need the site added at <https://www.bing.com/webmasters> — an
   operator action, not a code one.
-- **There is still no backlink data, but there is now somewhere to put it.**
-  `npm run reach:links` reads a Search Console "Top linking sites" export from
-  `docs/outreach/exports/` and prints UNMEASURED, exit 2, until one is dropped
-  there. Exporting it is an operator action. Per the 90-day rule, no verdict on
-  any lane before then either way.
+- **Every payload figure in this repository was measured on the wrong Node.**
+  CI builds on **Node 22**; this machine runs **24**. Same commit, same lockfile,
+  zero dependency drift — and **90,359 B gz there against 90,413 here, 54 bytes
+  apart**, with 141 bytes of headroom. So the toolchain alone is a third of the
+  remaining budget. Neither number is wrong; they describe two different
+  artifacts, and nothing said so. The chunk basenames are identical and only the
+  shell's 202 bytes differ, which is why nothing downstream ever noticed.
+  `assert-payload.mjs` now reads `node-version` out of the deploy workflow and
+  prints a NOTE when the two disagree — one source of truth, the same discipline
+  as parsing the bot list out of the served robots.txt. **Quote a payload number
+  from a CI run before writing it anywhere a reader acts on.** Found while
+  reconciling the outreach drafts, which had been carrying local figures.
+- **Backlinks: ZERO, and that is now MEASURED rather than unknown.** The Search
+  Console Links report was empty on 2026-08-21 — the engine's own report, which
+  is what RCH8 requires, so this is a finding and not a gap. It also explains the
+  position curve: only **26% of impressions come from pages averaging page one**,
+  and the rest sit at 11-50. A three-week-old domain with no links ranking at 20
+  to 30 for competitive queries is the ordinary no-authority curve, not a content
+  defect. Links are the lever. `npm run reach:links` still prints UNMEASURED
+  because an empty report exports no file; the zero is recorded in
+  `docs/outreach/exports/README.md` and the ledger.
 - **The GitHub repository description is stale and is public now.** It reads
   "Free browser games for kids, in Hebrew and English"; the site has four written
   languages, eleven interface languages, and 9 of 33 games are `ageBand: "all"`.

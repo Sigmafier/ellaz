@@ -167,8 +167,8 @@ names the file that produces it. Nothing is rounded up and nothing is estimated.
 I build a games site for kids. Hebrew first, English second, no accounts, no ads, no
 backend. Thirty-three games. The whole thing is a static site.
 
-The number I care about most is the first visit: **90,356 bytes gzipped**, of a ceiling of
-90,500 that fails the build. 144 bytes of room left. That figure is measured on the built
+The number I care about most is the first visit: **90,413 bytes gzipped**, of a ceiling of
+90,500 that fails the build. 87 bytes of room left. That figure is measured on the built
 artifact by a script in the repo, not counted by hand, and it is the reason for most of the
 decisions below.
 
@@ -243,7 +243,7 @@ The code is MIT: https://github.com/Sigmafier/ellaz
 | Claim | Where it comes from |
 |---|---|
 | 33 games | `src/portal/catalog.ts` lazy loaders and `src/portal/games.ts` roster, both 33, counted on the artifact 2026-08-18 |
-| 90,356 B gz first visit, 144 spare | `node scripts/assert-payload.mjs` on a clean tree at 1e219fe, 2026-08-18 |
+| 90,413 B gz first visit, 87 spare | `node scripts/assert-payload.mjs` on a clean tree at 1e219fe, 2026-08-18 |
 | Phaser 379,855 B gz | `gzip -c dist/assets/vendor-phaser-*.js \| wc -c` on that build. Unchanged since 2026-08-12 |
 | one game imports Phaser | `grep -rln 'from "phaser"' src/` returns `src/games/snake/SnakeScene.ts` only |
 | 11 app locales, 4 page locales | `dist/pages.json` `locales.app` and `locales.page`, 2026-08-18 |
