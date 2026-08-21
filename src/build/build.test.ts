@@ -988,11 +988,13 @@ describe("the game gets the whole first screen", () => {
       declarations,
     );
     expect(box, "the shared full-screen box rule is missing").not.toBeNull();
-    // BOTH rows, not just the bar. The utility row is in flow above the stage,
-    // so a box measured against --hh alone is exactly --uh too tall and pushes
-    // that much of every screen below the fold - the overlap this arrangement
-    // removed, wearing a scrollbar instead.
-    expect(box![1]).toContain("height:calc(100dvh - var(--hh) - var(--uh))");
+    // ALL THREE rows, not just the bar. The utility row is in flow above the
+    // stage, so a box measured against --hh alone is exactly --uh too tall and
+    // pushes that much of every screen below the fold - the overlap this
+    // arrangement removed, wearing a scrollbar instead. `--oh` is the language
+    // offer and is 0px unless it showed, so it costs the other readers nothing
+    // and is subtracted unconditionally rather than through a second rule.
+    expect(box![1]).toContain("height:calc(100dvh - var(--hh) - var(--uh) - var(--oh))");
     expect(box![1]).toContain("border-radius:0");
     expect(box![1]).toContain("min-height:0");
   });
@@ -1008,7 +1010,12 @@ describe("the game gets the whole first screen", () => {
     expect(uh.length, "--uh should be declared for the base and one breakpoint").toBe(2);
     expect(declarations).toContain("height:var(--hh)");
     expect(declarations).toContain("height:var(--uh)");
-    expect(declarations).toContain("height:calc(100dvh - var(--hh) - var(--uh))");
+    expect(declarations).toContain("height:calc(100dvh - var(--hh) - var(--uh) - var(--oh))");
+    // `--oh` has a base value as well as its override. Declared only in the
+    // override, the calc above resolves to nothing on every page where the
+    // offer does not show - which is most of them - and the box loses its
+    // height entirely rather than merely being the wrong one.
+    expect(declarations).toContain("--oh:0px");
   });
 
   it("leaves the boards, the home index and the 404 as ordinary documents", () => {
