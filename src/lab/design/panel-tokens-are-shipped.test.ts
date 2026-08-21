@@ -72,11 +72,22 @@ function shippedInSource(name: string): number | undefined {
  * is a knob that turns nothing. Two of these are COLOURS and one is a
  * four-value shorthand, so none can be a slider - a style sets them instead.
  */
+/** Source with `//` and block comments removed - trailing ones included. */
+function stripComments(src: string): string {
+  return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+}
+
 const NOT_A_KNOB = new Set([
   "--gc-radius", // the panel's own corner - the chrome bench owns it
   "--gc-cell-bg",
   "--gc-cell-shadow",
   "--gc-head-pad",
+  // The same-slots switch. Not numbers, so no knob shows them - a style sets
+  // them, and `the panel bench > declares only tokens the bench lists` would
+  // otherwise refuse the style that does.
+  "--gc-row-display",
+  "--gc-empty-display",
+  "--gc-cols",
 ]);
 
 describe("the panel bench knows what ships", () => {
@@ -120,7 +131,10 @@ describe("the candidate styles", () => {
     const listed = new Set(PANEL_TOKENS.map((t) => t.name));
     for (const s of PANEL_STYLES) {
       for (const name of Object.keys(tokensOf(s.css))) {
-        expect(listed.has(name), `${s.id} sets ${name}, which no knob shows`).toBe(true);
+        expect(
+          listed.has(name) || NOT_A_KNOB.has(name),
+          `${s.id} sets ${name}, which no knob shows and nothing exempts`,
+        ).toBe(true);
       }
     }
   });
@@ -139,6 +153,23 @@ describe("the candidate styles", () => {
     // `!important` is how a stylesheet overrides an inline style from outside,
     // which is right for a bench and wrong for the component. A picked style is
     // baked into GameChrome; this asserts nobody pasted one straight in.
-    expect(SRC).not.toContain("!important");
+    //
+    // COMMENTS STRIPPED FIRST. A gate scanning raw source fires on the word in
+    // a comment ABOUT the rule - which is a false positive that announces
+    // itself, and the same matcher pointed the other way is a gate that goes
+    // quietly blind. The holdem purity gate did exactly this on 2026-08-14;
+    // see .claude/rules/a-diagnostic-that-truncates-what-it-compares.md.
+    expect(stripComments(SRC)).not.toContain("!important");
+  });
+
+  it("the comment stripper can still see a real one", () => {
+    // The control. Without it, a stripper that eats everything passes the
+    // assertion above over a component full of overrides.
+    expect(stripComments('const a = "x !important";')).toContain("!important");
+    expect(stripComments("// a !important in a line comment\nconst a = 1;")).not.toContain(
+      "!important",
+    );
+    expect(stripComments("const a = 1; // trailing !important")).not.toContain("!important");
+    expect(stripComments("/* a !important in a block */")).not.toContain("!important");
   });
 });

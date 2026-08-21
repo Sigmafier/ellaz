@@ -112,6 +112,8 @@ const BENCH_TOKENS = new Set([
   // The panel bench's, pinned by `lab/design/panel-tokens-are-shipped.test.ts`.
   "--gc-cell-radius", "--gc-cell-bg", "--gc-cell-shadow", "--gc-label", "--gc-value",
   "--gc-record", "--gc-stat-icon", "--gc-level-value", "--gc-head-gap", "--gc-head-pad",
+  // The same-slots switch - a style sets these three, never a knob.
+  "--gc-row-display", "--gc-empty-display", "--gc-cols",
 ]);
 
 export const COLOUR_LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\([0-9 ,.%/]+\)|["'](white|black)["']/;

@@ -126,6 +126,48 @@ const VALUE_SIZE = "var(--gc-value, 18px)";
 const RECORD_SIZE = "var(--gc-record, 10.5px)";
 const STAT_ICON = "var(--gc-stat-icon, 18px)";
 const LEVEL_SIZE = "var(--gc-level-value, 16px)";
+/**
+ * SAME SLOTS IN EVERY GAME - off by default, and both halves are tokens.
+ *
+ * The operator's call, 2026-08-21: every game shows difficulty, a main number
+ * and a second number, with a dash where a game has nothing, so the row is the
+ * same shape before you open any of it. That cannot be a stylesheet - CSS
+ * cannot invent a cell that was never rendered - so the empty slots are ALWAYS
+ * in the DOM and a token decides whether they are drawn.
+ *
+ * `display` reads a var, so the bench turns this on with no `!important` and no
+ * second copy of the component; with nothing set the row is byte-identical to
+ * what shipped before. The grid columns that make the cells LINE UP across
+ * games ride the same switch, in the stylesheet, since a grid needs the
+ * container to be a grid.
+ */
+const ROW_DISPLAY = "var(--gc-row-display, flex)";
+const EMPTY_DISPLAY = "var(--gc-empty-display, none)";
+/**
+ * Three cells in the row: the difficulty and two numbers. Measured across the
+ * roster - 23 games pass two numbers, 6 pass one, and none passes three.
+ */
+const CELLS = 3;
+
+/**
+ * `stats`, extended with nulls until the ROW holds `CELLS`.
+ *
+ * It counts the difficulty, because the row is what has to be the same shape
+ * and the difficulty is one of its cells. Keying on the stats alone left
+ * finddiff - two numbers and no difficulty - at two cells in a three-track
+ * grid, which does not wrap, does not clip, and is simply a different row from
+ * the other 31. Measured on the artifact; it was the only game to differ, and
+ * it turned up only because the shape count was checked rather than assumed.
+ *
+ * Never truncates: a game passing more numbers than the standard keeps them
+ * all, because dropping a number a game chose to show is worse than a row one
+ * cell wider than the standard.
+ */
+function padSlots(stats: ChromeStat[], hasLevel: boolean): (ChromeStat | null)[] {
+  const out: (ChromeStat | null)[] = [...stats];
+  while (out.length + (hasLevel ? 1 : 0) < CELLS) out.push(null);
+  return out;
+}
 
 export function GameChrome<T extends string>({
   ctx,
@@ -306,7 +348,17 @@ export function GameChrome<T extends string>({
             a-row-that-grows-with-the-catalog-must-wrap. */}
         <div
           className="gc-row"
-          style={{ display: "flex", alignItems: "center", gap: GAP, flexWrap: "wrap" }}
+          style={{
+            display: ROW_DISPLAY,
+            alignItems: "center",
+            gap: GAP,
+            flexWrap: "wrap",
+            // Only meaningful once the row is a grid. Written unconditionally
+            // because a grid property on a flex container is inert, and the
+            // alternative is a second style object that can disagree with this
+            // one about everything else.
+            gridTemplateColumns: "var(--gc-cols, none)",
+          }}
         >
           {ownRestart &&
             onPaused &&
@@ -412,7 +464,38 @@ export function GameChrome<T extends string>({
             </button>
           )}
 
-          {stats.map((s) => (
+          {/* Padded whenever the row has ANYTHING in it. The one game with
+              neither a difficulty nor a number is coloring, which keeps no
+              score on purpose - three dashes there would be the opposite of
+              the point. */}
+          {((levels && current) || stats.length
+            ? padSlots(stats, Boolean(levels && current))
+            : stats
+          ).map((s, slot) =>
+            s === null ? (
+              <div
+                key={`empty-${slot}`}
+                className="gc-cell gc-stat gc-slot-empty"
+                aria-hidden="true"
+                style={{
+                  display: EMPTY_DISPLAY,
+                  flex: "1 1 0",
+                  minWidth: "var(--gc-stat-min, 88px)",
+                  height: TAP_CSS,
+                  background: CELL_BG,
+                  borderRadius: CELL_RADIUS,
+                  boxShadow: CELL_SHADOW,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "var(--text-dim)",
+                  fontSize: VALUE_SIZE,
+                  fontWeight: 800,
+                  opacity: 0.45,
+                }}
+              >
+                -
+              </div>
+            ) : (
             <div
               key={s.label}
               className={s.compact ? "gc-cell gc-stat gc-compact" : "gc-cell gc-stat"}
@@ -461,7 +544,8 @@ export function GameChrome<T extends string>({
                 )}
               </span>
             </div>
-          ))}
+            ),
+          )}
         </div>
       </div>
 

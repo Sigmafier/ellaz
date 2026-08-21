@@ -42,6 +42,9 @@ export const PANEL_TOKENS: PanelToken[] = [
   { name: "--gc-level-value", label: "level size", shipped: 16, min: 10, max: 26, what: "Easy / Normal / Hard" },
   { name: "--gc-level-min", label: "level width", shipped: 132, min: 90, max: 200, what: "floor before the row wraps" },
   { name: "--gc-stat-min", label: "card width", shipped: 88, min: 60, max: 160, what: "floor for a wide card" },
+  // `--gc-row-display`, `--gc-empty-display` and `--gc-cols` are the same-slots
+  // switch. They are not numbers, so they are not knobs - a style sets them,
+  // and `panel-tokens-are-shipped.test.ts` exempts them BY NAME.
 ];
 
 export type PanelStyle = {
@@ -111,6 +114,26 @@ export const PANEL_STYLES: PanelStyle[] = [
   box-shadow:none!important}
 .gc-icon{color:var(--g, var(--brand))!important}
 .gc-level .gc-value{color:var(--text)}
+`,
+  },
+  {
+    id: "slots",
+    name: "G · same slots, every game",
+    what: "difficulty, a main number, a second number - a dash where a game has none",
+    css: `
+/* A GRID, not flex. Flex sizes each cell from its own content, so \"Time\" in
+   sudoku and \"Score\" in snake land at different widths and the two rows do
+   not line up - which is the whole complaint. Fixed tracks make every game's
+   row the same row. The ratio is 1.25 / 1 / 0.85 because the difficulty is the
+   only cell carrying a WORD and the third is usually a short counter. */
+:root{--gc-row-display:grid;--gc-empty-display:flex;
+  --gc-cols:minmax(0,1.25fr) minmax(0,1fr) minmax(0,0.85fr)}
+/* The floors have to go, or a grid track cannot shrink to its share and the
+   row overflows instead of fitting. minmax(0,..) above is the other half. */
+.gc-cell{min-width:0!important}
+/* A compact cell asked to be sized by its content; in a fixed grid nothing is,
+   so it takes its track like everything else. */
+.gc-compact{flex:unset!important;padding:0 8px!important}
 `,
   },
   {

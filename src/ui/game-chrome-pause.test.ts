@@ -115,6 +115,6 @@ describe("the level toggle survives a fourth button", () => {
     // literal 8 - which is the part that matters and the part a restyle must
     // not be able to remove. The 8 itself is pinned by the panel bench's test,
     // against the fallback in the component.
-    expect(SRC).toMatch(/gap: GAP, flexWrap: "wrap"/);
+    expect(SRC).toMatch(/gap: GAP,\s*\n\s*flexWrap: "wrap"/);
   });
 });

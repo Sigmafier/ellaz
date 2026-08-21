@@ -366,6 +366,64 @@ name rather than by prefix**, so a typo is still an orphan. Full rule and both
 measurement traps:
 [`.claude/rules/a-layout-nobody-can-look-at-drifts-into-a-different-one.md`](.claude/rules/a-layout-nobody-can-look-at-drifts-into-a-different-one.md).
 
+## The game row - difficulty, the score, the stage
+
+**The row under the header is three cells: the difficulty, a main number and a
+second number.** `GameChrome` draws it, every game wears it, and until
+2026-08-21 nobody could compare it against anything - so it drifted into 25
+different rows across 33 games.
+
+**Every number in it is a token whose FALLBACK is the shipped literal**
+(`var(--gc-value, 18px)` and eight more), so nothing renders differently and
+`?design` can turn each one over the real component. Every part of a cell also
+carries a class - `gc-row`, `gc-cell`, `gc-level`, `gc-stat`, `gc-icon`,
+`gc-label`, `gc-value`, `gc-record` - because a token can change a size but it
+cannot move a label under its number or drop a glyph, and those are the
+decisions being asked about. A candidate style is therefore a STYLESHEET the
+bench injects into a real game page, never a drawing beside one.
+`panel-tokens-are-shipped.test.ts` reads each fallback back out of the
+component, through all three shapes a fallback comes in - a px literal, a
+`${TAP}` const, and a `var(--radius-2)` a whole file away.
+
+**Same slots in every game** (operator, 2026-08-21). The row always renders
+three cells and pads with a dash where a game has none, so you know what a game
+looks like before you open it. CSS cannot invent a cell that was never
+rendered, so the empty slots are ALWAYS in the DOM and `--gc-empty-display`
+decides whether they are drawn - `none` by default, which is byte-identical to
+what shipped before and costs **8 B gz**. `--gc-row-display` + `--gc-cols` turn
+the row into a fixed grid, which is what makes the cells LINE UP across games
+rather than each being sized by its own content.
+
+**Two exceptions, both measured rather than reasoned.** `coloring` has neither
+a difficulty nor a number and gets no row at all - three dashes on the one game
+that deliberately keeps no score would be the opposite of the point. And the
+pad counts the DIFFICULTY as a cell: keying on the stats alone left `finddiff`
+(two numbers, no difficulty) at two cells in a three-track grid - a row that
+does not wrap, does not clip, and is simply a different row. It was the only
+game to differ and it surfaced only because the shape count was VERIFIED rather
+than trusted.
+
+**Measured on the artifact, 390px, all 33 games** (`#/lab/buttons` -> SHARED ·
+the game row):
+
+| | wraps | clipped | distinct row shapes |
+|---|---|---|---|
+| today | sudoku | 0 | **25** |
+| same slots, glyph kept | 0 | sudoku `42/81` | 2 |
+| same slots, no glyph | 0 | 0 | 2 |
+
+**Sudoku wraps today by ONE PIXEL** - the difficulty floor (132) plus the stat
+floor (88) plus its content-sized `Filled` cell (100) plus two 8px gaps is 336
+against a 335px row. The compact cell is sized by its own TEXT, so which side
+of that pixel a game lands on moves with the score's digit count: a row whose
+fit is a function of game state cannot be settled by choosing a better
+constant, which is the argument for the fixed grid rather than better floors.
+
+**The glyph is what costs the third cell.** With it, sudoku's `42/81`
+ellipsises inside its own card - no overflow, nothing wider than its frame,
+just a number the player cannot read. Without it, nothing clips in any of the
+33.
+
 ## Rewards, the World, and speech
 
 **The economy.** A game reports WHAT HAPPENED and never says what that is worth.
