@@ -69,6 +69,106 @@ export function standardCss(s: Standard): string {
 .ellaz-game-footer svg{width:${s.icon}px !important;height:${s.icon}px !important}`;
 }
 
+/**
+ * THE SHARED CHROME - the buttons every screen has, rather than the ones a
+ * game invents.
+ *
+ * Measured 2026-08-21 across 5 screens and 3 games: the BOXES already agree
+ * everywhere (72x44 home, 44x44 sound, 90x44 wallet, 44x44 row buttons). The
+ * GLYPHS inside them do not, and the reason is structural rather than
+ * cosmetic - TWO renderers draw them:
+ *
+ *   `icon()`      build-time, wraps the svg in `.gl`, sized off `--hfont`
+ *   `iconNode()`  runtime,    bare svg, `width="1em"`, NO wrapper
+ *
+ * So `.hbtn .gl svg{...}` - every icon rule the header has - misses the sound
+ * and coin glyphs entirely, and they keep their own 16px and their attribute
+ * stroke of 2.1 while everything beside them is 17.4 or 22 at 2.2. A rule
+ * written against `.gl` cannot reach the two icons that are wrong, which is
+ * why this went unseen: the CSS reads correct.
+ *
+ * The candidates below are injected over the real page, so what is judged is
+ * the real header restyled and never a drawing of it. Each one also lifts the
+ * breadcrumb links, which are 20px tall against a 44px floor on every screen -
+ * and note the trap: padding the `.bc` PILL does not grow the `<a>`, so the
+ * rule has to reach the link or the picture changes while the tap target does
+ * not.
+ */
+const CRUMB_TAP =
+  ".urow .bc a{display:inline-block !important;padding:12px 2px !important;margin:-12px 0 !important}";
+
+export const CHROME_STANDARDS: Record<string, { note: string; css: string }> = {
+  now: { note: "three glyph sizes, two strokes, breadcrumb 20px", css: "" },
+  A: {
+    note: "one glyph at 22px - the row's size wins",
+    css:
+      `.hbtn svg,#wallet-slot svg{width:22px !important;height:22px !important;` +
+      `stroke-width:2.2 !important}` + CRUMB_TAP,
+  },
+  B: {
+    note: "one glyph at 17px - the bar's size wins",
+    css:
+      `.hbtn svg,#wallet-slot svg,.urow .ubtn svg{width:17px !important;` +
+      `height:17px !important;stroke-width:2.2 !important}` + CRUMB_TAP,
+  },
+  C: {
+    note: "one glyph at 22px AND one shape - pills everywhere",
+    css:
+      `.hbtn svg,#wallet-slot svg{width:22px !important;height:22px !important;` +
+      `stroke-width:2.2 !important}` +
+      `.urow .ubtn{border-radius:99px !important;box-shadow:none !important;` +
+      `background:color-mix(in srgb,var(--doc-ink) 9%,transparent) !important}` +
+      CRUMB_TAP,
+  },
+};
+
+/** The five glyphs the shared chrome draws, read off a live document. */
+export function readChrome(doc: Document): { label: string; size: string; stroke: string; by: string }[] {
+  const win = doc.defaultView;
+  if (!win) return [];
+  const out: { label: string; size: string; stroke: string; by: string }[] = [];
+  const add = (label: string, svg: SVGElement | null) => {
+    if (!svg) return;
+    const cs = win.getComputedStyle(svg);
+    out.push({
+      label,
+      size: cs.width,
+      stroke: cs.strokeWidth,
+      // The tell, and the whole finding in one column: a glyph with no `.gl`
+      // wrapper was drawn by the runtime and is unreachable from every rule
+      // the header writes.
+      by: svg.parentElement?.classList.contains("gl") ? "build" : "runtime",
+    });
+  };
+  add("header back+home", doc.querySelector(".hbtn.home svg"));
+  const snd = [...doc.querySelectorAll<HTMLElement>(".hbtn.ico")].find(
+    (e) => e.getBoundingClientRect().width > 0,
+  );
+  add("header sound", snd?.querySelector("svg") ?? null);
+  add("header wallet coin", doc.querySelector("#wallet-slot svg"));
+  [...doc.querySelectorAll<HTMLElement>(".urow .ubtn")]
+    .filter((e) => e.getBoundingClientRect().width > 0)
+    .forEach((e) =>
+      add(
+        "g1line " + (e.dataset.restart !== undefined ? "restart" : "full screen"),
+        e.querySelector("svg"),
+      ),
+    );
+  const link = [...doc.querySelectorAll<HTMLElement>(".urow .bc a")].find(
+    (e) => e.getBoundingClientRect().width > 0,
+  );
+  if (link) {
+    const r = link.getBoundingClientRect();
+    out.push({
+      label: "g1line breadcrumb link",
+      size: `${Math.round(r.width)}x${Math.round(r.height)}`,
+      stroke: "-",
+      by: "tap target",
+    });
+  }
+  return out;
+}
+
 type Btn = { w: number; h: number; label: string };
 type Row = { id: string; buttons: Btn[]; note?: string };
 
@@ -91,7 +191,7 @@ const sizeKey = (b: Btn) => `${b.w}x${b.h}`;
 const under = (b: Btn) => b.w < TAP_FLOOR || b.h < TAP_FLOOR;
 
 export function Buttons() {
-  const [mode, setMode] = useState<"one" | "wall">("one");
+  const [mode, setMode] = useState<"chrome" | "one" | "wall">("chrome");
   const [std, setStd] = useState<Standard>(DEFAULT_STANDARD);
   const [on, setOn] = useState(false);
 
@@ -109,20 +209,30 @@ export function Buttons() {
         <Seg
           value={mode}
           options={[
+            ["chrome", "the app's own buttons"],
             ["one", "A · one game, knobs beside it"],
             ["wall", "C · the wall"],
           ]}
-          onPick={(m) => setMode(m as "one" | "wall")}
+          onPick={(m) => setMode(m as "chrome" | "one" | "wall")}
         />
-        <label style={{ ...NOTE, display: "flex", gap: 6, alignItems: "center" }}>
-          <input type="checkbox" checked={on} onChange={(e) => setOn(e.currentTarget.checked)} />
-          apply the standard
-        </label>
+        {mode !== "chrome" ? (
+          <label style={{ ...NOTE, display: "flex", gap: 6, alignItems: "center" }}>
+            <input type="checkbox" checked={on} onChange={(e) => setOn(e.currentTarget.checked)} />
+            apply the standard
+          </label>
+        ) : null}
       </div>
 
-      <Knobs std={std} setStd={setStd} disabled={!on} />
+      {/* The knobs belong to the FOOTER standard. Leaving them on screen
+          during the chrome screen would offer five controls that do nothing,
+          which is the defect this bench caught in its own first hour. */}
+      {mode !== "chrome" ? <Knobs std={std} setStd={setStd} disabled={!on} /> : null}
 
-      {mode === "one" ? <OneGame std={std} on={on} /> : <Wall std={std} on={on} />}
+      {mode === "chrome" ? <Chrome /> : mode === "one" ? (
+        <OneGame std={std} on={on} />
+      ) : (
+        <Wall std={std} on={on} />
+      )}
     </section>
   );
 }
@@ -187,6 +297,107 @@ function Knob({
         style={{ width: 120 }}
       />
     </label>
+  );
+}
+
+/* ------------------------------------------------- the app's own buttons */
+
+function Chrome() {
+  const [pick, setPick] = useState("now");
+  const [game, setGame] = useState("sudoku");
+  const [rows, setRows] = useState<ReturnType<typeof readChrome>>([]);
+  const frame = useRef<HTMLIFrameElement>(null);
+
+  const apply = useCallback(() => {
+    const doc = frame.current?.contentDocument;
+    if (!doc?.querySelector(".urow")) return;
+    let tag = doc.getElementById("std") as HTMLStyleElement | null;
+    if (!tag) {
+      tag = doc.createElement("style");
+      tag.id = "std";
+      doc.head.appendChild(tag);
+    }
+    tag.textContent = CHROME_STANDARDS[pick]?.css ?? "";
+    setRows(readChrome(doc));
+  }, [pick]);
+
+  useEffect(() => {
+    const t = setInterval(apply, 700);
+    return () => clearInterval(t);
+  }, [apply]);
+
+  // The finding, computed rather than asserted: how many DIFFERENT glyph sizes
+  // the shared chrome is drawing right now. One is the goal; three is today.
+  const sizes = new Set(rows.filter((r) => r.stroke !== "-").map((r) => r.size));
+  const strokes = new Set(rows.filter((r) => r.stroke !== "-").map((r) => r.stroke));
+
+  return (
+    <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
+      <div>
+        <div style={{ ...ROW, marginBottom: 6 }}>
+          <Seg
+            value={pick}
+            options={Object.keys(CHROME_STANDARDS).map((k) => [k, k] as [string, string])}
+            onPick={setPick}
+          />
+          <select value={game} onChange={(e) => setGame(e.currentTarget.value)} style={BTN}>
+            {GAMES.map((g) => (
+              <option key={g} value={g}>
+                {g}
+              </option>
+            ))}
+          </select>
+        </div>
+        <p style={{ ...NOTE, margin: "0 0 6px" }}>{CHROME_STANDARDS[pick]?.note}</p>
+        <iframe
+          ref={frame}
+          key={game}
+          title="the screen"
+          src={`/games/${game}/`}
+          style={{ width: 390, height: 500, border: "1px solid #334155", borderRadius: 10 }}
+        />
+      </div>
+
+      <div style={{ minWidth: 380 }}>
+        <h3 style={H3}>every glyph the app draws on every screen</h3>
+        <p style={{ ...NOTE, margin: "0 0 8px" }}>
+          <b style={{ color: sizes.size === 1 ? "#4ade80" : "#f87171" }}>{sizes.size}</b> glyph
+          size{sizes.size === 1 ? "" : "s"} ·{" "}
+          <b style={{ color: strokes.size === 1 ? "#4ade80" : "#f87171" }}>{strokes.size}</b> stroke
+          weight{strokes.size === 1 ? "" : "s"}
+        </p>
+        <table style={{ borderCollapse: "collapse", fontSize: 12 }}>
+          <thead>
+            <tr>
+              {["", "size", "stroke", "drawn by"].map((h) => (
+                <th key={h} style={{ ...TD2, color: "#94a3b8", textAlign: "left" }}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.label}>
+                <td style={TD2}>{r.label}</td>
+                <td style={{ ...TD2, fontWeight: 700 }}>{r.size}</td>
+                <td style={TD2}>{r.stroke}</td>
+                <td style={{ ...TD2, color: r.by === "runtime" ? "#f87171" : "#94a3b8" }}>
+                  {r.by}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p style={{ ...NOTE, maxWidth: 380, marginTop: 10 }}>
+          The red rows are drawn by the RUNTIME as a bare svg with no{" "}
+          <code>.gl</code> wrapper, so every icon rule the header writes -{" "}
+          <code>.hbtn .gl svg</code> - misses them. That is why the CSS reads
+          correct and the bar does not: a rule that cannot reach the two icons
+          that are wrong.
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -482,6 +693,11 @@ const BTN: React.CSSProperties = {
 };
 const NOTE: React.CSSProperties = { fontSize: 11, color: "#94a3b8" };
 const H3: React.CSSProperties = { fontSize: 13, margin: "0 0 6px" };
+const TD2: React.CSSProperties = {
+  padding: "3px 14px 3px 0",
+  borderBottom: "1px solid #1e293b",
+  whiteSpace: "nowrap",
+};
 const CARD: React.CSSProperties = {
   display: "grid",
   gap: 6,
