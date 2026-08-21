@@ -1807,9 +1807,11 @@ nothing about how it reads. Look for that channel before posting anywhere.
   defect. Links are the lever. `npm run reach:links` still prints UNMEASURED
   because an empty report exports no file; the zero is recorded in
   `docs/outreach/exports/README.md` and the ledger.
-- **The GitHub repository description is stale and is public now.** It reads
-  "Free browser games for kids, in Hebrew and English"; the site has four written
-  languages, eleven interface languages, and 9 of 33 games are `ageBand: "all"`.
-  It is the About box on the page every outreach link points at, and no gate here
-  can reach it. Homepage, topics and licence on that repo are correct. An operator
-  action, not a code one.
+- **The GitHub repository description is FIXED** (verified live 2026-08-22: the
+  About box and `node scripts/reach/repo-about.mjs` now agree, both reading
+  "Free browser games for kids and grown-ups. 33 games, 4 languages, no ads, no
+  account, works offline"). It read "in Hebrew and English" for weeks while the
+  site served four written languages, and it is derived from the roster and
+  `PAGE_LOCALES` rather than typed, so it cannot re-break on the next game.
+  It lives in a vendor panel no gate here can reach, so re-check it with
+  `npm run reach:about` rather than trusting this line.
