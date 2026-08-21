@@ -133,6 +133,62 @@ limitation because this audience will ask about tracking within the first two re
 
 ---
 
+## The destinations - and the one part of RCH5 nobody here can do
+
+RCH5 says the destination is fetched the way its readers see it before anything is
+pitched to it. **For these three posts that cannot be satisfied from this repository,
+and saying so is the finding rather than a gap in the work.**
+
+Measured 2026-08-21, twice: a direct fetch of a Facebook group returns its TITLE and
+nothing else. No rules, no pinned post, no member count, no About panel - for a public
+group and a private one alike. A search index holds more (Perplexity's snippet for
+`מורות משקיעות` carried rule text a direct fetch could not see), but that is somebody
+else's crawl on somebody else's date, which is exactly what "fetched the way its readers
+see it" excludes.
+
+So the candidates below are NAMED, with what is known about each and where that knowledge
+came from. **The rules themselves are read by the operator, in the group, on the day**,
+and the checklist at the end is what that read has to produce.
+
+### Post 1 - parents
+
+| Group | Where | What is known, and from where |
+|---|---|---|
+| הורות בזכות | `facebook.com/groups/Horotb` | describes itself as the largest parents' group in Israel. Rights and legislation, which is a poor room for a games link |
+| מאמאזון · סופר מאמא · אמהות בסטייל · הצודקת | indexed at `mamamiterany.co.il` | general parenting advice, several with daily activity. Leads, not verified rooms |
+| ynet's ten | `ynet.co.il/parents/article/sjmflflti` | a round-up from 2023. Three years old, so every entry is a lead to re-check |
+
+### Post 2 - gananot
+
+| Group | Where | What is known |
+|---|---|---|
+| מנהלי הגיל הרך בישראל | `facebook.com/groups/541317406624168` | the closest match to this post's audience anywhere: gananot, nursery managers and early-years staff, described as a professional space for sharing and learning |
+
+### Post 3 - teachers
+
+| Group | Where | What is known |
+|---|---|---|
+| מורות משקיעות | `facebook.com/groups/morot.mashkiot` | **has a brokered promotion channel.** The group's own text directs anyone wanting to promote to it to contact a named person by phone, and separately bars whole topics from the main group |
+| הוראת השפה העברית ביסודי | `facebook.com/groups/2392746324230224` | a PUBLIC group run by the Ministry of Education's pedagogical secretariat. Language teaching, so the relevant games are אות פותחת and מרכיבים מילה - not the roster |
+
+**The מורות משקיעות finding is the transferable one.** A room with a paid or brokered
+promotion channel reads an unbrokered link as somebody dodging it, and the fact that the
+thing being linked is free changes nothing about how it reads. Look for that channel
+before posting anywhere; if it exists, use it or pick a different room.
+
+### The checklist, completed in the group, on the day
+
+- [ ] Read the rules TODAY - the pinned post and the About panel, not a memory of them
+- [ ] Does it forbid links? Forbid promotion? Hold posts for admin approval?
+- [ ] Is there a paid or brokered promotion channel? If yes: use it, or leave
+- [ ] Does a free thing you built yourself count as promotion HERE? When it is not
+      obvious, ask an admin before posting. A question costs nothing; a removed post
+      costs standing in a room you cannot get back into
+- [ ] Are you actually a member, and have you posted here before as a person?
+- [ ] Write the ledger row BEFORE the post goes out (RCH2)
+
+---
+
 ## If someone asks "why did you build this"
 
 Keep it short and true. The long version reads as marketing.
