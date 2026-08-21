@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { GAMES as ROSTER } from "../../portal/games";
 import { VARIANTS } from "./spec";
 
 /**
@@ -16,8 +17,34 @@ import { VARIANTS } from "./spec";
  * pair - the exact thing the operator asked to stop reading.
  */
 
-const GAMES = ["snake", "sudoku", "blocks", "memory", "2048", "coloring"];
-const WIDTHS = [390, 430, 768];
+/**
+ * Every game, read off the ROSTER rather than typed.
+ *
+ * A hand-written list of six was correct the day it was written and is one
+ * commit from being wrong - the roster grows, and a bench that can only look
+ * at the games somebody remembered is the same failure the bench exists to
+ * end. `games.ts` is already in the shell, so this costs the lab nothing.
+ */
+const GAMES = ROSTER.map((g) => g.id);
+
+/**
+ * Phone widths and desktop widths, and the arm matters.
+ *
+ * `GameChrome` and the emitted header both branch at 719px, so a chrome
+ * decision taken at one width says nothing about the other - which is how a
+ * knob dialled on a desktop ships a key hanging off the side of a phone.
+ * The frames are REAL iframes, so a 390px frame is a real 390px viewport:
+ * media queries and `position:fixed` both read it. Narrowing the page with
+ * a width on `<html>` does not - fixed elements keep tracking the real
+ * window, and the tell is a measurement that never varies.
+ */
+const VIEWS = [
+  { w: 390, h: 844, label: "phone 390" },
+  { w: 430, h: 932, label: "phone 430" },
+  { w: 768, h: 1024, label: "tablet 768" },
+  { w: 1024, h: 800, label: "pc 1024" },
+  { w: 1280, h: 800, label: "pc 1280" },
+];
 
 type Row = { what: string; a: string; b: string; same: boolean };
 
@@ -56,7 +83,7 @@ function probe(doc: Document): Record<string, string> {
 export function Compare() {
   const [game, setGame] = useState(GAMES[0]);
   const [variant, setVariant] = useState("g1");
-  const [width, setWidth] = useState(WIDTHS[0]);
+  const [view, setView] = useState(VIEWS[0]);
   const [rows, setRows] = useState<Row[]>([]);
   const [err, setErr] = useState("");
   const ready = useRef(false);
@@ -112,7 +139,7 @@ export function Compare() {
       if (ready.current || ++n >= 10) clearInterval(t);
     }, 900);
     return () => clearInterval(t);
-  }, [game, variant, width, measure]);
+  }, [game, variant, view, measure]);
 
   return (
     <section dir="ltr" style={{ padding: 12 }}>
@@ -125,17 +152,17 @@ export function Compare() {
           onPick={setVariant}
         />
         <Pick
-          label="width"
-          value={String(width)}
-          options={WIDTHS.map(String)}
-          onPick={(v) => setWidth(Number(v))}
+          label="view"
+          value={view.label}
+          options={VIEWS.map((v) => v.label)}
+          onPick={(l) => setView(VIEWS.find((v) => v.label === l) ?? VIEWS[0])}
         />
         <button type="button" onClick={measure} style={BTN}>
           measure
         </button>
       </div>
 
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 6 }}>
         {(
           [
             ["live - what ships today", undefined, left],
@@ -148,7 +175,12 @@ export function Compare() {
               ref={ref}
               title={caption}
               src={url(v)}
-              style={{ width, height: 780, border: "1px solid var(--line,#334155)", borderRadius: 10 }}
+              style={{
+                width: view.w,
+                height: view.h,
+                border: "1px solid var(--line,#334155)",
+                borderRadius: 10,
+              }}
             />
           </figure>
         ))}

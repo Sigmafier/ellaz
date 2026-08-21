@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { GAMES as ROSTER } from "../../portal/games";
 import {
   applySpec,
   clearPick,
@@ -96,10 +97,15 @@ export function Drawer() {
   const [open, setOpen] = useState(!params.has("shut"));
   const [saved, setSaved] = useState(false);
   const [narrow, setNarrow] = useState(() => window.innerWidth <= NARROW);
+  const [vw, setVw] = useState(() => window.innerWidth);
   const root = useRef<HTMLElement>(document.documentElement);
+  const gameId = /\/games\/([^/]+)\//.exec(location.pathname)?.[1] ?? "";
 
   useEffect(() => {
-    const on = () => setNarrow(window.innerWidth <= NARROW);
+    const on = () => {
+      setNarrow(window.innerWidth <= NARROW);
+      setVw(window.innerWidth);
+    };
     window.addEventListener("resize", on);
     return () => window.removeEventListener("resize", on);
   }, []);
@@ -154,6 +160,38 @@ export function Drawer() {
           hide
         </button>
       </header>
+
+      {/*
+        Any game, and the CURRENT width beside it.
+
+        The chrome branches at 719px, so a decision taken on a desktop says
+        nothing about a phone. This drawer draws over the real page, so the
+        viewport IS the browser window - it cannot fake a phone, and faking
+        one with a width on `<html>` would leave every `position:fixed` bar
+        tracking the real window while the number said 390. So it REPORTS the
+        arm instead, and `#/lab/design` is where a real 390px viewport lives,
+        because an iframe is one.
+      */}
+      <div style={{ ...ROW, marginBottom: 10 }}>
+        <select
+          data-design-game
+          value={gameId}
+          onChange={(e) => {
+            const q = new URLSearchParams(location.search);
+            location.href = `/games/${e.currentTarget.value}/?${q.toString()}`;
+          }}
+          style={SELECT}
+        >
+          {ROSTER.map((g) => (
+            <option key={g.id} value={g.id}>
+              {g.id}
+            </option>
+          ))}
+        </select>
+        <span style={{ ...NOTE, alignSelf: "center" }}>
+          {vw}px · {narrow ? "phone arm" : "desktop arm"}
+        </span>
+      </div>
 
       <div style={ROW}>
         {Object.keys(VARIANTS).map((name) => (
@@ -334,4 +372,13 @@ const PRE: React.CSSProperties = {
   lineHeight: 1.3,
   color: "#7dd3fc",
   whiteSpace: "pre-wrap",
+};
+
+const SELECT: React.CSSProperties = {
+  background: "#1e293b",
+  color: "#e2e8f0",
+  border: "1px solid #334155",
+  borderRadius: 8,
+  padding: "5px 8px",
+  fontSize: 12,
 };
