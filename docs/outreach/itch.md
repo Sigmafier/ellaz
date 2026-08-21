@@ -9,14 +9,42 @@ inside a folder. Measured 2026-08-18:
 
 | Game | id | Bundle | Why this one |
 |---|---|---|---|
-| Sudoku | `sudoku` | 226 KB | DOM only, six difficulty levels, the clearest single-screen game we have |
-| 2048 | `n2048` (publishes as `2048`) | 207 KB | the most recognisable mechanic on the site |
+| Sudoku | `sudoku` | 225 KB | DOM only, six difficulty levels, the clearest single-screen game we have |
+| 2048 | `2048` | 204 KB | the most recognisable mechanic on the site |
 | Snake | `snake` | 1.9 MB | the only game that loads Phaser, and the only canvas game of the three |
+
+**`STANDALONE_GAME` takes the game's `meta.id`, never its directory name**, and this
+table said `n2048` until 2026-08-22 - so the first command an operator typed from this
+page failed. The build refuses loudly and prints the whole roster, which is the right
+shape, but a draft whose first instruction does not run is a draft nobody finishes:
+
+```
+$ STANDALONE_GAME=n2048 npm run build:standalone
+Error: unknown game "n2048" - the roster has: memory, evolve, coloring, ... 2048, ...
+```
+
+Only one game in the catalogue has a directory that differs from its id, which is why
+this survived: `src/games/n2048/` publishes as `2048` everywhere a person sees it.
 
 Snake is nine times the size of the other two for one reason: it is the only game in the
 repo that imports Phaser (`grep -rln 'from "phaser"' src/`). There is no payload ceiling
 on itch, so this is a note rather than an objection. Upload sudoku first; it is the better
 first listing whatever happens to the other two.
+
+**Every bundle carries a 1.2 KB `gamesRest-*.js`, and it must stay.** It holds the
+names and colours of the roster's below-the-fold half, it is byte-identical across all
+three zips, and for sudoku, 2048 and snake it is never fetched - all three sit in the
+shell half, so `entryFor` resolves them without it. It looks exactly like something to
+delete from an artifact labelled "Sudoku". **Deleting it breaks every game in the other
+half**, which reach it through `ensureFullCatalog()` and would then mount nothing.
+Measured 2026-08-22, after the roster split.
+
+<!-- outreach-facts:off -->
+(That paragraph was rewritten once: it said "the other 18 games" and `assert:outreach`
+read the phrase as a roster claim and asked for 33. The gate was right to fire - a bare
+"N games" in this folder is a claim about the catalogue - and `--fix` would have made
+the sentence false. Say which half, never how many.)
+<!-- outreach-facts:on -->
 
 **Before uploading, run the gate**: `npm run assert:standalone`. It checks for absolute
 paths, a service worker, a phone-home, a missing `index.html`, and a filename whose case
@@ -137,8 +165,9 @@ here may not be saved between visits. Everything is free in both places.
 **Genre**: Puzzle. **Tags**: `2048` `puzzle` `numbers` `casual` `html5` `mobile`
 `singleplayer` `no-ads` `minimalist` `family-friendly`
 
-**Note on the URL**: the game's id is `n2048` in the source but it publishes as `2048`
-everywhere a person sees it. The itch project URL should be `2048`, not `n2048`.
+**Note on the URL**: `n2048` is the DIRECTORY in the source; the game's id is `2048`,
+and that is what it publishes as everywhere a person sees it. The itch project URL
+should be `2048`, and so should `STANDALONE_GAME`.
 
 ---
 
@@ -197,7 +226,7 @@ English; the site is Hebrew-first. A picture of the board avoids choosing.
 | Claim in the copy | Where it comes from |
 |---|---|
 | 33 games | `src/portal/catalog.ts`, counted 2026-08-18 |
-| bundle sizes 226 KB / 207 KB / 1.9 MB | `dist-standalone/{sudoku,2048,snake}` summed on the built artifacts, 2026-08-18 |
+| bundle sizes 225 KB / 204 KB / 1.9 MB | `dist-standalone/{sudoku,2048,snake}` summed on the built artifacts, re-measured 2026-08-22 |
 | snake is the only Phaser game | `grep -rln 'from "phaser"' src/` returns one file |
 | six sudoku levels: 4x4 and 6x6 animals, then four 9x9 tiers | `LEVEL_OPTIONS` in `src/games/sudoku/Sudoku.tsx` and `LEVELS` in its `logic.ts`. **The first draft of this file said "four sizes" and it was wrong** - six levels across three board sizes. Caught by reading the source, which is the whole reason this column exists |
 | best time kept per board | `src/sdk/score.ts` plus the per-board scoping in `score-contract-convention.md` |

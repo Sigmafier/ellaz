@@ -41,12 +41,32 @@ to.
 
 ---
 
-## What could not be verified from here
+## Re-fetched 2026-08-22, and TWO sentences did come back
 
-Both `https://developers.poki.com/` and `https://developer.crazygames.com/` return **HTTP
-200** and are **client-rendered shells** - the Poki page is 3.4 KB carrying **nine words**
-of text. So no requirement, revenue share, SDK version or submission step below has been
-read from their site by this session, and none should be quoted to them as fact.
+RCH5 says the destination is fetched the way its readers see it before anything is
+pitched to it. Re-run today, and unlike the last attempt two sentences of real
+documentation arrived - both of which bear directly on the decision above:
+
+| Destination | Read today, verbatim |
+|---|---|
+| Poki (`sdk.poki.com`) | *"there are two mandatory steps to get your game ready for an impactful launch: implementing our mandatory requirements and our SDK"* |
+| CrazyGames (`docs.crazygames.com`) | *"Monetization (video ads, banners, in-game purchases) is **disabled**"* during **Basic Launch**; at Full Launch *"Monetization is enabled and you start receiving revenue share"* |
+
+**These two are not the same offer, and the draft below treated them as one.** Poki's SDK
+is stated as mandatory, and an SDK is an external network request from a game - the
+convention this platform does not break, and Poki's own documented rule besides. So for
+Poki the three answers in the first section are the whole decision.
+
+**CrazyGames has a stage with no advertising at all.** A Basic Launch listing carries no
+video ads, no banners and no purchases, which means option 3 - list as an experiment and
+say so on ellaz.fun - has a form nobody had priced: a listing that is honestly ad-free
+until somebody chooses to promote it. It is not a way to have the audience and the
+promise at once forever; Full Launch is where the traffic and the advertising both are.
+But the entry price is different from what this file assumed.
+
+**Neither page was readable in full**, and the rest of this section still stands: both
+developer sites are client-rendered, the deep requirement pages were not reached, and no
+revenue share, SDK version or submission step below has been read from their site.
 
 This is the third destination in this outreach set to answer a script with a healthy
 status and no content, after Newgrounds' 403 and Reddit's identical 8.4 KB shell. Same
