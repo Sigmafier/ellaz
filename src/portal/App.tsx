@@ -43,6 +43,21 @@ const DesignCompare = lazy(() =>
 
 const DESIGN_HASH = "#/lab/design";
 
+/**
+ * The games-buttons bench, at `#/lab/buttons`.
+ *
+ * Its own address beside the chrome bench rather than a tab inside it: they
+ * ask different questions. The chrome bench compares one page against a named
+ * variant; this one walks the whole roster and measures what 21 different
+ * authors did to a footer. Same `lab-*` chunk, so it costs a first visit
+ * exactly what the lab costs it, which is nothing.
+ */
+const DesignButtons = lazy(() =>
+  import("../lab/design/Buttons").then((m) => ({ default: m.Buttons })),
+);
+
+const BUTTONS_HASH = "#/lab/buttons";
+
 /** Re-render on hash change, so leaving the lab does not need a reload. */
 function useHash(): string {
   const [hash, setHash] = useState(() =>
@@ -228,6 +243,14 @@ export function App({ initialLocale }: { initialLocale?: AppLocale } = {}) {
 
   // After the hooks, never before them - an early return above a hook changes
   // the hook order between renders and React crashes.
+  if (hash === BUTTONS_HASH) {
+    return (
+      <Suspense fallback={null}>
+        <DesignButtons />
+      </Suspense>
+    );
+  }
+
   if (hash === DESIGN_HASH) {
     return (
       <Suspense fallback={null}>
