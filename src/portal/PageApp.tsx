@@ -1,5 +1,6 @@
 import { createRoot, type Root } from "react-dom/client";
 import { DEFAULT_LOCALE, loadDict } from "@i18n/index";
+import { PAGE_LOCALES } from "@i18n/locales";
 import type { PageLocale } from "@i18n/locales";
 import { analytics, startCloudSync } from "@sdk/index";
 import { Boards } from "./Boards";
@@ -248,6 +249,37 @@ function mountDesignBench(frame: HTMLElement): void {
   });
 }
 
+/**
+ * The language offer, at `?offer` - a MOCK, for the operator to eyeball.
+ *
+ * Same three properties as the bench above and for the same reasons: the
+ * `import()` is inside the guard so a page without the param fetches none of
+ * it, it lands in the `lab-*` chunk which is neither precached nor
+ * modulepreloaded, and it is its own root.
+ *
+ * It mounts as the FIRST child of `<body>` rather than beside `#game-frame`,
+ * because the thing being judged is a bar above the platform header - and it is
+ * in flow, so the stage really does lose the height. A mock that floated it
+ * over the board would be answering an easier question than the one asked.
+ *
+ * `?offer=he|en|es|fr` picks which language is offered; the default is Hebrew,
+ * which is the measured case (76% of queries, 11% of the impressions).
+ */
+function mountLangOffer(): void {
+  const m = /[?&]offer(?:=([a-z]{2}))?\b/.exec(location.search);
+  if (!m) return;
+  const asked = m[1];
+  const target = (PAGE_LOCALES as readonly string[]).includes(asked ?? "")
+    ? (asked as PageLocale)
+    : "he";
+  const host = document.createElement("div");
+  host.id = "lang-offer";
+  document.body.insertBefore(host, document.body.firstChild);
+  void import("../lab/design/LangOffer").then(({ LangOffer }) => {
+    createRoot(host).render(<LangOffer target={target} />);
+  });
+}
+
 export function bootContentPage(ctx: PageContext): void {
   // Every emitted page stamps its own language, so this fallback is only ever
   // reached by a hand-edited or half-deployed document. DEFAULT_LOCALE rather
@@ -271,6 +303,7 @@ export function bootContentPage(ctx: PageContext): void {
   wirePause();
 
   mountDesignBench(frame);
+  mountLangOffer();
 
   const poster = document.getElementById("game-poster");
   const message = document.getElementById("game-msg");
