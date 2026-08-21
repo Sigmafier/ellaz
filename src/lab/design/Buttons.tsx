@@ -87,40 +87,57 @@ export function standardCss(s: Standard): string {
  * written against `.gl` cannot reach the two icons that are wrong, which is
  * why this went unseen: the CSS reads correct.
  *
- * The candidates below are injected over the real page, so what is judged is
- * the real header restyled and never a drawing of it. Each one also lifts the
- * breadcrumb links, which are 20px tall against a 44px floor on every screen -
- * and note the trap: padding the `.bc` PILL does not grow the `<a>`, so the
- * rule has to reach the link or the picture changes while the tap target does
- * not.
+ * FIXED on 2026-08-21: the header's icon rule dropped `.gl` from its selector,
+ * so it reaches both renderers, and `--hicon` puts one number behind every
+ * glyph. The breadcrumb links were the other half - 20px tall against a 44px
+ * floor on every screen - and the trap there is that padding the `.bc` PILL
+ * does not grow the `<a>`, so the picture changes while the tap target does
+ * not. The panel below reads all of it back off the real page rather than
+ * asserting it, because that is the only way to notice it coming undone.
  */
-const CRUMB_TAP =
-  ".urow .bc a{display:inline-block !important;padding:12px 2px !important;margin:-12px 0 !important}";
-
-export const CHROME_STANDARDS: Record<string, { note: string; css: string }> = {
-  now: { note: "three glyph sizes, two strokes, breadcrumb 20px", css: "" },
-  A: {
-    note: "one glyph at 22px - the row's size wins",
-    css:
-      `.hbtn svg,#wallet-slot svg{width:22px !important;height:22px !important;` +
-      `stroke-width:2.2 !important}` + CRUMB_TAP,
-  },
-  B: {
-    note: "one glyph at 17px - the bar's size wins",
-    css:
-      `.hbtn svg,#wallet-slot svg,.urow .ubtn svg{width:17px !important;` +
-      `height:17px !important;stroke-width:2.2 !important}` + CRUMB_TAP,
-  },
-  C: {
-    note: "one glyph at 22px AND one shape - pills everywhere",
-    css:
-      `.hbtn svg,#wallet-slot svg{width:22px !important;height:22px !important;` +
-      `stroke-width:2.2 !important}` +
-      `.urow .ubtn{border-radius:99px !important;box-shadow:none !important;` +
-      `background:color-mix(in srgb,var(--doc-ink) 9%,transparent) !important}` +
-      CRUMB_TAP,
-  },
+/**
+ * THE SHARED STANDARD - one row per number the chrome is laid out from.
+ *
+ * Every one of these is a REAL custom property on `body.screen`, so a knob
+ * here changes the same thing a stylesheet edit would, on the game, the room
+ * and the boards alike. That is the difference between this panel and a mock:
+ * nothing is redrawn by hand, the real CSS reads the value. If a knob moves
+ * nothing, the token is not what lays that thing out - which is a finding,
+ * not a bug in the panel.
+ *
+ * `shipped` is what `layout.ts` sets today, shown beside the knob so a changed
+ * value reads as a CHANGE rather than as a number.
+ */
+export type TokenSpec = {
+  name: string;
+  label: string;
+  /** What layout.ts sets, PER ARM - the chrome branches at 719px. */
+  shipped: { wide: number; narrow: number };
+  min: number;
+  max: number;
+  what: string;
 };
+
+const same = (n: number) => ({ wide: n, narrow: n });
+
+export const CHROME_TOKENS: TokenSpec[] = [
+  { name: "--hh", label: "header height", shipped: { wide: 60, narrow: 58 }, min: 44, max: 88, what: "the tinted bar" },
+  { name: "--uh", label: "page row height", shipped: { wide: 52, narrow: 46 }, min: 40, max: 80, what: "the G1 line" },
+  { name: "--tap", label: "button size", shipped: same(44), min: 36, max: 72, what: "every round button, both rows" },
+  { name: "--hicon", label: "icon size", shipped: same(22), min: 12, max: 34, what: "every glyph on every screen" },
+  { name: "--hgap", label: "header gap", shipped: { wide: 12, narrow: 8 }, min: 0, max: 28, what: "space between the bar's items" },
+  { name: "--hpad", label: "side padding", shipped: { wide: 20, narrow: 12 }, min: 0, max: 40, what: "the screen edge, both rows" },
+  { name: "--hbrand", label: "title size", shipped: { wide: 22, narrow: 20 }, min: 14, max: 32, what: "the game's name in the bar" },
+  { name: "--hrad", label: "bar button radius", shipped: same(99), min: 0, max: 99, what: "99 is a pill" },
+  { name: "--urad", label: "row button radius", shipped: same(14), min: 0, max: 99, what: "99 is a pill" },
+];
+
+/** The shipped value for the arm currently on screen. */
+export const shippedFor = (t: TokenSpec, wide: boolean) =>
+  wide ? t.shipped.wide : t.shipped.narrow;
+
+/** The tap floor. A knob may go under it; the panel says so in red. */
+export const CHROME_FLOOR = 44;
 
 /** The five glyphs the shared chrome draws, read off a live document. */
 export function readChrome(doc: Document): { label: string; size: string; stroke: string; by: string }[] {
@@ -209,9 +226,9 @@ export function Buttons() {
         <Seg
           value={mode}
           options={[
-            ["chrome", "the app's own buttons"],
-            ["one", "A · one game, knobs beside it"],
-            ["wall", "C · the wall"],
+            ["chrome", "SHARED · every game"],
+            ["one", "PER GAME · one footer"],
+            ["wall", "PER GAME · all 33 footers"],
           ]}
           onPick={(m) => setMode(m as "chrome" | "one" | "wall")}
         />
@@ -303,101 +320,220 @@ function Knob({
 /* ------------------------------------------------- the app's own buttons */
 
 function Chrome() {
-  const [pick, setPick] = useState("now");
   const [game, setGame] = useState("sudoku");
+  // UNSET means "whatever ships". Seeding this with the shipped numbers and
+  // writing all nine every time looks identical and is not: it pins the phone
+  // arm to the desktop values, so the panel showed a 60px header over a page
+  // that really draws 58. Only a token the operator has actually moved is
+  // written; the rest are removed, and the media query governs them.
+  const [vals, setVals] = useState<Record<string, number | undefined>>({});
+  const [wide, setWide] = useState(false);
   const [rows, setRows] = useState<ReturnType<typeof readChrome>>([]);
   const frame = useRef<HTMLIFrameElement>(null);
 
+  const valueOf = (t: TokenSpec) => vals[t.name] ?? shippedFor(t, wide);
+  const dirty = CHROME_TOKENS.filter(
+    (t) => vals[t.name] !== undefined && vals[t.name] !== shippedFor(t, wide),
+  );
+
+  // On the BODY, not documentElement. The tokens are declared by
+  // `body.screen{...}`, and a declaration ON an element beats one inherited
+  // from its parent - so setting them on <html> is inherited straight past by
+  // the very rule that defines them, and every knob moves nothing while the
+  // panel cheerfully reports "2 changed".
+  //
+  // Measured, not reasoned: the first version did exactly that, said 2
+  // changed, emitted the CSS, and the iframe's header stayed 58px with its
+  // glyphs at 22px. An inline style on the body wins over the stylesheet in
+  // both viewport arms, which is what makes the knobs real.
+  //
+  // No `!important` anywhere: if a knob still moved nothing, that would mean
+  // the token is not what lays that thing out, and finding that out is the
+  // point of the panel.
   const apply = useCallback(() => {
     const doc = frame.current?.contentDocument;
     if (!doc?.querySelector(".urow")) return;
-    let tag = doc.getElementById("std") as HTMLStyleElement | null;
-    if (!tag) {
-      tag = doc.createElement("style");
-      tag.id = "std";
-      doc.head.appendChild(tag);
-    }
-    tag.textContent = CHROME_STANDARDS[pick]?.css ?? "";
+    CHROME_TOKENS.forEach((t) => {
+      const v = vals[t.name];
+      if (v === undefined) doc.body.style.removeProperty(t.name);
+      else doc.body.style.setProperty(t.name, `${v}px`);
+    });
     setRows(readChrome(doc));
-  }, [pick]);
+  }, [vals]);
 
   useEffect(() => {
-    const t = setInterval(apply, 700);
+    const t = setInterval(apply, 600);
     return () => clearInterval(t);
   }, [apply]);
 
-  // The finding, computed rather than asserted: how many DIFFERENT glyph sizes
-  // the shared chrome is drawing right now. One is the goal; three is today.
+  const set = (name: string, v: number) => setVals((p) => ({ ...p, [name]: v }));
+  const reset = () => setVals({});
+
   const sizes = new Set(rows.filter((r) => r.stroke !== "-").map((r) => r.size));
   const strokes = new Set(rows.filter((r) => r.stroke !== "-").map((r) => r.stroke));
+  const css = dirty.map((t) => `${t.name}:${vals[t.name]}px`).join(";");
+  const arm = wide ? "desktop" : "phone";
 
   return (
-    <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
-      <div>
-        <div style={{ ...ROW, marginBottom: 6 }}>
-          <Seg
-            value={pick}
-            options={Object.keys(CHROME_STANDARDS).map((k) => [k, k] as [string, string])}
-            onPick={setPick}
-          />
-          <select value={game} onChange={(e) => setGame(e.currentTarget.value)} style={BTN}>
-            {GAMES.map((g) => (
-              <option key={g} value={g}>
-                {g}
-              </option>
-            ))}
-          </select>
-        </div>
-        <p style={{ ...NOTE, margin: "0 0 6px" }}>{CHROME_STANDARDS[pick]?.note}</p>
-        <iframe
-          ref={frame}
-          key={game}
-          title="the screen"
-          src={`/games/${game}/`}
-          style={{ width: 390, height: 500, border: "1px solid #334155", borderRadius: 10 }}
-        />
-      </div>
+    <div>
+      <p style={{ ...NOTE, maxWidth: 760, marginTop: 0 }}>
+        Everything on this screen applies to <b style={{ color: "#e2e8f0" }}>every game</b>, the
+        room and the boards, because every knob is a custom property on{" "}
+        <code>body.screen</code> that the real stylesheet reads. The other two tabs are{" "}
+        <b style={{ color: "#e2e8f0" }}>per game</b> - what each game draws in its own footer, which
+        no shared rule governs today.
+      </p>
 
-      <div style={{ minWidth: 380 }}>
-        <h3 style={H3}>every glyph the app draws on every screen</h3>
-        <p style={{ ...NOTE, margin: "0 0 8px" }}>
-          <b style={{ color: sizes.size === 1 ? "#4ade80" : "#f87171" }}>{sizes.size}</b> glyph
-          size{sizes.size === 1 ? "" : "s"} ·{" "}
-          <b style={{ color: strokes.size === 1 ? "#4ade80" : "#f87171" }}>{strokes.size}</b> stroke
-          weight{strokes.size === 1 ? "" : "s"}
-        </p>
-        <table style={{ borderCollapse: "collapse", fontSize: 12 }}>
-          <thead>
-            <tr>
-              {["", "size", "stroke", "drawn by"].map((h) => (
-                <th key={h} style={{ ...TD2, color: "#94a3b8", textAlign: "left" }}>
-                  {h}
-                </th>
+      <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
+        <div>
+          <div style={{ ...ROW, marginBottom: 6 }}>
+            <select value={game} onChange={(e) => setGame(e.currentTarget.value)} style={BTN}>
+              {GAMES.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
               ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.label}>
-                <td style={TD2}>{r.label}</td>
-                <td style={{ ...TD2, fontWeight: 700 }}>{r.size}</td>
-                <td style={TD2}>{r.stroke}</td>
-                <td style={{ ...TD2, color: r.by === "runtime" ? "#f87171" : "#94a3b8" }}>
-                  {r.by}
-                </td>
-              </tr>
+            </select>
+            {/* The chrome branches at 719px, so a value dialled on one arm says
+                nothing about the other - which is how a key ends up hanging off
+                the side of a phone nobody in the room was looking at. */}
+            <Seg
+              value={wide ? "wide" : "phone"}
+              options={[
+                ["phone", "phone 390"],
+                ["wide", "desktop 1100"],
+              ]}
+              onPick={(v) => setWide(v === "wide")}
+            />
+          </div>
+          <iframe
+            ref={frame}
+            key={game}
+            title="the screen"
+            src={`/games/${game}/`}
+            style={{
+              width: wide ? 1100 : 390,
+              height: 560,
+              border: "1px solid #334155",
+              borderRadius: 10,
+            }}
+          />
+        </div>
+
+        <div style={{ minWidth: 320 }}>
+          <h3 style={H3}>the standard - every game</h3>
+          <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
+            {CHROME_TOKENS.map((t) => (
+              <TokenKnob
+                key={t.name}
+                spec={t}
+                value={valueOf(t)}
+                shipped={shippedFor(t, wide)}
+                onChange={set}
+              />
             ))}
-          </tbody>
-        </table>
-        <p style={{ ...NOTE, maxWidth: 380, marginTop: 10 }}>
-          The red rows are drawn by the RUNTIME as a bare svg with no{" "}
-          <code>.gl</code> wrapper, so every icon rule the header writes -{" "}
-          <code>.hbtn .gl svg</code> - misses them. That is why the CSS reads
-          correct and the bar does not: a rule that cannot reach the two icons
-          that are wrong.
-        </p>
+          </div>
+          <div style={ROW}>
+            <button type="button" style={BTN} onClick={reset} disabled={!dirty.length}>
+              back to shipped
+            </button>
+            <span style={NOTE}>
+              {dirty.length ? `${dirty.length} changed on the ${arm} arm` : `matches what ships on the ${arm} arm`}
+            </span>
+          </div>
+          {dirty.length ? (
+            <pre
+              style={{
+                ...NOTE,
+                background: "#0f172a",
+                padding: 8,
+                borderRadius: 6,
+                whiteSpace: "pre-wrap",
+                maxWidth: 320,
+              }}
+            >
+              body.screen{"{"}
+              {css}
+              {"}"}
+            </pre>
+          ) : null}
+        </div>
+
+        <div style={{ minWidth: 340 }}>
+          <h3 style={H3}>what the page actually draws</h3>
+          <p style={{ ...NOTE, margin: "0 0 8px" }}>
+            <b style={{ color: sizes.size === 1 ? "#4ade80" : "#f87171" }}>{sizes.size}</b> glyph
+            size{sizes.size === 1 ? "" : "s"} ·{" "}
+            <b style={{ color: strokes.size === 1 ? "#4ade80" : "#f87171" }}>{strokes.size}</b>{" "}
+            stroke weight{strokes.size === 1 ? "" : "s"}
+          </p>
+          <table style={{ borderCollapse: "collapse", fontSize: 12 }}>
+            <thead>
+              <tr>
+                {["", "size", "stroke", "drawn by"].map((h) => (
+                  <th key={h} style={{ ...TD2, color: "#94a3b8", textAlign: "left" }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.label}>
+                  <td style={TD2}>{r.label}</td>
+                  <td style={{ ...TD2, fontWeight: 700 }}>{r.size}</td>
+                  <td style={TD2}>{r.stroke}</td>
+                  <td style={TD2}>{r.by}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p style={{ ...NOTE, maxWidth: 340, marginTop: 10 }}>
+            Read out of the real document every 600ms, never typed. The two rows
+            marked <b>runtime</b> are appended as a bare svg with no wrapper - the
+            header&apos;s icon rule drops <code>.gl</code> from its selector so it
+            reaches them anyway, which is what makes one number here possible at
+            all.
+          </p>
+        </div>
       </div>
     </div>
+  );
+}
+
+function TokenKnob({
+  spec,
+  value,
+  shipped,
+  onChange,
+}: {
+  spec: TokenSpec;
+  value: number;
+  shipped: number;
+  onChange: (name: string, v: number) => void;
+}) {
+  const changed = value !== shipped;
+  // Only the tap-target token has a floor. Flagging a header height as "under
+  // 44" would be noise, and a knob that cries wolf is one nobody reads.
+  const under = spec.name === "--tap" && value < CHROME_FLOOR;
+  return (
+    <label style={{ display: "grid", gap: 2, fontSize: 11, color: "#94a3b8" }}>
+      <span>
+        {spec.label}{" "}
+        <b style={{ color: under ? "#f87171" : changed ? "#facc15" : "#e2e8f0" }}>{value}</b>
+        {changed ? <span style={{ color: "#facc15" }}> was {shipped}</span> : null}
+        {under ? <span style={{ color: "#f87171" }}> under {CHROME_FLOOR}</span> : null}
+        <span style={{ opacity: 0.6 }}> · {spec.what}</span>
+      </span>
+      <input
+        type="range"
+        min={spec.min}
+        max={spec.max}
+        value={value}
+        onChange={(e) => onChange(spec.name, Number(e.currentTarget.value))}
+        style={{ width: 300 }}
+      />
+    </label>
   );
 }
 

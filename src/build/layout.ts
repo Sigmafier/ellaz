@@ -281,17 +281,22 @@ body.screen .urow .bc{margin:0;flex:0 1 auto;margin-inline-end:auto;min-width:0;
    so colour cannot say which words are tappable and an underline does. The
    leaf stays plain because you are already there. (Comments in DOCUMENT_CSS
    are SERVED, unlike the ones in global.css; keep them short here.) */
+/* The LINK carries the tap target, not the pill - these measured 20px tall
+   against a 44px floor. Padding the pill leaves the link at 20 and only moves
+   the picture, so the padding goes here and the negative margin keeps the
+   pill the height it was. */
 body.screen .urow .bc a{color:inherit;text-decoration:underline;
   text-underline-offset:3px;text-decoration-thickness:1px;
+  display:inline-block;padding-block:12px;margin-block:-12px;
   text-decoration-color:color-mix(in srgb,currentColor 55%,transparent)}
 body.screen .urow .tools{display:flex;align-items:center;gap:8px;flex:0 0 auto}
 .ubtn{display:inline-flex;align-items:center;justify-content:center;
   width:var(--tap);height:var(--tap);flex:0 0 auto;border:0;padding:0;
-  cursor:pointer;border-radius:14px;background:var(--doc-card);
+  cursor:pointer;border-radius:var(--urad);background:var(--doc-card);
   color:var(--doc-ink);box-shadow:0 2px 0 var(--doc-line)}
 .ubtn[hidden]{display:none}
 .ubtn .gl{display:flex}
-.ubtn .gl svg{display:block;width:22px;height:22px;fill:none;
+.ubtn svg{display:block;width:var(--hicon);height:var(--hicon);fill:none;
   stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 
 /* --- the SCREEN header ----------------------------------------------------
@@ -349,8 +354,11 @@ body.screen .urow .tools{display:flex;align-items:center;gap:8px;flex:0 0 auto}
    nothing in the app or the document defines it. Without that, every rule
    here resolves to the same fallback indigo and all 21 bars come out
    identical - a plausible picture, one flat colour, no error anywhere. */
+/* Every number the shared chrome is laid out from, in ONE place, so the
+   design bench can turn them. A knob cannot reach a literal. */
 body.screen{--hh:60px;--uh:52px;--oh:0px;--tap:44px;--hgap:12px;--hpad:20px;
-  --hbrand:22px;--hfont:14.5px;--hdr-ink:#FFF6E9}
+  --hbrand:22px;--hfont:14.5px;--hicon:22px;--hrad:99px;--urad:14px;
+  --hdr-ink:#FFF6E9}
 @media (max-width:719px){body.screen{--hh:58px;--uh:46px;--hbrand:20px;--hgap:8px;--hpad:12px}}
 
 body.screen .top{position:relative;z-index:6;height:var(--hh);
@@ -382,7 +390,7 @@ body.screen .gname{flex:1 1 0;min-width:0;
 .hbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
   height:var(--tap);
   border:0;margin:0;cursor:pointer;text-decoration:none;flex:0 0 auto;
-  border-radius:99px;padding:0 calc(var(--tap) * .39);white-space:nowrap;
+  border-radius:var(--hrad);padding:0 calc(var(--tap) * .39);white-space:nowrap;
   font:600 var(--hfont)/1 inherit;
   background:rgba(255,255,255,.12);color:var(--hdr-ink)}
 /* An icon-only control is SQUARE. At the pill padding it is 50 wide around a
@@ -394,9 +402,14 @@ body.screen .gname{flex:1 1 0;min-width:0;
 .hbtn.pri:hover{background:#fff}
 .hbtn[hidden]{display:none}
 .hbtn .gl{display:flex;flex:0 0 auto}
-.hbtn .gl svg{width:calc(var(--hfont) * 1.2);height:calc(var(--hfont) * 1.2);
+/* No .gl in this selector, deliberately: the runtime appends a BARE svg for
+   sound and the wallet, so a rule keyed on the wrapper missed exactly the two
+   glyphs that were wrong. (Comments here are SERVED - keep them short.) */
+.hbtn svg{width:var(--hicon);height:var(--hicon);
   display:block;fill:none;stroke:currentColor;stroke-width:2.2;
   stroke-linecap:round;stroke-linejoin:round}
+/* The wallet chip. Size and stroke only - never fill: the star is filled. */
+#wallet-slot svg{width:var(--hicon);height:var(--hicon);stroke-width:2.2}
 /* An arrow is not bidi-mirrored by the renderer - U+2190 draws pointing left
    whatever the direction is - so a back affordance in Hebrew has to be
    flipped deliberately. Drawn rather than typed for the same reason the coin
