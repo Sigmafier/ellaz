@@ -81,7 +81,14 @@ describe("the level toggle survives a fourth button", () => {
     // The mutation this exists for is one character: `minWidth: 0`. It
     // type-checks, renders, passes every width assertion, and clips the level
     // name inside its own card on a 390px phone.
-    const floor = /minWidth: (\d+),\n\s*border: "none"/.exec(SRC);
+    // The floor is a TOKEN now (`--gc-level-min`, declared in tokens.css so the
+    // Design Bench can turn it), so this reads the fallback the component
+    // carries. Both shapes are accepted deliberately: reverting to a bare
+    // literal is a legitimate state of the file, and a matcher that refused it
+    // would fail over the thing it is measuring rather than over the defect.
+    const floor =
+      /minWidth: "var\(--gc-level-min,\s*(\d+)px\)",/.exec(SRC) ??
+      /minWidth: (\d+),\n\s*border: "none"/.exec(SRC);
     expect(floor, "the level toggle no longer declares a minWidth").toBeTruthy();
     expect(Number(floor![1])).toBeGreaterThanOrEqual(120);
   });

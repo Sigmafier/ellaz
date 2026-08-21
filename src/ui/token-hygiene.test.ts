@@ -105,6 +105,9 @@ export function readTokens(source: string): string[] {
   return [...source.matchAll(/var\((--[a-z0-9-]+)/g)].map((m) => m[1]);
 }
 
+/** Set on the root by the Design Bench, never declared in the token file. */
+const BENCH_TOKENS = new Set(["--gc-tap", "--gc-gap", "--gc-level-min", "--gc-stat-min", "--gc-radius"]);
+
 export const COLOUR_LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\([0-9 ,.%/]+\)|["'](white|black)["']/;
 
 describe("every var() resolves", () => {
@@ -124,6 +127,14 @@ describe("every var() resolves", () => {
         // `--game` is set inline on a card and read by .ellaz-tint; `--doc-*`
         // belong to the emitted documents' own stylesheet in src/build.
         if (name === "--game" || name.startsWith("--doc-")) continue;
+        // The Design Bench's four. They are SET AT RUNTIME on the root by
+        // `src/lab/design/spec.ts` and every read carries the shipped literal
+        // as its fallback, so declaring them in tokens.css would buy nothing
+        // and cost the first visit 110 B gz against 34 B of headroom
+        // (measured 2026-08-21, two arms). Listed BY NAME rather than by
+        // `--gc-` prefix on purpose: a typo must still read as an orphan, and
+        // a prefix exemption would wave one through.
+        if (BENCH_TOKENS.has(name)) continue;
         orphans.push(`${rel}: var(${name})`);
       }
     }

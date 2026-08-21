@@ -26,6 +26,23 @@ const Lab = lazy(() => import("../lab/Lab").then((m) => ({ default: m.Lab })));
 
 const LAB_HASH = "#/lab";
 
+/**
+ * The Design Bench's compare screen, at `#/lab/design`.
+ *
+ * Its own address rather than a tab inside the sound lab, for one reason that
+ * is a measurement and not a preference: the lab's column is capped at 720px
+ * and two phone-width arms side by side need 796. A tab would have to fight
+ * that cap or shrink the arms, and an arm measured at the wrong width is worse
+ * than no arm at all.
+ *
+ * Same chunk, so it costs a first visit exactly what the lab costs it: nothing.
+ */
+const DesignCompare = lazy(() =>
+  import("../lab/design/Compare").then((m) => ({ default: m.Compare })),
+);
+
+const DESIGN_HASH = "#/lab/design";
+
 /** Re-render on hash change, so leaving the lab does not need a reload. */
 function useHash(): string {
   const [hash, setHash] = useState(() =>
@@ -211,6 +228,14 @@ export function App({ initialLocale }: { initialLocale?: AppLocale } = {}) {
 
   // After the hooks, never before them - an early return above a hook changes
   // the hook order between renders and React crashes.
+  if (hash === DESIGN_HASH) {
+    return (
+      <Suspense fallback={null}>
+        <DesignCompare />
+      </Suspense>
+    );
+  }
+
   if (hash === LAB_HASH) {
     return (
       <Suspense fallback={null}>

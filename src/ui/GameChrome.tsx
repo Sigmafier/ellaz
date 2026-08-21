@@ -83,9 +83,24 @@ export type ChromeLevel<T extends string> = {
 const DEFAULT_COLORS = ["var(--green)", "var(--yellow)", "var(--brand)"];
 
 const TAP = 56; // >= the 44px WCAG floor, and the size the ink ratio was tuned at
+
+/**
+ * The same number, as a CSS length the Design Bench can turn.
+ *
+ * Every size in this file is a decision somebody made once and nobody can see
+ * any more, which is how an approved layout drifts into a different one. These
+ * read a token whose FALLBACK is the shipped literal, so the rendering is
+ * byte-identical with no token set and the bench at `?design` can dial it over
+ * the real component rather than over a drawing of it.
+ * `src/lab/design/variant-is-shipped.test.ts` pins each fallback to the
+ * variant that claims to be shipped.
+ */
+const TAP_CSS = `var(--gc-tap, ${TAP}px)`;
+/** Glyph ratio as CSS, so the icon grows with the cell instead of pinning at 29px. */
+const TAP_GLYPH = `calc(${TAP_CSS} * 0.52)`;
 /** Past this many levels the dots become a "3/12" counter. See the toggle. */
 const DOT_MAX = 5;
-const SURFACE_RADIUS = "var(--radius-3)";
+const SURFACE_RADIUS = "var(--gc-radius, var(--radius-3))";
 
 export function GameChrome<T extends string>({
   ctx,
@@ -191,8 +206,8 @@ export function GameChrome<T extends string>({
       aria-label={ariaLabel}
       onClick={onClick}
       style={{
-        width: TAP,
-        height: TAP,
+        width: TAP_CSS,
+        height: TAP_CSS,
         flex: "0 0 auto",
         border: "none",
         borderRadius: "var(--radius-2)",
@@ -202,7 +217,7 @@ export function GameChrome<T extends string>({
         display: "grid",
         placeItems: "center",
         // 0.52 of the button, not 0.36. See the ink note above.
-        fontSize: Math.round(TAP * 0.52),
+        fontSize: TAP_GLYPH,
         cursor: "pointer",
       }}
     >
@@ -272,7 +287,7 @@ export function GameChrome<T extends string>({
               aria-label={`${t("difficulty")}: ${current.label[ctx.locale]}`}
               onClick={() => onLevel(levels[(i + 1) % levels.length].id)}
               style={{
-                height: TAP,
+                height: TAP_CSS,
                 // BASIS 0, not auto. On `auto` this card's basis is its own
                 // CONTENT - an emoji, a word and three dots - so it grows to
                 // fit that and takes the row's slack with it: measured on the
@@ -301,7 +316,7 @@ export function GameChrome<T extends string>({
                 // labels) and not this constant's.
                 // See .claude/rules/a-row-that-grows-with-the-catalog-must-wrap.md
                 // and .claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md
-                minWidth: 132,
+                minWidth: "var(--gc-level-min, 132px)",
                 border: "none",
                 borderRadius: "var(--radius-2)",
                 background: "var(--surface)",
@@ -373,8 +388,8 @@ export function GameChrome<T extends string>({
                 // squeezed below this ellipsises its own record rather than
                 // wrapping the row, and an ellipsised "Best" is a number the
                 // player simply cannot read.
-                minWidth: s.compact ? 0 : 88,
-                height: TAP,
+                minWidth: s.compact ? 0 : "var(--gc-stat-min, 88px)",
+                height: TAP_CSS,
                 background: "var(--surface)",
                 borderRadius: "var(--radius-2)",
                 boxShadow: "var(--shadow-1)",

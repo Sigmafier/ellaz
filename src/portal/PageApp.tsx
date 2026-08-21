@@ -217,6 +217,37 @@ function exitTo(locale: PageLocale): () => void {
   };
 }
 
+
+/**
+ * The Design Bench, at `?design`.
+ *
+ * A layout gets approved as a picture and ships as a different half-done one,
+ * because there is nowhere to LOOK at the real chrome and turn it. This mounts
+ * the bench over the real page - real emitted header, real `GameChrome`, real
+ * board - and it turns the tokens those already read.
+ *
+ * Three properties, and each is load-bearing:
+ *
+ * - The `import()` is INSIDE the guard, so a page without the param fetches
+ *   not one byte of it. `src/lab/**` is its own `lab-*` chunk with a matching
+ *   `globIgnores` entry, so it is neither precached nor modulepreloaded.
+ *   See .claude/rules/precache-glob-sweeps-new-chunks.md.
+ * - It mounts into a SIBLING of `#game-frame`, never a child. A node React
+ *   does not know about inside a tree it reconciles is
+ *   react-nested-root-teardown in a different costume - the same reason
+ *   `#game-poster` sits beside the frame rather than in it.
+ * - It is its own root, so nothing about the game's mount changes.
+ */
+function mountDesignBench(frame: HTMLElement): void {
+  if (!/[?&]design\b/.test(location.search)) return;
+  const host = document.createElement("div");
+  host.id = "design-bench";
+  frame.parentElement?.insertBefore(host, frame);
+  void import("../lab/design/Drawer").then(({ Drawer }) => {
+    createRoot(host).render(<Drawer />);
+  });
+}
+
 export function bootContentPage(ctx: PageContext): void {
   // Every emitted page stamps its own language, so this fallback is only ever
   // reached by a hand-edited or half-deployed document. DEFAULT_LOCALE rather
@@ -238,6 +269,8 @@ export function bootContentPage(ctx: PageContext): void {
   wireSound();
   wireRestart();
   wirePause();
+
+  mountDesignBench(frame);
 
   const poster = document.getElementById("game-poster");
   const message = document.getElementById("game-msg");

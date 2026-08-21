@@ -328,6 +328,44 @@ the single-step soft drop was fiddly on a phone). **2048** has no on-screen butt
 at all, only swipe and arrow keys. Giving either one a joystick is a control
 redesign, not this layout change.
 
+## The Design Bench - where a layout is looked at, dialled and pinned
+
+**Add `?design` to any game URL** and a drawer opens over the REAL chrome - the
+emitted header, the real `GameChrome`, the real board - with knobs for every
+size those already read. **`#/lab/design`** puts two arms side by side at phone
+width and MEASURES the difference out of both documents. `src/lab/design/`,
+inside the existing `lab-*` chunk, so a page without the query param fetches
+none of it.
+
+**A chrome decision is a NAMED VARIANT in `src/lab/design/spec.ts`**, and
+`variant-is-shipped.test.ts` reads `layout.ts` and `GameChrome.tsx` and reds if
+either stops matching `SHIPPED`. Six planted defects, six killed - a 1px `--uh`,
+the pill removed, the panel cell, the level floor, and a token read reverted to
+a raw literal. That test is what makes "ship != approved" a red build rather
+than an argument.
+
+**The finding that came out of building it: G1 was already live.** `dist-g1/`,
+the approved build of 2026-08-20 20:32, carries `--hh 60/58 --uh 52/46 --tap 44`
+- byte-identical to today. The only difference in the whole document is the
+breadcrumb, which was plain then and is a pill now, added afterwards. So the
+half that kept being called unwired is the PANEL, which G1 never specified.
+
+**Three knobs are labelled `records only` on purpose.** `statShape`, `restartAt`
+and `pauseAt` need the component to render differently, not the page to style
+differently, so the bench records the choice and does not fake the preview. A
+knob that writes an attribute nothing reads answers "yes, previewed" to
+everyone who turns it - and the compare screen caught exactly that, in the
+bench, an hour after it existed.
+
+`GameChrome`'s sizes are `var(--gc-tap, 56px)`-shaped reads with the shipped
+literal as the fallback, so nothing renders differently and the bench can turn
+them. The four `--gc-*` names are NOT declared in `tokens.css`: measured two
+arms, declaring them costs **110 B gz** against the headroom this repo has, and
+they are set at runtime like `--game`. `token-hygiene.test.ts` exempts them **by
+name rather than by prefix**, so a typo is still an orphan. Full rule and both
+measurement traps:
+[`.claude/rules/a-layout-nobody-can-look-at-drifts-into-a-different-one.md`](.claude/rules/a-layout-nobody-can-look-at-drifts-into-a-different-one.md).
+
 ## Rewards, the World, and speech
 
 **The economy.** A game reports WHAT HAPPENED and never says what that is worth.
