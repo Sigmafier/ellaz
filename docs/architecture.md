@@ -46,6 +46,7 @@ the `@sdk` / `@ui` / `@juice` / `@i18n` / `@shared` aliases, never deep paths):
 | `src/juice` | Game-feel kit — haptics, shake, particle burst, confetti, `flyTo`, tween |
 | `src/i18n` | he (RTL) + en (LTR) strings + direction |
 | `src/portal` | Shell: `App` (the home screen at `/`), `Home` (grid), `PageApp` (boots a game or a room/boards screen on its own page), `GameHost` (mount bridge), `catalog` (registry + lazy loaders), `Boards` + `boardsView` (the leaderboards and their pure half), `world/` (room + shop). **The hash router is retired** — every route is a real URL |
+| `src/build` | **BUILD-TIME ONLY** — the 164 emitted documents. `routes.ts` is the route table and the single source of truth for what a page IS (`PageKind` = home · game · category · world · boards · notFound); `pages.ts`, `gamePage.ts`, `sitePages.ts`, `layout.ts` render them; `siteFiles.ts` writes robots/sitemap/llms; `ogCard.ts` + `ogImages.ts` rasterise the share cards. Reads `src/content`, and **nothing in the app may import it**. Anything answering "which page is this" keys on the route table — see `.claude/rules/a-proxy-for-a-page-kind-stops-discriminating-when-the-type-grows.md` |
 | `src/games/<id>` | `logic.ts` (pure, TDD) + `logic.test.ts` + a DOM (React) or canvas (Phaser) renderer |
 
 ## The SDK contract
