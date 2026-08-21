@@ -24,7 +24,13 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+// Guarded, so importing this for a helper does not PATCH a public GitHub
+// field and then process.exit(1) inside the importer.
+// See .claude/rules/a-script-that-runs-on-import-prints-its-importers-verdict.md
+const IS_MAIN = process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url;
+
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const SLUG = "Sigmafier/ellaz";
@@ -68,13 +74,13 @@ function live() {
 const want = describe();
 if (want.length > LIMIT) {
   console.error(`repo-about: ${want.length} chars, over GitHub's ${LIMIT} cap.`);
-  process.exit(1);
+  if (IS_MAIN) process.exit(1);
 }
 
 const mode = process.argv[2];
-if (!mode) { console.log(want); process.exit(0); }
+if (IS_MAIN && !mode) { console.log(want); process.exit(0); }
 
-if (mode === "--check" || mode === "--apply") {
+if (IS_MAIN && (mode === "--check" || mode === "--apply")) {
   const have = live();
   if (have === want) { console.log(`OK  the About box matches the roster.\n    ${want}`); process.exit(0); }
   console.log(`before: ${have}`);
@@ -91,5 +97,7 @@ if (mode === "--check" || mode === "--apply") {
   console.log(now === want ? "\nOK  written and read back." : `\nFAILED  the live value is now: ${now}`);
   process.exit(now === want ? 0 : 1);
 }
-console.error(`repo-about: unknown mode ${mode}`);
-process.exit(1);
+if (IS_MAIN) {
+  console.error(`repo-about: unknown mode ${mode}`);
+  process.exit(1);
+}

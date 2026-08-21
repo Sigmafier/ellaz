@@ -36,7 +36,7 @@
  */
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { splitCsvLine } from "./gsc-links.mjs";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -261,4 +261,10 @@ function main() {
   console.log(`OK  measured. ${ORIGIN} is INDEXED and earning impressions; this is not a crawling problem.`);
 }
 
-main();
+// The CLI, guarded. Without this the whole report runs the moment anything
+// imports this file for a helper - into the importer's stdout, with this
+// script's exit code - and the importer's own verdict reads as a clean pass
+// over something it never evaluated. Measured on the sibling gsc-links.mjs,
+// 2026-08-21. See .claude/rules/a-script-that-runs-on-import-prints-its-importers-verdict.md
+const IS_MAIN = process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url;
+if (IS_MAIN) main();

@@ -151,7 +151,12 @@ function control() {
 // something worse: the importer's own test run prints THIS file's verdict and
 // exits 0, so a sibling's controls read as "all behaved" without one of them
 // having been evaluated. Measured 2026-08-21, building gsc-performance.mjs.
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+// `process.argv[1] &&` FIRST, and it is not defensive noise: under `node -e`
+// and under a dynamic import from a worker there is no argv[1], and
+// pathToFileURL(undefined) THROWS - so the guard written to stop this file
+// hijacking an importer crashed the importer instead. Measured 2026-08-21,
+// by importing it. A guard nobody has watched behave is not a guard.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const arg = process.argv[2];
     if (arg === "--control") process.exit(control());
   const named = arg ? resolve(arg) : null;
