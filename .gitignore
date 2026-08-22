@@ -4,6 +4,10 @@ dist-ssr
 # second-base build arm, produced by scripts/check-both-bases.sh
 dist-ellaz
 dist-standalone
+# the zips handed to itch/Newgrounds. NOT inside dist-standalone/ - the gate
+# scans every child of that directory as a bundle, so a zips/ folder parked
+# there reports as a fourth, torn bundle (0 html, 0 js) and fails the run.
+dist-standalone-zips
 *.local
 .env
 .env.local

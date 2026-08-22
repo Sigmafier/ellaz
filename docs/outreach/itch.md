@@ -7,6 +7,29 @@ zips and pastes the copy below; no part of this is automated and no part of it s
 the contents of `dist-standalone/<id>/` with `index.html` at the **root of the zip**, not
 inside a folder. Measured 2026-08-18:
 
+**Build the zips LAST, after the final commit.** The stamp is `git rev-parse HEAD`,
+so *any* commit - yours or a peer's - makes every existing zip stale and
+`assert:standalone` refuses it by name. That is the gate doing its job; it is also
+an ordering constraint, and doing it in the other order means building twice.
+Measured 2026-08-22: a peer landed a commit between two gate runs in the same
+session, and the push of the fix invalidated the zips a second time.
+
+**The zips go in `dist-standalone-zips/`, never in `dist-standalone/zips/`.** The gate
+walks every CHILD of `dist-standalone/` and treats each as a bundle, so a `zips/`
+folder parked there reports as a fourth bundle with `0 html, 0 js` - which is the
+exact shape a killed upload leaves, so it reads as a torn bundle rather than as a
+misplaced folder. Both directories are gitignored.
+
+**Gate the ZIP, not the build directory.** The directory passing says nothing about
+what actually leaves in the archive - a wrong root, a dropped file, a path
+separator. Extract each zip to a scratch root shaped `<root>/<id>/` and run the real
+gate over it:
+
+```bash
+BUNDLE_ROOT=/path/to/extracted node scripts/assert-standalone.mjs
+```
+
+
 | Game | id | Bundle | Why this one |
 |---|---|---|---|
 | Sudoku | `sudoku` | 225 KB | DOM only, six difficulty levels, the clearest single-screen game we have |
