@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GAMES as ROSTER } from "../../portal/games";
+import { Preview } from "./Preview";
 import { VARIANTS } from "./spec";
 
 /**
@@ -163,27 +164,26 @@ export function Compare() {
         </button>
       </div>
 
-      <div style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 6 }}>
+      {/* Wrap rather than scroll sideways. Two arms side by side is the point
+          on a desktop; on a phone there is no width for two, and a pair the
+          operator has to scroll HORIZONTALLY between is not a comparison. */}
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", paddingBottom: 6 }}>
         {(
           [
             ["live - what ships today", undefined, left],
             [`${variant} - the variant`, variant, right],
           ] as const
         ).map(([caption, v, ref]) => (
-          <figure key={caption} style={{ margin: 0 }}>
-            <figcaption style={CAP}>{caption}</figcaption>
-            <iframe
-              ref={ref}
-              title={caption}
-              src={url(v)}
-              style={{
-                width: view.w,
-                height: view.h,
-                border: "1px solid var(--line,#334155)",
-                borderRadius: 10,
-              }}
-            />
-          </figure>
+          <Preview
+            key={caption}
+            frameRef={ref}
+            frameKey={`${game}-${variant}-${view.label}-${caption}`}
+            title={caption}
+            src={url(v)}
+            w={view.w}
+            h={view.h}
+            controls={<div style={CAP}>{caption}</div>}
+          />
         ))}
       </div>
 

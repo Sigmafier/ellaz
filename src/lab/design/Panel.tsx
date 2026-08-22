@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GAMES as ROSTER } from "../../portal/games";
 import { PANEL_STYLES, PANEL_TOKENS, STYLE_BY_ID, type PanelToken } from "./panelStyles";
+import { Preview } from "./Preview";
+import { useLiveApply } from "./useLiveApply";
 
 /**
  * The game panel bench - difficulty, the score and the stage, over a real game.
@@ -96,7 +98,7 @@ export function Panel() {
 
   const apply = useCallback(() => {
     const doc = frame.current?.contentDocument;
-    if (!doc?.querySelector(".gc-row")) return;
+    if (!doc?.querySelector(".gc-row")) return false;
     let tag = doc.getElementById(STYLE_TAG);
     if (!tag) {
       tag = doc.createElement("style");
@@ -115,20 +117,18 @@ export function Panel() {
       else doc.body.style.setProperty(t.name, `${v}px`);
     });
     setRead(readPanel(doc));
+    return true;
   }, [style, vals]);
 
-  // Poll rather than guess one delay: the page is a real document booting a
-  // real game, and a measurement taken before it paints is a table of zeros
-  // that looks exactly like a table of measurements.
+  // A knob lands at once; the poll waits for the frame to boot and nothing
+  // else. Blanking the table belongs with the FRAME too - it used to run on
+  // every knob change, so the numbers being dialled against disappeared the
+  // moment you touched a slider.
+  const frameKey = `${game}-${wide}`;
+  useLiveApply(apply, frameKey);
   useEffect(() => {
     setRead({ cells: [], lines: 0 });
-    let n = 0;
-    const t = setInterval(() => {
-      apply();
-      if (frame.current?.contentDocument?.querySelector(".gc-row") || ++n > 12) clearInterval(t);
-    }, 500);
-    return () => clearInterval(t);
-  }, [game, wide, apply]);
+  }, [frameKey]);
 
   const clipped = read.cells.flatMap((c) => c.clipped);
   const css = [
@@ -140,48 +140,40 @@ export function Panel() {
 
   return (
     <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
-      {/* The preview stays a REAL 390px viewport even on a 390px phone, so it
-          scrolls inside its own box rather than making the whole page scroll
-          sideways. Narrowing it instead would be worse than useless: the thing
-          being previewed is what a 390px screen does, and a 366px preview
-          answers a question nobody asked. */}
-      <div style={{ maxWidth: "100%", minWidth: 0 }}>
-        <div style={{ ...ROW, marginBottom: 6 }}>
-          <select value={game} onChange={(e) => setGame(e.currentTarget.value)} style={BTN}>
-            {PANEL_GAMES.map((g) => (
-              <option key={g} value={g}>
-                {g}
-              </option>
-            ))}
-          </select>
-          <Seg
-            value={wide ? "wide" : "phone"}
-            options={[
-              ["phone", "phone 390"],
-              ["wide", "desktop 1100"],
-            ]}
-            onPick={(v) => setWide(v === "wide")}
-          />
-          <button type="button" style={BTN} onClick={apply}>
-            measure
-          </button>
-        </div>
-        <div style={{ overflowX: "auto", maxWidth: "100%" }}>
-          <iframe
-            ref={frame}
-            key={`${game}-${wide}`}
-            title="the game"
-            src={previewSrc(game)}
-            style={{
-              width: wide ? 1100 : 390,
-              height: 560,
-              border: "1px solid #334155",
-              borderRadius: 10,
-              display: "block",
-            }}
-          />
-        </div>
-      </div>
+      {/* The preview stays a REAL 390px viewport even on a 390px phone - it is
+          SCALED to fit rather than narrowed, so what is measured below is still
+          what a 390px screen does. See `Preview`, which also keeps a swipe over
+          the frame from being eaten by the game inside it. */}
+      <Preview
+        frameRef={frame}
+        frameKey={frameKey}
+        title="the game"
+        src={previewSrc(game)}
+        w={wide ? 1100 : 390}
+        h={560}
+        controls={
+          <div style={{ ...ROW, marginBottom: 6 }}>
+            <select value={game} onChange={(e) => setGame(e.currentTarget.value)} style={BTN}>
+              {PANEL_GAMES.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+            <Seg
+              value={wide ? "wide" : "phone"}
+              options={[
+                ["phone", "phone 390"],
+                ["wide", "desktop 1100"],
+              ]}
+              onPick={(v) => setWide(v === "wide")}
+            />
+            <button type="button" style={BTN} onClick={apply}>
+              measure
+            </button>
+          </div>
+        }
+      />
 
       <div style={{ minWidth: 260, flex: "1 1 260px" }}>
         <h3 style={H3}>the style</h3>

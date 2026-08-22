@@ -1,0 +1,182 @@
+#!/usr/bin/env node
+/**
+ * Reproducer - the design bench on the phone it exists for, found 2026-08-22.
+ *
+ * RUNNABLE, and it asserts. Against a served build:
+ *
+ *     npm run build && npm run preview &
+ *     node scripts/repro/repro-bench-on-a-phone.mjs http://localhost:5180
+ *
+ * Exits 1 if any of it comes back. It needs `playwright` and a browser, which
+ * this repo does not depend on, so it is a repro rather than a gate -
+ * `src/lab/design/the-bench-works-on-a-phone.test.ts` is the part that runs in
+ * CI, and it pins the mechanism rather than the rendered behaviour.
+ *
+ * ---------------------------------------------------------------------------
+ * WHAT IT REPRODUCES - reported as one sentence, "the lab doesnt do anything i
+ * tried moving stuff around", and it was two defects wearing one symptom.
+ * Measured on ellaz.fun at 390x844:
+ *
+ *                                              before          after
+ *   a wheel OVER the preview                   scrolled 0px    scrolled 763px
+ *   the same wheel 40px lower                  scrolled 1146px    - same -
+ *   a knob, at the instant the pointer is up   nothing         --gc-tap: 85px
+ *   the same knob 1.2s later                   --gc-tap: 87px     - same -
+ *   the viewport INSIDE a "390px" preview      388px           390px
+ *
+ * 1. An iframe is a separate document, so a swipe that lands on the preview
+ *    scrolls THAT page - and a game page is `body{overflow:hidden}`, so it
+ *    scrolls nothing and the gesture is eaten. The preview spanned y=182..742,
+ *    two thirds of the screen, so the knobs were below the fold behind a dead
+ *    zone. `Preview` lays a transparent sheet over the frame.
+ *
+ * 2. Every knob change REBUILT the 500ms interval that did the applying, so a
+ *    drag reset the clock faster than it could tick. `useLiveApply` applies on
+ *    the change and polls only for the frame to boot.
+ *
+ * 3. `* { box-sizing: border-box }` made a 1px border on a `width: 390` frame
+ *    preview a 388px viewport, on a bench whose subject is rows that wrap by
+ *    ONE pixel. A box-shadow paints and does not lay out.
+ *
+ * WHY "reachable" is `elementFromPoint` and not a rectangle: the preview is
+ * PINNED on a phone, and a pinned preview satisfies every rectangle test while
+ * covering the control completely. That is how the pin shipped broken once.
+ */
+import { chromium } from "playwright";
+
+const BASE = process.argv[2] || "http://localhost:5180";
+const SHOT = process.argv[3] || null;
+const TABS = [
+  ["SHARED · the bar", true],
+  ["SHARED · the game row", true],
+  ["PER GAME · one footer", true],
+  ["PER GAME · all 33 footers", false],
+];
+
+const b = await chromium.launch();
+const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
+const p = await ctx.newPage();
+const errs = [];
+p.on("pageerror", (e) => errs.push(String(e)));
+p.on("console", (m) => { if (m.type() === "error") errs.push("console: " + m.text().slice(0, 120)); });
+
+await p.goto(`${BASE}/#/lab/buttons`, { waitUntil: "domcontentloaded" });
+await p.waitForTimeout(2500);
+
+const fail = [];
+const ok = (cond, msg) => { console.log(`${cond ? "  ok  " : "  FAIL"} ${msg}`); if (!cond) fail.push(msg); };
+
+for (const [tab, knobbed] of TABS) {
+  console.log(`\n--- ${tab}`);
+  await p.locator("button", { hasText: tab }).first().click();
+  await p.waitForTimeout(tab.includes("33") ? 1500 : 4000);
+
+  const sec = p.locator("section").first();
+  await p.evaluate(() => { document.querySelector("section").scrollTop = 0; });
+
+  const geo = await p.evaluate(() => {
+    const de = document.documentElement;
+    const s = document.querySelector("section");
+    const f = document.querySelector('iframe[title]:not([style*="-9999"])');
+    const r = f && f.getBoundingClientRect();
+    const wider = [...document.querySelectorAll("body *")]
+      .filter((el) => el.getBoundingClientRect().width > innerWidth + 1)
+      .map((el) => `${el.tagName}.${String(el.className).slice(0, 20)}`);
+    return {
+      overflowX: de.scrollWidth - innerWidth,
+      wider: wider.slice(0, 4),
+      scrollable: s.scrollHeight - s.clientHeight,
+      frame: r ? { top: Math.round(r.top), bottom: Math.round(r.bottom), w: Math.round(r.width) } : null,
+      innerW: f && f.contentWindow ? f.contentWindow.innerWidth : null,
+      ranges: document.querySelectorAll('input[type="range"]').length,
+    };
+  });
+  ok(geo.overflowX <= 0, `no sideways scroll (overflow ${geo.overflowX}${geo.wider.length ? " " + geo.wider.join(",") : ""})`);
+  if (geo.frame) {
+    ok(geo.frame.w <= 390, `preview fits the screen (${geo.frame.w}px wide on 390)`);
+    ok(geo.innerW === 390 || geo.innerW === 1100, `the frame is still a real viewport inside (innerWidth ${geo.innerW})`);
+  }
+
+  // THE defect: a swipe over the preview must scroll the lab.
+  if (geo.frame && geo.scrollable > 0) {
+    const y = Math.min(830, Math.max(20, Math.round((geo.frame.top + geo.frame.bottom) / 2)));
+    await p.mouse.move(195, y);
+    await p.mouse.wheel(0, 900);
+    await p.waitForTimeout(350);
+    const moved = await p.evaluate(() => document.querySelector("section").scrollTop);
+    ok(moved > 100, `a swipe OVER the preview scrolls the lab (scrollTop ${moved} after a wheel at y=${y})`);
+  }
+
+  if (knobbed) {
+    // The footer standard is behind an "apply the standard" checkbox, and the
+    // knobs are deliberately inert until it is ticked. Arm it, or the probe
+    // measures the checkbox rather than the knob.
+    const arm = p.locator('input[type="checkbox"]');
+    if (await arm.count()) { await arm.first().check(); await p.waitForTimeout(1200); }
+    // Every knob must be reachable by scrolling.
+    const reach = await p.evaluate(() => {
+      const rs = [...document.querySelectorAll('input[type="range"]')];
+      if (!rs.length) return { n: 0, reachable: 0 };
+      const s = document.querySelector("section");
+      // "Reachable" means the finger lands on the KNOB - not merely that its
+      // rectangle is inside the viewport. A sticky preview pinned to the top
+      // satisfies the rectangle test while covering the control completely.
+      let n = 0; const blocked = [];
+      for (const r of rs) {
+        // `end`, not `center`: the preview is PINNED to the top on a phone, so
+        // the middle of the viewport is behind it. A person scrolls until the
+        // knob appears in the free strip underneath, which is what this does.
+        r.scrollIntoView({ block: "end" });
+        const q = r.getBoundingClientRect();
+        const hit = document.elementFromPoint(q.x + q.width / 2, q.y + q.height / 2);
+        // `<=`, not `<`. `block:"end"` lands the bottom EXACTLY on the
+        // viewport bottom, so a strict compare reported 0 of 9 unreachable
+        // over nine knobs that `elementFromPoint` said were hittable.
+        if (q.top > 0 && q.bottom <= innerHeight + 0.5 && hit === r) n++;
+        else blocked.push((hit && hit.tagName) + "." + String((hit && hit.className) || "").slice(0, 16));
+      }
+      // How much room is left to work in under a pinned preview.
+      const f = document.querySelector('iframe[title]:not([style*="-9999"])');
+      const pinned = f && getComputedStyle(f.closest("div[style]").parentElement).position === "sticky";
+      // Only meaningful while it is pinned; unpinned the frame runs past the
+      // fold and the number is a negative nobody should read.
+      const strip = pinned ? Math.round(innerHeight - f.getBoundingClientRect().bottom) : null;
+      s.scrollTop = 0;
+      return { n: rs.length, reachable: n, blocked: blocked.slice(0, 3), pinned: !!pinned, strip };
+    });
+    ok(reach.n > 0 && reach.reachable === reach.n, `every knob is reachable by finger (${reach.reachable}/${reach.n}${reach.blocked && reach.blocked.length ? " blocked by " + reach.blocked.join(",") : ""}) · ${reach.pinned ? reach.strip + "px free under the pinned preview" : "not pinned"}`);
+
+    // And a knob must land while you are still dragging it.
+    const r0 = p.locator('input[type="range"]').first();
+    await p.evaluate(() => document.querySelector('input[type="range"]').scrollIntoView({ block: "end" }));
+    await p.waitForTimeout(250);
+    const box = await r0.boundingBox();
+    const before = await p.evaluate(() => {
+      const f = document.querySelector('iframe[title]:not([style*="-9999"])');
+      const d = f && f.contentDocument;
+      return d ? (d.body.getAttribute("style") || "") + "|" + (d.getElementById("fk-standard")?.textContent || "") : "?";
+    });
+    await p.mouse.move(box.x + box.width * 0.5, box.y + box.height / 2);
+    await p.mouse.down();
+    await p.mouse.move(box.x + box.width * 0.92, box.y + box.height / 2, { steps: 10 });
+    await p.waitForTimeout(60); // still HOLDING the slider
+    const during = await p.evaluate(() => {
+      const f = document.querySelector('iframe[title]:not([style*="-9999"])');
+      const d = f && f.contentDocument;
+      return d ? (d.body.getAttribute("style") || "") + "|" + (d.getElementById("fk-standard")?.textContent || "") : "?";
+    });
+    await p.mouse.up();
+    let i = 0; while (i < before.length && before[i] === during[i]) i++;
+    ok(during !== before, `the knob lands WHILE dragging (differs at ${i}: "${before.slice(i, i + 34)}" -> "${during.slice(i, i + 34)}")`);
+  }
+}
+
+if (SHOT) {
+  await p.locator("button", { hasText: "SHARED · the game row" }).first().click();
+  await p.waitForTimeout(4000);
+  await p.screenshot({ path: SHOT, fullPage: true });
+}
+console.log("\npage errors:", errs.length ? errs.slice(0, 4) : "none");
+console.log(fail.length ? `\nFAILED ${fail.length}` : "\nALL GREEN");
+await b.close();
+process.exit(fail.length ? 1 : 0);

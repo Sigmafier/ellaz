@@ -366,6 +366,57 @@ name rather than by prefix**, so a typo is still an orphan. Full rule and both
 measurement traps:
 [`.claude/rules/a-layout-nobody-can-look-at-drifts-into-a-different-one.md`](.claude/rules/a-layout-nobody-can-look-at-drifts-into-a-different-one.md).
 
+**The bench was unusable on the phone it exists for, and both reasons were
+invisible from a desktop.** Reported as one sentence - *"the lab doesnt do
+anything i tried moving stuff around"* - and measured on the live site at
+390x844 before anything was written.
+
+**A swipe that lands on the preview scrolls the PREVIEW's document**, and a
+game page is `body{overflow:hidden}`, so it scrolls nothing and the gesture is
+simply eaten. The preview spanned y=182..742 - two thirds of the screen - and
+a wheel over it moved the lab **0px** while the same wheel 40px lower moved it
+**1146px**. The knobs were below the fold behind a dead zone. `Preview` now
+lays a transparent sheet over the frame so the gesture reaches the page again;
+`tap to play` lifts it, because poking the game should be a deliberate act on
+a surface whose job is to be looked at.
+
+**And a knob applied on the next tick of a 500ms timer that every knob change
+REBUILT** - a range input fires while you drag, so the clock was reset faster
+than it could tick and nothing happened until you let go. Measured: the
+frame's body was untouched at the instant the pointer came up and carried
+`--gc-tap: 87px` 1.2s later. `useLiveApply` splits the two jobs, because they
+are two jobs: a change lands on the next commit, and the poll waits only for
+the frame to BOOT, keyed on the frame rather than on the knobs. It caught a
+third screen on the way - the footer standard's five knobs had the same 700ms
+timer.
+
+Three smaller things fell out of measuring rather than reasoning:
+
+- **`position: sticky` has to sit on the flex ITEM.** Two arms, one variable:
+  on a div inside the column the frame ended at top **-594** after a 700px
+  scroll, and on the item itself at top **0**. A sticky box is clamped to its
+  containing block, and a column exactly as tall as its preview has nowhere to
+  travel - so the wrong one scrolls away looking exactly like a browser with no
+  sticky support. That is why `Preview` owns the whole preview column, controls
+  and all, rather than being dropped inside one.
+- **The frame carries a box-SHADOW, not a border.** `* { box-sizing:
+  border-box }` is in the app's own reset, so a 1px border on a `width: 390`
+  frame previewed a **388px** viewport - on a bench whose whole subject is rows
+  that fit or wrap by ONE pixel. It had been 388 since the bench existed.
+- **It pins only if it still READS.** Capping an 844-tall frame to half an
+  844 screen produced a 195px thumbnail, so the tall arm scrolls and the short
+  ones pin at 93%.
+
+**`the-bench-works-on-a-phone.test.ts` pins all of it** - five mutations
+planted, five killed, each verified to have landed by checksum before the
+verdict was read. And the e2e probe that found it re-runs in one command:
+`scripts/repro/repro-bench-on-a-phone.mjs`, which drives all four tabs at 390x844 with touch and
+asserts no sideways scroll, a preview that is still a real 390px viewport
+inside, a swipe over the preview that scrolls, every knob reachable **by
+finger** (`elementFromPoint`, not a rectangle - a pinned preview satisfies the
+rectangle test while covering the control), and a knob that lands while the
+pointer is still down.
+
 ## The game row - difficulty, the score, the stage
 
 **One row, three cells, the same in every game: the difficulty, a main number

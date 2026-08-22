@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GAMES as ROSTER } from "../../portal/games";
 import { Panel } from "./Panel";
+import { Preview } from "./Preview";
+import { useLiveApply } from "./useLiveApply";
 
 /**
  * The games-buttons bench, at `#/lab/buttons`.
@@ -377,19 +379,19 @@ function Chrome() {
   // point of the panel.
   const apply = useCallback(() => {
     const doc = frame.current?.contentDocument;
-    if (!doc?.querySelector(".urow")) return;
+    if (!doc?.querySelector(".urow")) return false;
     CHROME_TOKENS.forEach((t) => {
       const v = vals[t.name];
       if (v === undefined) doc.body.style.removeProperty(t.name);
       else doc.body.style.setProperty(t.name, `${v}px`);
     });
     setRows(readChrome(doc));
+    return true;
   }, [vals]);
 
-  useEffect(() => {
-    const t = setInterval(apply, 600);
-    return () => clearInterval(t);
-  }, [apply]);
+  // A knob lands at once. It used to land on the next tick of a 600ms timer
+  // that every knob change rebuilt, which meant a drag landed nothing at all.
+  useLiveApply(apply, `${game}-${wide}`);
 
   const set = (name: string, v: number) => setVals((p) => ({ ...p, [name]: v }));
   const reset = () => setVals({});
@@ -410,40 +412,36 @@ function Chrome() {
       </p>
 
       <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
-        <div>
-          <div style={{ ...ROW, marginBottom: 6 }}>
-            <select value={game} onChange={(e) => setGame(e.currentTarget.value)} style={BTN}>
-              {GAMES.map((g) => (
-                <option key={g} value={g}>
-                  {g}
-                </option>
-              ))}
-            </select>
-            {/* The chrome branches at 719px, so a value dialled on one arm says
-                nothing about the other - which is how a key ends up hanging off
-                the side of a phone nobody in the room was looking at. */}
-            <Seg
-              value={wide ? "wide" : "phone"}
-              options={[
-                ["phone", "phone 390"],
-                ["wide", "desktop 1100"],
-              ]}
-              onPick={(v) => setWide(v === "wide")}
-            />
-          </div>
-          <iframe
-            ref={frame}
-            key={game}
-            title="the screen"
-            src={previewSrc(game)}
-            style={{
-              width: wide ? 1100 : 390,
-              height: 560,
-              border: "1px solid #334155",
-              borderRadius: 10,
-            }}
-          />
-        </div>
+        <Preview
+          frameRef={frame}
+          frameKey={game}
+          title="the screen"
+          src={previewSrc(game)}
+          w={wide ? 1100 : 390}
+          h={560}
+          controls={
+            <div style={{ ...ROW, marginBottom: 6 }}>
+              <select value={game} onChange={(e) => setGame(e.currentTarget.value)} style={BTN}>
+                {GAMES.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
+              {/* The chrome branches at 719px, so a value dialled on one arm says
+                  nothing about the other - which is how a key ends up hanging off
+                  the side of a phone nobody in the room was looking at. */}
+              <Seg
+                value={wide ? "wide" : "phone"}
+                options={[
+                  ["phone", "phone 390"],
+                  ["wide", "desktop 1100"],
+                ]}
+                onPick={(v) => setWide(v === "wide")}
+              />
+            </div>
+          }
+        />
 
         <div style={{ minWidth: 320 }}>
           <h3 style={H3}>the standard - every game</h3>
@@ -579,7 +577,7 @@ function OneGame({ std, on }: { std: Standard; on: boolean }) {
     if (!doc?.querySelector(".ellaz-game-footer")) {
       setBtns([]);
       setErr("this game has no footer, or it has not mounted yet");
-      return;
+      return false;
     }
     setErr("");
     let tag = doc.getElementById("fk-standard") as HTMLStyleElement | null;
@@ -590,34 +588,35 @@ function OneGame({ std, on }: { std: Standard; on: boolean }) {
     }
     tag.textContent = on ? standardCss(std) : "";
     setBtns(readFooter(doc));
+    return true;
   }, [std, on]);
 
-  useEffect(() => {
-    const t = setInterval(apply, 700);
-    return () => clearInterval(t);
-  }, [apply]);
+  // A knob lands at once - see `useLiveApply`. These five are the ones the
+  // operator drags hardest, since they are the footer standard itself.
+  useLiveApply(apply, game);
 
   return (
     <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
-      <div>
-        <div style={{ ...ROW, marginBottom: 6 }}>
-          <select value={game} onChange={(e) => setGame(e.currentTarget.value)} style={BTN}>
-            {GAMES.map((g) => (
-              <option key={g} value={g}>
-                {g}
-              </option>
-            ))}
-          </select>
-          <span style={NOTE}>390 x 844, the real page</span>
-        </div>
-        <iframe
-          ref={frame}
-          key={game}
-          title="the game"
-          src={previewSrc(game)}
-          style={{ width: 390, height: 844, border: "1px solid #334155", borderRadius: 10 }}
-        />
-      </div>
+      <Preview
+        frameRef={frame}
+        frameKey={game}
+        title="the game"
+        src={previewSrc(game)}
+        w={390}
+        h={844}
+        controls={
+          <div style={{ ...ROW, marginBottom: 6 }}>
+            <select value={game} onChange={(e) => setGame(e.currentTarget.value)} style={BTN}>
+              {GAMES.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+            <span style={NOTE}>390 x 844, the real page</span>
+          </div>
+        }
+      />
 
       <div style={{ minWidth: 280 }}>
         <h3 style={H3}>this game&apos;s footer, measured</h3>
