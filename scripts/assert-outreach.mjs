@@ -46,6 +46,8 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { firstVisit } from "./assert-payload.mjs";
+import { execFileSync } from "node:child_process";
+import { readRecord, RECORD } from "./reach/ci-payload.mjs";
 import { check as ledgerCheck, RECORDS } from "./outreach-ledger.mjs";
 import { heTitles, rosterIds } from "./lib/roster.mjs";
 
@@ -148,10 +150,64 @@ function facts() {
   if (!mCeiling) throw new Error("assert-outreach: cannot find CEILING in scripts/assert-payload.mjs.");
   const ceiling = Number(mCeiling[1].replace(/_/g, ""));
 
+  // THE PUBLISHED FIGURE COMES FROM CI, NOT FROM THIS MACHINE.
+  //
+  // This used to be `firstVisit(dist).total` - the local build - and that is
+  // the wrong instrument for a number that leaves the repository. This machine
+  // runs Node 24, the deploy builds on Node 22, and the same commit measures
+  // ~50 B apart on the two. Every draft's provenance row NAMES the commit it
+  // was measured on, so a local reading under that row is false about the one
+  // thing the row exists to let a reader check.
+  //
+  // The local reading is still taken, and still printed beside the recorded
+  // one, because the SPREAD is the thing worth seeing every run rather than
+  // rediscovering. It is just not what the copy is checked against.
+  const record = readRecord();
+  // A RECORD THAT ROTS IN SILENCE IS THE FAILURE THIS REPLACES, not an
+  // improvement on it. Three states, three different messages, because they
+  // want three different actions:
+  //
+  //   missing        -> nobody has ever recorded one; refresh it
+  //   wrong history  -> it names a commit this branch has never seen, so it is
+  //                     from somewhere else and its number describes something
+  //                     else. Refusing beats quietly comparing against it.
+  //   behind         -> honest but old. Advisory, with the distance named, so a
+  //                     draft is never checked against a number from 40 commits
+  //                     ago without the reader being told.
+  //
+  // Never a silent fall back to the local reading: that is exactly what this
+  // change removed, and a fallback would restore it on the first bad day.
+  if (!record) {
+    throw new Error(
+      `assert-outreach: no CI payload record at ${RECORD}. The published figure must come from ` +
+        `the toolchain that BUILDS the site, not from this machine - run \`npm run reach:ci-payload -- --write\` ` +
+        `after a successful deploy. Refusing to check published copy against a local build.`,
+    );
+  }
+  {
+    let behind = null;
+    try {
+      execFileSync("git", ["cat-file", "-e", `${record.commit}^{commit}`], { cwd: REPO, stdio: "ignore" });
+      behind = Number(
+        execFileSync("git", ["rev-list", "--count", `${record.commit}..HEAD`], { cwd: REPO, encoding: "utf8" }).trim(),
+      );
+    } catch {
+      throw new Error(
+        `assert-outreach: the CI payload record names commit ${record.commit}, which this repository does not ` +
+          `contain. It was measured on a different history, so its number describes a different artifact.`,
+      );
+    }
+    if (behind > 0) {
+      console.log(
+        `NOTE  the CI payload figure is from ${record.commit}, ${behind} commit(s) back. ` +
+          `Refresh with \`npm run reach:ci-payload -- --write\` before publishing anything.\n`,
+      );
+    }
+  }
   const dist = join(REPO, "dist");
-  let firstVisitB = null;
+  let localFirstVisitB = null;
   if (existsSync(join(dist, "index.html"))) {
-    firstVisitB = firstVisit(dist).total;
+    localFirstVisitB = firstVisit(dist).total;
     const sitemap = join(dist, "sitemap.xml");
     if (existsSync(sitemap)) {
       const locs = [...readFileSync(sitemap, "utf8").matchAll(/<loc>/g)].length;
@@ -164,11 +220,17 @@ function facts() {
     }
   }
 
+  const firstVisitB = record ? record.firstVisitB : null;
   // What the copy calls "room left". Derived rather than quoted, because it is
-  // the one figure that moves when EITHER of its two inputs does.
-  const spareB = firstVisitB === null ? null : ceiling - firstVisitB;
+  // the one figure that moves when EITHER of its two inputs does - and derived
+  // from the RECORDED ceiling, so a ceiling raise that CI has not built yet
+  // cannot produce a spare figure describing a tree nobody has measured.
+  const spareB = record ? record.ceiling - record.firstVisitB : null;
 
-  return { games, kidsGames, pageLocales, pageLangs, appLocales, pages, ceiling, firstVisitB, spareB, titles };
+  return {
+    games, kidsGames, pageLocales, pageLangs, appLocales, pages, ceiling,
+    firstVisitB, spareB, titles, record, localFirstVisitB,
+  };
 }
 
 /* --------------------------------------------------------------- spelling */
@@ -566,9 +628,26 @@ function report(f, r) {
   console.log(
     `outreach facts: ${f.games} games (${f.kidsGames} kids), ${f.pages} pages, ` +
       `${f.pageLocales} page locales, ${f.appLocales} app locales, ` +
-      `first visit ${f.firstVisitB === null ? "not measured (no dist/)" : `${f.firstVisitB.toLocaleString()} B gz`} ` +
+      `first visit ${f.firstVisitB === null ? "NOT RECORDED" : `${f.firstVisitB.toLocaleString()} B gz`} ` +
       `of ${f.ceiling.toLocaleString()}\n`,
   );
+
+  // BOTH readings, every run. The spread between them is the thing worth seeing
+  // rather than rediscovering: it is what made the local reading the wrong
+  // instrument for published copy in the first place, and a run that prints
+  // only one number invites somebody to "fix" the drafts to whichever it is.
+  if (f.record) {
+    const d = f.localFirstVisitB === null ? null : f.localFirstVisitB - f.record.firstVisitB;
+    console.log(
+      `payload: CI ${f.record.firstVisitB.toLocaleString()} B gz at ${f.record.commit} ` +
+        `(${f.record.measuredAt}, run ${f.record.runId})` +
+        (d === null
+          ? "  ·  no local dist/ to compare"
+          : `  ·  this machine ${f.localFirstVisitB.toLocaleString()} on Node ${process.versions.node.split(".")[0]}, ` +
+            `${d >= 0 ? "+" : ""}${d} B apart`) +
+      "\n",
+    );
+  }
 
   for (const b of r.blind) console.log(`BLIND  ${b}`);
   for (const d of r.drift) {
@@ -718,6 +797,49 @@ function control(f) {
     const under = run(fixtureDir, { ...f, firstVisitB: 89_000 });
     check("'under 90 KB' is FALSE at 90,027 B gz", over.broken.length, 1);
     check("'under 90 KB' holds at 89,000 B gz", under.broken.length, 0);
+
+    // ---- the CI payload record ------------------------------------------
+    //
+    // The record replaced a LOCAL reading, so the controls have to prove three
+    // things this gate could previously get wrong in silence: that a draft
+    // quoting the local number is now caught, that a record from another
+    // history is REFUSED rather than believed, and that a missing record does
+    // not fall back to the local build - which is the behaviour being removed
+    // and would return on the first bad day.
+    const rec = readRecord();
+    check("a CI payload record exists to check against", rec !== null, true);
+    if (rec) {
+      // The number CI measured is what the copy must carry. A draft quoting
+      // THIS MACHINE's build is the exact defect the record exists for, and
+      // before this it was the passing answer.
+      const localish = rec.firstVisitB + 14;
+      const pv = join(dir, "press.md");
+      const pBefore = readFileSync(pv, "utf8");
+      writeFileSync(pv, pBefore.replace(rec.firstVisitB.toLocaleString(), localish.toLocaleString()));
+      const drifted = run(dir, f);
+      check(
+        "a draft quoting a LOCAL build instead of CI is caught",
+        drifted.drift.some((d) => d.claim === "first-visit"),
+        true,
+      );
+      writeFileSync(pv, pBefore);
+
+      // And the other way, so this is not a matcher that reds on every number:
+      // the recorded figure itself must be accepted.
+      check("the RECORDED figure is accepted", run(dir, f).drift.filter((d) => d.claim === "first-visit").length, 0);
+    }
+    check(
+      "the record names a commit this repository actually has",
+      (() => {
+        try {
+          execFileSync("git", ["cat-file", "-e", `${rec.commit}^{commit}`], { cwd: REPO, stdio: "ignore" });
+          return true;
+        } catch {
+          return false;
+        }
+      })(),
+      true,
+    );
 
     // --- game names ------------------------------------------------------
     // Three arms, because the check has three ways to be useless: it can miss a

@@ -1925,6 +1925,56 @@ Three mutations, three killed: the wiring reverted to the source constant, the
 source stripped as well, and the scanner swapped for the naive regex - which is
 caught by the `content:"/*"` case and nothing else.
 
+## The published payload figure now comes from CI (2026-08-22)
+
+`assert-outreach` re-derived the first visit from the local `dist/`, and that is
+the wrong instrument for a number that leaves the repository. This machine runs
+Node 24; the deploy builds on Node 22. Same commit, **90,022 here and 90,008
+there.**
+
+That is not a rounding argument. Every draft's provenance row NAMES the commit it
+was measured on, so a local reading written under that row is false about the one
+thing the row exists to let a reader check - and the gate was *requiring* it.
+The gate and
+[`a-number-belongs-to-the-toolchain-that-ships-it.md`](../.claude/rules/a-number-belongs-to-the-toolchain-that-ships-it.md)
+were enforcing opposite things.
+
+**`docs/outreach/ci-payload.json` is the record, and it is READ OFF THE DEPLOY'S
+OWN LOG** by `npm run reach:ci-payload -- --write`, never re-derived and never
+retyped. It cannot be wrong about what CI measured, because it is what CI
+printed. It carries the commit, the run id and the date.
+
+### A record that rots in silence is the failure this replaces
+
+So there are three states with three different messages, because they want three
+different actions - and each was mutation-proved by planting it:
+
+| state | what happens |
+|---|---|
+| **missing** | REFUSES. Never falls back to the local build - that is the behaviour being removed, and a fallback restores it on the first bad day |
+| **names a commit this history lacks** | REFUSES. It was measured on a different artifact, so believing it is worse than having nothing |
+| **behind HEAD** | advisory `NOTE`, with the distance named, so a draft is never checked against a 40-commit-old number without the reader being told |
+
+**Both readings print on every run**, with the spread:
+
+```
+payload: CI 90,008 B gz at 1b8f2b9 (2026-08-22, run 32579897452)
+         ·  this machine 90,022 on Node 24, +14 B apart
+```
+
+The spread is the thing worth seeing rather than rediscovering. A run that
+printed only one number invites the next person to "fix" the drafts to whichever
+it happened to be, which is how this started.
+
+Four new controls: a draft quoting the LOCAL build is caught, the RECORDED figure
+is accepted (so this is not a matcher that reds on every number), a record exists
+at all, and the commit it names is one this repository has.
+
+**And a bug I introduced and caught while doing it**: adding the npm script left
+`assert:outreach:control` defined TWICE in `package.json`. JSON keeps the last
+one, so the ledger-control step would have silently stopped running with nothing
+failing. There is now a duplicate-key check in the verification for it.
+
 ## Still open
 
 - **Wave C step 2b** — live two-way sync. Needs the profile to carry per-device
