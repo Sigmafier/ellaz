@@ -234,6 +234,27 @@ body[data-page="game"] .stage .box,body[data-page="world"] .stage .box{
    the board, where the footer already lives. The ROOM keeps center: it is a
    composed scene rather than a control panel with a board under it. */
 body[data-page="game"] .stage .box{justify-content:flex-start}
+/* THE ROOM'S 0.28 LAYOUT SHIFT, and it is the price of the center above.
+   Before React mounts, #game-frame is content-sized and EMPTY, so it is 0px
+   tall and centring puts it in the middle of a 740px box - measured on the live
+   site at 390px, y=474. The scene then mounts 1297px tall and the frame snaps to
+   y=104. A full-width block moving 370px is CLS 0.2713, which is POOR (good is
+   under 0.10) and was the worst page on the site by two orders of magnitude:
+   every game page reads 0.003 to 0.010 and the boards 0.028.
+
+   :empty is what makes this surgical. It reserves the box ONLY while there is
+   nothing in the frame; React mounts a child, the selector stops matching, and
+   the final layout is exactly whatever it is today. Measured, both viewports,
+   three interleaved runs: 0.2713 -> 0.0032 on a phone with frame 104/1297 and
+   scene 104/1297 IDENTICAL to the control in every run.
+
+   The two obvious fixes were both measured and both rejected. Putting
+   justify-content:flex-start on the room - the same fix the game pages got -
+   moves the desktop room from y=120 to y=260, which breaks the centring the
+   comment above defends deliberately. An unscoped min-height:100% fixes the
+   shift but changed the final height by 4px in one run of three, and a fix that
+   can move the finished layout at all is a fix somebody has to re-eyeball. */
+body[data-page="world"] #game-frame:empty{min-height:100%}
 /* Content-sized rather than flex:1, so fitStage can read the screen's NATURAL
    height. A frame that stretches to fill the box reports the box's height back
    and the scale factor comes out as 1 every time. */

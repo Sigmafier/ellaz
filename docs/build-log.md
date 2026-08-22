@@ -1826,6 +1826,59 @@ Doctrine: **SEO19** (a result's picture comes from an image the page embeds),
 (close an unreachable rich result with a number, not a fabrication) - all three in
 the tray at `localhost:8775`, plus playbook steps A11, A12, A13 and B7.
 
+## The 0.28 layout shift was on the room, not the game (2026-08-22)
+
+The plan had carried this as "a real Core Web Vitals failure on the site's main
+content", meaning the game page. Measured across 8 pages x 2 viewports on the
+live site, that is not where it is:
+
+```
+  every game page       0.003 - 0.010   good
+  the boards            0.028           good
+  a category page       0.010           good
+  the room, desktop     0.044           good
+  the room, PHONE       0.297           POOR      <- all of it, on one page
+```
+
+**Cause, measured rather than inferred.** Before React mounts, `#game-frame` is
+content-sized and EMPTY, so it is 0px tall - and the room's box centres it,
+putting it at **y=474** in a 740px box. The scene then mounts 1297px tall and the
+frame snaps to **y=104**. A full-width block moving 370px is the whole number.
+
+**The fix is `body[data-page="world"] #game-frame:empty{min-height:100%}`**, and
+`:empty` is the load-bearing part: it reserves the box only while there is
+nothing in the frame, so React mounting a child stops the selector matching and
+the finished layout is exactly whatever it is today. Measured, three interleaved
+runs, both viewports: **0.2713 -> 0.0032**, with `frame 104/1297` and `scene
+104/1297` identical to the control every time.
+
+Two obvious fixes were measured and rejected, which is why this one is odd-looking:
+
+- **`justify-content:flex-start` on the room** - the same fix the game pages
+  already have - moves the DESKTOP room from y=120 to **y=260**. That breaks the
+  centring `layout.ts` defends deliberately ("the ROOM keeps center: it is a
+  composed scene rather than a control panel with a board under it").
+- **An unscoped `min-height:100%`** fixes the shift and changed the finished
+  height by 4px in one run of three. A fix that can move the finished layout at
+  all is a fix somebody has to re-eyeball.
+
+### The probe was blind on its first run, and reported the site healthy
+
+The first control planted a 400px block before the `h1` and read **0.0084 -
+identical to the unplanted arm**. It looked like a clean bill of health for the
+whole site. It was not: the stage fills the viewport, so the `h1` is BELOW THE
+FOLD, and CLS correctly ignores what is off screen. Every number taken before
+that control was fixed is void, including a confident "CLS is fine everywhere".
+
+Planted at the top of the body instead, the control reads **0.3593**, and only
+then do the readings above mean anything. **A control has to produce the OPPOSITE
+reading, not merely a passing one** - the same lesson the deploy gate's cold-load
+probe cost, and the second time in this repo a CLS measurement has needed one.
+
+`scripts/repro/repro-room-boot-shift.mjs` carries both the measurement and the
+control, and exits 1 if the probe cannot see a planted shift. The cheap CI guard
+is a string pin in `build.test.ts`, mutation-proven by dropping `:empty`.
+
 ## Still open
 
 - **Wave C step 2b** — live two-way sync. Needs the profile to carry per-device

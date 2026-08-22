@@ -1246,6 +1246,31 @@ which several are not boards at all (`min(19vw, 11vh, 96px)` is one balloon;
 sequence has eight; minesweeper's is computed from column count). That belongs
 in one sizing module, not in 39 edits.
 
+## The room's boot-time layout shift
+
+**`/world/` on a phone read CLS 0.297 - POOR, and the worst page on the site by
+two orders of magnitude.** Every game page reads 0.003 to 0.010, the boards
+0.028, the room on a desktop 0.044. The plan had this recorded as a defect on the
+GAME page; measured across 8 pages x 2 viewports, it never was.
+
+An EMPTY content-sized `#game-frame` centred in a 740px box sits at y=474; the
+1297px scene mounts and it snaps to y=104. **`body[data-page="world"]
+#game-frame:empty{min-height:100%}`** reserves the box only while the frame is
+empty, so the finished layout is unchanged - measured identical to the control at
+both viewports, three interleaved runs, 0.2713 -> 0.0032.
+
+`flex-start` on the room (the game pages' own fix) moves the desktop room y=120
+-> y=260 and breaks the centring `layout.ts` defends on purpose. An unscoped
+`min-height` moved the finished height 4px in one run of three. Both measured,
+both rejected.
+
+**Its probe was blind first.** A 400px control planted before the `h1` read
+0.0084, identical to the unplanted arm, and reported the whole site healthy - the
+stage fills the viewport, so the `h1` is below the fold and CLS rightly ignores
+it. Planted at the top of the body it reads 0.3593. Re-measure with
+`scripts/repro/repro-room-boot-shift.mjs`, which exits 1 if its own control
+cannot see a planted shift.
+
 ## The picture a search result shows
 
 **Every game page embeds a real `<img>`, and until 2026-08-22 none of them did.**

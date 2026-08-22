@@ -388,6 +388,28 @@ describe("every page renders", () => {
     }
   });
 
+  // The room's boot-time layout shift, pinned as a STRING because the thing that
+  // fixes it is a CSS selector and there is no way to run a layout here.
+  //
+  // Measured live 2026-08-22: `/world/` at 390px read CLS 0.2713 - POOR, and the
+  // worst page on the site by two orders of magnitude - because an EMPTY
+  // content-sized frame centred in a 740px box sits at y=474 and snaps to y=104
+  // when the 1297px scene mounts. `:empty` is load-bearing and not decoration:
+  // without it the rule also governs the MOUNTED frame, which moved the finished
+  // height by 4px in one run of three, and a fix that can move the finished
+  // layout is a fix somebody has to re-eyeball.
+  //
+  // The real check is `scripts/repro/repro-room-boot-shift.mjs`, which measures
+  // it in a browser and carries a positive control. This is the cheap guard that
+  // runs in CI, where there is no browser.
+  it("reserves the room's frame while it is still empty, or the room shifts 0.27", () => {
+    expect(DOCUMENT_CSS).toContain('body[data-page="world"] #game-frame:empty{min-height:100%}');
+    // The scoping is the fix. A rule that reached the game pages too would
+    // reserve the box under their poster, which is a different screen with a
+    // different arrangement and was never measured.
+    expect(DOCUMENT_CSS).not.toContain('body[data-page="game"] #game-frame:empty');
+  });
+
   it("states the platform facts from one place, never from a content file", () => {
     const page = renderRoute(ROUTES.find((r) => r.kind === "game" && r.locale === "he")!, "/");
     for (const fact of SITE.he.facts) expect(page).toContain(escapeHtml(fact));
