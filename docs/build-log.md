@@ -1975,6 +1975,108 @@ at all, and the commit it names is one this repository has.
 one, so the ledger-control step would have silently stopped running with nothing
 failing. There is now a duplicate-key check in the verification for it.
 
+## The analytics tag worked perfectly and counted nothing (2026-08-22)
+
+Asked why analytics collects no data. The answer is two independent failures
+wearing one symptom, and the more useful half is that our own doctrine had
+already written the wrong explanation down.
+
+**Google Analytics has been live since 2026-08-20 and has never counted a
+pageview.** Measured on `ellaz.fun/games/snake/` in a real browser: `gtag/js`
+200, `/g/collect` **204 every time**, no cookie, the tag present on all 164
+documents and correctly absent from the 404 and the noindex mirror. Every gate
+here passes. The property is empty.
+
+Nothing in this repo had ever read the collect URL's own parameters, and that is
+where the answer sat:
+
+```
+gcs=G100            ad_storage DENIED, analytics_storage DENIED
+gcd=13p3p3p3p7l1    denied by DEFAULT, never updated
+ep.client_storage=none
+cid=1546109085…  then  cid=1358236254…   two loads of the SAME url
+```
+
+`gcs` is the consent state and `G100` is both keys denied. Under denied
+`analytics_storage` a GA4 hit is a cookieless consent-mode ping — raw material
+for behavioural modelling rather than a counted pageview, and modelling wants
+roughly a thousand events a day for a week. This site gets eight clicks a month.
+**A 204 means Google accepted the packet; it has never meant anybody counted
+it.** The second half is the fresh `cid` on every load: no id ties two views
+together, so nothing could be a returning user even if it were counted.
+
+**None of that is a mistake.** It is exactly the cookieless, ads-off, no-banner
+configuration that was asked for on 2026-08-20. What nobody priced is that at
+this size the same configuration means no data, ever — two constraints that
+cannot both hold, and nobody had multiplied them out.
+
+**The obvious repair does not exist, and it was proposed before it was
+measured.** "Grant `analytics_storage`, keep `client_storage:'none'`, stay
+cookieless and start counting" went to the operator as a recommendation; they
+took it; and the measurement that should have come first showed it cannot be
+had. Live, on `/games/sudoku/`, with a control that wrote and read back its own
+cookie in the same run so an empty reading could not be a blind probe:
+
+| state | `_ga` cookies |
+|---|---|
+| as shipped (`denied`) | none |
+| after `consent update` to `granted`, `client_storage:'none'` untouched | `_ga`, `_ga_E25QBB8420` |
+
+Consent governs the cookie; `client_storage` does not win. The trade is binary —
+**no cookie and no data, or data and a consent banner** in four languages, in
+front of a five-year-old. The setting was left where it is and the decision
+handed back.
+
+**The prose beside the code was the actual trap.** `analytics.ts`'s doc comment
+contained BOTH answers: one bullet declaring the file ships
+`analytics_storage: 'granted'` and explaining that `client_storage` overrides
+consent, another describing `'denied'`. Forty lines apart, on the one question
+that decides whether anything reports, with the shipped literal agreeing with
+only one of them. A reader could leave with either answer, confidently — and one
+did, which is how the impossible middle reached the operator.
+
+Nothing else here could catch that: every other assertion reads the RENDERED
+tag, and the tag was correct throughout. `analytics.test.ts` now reads its own
+source and reds when a doc bullet declares a consent state the tag does not
+ship, when the granting-writes-a-cookie fact goes missing, or when the shipped
+literal cannot be read at all — that last one is the positive control, without
+which the other two pass vacuously. Three mutations, three killed, each
+checksum-verified to have landed and restored byte-exact.
+
+**The second failure, which no consent setting fixes.** Nothing outside that one
+file ever calls `gtag`, so GA sees `page_view` and nothing else. Every game
+event — `levelStart`, `levelComplete`, `reward_grant` — goes through
+`src/sdk/analytics.ts` to PostHog, and `VITE_POSTHOG_KEY` has never been set:
+the **live** shell chunk has zero occurrences of `posthog`, `person_profiles`,
+`respect_dnt` and `capture_pageview`. So even a fully-counted GA would say
+nothing about the games, and the rewards economy has still never been tuned
+against a single real number.
+
+Rule: [`.claude/rules/a-tag-that-fires-is-not-a-tag-that-counts.md`](../.claude/rules/a-tag-that-fires-is-not-a-tag-that-counts.md).
+
+## The itch zips, and two traps that are ordering rather than code (2026-08-22)
+
+Three standalone bundles built, gated and zipped so the upload is drag-and-drop.
+Neither trap is a defect in anything; both cost a wasted build.
+
+**Build the archive LAST, after the final commit.** The stamp is
+`git rev-parse HEAD`, so any commit — yours or a peer's — makes every existing
+zip stale and `assert:standalone` refuses it by name. It fired twice in one
+session: a peer landed a commit between two gate runs, then the push of the fix
+for that invalidated them again.
+
+**Do not park the archives inside the directory the gate scans.** It walks every
+CHILD of `dist-standalone/` as a bundle, so a `zips/` folder there reports
+`0 html, 0 js` — the shape a killed upload leaves. A misplaced folder reads as a
+torn bundle, sending the reader to the transfer instead of to the path. They
+live in `dist-standalone-zips/`, gitignored with the reason on the line above.
+
+**And gate the ZIP, not the directory it came from.** The directory passing says
+nothing about what leaves in the archive — a wrong root, a dropped file, a path
+separator. Extracted to a scratch root and run back through the real gate with
+`BUNDLE_ROOT`: 14/14 planted cases still caught, `index.html` at the zip root in
+all three, 76 / 69 / 446 KB.
+
 ## Still open
 
 - **Wave C step 2b** — live two-way sync. Needs the profile to carry per-device

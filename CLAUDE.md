@@ -2248,6 +2248,47 @@ always passed. Together: ~1,440 writes/hour worst case down to ~121. Confirm the
 naive "top 100" board read costs 100 reads. Prefer `count()` aggregations and
 cache what you can, which is also why the board design is percentile-first.
 
+## Measurement — there are TWO analytics systems, and NEITHER reports
+
+**Google Analytics is live and has never counted a thing.** `G-E25QBB8420`, one
+literal in `src/build/analytics.ts`, emitted into all 164 documents and the app
+shell, absent from the 404 and from the whole noindex mirror. Measured live
+2026-08-22: `gtag/js` 200, `/g/collect` **204 on every pageview**, no cookie.
+Every gate here passes and the property is empty.
+
+The answer is in the collect URL, which nothing here had ever read:
+`gcs=G100` — ad_storage **and** analytics_storage DENIED, `gcd=13p3p3p3p7l1`,
+denied by default and never updated. A GA4 hit under denied `analytics_storage`
+is a cookieless consent-mode ping: raw material for behavioural modelling rather
+than a counted pageview, and modelling wants roughly a thousand events a day for
+a week. This site gets eight clicks a month. **A 204 means Google accepted the
+packet; it has never meant anybody counted it.**
+
+**It is not a bug** — it is exactly the cookieless, ads-off, no-banner setup that
+was asked for. What nobody priced is that at this size it also means no data.
+
+**And the obvious fix does not exist.** "Grant `analytics_storage`, keep
+`client_storage:'none'`, stay cookieless" was proposed and measured on the live
+site with a control: granting writes `_ga` **and** `_ga_E25QBB8420` with
+`client_storage` untouched. Consent governs the cookie. The trade is binary —
+no cookie and no data, or data and a consent banner in four languages.
+
+**The prose beside the tag was the real trap.** `analytics.ts`'s doc comment
+carried BOTH answers, forty lines apart, on the one question that decides it, and
+the shipped literal agreed with only one. `analytics.test.ts` now reads its own
+source and reds when a doc bullet declares a consent state the tag does not ship
+(3 mutations, 3 killed, with a positive control so it cannot pass vacuously).
+Full account: [`.claude/rules/a-tag-that-fires-is-not-a-tag-that-counts.md`](.claude/rules/a-tag-that-fires-is-not-a-tag-that-counts.md).
+
+**Nothing outside that one file ever calls `gtag`**, so GA sees `page_view` and
+nothing else. Every game event goes to PostHog instead — see below, and note that
+fixing the consent state would still leave the games unmeasured.
+
+**If it ever does report**: every pageview is a new user (measured — two loads of
+one URL gave two different `cid`s), so `views`, `pages`, `countries`, `devices`
+and `referrers` are real while **`users`, `sessions` and `engagement` are
+inflated and must never be quoted.**
+
 Analytics key is `VITE_POSTHOG_KEY` (public); see `.env.example`. Both workflows
 pass it through from a repo secret of the same name.
 

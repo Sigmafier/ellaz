@@ -32,6 +32,20 @@ document of 130 words, making `/` the thinnest page on the site and clearing the
 **ten words**. One trimmed sentence from that copy would have reded the daily crawlability
 email on a page that was completely correct.
 
+**A third instance, and it is not a threshold at all.** 2026-08-22: a peer
+committed while a gate run was in flight. Three things had just been measured
+against the old tree - a test count, four build gates, and a recorded CI payload
+figure - and all three named a commit that was no longer HEAD by the time they
+were written down. Worse, the same move invalidated a BUILD STAMP: three
+standalone zips were refused by their own gate because `git rev-parse HEAD` had
+moved under them, twice in one session.
+
+So the decay is not confined to tuned constants. **Anything derived from "the
+tree" - a threshold, a measurement, a content hash, a commit stamp - belongs to
+the tree it was taken from**, and in a repo with live peers that tree can be one
+commit old before the command finishes printing. The remedy is the same: re-run,
+never subtract, and say which tree.
+
 ## Why it is invisible from inside either lane
 
 Both authors did the right thing. Each measured, each argued the number in the file, each

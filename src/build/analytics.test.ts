@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { GA_MEASUREMENT_ID, analyticsTag } from "./analytics";
 import { ROUTES } from "./routes";
@@ -77,5 +78,53 @@ describe("the analytics tag", () => {
     // ...and non-empty on the one that is, so the test above cannot pass by
     // the function simply always returning "".
     expect(analyticsTag("/")).not.toBe("");
+  });
+});
+
+/*
+ * The prose and the code disagreed for two days, and the prose is what people
+ * read. On 2026-08-22 this file's doc comment contained one bullet saying the
+ * tag ships `analytics_storage: 'granted'` and another saying it ships
+ * `'denied'` - on the single question that decides whether the property reports
+ * anything at all. A reader could leave with either answer, confidently, and
+ * one did: a cookieless-AND-counted configuration was proposed to the operator,
+ * which measurement then showed cannot exist (granting writes `_ga` even with
+ * `client_storage:'none'`, verified live with a control).
+ *
+ * Nothing else in this repo can catch that. Every other assertion here reads
+ * the RENDERED tag, and the tag was correct the whole time - it was the
+ * explanation beside it that was wrong.
+ */
+describe("the comment and the tag agree about consent", () => {
+  const source = readFileSync(new URL("./analytics.ts", import.meta.url), "utf8");
+  const shipped = /analytics_storage:'(granted|denied)'\}\);/.exec(source)?.[1];
+
+  it("ships exactly one consent state for analytics_storage", () => {
+    // The positive control: if this regex ever stops matching, `shipped` is
+    // undefined and every assertion below passes vacuously.
+    expect(shipped, "the shipped consent literal could not be read").toBeDefined();
+    expect(["granted", "denied"]).toContain(shipped);
+  });
+
+  it("has no doc bullet claiming the OTHER state", () => {
+    const other = shipped === "denied" ? "granted" : "denied";
+    // A bullet, not a mention: the comment discusses both words deliberately
+    // (the history is the useful part). What it may not do is DECLARE the
+    // other one as what the file does.
+    const bullets = source
+      .split("\n")
+      .filter((l) => /^\s*\*\s+-\s+`analytics_storage: '/.test(l));
+    expect(bullets.length, "no analytics_storage bullet found to check").toBeGreaterThan(0);
+    for (const b of bullets) {
+      expect(b, `a doc bullet declares '${other}' while the tag ships '${shipped}'`).not.toContain(
+        `analytics_storage: '${other}'`,
+      );
+    }
+  });
+
+  it("says, beside the setting, that granting brings cookies back", () => {
+    // The fact that decides the trade. Losing it is how the impossible middle
+    // gets proposed again.
+    expect(source).toMatch(/granting writes `_ga`|sets `_ga` and/);
   });
 });

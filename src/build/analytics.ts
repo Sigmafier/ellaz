@@ -34,6 +34,14 @@
  *   does not prevent it - so the cookie is governed by CONSENT here, not by
  *   that parameter, whatever the documentation implies.
  *
+ *   **RE-MEASURED 2026-08-22 on the LIVE site, and this passage is correct.**
+ *   On https://ellaz.fun/games/sudoku/, in a real browser: zero `_ga` cookies
+ *   in the shipped state; then `gtag('consent','update',{analytics_storage:
+ *   'granted'})` with `client_storage:'none'` UNCHANGED, and both `_ga` and
+ *   `_ga_E25QBB8420` appeared. A control wrote and read back its own cookie in
+ *   the same run, so the empty "before" is a real absence rather than a blind
+ *   probe. There is no cookieless-but-counted middle for GA4.
+ *
    This was briefly `'granted'` on 2026-08-20, and the round trip is the most
  *   useful thing in this file, because BOTH moves were made on stale readings
  *   from three different instruments in one hour:
@@ -58,9 +66,19 @@
  *   Whether ANY of this reports is still unverified - see the note at the
  *   bottom - and until it is, the setting stays where the operator put it.
  * - `consent default` DENIED for all three AD keys, so no ad identifier is sent.
- * - `analytics_storage: 'granted'`, and that word is doing something specific.
- *   It does NOT grant storage - `client_storage: 'none'` has already taken that
- *   away and wins - it tells GA the pageview may be COUNTED.
+ * - `analytics_storage: 'denied'`, and it is the reason this property reports
+ *   nothing. **The two paragraphs above and below this one contradicted each
+ *   other for two days, on the one question that decides the whole trade.**
+ *   This bullet used to read `'granted'` and claim that `client_storage:'none'`
+ *   "has already taken storage away and wins" - describing a configuration the
+ *   file has never shipped, and getting the deciding fact backwards. It does
+ *   not win: granting writes `_ga`, measured live 2026-08-22 (see above).
+ *
+ *   A reader could open this comment and leave with either answer, confidently.
+ *   One did, on 2026-08-22, and proposed the impossible middle - cookieless AND
+ *   counted - to the operator before reading the whole file. THE FIX IS TO READ
+ *   THE CODE, NOT THE PROSE ABOUT IT: the shipped literal on the `consent
+ *   default` line is the only thing here that cannot be out of date.
  *
  *   This was `denied` first, and it did not work. Measured 2026-08-20: four
  *   pageviews from a clean browser, every one a `204` from
@@ -125,22 +143,35 @@ export function analyticsTag(base: string): string {
 }
 
 /*
- * UNVERIFIED, and deliberately left saying so.
+ * THE CHECK THIS NOTE SCHEDULED HAS NOW BEEN RUN - 2026-08-22, live.
  *
- * What was measured on 2026-08-20: the tag is on all 143 emitted documents and
- * the app shell, absent from the 404 and from the whole noindex mirror; it
- * loads `gtag/js` (200) and POSTs `/g/collect` (204) from a clean headless
- * browser with no extensions; it sets no cookie.
+ * It used to end "a 204 means Google accepted the packet; it has never meant
+ * anybody counted it", and set a check for the next day that nobody closed.
+ * Closed now, on https://ellaz.fun/games/snake/ in a real browser:
  *
- * What was NOT measured: that any of it arrives in the GA4 property. Realtime
- * showed nothing at 19:11, and GA4's Home still said "No data received from
- * your website yet". Google documents a delay before a new property reports,
- * and the site had not yet been deployed with the emitted-page half of the
- * wiring, so an empty Realtime is the expected reading either way - which is
- * exactly why it is not evidence of anything.
+ *   gcs=G100            ad_storage DENIED, analytics_storage DENIED
+ *   gcd=13p3p3p3p7l1    denied by DEFAULT, never updated
+ *   204 on every /g/collect · ep.client_storage=none
+ *   cid=1546109085… then cid=1358236254… on a SECOND load of the SAME url
  *
- * The check, tomorrow: load ellaz.fun, open GA4 Realtime IN A FRESH TAB, and
- * look. Still empty after 24h means the property's data stream is the thing to
- * examine, not this file. A 204 means Google accepted the packet; it has never
- * meant anybody counted it.
+ * So the tag is healthy and the property is empty, and both are correct. A
+ * consent-denied hit is raw material for behavioural modelling rather than a
+ * counted pageview, and modelling wants roughly a thousand events a day for a
+ * week. This site gets eight clicks a month. The fresh `cid` per load is the
+ * second half: there is no id tying two views together, so nothing could be a
+ * returning user even if it were counted.
+ *
+ * STILL NOT VERIFIABLE FROM HERE: what the GA4 property itself shows. That
+ * needs the console, which is the operator's. What CAN be said is that the
+ * browser side is doing exactly what it was configured to do.
+ *
+ * AND THE SECOND FAILURE, WHICH NO CONSENT SETTING FIXES
+ *
+ * Nothing outside this file ever calls gtag, so GA sees `page_view` and nothing
+ * else. Every game event - levelStart, levelComplete, reward_grant - goes
+ * through src/sdk/analytics.ts to PostHog, and `VITE_POSTHOG_KEY` has never
+ * been set: measured the same day, the LIVE shell chunk has zero occurrences of
+ * `posthog`, `person_profiles`, `respect_dnt` and `capture_pageview`. So even a
+ * fully-counted GA would say nothing about the games, and the rewards economy
+ * has still never been tuned against a single real number.
  */

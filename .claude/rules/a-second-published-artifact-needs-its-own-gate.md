@@ -111,6 +111,37 @@ commit into its own `<head>`, which makes a stale upload visible from the outsid
 `-dirty` when the tree is not clean: a bundle built from uncommitted work is not
 described by its HEAD sha, and saying so is what separates a stamp from a sticker.
 
+## Two ordering traps, found by actually shipping the zips (2026-08-22)
+
+Both cost a wasted build, neither is a code defect, and both are invisible until
+you package the thing for real.
+
+**The archive is built LAST, after the final commit.** The stamp is
+`git rev-parse HEAD`, so *any* commit - yours or a peer's - makes every existing
+zip stale and the gate refuses it by name. It fired twice in one session: a peer
+landed a commit between two gate runs, and then the push of the fix for that
+invalidated them a second time. Correct behaviour; also an ordering constraint,
+and doing it the other way round means building twice.
+
+**Do not park the archives inside the directory the gate scans.** It walks every
+CHILD of `dist-standalone/` and treats each as a bundle, so a `zips/` folder
+there reports `0 html, 0 js` - which is the shape a KILLED UPLOAD leaves. A
+misplaced folder reads as a torn bundle, so the message sends you to the
+transfer rather than to the path. They live in `dist-standalone-zips/`, gitignored
+with the reason beside the line.
+
+**Gate the ZIP, not the build directory.** The directory passing says nothing
+about what leaves in the archive - a wrong root, a dropped file, a path
+separator. Extract to a scratch root shaped `<root>/<id>/` and run the real gate
+over it:
+
+```bash
+BUNDLE_ROOT=/path/to/extracted node scripts/assert-standalone.mjs
+```
+
+Measured 2026-08-22: three zips, `index.html` at the zip root in all three,
+14/14 planted cases still caught through the extracted copy.
+
 ## And a browser still finds things the gate cannot
 
 The webfont was found by loading the built bundle in a real browser and reading
