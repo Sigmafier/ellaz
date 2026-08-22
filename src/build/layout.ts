@@ -1,3 +1,4 @@
+import { stripCssComments } from "./css";
 import type { Locale } from "../content/types";
 import { AUTONYM, DEFAULT_LOCALE, OG_LOCALE, dirOf } from "../i18n/locales";
 import { SITE } from "../content/site";
@@ -485,6 +486,25 @@ body.screen #wallet-slot>*{background:none;box-shadow:none;border:0;
 export const DOCUMENT_CSS = `${BASE_CSS}
 ${OFFER_CSS.trim()}`;
 
+/**
+ * What actually goes on the wire.
+ *
+ * The source above keeps every word - the reasoning is why the next person does
+ * not undo a measurement, and it is worth more there than the bytes are here.
+ * Measured 2026-08-22: 30 comment blocks, 17,538 of 27,900 raw bytes (62.9%),
+ * and 7,519 B gz saved on every one of the 164 documents.
+ *
+ * It costs the FIRST VISIT nothing in either direction, and that is worth
+ * stating rather than leaving to be re-derived: this <style> is only emitted
+ * when `opts.shell` is false, so index.html never carries it at all, and
+ * `assert-payload` reads index.html and the chunks it names. This is a
+ * content-page budget and must never be counted toward the first-visit ceiling.
+ *
+ * Computed once at module load rather than per page - it is the same string 164
+ * times, and the scanner walks 28 KB character by character.
+ */
+export const SERVED_CSS = stripCssComments(DOCUMENT_CSS);
+
 export interface DocumentOptions {
   locale: Locale;
   /** `<title>`. */
@@ -893,7 +913,7 @@ ${raw(opts.analytics === false ? "" : analyticsTag(base))}
         <link rel="stylesheet" href="${FONTS}" />
         ${!opts.shell &&
         html`<style>
-          ${raw(DOCUMENT_CSS)}
+          ${raw(SERVED_CSS)}
         </style>`}
         ${opts.schema &&
         html`<script type="application/ld+json">

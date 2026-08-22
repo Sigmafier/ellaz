@@ -1288,6 +1288,32 @@ which several are not boards at all (`min(19vw, 11vh, 96px)` is one balloon;
 sequence has eight; minesweeper's is computed from column count). That belongs
 in one sizing module, not in 39 edits.
 
+## The stylesheet a content page carries
+
+**`DOCUMENT_CSS` was 62.9% comments and nothing was minifying it.** It is a
+template literal emitted into the head of all 164 documents, so Vite never sees
+it - `global.css` is a real stylesheet and its comments are free; this one's were
+not. `SERVED_CSS = stripCssComments(DOCUMENT_CSS)` is what goes on the wire:
+**one game page 17,476 -> 10,212 B gz (-41.6%)**, all 165 documents 2.79 MB ->
+1.59 MB.
+
+**It is a different budget from the first visit and must never be counted toward
+it.** The `<style>` is emitted only when `opts.shell` is false, so `index.html`
+never carries it and `assert-payload` cannot see it in either direction -
+measured unmoved at 90,022 across the change.
+
+**The source keeps every word**, and both halves are pinned in `build.test.ts`:
+the source must still contain `/*` and the served copy must not. Either
+assertion alone is satisfiable the wrong way.
+
+**`src/build/css.ts` is a scanner, not a regex**, and that is not fastidiousness:
+`/\/\*[\s\S]*?\*\//g` eats from inside `content:"/*"` to the next `*/` and takes
+real declarations with it, leaving a page that renders and is missing rules. It
+throws on an unterminated comment rather than swallowing the file, and it removes
+comments rather than replacing them with a space - which is what the CSS
+tokenizer does, so `.a/*x*/.b` stays `.a.b` instead of becoming a descendant
+selector.
+
 ## The room's boot-time layout shift
 
 **`/world/` on a phone read CLS 0.297 - POOR, and the worst page on the site by

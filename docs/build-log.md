@@ -1879,6 +1879,52 @@ probe cost, and the second time in this repo a CLS measurement has needed one.
 control, and exits 1 if the probe cannot see a planted shift. The cheap CI guard
 is a string pin in `build.test.ts`, mutation-proven by dropping `:empty`.
 
+## 62.9% of the content pages' stylesheet was comments (2026-08-22)
+
+`DOCUMENT_CSS` is a template literal emitted straight into the head of all 164
+documents. **Vite never sees it**, so nothing minifies it - unlike `global.css`,
+which is a real stylesheet whose comments cost a reader nothing. Measured:
+
+```
+  30 comment blocks, 17,538 of 27,900 raw bytes = 62.9%
+
+  one game page   raw   50,995 ->  33,419   (-34.5%)
+                  gz    17,476 ->  10,212   (-7,264 B, -41.6%)
+  all 165 docs    gz  2,791,250 -> 1,592,931 (-1.14 MB)
+  first visit           90,019 ->  90,022   unmoved
+```
+
+**The first visit is unmoved and that is structural, not luck.** This `<style>`
+is emitted only when `opts.shell` is false, so `index.html` never carries it, and
+`assert-payload` reads `index.html` and the chunks it names. It is a content-page
+budget and must never be counted toward the ceiling.
+
+**The source keeps every word.** The reasoning in `layout.ts` is why the next
+person does not undo a measurement, and it is worth more there than the bytes are
+on the wire - which is the whole argument for stripping at EMIT time rather than
+writing terser comments. Both halves are pinned, because either alone is
+satisfiable the wrong way: stripping the source too would pass "no comments on
+the wire" while destroying the reasoning, and keeping the source without wiring
+the strip passes "the source explains itself" while shipping 7.5 KB gz of prose
+to every reader.
+
+### It is a scanner, not a regex, and that is the whole design
+
+`/\/\*[\s\S]*?\*\//g` is correct for today's stylesheet and wrong the day
+somebody writes `content:"/*"` - it would eat from inside the string to the next
+`*/` and take real declarations with it. The page still renders, just missing
+rules: a silent failure, which is the shape this repo keeps paying for. A scanner
+that knows it is inside a string cannot be wrong about it, and it also **throws**
+on an unterminated comment rather than swallowing the rest of the file.
+
+Comments are removed rather than replaced with a space, which is what the CSS
+tokenizer itself does - a comment is not a token separator, so `.a/*x*/.b` is
+`.a.b`. Replacing with a space would silently make it a descendant selector.
+
+Three mutations, three killed: the wiring reverted to the source constant, the
+source stripped as well, and the scanner swapped for the naive regex - which is
+caught by the `content:"/*"` case and nothing else.
+
 ## Still open
 
 - **Wave C step 2b** — live two-way sync. Needs the profile to carry per-device

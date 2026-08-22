@@ -1,6 +1,8 @@
 # Scaling the First Visit — Measure the Slope, Not the Ceiling
 
-**Status**: steps 1 and 2 SHIPPED 2026-08-13. Step 3 is still a proposal.
+**Status**: steps 1 and 2 SHIPPED 2026-08-13; step 3 LANDED 2026-08-21 and is
+NOT what this document called it - see below. The O(1) target is still unmet and
+the arithmetic for why is written down rather than left to be re-derived.
 **Measured on**: the working tree at 25 games, two build arms from one source.
 
 ## What shipped, and the number that came back different
@@ -202,24 +204,57 @@ As built, `scripts/assert-slope.mjs` also:
 - removes the **last** N games rather than a random N: a new game is appended, so
   the tail is the marginal game the budget is about.
 
-### Step 3 — art as data, if the catalogue ever really grows.
+### Step 3 — the roster metadata, not the art. LANDED 2026-08-21.
 
-**Promoted, on the measurement above.** It is no longer only about art: the
-statically-imported `meta.ts` is now the WHOLE of the remaining slope above the
-document row (~91 of 121 B per game), so step 3 is the only thing left between
-this repo and the O(1) rule, and `assert-slope.mjs` names it on every run. The
-paragraph below still describes it correctly; only its trigger has changed from
-"past roughly 100 games" to "whenever the 40 B target is wanted".
+**The title of this section was wrong for as long as it existed, and the
+correction is the useful part.** Step 1 had already removed the art term — the
+shell chunk went 265.5 → 91.2 B per game — so by the time step 3 was reached,
+"art as data" described work that was already done. The whole of the remaining
+slope above the document row was the DOM-free `meta.ts` that `src/portal/games.ts`
+imports **statically** for every game, so the home grid can render without
+pulling any game code.
 
-Only worth doing past roughly 100 games. The scenes stop being TypeScript and
-become individual SVG files (or one sprite sheet) fetched per card as it enters
-the viewport, with the grid virtualised so the DOM holds a screenful rather than
-a catalogue. At that point adding a game costs the first visit **zero**, and the
-`gameArt.ts` art gate becomes a per-file existence check instead of a member of
-one object.
+**Pruning the fields was measured and rejected first.** Deleting each field's
+occurrences from the served shell chunk and re-compressing:
 
-Not now. Step 1 buys an order of magnitude for an afternoon, and Step 3 is only
-correct once the grid itself is the bottleneck.
+```
+  title 28.5   emoji 7.6   color 5.5   category 5.1   scoreUnit 1.3
+  orientation 1.3   ageBand 1.2   renderer 1.1   ownsChrome 0.7   B gz per game
+```
+
+The five the home grid never reads come to **181 B gz = 5.5 B per game**. The
+headroom was 84 B and a game cost ~122, so pruning does not buy even one game
+and cannot be the fix. Saying that with a number is the outcome, not a failure.
+
+**What landed instead: the catalogue arrives in two beats.** `shellRoster.ts`
+carries 33 ids and the 15 metas the grid needs above the fold; `gamesRest.ts`
+carries the other 18 and is fetched on browser idle beside the art it already
+waits for. **Slope 122.1 → 70.1 B per game; first visit 90,484 → 89,985.**
+
+**40 is still not reached, and the arithmetic says why.** The document row is
+~29.5 B per game and is load-bearing — it is what made `/` visible to answer
+engines. That leaves ~10 B of shell budget per game against ~52 B of named
+fields plus ~39 B of id and object overhead. So the only route to the target is
+the one this section always described in its second paragraph: **the shell stops
+carrying a record per game at all** — the grid virtualised so the DOM holds a
+screenful rather than a catalogue. `assert-slope.mjs` REPORTS that gap on every
+run and enforces 140, per
+[`a-gate-that-reds-on-day-one-teaches-you-to-ignore-it.md`](../.claude/rules/a-gate-that-reds-on-day-one-teaches-you-to-ignore-it.md).
+
+**A budget was deliberately NOT lowered to 70.** A budget set at today's reading
+leaves no room for the next honest cut, and 70.1 is not 40.
+
+### A different budget entirely — the content pages (2026-08-22)
+
+`DOCUMENT_CSS` is emitted into the 164 documents and **never enters the shell**,
+so `assert-payload` cannot see it in either direction. It was 62.9% comments —
+17,538 of 27,900 raw bytes — because it is a template literal Vite never
+minifies, unlike `global.css`. Stripping them at emit time took **one game page
+from 17,476 to 10,212 B gz (−41.6%)** and the whole 165-document set from 2.79 MB
+to 1.59 MB, with the first visit unmoved.
+
+Do not count that toward the ceiling above. It is a real saving for a reader who
+opened a game page and zero for a child choosing one.
 
 ## What this does not fix
 

@@ -20,7 +20,7 @@ import {
 import { headingFor, relatedTo } from "./gamePage";
 import { llmsTxt, robotsTxt, sitemapXml } from "./siteFiles";
 import { DEV_HEAD_ASSETS, chunkNameFor, resolveLazyChunks, type HeadAssets } from "./assets";
-import { DOCUMENT_CSS } from "./layout";
+import { DOCUMENT_CSS, SERVED_CSS } from "./layout";
 
 /**
  * `src/build/**` is pure string functions with no filesystem and no Vite, which
@@ -408,6 +408,33 @@ describe("every page renders", () => {
     // reserve the box under their poster, which is a different screen with a
     // different arrangement and was never measured.
     expect(DOCUMENT_CSS).not.toContain('body[data-page="game"] #game-frame:empty');
+  });
+
+  // The source keeps its reasoning; the WIRE does not carry it.
+  //
+  // Both halves, because either alone is satisfiable the wrong way: stripping
+  // the source too would pass "no comments on the wire" while destroying why
+  // any of these numbers were chosen, and keeping the source without stripping
+  // the wire passes "the source explains itself" while shipping 7.5 KB gz of
+  // prose to every reader of every one of 164 documents.
+  it("emits the stylesheet without its comments, and keeps them in the source", () => {
+    expect(DOCUMENT_CSS, "the source lost its reasoning").toContain("/*");
+    expect(SERVED_CSS, "the served stylesheet still carries comments").not.toContain("/*");
+    // A stripper that returned an empty string satisfies the line above.
+    expect(SERVED_CSS.length).toBeGreaterThan(2000);
+    expect((SERVED_CSS.match(/\{/g) ?? []).length).toBe(
+      (DOCUMENT_CSS.replace(/\/\*[\s\S]*?\*\//g, "").match(/\{/g) ?? []).length,
+    );
+  });
+
+  it("puts the STRIPPED stylesheet in the emitted page, not the source", () => {
+    const page = renderRoute(ROUTES.find((r) => r.kind === "game" && r.locale === "he")!, "/");
+    // Read off a real page rather than off the constant: the wiring is a single
+    // identifier at one call site, which is exactly the kind of thing that gets
+    // reverted by a merge with nothing failing.
+    const style = page.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? "";
+    expect(style.length, "the page emits no <style> at all").toBeGreaterThan(2000);
+    expect(style).not.toContain("/*");
   });
 
   it("states the platform facts from one place, never from a content file", () => {
