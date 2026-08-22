@@ -13,6 +13,7 @@ import {
   type PageLocale,
 } from "../i18n/locales";
 import { analyticsTag } from "./analytics";
+import { artFiles } from "./artFiles";
 import {
   LOCALES,
   ROUTES,
@@ -291,6 +292,11 @@ export function allEmittedFiles(
     source: renderRoute(r, base, headAssets),
   }));
 
+  // The art, one SVG per game. Here rather than beside the share cards because
+  // it is pure, synchronous and string-only, which is the property that lets
+  // the gate's tests read this function without a rasteriser.
+  files.push(...artFiles());
+
   files.push({ fileName: "robots.txt", source: robotsTxt(base) });
   files.push({ fileName: "llms.txt", source: llmsTxt(GAMES) });
   // The sitemap advertises ellaz.fun URLs, so it belongs only to the host that
@@ -331,6 +337,13 @@ export function allEmittedFiles(
             file: r.file,
             locale: r.locale,
             kind: r.kind,
+            // Present so a gate can group a page's rows BY GAME without
+            // re-deriving the id from the path. A derived key is the trap that
+            // put `kids` in 16 category pages' sitemap rows: correct until the
+            // deriving fields stop discriminating, and then `undefined ===
+            // undefined` matches everything. Absent on a route with no id,
+            // which is the honest value and the one a gate must key off.
+            id: r.id,
             emitted: r.emit,
             canonical: canonicalUrl(r.path),
           })),
@@ -468,6 +481,15 @@ export function pagesPlugin(base: string): Plugin {
         ["/robots.txt", ["text/plain; charset=utf-8", robotsTxt(base)]],
         ["/llms.txt", ["text/plain; charset=utf-8", llmsTxt(GAMES)]],
         ["/sitemap.xml", ["application/xml; charset=utf-8", sitemapXml()]],
+        // Without these the page image is a broken icon in DEV only - the one
+        // environment where anybody looks at the page while writing it.
+        ...artFiles().map(
+          (f) =>
+            [`/${f.fileName}`, ["image/svg+xml; charset=utf-8", f.source]] as [
+              string,
+              [string, string],
+            ],
+        ),
       ]);
 
       server.middlewares.use((req, res, next) => {

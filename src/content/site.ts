@@ -29,6 +29,16 @@ export interface SiteCopy {
    * after, or neither, and none of that should live in the renderer.
    */
   gameHeading: string;
+  /**
+   * The alt text for the game's own picture. `{title}` is filled from the
+   * roster, so this is one string per language rather than 33.
+   *
+   * It exists because the H1 was doing this job and could not: `gameHeading`
+   * is "{title}" in every language except Hebrew, so the alt read `2048` -
+   * which describes nothing to a screen reader and gives a crawler no reason
+   * to believe the picture is about anything. Alt text is read by both.
+   */
+  artAlt: string;
   /** The label on the button that starts the game. */
   play: string;
   playNote: string;
@@ -72,6 +82,7 @@ const he: SiteCopy = {
   tagline: "משחקים חינם בעברית, ישר בדפדפן",
   home: "בית",
   gameHeading: "משחק {title}",
+  artAlt: "איור המשחק {title}",
   play: "לשחק",
   playNote: "נפתח במשחק עצמו. בלי הורדה ובלי הרשמה.",
   noScript: "המשחק דורש JavaScript. שאר העמוד לא.",
@@ -148,6 +159,7 @@ const en: SiteCopy = {
   tagline: "Free browser games, no download and no account",
   home: "Home",
   gameHeading: "{title}",
+  artAlt: "{title} - the game's own artwork",
   play: "Play",
   playNote: "Opens the game itself. Nothing to download, nothing to sign up for.",
   noScript: "The game needs JavaScript. The rest of this page does not.",
@@ -236,6 +248,7 @@ const es: SiteCopy = {
   tagline: "Juegos gratis en el navegador, sin descargar nada",
   home: "Inicio",
   gameHeading: "{title}",
+  artAlt: "{title} - ilustración del juego",
   play: "Jugar",
   playNote: "Abre el juego. No hay que descargar nada ni crear una cuenta.",
   noScript: "El juego necesita JavaScript. El resto de la página, no.",
@@ -320,6 +333,7 @@ const fr: SiteCopy = {
   tagline: "Des jeux gratuits dans le navigateur, sans rien installer",
   home: "Accueil",
   gameHeading: "{title}",
+  artAlt: "{title} - illustration du jeu",
   play: "Jouer",
   playNote: "Le jeu s'ouvre directement. Rien à télécharger, aucun compte à créer.",
   noScript: "Le jeu a besoin de JavaScript. Le reste de la page, non.",

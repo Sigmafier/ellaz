@@ -107,15 +107,22 @@ export function ogImagePath(route: Route): string {
  * layout engine to ask. Both dimensions are injected here rather than changed
  * at the source, because the app's copy must stay fluid.
  */
-export function artSvgSized(id: string): string {
+export function artSvgSized(id: string, w = OG_WIDTH, h = OG_HEIGHT): string {
   // `xmlns` as well as the dimensions. `gameArt` emits a fragment meant to be
   // INLINED into an HTML document, where the namespace is implied and a
   // viewBox is all the sizing a CSS box needs. Handed to a rasteriser as a
   // standalone document, the same string is not an SVG at all - resvg rejects
   // it with "the document does not have a root node".
-  const sized = gameArt(id).replace(
+  const raw = gameArt(id);
+  if (!raw) {
+    throw new Error(
+      `game art for "${id}" is empty - its scene is in neither gameArt.ts nor gameArtRest.ts, ` +
+        `or registerArt(REST) has not run. An empty string emits a 0-byte file that nothing else here would notice.`,
+    );
+  }
+  const sized = raw.replace(
     "<svg ",
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${OG_WIDTH}" height="${OG_HEIGHT}" `,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" `,
   );
 
   // Every scene ends with a full-bleed veil rect painted

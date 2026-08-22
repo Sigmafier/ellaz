@@ -1246,6 +1246,55 @@ which several are not boards at all (`min(19vw, 11vh, 96px)` is one balloon;
 sequence has eight; minesweeper's is computed from column count). That belongs
 in one sizing module, not in 39 edits.
 
+## The picture a search result shows
+
+**Every game page embeds a real `<img>`, and until 2026-08-22 none of them did.**
+Measured live as Googlebot across all 33 games in four languages: **0 `<img>`, 0
+structured-data `image`, 0 image rows in the sitemap**, while every gate here was
+green and every page had a perfect `og:image`.
+
+Those two are not the same thing and the names invite the confusion. **`og:image`
+is a social card** handed to a scraper with a URL and no page. **A result
+thumbnail is chosen from images the page EMBEDS.** Our art is drawn as inline
+`<svg>`, which has no URL - it is markup, so it can never be indexed or chosen.
+
+`src/build/artFiles.ts` writes the same `gameArt` scene to **`art/<id>.svg`**, one
+per game, and `gamePage.ts` embeds it after the lede. **33 files, 37 KB, and the
+first visit is unmoved at 89,979 B gz** - `src/build` ships to nobody.
+
+Four things that are load-bearing rather than incidental:
+
+- **`art/**` is in `globIgnores`.** `globPatterns` sweeps `**/*.svg`, so without
+  that line every child precaches a picture of every game, with a green build and
+  an unmoved payload gate. First asset in months to need the entry.
+- **The `src` carries the base, the canonical never does.** `artHref(base, id)`
+  for the tag, `artPath(id)` for JSON-LD and the sitemap. Both arms are built and
+  gated, because half these failures are base-dependent.
+- **1200x900, not the art's own 200x150 viewBox.** A vector has no size until one
+  is declared and a crawler measures the declared box. Free - same path data.
+- **The alt is `site.artAlt`, not the H1.** The H1 is `"{title}"` in every
+  language but Hebrew, so the alt read `2048` to the only two audiences that ever
+  get it. `build.test.ts` reads the emitted attribute off a real page and refuses
+  an alt that is only the name.
+
+**On the schema, having actually checked the current gallery rather than
+assumed**: HowTo and FAQPage rich results were retired 2023-08-08 and FAQ has left
+the gallery, so ~23 of each page's 33 JSON-LD nodes produce nothing - **and
+nothing is dropped**, because Google says there is no need to remove deprecated
+markup and answer engines still parse the FAQ. `VideoGame` alone is **not** a
+Search feature: it is now co-typed `["VideoGame", "SoftwareApplication"]`, which
+is the pairing Google's Software App page asks for. That still yields no rich
+result, and the reason is written beside the code so nobody re-derives it: Software
+App requires `aggregateRating` or `review`, we collect nothing about a player, and
+inventing a rating breaches both our own rule and Google's policy. **The one
+image-bearing rich result a game can qualify for is closed by a decision we would
+make again, which is exactly why the picture has to be on the page.**
+
+Seven artifact checks in `assert-pages.mjs`, all mutation-proven (controls 38 ->
+41). The one that earns its place: the emitter writes one attribute per line, so a
+matcher built on `.` reports **zero images on a page that has one** - the exact
+reading this gate exists to disprove.
+
 ## The picture a shared link grows
 
 Every page carries an `og:image`: **50 cards, 1200x630**, emitted by `src/build/ogCard.ts`

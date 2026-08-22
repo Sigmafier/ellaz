@@ -1,3 +1,4 @@
+import { ART_HEIGHT, ART_WIDTH, artHref } from "./artFiles";
 import type { GameMeta } from "../sdk/types";
 import { gameName } from "./gameName";
 import type { GameCopy, Locale, Titled } from "../content/types";
@@ -234,6 +235,33 @@ export function gamePage(opts: GamePageOptions): string {
 
     <h1>${headingFor(meta, locale)}</h1>
     <p class="lede">${copy.lede}</p>
+
+    <!--
+      The page's own picture, and the first image in the article body.
+
+      Google chooses the thumbnail beside a text result from images embedded on
+      the page. Until 2026-08-22 there were none: the stage above draws the
+      emoji as TEXT and the art everywhere else is inline <svg>, which has no
+      URL and cannot be indexed as an image. So the result was permanently
+      pictureless with nothing failing anywhere.
+
+      width/height are the SVG's own declared box, so the browser reserves
+      the space from the attributes and this adds nothing to the layout shift.
+      loading is EAGER on purpose - it is the main image, above most of the
+      prose, and a lazy main image is one Google may not see.
+
+      The alt is one template per language with the game's name filled in.
+      It was the page's own H1 for an hour, which reads as "Snake" and "2048"
+      in three of the four languages - a name, not a description of a picture.
+    -->
+    <img
+      class="art"
+      src="${artHref(base, meta.id)}"
+      alt="${site.artAlt.replace("{title}", gameName(meta.id, locale))}"
+      width="${ART_WIDTH}"
+      height="${ART_HEIGHT}"
+      decoding="async"
+    />
     <ul class="facts">
       ${site.facts.map((f) => html`<li>${f}</li>`)}
     </ul>

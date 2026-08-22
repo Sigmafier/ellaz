@@ -383,6 +383,75 @@ function checkOgCard(html, where, kind) {
   }
 }
 
+
+/**
+ * The page's own embedded images, as {src, alt} - the ONLY thing a crawler can
+ * choose a result thumbnail from.
+ *
+ * Deliberately separate from `ogImageOf`. They look like the same subject and
+ * are not: `og:image` is a social card read by a scraper handed a URL with no
+ * page, while this is what Google picks from when it decides whether a result
+ * gets a picture. Measured 2026-08-22, ellaz.fun had a perfect og:image on
+ * every page and no `<img>` anywhere, and the result had no picture - which is
+ * exactly the confusion the two names invite.
+ *
+ * `[\s\S]` and not `.` - the emitter writes the attributes one per line, and a
+ * matcher that cannot cross a newline reports ZERO images on a page that has
+ * one. That is the reading this whole gate exists to disprove, so getting it
+ * from our own regex would be the worst possible false green.
+ */
+export function embeddedImages(html) {
+  return [...html.matchAll(/<img\b([\s\S]*?)>/g)].map((m) => {
+    const attrs = m[1];
+    const pick = (name) => {
+      const a = attrs.match(new RegExp(`\\b${name}="([^"]*)"`));
+      return a ? a[1] : "";
+    };
+    return { src: pick("src"), alt: pick("alt"), w: pick("width"), h: pick("height") };
+  });
+}
+
+/**
+ * Every game page carries exactly one real picture, and the file is there.
+ *
+ * Only game pages. The home shells, the room and the boards draw their art
+ * with the app once it boots, and pretending otherwise here would make this
+ * gate red for pages nobody claimed to have fixed. Stated rather than skipped,
+ * so the exemption stays a decision.
+ */
+function checkPageImage(html, where, kind, base) {
+  const imgs = embeddedImages(html);
+  if (kind !== "game") return imgs;
+  if (imgs.length === 0) {
+    fail(`${where} embeds no <img> - a result thumbnail is chosen from images the page embeds, so this page can never have one`);
+    return imgs;
+  }
+  const [img] = imgs;
+  if (!img.src) {
+    fail(`${where} has an <img> with no src - markup, not an image`);
+    return imgs;
+  }
+  if (!img.src.startsWith(base)) {
+    fail(`${where} image src is "${img.src}", which does not carry the base ${base} - a 404 on the mirror`);
+    return imgs;
+  }
+  const file = join(DIST, img.src.slice(base.length));
+  if (!existsSync(file)) {
+    fail(`${where} embeds ${img.src}, which was never written`);
+    return imgs;
+  }
+  // Both dimensions, because the browser reserves the box from the PAIR. One
+  // of them alone gives it no aspect ratio and the picture still shifts the
+  // page when it lands.
+  if (!img.w || !img.h) {
+    fail(`${where} image declares no width/height - the main image then shifts the layout as it lands`);
+  }
+  if (!img.alt || img.alt.length < 3) {
+    fail(`${where} image alt is "${img.alt}" - a crawler and a screen reader read the same string`);
+  }
+  return imgs;
+}
+
 function main() {
   const manifest = readManifest();
   const base = manifest.base;
@@ -433,6 +502,10 @@ function main() {
      have to reach past `emitted`. */
   const titles = new Map();
   const descriptions = new Map();
+  /** game id -> locale -> alt, so the alt can be proven LOCALISED and not a constant. */
+  const altsByGame = new Map();
+  /** every art file some page actually embeds, dist-relative. */
+  const embeddedArt = new Set();
   const seeTitle = (where, html, locale) => {
     const { title, description } = headMeta(html);
     if (!title) {
@@ -585,6 +658,13 @@ function main() {
 
     // --- the share card ---------------------------------------------------
     checkOgCard(html, where, page.kind);
+    const pageImgs = checkPageImage(html, where, page.kind, base);
+    if (page.kind === "game" && pageImgs[0]) {
+      const seen = altsByGame.get(page.id) ?? new Map();
+      seen.set(page.locale, pageImgs[0].alt);
+      altsByGame.set(page.id, seen);
+      embeddedArt.add(pageImgs[0].src.slice(base.length));
+    }
 
     // --- indexability -----------------------------------------------------
     const noindex = /<meta name="robots" content="noindex/i.test(html);
@@ -741,10 +821,40 @@ function main() {
 
     // --- structured data --------------------------------------------------
     for (const block of jsonLdBlocks(html)) {
+      let parsed;
       try {
-        JSON.parse(block);
+        parsed = JSON.parse(block);
       } catch (e) {
         fail(`${where} has JSON-LD that does not parse: ${e.message}`);
+        continue;
+      }
+      // The game node must say which picture represents this page, and every
+      // URL it names must exist. Structured data claiming an image the site
+      // does not serve is worse than none: it is a statement a crawler acts on.
+      for (const node of parsed["@graph"] ?? []) {
+        const types = [node?.["@type"]].flat();
+        if (!types.includes("VideoGame")) continue;
+        // Co-typed, and the pair is asserted rather than assumed. `VideoGame`
+        // alone is not a Google Search feature - the Software App page asks for
+        // exactly this pairing - so the half that produces nothing is the half
+        // that is easy to keep and easy to lose.
+        if (!types.includes("SoftwareApplication")) {
+          fail(`${where} types its game as [${types}] - VideoGame alone is not a Search feature`);
+        }
+        const images = [node.image].flat().filter(Boolean);
+        if (images.length === 0) {
+          fail(`${where} game node carries no image - every image-bearing feature is closed by omission`);
+          continue;
+        }
+        for (const url of images) {
+          if (!String(url).startsWith("https://ellaz.fun/")) {
+            fail(`${where} game image "${url}" is not an absolute ellaz.fun URL`);
+            continue;
+          }
+          if (!existsSync(join(DIST, String(url).replace("https://ellaz.fun/", "")))) {
+            fail(`${where} game image ${url} was never written`);
+          }
+        }
       }
     }
 
@@ -960,10 +1070,81 @@ function main() {
     }
   }
 
+  // --- the pictures ---------------------------------------------------------
+  //
+  // Three artifacts state the same fact and each is checked against the others,
+  // because two of them are files nobody opens. The page's own `<img>` is what
+  // a crawler can choose; the JSON-LD says which picture represents the page;
+  // the sitemap is how the image is DISCOVERED. Checking any one alone is
+  // checking the wrong thing, and it reads green.
+  {
+    const artDir = join(DIST, "art");
+    const art = existsSync(artDir) ? readdirSync(artDir) : [];
+    // The population, printed. A zero-file run satisfies every per-file
+    // assertion below forever - the same shape as a zero-page manifest.
+    if (art.length === 0) {
+      fail("dist/art is empty or absent - the art emitter produced nothing, so every game page's picture is a 404");
+    }
+    for (const name of art) {
+      const svg = readFileSync(join(artDir, name), "utf8");
+      if (!svg.includes("<svg")) fail(`art/${name} is not an SVG document`);
+      // An unresolved custom property is the failure that renders as a
+      // plausible picture under an opaque black rectangle - `ogCard.ts` throws
+      // on it, and this is the artifact-side half of that same assertion.
+      if (svg.includes("var(")) fail(`art/${name} carries an unresolved var() - it paints black outside a browser`);
+      if (svg.length < 200) fail(`art/${name} is ${svg.length} B - too small to be a scene`);
+    }
+    // Every art file is REACHED by a page. An orphan means a game lost its
+    // picture while the file went on being written, which is invisible from
+    // either side alone.
+    for (const name of art) {
+      if (!embeddedArt.has(`art/${name}`)) fail(`art/${name} is emitted but no page embeds it`);
+    }
+
+    // The alt must be LOCALISED. It was the page's H1 for an hour, and that
+    // reads "2048" in three of the four languages - identical everywhere,
+    // which is what this catches.
+    for (const [id, byLocale] of altsByGame) {
+      const distinct = new Set(byLocale.values());
+      if (byLocale.size > 1 && distinct.size === 1) {
+        fail(`${id}: the image alt is "${[...distinct][0]}" in all ${byLocale.size} languages - it is a name, not a description`);
+      }
+    }
+  }
+
   // --- sitemap <-> filesystem ----------------------------------------------
   if (primary) {
     const sitemap = readFileSync(join(DIST, "sitemap.xml"), "utf8");
     const locs = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+
+    // The image extension. Declared namespace first: without it the rows are
+    // ignored by every consumer while validating perfectly, which is a whole
+    // feature that silently does nothing.
+    if (!sitemap.includes('xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"')) {
+      fail("sitemap carries no image namespace - any <image:> row in it is ignored");
+    }
+    const imageLocs = [...sitemap.matchAll(/<image:loc>([^<]+)<\/image:loc>/g)].map((m) => m[1]);
+    if (imageLocs.length === 0) {
+      fail("sitemap advertises no images - the one file whose job is telling Google which pictures exist names none");
+    }
+    for (const loc of new Set(imageLocs)) {
+      if (!loc.startsWith("https://ellaz.fun/")) {
+        fail(`sitemap image ${loc} is not an absolute ellaz.fun URL`);
+        continue;
+      }
+      // `art/undefined.svg` is a row that validates, a file that does not
+      // exist, and a 404 advertised to every crawler. It is what a route with
+      // no id emits if the row is keyed on the kind alone.
+      if (!existsSync(join(DIST, loc.replace("https://ellaz.fun/", "")))) {
+        fail(`sitemap advertises image ${loc}, which was never written`);
+      }
+    }
+    // One row per GAME page, and none anywhere else. A category page has no
+    // picture of its own, so a row for it would be a claim we cannot keep.
+    const gamePages = manifest.pages.filter((p) => p.kind === "game" && p.emitted);
+    if (imageLocs.length !== gamePages.length) {
+      fail(`sitemap carries ${imageLocs.length} image rows for ${gamePages.length} game pages`);
+    }
     const indexable = manifest.pages.filter((p) => p.kind !== "notFound");
     for (const p of indexable) {
       if (!locs.includes(p.canonical)) fail(`sitemap is missing ${p.canonical}`);
@@ -1407,6 +1588,34 @@ function runControls() {
       },
     ],
   ];
+
+  controls.push(
+    [
+      "an <img> whose attributes span NEWLINES is still found",
+      () => {
+        // The emitter writes one attribute per line. A matcher built on `.`
+        // reports ZERO images on a page that has one - which is the exact
+        // reading the image gate exists to disprove, so a false green here
+        // would be indistinguishable from the defect.
+        const html = '<img\n  class="art"\n  src="/art/snake.svg"\n  alt="a snake"\n  width="1200"\n  height="900"\n/>';
+        const [img] = embeddedImages(html);
+        return img?.src === "/art/snake.svg" && img.alt === "a snake" && img.w === "1200";
+      },
+    ],
+    [
+      "a page with NO <img> reads as zero - the extractor can see 'absent'",
+      () => embeddedImages('<p>art drawn as <svg viewBox="0 0 2 2"></svg> inline</p>').length === 0,
+    ],
+    [
+      "an <img> with no alt reports an EMPTY alt rather than being skipped",
+      () => {
+        // Skipping it would make a missing alt look like a page with no image
+        // at all, and the two get different messages for different fixes.
+        const [img] = embeddedImages('<img src="/art/x.svg">');
+        return img !== undefined && img.src === "/art/x.svg" && img.alt === "";
+      },
+    ],
+  );
 
   let fired = 0;
   for (const [name, probe] of controls) {

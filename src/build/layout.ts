@@ -100,6 +100,7 @@ a{color:var(--doc-brand)}
    fitStage has scaled reaches the top edge every time. Nothing floats now:
    the header is the only thing above the stage, and it is a real element. */
 .lede{font-size:1.12rem;color:var(--doc-ink)}
+img.art{display:block;width:100%;max-width:520px;aspect-ratio:4/3;height:auto;margin:18px 0 0;border-radius:14px;border:1px solid var(--doc-line);background:var(--doc-card)}
 .facts{list-style:none;display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:18px 0 0}
 .facts li{border:1px solid var(--doc-line);background:var(--doc-card);border-radius:999px;
   padding:5px 13px;font-size:.82rem;font-weight:600;color:var(--doc-soft)}

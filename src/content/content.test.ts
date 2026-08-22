@@ -448,6 +448,11 @@ describe("code supplies the game count, an author never types it", () => {
     const FILLED: Array<[string, string]> = [
       ["homePage", "homeCopy() in src/content/site.ts"],
       ["gameHeading", "headingFor() in src/build/gamePage.ts"],
+      // Its filler is asserted in `artFiles.test.ts`'s sibling in
+      // `build.test.ts`, which reads the emitted alt back out of a real page -
+      // the token shipping raw would be an alt reading "{title} - the game's
+      // own artwork" to a screen reader and to Google alike.
+      ["artAlt", "the <img> alt in gamePage() in src/build/gamePage.ts"],
       // Asserted in `categories.test.ts` § "fills the token, everywhere it
       // appears", which walks every field of every category in every language
       // and carries its own control - a filler that quietly stopped covering

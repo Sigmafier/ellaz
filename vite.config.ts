@@ -280,6 +280,14 @@ export default defineConfig({
           // them puts ten languages nobody asked for on a child's first visit,
           // which is the entire reason they are separate chunks at all.
           "**/locale-*.js",
+          // The per-game art, one SVG per game, referenced only from the emitted
+          // content pages. `globPatterns` above sweeps `**/*.svg`, so WITHOUT
+          // this line 33 files land in the precache and every child downloads a
+          // picture of every game before choosing one - green build, unmoved
+          // gate, exactly the failure precache-glob-sweeps-new-chunks.md names.
+          // The `.svg` in that pattern is why this is the first emitted asset
+          // in a long while that needed the entry at all.
+          "art/**",
           "games/**",
           "world/**",
           "boards/**",

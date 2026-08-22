@@ -2,7 +2,9 @@ import type { Category, GameMeta } from "../sdk/types";
 import { gameName } from "./gameName";
 import type { FaqItem, GameCopy, Locale } from "../content/types";
 import { ORIGIN, SITE } from "../content/site";
-import { PAGED_CATEGORIES, canonicalUrl, categoryPath, gamePath, homePath } from "./routes";
+import { PAGED_CATEGORIES, ROUTES, canonicalUrl, categoryPath, gamePath, homePath } from "./routes";
+import { artPath } from "./artFiles";
+import { ogImagePath } from "./ogCard";
 
 /**
  * The JSON-LD each page carries.
@@ -101,12 +103,49 @@ function breadcrumb(locale: Locale, meta: GameMeta) {
 
 export function gameGraph(meta: GameMeta, copy: GameCopy, locale: Locale) {
   const url = canonicalUrl(gamePath(meta.id, locale));
+  // The two pictures of this game, both absolute and both crawlable.
+  //
+  // Until 2026-08-22 this node had no `image` at all - measured live, zero
+  // across all 33 games in all four languages - so every image-bearing feature
+  // was closed to us by omission rather than by choice.
+  //
+  // The art SVG FIRST, because it is the image actually embedded in the page,
+  // and structured data claiming a picture the page does not show is a
+  // different statement from the one we mean. The share card second: it is
+  // 1200x630 RASTER, which is what any feature stating a pixel requirement can
+  // measure without rendering a vector.
+  //
+  // The share card's URL is LOOKED UP in the route table rather than rebuilt
+  // from `kind`, `id` and `locale`. Rebuilding it is the proxy trap that put
+  // `kids` in 16 category pages' sitemap rows: a derived filename is correct
+  // until the deriving fields stop discriminating, and then it is confidently
+  // wrong. `ogImageFile` owns that name; this asks it.
+  const ogRoute = ROUTES.find((r) => r.kind === "game" && r.id === meta.id && r.locale === locale);
+  const image = [
+    `${ORIGIN}${artPath(meta.id)}`,
+    ...(ogRoute ? [`${ORIGIN}${ogImagePath(ogRoute)}`] : []),
+  ];
   const graph: unknown[] = [
     {
-      "@type": "VideoGame",
+      // CO-TYPED, and that is a correctness fix rather than a flourish. Measured
+      // 2026-08-22 against Google's current rich-results gallery: `VideoGame` is
+      // not a Search feature on its own, and Google's Software App page asks for
+      // exactly this pairing to make a game eligible at all. We carried the half
+      // that produces nothing for as long as this file has existed.
+      //
+      // It still produces nothing TODAY, and the reason is worth stating rather
+      // than leaving as a mystery for the next reader: Software App requires
+      // `name`, `offers.price`, and either `aggregateRating` or `review`. We
+      // have the first two. We will never have the third, because we collect
+      // nothing about a player - see the note on ORGANIZATION above. So the one
+      // image-bearing rich result a game can qualify for is closed to us by a
+      // decision we would make again, and the picture beside a result has to
+      // come from the page itself. It now does.
+      "@type": ["VideoGame", "SoftwareApplication"],
       "@id": `${url}#game`,
       name: gameName(meta.id, locale),
       url,
+      image,
       description: copy.lede,
       inLanguage: locale,
       gamePlatform: ["Web Browser", "Mobile", "Tablet", "Desktop"],

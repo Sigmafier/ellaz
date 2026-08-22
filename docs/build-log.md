@@ -1724,6 +1724,108 @@ promotion through a named person.** A room with a paid or brokered channel reads
 an unbrokered link as somebody dodging it, and the thing being free changes
 nothing about how it reads. Look for that channel before posting anywhere.
 
+## The site had no picture to feature (2026-08-22)
+
+The operator noticed there were no images beside our Google results and asked
+why. The answer was not a ranking problem or a schema problem. **Every gate here
+was green and the pages contained no images at all.**
+
+Measured live, as Googlebot, across all 33 game pages in all four languages:
+
+| | before | after |
+|---|---:|---:|
+| `<img>` elements on a game page | **0** | 1 |
+| structured-data `image` values | **0** | 2 |
+| image rows in the sitemap | **0** | 132 |
+| art files a crawler can fetch | **0** | 33 |
+
+The art was there the whole time. It is drawn as **inline `<svg>`**, which has no
+URL - so it is markup, not an image, and cannot be indexed or chosen. `og:image`
+was perfect on every page and is a different thing: a social card handed to a
+scraper with a URL and no page. Google chooses a result thumbnail from images the
+page **embeds**. There were none, and nothing anywhere reported it, because a
+missing picture breaks nothing.
+
+**The fix is one file per game and a real `<img>`.** `src/build/artFiles.ts`
+writes the same `gameArt` scene to `art/<id>.svg` at build time and `gamePage.ts`
+embeds it after the lede - the first image in the article body. 33 files, **37 KB
+total, and it costs a first visit nothing**: 89,979 B gz of 90,500 before and
+after, because `src/build` ships to nobody.
+
+**SVG, and that was checked rather than assumed.** Google's image documentation
+lists what it indexes from an `img` `src` as "BMP, GIF, JPEG, PNG, WebP, SVG and
+AVIF". `schema.ts` already leaned on that same list for the Organization `logo`,
+so this is the second use of one fact rather than a new bet.
+
+**1200x900 rather than the art's own 200x150 viewBox.** A vector has no intrinsic
+size until one is declared, and a crawler measures the declared box. 4:3 is one of
+the three ratios Google names and 1200 wide clears every stated bar. It costs
+nothing - the path data is identical at any size.
+
+### The precache trap, which this is the first asset in months to hit
+
+`globPatterns` is `**/*.{html,css,js,svg,woff2}`. **SVG is in it.** Without an
+`art/**` entry in `globIgnores`, 33 files land in the precache and every child
+downloads a picture of every game before choosing one, with a green build and an
+unmoved payload gate. Measured after the entry: **0 art files in an 11-entry
+precache manifest.** `.claude/rules/precache-glob-sweeps-new-chunks.md`.
+
+### The alt was the H1 for an hour, and the H1 is not a description
+
+The first version used `headingFor()`. That is `"{title}"` in every language
+except Hebrew, so the alt read **`2048`** - a name, to the two audiences who only
+ever get the alt: a screen reader and a crawler. It is now `site.artAlt`, one
+template per language with the name filled in, and `build.test.ts` reads the
+emitted attribute back out of a real page and refuses an alt that is only the
+name. Registering the new `{title}` token is also what `content.test.ts` caught
+me failing to do, which is that gate working.
+
+### What we really need from schema, having actually looked
+
+The operator asked to research before dropping anything. Checked against Google's
+current rich-results gallery, 2026-08-22:
+
+- **HowTo and FAQPage rich results were both retired on 2023-08-08**, and FAQ has
+  since left the gallery entirely. Roughly 23 of the 33 JSON-LD nodes on each game
+  page are theirs. Google states there is **no need to remove** deprecated markup -
+  it is inert, not harmful - and answer engines still parse the FAQ cleanly, which
+  is the reason `schema.ts` already gave for keeping it. **So nothing is dropped.**
+- **`VideoGame` is not a Search feature on its own.** Google's Software App page
+  asks for it to be **co-typed with `SoftwareApplication`** for a game to be
+  eligible at all. We had carried only the half that produces nothing since the
+  file was written. That is now `"@type": ["VideoGame", "SoftwareApplication"]`.
+- **And it still produces nothing, for a reason worth writing down rather than
+  re-deriving every quarter.** Software App requires `name`, `offers.price`, and
+  either `aggregateRating` **or** `review`. We have the first two and will never
+  have the third: we collect nothing about a player, so there are no ratings, and
+  inventing them breaches both our own rule and Google's structured-data policy.
+  The one image-bearing rich result a game can qualify for is closed by a decision
+  we would make again - so the picture has to come from the page, and now does.
+
+### The gate
+
+Seven artifact checks in `assert-pages.mjs`, each mutation-proven against a real
+`dist/`: the `<img>` removed, the art file deleted, the JSON-LD `image` dropped,
+the co-type lost, the sitemap image namespace dropped, an image row pointing
+nowhere, and the alt flattened to the bare name in every language. **7 of 7
+killed, and the unmutated artifact still passes** - a gate that refused
+everything would pass every negative test ever written. Controls went 38 to 41.
+
+The extractor's own control is the one that earns its place: the emitter writes
+one attribute per line, so a matcher built on `.` reports **zero images on a page
+that has one** - which is the exact reading this whole gate exists to disprove. A
+false green there would have been indistinguishable from the defect.
+
+Three artifacts state this fact and each is checked against the others, because
+two of them are files nobody opens. Checking any one alone is checking the wrong
+thing, and it reads green - the same lesson as the 16 category pages whose
+sitemap named the wrong twin while their own tags were perfect.
+
+Doctrine: **SEO19** (a result's picture comes from an image the page embeds),
+**SEO20** (check a type against the current gallery before trusting it), **SEO21**
+(close an unreachable rich result with a number, not a fabrication) - all three in
+the tray at `localhost:8775`, plus playbook steps A11, A12, A13 and B7.
+
 ## Still open
 
 - **Wave C step 2b** — live two-way sync. Needs the profile to carry per-device

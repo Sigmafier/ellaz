@@ -5,6 +5,7 @@ import { DEFAULT_LOCALE, ENGLISH_NAME, localePrefix } from "../i18n/locales";
 import type { PageLocale } from "../i18n/locales";
 import { LOCALES, ROUTES, canonicalUrl, gamePath, homePath } from "./routes";
 import { escapeHtml } from "./html";
+import { artPath } from "./artFiles";
 
 /**
  * `robots.txt`, `sitemap.xml` and `llms.txt`.
@@ -150,18 +151,35 @@ export function sitemapXml(lastmods?: ReadonlyMap<string, string>): string {
     // empty map rather than a guess, and an absent field is valid; a field
     // that says every page changed today is a lie Google stops trusting.
     const lastmod = lastmods?.get(r.path);
+
+    // The image extension, for game pages only - they are the pages that have
+    // a picture. Google's own guidance is that a sitemap is how it DISCOVERS
+    // images it might otherwise miss; it does not promise one will be shown.
+    //
+    // Keyed on `r.id` and not on the kind alone. A category route is also a
+    // route with no `id`, and `art/undefined.svg` is a row that validates, a
+    // file that does not exist, and a 404 advertised to every crawler.
+    const art = r.kind === "game" && r.id ? [r.id] : [];
+    const images = art.map((id) =>
+      ["    <image:image>", `      <image:loc>${xml(ORIGIN + artPath(id))}</image:loc>`, "    </image:image>"].join(
+        "\n",
+      ),
+    );
+
     return [
       "  <url>",
       `    <loc>${xml(canonicalUrl(r.path))}</loc>`,
       ...(lastmod ? [`    <lastmod>${xml(lastmod)}</lastmod>`] : []),
       ...alternates,
+      ...images,
       "  </url>",
     ].join("\n");
   });
 
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" ' +
+      'xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">',
     ...rows,
     "</urlset>",
     "",

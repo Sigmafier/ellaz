@@ -360,6 +360,34 @@ describe("every page renders", () => {
     }
   });
 
+  // The positive control for the `artAlt` exemption in content.test.ts, and it
+  // reads the EMITTED page rather than the template - the alt is the one string
+  // on the page that only a screen reader and a crawler ever see, so a raw
+  // token there would ship green past every human who looked at the picture.
+  it.each(LOCALES)("the %s image alt fills its token and names the game", (locale) => {
+    for (const meta of GAMES) {
+      const route = ROUTES.find(
+        (r) => r.kind === "game" && r.id === meta.id && r.locale === locale,
+      );
+      if (!route) continue;
+      // Read as EMITTED, so the comparison is escaped too. `Fusion d'animaux`
+      // ships as `Fusion d&#39;animaux`, which is correct in an attribute and
+      // does not contain the raw name - a test that missed this would be
+      // reporting a defect in the escaping it should be glad of.
+      const alt = renderRoute(route, "/").match(/<img[\s\S]*?alt="([^"]*)"/)?.[1] ?? "";
+      const name = escapeHtml(gameName(meta.id, locale));
+      expect(alt, `${meta.id} ${locale}: the page emits no <img> alt at all`).not.toBe("");
+      expect(alt, `${meta.id} ${locale}: alt still carries a raw token`).not.toMatch(/[{}]/);
+      expect(alt, `${meta.id} ${locale}: alt does not name the game`).toContain(name);
+      // It must SAY something beyond the name, or it is the H1 again - which
+      // reads "2048" in three of the four languages and describes no picture.
+      expect(
+        alt.length,
+        `${meta.id} ${locale}: alt "${alt}" is just the name, not a description`,
+      ).toBeGreaterThan(name.length + 4);
+    }
+  });
+
   it("states the platform facts from one place, never from a content file", () => {
     const page = renderRoute(ROUTES.find((r) => r.kind === "game" && r.locale === "he")!, "/");
     for (const fact of SITE.he.facts) expect(page).toContain(escapeHtml(fact));
