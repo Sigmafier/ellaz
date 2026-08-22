@@ -326,3 +326,49 @@ describe("the breadcrumb on the utility row", () => {
     expect(declarations).toMatch(/body\.screen \.urow \.bc a\{[^}]*color:inherit/);
   });
 });
+
+/**
+ * The screen's name is HIDDEN on a phone, never removed from the document.
+ *
+ * The bar was saying the name twice inside 104px of chrome on the narrowest
+ * screen we serve - once in `.gname` and again as the last crumb of the
+ * breadcrumb one row below - so the phone hides `.gname`. Every screen keeps
+ * its name in its `<h1>`, its `<title>`, its breadcrumb and its JSON-LD.
+ *
+ * The hide MUST be a media query. An emitter branch would look identical in a
+ * phone browser and would drop the name out of the HTML a crawler receives,
+ * which is a real cost paid for a layout decision - and nothing in this repo
+ * would notice, because every gate here reads a document that was built at one
+ * width. Responsive hiding is not cloaking; not emitting it is a different
+ * thing entirely.
+ */
+describe("the header's name is hidden on a phone and still in the document", () => {
+  const NARROW = /@media \(max-width:719px\)\{body\.screen \.gname\{display:none\}\}/;
+
+  it("hides it under 720, in CSS", () => {
+    expect(DOCUMENT_CSS, "the phone still draws the name in the bar").toMatch(NARROW);
+  });
+
+  it("still EMITS it on all three screens", () => {
+    for (const [name, html] of Object.entries(PAGES)) {
+      expect(html, `${name} stopped emitting .gname`).toContain('class="gname"');
+    }
+  });
+
+  it("and the name is on the page for a crawler regardless", () => {
+    // The reason hiding it is free: three other places say it, and one of them
+    // (the breadcrumb) is on screen a row below even on the phone.
+    const html = PAGES.game;
+    expect(html).toContain("<h1>");
+    expect(html).toMatch(/<nav class="bc">[\s\S]*?Snake[\s\S]*?<\/nav>/);
+    expect(html).toMatch(/<title>[^<]*Snake/i);
+  });
+
+  it("the control that proves those matchers can fail", () => {
+    // Every assertion above passes vacuously on a matcher that stopped
+    // matching. A width nobody uses must NOT be found, and a class nobody
+    // emits must NOT be found either.
+    expect(DOCUMENT_CSS).not.toMatch(/@media \(max-width:718px\)\{body\.screen \.gname/);
+    expect(PAGES.game).not.toContain('class="gname-does-not-exist"');
+  });
+});

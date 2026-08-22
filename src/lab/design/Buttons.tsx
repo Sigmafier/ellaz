@@ -131,7 +131,7 @@ export const CHROME_TOKENS: TokenSpec[] = [
   { name: "--hicon", label: "icon size", shipped: same(22), min: 12, max: 34, what: "every glyph on every screen" },
   { name: "--hgap", label: "header gap", shipped: { wide: 12, narrow: 8 }, min: 0, max: 28, what: "space between the bar's items" },
   { name: "--hpad", label: "side padding", shipped: { wide: 20, narrow: 12 }, min: 0, max: 40, what: "the screen edge, both rows" },
-  { name: "--hbrand", label: "title size", shipped: { wide: 22, narrow: 20 }, min: 14, max: 32, what: "the game's name in the bar" },
+  { name: "--hbrand", label: "title size", shipped: { wide: 22, narrow: 20 }, min: 14, max: 32, what: "the name in the bar - DESKTOP ONLY, a phone hides it" },
   { name: "--hrad", label: "bar button radius", shipped: same(99), min: 0, max: 99, what: "99 is a pill" },
   { name: "--urad", label: "row button radius", shipped: same(14), min: 0, max: 99, what: "99 is a pill" },
 ];

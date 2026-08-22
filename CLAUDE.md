@@ -794,6 +794,17 @@ separate three.js / Babylon / PlayCanvas bake-off.
   because the runtime may not import `src/content`. `gameTools.ts` is pinned to
   the `page` chunk for the `GameChrome` reason - left to the `src/ui/`
   catch-all it went to the SHELL and `assert:payload` reded 81 B over.
+  **The screen's NAME is hidden on a phone and never removed from the
+  document.** The bar was saying it twice inside 104px of chrome on the
+  narrowest screen we serve - once in `.gname` and again as the last crumb of
+  the breadcrumb one row below - so `@media (max-width:719px)` hides it. It is
+  a media query and NOT an emitter branch on purpose: the element stays in the
+  served HTML, so the name is still there for a crawler beside the `<title>`,
+  the `<h1>`, the breadcrumb and the JSON-LD (measured: "Sudoku" occurs 9 times
+  in the served document, unchanged). Responsive hiding is not cloaking; not
+  emitting it is a different thing, and every gate here reads a document built
+  at one width so nothing would have caught it. `--hbrand` is therefore inert
+  on the phone arm of the bench, and the knob says so.
   **And a platform control is on EVERY screen**: one `screenChrome` bar serves
   a game, the room and the boards, tinted per screen from `--g`, and
   `screen-header-is-platform-only.test.ts` reduces all three headers to a

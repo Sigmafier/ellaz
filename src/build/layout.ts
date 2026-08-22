@@ -423,6 +423,16 @@ body.screen .tagline{display:none}
 body.screen .gname{flex:1 1 0;min-width:0;
   font:600 16px/1 Fredoka,system-ui,sans-serif;color:var(--hdr-ink);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-inline:2px}
+/* HIDDEN ON A PHONE, and it costs the name nothing. Every screen's breadcrumb
+   already ends with that screen's own name one row below - the game on a game
+   page, the h1 on the room, the boards and a category - so the bar was saying
+   it twice inside 104px of chrome, on the narrowest screen we serve.
+   It is a media query and not a markup change ON PURPOSE: the element stays in
+   the document, so the title is still in the served HTML for every crawler
+   alongside the <title>, the <h1>, the breadcrumb and the JSON-LD, and
+   responsive hiding is not cloaking. Do not "tidy" this into an emitter
+   branch - that would drop the name from what a crawler receives. */
+@media (max-width:719px){body.screen .gname{display:none}}
 /* ONE way home, and it says where it goes: the arrow tells you it is a back
    affordance and the house tells you what is behind it. Two glyphs in one
    pill rather than two buttons - they are one destination, and this is the
