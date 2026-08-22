@@ -417,6 +417,48 @@ finger** (`elementFromPoint`, not a rectangle - a pinned preview satisfies the
 rectangle test while covering the control), and a knob that lands while the
 pointer is still down.
 
+**A lab screen that declares no scroller is CLIPPED, and two of the three did
+not.** `body.app-shell{overflow:hidden;height:100%}` is right for an app that
+manages its own scroll regions and it means the shell cuts off anything a lab
+route renders past the fold. `#/lab/buttons` scrolls by ACCIDENT - it sets
+`overflowX: hidden` to stop a 390px preview pushing the page sideways, and a
+block with a clipped x-axis computes `overflow-y` to `auto` whether or not
+anybody meant it. Measured at 390x844 with a wheel over the preview:
+`#/lab/buttons` **788px**, `#/lab/design` **0px**, and the new mock screen
+**0px** before it declared one. All three now name both axes; `#/lab/design`
+moves 900. It is the third distinct cause of "the lab doesn't do anything",
+after the swipe-eating preview and the knob that only landed on a timer, and
+the only one found by a gate rather than by a person.
+
+## Three proposed labs, at `#/lab/mock`
+
+**A PROPOSAL with a kill date.** The operator asked for a lab that is "more
+visual so i can shooe elements and choose their properties"; `src/lab/design/
+Mocks.tsx` offers three ways to do that over the same real game page, one at a
+time behind a labelled switcher. Whichever wins gets built as the real lab and
+the file is deleted with the other two.
+
+- **A · tap the thing** - every tunable part of the screen is outlined over the
+  live preview and tapping one brings up only its own numbers. The primitive
+  the shipped bench lacks is `PARTS`: a thing you can point at, with its knobs
+  hanging off it, instead of nine knobs named after tokens.
+- **B · the stack** - the page as bands at their MEASURED heights with the sum
+  underneath, so the chrome and the game are visibly drawing on one budget.
+  This is the utility row's own defect drawn: 44px of button in a 46px band.
+- **C · pick a size** - no sliders. Three real sizes per number, each drawn as
+  a bar, tap the one that looks right.
+
+All three drive the same real tokens on the same real page - what differs is
+how you reach a number, never whether the number is real. Two things fell out
+of building it, both measured rather than reasoned: **the outline labels are
+drawn one at a time**, because three of the five parts NEST (the pill is in the
+row, the game row is in the board) so they share a top-left corner and every
+label covers its parent's; and **a bigger bottom padding makes a covered knob
+LESS reachable, not more** - the padding is inside the scrolled content, so at
+the end of the scroll the last knob sits where the padding pushed it, high up,
+under the pinned preview. 70dvh of tail put every size card out of reach at
+every offset the page could reach.
+
 ## The game row - difficulty, the score, the stage
 
 **One row, three cells, the same in every game: the difficulty, a main number

@@ -114,3 +114,53 @@ describe("a knob lands at once", () => {
     expect(src).not.toMatch(/setInterval[\s\S]{0,200}\[\s*apply\s*\]/);
   });
 });
+
+/**
+ * A lab screen that does not declare a scroller is CLIPPED, not scrollable.
+ *
+ * `body.app-shell{overflow:hidden;height:100%}` is correct for an application
+ * that manages its own scroll regions, and it means the shell clips anything a
+ * lab route renders past the fold. `Buttons.tsx` and `Compare.tsx` scroll by
+ * ACCIDENT - they set `overflowX: hidden` to stop a 390px preview pushing the
+ * page sideways, and a block with a clipped x-axis computes `overflow-y` to
+ * `auto` whether or not anybody meant it.
+ *
+ * Measured on `Mocks.tsx` at 390x844 the first time it ran, before it declared
+ * one: 1403px of content in an 844px box, `scrollTop` stuck at 0, and no
+ * scroller anywhere in the chain up to `<html>`. Same sentence as the two
+ * defects above - the lab does not do anything - from a third cause.
+ *
+ * So: every lab root either clips its x-axis (and gets a scroller as a side
+ * effect) or says `overflowY` outright. The rule is written as "one of the
+ * two" rather than "both", because retrofitting the older screens to be
+ * explicit is a change to files this test is meant to be watching.
+ */
+describe("a lab screen is its own scroller, because the app shell clips", () => {
+  const ROOTS = ["Buttons.tsx", "Compare.tsx", "Mocks.tsx"];
+
+  it("every lab root declares one", () => {
+    const bad: string[] = [];
+    for (const f of ROOTS) {
+      const src = read(f);
+      if (!/overflowX:\s*"hidden"/.test(src) && !/overflowY:\s*"auto"/.test(src)) bad.push(f);
+    }
+    expect(bad, "these render past the fold inside a body that clips").toEqual([]);
+  });
+
+  it("the two that were measured say both axes rather than leaning on the side effect", () => {
+    // `Compare.tsx` was found by the test above, not by a person: it declared
+    // neither, and a wheel over its preview at 390x844 moved it 0px while
+    // `#/lab/buttons` moved 788. It moves 900 now.
+    for (const f of ["Mocks.tsx", "Compare.tsx"]) {
+      expect(read(f), `${f} names overflowY`).toMatch(/overflowY:\s*"auto"/);
+      expect(read(f), `${f} names overflowX`).toMatch(/overflowX:\s*"hidden"/);
+    }
+  });
+
+  it("the control that proves the matcher can fail", () => {
+    // Buttons.tsx is the positive control for the FIRST test and the negative
+    // control for the second: it clips x and never names overflowY, so a
+    // matcher that reported "both axes" on it would be matching nothing.
+    expect(read("Buttons.tsx")).not.toMatch(/overflowY:\s*"auto"/);
+  });
+});

@@ -58,6 +58,19 @@ const DesignButtons = lazy(() =>
 
 const BUTTONS_HASH = "#/lab/buttons";
 
+/**
+ * Three proposed shapes for this bench, at `#/lab/mock`.
+ *
+ * A PROPOSAL with a kill date: whichever arm the operator picks gets built as
+ * the real lab and `Mocks.tsx` is deleted with the other two. It has its own
+ * address rather than a tab because it is asking about the tabs themselves,
+ * and a proposal nested inside the thing it proposes replacing cannot be
+ * looked at cleanly. Same `lab-*` chunk, so it costs a first visit nothing.
+ */
+const DesignMocks = lazy(() => import("../lab/design/Mocks").then((m) => ({ default: m.Mocks })));
+
+const MOCK_HASH = "#/lab/mock";
+
 /** Re-render on hash change, so leaving the lab does not need a reload. */
 function useHash(): string {
   const [hash, setHash] = useState(() =>
@@ -243,6 +256,14 @@ export function App({ initialLocale }: { initialLocale?: AppLocale } = {}) {
 
   // After the hooks, never before them - an early return above a hook changes
   // the hook order between renders and React crashes.
+  if (hash === MOCK_HASH) {
+    return (
+      <Suspense fallback={null}>
+        <DesignMocks />
+      </Suspense>
+    );
+  }
+
   if (hash === BUTTONS_HASH) {
     return (
       <Suspense fallback={null}>

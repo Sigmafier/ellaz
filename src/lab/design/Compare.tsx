@@ -144,7 +144,18 @@ export function Compare() {
   }, [game, variant, view, measure]);
 
   return (
-    <section dir="ltr" style={{ padding: 12 }}>
+    <section
+      dir="ltr"
+      /* ITS OWN SCROLLER. `body.app-shell{overflow:hidden;height:100%}` clips
+         anything a lab route renders past the fold, so a root that declares no
+         scroller is not a long page - it is a cut-off one. Measured at 390x844
+         with a wheel over the preview: this screen moved 0px while
+         `#/lab/buttons` moved 788, and the difference is that the other screen
+         sets `overflowX: hidden` and gets `overflow-y: auto` as a side effect
+         of the clipped x-axis. Both axes are written out here rather than
+         leaning on that. */
+      style={{ padding: 12, height: "100dvh", overflowY: "auto", overflowX: "hidden" }}
+    >
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
         <Pick label="game" value={game} options={GAMES} onPick={setGame} />
         <Pick

@@ -40,6 +40,7 @@ export function Preview({
   w,
   h,
   controls,
+  overlay,
 }: {
   frameRef: RefObject<HTMLIFrameElement>;
   /** Forces a reload when the previewed thing changes (the game, the arm). */
@@ -50,6 +51,20 @@ export function Preview({
   h: number;
   /** The picker row for this preview. It rides INSIDE the pinned column. */
   controls?: ReactNode;
+  /**
+   * Anything drawn OVER the frame - an inspector's outlines and their labels.
+   *
+   * It is handed the scale because the frame is transformed and its own
+   * `getBoundingClientRect` is in the FRAME's coordinate space: a rect read
+   * inside the document has to be multiplied to land on the same pixels out
+   * here. Passing it rather than letting a caller guess is the difference
+   * between an outline on the header and an outline near it.
+   *
+   * Rendered AFTER the shield, so it takes taps. That is deliberate: the
+   * shield exists to stop a swipe reaching the game, and an inspector needs
+   * the tap for itself anyway.
+   */
+  overlay?: (scale: number) => ReactNode;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const [avail, setAvail] = useState(0);
@@ -138,6 +153,7 @@ export function Preview({
           }}
         />
         {live ? null : <div style={SHIELD} aria-hidden="true" />}
+        {live ? null : overlay?.(scale)}
       </div>
       <div style={FOOT}>
         <button type="button" style={BTN} onClick={() => setLive((v) => !v)}>
