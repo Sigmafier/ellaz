@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { PANEL_STYLES, PANEL_TOKENS } from "./panelStyles";
-import { tokensOf } from "./Panel";
+import { tokensOf } from "./panelRead";
 
 /**
  * The panel bench claims, beside every knob, what the component draws today.

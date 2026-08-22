@@ -44,32 +44,33 @@ const DesignCompare = lazy(() =>
 const DESIGN_HASH = "#/lab/design";
 
 /**
- * The games-buttons bench, at `#/lab/buttons`.
+ * THE BENCH, at `#/lab/buttons` - a real game page where every part of it is a
+ * thing you can point at.
  *
- * Its own address beside the chrome bench rather than a tab inside it: they
- * ask different questions. The chrome bench compares one page against a named
- * variant; this one walks the whole roster and measures what 21 different
- * authors did to a footer. Same `lab-*` chunk, so it costs a first visit
- * exactly what the lab costs it, which is nothing.
+ * It kept that address rather than taking a new one, because it is the address
+ * that is bookmarked and it is still the same subject. What changed is how you
+ * reach a number: it was two tabs of sliders named after CSS custom properties
+ * and it is now the screen itself, chosen out of three proposals on
+ * 2026-08-22. Same `lab-*` chunk, so it costs a first visit nothing.
  */
-const DesignButtons = lazy(() =>
-  import("../lab/design/Buttons").then((m) => ({ default: m.Buttons })),
-);
+const DesignScreen = lazy(() => import("../lab/design/Screen").then((m) => ({ default: m.Screen })));
 
 const BUTTONS_HASH = "#/lab/buttons";
 
 /**
- * Three proposed shapes for this bench, at `#/lab/mock`.
+ * The per-game footers, at `#/lab/footers`.
  *
- * A PROPOSAL with a kill date: whichever arm the operator picks gets built as
- * the real lab and `Mocks.tsx` is deleted with the other two. It has its own
- * address rather than a tab because it is asking about the tabs themselves,
- * and a proposal nested inside the thing it proposes replacing cannot be
- * looked at cleanly. Same `lab-*` chunk, so it costs a first visit nothing.
+ * The half of the old buttons bench the inspector does NOT cover: what each of
+ * the 33 games draws in its own footer, which no shared rule governs, and the
+ * wall that scans all of them at once. It asks a different question - "what did
+ * 33 authors do" rather than "what should this one number be" - so it gets its
+ * own address instead of being a tab nobody opens.
  */
-const DesignMocks = lazy(() => import("../lab/design/Mocks").then((m) => ({ default: m.Mocks })));
+const DesignFooters = lazy(() =>
+  import("../lab/design/Buttons").then((m) => ({ default: m.Buttons })),
+);
 
-const MOCK_HASH = "#/lab/mock";
+const FOOTERS_HASH = "#/lab/footers";
 
 /** Re-render on hash change, so leaving the lab does not need a reload. */
 function useHash(): string {
@@ -256,10 +257,10 @@ export function App({ initialLocale }: { initialLocale?: AppLocale } = {}) {
 
   // After the hooks, never before them - an early return above a hook changes
   // the hook order between renders and React crashes.
-  if (hash === MOCK_HASH) {
+  if (hash === FOOTERS_HASH) {
     return (
       <Suspense fallback={null}>
-        <DesignMocks />
+        <DesignFooters />
       </Suspense>
     );
   }
@@ -267,7 +268,7 @@ export function App({ initialLocale }: { initialLocale?: AppLocale } = {}) {
   if (hash === BUTTONS_HASH) {
     return (
       <Suspense fallback={null}>
-        <DesignButtons />
+        <DesignScreen />
       </Suspense>
     );
   }

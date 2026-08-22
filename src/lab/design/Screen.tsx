@@ -1,31 +1,28 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { Preview } from "./Preview";
 import { useLiveApply } from "./useLiveApply";
-import { CHROME_TOKENS, GAMES, shippedFor, type TokenSpec } from "./Buttons";
-import { PANEL_TOKENS, type PanelToken } from "./panelStyles";
+import { CHROME_TOKENS, GAMES, readChrome, shippedFor, type TokenSpec } from "./Buttons";
+import { PANEL_STYLES, PANEL_TOKENS, STYLE_BY_ID, type PanelToken } from "./panelStyles";
+import { readPanel, STYLE_TAG, tokensOf } from "./panelRead";
 
 /**
- * Three ways this bench could work, over the same real page, at `#/lab/mock`.
+ * The bench: a real game page, and every part of it is a thing you point at.
  *
- * The operator's ask, verbatim: "i want the entire lab to be more UX UI fun,
- * more visual so i can shooe elements and choose their properties. suggest
- * mocks and options how to show this lab".
+ * Chosen out of three proposals on 2026-08-22 - "A, build the tap one" - and
+ * the two that lost were deleted with the screen that offered them. What it
+ * replaces is two tabs of sliders named after CSS custom properties ("page row
+ * height", "title size"), which asked you to already know which stripe each
+ * one moved. Here the stripe IS the handle and the numbers hang off it.
  *
- * So this is a PROPOSAL, and the thing being proposed is an INTERACTION - not
- * a colour scheme and not a drawing. A drawing of an inspector cannot be
- * judged, because the only question about an inspector is whether pointing at
- * a thing gets you that thing. All three arms therefore drive the same real
- * tokens on the same real game page: what differs between them is how you
- * reach a number, never whether the number is real.
+ * Nothing here draws its own version of the chrome. A knob writes the same
+ * custom property `layout.ts` and `GameChrome.tsx` already read, onto the BODY
+ * of a real page in an iframe, so what you look at is the shipped rendering
+ * path with different numbers in it. A shape that no number can express - a
+ * label under its value, a glyph dropped - is a real stylesheet injected into
+ * that page, never a drawing beside it.
  *
- * ONE AT A TIME, large, with a labelled switcher. Three arms side by side is a
- * comparison exercise rather than an eyeball, and this bench is already the
- * place where that lesson is written down.
- *
- * It is a mock in exactly one sense: whichever arm wins gets built as the real
- * lab and the other two are deleted with this file. Nothing here is a second
- * implementation of anything - the token lists, the preview and the apply loop
- * are the shipped ones, imported.
+ * On a phone it is one fixed screen: a bar, the picture, and a sheet of knobs
+ * that is the only thing on it that scrolls. See `SHELL`.
  */
 
 /* ------------------------------------------------------------------ parts */
@@ -43,7 +40,7 @@ import { PANEL_TOKENS, type PanelToken } from "./panelStyles";
  * something that is not on screen. `coloring` has no stat row, and that is a
  * real answer rather than a gap.
  */
-type Part = {
+export type Part = {
   id: string;
   /** What a person would call it, pointing at the screen. */
   label: string;
@@ -52,6 +49,10 @@ type Part = {
   sel: string;
   chrome: string[];
   panel: string[];
+  /** Offer the SHAPE switches with this part. Only the game row has any. */
+  styles?: true;
+  /** Which live readout belongs beside this part's knobs. */
+  reads?: "glyphs" | "row";
 };
 
 export const PARTS: Part[] = [
@@ -62,6 +63,7 @@ export const PARTS: Part[] = [
     sel: ".top",
     chrome: ["--hh", "--hbrand", "--hicon", "--hgap", "--hpad", "--tap", "--hrad"],
     panel: [],
+    reads: "glyphs",
   },
   {
     id: "row",
@@ -84,6 +86,8 @@ export const PARTS: Part[] = [
     label: "the game row",
     what: "difficulty, the live number and the record",
     sel: ".ellaz-game-panel .gc-row",
+    styles: true,
+    reads: "row",
     chrome: [],
     panel: [
       "--gc-tap",
@@ -151,32 +155,6 @@ function measure(doc: Document): Hit[] {
 
 const src = (game: string) => `${import.meta.env.BASE_URL}games/${game}/`;
 
-type Arm = "tap" | "stack" | "sizes";
-
-const ARMS: { id: Arm; name: string; one: string; short: string }[] = [
-  {
-    id: "tap",
-    name: "A · tap the thing",
-    one: "Tap a part of the screen. Only its own numbers come up, in a sheet over the bottom.",
-    // Written short rather than sliced. A sentence cut at a character count
-    // ends mid-word and reads as a rendering bug, which is the one thing a
-    // screen proposing a design must not look like.
-    short: "tap a part, get its numbers",
-  },
-  {
-    id: "stack",
-    name: "B · the stack",
-    one: "The page as bands with their real heights, and the arithmetic that has to add up.",
-    short: "bands at their real heights",
-  },
-  {
-    id: "sizes",
-    name: "C · pick a size",
-    one: "No sliders. Three real sizes per number, drawn at scale - tap the one that looks right.",
-    short: "no sliders - pick a size",
-  },
-];
-
 /**
  * Is this a screen the fixed shell should own?
  *
@@ -217,14 +195,16 @@ const SPLITS = [
 ] as const;
 type Split = (typeof SPLITS)[number]["id"];
 
-export function Mocks() {
-  const [arm, setArm] = useState<Arm>("tap");
+export function Screen() {
   const [split, setSplit] = useState<Split>("both");
   const [game, setGame] = useState("sudoku");
   const [wide, setWide] = useState(false);
   const [sel, setSel] = useState<string>("row");
+  const [styleId, setStyleId] = useState("shipped");
   const [vals, setVals] = useState<Record<string, number | undefined>>({});
   const [hits, setHits] = useState<Hit[]>([]);
+  const [glyphs, setGlyphs] = useState<ReturnType<typeof readChrome>>([]);
+  const [row, setRow] = useState<ReturnType<typeof readPanel>>({ cells: [], lines: 0 });
   const frame = useRef<HTMLIFrameElement>(null);
 
   // Written on the BODY, never on documentElement: the tokens are declared by
@@ -232,17 +212,31 @@ export function Mocks() {
   // from its parent, so setting them on <html> moves nothing while the panel
   // reports a change. The shipped bench learned this the hard way and this
   // arm is not going to relearn it.
+  const style = STYLE_BY_ID(styleId);
+
   const apply = useCallback(() => {
     const doc = frame.current?.contentDocument;
     if (!doc?.querySelector(".urow")) return false;
+    // The SHAPE first, then the numbers. A style writes `:root` and the knobs
+    // write the BODY, which is the closer ancestor - so a knob always wins
+    // over the style it is dialling, which is the order a person expects.
+    let tag = doc.getElementById(STYLE_TAG);
+    if (!tag) {
+      tag = doc.createElement("style");
+      tag.id = STYLE_TAG;
+      doc.head.appendChild(tag);
+    }
+    tag.textContent = style.css;
     for (const t of [...CHROME_TOKENS, ...PANEL_TOKENS]) {
       const v = vals[t.name];
       if (v === undefined) doc.body.style.removeProperty(t.name);
       else doc.body.style.setProperty(t.name, `${v}px`);
     }
     setHits(measure(doc));
+    setGlyphs(readChrome(doc));
+    setRow(readPanel(doc));
     return true;
-  }, [vals]);
+  }, [vals, style]);
 
   useLiveApply(apply, `${game}-${wide}`);
 
@@ -258,9 +252,16 @@ export function Mocks() {
 
   const part = PARTS.find((p) => p.id === sel) ?? PARTS[0];
   const knobs = knobsOf(part, wide);
+  // What a knob would be with nothing dialled: the STYLE's value where it sets
+  // one, otherwise what ships. Comparing against the shipped literal while a
+  // style is applied reports "changed" for every number the style itself moved.
+  const fromStyle = tokensOf(style.css);
+  const baseOf = (k: Knob) => fromStyle[k.name] ?? k.shipped;
   const set = (name: string, v: number) => setVals((p) => ({ ...p, [name]: v }));
   const clear = (name: string) => setVals((p) => ({ ...p, [name]: undefined }));
-  const dirty = [...CHROME_TOKENS, ...PANEL_TOKENS].filter((t) => vals[t.name] !== undefined);
+  const dirty = [...CHROME_TOKENS, ...PANEL_TOKENS].filter(
+    (t) => vals[t.name] !== undefined && vals[t.name] !== (fromStyle[t.name] ?? undefined),
+  );
   const css = dirty.map((t) => `${t.name}:${vals[t.name]}px`).join(";");
   const w = wide ? 1100 : 390;
 
@@ -274,48 +275,96 @@ export function Mocks() {
 
   const controls = (
     <>
-      {arm === "stack" ? <Stack hits={hits} sel={sel} onPick={setSel} h={wide ? 620 : 560} /> : null}
-      {arm === "tap" ? (
-        <div style={ROW}>
-          {hits.map((h) => (
-            <button
-              key={h.part.id}
-              type="button"
-              style={{ ...BTN, ...(h.part.id === sel ? ON : null) }}
-              onClick={() => setSel(h.part.id)}
-            >
-              {h.part.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
+      <div style={ROW}>
+        {hits.map((h) => (
+          <button
+            key={h.part.id}
+            type="button"
+            style={{ ...BTN, ...(h.part.id === sel ? ON : null) }}
+            onClick={() => setSel(h.part.id)}
+          >
+            {h.part.label}
+          </button>
+        ))}
+      </div>
 
       <h2 style={{ fontSize: 14, margin: "10px 0 2px" }}>{part.label}</h2>
       <p style={{ ...NOTE, margin: "0 0 10px" }}>{part.what}</p>
 
-      {arm === "sizes" ? (
-        <Sizes knobs={knobs} vals={vals} onPick={set} onClear={clear} />
-      ) : (
-        <div style={{ display: "grid", gap: 10 }}>
-          {knobs.map((k) => (
-            <Slider
-              key={k.name}
-              knob={k}
-              value={vals[k.name] ?? k.shipped}
-              moved={vals[k.name] !== undefined}
-              onChange={(v) => set(k.name, v)}
-              onClear={() => clear(k.name)}
-            />
-          ))}
+      {/* A SHAPE, not a number. A label under its value, three cards collapsed
+          into one, a glyph dropped - no token can say any of those, so a
+          candidate is a stylesheet injected into the real page. Only the game
+          row has them today, which is why they are shown with it rather than
+          on every part. */}
+      {part.styles ? (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ ...NOTE, marginBottom: 4 }}>shape</div>
+          <div style={ROW}>
+            {PANEL_STYLES.map((st) => (
+              <button
+                key={st.id}
+                type="button"
+                title={st.what}
+                style={{ ...BTN, ...(styleId === st.id ? ON : null) }}
+                onClick={() => setStyleId(st.id)}
+              >
+                {st.name}
+              </button>
+            ))}
+          </div>
         </div>
-      )}
+      ) : null}
+
+      <div style={{ display: "grid", gap: 10 }}>
+        {knobs.map((k) => (
+          <Slider
+            key={k.name}
+            knob={k}
+            value={vals[k.name] ?? baseOf(k)}
+            moved={vals[k.name] !== undefined && vals[k.name] !== baseOf(k)}
+            onChange={(v) => set(k.name, v)}
+            onClear={() => clear(k.name)}
+          />
+        ))}
+      </div>
+
+      {/* What the page ACTUALLY draws, read off the live document rather than
+          typed. The two rows that matter are a glyph with no `.gl` wrapper -
+          drawn by the runtime, so unreachable from every rule the header
+          writes - and a card whose text is ellipsised INSIDE itself while
+          every overflow check reads clean. */}
+      {part.reads === "glyphs" && glyphs.length ? (
+        <Readout
+          title={`${new Set(glyphs.filter((g) => g.stroke !== "-").map((g) => g.size)).size} glyph size · ${new Set(glyphs.filter((g) => g.stroke !== "-").map((g) => g.stroke)).size} stroke weight`}
+          rows={glyphs.map((g) => [g.label, `${g.size} · ${g.stroke}`, g.by])}
+        />
+      ) : null}
+      {part.reads === "row" && row.cells.length ? (
+        <Readout
+          title={`${row.lines} line${row.lines === 1 ? "" : "s"} · ${row.cells.length} cells`}
+          rows={row.cells.map((c) => [
+            c.what,
+            `${c.w}x${c.h}`,
+            c.clipped.length ? `clipped: ${c.clipped.join(", ")}` : "",
+          ])}
+        />
+      ) : null}
 
       <div style={{ marginTop: 14 }}>
-        <button type="button" style={BTN} onClick={() => setVals({})}>
+        <button
+          type="button"
+          style={BTN}
+          onClick={() => {
+            setVals({});
+            setStyleId("shipped");
+          }}
+        >
           back to shipped
         </button>
         <p style={{ ...NOTE, marginTop: 8 }}>
-          {dirty.length === 0 ? "nothing moved - this is exactly what ships" : `${dirty.length} changed`}
+          {dirty.length === 0 && styleId === "shipped"
+            ? "nothing moved - this is exactly what ships"
+            : `${dirty.length} changed${styleId === "shipped" ? "" : ` · shape: ${styleId}`}`}
         </p>
         {css ? <pre style={PRE}>{`body.screen{${css}}`}</pre> : null}
       </div>
@@ -350,15 +399,11 @@ export function Mocks() {
           </div>
         )
       }
-      overlay={
-        arm === "tap"
-          ? (scale) => (
-              <span data-overlay="parts">
-                <Outlines hits={hits} scale={scale} sel={sel} onPick={setSel} />
-              </span>
-            )
-          : undefined
-      }
+      overlay={(scale) => (
+        <span data-overlay="parts">
+          <Outlines hits={hits} scale={scale} sel={sel} onPick={setSel} />
+        </span>
+      )}
     />
   );
 
@@ -391,17 +436,7 @@ export function Mocks() {
               </option>
             ))}
           </select>
-          {ARMS.map((a) => (
-            <button
-              key={a.id}
-              type="button"
-              onClick={() => setArm(a.id)}
-              style={{ ...BTN, ...(arm === a.id ? ON : null), padding: "6px 9px" }}
-              aria-label={a.name}
-            >
-              {a.name.slice(0, 1)}
-            </button>
-          ))}
+          <span style={{ ...NOTE, marginInlineStart: "auto" }}>tap a part</span>
         </div>
 
         <div style={side ? SIDE_WRAP : { display: "contents" }}>
@@ -441,7 +476,6 @@ export function Mocks() {
               >
                 1100
               </button>
-              <span style={NOTE}>{ARMS.find((a) => a.id === arm)?.short}</span>
             </div>
             {controls}
           </div>
@@ -452,26 +486,15 @@ export function Mocks() {
 
   return (
     <section style={PAGE}>
-      <h1 style={{ fontSize: 18, margin: "0 0 4px" }}>three labs, one page</h1>
-      <p style={{ ...NOTE, margin: "0 0 10px", maxWidth: 640 }}>
-        Same real game, same real numbers, three ways of reaching them. Flip between them and
-        say which one you want built - the other two get deleted with this screen.
-      </p>
-
-      <div style={{ ...ROW, marginBottom: 4 }}>
-        {ARMS.map((a) => (
-          <button
-            key={a.id}
-            type="button"
-            onClick={() => setArm(a.id)}
-            style={{ ...BTN, ...(arm === a.id ? ON : null), fontSize: 13, padding: "8px 12px" }}
-          >
-            {a.name}
-          </button>
-        ))}
-      </div>
-      <p style={{ ...NOTE, margin: "0 0 12px", color: "#cbd5e1" }}>
-        {ARMS.find((a) => a.id === arm)?.one}
+      <h1 style={{ fontSize: 18, margin: "0 0 4px" }}>the screen</h1>
+      <p style={{ ...NOTE, margin: "0 0 12px", maxWidth: 640 }}>
+        Tap a part of the real page. Only its own numbers come up, and every one of them is a
+        custom property the shipped stylesheet already reads - so what you are looking at is
+        the real rendering path, not a drawing of it. The per-game footers are at{" "}
+        <a href="#/lab/footers" style={{ color: "#818cf8" }}>
+          #/lab/footers
+        </a>
+        .
       </p>
 
       <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
@@ -482,7 +505,7 @@ export function Mocks() {
   );
 }
 
-/* ------------------------------------------------------- A · tap the thing */
+/* ------------------------------------------------------------- outlines */
 
 /**
  * A labelled outline per part, drawn over the frame in the frame's own
@@ -565,142 +588,40 @@ function Outlines({
   );
 }
 
-/* ------------------------------------------------------------ B · the stack */
+/* ---------------------------------------------------------------- readout */
 
 /**
- * The page as bands, with their MEASURED heights and the sum.
+ * What the page ACTUALLY draws, read off the live document rather than typed.
  *
- * This arm exists because the utility row's own defect was an arithmetic one -
- * 44px of button inside a 46px row - and no screen anywhere in this repo shows
- * that the chrome and the game are drawing on one budget. A band you can see
- * being 46 tall around a 44 tall button is the bug, drawn.
+ * It is the deliverable and the picture is the argument: a drawing of this row
+ * can be made to look like anything, and the question worth asking is whether
+ * a six-figure score still fits.
  */
-function Stack({
-  hits,
-  sel,
-  onPick,
-  h,
-}: {
-  hits: Hit[];
-  sel: string;
-  onPick: (id: string) => void;
-  h: number;
-}) {
-  const bands = hits.filter((x) => x.part.id !== "crumb");
-  const total = bands.reduce((n, b) => n + b.height, 0);
+function Readout({ title, rows }: { title: string; rows: string[][] }) {
   return (
-    <div style={{ marginBottom: 12 }}>
-      <div style={{ display: "grid", gap: 3 }}>
-        {bands.map((b) => (
-          <button
-            key={b.part.id}
-            type="button"
-            onClick={() => onPick(b.part.id)}
-            style={{
-              ...BTN,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              // Proportional to the real band, floored so a 46px row is still
-              // tappable. A bar chart nobody can hit is a picture.
-              height: Math.max(30, Math.round((b.height / h) * 190)),
-              ...(b.part.id === sel ? ON : null),
-            }}
-          >
-            <span>{b.part.label}</span>
-            <b style={{ fontVariantNumeric: "tabular-nums" }}>{Math.round(b.height)}px</b>
-          </button>
-        ))}
-      </div>
-      <p style={{ ...NOTE, marginTop: 6 }}>
-        {bands.map((b) => Math.round(b.height)).join(" + ")} = {Math.round(total)}px. Every pixel
-        the chrome takes is a pixel the board does not get.
-      </p>
-    </div>
-  );
-}
-
-/* ---------------------------------------------------------- C · pick a size */
-
-/**
- * Three real sizes per number, drawn at scale, no digits required.
- *
- * The bet: nobody has an opinion about whether a row is 46 or 56, and everyone
- * has one about whether it looks cramped. So the arm offers the shipped value
- * flanked by a tighter and an airier one, each rendered as a bar at its own
- * true proportion, and the number is a caption rather than the control.
- */
-function Sizes({
-  knobs,
-  vals,
-  onPick,
-  onClear,
-}: {
-  knobs: Knob[];
-  vals: Record<string, number | undefined>;
-  onPick: (name: string, v: number) => void;
-  onClear: (name: string) => void;
-}) {
-  return (
-    <div style={{ display: "grid", gap: 12 }}>
-      {knobs.map((k) => {
-        // Steps off the SHIPPED value rather than off the range, so the middle
-        // card is always what ships and the two neighbours are a real choice
-        // either side of it. A range-thirds version put "now" in odd places
-        // and made the middle card mean nothing.
-        const step = Math.max(1, Math.round((k.max - k.min) / 8));
-        const opts = [
-          { v: Math.max(k.min, k.shipped - step), name: "tighter" },
-          { v: k.shipped, name: "now" },
-          { v: Math.min(k.max, k.shipped + step), name: "airier" },
-        ];
-        const cur = vals[k.name] ?? k.shipped;
-        // The bar is scaled ACROSS THE THREE, not drawn at the raw pixel size.
-        // At true size and clamped to 44 the three cards for a 51/56/61 knob
-        // are the same rectangle - measured, and the card exists precisely to
-        // show a difference the number does not make you feel.
-        const lo = Math.min(...opts.map((o) => o.v));
-        const hi = Math.max(...opts.map((o) => o.v));
-        const bar = (v: number) => 8 + (hi === lo ? 16 : ((v - lo) / (hi - lo)) * 30);
-        return (
-          <div key={k.name}>
-            <div style={{ fontSize: 12, color: "#e2e8f0", marginBottom: 4 }}>
-              {k.label} <span style={{ ...NOTE }}>· {k.what}</span>
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              {opts.map((o) => (
-                <button
-                  key={o.name}
-                  type="button"
-                  onClick={() => (o.v === k.shipped ? onClear(k.name) : onPick(k.name, o.v))}
+    <div style={{ marginTop: 12 }}>
+      <div style={{ ...NOTE, marginBottom: 4 }}>{title}</div>
+      <table style={{ borderCollapse: "collapse", fontSize: 11, width: "100%" }}>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i}>
+              {r.map((cell, j) => (
+                <td
+                  key={j}
                   style={{
-                    ...BTN,
-                    flex: "1 1 0",
-                    display: "grid",
-                    gap: 4,
-                    justifyItems: "center",
-                    ...(cur === o.v ? ON : null),
+                    padding: "3px 8px 3px 0",
+                    borderBottom: "1px solid #1e293b",
+                    color: /clipped/.test(cell) ? "#f87171" : j === 0 ? "#e2e8f0" : "#94a3b8",
+                    fontVariantNumeric: "tabular-nums",
                   }}
                 >
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      height: Math.round(bar(o.v)),
-                      borderRadius: 3,
-                      background: cur === o.v ? "#0b1020" : "#475569",
-                    }}
-                  />
-                  <span style={{ fontSize: 11 }}>
-                    {o.name} {o.v}
-                  </span>
-                </button>
+                  {cell}
+                </td>
               ))}
-            </div>
-          </div>
-        );
-      })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

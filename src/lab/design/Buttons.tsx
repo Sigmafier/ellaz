@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GAMES as ROSTER } from "../../portal/games";
-import { Panel } from "./Panel";
 import { Preview } from "./Preview";
 import { useLiveApply } from "./useLiveApply";
 
@@ -223,8 +222,21 @@ const under = (b: Btn) => b.w < TAP_FLOOR || b.h < TAP_FLOOR;
  */
 const previewSrc = (game: string) => `${import.meta.env.BASE_URL}games/${game}/`;
 
+/**
+ * The PER-GAME footers, at `#/lab/footers`.
+ *
+ * The two SHARED tabs that used to live here - nine chrome sliders and nine
+ * panel sliders, each named after the custom property it wrote - were replaced
+ * on 2026-08-22 by `Screen.tsx`, where you point at the part instead. Their
+ * token lists stayed exactly where they are: this file still owns
+ * `CHROME_TOKENS` and `readChrome`, and the inspector imports them, so there
+ * is one list rather than two that drift.
+ *
+ * What is left is the question the inspector does not ask - what 33 different
+ * authors did to a footer nothing governs.
+ */
 export function Buttons() {
-  const [mode, setMode] = useState<"chrome" | "panel" | "one" | "wall">("chrome");
+  const [mode, setMode] = useState<"one" | "wall">("one");
   const [std, setStd] = useState<Standard>(DEFAULT_STANDARD);
   const [on, setOn] = useState(false);
 
@@ -248,35 +260,30 @@ export function Buttons() {
       }}
     >
       <div style={ROW}>
-        <b style={{ fontSize: 15 }}>games buttons</b>
+        <b style={{ fontSize: 15 }}>per-game footers</b>
         <Seg
           value={mode}
           options={[
-            ["chrome", "SHARED · the bar"],
-            ["panel", "SHARED · the game row"],
-            ["one", "PER GAME · one footer"],
-            ["wall", "PER GAME · all 33 footers"],
+            ["one", "one footer"],
+            ["wall", "all 33 footers"],
           ]}
-          onPick={(m) => setMode(m as "chrome" | "panel" | "one" | "wall")}
+          onPick={(m) => setMode(m as "one" | "wall")}
         />
-        {mode === "one" || mode === "wall" ? (
-          <label style={{ ...NOTE, display: "flex", gap: 6, alignItems: "center" }}>
-            <input type="checkbox" checked={on} onChange={(e) => setOn(e.currentTarget.checked)} />
-            apply the standard
-          </label>
-        ) : null}
+        <label style={{ ...NOTE, display: "flex", gap: 6, alignItems: "center" }}>
+          <input type="checkbox" checked={on} onChange={(e) => setOn(e.currentTarget.checked)} />
+          apply the standard
+        </label>
+        <a href="#/lab/buttons" style={{ ...NOTE, color: "#818cf8" }}>
+          the shared chrome is at #/lab/buttons
+        </a>
       </div>
 
-      {/* The knobs belong to the FOOTER standard. Leaving them on screen
-          during the chrome screen would offer five controls that do nothing,
-          which is the defect this bench caught in its own first hour. */}
-      {mode === "one" || mode === "wall" ? <Knobs std={std} setStd={setStd} disabled={!on} /> : null}
+      {/* The knobs belong to the FOOTER standard, and they are inert until it
+          is applied - a control that does nothing is the defect this bench
+          caught in its own first hour. */}
+      <Knobs std={std} setStd={setStd} disabled={!on} />
 
-      {mode === "chrome" ? <Chrome /> : mode === "panel" ? <Panel /> : mode === "one" ? (
-        <OneGame std={std} on={on} />
-      ) : (
-        <Wall std={std} on={on} />
-      )}
+      {mode === "one" ? <OneGame std={std} on={on} /> : <Wall std={std} on={on} />}
     </section>
   );
 }
@@ -339,222 +346,6 @@ function Knob({
         value={value}
         onChange={(e) => onChange(Number(e.currentTarget.value))}
         style={{ width: 120 }}
-      />
-    </label>
-  );
-}
-
-/* ------------------------------------------------- the app's own buttons */
-
-function Chrome() {
-  const [game, setGame] = useState("sudoku");
-  // UNSET means "whatever ships". Seeding this with the shipped numbers and
-  // writing all nine every time looks identical and is not: it pins the phone
-  // arm to the desktop values, so the panel showed a 60px header over a page
-  // that really draws 58. Only a token the operator has actually moved is
-  // written; the rest are removed, and the media query governs them.
-  const [vals, setVals] = useState<Record<string, number | undefined>>({});
-  const [wide, setWide] = useState(false);
-  const [rows, setRows] = useState<ReturnType<typeof readChrome>>([]);
-  const frame = useRef<HTMLIFrameElement>(null);
-
-  const valueOf = (t: TokenSpec) => vals[t.name] ?? shippedFor(t, wide);
-  const dirty = CHROME_TOKENS.filter(
-    (t) => vals[t.name] !== undefined && vals[t.name] !== shippedFor(t, wide),
-  );
-
-  // On the BODY, not documentElement. The tokens are declared by
-  // `body.screen{...}`, and a declaration ON an element beats one inherited
-  // from its parent - so setting them on <html> is inherited straight past by
-  // the very rule that defines them, and every knob moves nothing while the
-  // panel cheerfully reports "2 changed".
-  //
-  // Measured, not reasoned: the first version did exactly that, said 2
-  // changed, emitted the CSS, and the iframe's header stayed 58px with its
-  // glyphs at 22px. An inline style on the body wins over the stylesheet in
-  // both viewport arms, which is what makes the knobs real.
-  //
-  // No `!important` anywhere: if a knob still moved nothing, that would mean
-  // the token is not what lays that thing out, and finding that out is the
-  // point of the panel.
-  const apply = useCallback(() => {
-    const doc = frame.current?.contentDocument;
-    if (!doc?.querySelector(".urow")) return false;
-    CHROME_TOKENS.forEach((t) => {
-      const v = vals[t.name];
-      if (v === undefined) doc.body.style.removeProperty(t.name);
-      else doc.body.style.setProperty(t.name, `${v}px`);
-    });
-    setRows(readChrome(doc));
-    return true;
-  }, [vals]);
-
-  // A knob lands at once. It used to land on the next tick of a 600ms timer
-  // that every knob change rebuilt, which meant a drag landed nothing at all.
-  useLiveApply(apply, `${game}-${wide}`);
-
-  const set = (name: string, v: number) => setVals((p) => ({ ...p, [name]: v }));
-  const reset = () => setVals({});
-
-  const sizes = new Set(rows.filter((r) => r.stroke !== "-").map((r) => r.size));
-  const strokes = new Set(rows.filter((r) => r.stroke !== "-").map((r) => r.stroke));
-  const css = dirty.map((t) => `${t.name}:${vals[t.name]}px`).join(";");
-  const arm = wide ? "desktop" : "phone";
-
-  return (
-    <div>
-      <p style={{ ...NOTE, maxWidth: 760, marginTop: 0 }}>
-        Everything on this screen applies to <b style={{ color: "#e2e8f0" }}>every game</b>, the
-        room and the boards, because every knob is a custom property on{" "}
-        <code>body.screen</code> that the real stylesheet reads. The other two tabs are{" "}
-        <b style={{ color: "#e2e8f0" }}>per game</b> - what each game draws in its own footer, which
-        no shared rule governs today.
-      </p>
-
-      <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
-        <Preview
-          frameRef={frame}
-          frameKey={game}
-          title="the screen"
-          src={previewSrc(game)}
-          w={wide ? 1100 : 390}
-          h={560}
-          controls={
-            <div style={{ ...ROW, marginBottom: 6 }}>
-              <select value={game} onChange={(e) => setGame(e.currentTarget.value)} style={BTN}>
-                {GAMES.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
-                ))}
-              </select>
-              {/* The chrome branches at 719px, so a value dialled on one arm says
-                  nothing about the other - which is how a key ends up hanging off
-                  the side of a phone nobody in the room was looking at. */}
-              <Seg
-                value={wide ? "wide" : "phone"}
-                options={[
-                  ["phone", "phone 390"],
-                  ["wide", "desktop 1100"],
-                ]}
-                onPick={(v) => setWide(v === "wide")}
-              />
-            </div>
-          }
-        />
-
-        <div style={{ minWidth: 320 }}>
-          <h3 style={H3}>the standard - every game</h3>
-          <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
-            {CHROME_TOKENS.map((t) => (
-              <TokenKnob
-                key={t.name}
-                spec={t}
-                value={valueOf(t)}
-                shipped={shippedFor(t, wide)}
-                onChange={set}
-              />
-            ))}
-          </div>
-          <div style={ROW}>
-            <button type="button" style={BTN} onClick={reset} disabled={!dirty.length}>
-              back to shipped
-            </button>
-            <span style={NOTE}>
-              {dirty.length ? `${dirty.length} changed on the ${arm} arm` : `matches what ships on the ${arm} arm`}
-            </span>
-          </div>
-          {dirty.length ? (
-            <pre
-              style={{
-                ...NOTE,
-                background: "#0f172a",
-                padding: 8,
-                borderRadius: 6,
-                whiteSpace: "pre-wrap",
-                maxWidth: 320,
-              }}
-            >
-              body.screen{"{"}
-              {css}
-              {"}"}
-            </pre>
-          ) : null}
-        </div>
-
-        <div style={{ minWidth: 340 }}>
-          <h3 style={H3}>what the page actually draws</h3>
-          <p style={{ ...NOTE, margin: "0 0 8px" }}>
-            <b style={{ color: sizes.size === 1 ? "#4ade80" : "#f87171" }}>{sizes.size}</b> glyph
-            size{sizes.size === 1 ? "" : "s"} ·{" "}
-            <b style={{ color: strokes.size === 1 ? "#4ade80" : "#f87171" }}>{strokes.size}</b>{" "}
-            stroke weight{strokes.size === 1 ? "" : "s"}
-          </p>
-          <table style={{ borderCollapse: "collapse", fontSize: 12 }}>
-            <thead>
-              <tr>
-                {["", "size", "stroke", "drawn by"].map((h) => (
-                  <th key={h} style={{ ...TD2, color: "#94a3b8", textAlign: "left" }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.label}>
-                  <td style={TD2}>{r.label}</td>
-                  <td style={{ ...TD2, fontWeight: 700 }}>{r.size}</td>
-                  <td style={TD2}>{r.stroke}</td>
-                  <td style={TD2}>{r.by}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p style={{ ...NOTE, maxWidth: 340, marginTop: 10 }}>
-            Read out of the real document every 600ms, never typed. The two rows
-            marked <b>runtime</b> are appended as a bare svg with no wrapper - the
-            header&apos;s icon rule drops <code>.gl</code> from its selector so it
-            reaches them anyway, which is what makes one number here possible at
-            all.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TokenKnob({
-  spec,
-  value,
-  shipped,
-  onChange,
-}: {
-  spec: TokenSpec;
-  value: number;
-  shipped: number;
-  onChange: (name: string, v: number) => void;
-}) {
-  const changed = value !== shipped;
-  // Only the tap-target token has a floor. Flagging a header height as "under
-  // 44" would be noise, and a knob that cries wolf is one nobody reads.
-  const under = spec.name === "--tap" && value < CHROME_FLOOR;
-  return (
-    <label style={{ display: "grid", gap: 2, fontSize: 11, color: "#94a3b8" }}>
-      <span>
-        {spec.label}{" "}
-        <b style={{ color: under ? "#f87171" : changed ? "#facc15" : "#e2e8f0" }}>{value}</b>
-        {changed ? <span style={{ color: "#facc15" }}> was {shipped}</span> : null}
-        {under ? <span style={{ color: "#f87171" }}> under {CHROME_FLOOR}</span> : null}
-        <span style={{ opacity: 0.6 }}> · {spec.what}</span>
-      </span>
-      <input
-        type="range"
-        min={spec.min}
-        max={spec.max}
-        value={value}
-        onChange={(e) => onChange(spec.name, Number(e.currentTarget.value))}
-        style={{ width: 300 }}
       />
     </label>
   );
@@ -853,11 +644,6 @@ const BTN: React.CSSProperties = {
 };
 const NOTE: React.CSSProperties = { fontSize: 11, color: "#94a3b8" };
 const H3: React.CSSProperties = { fontSize: 13, margin: "0 0 6px" };
-const TD2: React.CSSProperties = {
-  padding: "3px 14px 3px 0",
-  borderBottom: "1px solid #1e293b",
-  whiteSpace: "nowrap",
-};
 const CARD: React.CSSProperties = {
   display: "grid",
   gap: 6,

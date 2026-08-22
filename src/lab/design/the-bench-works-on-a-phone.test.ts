@@ -88,7 +88,7 @@ describe("a preview is a thing you look at, not a thing that eats your swipe", (
 });
 
 describe("a knob lands at once", () => {
-  const KNOBBED = ["Panel.tsx", "Buttons.tsx"];
+  const KNOBBED = ["Screen.tsx", "Buttons.tsx"];
 
   it("neither knobbed screen rebuilds a timer around apply", () => {
     for (const f of KNOBBED) {
@@ -125,7 +125,7 @@ describe("a knob lands at once", () => {
  * page sideways, and a block with a clipped x-axis computes `overflow-y` to
  * `auto` whether or not anybody meant it.
  *
- * Measured on `Mocks.tsx` at 390x844 the first time it ran, before it declared
+ * Measured on the inspector at 390x844 the first time it ran, before it declared
  * one: 1403px of content in an 844px box, `scrollTop` stuck at 0, and no
  * scroller anywhere in the chain up to `<html>`. Same sentence as the two
  * defects above - the lab does not do anything - from a third cause.
@@ -136,7 +136,7 @@ describe("a knob lands at once", () => {
  * explicit is a change to files this test is meant to be watching.
  */
 describe("a lab screen is its own scroller, because the app shell clips", () => {
-  const ROOTS = ["Buttons.tsx", "Compare.tsx", "Mocks.tsx"];
+  const ROOTS = ["Buttons.tsx", "Compare.tsx", "Screen.tsx"];
 
   it("every lab root declares one", () => {
     const bad: string[] = [];
@@ -151,7 +151,7 @@ describe("a lab screen is its own scroller, because the app shell clips", () => 
     // `Compare.tsx` was found by the test above, not by a person: it declared
     // neither, and a wheel over its preview at 390x844 moved it 0px while
     // `#/lab/buttons` moved 788. It moves 900 now.
-    for (const f of ["Mocks.tsx", "Compare.tsx"]) {
+    for (const f of ["Screen.tsx", "Compare.tsx"]) {
       expect(read(f), `${f} names overflowY`).toMatch(/overflowY:\s*"auto"/);
       expect(read(f), `${f} names overflowX`).toMatch(/overflowX:\s*"hidden"/);
     }
@@ -180,7 +180,7 @@ describe("a lab screen is its own scroller, because the app shell clips", () => 
  * fold to be below.
  */
 describe("on a small screen the page does not scroll, because there is no fold", () => {
-  const SRC = read("Mocks.tsx");
+  const SRC = read("Screen.tsx");
 
   it("the shell is one viewport tall and clips", () => {
     const m = /const SHELL: CSSProperties = \{([\s\S]*?)\};/.exec(SRC);

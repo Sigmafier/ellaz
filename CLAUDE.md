@@ -424,66 +424,62 @@ route renders past the fold. `#/lab/buttons` scrolls by ACCIDENT - it sets
 `overflowX: hidden` to stop a 390px preview pushing the page sideways, and a
 block with a clipped x-axis computes `overflow-y` to `auto` whether or not
 anybody meant it. Measured at 390x844 with a wheel over the preview:
-`#/lab/buttons` **788px**, `#/lab/design` **0px**, and the new mock screen
+`#/lab/buttons` **788px**, `#/lab/design` **0px**, and the inspector
 **0px** before it declared one. All three now name both axes; `#/lab/design`
 moves 900. It is the third distinct cause of "the lab doesn't do anything",
 after the swipe-eating preview and the knob that only landed on a timer, and
 the only one found by a gate rather than by a person.
 
-## Three proposed labs, at `#/lab/mock`
+## The bench is the screen itself, at `#/lab/buttons`
 
-**A PROPOSAL with a kill date.** The operator asked for a lab that is "more
-visual so i can shooe elements and choose their properties"; `src/lab/design/
-Mocks.tsx` offers three ways to do that over the same real game page, one at a
-time behind a labelled switcher. Whichever wins gets built as the real lab and
-the file is deleted with the other two.
+**Tap a part of a real game page and only its own numbers come up.** Chosen out
+of three proposals on 2026-08-22 - the operator picked the tap inspector - and
+the two that lost were deleted with the screen that offered them. What it
+replaced was two tabs of sliders named after the custom property each one wrote
+(`page row height`, `title size`), which asked you to already know which stripe
+on the screen that was.
 
-- **A · tap the thing** - every tunable part of the screen is outlined over the
-  live preview and tapping one brings up only its own numbers. The primitive
-  the shipped bench lacks is `PARTS`: a thing you can point at, with its knobs
-  hanging off it, instead of nine knobs named after tokens.
-- **B · the stack** - the page as bands at their MEASURED heights with the sum
-  underneath, so the chrome and the game are visibly drawing on one budget.
-  This is the utility row's own defect drawn: 44px of button in a 46px band.
-- **C · pick a size** - no sliders. Three real sizes per number, each drawn as
-  a bar, tap the one that looks right.
+`PARTS` in `src/lab/design/Screen.tsx` is the primitive the old bench did not
+have: **the purple bar · the page row · the breadcrumb pill · the game row ·
+the board**, each with a selector read against the frame's own document, so a
+part a game does not draw simply disappears rather than offering knobs for
+something that is not there.
 
-All three drive the same real tokens on the same real page - what differs is
-how you reach a number, never whether the number is real. Two things fell out
-of building it, both measured rather than reasoned: **the outline labels are
-drawn one at a time**, because three of the five parts NEST (the pill is in the
-row, the game row is in the board) so they share a top-left corner and every
-label covers its parent's; and **a bigger bottom padding makes a covered knob
-LESS reachable, not more** - the padding is inside the scrolled content, so at
-the end of the scroll the last knob sits where the padding pushed it, high up,
-under the pinned preview. 70dvh of tail put every size card out of reach at
-every offset the page could reach.
+Three things ride with the part rather than sitting in a separate tab:
 
-**On a phone it is a FIXED SHELL, not a long page**, and that is the second
-report ("the mobile exp is bad i uave to scroll down to see") answered
-structurally rather than by trimming. Measured live at 390x844 before it: 275px
-of heading and prose above the preview, a 520px preview under that, and the
-first slider at **y=1094 - 290px below an 844px fold**. Every word above the
-picture was being paid for by the thing the picture is for.
+- **its numbers** - every `--hh`/`--gc-*` token, written onto the BODY of the
+  real page, so what you look at is the shipped rendering path;
+- **its shapes**, where a number cannot express the choice - a label under its
+  value, a glyph put back, pills. Only the game row has any, and a shape is a
+  real stylesheet injected into the page. A style writes `:root` and a knob
+  writes the body, so a knob always wins over the style it is dialling;
+- **its readout**, read off the live document rather than typed - the glyph
+  table for the bar (the `runtime` rows are glyphs no header rule can reach)
+  and `readPanel` for the game row (how many lines, and which text is
+  ellipsised INSIDE its own card while every overflow check reads clean).
 
-The shell is exactly `100dvh` with `overflow: hidden`, so **the page cannot
-scroll at all** and the only scroller on the screen is the sheet holding the
-knobs - there is no fold to be below. Three zones: a 44px bar (the game and
-A/B/C), the preview, the sheet. The preview is **CROPPED** rather than scaled
-down further (`Preview`'s `boxH`): the document keeps its real 390x560 so every
-rect measured off it is still a real phone's, and the crop only decides how
-much is on screen - which is right, because what the knobs reach is the TOP of
-a game page and a full preview spends the phone showing a board no knob here
-can touch. `look / both / tune` moves the split in three taps rather than a
-drag.
+**`every-token-has-a-part.test.ts` is what the tap design can lose and the
+slider lists could not.** The old screens rendered `CHROME_TOKENS.map(...)`, so
+a new token appeared by construction; here a token is reached through a
+hand-written part, and one nobody names is a knob that exists, is pinned by its
+own test, is read by the component, and cannot be turned. Three mutations, three
+killed - an orphaned token, a part naming a token that does not exist, and a
+part offering nothing at all.
 
-**It is chosen on EITHER axis.** Keyed on width alone, a phone on its side
-(844x390) is wide enough for the two-column desktop layout and 390px too short
-to hold it - measured, that arm scrolled the page 460px, the same defect
-arriving through the one branch nobody thought to check. Landscape now lays the
-picture beside the knobs inside the same fixed height. Swept 4 viewports x 3
-splits: **12 of 12 with no page scroll, every on-screen control hittable by
-finger, nothing overflowing sideways.**
+The per-game footers moved to **`#/lab/footers`** - what 33 authors did to a
+footer nothing governs, which is a different question from what one shared
+number should be. `Panel.tsx` became `panelRead.ts`: the screen went, the
+knowing did not, because the knowing was never the sliders.
+
+Measured on the artifact, two arms from one tree: the promotion **gives back
+11 B gz** (90,614 -> 90,603) because it deletes a lazy route and adds none. Do
+not read the absolute figure as this work - the +582 since the previous entry
+is a peer's consent bar, which also raised the ceiling to 91,000.
+
+**The consent bar covers the bottom of any lab screen on a FIRST visit**, and
+that is worth knowing before probing one: a fresh browser context always sees
+it, the operator dismissed it once and never will again, so a probe that leaves
+it up is measuring a state nobody is in. Dismiss it, then measure.
 
 ## The game row - difficulty, the score, the stage
 
@@ -551,7 +547,7 @@ a real game page, never a drawing beside one.
 component, through all three shapes a fallback comes in: a px literal, a
 `${TAP}` const, and a `var(--radius-2)` a whole file away.
 
-Dial it at **`#/lab/buttons` -> SHARED · the game row**, which also measures
+Dial it at **`#/lab/buttons` -> the game row**, which also measures
 what the row actually does - how many lines, and which text is ellipsised
 inside its own card while every overflow check reads clean.
 
@@ -782,7 +778,7 @@ separate three.js / Babylon / PlayCanvas bake-off.
   TEXT, so which side of that pixel a game lands on moves with the score's
   digit count - a row whose fit is a function of game state cannot be settled
   by choosing a better constant. Both games named here were correct when
-  written; read the number off `#/lab/buttons` -> SHARED - the game row. The row is in FLOW and `.box` is
+  written; read the number off `#/lab/buttons` -> the game row. The row is in FLOW and `.box` is
   `calc(100dvh - var(--hh) - var(--uh))`, so it cannot land on the board the
   way the old floating breadcrumb pill did. The emitted button is `hidden`
   until a game fills the slot (`src/ui/gameTools.ts`), and `claimRestartSlot()`
