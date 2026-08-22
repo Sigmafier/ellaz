@@ -13,6 +13,7 @@ import {
   type PageLocale,
 } from "../i18n/locales";
 import { analyticsTag } from "./analytics";
+import { consentBar } from "./consent";
 import { artFiles } from "./artFiles";
 import {
   LOCALES,
@@ -415,9 +416,14 @@ export function pagesPlugin(base: string): Plugin {
             "The app's mount point moved - update this marker and build.test.ts together.",
         );
       }
+      // The consent bar rides along with the home document rather than being a
+      // second injection: `index.html` is the one page not written from the
+      // route table, and every gate here has been blind to it at least once
+      // (the 29-byte body, the title, the hreflang cluster). One insertion
+      // point is one thing to remember.
       return withHead.replace(
         marker,
-        `${homeShellBody(CANONICAL_LOCALE, GAMES, base)}\n    ${marker}`,
+        `${homeShellBody(CANONICAL_LOCALE, GAMES, base)}\n    ${((b) => (b === "" ? "" : toHtml(b)))(consentBar(base, CANONICAL_LOCALE))}\n    ${marker}`,
       );
     },
 

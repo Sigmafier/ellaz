@@ -213,7 +213,28 @@ function ciNodeMajor() {
   return null;
 }
 
-const CEILING = 90_500;
+// RAISED 90,500 -> 91,000 on 2026-08-22, for the GA consent bar, and the reason
+// is required to be here rather than in a commit message.
+//
+// The operator ruled on 2026-08-22, having been shown the measurement: Google
+// Analytics had been live for two days returning 204 on every hit and counting
+// nothing, because `analytics_storage` was denied by default and never updated.
+// The obvious repair - grant it and stay cookieless - was measured live and does
+// not exist: granting writes `_ga` even with `client_storage:'none'` untouched.
+// So the choice was no cookie and no data, or data and a banner. They chose the
+// banner, knowing the cost.
+//
+// The bar's own cost, TWO ARMS ON ONE TREE rather than a subtraction from
+// anything written down: 90,021 without it, 90,614 with, so 593 B gz. It was
+// trimmed first - shorter copy, leaner CSS - which bought 61 B and was not
+// enough; the four load-bearing properties (out of flow so it cannot shift the
+// page, hidden until script, two identical buttons, a 40px target) are the floor.
+//
+// 91,000 and not more, for the reason the last raise gave: at ~70 B a game this
+// leaves about five games of room, and a comfortable ceiling removes the only
+// pressure that gets `docs/scaling-the-first-visit.md` step 3 done.
+// Read on Node 24; CI builds on Node 22 and runs ~14 B apart.
+const CEILING = 91_000;
 
 function gzBytes(path) {
   return gzipSync(readFileSync(path)).length;

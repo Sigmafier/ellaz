@@ -8,6 +8,7 @@ import type { HeadAssets } from "./assets";
 import { LOCALES, canonicalUrl, homePath, href, OG_ROUTES } from "./routes";
 import { OG_HEIGHT, OG_WIDTH, ogImagePath } from "./ogCard";
 import { OFFER_CSS, offerBar } from "./langOffer";
+import { consentBar } from "./consent";
 // themes.ts imports nothing, which is what lets both the Vite config and this
 // build-time renderer read the same theme list. See src/ui/themes.ts.
 import { DEFAULT_THEME, themeBootScript, themeById } from "../ui/themes";
@@ -934,6 +935,7 @@ ${raw(opts.analytics === false ? "" : analyticsTag(base))}
       </head>
       <body ${raw(bodyClass(opts))}${raw(groundStyle(opts.headerChrome))}${raw(bodyAttrs(opts.bodyData))}>
         ${opts.shell ? opts.body : chrome}
+        ${opts.analytics === false ? "" : consentBar(base, locale)}
       </body>
     </html>`)
   );
