@@ -46,8 +46,17 @@ describe("applySpec", () => {
   it("writes the narrow arm when asked", () => {
     const el = element();
     applySpec(SHIPPED, el, true);
-    expect(written(el).get("--hh")).toBe("58px");
-    expect(written(el).get("--uh")).toBe("46px");
+    // Read off the spec rather than retyped. A copied literal reds this file
+    // every time a token moves, which is how a test becomes a thing you edit
+    // to green rather than a thing you read.
+    expect(written(el).get("--hh")).toBe(`${SHIPPED.hhNarrow}px`);
+    expect(written(el).get("--uh")).toBe(`${SHIPPED.uhNarrow}px`);
+    // The control that makes reading the spec safe: the two arms must really
+    // differ, or these two lines pass on an applySpec that ignores `narrow`.
+    const wide = element();
+    applySpec(SHIPPED, wide, false);
+    expect(written(wide).get("--hh")).not.toBe(written(el).get("--hh"));
+    expect(written(wide).get("--uh")).not.toBe(written(el).get("--uh"));
   });
 
   it("puts the non-numeric choices on data attributes", () => {

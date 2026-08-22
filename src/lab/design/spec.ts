@@ -57,8 +57,8 @@ export type ChromeSpec = {
 export const SHIPPED: ChromeSpec = {
   hh: 60,
   hhNarrow: 58,
-  uh: 52,
-  uhNarrow: 46,
+  uh: 60,
+  uhNarrow: 56,
   headerTap: 44,
   panelTap: 56,
   panelGap: 8,
@@ -73,12 +73,33 @@ export const SHIPPED: ChromeSpec = {
 /**
  * The header the operator approved, recovered from `dist-g1/`.
  *
- * It differs from `SHIPPED` in exactly one place - the breadcrumb, which was
- * plain text when G1 was approved and became a pill afterwards. Every layout
- * token is identical, which is the finding: the emitted half of G1 has been
- * live since it was approved, and the panel is the half G1 never specified.
+ * G1's own numbers are written out here as LITERALS, never spread off
+ * `SHIPPED`. It was a spread until 2026-08-22, and that is a record of what
+ * was approved which silently becomes a copy of whatever ships next - the
+ * exact drift this whole bench exists to stop, one file inside the bench. It
+ * showed itself the first time the shipped row changed: raising `--uh` for
+ * the row's clearance would have rewritten history to say G1 asked for it.
+ *
+ * It differed from `SHIPPED` in exactly one place when recovered - the
+ * breadcrumb, which was plain text then and became a pill afterwards. The
+ * second difference is `uh`, added 2026-08-22 when the utility row's
+ * clearance went from 1px to 6.
  */
-export const G1: ChromeSpec = { ...SHIPPED, breadcrumb: "plain" };
+export const G1: ChromeSpec = {
+  hh: 60,
+  hhNarrow: 58,
+  uh: 52,
+  uhNarrow: 46,
+  headerTap: 44,
+  panelTap: 56,
+  panelGap: 8,
+  statMinWidth: 88,
+  radius: "var(--radius-3)",
+  statShape: "merged",
+  restartAt: "urow",
+  pauseAt: "urow",
+  breadcrumb: "plain",
+};
 
 export const VARIANTS: Record<string, ChromeSpec> = { shipped: SHIPPED, g1: G1 };
 

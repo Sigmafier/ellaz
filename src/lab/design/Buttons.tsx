@@ -126,7 +126,7 @@ const same = (n: number) => ({ wide: n, narrow: n });
 
 export const CHROME_TOKENS: TokenSpec[] = [
   { name: "--hh", label: "header height", shipped: { wide: 60, narrow: 58 }, min: 44, max: 88, what: "the tinted bar" },
-  { name: "--uh", label: "page row height", shipped: { wide: 52, narrow: 46 }, min: 40, max: 80, what: "the G1 line" },
+  { name: "--uh", label: "page row height", shipped: { wide: 60, narrow: 56 }, min: 40, max: 80, what: "the G1 line" },
   { name: "--tap", label: "button size", shipped: same(44), min: 36, max: 72, what: "every round button, both rows" },
   { name: "--hicon", label: "icon size", shipped: same(22), min: 12, max: 34, what: "every glyph on every screen" },
   { name: "--hgap", label: "header gap", shipped: { wide: 12, narrow: 8 }, min: 0, max: 28, what: "space between the bar's items" },

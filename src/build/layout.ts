@@ -263,6 +263,12 @@ body[data-page="game"] #game-frame,body[data-page="world"] #game-frame{flex:0 0 
    chrome sitting on the page's row, the one arrangement the operator acked.
    It is on EVERY screen here, so the row still has a rule you can learn.
    See .claude/rules/game-controls-and-platform-chrome-never-share-a-bar.md */
+/* --uh is this row's height, so what it buys is the clearance above and below
+   what sits in it: --tap plus twice the breathing room. It was 46 against a
+   44px button - ONE pixel a side - so the pill and the buttons were glued to
+   the bar above. 56/60 gives 6 and 8, measured. The box pays for every pixel
+   in its own calc; do not raise it without looking at 390px.
+   (Comments in DOCUMENT_CSS are SERVED; keep them short here.) */
 body.screen .urow{display:flex;align-items:center;gap:10px;height:var(--uh);
   padding-inline:var(--hpad);background:var(--doc-bg)}
 /* A PILL, not a line of text - restored 2026-08-20 to the arrangement that was
@@ -365,10 +371,10 @@ body.screen .urow .tools{display:flex;align-items:center;gap:8px;flex:0 0 auto}
    identical - a plausible picture, one flat colour, no error anywhere. */
 /* Every number the shared chrome is laid out from, in ONE place, so the
    design bench can turn them. A knob cannot reach a literal. */
-body.screen{--hh:60px;--uh:52px;--oh:0px;--tap:44px;--hgap:12px;--hpad:20px;
+body.screen{--hh:60px;--uh:60px;--oh:0px;--tap:44px;--hgap:12px;--hpad:20px;
   --hbrand:22px;--hfont:14.5px;--hicon:22px;--hrad:99px;--urad:14px;
   --hdr-ink:#FFF6E9}
-@media (max-width:719px){body.screen{--hh:58px;--uh:46px;--hbrand:20px;--hgap:8px;--hpad:12px}}
+@media (max-width:719px){body.screen{--hh:58px;--uh:56px;--hbrand:20px;--hgap:8px;--hpad:12px}}
 /* The game row's cards, washed in this game's own hue. The plain surface is
    declared FIRST and unconditionally, so a browser without color-mix keeps a
    readable card rather than a transparent one; @supports upgrades it. The
