@@ -459,6 +459,32 @@ the end of the scroll the last knob sits where the padding pushed it, high up,
 under the pinned preview. 70dvh of tail put every size card out of reach at
 every offset the page could reach.
 
+**On a phone it is a FIXED SHELL, not a long page**, and that is the second
+report ("the mobile exp is bad i uave to scroll down to see") answered
+structurally rather than by trimming. Measured live at 390x844 before it: 275px
+of heading and prose above the preview, a 520px preview under that, and the
+first slider at **y=1094 - 290px below an 844px fold**. Every word above the
+picture was being paid for by the thing the picture is for.
+
+The shell is exactly `100dvh` with `overflow: hidden`, so **the page cannot
+scroll at all** and the only scroller on the screen is the sheet holding the
+knobs - there is no fold to be below. Three zones: a 44px bar (the game and
+A/B/C), the preview, the sheet. The preview is **CROPPED** rather than scaled
+down further (`Preview`'s `boxH`): the document keeps its real 390x560 so every
+rect measured off it is still a real phone's, and the crop only decides how
+much is on screen - which is right, because what the knobs reach is the TOP of
+a game page and a full preview spends the phone showing a board no knob here
+can touch. `look / both / tune` moves the split in three taps rather than a
+drag.
+
+**It is chosen on EITHER axis.** Keyed on width alone, a phone on its side
+(844x390) is wide enough for the two-column desktop layout and 390px too short
+to hold it - measured, that arm scrolled the page 460px, the same defect
+arriving through the one branch nobody thought to check. Landscape now lays the
+picture beside the knobs inside the same fixed height. Swept 4 viewports x 3
+splits: **12 of 12 with no page scroll, every on-screen control hittable by
+finger, nothing overflowing sideways.**
+
 ## The game row - difficulty, the score, the stage
 
 **One row, three cells, the same in every game: the difficulty, a main number

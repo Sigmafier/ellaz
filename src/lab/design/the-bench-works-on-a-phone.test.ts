@@ -164,3 +164,56 @@ describe("a lab screen is its own scroller, because the app shell clips", () => 
     expect(read("Buttons.tsx")).not.toMatch(/overflowY:\s*"auto"/);
   });
 });
+
+/**
+ * A knob below the fold is a knob that does not exist.
+ *
+ * Reported as "the mobile exp is bad i uave to scroll down to see", and
+ * measured on the live bench at 390x844 before the shell was written: 275px of
+ * heading and prose above the preview, a 520px preview under it, and the first
+ * slider at y=1094 - 290px below an 844px fold. Every word above the picture
+ * was being paid for by the thing the picture is for.
+ *
+ * The shell answers it structurally rather than by trimming: exactly one
+ * viewport tall, `overflow: hidden` so the PAGE cannot scroll at all, and the
+ * only scroller on the screen is the sheet holding the knobs. There is no
+ * fold to be below.
+ */
+describe("on a small screen the page does not scroll, because there is no fold", () => {
+  const SRC = read("Mocks.tsx");
+
+  it("the shell is one viewport tall and clips", () => {
+    const m = /const SHELL: CSSProperties = \{([\s\S]*?)\};/.exec(SRC);
+    expect(m, "SHELL is gone or renamed").toBeTruthy();
+    const body = (m as RegExpExecArray)[1];
+    expect(body, "the shell must be exactly one viewport").toMatch(/height:\s*"100dvh"/);
+    expect(body, "the page itself must not scroll").toMatch(/overflow:\s*"hidden"/);
+  });
+
+  it("the sheet is the one scroller", () => {
+    const m = /const SHEET: CSSProperties = \{([\s\S]*?)\};/.exec(SRC);
+    expect(m, "SHEET is gone or renamed").toBeTruthy();
+    expect((m as RegExpExecArray)[1]).toMatch(/overflowY:\s*"auto"/);
+    expect((m as RegExpExecArray)[1]).toMatch(/minHeight:\s*0/);
+  });
+
+  it("it is chosen on EITHER axis, so a phone on its side gets it too", () => {
+    // Keyed on width alone, 844x390 falls to the two-column desktop layout,
+    // which needs more than 390px of height - measured, that arm scrolled the
+    // page 460px, the same defect arriving through the one branch nobody
+    // thought to check.
+    const m = /const isSmall = \(\) =>([^;]*);/.exec(SRC);
+    expect(m, "isSmall is gone or renamed").toBeTruthy();
+    const body = (m as RegExpExecArray)[1];
+    expect(body, "must consider the width").toMatch(/innerWidth\s*</);
+    expect(body, "must consider the height").toMatch(/innerHeight\s*</);
+    expect(body, "either one is enough").toContain("||");
+  });
+
+  it("the control that proves those matchers can fail", () => {
+    // Every assertion above passes vacuously on a body that never matched.
+    // Buttons.tsx has no shell, so the same matchers must find nothing there.
+    expect(/const SHELL: CSSProperties/.test(read("Buttons.tsx"))).toBe(false);
+    expect(/const isSmall = \(\) =>/.test(read("Buttons.tsx"))).toBe(false);
+  });
+});

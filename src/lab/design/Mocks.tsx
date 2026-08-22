@@ -153,26 +153,73 @@ const src = (game: string) => `${import.meta.env.BASE_URL}games/${game}/`;
 
 type Arm = "tap" | "stack" | "sizes";
 
-const ARMS: { id: Arm; name: string; one: string }[] = [
+const ARMS: { id: Arm; name: string; one: string; short: string }[] = [
   {
     id: "tap",
     name: "A · tap the thing",
     one: "Tap a part of the screen. Only its own numbers come up, in a sheet over the bottom.",
+    // Written short rather than sliced. A sentence cut at a character count
+    // ends mid-word and reads as a rendering bug, which is the one thing a
+    // screen proposing a design must not look like.
+    short: "tap a part, get its numbers",
   },
   {
     id: "stack",
     name: "B · the stack",
     one: "The page as bands with their real heights, and the arithmetic that has to add up.",
+    short: "bands at their real heights",
   },
   {
     id: "sizes",
     name: "C · pick a size",
     one: "No sliders. Three real sizes per number, drawn at scale - tap the one that looks right.",
+    short: "no sliders - pick a size",
   },
 ];
 
+/**
+ * Is this a screen the fixed shell should own?
+ *
+ * WIDTH OR HEIGHT, and the height half is the one that is easy to miss: a
+ * phone turned sideways is 844x390, which is wide enough for the two-column
+ * desktop layout and 390px too short to hold it - measured, that arm scrolled
+ * 460px, which is the same defect this shell exists to remove, arriving
+ * through the one branch that was keyed on width alone. 720 is the app's own
+ * chrome breakpoint; 620 is a landscape phone plus room.
+ */
+const isSmall = () => innerWidth < 720 || innerHeight < 620;
+
+function useNarrow(): boolean {
+  const [n, setN] = useState(() => (typeof window === "undefined" ? false : isSmall()));
+  useEffect(() => {
+    const read = () => setN(isSmall());
+    addEventListener("resize", read);
+    addEventListener("orientationchange", read);
+    return () => {
+      removeEventListener("resize", read);
+      removeEventListener("orientationchange", read);
+    };
+  }, []);
+  return n;
+}
+
+/**
+ * How the phone splits between the picture and the knobs.
+ *
+ * Three named stops rather than a drag handle: a drag handle on a screen whose
+ * whole subject is a preview competing with its controls is one more thing to
+ * get wrong with a thumb, and three taps cover every real intent.
+ */
+const SPLITS = [
+  { id: "look", name: "look", preview: 0.62 },
+  { id: "both", name: "both", preview: 0.4 },
+  { id: "tune", name: "tune", preview: 0.16 },
+] as const;
+type Split = (typeof SPLITS)[number]["id"];
+
 export function Mocks() {
   const [arm, setArm] = useState<Arm>("tap");
+  const [split, setSplit] = useState<Split>("both");
   const [game, setGame] = useState("sudoku");
   const [wide, setWide] = useState(false);
   const [sel, setSel] = useState<string>("row");
@@ -217,6 +264,192 @@ export function Mocks() {
   const css = dirty.map((t) => `${t.name}:${vals[t.name]}px`).join(";");
   const w = wide ? 1100 : 390;
 
+  const narrow = useNarrow();
+  const vh = typeof window === "undefined" ? 844 : window.innerHeight;
+  const boxH = Math.round(vh * (SPLITS.find((x) => x.id === split)?.preview ?? 0.4));
+  // Wide enough for two columns, too short for the scrolling one: a phone on
+  // its side. The picture goes beside the knobs rather than above them, and
+  // the split control has nothing left to do.
+  const side = narrow && typeof window !== "undefined" && window.innerWidth >= 720;
+
+  const controls = (
+    <>
+      {arm === "stack" ? <Stack hits={hits} sel={sel} onPick={setSel} h={wide ? 620 : 560} /> : null}
+      {arm === "tap" ? (
+        <div style={ROW}>
+          {hits.map((h) => (
+            <button
+              key={h.part.id}
+              type="button"
+              style={{ ...BTN, ...(h.part.id === sel ? ON : null) }}
+              onClick={() => setSel(h.part.id)}
+            >
+              {h.part.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      <h2 style={{ fontSize: 14, margin: "10px 0 2px" }}>{part.label}</h2>
+      <p style={{ ...NOTE, margin: "0 0 10px" }}>{part.what}</p>
+
+      {arm === "sizes" ? (
+        <Sizes knobs={knobs} vals={vals} onPick={set} onClear={clear} />
+      ) : (
+        <div style={{ display: "grid", gap: 10 }}>
+          {knobs.map((k) => (
+            <Slider
+              key={k.name}
+              knob={k}
+              value={vals[k.name] ?? k.shipped}
+              moved={vals[k.name] !== undefined}
+              onChange={(v) => set(k.name, v)}
+              onClear={() => clear(k.name)}
+            />
+          ))}
+        </div>
+      )}
+
+      <div style={{ marginTop: 14 }}>
+        <button type="button" style={BTN} onClick={() => setVals({})}>
+          back to shipped
+        </button>
+        <p style={{ ...NOTE, marginTop: 8 }}>
+          {dirty.length === 0 ? "nothing moved - this is exactly what ships" : `${dirty.length} changed`}
+        </p>
+        {css ? <pre style={PRE}>{`body.screen{${css}}`}</pre> : null}
+      </div>
+    </>
+  );
+
+  const preview = (fixedH?: number, bare = false) => (
+    <Preview
+      frameRef={frame}
+      frameKey={`${game}-${wide}`}
+      title="the screen"
+      src={src(game)}
+      w={w}
+      h={wide ? 620 : 560}
+      boxH={fixedH}
+      controls={
+        bare ? undefined : (
+          <div style={{ ...ROW, marginBottom: 6 }}>
+            <select value={game} onChange={(e) => setGame(e.currentTarget.value)} style={BTN}>
+              {GAMES.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+            <button type="button" style={{ ...BTN, ...(wide ? null : ON) }} onClick={() => setWide(false)}>
+              phone 390
+            </button>
+            <button type="button" style={{ ...BTN, ...(wide ? ON : null) }} onClick={() => setWide(true)}>
+              desktop 1100
+            </button>
+          </div>
+        )
+      }
+      overlay={
+        arm === "tap"
+          ? (scale) => (
+              <span data-overlay="parts">
+                <Outlines hits={hits} scale={scale} sel={sel} onPick={setSel} />
+              </span>
+            )
+          : undefined
+      }
+    />
+  );
+
+  /**
+   * THE PHONE. A fixed 100dvh column, and nothing in it scrolls the page.
+   *
+   * Measured on the live bench at 390x844 before this existed: 275px of
+   * heading and prose above the preview, a 520px preview under it, and the
+   * first slider at y=1094 - 290px BELOW the fold, on a screen whose whole
+   * job is to let you move a number and watch it. Every word above the
+   * picture was costing the thing the picture is for.
+   *
+   * So the prose is gone on a phone, the picture is CROPPED to the part of the
+   * page the knobs reach, and the knobs get the rest with their own scroller.
+   * The split is three taps rather than a drag, and `look` exists because
+   * sometimes you do want the whole board back.
+   */
+  if (narrow) {
+    return (
+      <section style={SHELL}>
+        <div style={BAR}>
+          <select
+            value={game}
+            onChange={(e) => setGame(e.currentTarget.value)}
+            style={{ ...BTN, flex: "1 1 90px", minWidth: 0 }}
+          >
+            {GAMES.map((g) => (
+              <option key={g} value={g}>
+                {g}
+              </option>
+            ))}
+          </select>
+          {ARMS.map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => setArm(a.id)}
+              style={{ ...BTN, ...(arm === a.id ? ON : null), padding: "6px 9px" }}
+              aria-label={a.name}
+            >
+              {a.name.slice(0, 1)}
+            </button>
+          ))}
+        </div>
+
+        <div style={side ? SIDE_WRAP : { display: "contents" }}>
+          <div
+            style={
+              side
+                ? { flex: "0 0 auto", paddingInline: 8, overflow: "hidden" }
+                : { flex: "0 0 auto", paddingInline: 8 }
+            }
+          >
+            {preview(side ? undefined : boxH, true)}
+          </div>
+
+          <div style={side ? { ...SHEET, borderTop: "none", borderInlineStart: "1px solid #1e293b" } : SHEET}>
+            <div style={{ ...ROW, gap: 6, marginBottom: 8 }}>
+              {side ? null : SPLITS.map((sp) => (
+                <button
+                  key={sp.id}
+                  type="button"
+                  onClick={() => setSplit(sp.id)}
+                  style={{ ...BTN, ...(split === sp.id ? ON : null) }}
+                >
+                  {sp.name}
+                </button>
+              ))}
+              <button
+                type="button"
+                style={{ ...BTN, ...(wide ? null : ON) }}
+                onClick={() => setWide(false)}
+              >
+                390
+              </button>
+              <button
+                type="button"
+                style={{ ...BTN, ...(wide ? ON : null) }}
+                onClick={() => setWide(true)}
+              >
+                1100
+              </button>
+              <span style={NOTE}>{ARMS.find((a) => a.id === arm)?.short}</span>
+            </div>
+            {controls}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section style={PAGE}>
       <h1 style={{ fontSize: 18, margin: "0 0 4px" }}>three labs, one page</h1>
@@ -242,101 +475,8 @@ export function Mocks() {
       </p>
 
       <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
-        <Preview
-          frameRef={frame}
-          frameKey={`${game}-${wide}`}
-          title="the screen"
-          src={src(game)}
-          w={w}
-          // 560, the same height the shipped bench previews at. 720 shows more
-          // of a game and leaves less of the phone for the knobs, and the
-          // knobs are the half that was unusable.
-          h={wide ? 620 : 560}
-          controls={
-            <div style={{ ...ROW, marginBottom: 6 }}>
-              <select value={game} onChange={(e) => setGame(e.currentTarget.value)} style={BTN}>
-                {GAMES.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
-                ))}
-              </select>
-              <button type="button" style={{ ...BTN, ...(wide ? null : ON) }} onClick={() => setWide(false)}>
-                phone 390
-              </button>
-              <button type="button" style={{ ...BTN, ...(wide ? ON : null) }} onClick={() => setWide(true)}>
-                desktop 1100
-              </button>
-            </div>
-          }
-          overlay={
-            arm === "tap"
-              ? (scale) => (
-                  <span data-overlay="parts">
-                    <Outlines hits={hits} scale={scale} sel={sel} onPick={setSel} />
-                  </span>
-                )
-              : undefined
-          }
-        />
-
-        <div style={{ flex: "1 1 300px", minWidth: 0 }}>
-          {arm === "stack" ? (
-            <Stack hits={hits} sel={sel} onPick={setSel} h={wide ? 620 : 720} />
-          ) : null}
-          {arm === "tap" ? (
-            <>
-              <p style={{ ...NOTE, marginTop: 0 }}>
-                Every part is outlined. Tap one on the screen, or here - a part small enough to
-                be fiddly with a thumb needs a second way in, and the pill is 36px tall.
-              </p>
-              <div style={ROW}>
-                {hits.map((h) => (
-                  <button
-                    key={h.part.id}
-                    type="button"
-                    style={{ ...BTN, ...(h.part.id === sel ? ON : null) }}
-                    onClick={() => setSel(h.part.id)}
-                  >
-                    {h.part.label}
-                  </button>
-                ))}
-              </div>
-            </>
-          ) : null}
-
-          <h2 style={{ fontSize: 14, margin: "10px 0 2px" }}>{part.label}</h2>
-          <p style={{ ...NOTE, margin: "0 0 10px" }}>{part.what}</p>
-
-          {arm === "sizes" ? (
-            <Sizes knobs={knobs} vals={vals} onPick={set} onClear={clear} />
-          ) : (
-            <div style={{ display: "grid", gap: 10 }}>
-              {knobs.map((k) => (
-                <Slider
-                  key={k.name}
-                  knob={k}
-                  value={vals[k.name] ?? k.shipped}
-                  moved={vals[k.name] !== undefined}
-                  onChange={(v) => set(k.name, v)}
-                  onClear={() => clear(k.name)}
-                />
-              ))}
-            </div>
-          )}
-
-          <div style={{ marginTop: 14 }}>
-            <button type="button" style={BTN} onClick={() => setVals({})}>
-              back to shipped
-            </button>
-            <p style={{ ...NOTE, marginTop: 8 }}>
-              {dirty.length === 0
-                ? "nothing moved - this is exactly what ships"
-                : `${dirty.length} changed`}
-            </p>
-            {css ? <pre style={PRE}>{`body.screen{${css}}`}</pre> : null}
-          </div>
-        </div>
+        {preview()}
+        <div style={{ flex: "1 1 300px", minWidth: 0 }}>{controls}</div>
       </div>
     </section>
   );
@@ -619,6 +759,42 @@ function Slider({
  * x-axis computes `overflow-y` to `auto` whether or not anybody wanted it. An
  * accident is not a thing to copy, so both axes are written out here.
  */
+/**
+ * The phone shell: exactly one viewport tall, and the page never scrolls.
+ *
+ * `overflow: hidden` here is the whole point - the only scroller in this
+ * layout is the sheet, so a swipe on the picture cannot move the page and a
+ * knob is never below a fold, because there is no fold.
+ */
+const SHELL: CSSProperties = {
+  height: "100dvh",
+  overflow: "hidden",
+  display: "flex",
+  flexDirection: "column",
+  background: "#020617",
+  color: "#e2e8f0",
+  font: "14px/1.5 Inter,system-ui,sans-serif",
+};
+/** One row, 44px, everything that was a heading and three paragraphs. */
+const BAR: CSSProperties = {
+  flex: "0 0 auto",
+  display: "flex",
+  gap: 6,
+  alignItems: "center",
+  padding: "6px 8px",
+  borderBottom: "1px solid #1e293b",
+};
+/** Landscape: the picture beside the knobs, both inside the fixed height. */
+const SIDE_WRAP: CSSProperties = { flex: "1 1 auto", minHeight: 0, display: "flex", gap: 8 };
+/** The knobs, with the only scrollbar on the screen. */
+const SHEET: CSSProperties = {
+  flex: "1 1 auto",
+  minHeight: 0,
+  overflowY: "auto",
+  overflowX: "hidden",
+  padding: "10px 12px 40px",
+  borderTop: "1px solid #1e293b",
+};
 const PAGE: CSSProperties = {
   height: "100dvh",
   overflowY: "auto",

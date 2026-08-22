@@ -41,6 +41,7 @@ export function Preview({
   h,
   controls,
   overlay,
+  boxH,
 }: {
   frameRef: RefObject<HTMLIFrameElement>;
   /** Forces a reload when the previewed thing changes (the game, the arm). */
@@ -65,6 +66,21 @@ export function Preview({
    * the tap for itself anyway.
    */
   overlay?: (scale: number) => ReactNode;
+  /**
+   * Show only the top `boxH` scaled pixels of the frame, in a box of exactly
+   * that height, with no sticky and no page scrolling.
+   *
+   * CROP, not scale and not narrow. The document keeps its own `w` x `h`, so
+   * it still lays out as a real phone viewport and every rect measured off it
+   * is the number a real phone produces - the crop only decides how much of it
+   * is on screen. Scaling further to fit would make the chrome too small to
+   * judge, and narrowing would answer a question nobody asked.
+   *
+   * It exists because the thing being tuned is the TOP of a game page - the
+   * bar, the row, the game row - and a full 560px preview spends the whole
+   * phone showing a board no knob here can reach.
+   */
+  boxH?: number;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const [avail, setAvail] = useState(0);
@@ -102,7 +118,9 @@ export function Preview({
   // judging whether a row wraps by one pixel - measured, an 844-tall frame
   // pinned on an 844 screen came out 195px wide, which is a thumbnail. So the
   // tall arm scrolls and the short ones pin.
-  const pin = stacked && capped >= fit * 0.75;
+  // A cropped preview never pins: its shell owns the height and does not
+  // scroll, so there is nothing for a sticky to travel against.
+  const pin = boxH === undefined && stacked && capped >= fit * 0.75;
   const scale = pin ? capped : fit;
 
   return (
@@ -129,7 +147,17 @@ export function Preview({
       }}
     >
       {controls}
-      <div style={{ position: "relative", width: w * scale, height: h * scale }}>
+      <div
+        style={{
+          position: "relative",
+          width: w * scale,
+          // The box is the CROP when one is asked for, and `overflow: hidden`
+          // is what makes it a crop rather than a shorter frame.
+          height: boxH ?? h * scale,
+          overflow: boxH === undefined ? undefined : "hidden",
+          borderRadius: 10,
+        }}
+      >
         <iframe
           key={frameKey}
           ref={frameRef}
@@ -161,8 +189,10 @@ export function Preview({
         </button>
         <span style={NOTE}>
           {live
-            ? "the preview is taking your taps - swiping over it will not scroll"
-            : `${Math.round(scale * 100)}% of a real ${w}px screen · swipe anywhere to scroll`}
+            ? "the preview is taking your taps"
+            : boxH === undefined
+              ? `${Math.round(scale * 100)}% of a real ${w}px screen · swipe anywhere to scroll`
+              : `${Math.round(scale * 100)}% of a real ${w}px screen, top ${Math.round(boxH / scale)}px`}
         </span>
       </div>
     </div>
