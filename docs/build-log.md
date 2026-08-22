@@ -2077,6 +2077,62 @@ separator. Extracted to a scratch root and run back through the real gate with
 `BUNDLE_ROOT`: 14/14 planted cases still caught, `index.html` at the zip root in
 all three, 76 / 69 / 446 KB.
 
+## A consent bar, because there is no cookieless-and-counted middle (2026-08-22)
+
+The operator ruled after seeing the measurement in the entry above: grant
+`analytics_storage` and accept the banner. The alternative they were first
+offered does not exist, and I had recommended it before reading the file - the
+correction is in that entry.
+
+**The consent DEFAULT stays `denied`, and that is the design.** `analyticsTag()`
+is unchanged: the first hit of a first visit goes out denied, before anyone is
+asked, and only an explicit Accept flips it with `consent update`. A bar shown
+while the tag was already granted would be theatre, and `consent.test.ts` reds
+if the default ever moves.
+
+**Emitted, not bundled**, on the `langOffer` rails, so 160 document pages with no
+JavaScript of their own still carry it. Four properties are load-bearing rather
+than styling, and all four are mutation-proved (5 planted, 5 killed, each
+checksum-verified to have landed):
+
+- **`position: fixed`, out of flow.** A bar in flow shifts every page on the
+  site, and `/world/` went 0.2966 to 0.0032 the same morning. That would be a
+  straight trade of one metric for another.
+- **Hidden until script.** A reader with no JavaScript has no `gtag` either, so
+  there is nothing to consent to - and a visible bar they cannot dismiss is the
+  worst of both.
+- **Accept and Decline are styled by ONE selector.** A quieter "decline" is the
+  dark pattern the regulation is about and is one CSS rule away at all times, so
+  the test fails if that selector is ever split.
+- **Primary host only**, on the same `base === "/"` test the tag uses, so the
+  noindex mirror cannot ask for consent to a tag it never loads.
+
+Verified live on `afafd7a`, in a browser, after scrubbing a context my own
+earlier probe had dirtied - which is worth recording, because the first reading
+showed `_ga` present before any answer and that was contamination, not a defect:
+
+| | |
+|---|---|
+| before an answer | bar visible, **no cookies**, `gcs=G100` on the page-view hit |
+| **Decline** | **no cookie written**, stored `denied`, gone on other pages |
+| **Accept** | `_ga` + `_ga_E25QBB8420`, stored `granted`, **`gcs=G101` on the next hit** |
+| both | `ad_storage` denied throughout |
+
+**It cost 593 B gz** - two arms on one tree, 90,021 without and 90,614 with,
+never a subtraction from a figure written down earlier. Trimming shorter copy
+and leaner CSS bought 61 B and was not enough; the four properties above are the
+floor. `CEILING` went 90,500 to **91,000**, argued in
+`scripts/assert-payload.mjs` rather than in a commit message, and 91,000 rather
+than more for the reason the last raise gave: about five games of room, and a
+comfortable ceiling removes the only pressure that gets step 3 done.
+
+**A near miss worth writing down.** Isolating the two arms meant disabling the
+bar and rebuilding, and I restored the files with `git restore --source=HEAD`.
+That destroyed my own wiring, and it would have destroyed a peer's uncommitted
+`layout.ts` had they not committed a minute earlier. The rule this repo already
+carries says to back up to a temp file and restore from THAT; the second round
+of mutations did, and the first did not. Luck is not method.
+
 ## Still open
 
 - **Wave C step 2b** — live two-way sync. Needs the profile to carry per-device

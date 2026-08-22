@@ -2278,11 +2278,38 @@ packet; it has never meant anybody counted it.**
 **It is not a bug** — it is exactly the cookieless, ads-off, no-banner setup that
 was asked for. What nobody priced is that at this size it also means no data.
 
-**And the obvious fix does not exist.** "Grant `analytics_storage`, keep
-`client_storage:'none'`, stay cookieless" was proposed and measured on the live
-site with a control: granting writes `_ga` **and** `_ga_E25QBB8420` with
-`client_storage` untouched. Consent governs the cookie. The trade is binary —
-no cookie and no data, or data and a consent banner in four languages.
+**The obvious fix did not exist, so there is a banner now.** "Grant
+`analytics_storage`, keep `client_storage:'none'`, stay cookieless" was proposed
+and measured on the live site with a control: granting writes `_ga` **and**
+`_ga_E25QBB8420` with `client_storage` untouched. Consent governs the cookie, so
+the trade was binary — no cookie and no data, or data and a banner. **The
+operator chose the banner on 2026-08-22.**
+
+**`src/build/consent.ts` is that bar, and the consent DEFAULT stays `denied`** —
+that is the whole design, not an oversight. The first hit of a first visit still
+goes out denied, before anybody is asked, and only an explicit Accept flips it
+with `consent update`. A bar shown while the tag was already granted would be
+theatre. Verified live on `afafd7a`: `gcs=G100` on the page-view hit,
+**`gcs=G101` on the next one after the click**, ad_storage denied in both.
+
+It is **emitted, not bundled**, on the `langOffer` rails, so all 160 document
+pages carry it with no JavaScript of their own. Four things in it are
+load-bearing rather than styling, and each is mutation-proved (5 planted, 5
+killed): `position: fixed` so it cannot shift a page — `/world/` went 0.2966 to
+0.0032 the same day, and a bar in flow would trade one metric for another;
+hidden until script, because a reader with no JS has no `gtag` to consent to
+either; **Accept and Decline styled by ONE selector**, so the quiet-decline dark
+pattern requires splitting it; and primary-host-only, keyed on the same
+`base === "/"` test the tag uses, so the mirror cannot ask for consent to a tag
+it never loads.
+
+Measured live: Decline writes **no cookie**, stores `denied` and does not come
+back on other pages; Accept writes `_ga`, stores `granted`, and the bar is gone.
+
+**It cost 593 B gz** — two arms on one tree, 90,021 without and 90,614 with, not
+subtracted from anything written down earlier — and the ceiling went 90,500 to
+**91,000** with the reason in `scripts/assert-payload.mjs` rather than in a
+commit message. It was trimmed first, which bought 61 B and was not enough.
 
 **The prose beside the tag was the real trap.** `analytics.ts`'s doc comment
 carried BOTH answers, forty lines apart, on the one question that decides it, and
