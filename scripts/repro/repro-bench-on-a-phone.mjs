@@ -41,16 +41,55 @@
  * WHY "reachable" is `elementFromPoint` and not a rectangle: the preview is
  * PINNED on a phone, and a pinned preview satisfies every rectangle test while
  * covering the control completely. That is how the pin shipped broken once.
+ *
+ * ---------------------------------------------------------------------------
+ * DRIVEN BY ROUTE, NOT BY TAB LABEL - 2026-08-23, and this file is why the
+ * rule is written here. It clicked four literal strings ("SHARED · the bar"
+ * and friends); the bench was rebuilt as one tap-a-part screen, two of those
+ * tabs were deleted and the other two moved to `#/lab/footers`, and this
+ * reproducer began timing out on its first line with a message naming the
+ * BENCH. A repro that fails because the thing it drives was renamed reads
+ * exactly like the thing it drives being broken, which is the one thing a
+ * reproducer must never do.
+ *
+ * So a surface is a ROUTE plus the shape it is expected to have. A route is
+ * pinned by `App.tsx` and by a test; a button's caption is prose.
+ *
+ * The two surfaces also SCROLL DIFFERENTLY on a phone now, and asserting one
+ * rule over both would be wrong rather than strict: the inspector is a fixed
+ * 100dvh shell whose PAGE deliberately cannot scroll (a knob below a fold is
+ * a knob that does not exist), so its scroller is the knob sheet. The footers
+ * screen is still an ordinary long page.
+ *
+ * ---------------------------------------------------------------------------
+ * IT CURRENTLY EXITS 1, ON PURPOSE - it is reproducing, which is its job. The
+ * open finding is the one line that fails:
+ *
+ *     a swipe OVER the preview scrolls the lab   scrollTop 0 at y=312
+ *
+ * Measured 2026-08-23 at 390x844: the preview band y=43..415 is inert to a
+ * wheel (44% of the screen) while the sheet below it scrolls its full 123px.
+ * Scroll chaining only walks the ANCESTOR chain - the old layout worked
+ * because the page was the scroller and therefore an ancestor; in the fixed
+ * shell the page cannot scroll and the sheet is a SIBLING, so the gesture has
+ * nowhere to go. The shield stops the frame eating it; it does not forward it.
+ *
+ * Nothing is unreachable - 5/5 knobs are hittable without scrolling at all -
+ * so this is reported rather than patched, and it is a design call as much as
+ * a bug: a viewfinder that is deliberately inert is defensible. The fix, if
+ * taken, is the preview zone forwarding wheel/touchmove deltas to the sheet.
  */
 import { chromium } from "playwright";
 
 const BASE = process.argv[2] || "http://localhost:5180";
 const SHOT = process.argv[3] || null;
-const TABS = [
-  ["SHARED · the bar", true],
-  ["SHARED · the game row", true],
-  ["PER GAME · one footer", true],
-  ["PER GAME · all 33 footers", false],
+/**
+ * route · what it is · does it have knobs · which element is its scroller.
+ * `sheet` = the fixed shell (the page cannot scroll; the knob sheet does).
+ */
+const SURFACES = [
+  ["#/lab/buttons", "the bench - tap a part", true, "sheet"],
+  ["#/lab/footers", "per-game footers", true, "page"],
 ];
 
 const b = await chromium.launch();
@@ -66,12 +105,16 @@ await p.waitForTimeout(2500);
 const fail = [];
 const ok = (cond, msg) => { console.log(`${cond ? "  ok  " : "  FAIL"} ${msg}`); if (!cond) fail.push(msg); };
 
-for (const [tab, knobbed] of TABS) {
-  console.log(`\n--- ${tab}`);
-  await p.locator("button", { hasText: tab }).first().click();
-  await p.waitForTimeout(tab.includes("33") ? 1500 : 4000);
-
-  const sec = p.locator("section").first();
+for (const [route, name, knobbed, scroller] of SURFACES) {
+  console.log(`\n--- ${name}  (${route})`);
+  await p.goto(`${BASE}/${route}`, { waitUntil: "domcontentloaded" });
+  await p.waitForTimeout(5000);
+  // The consent bar covers the bottom of any screen on a FIRST visit, and a
+  // fresh browser context is always a first visit. The operator dismissed it
+  // once and never will again, so a probe that leaves it up measures a state
+  // nobody is in - it reported 3 knobs unreachable that were all fine.
+  await p.evaluate(() => { const c = document.querySelector(".consent button"); if (c) c.click(); });
+  await p.waitForTimeout(400);
   await p.evaluate(() => { document.querySelector("section").scrollTop = 0; });
 
   const geo = await p.evaluate(() => {
@@ -86,6 +129,11 @@ for (const [tab, knobbed] of TABS) {
       overflowX: de.scrollWidth - innerWidth,
       wider: wider.slice(0, 4),
       scrollable: s.scrollHeight - s.clientHeight,
+      // The fixed shell's own scroller, which is NOT the section.
+      sheetScrollable: (() => {
+        const d = [...s.querySelectorAll("div")].find((x) => getComputedStyle(x).overflowY === "auto");
+        return d ? d.scrollHeight - d.clientHeight : null;
+      })(),
       frame: r ? { top: Math.round(r.top), bottom: Math.round(r.bottom), w: Math.round(r.width) } : null,
       innerW: f && f.contentWindow ? f.contentWindow.innerWidth : null,
       ranges: document.querySelectorAll('input[type="range"]').length,
@@ -97,13 +145,24 @@ for (const [tab, knobbed] of TABS) {
     ok(geo.innerW === 390 || geo.innerW === 1100, `the frame is still a real viewport inside (innerWidth ${geo.innerW})`);
   }
 
-  // THE defect: a swipe over the preview must scroll the lab.
-  if (geo.frame && geo.scrollable > 0) {
+  // The fixed shell is SUPPOSED to have a page that cannot scroll - that is
+  // the fix, not a regression - so assert the shape each surface claims.
+  if (scroller === "sheet") {
+    ok(geo.scrollable === 0, `the page itself cannot scroll (${geo.scrollable}px) - there is no fold to be below`);
+    ok(geo.sheetScrollable !== null, `the knob sheet is the one scroller (${geo.sheetScrollable}px of travel)`);
+  }
+
+  // THE defect: a swipe over the preview must scroll SOMETHING.
+  if (geo.frame && (geo.scrollable > 0 || geo.sheetScrollable > 0)) {
     const y = Math.min(830, Math.max(20, Math.round((geo.frame.top + geo.frame.bottom) / 2)));
     await p.mouse.move(195, y);
     await p.mouse.wheel(0, 900);
     await p.waitForTimeout(350);
-    const moved = await p.evaluate(() => document.querySelector("section").scrollTop);
+    const moved = await p.evaluate(() => {
+      const s = document.querySelector("section");
+      const d = [...s.querySelectorAll("div")].find((x) => getComputedStyle(x).overflowY === "auto");
+      return Math.max(s.scrollTop, d ? d.scrollTop : 0);
+    });
     ok(moved > 100, `a swipe OVER the preview scrolls the lab (scrollTop ${moved} after a wheel at y=${y})`);
   }
 
@@ -172,8 +231,11 @@ for (const [tab, knobbed] of TABS) {
 }
 
 if (SHOT) {
-  await p.locator("button", { hasText: "SHARED · the game row" }).first().click();
-  await p.waitForTimeout(4000);
+  await p.goto(`${BASE}/#/lab/buttons`, { waitUntil: "domcontentloaded" });
+  await p.waitForTimeout(5000);
+  await p.evaluate(() => { const c = document.querySelector(".consent button"); if (c) c.click(); });
+  const row = p.locator("button", { hasText: "the game row" }).first();
+  if (await row.count()) { await row.click(); await p.waitForTimeout(2500); }
   await p.screenshot({ path: SHOT, fullPage: true });
 }
 console.log("\npage errors:", errs.length ? errs.slice(0, 4) : "none");
