@@ -1425,6 +1425,18 @@ not. `SERVED_CSS = stripCssComments(DOCUMENT_CSS)` is what goes on the wire:
 **one game page 17,476 -> 10,212 B gz (-41.6%)**, all 165 documents 2.79 MB ->
 1.59 MB.
 
+**So comments in `DOCUMENT_CSS` are FREE, and you should write them.** That
+sentence is here because the file spent a day and a half saying the opposite:
+three notes read *"Comments in DOCUMENT_CSS are SERVED; keep them short here"* -
+true when written on 2026-08-21, false from `1b8f2b9` on 2026-08-22, and never
+updated. They were not idle either: `42a5b77` is a commit whose whole message is
+*"Trim the breadcrumb comment, because comments in DOCUMENT_CSS are SERVED"*. A
+stale instruction does not read as stale, it reads as a rule. Removed 2026-08-23,
+the fact stated once at the `SERVED_CSS` declaration, and pinned by
+`document-css-comments-are-free.test.ts` - which also counts the EMITTERS, since
+the claim only holds while nothing emits the raw copy. 7 mutations, 7 killed.
+Explain freely there: it is the one stylesheet no browser devtool will show you.
+
 **It is a different budget from the first visit and must never be counted toward
 it.** The `<style>` is emitted only when `opts.shell` is false, so `index.html`
 never carries it and `assert-payload` cannot see it in either direction -

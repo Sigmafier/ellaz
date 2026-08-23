@@ -290,16 +290,15 @@ body[data-page="game"] #game-frame,body[data-page="world"] #game-frame{flex:0 0 
    what sits in it: --tap plus twice the breathing room. It was 46 against a
    44px button - ONE pixel a side - so the pill and the buttons were glued to
    the bar above. 56/60 gives 6 and 8, measured. The box pays for every pixel
-   in its own calc; do not raise it without looking at 390px.
-   (Comments in DOCUMENT_CSS are SERVED; keep them short here.) */
+   in its own calc; do not raise it without looking at 390px. */
 body.screen .urow{display:flex;align-items:center;gap:10px;height:var(--uh);
   padding-inline:var(--hpad);background:var(--doc-bg)}
 /* PLAIN TEXT, on the operator's call 2026-08-23 - and this is what the
    APPROVED build actually has. dist-g1's rule is .urow .bc with margin:0,
    flex:1 1 auto, min-width:0, nowrap and text-overflow:ellipsis - no radius
-   and no fill of any kind. The comment that stood here
-   claimed the pill was "restored to the arrangement that was approved"; the
-   artifact says otherwise, and it was believed for three days.
+   and no fill of any kind. The comment that stood here claimed the pill was
+   "restored to the arrangement that was approved"; the artifact says
+   otherwise, and it was believed for three days.
 
    Two measurements decided it beyond the provenance. The same three words are
    181px as a pill and 147px plain, in a row where one 56px button was the
@@ -319,8 +318,7 @@ body.screen .urow .bc{margin:0;flex:0 1 auto;margin-inline-end:auto;min-width:0;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
 /* The link takes the row's own ink - brand pink on this ground is unreadable -
    so colour cannot say which words are tappable and an underline does. The
-   leaf stays plain because you are already there. (Comments in DOCUMENT_CSS
-   are SERVED, unlike the ones in global.css; keep them short here.) */
+   leaf stays plain because you are already there. */
 /* The LINK carries the tap target, not the crumb - these measured 20px tall
    against a 44px floor. Padding the crumb leaves the link at 20 and only moves
    the picture, so the padding goes here and the negative margin keeps the row
@@ -475,7 +473,7 @@ body.screen .top [data-sound]{margin-inline-start:auto}
 .hbtn .gl{display:flex;flex:0 0 auto}
 /* No .gl in this selector, deliberately: the runtime appends a BARE svg for
    sound and the wallet, so a rule keyed on the wrapper missed exactly the two
-   glyphs that were wrong. (Comments here are SERVED - keep them short.) */
+   glyphs that were wrong. */
 .hbtn svg{width:var(--hicon);height:var(--hicon);
   display:block;fill:none;stroke:currentColor;stroke-width:2.2;
   stroke-linecap:round;stroke-linejoin:round}
@@ -529,6 +527,26 @@ ${OFFER_CSS.trim()}`;
  *
  * Computed once at module load rather than per page - it is the same string 164
  * times, and the scanner walks 28 KB character by character.
+ *
+ * THE ONE PLACE THAT ANSWERS "do comments here cost bytes". They do NOT, and
+ * have not since `1b8f2b9` (2026-08-22): there is exactly ONE emission site in
+ * the whole app and it emits THIS, the stripped copy - a line number here would
+ * go stale the moment anything above it moved, which is the very failure this
+ * note exists to correct, so the TEST counts the emitters instead. Explain
+ * freely above any
+ * rule in `DOCUMENT_CSS` - the reader of that rule needs it more than most,
+ * because none of this is in a stylesheet a browser devtool will show you.
+ *
+ * Three comments used to say the opposite - "Comments in DOCUMENT_CSS are
+ * SERVED; keep them short here" - and they were TRUE when written, on
+ * 2026-08-21, roughly 40 hours before the stripping landed. They cost something
+ * real in that window and after it: `42a5b77` is a commit whose entire message
+ * is "Trim the breadcrumb comment, because comments in DOCUMENT_CSS are
+ * SERVED". A stale instruction does not read as stale; it reads as a rule, and
+ * the next author obeys it.
+ *
+ * `document-css-comments-are-free.test.ts` now pins the claim to the code, so
+ * if the stripping is ever removed the SOURCE has to stop promising it is free.
  */
 export const SERVED_CSS = stripCssComments(DOCUMENT_CSS);
 
