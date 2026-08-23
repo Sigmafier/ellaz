@@ -18,6 +18,13 @@ on:
       - "docs/outreach/**"
       - "scripts/reach/**"
       - "scripts/outreach-ledger.mjs"
+      # A GLOB rather than a third name. This list has gone stale three times in
+      # two days, once per input the board gained, because it is a hand-kept
+      # mirror of an import graph - and every miss ships ellaz.fun over FTP for
+      # no change, which the comment above already calls a fresh chance to die
+      # mid-transfer. A reach-only probe is named `repro-reach-*` so the next one
+      # is covered without anybody remembering this.
+      - "scripts/repro/repro-reach-*.mjs"
       - "scripts/assert-reach-live.mjs"
       - ".github/workflows/deploy-reach.yml"
   workflow_dispatch:
