@@ -43,6 +43,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gscExported, html, loadRecord, parseRows, pointsAtUs, resolve1 } from "./backlinks.mjs";
+import { rows as ledgerRows } from "../outreach-ledger.mjs";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const SRC = join(REPO, "docs/outreach/backlinks.md");
@@ -53,18 +54,22 @@ const OUT = join(REPO, "dist-reach");
 const ROBOTS = "User-agent: *\nDisallow: /\n";
 const HEADERS = "/*\n  X-Robots-Tag: noindex, nofollow\n";
 
-export async function buildPages(md, rec, { offline = false, fetchImpl = fetch } = {}) {
+export async function buildPages(md, rec, { offline = false, fetchImpl = fetch, surfaces = [] } = {}) {
   const rows = parseRows(md);
   // An empty parse is the shape that publishes a blank board OVER a real one and
   // reads as "nothing to report". Refuse, the same way the checker does.
   if (!rows.length) throw new Error("build-reach-site: the table parsed to ZERO rows - refusing to publish an empty board.");
+  // And the same argument for the other half, which is the half a person opens this
+  // board FOR. A ledger that parses to nothing renders a page saying "0 waiting on
+  // you" - not an empty section, a confident all-clear over a table it never read.
+  if (!surfaces.length) throw new Error("build-reach-site: ZERO surfaces read from ledger.md - refusing to publish a board that would say there is nothing to do.");
   const out = [];
   for (const r of rows) {
     const probe = offline ? { ok: null, why: "offline" } : await pointsAtUs(r.url, fetchImpl);
     out.push(resolve1(r, probe, rec.seen));
   }
   const checked = offline ? (rec.checked ?? "never") : new Date().toISOString().slice(0, 10);
-  const page = html(out, gscExported(REPO), checked);
+  const page = html(out, gscExported(REPO), checked, surfaces);
   if (!/noindex/.test(page)) throw new Error("build-reach-site: the page carries no noindex - refusing to publish it.");
   return { rows: out, files: { "index.html": page + "\n", "robots.txt": ROBOTS, "_headers": HEADERS } };
 }
@@ -72,8 +77,10 @@ export async function buildPages(md, rec, { offline = false, fetchImpl = fetch }
 async function main() {
   const argv = process.argv.slice(2);
   if (argv.includes("--control")) return control();
+  const surfaces = ledgerRows(REPO);
   const { rows, files } = await buildPages(readFileSync(SRC, "utf8"), loadRecord(), {
     offline: argv.includes("--offline"),
+    surfaces,
   });
   rmSync(OUT, { recursive: true, force: true });
   mkdirSync(OUT, { recursive: true });
@@ -81,7 +88,11 @@ async function main() {
 
   const n = (s) => rows.filter((r) => r.status === s).length;
   console.log(`\npopulation: ${rows.length} row(s) from docs/outreach/backlinks.md`);
-  console.log(`board:      ${n("live")} live · ${n("claimed")} claimed · ${n("gone")} gone · ${n("unchecked")} unchecked`);
+  console.log(`links:      ${n("live")} live · ${n("claimed")} claimed · ${n("gone")} gone · ${n("unchecked")} unchecked`);
+  const w = (x) => surfaces.filter((s) => s.who === x).length;
+  console.log(`surfaces:   ${surfaces.length} from ledger.md · ${w("you")} waiting on you · ${w("wait")} on a clock · ${w("last")} held back · ${w("done")} closed`);
+  const mute = surfaces.filter((s) => s.who !== "done" && !s.next.trim());
+  if (mute.length) console.log(`NO INSTRUCTION: ${mute.map((s) => s.surface).join(", ")} - the board will say so rather than invent one`);
   const gone = rows.filter((r) => r.status === "gone");
   if (gone.length) console.log(`GONE (published, not hidden): ${gone.map((r) => r.url).join(", ")}`);
   console.log(`wrote:      ${OUT}/{${Object.keys(files).join(",")}}`);
@@ -92,6 +103,11 @@ async function main() {
 async function control() {
   const md = readFileSync(SRC, "utf8");
   const rec = { checked: "2026-01-01", seen: {} };
+  const surfaces = [
+    { surface: "A group", file: "hebrew.md", status: "draft", fired: "-", due: "-", notes: "", who: "you", next: "Post it." },
+    { surface: "A list PR", file: "dev.md", status: "fired", fired: "2026-08-12", due: "2026-11-10", notes: "", who: "wait", next: "Nothing to do." },
+    { surface: "A dead list", file: "dev.md", status: "dropped", fired: "-", due: "-", notes: "", who: "done", next: "Closed." },
+  ];
   const cases = [];
   const ok = async (name, fn, want) => {
     let got = "no refusal";
@@ -102,19 +118,38 @@ async function control() {
 
   // POSITIVE CONTROL FIRST: without it every refusal below passes vacuously on a
   // builder that refuses everything, which is the failure mode a gate cannot see.
-  await ok("a real table builds", () => buildPages(md, rec, { offline: true }), null);
+  await ok("a real table builds", () => buildPages(md, rec, { offline: true, surfaces }), null);
   await ok("an empty table refuses", () =>
-    buildPages(md.replace(/\|.*\n/g, ""), rec, { offline: true }), "ZERO rows");
+    buildPages(md.replace(/\|.*\n/g, ""), rec, { offline: true, surfaces }), "ZERO rows");
   await ok("a table with no markers refuses", () =>
     buildPages(md.replace("<!-- backlinks:rows -->", ""), rec, { offline: true }), "markers are missing");
+  // The half a person actually opens this board for. A ledger that parses to nothing
+  // renders "0 waiting on you", which is an all-clear rather than an empty section.
+  await ok("zero surfaces refuses", () =>
+    buildPages(md, rec, { offline: true, surfaces: [] }), "ZERO surfaces");
 
   // And the artifact itself, because "it built" says nothing about what is in it.
-  const { files } = await buildPages(md, rec, { offline: true });
+  const { files } = await buildPages(md, rec, { offline: true, surfaces });
   const has = (f, re, what) => cases.push([re.test(files[f]), `${f} carries ${what}`, files[f].slice(0, 40)]);
   has("index.html", /noindex/, "noindex");
   has("robots.txt", /Disallow: \/$/m, "Disallow: /");
   has("_headers", /X-Robots-Tag/, "X-Robots-Tag");
   cases.push([!/ellaz\.fun\/games/.test(files["index.html"]), "no ellaz.fun page links leak in", "-"]);
+  has("index.html", /do next &middot; 1 waiting on you/, "the do-next count");
+  has("index.html", /A group/, "an open surface");
+  has("index.html", />closed</, "a separate closed section");
+  // ...and the closed surface appears ONCE. Asserting the section merely EXISTS
+  // survives a do-next list that also carries every closed row - the page renders,
+  // the heading is there, and the closed work is listed as work to do. (Mutation
+  // M3, 2026-08-23: it survived the weaker assertion and was caught by this one.)
+  cases.push([(files["index.html"].match(/A dead list/g) ?? []).length === 1,
+    "a closed surface is listed once, not in both", `${(files["index.html"].match(/A dead list/g) ?? []).length}x`]);
+  // A surface with no instruction must SAY so. Dropping it silently is how a board
+  // reports a clean sweep over work nobody wrote down.
+  const mute = await buildPages(md, rec, { offline: true, surfaces: [{ ...surfaces[0], next: "" }] });
+  cases.push([/no instruction written/.test(mute.files["index.html"]), "a surface with no instruction says so", "-"]);
+  // Positive control for that one: with an instruction, the placeholder is absent.
+  cases.push([!/no instruction written/.test(files["index.html"]), "...and does not say so when there is one", "-"]);
 
   for (const [pass, name, got] of cases) console.log(`${pass ? "  ok  " : "FAIL  "}${name}${pass ? "" : `  <- ${got}`}`);
   const bad = cases.filter(([p]) => !p).length;

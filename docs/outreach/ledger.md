@@ -28,19 +28,36 @@ reverses a correct strategy (`seo-doctrine` SEO11).
 
 ## The ledger
 
-| Surface | Draft | Status | Fired | Verdict due | Notes |
-|---|---|---|---|---|---|
-| awesome-pwa (list PR) | `dev.md` | fired | 2026-08-12 | 2026-11-10 | **PR [#465](https://github.com/hemanth/awesome-pwa/pull/465), open, mergeable.** Found already open on 2026-08-20 while preparing to open it — the draft said "nothing is opened" for eight days. Entry corrected the same day: it advertised 23 games in Hebrew and English. List batches merges; last batch 2026-08-10, 10 PRs queued | **2026-08-21: that list has merged nothing since 2026-08-10 and its open queue has gone 10 -> 24.** The "merges every ~9 days" evidence that justified this lane no longer holds. Not dead (it batches), but do not wait on it. |
-| awesome-phaser (list PR) | `dev.md` | dropped | — | — | dormant 16 months, every open PR unanswered. Ranked by merge recency, not stars |
-| dev.to article | `dev.md` | draft | — | — | operator's to publish or discard |
-| Hebrew communities ×4 | `hebrew.md` | draft | — | — | **Destinations named 2026-08-21, rules NOT re-readable from here.** A direct fetch of a Facebook group returns its title and nothing else - no rules, no pinned post, no About panel - public or private. So RCH5's fetch is the operator's, in the group, on the day; `hebrew.md` carries the checklist it has to produce. One rule IS known without login: `מורות משקיעות` brokers promotion through a named person by phone, so an unbrokered link there reads as dodging it **2026-08-23: a FOURTH post was written.** The Ministry's Hebrew-language group (`הוראת השפה העברית ביסודי`) was listed under post 3, and post 3 names seven games of which none is a language game - a roster arriving in a room whose subject is Hebrew. Post 4 leads on `מרכיבים מילה`'s wrong-tile-is-never-placed decision and links to `/he/games/learn/` rather than the home page. Nothing posted. |
-| Reddit ×3 | `reddit.md` | draft | — | — | destinations returned an identical generic shell to an automated fetch; not yet actually read |
-| itch.io | `itch.md` | draft | — | — | **The three zips are BUILT and GATED at `44e0571` (2026-08-22)**: `dist-standalone/zips/ellaz-{sudoku,2048,snake}.zip`, 76 / 69 / 446 KB, `index.html` at the zip root. Gated as the ZIP rather than as the build directory - extracted and run back through `assert:standalone`, 14/14 planted cases caught. Stamp reads `ellaz:commit 44e0571…-dirty`; the `-dirty` is untracked build scratch and peers' in-flight files, not uncommitted source. **Still needs an account, which only the operator can create.** Rebuild if HEAD moves - the gate refuses a stale stamp, so they are built LAST, after the final commit. They live in `dist-standalone-zips/`, never inside `dist-standalone/`, where the gate would scan them as a fourth torn bundle |
-| Newgrounds | `newgrounds.md` | draft | — | — | same bundles - see the itch row; built and gated at `44e0571` |
-| Poki / CrazyGames enquiry | `portals.md` | draft | — | — | approved 2026-08-20: their ads on their domain, our site stays ad-free (RCH1) |
-| Israeli tech press | `press.md` | draft | — | — | contacts verified 2026-08-11; re-verify before sending |
-| Show HN | `launch.md` | draft | — | — | **one shot.** Fires last, after every lane above is green |
-| Product Hunt | `launch.md` | draft | — | — | **one shot.** Same gate |
+**The ROW ORDER is the priority order**, highest measured demand first and the
+one-shot surfaces last. There is no rank column, deliberately: a number beside a
+row is a second place for the order to live, and the two drift the first time
+somebody re-sorts one and not the other. To re-prioritise, move the row.
+
+**`Who` says who can act**, because most of these cannot be done from here at
+all. `YOU` needs an account, a login or a human in a group. `WAIT` means a clock
+is running and there is nothing to do. `LAST` is a one-shot surface held back on
+purpose. `DONE` is closed - dropped or spent - and the notes say why so it is not
+re-derived next quarter.
+
+**`Do next` is one imperative sentence**, and it is a different thing from
+`Notes`: notes are the history of a surface, and history is what you read after
+something has gone wrong. `Do next` is what a person does the moment they open
+this file, which is the only column the published board renders.
+
+
+| Surface | Draft | Status | Fired | Verdict due | Notes | Who | Do next |
+|---|---|---|---|---|---|---|---|
+| Hebrew communities ×4 | `hebrew.md` | draft | — | — | **Destinations named 2026-08-21, rules NOT re-readable from here.** A direct fetch of a Facebook group returns its title and nothing else - no rules, no pinned post, no About panel - public or private. So RCH5's fetch is the operator's, in the group, on the day; `hebrew.md` carries the checklist it has to produce. One rule IS known without login: `מורות משקיעות` brokers promotion through a named person by phone, so an unbrokered link there reads as dodging it **2026-08-23: a FOURTH post was written.** The Ministry's Hebrew-language group (`הוראת השפה העברית ביסודי`) was listed under post 3, and post 3 names seven games of which none is a language game - a roster arriving in a room whose subject is Hebrew. Post 4 leads on `מרכיבים מילה`'s wrong-tile-is-never-placed decision and links to `/he/games/learn/` rather than the home page. Nothing posted. | YOU | Open each group, read its rules THAT DAY, post the matching draft. `מורות משקיעות` brokers promotion by phone - clear it there first or skip that one. |
+| itch.io | `itch.md` | draft | — | — | **The three zips are BUILT and GATED at `44e0571` (2026-08-22)**: `dist-standalone/zips/ellaz-{sudoku,2048,snake}.zip`, 76 / 69 / 446 KB, `index.html` at the zip root. Gated as the ZIP rather than as the build directory - extracted and run back through `assert:standalone`, 14/14 planted cases caught. Stamp reads `ellaz:commit 44e0571…-dirty`; the `-dirty` is untracked build scratch and peers' in-flight files, not uncommitted source. **Still needs an account, which only the operator can create.** Rebuild if HEAD moves - the gate refuses a stale stamp, so they are built LAST, after the final commit. They live in `dist-standalone-zips/`, never inside `dist-standalone/`, where the gate would scan them as a fourth torn bundle | YOU | Create the account, upload the three zips in `dist-standalone-zips/`, paste the per-game copy from the draft. Rebuild the zips if HEAD has moved - the gate refuses a stale stamp. |
+| Newgrounds | `newgrounds.md` | draft | — | — | same bundles - see the itch row; built and gated at `44e0571` | YOU | Same three zips, after itch, so the listing copy has been through one review first. |
+| Poki / CrazyGames enquiry | `portals.md` | draft | — | — | approved 2026-08-20: their ads on their domain, our site stays ad-free (RCH1) | YOU | Read the draft's first section before sending: it recommends holding Poki, whose SDK is mandatory and would be an external call from a game. CrazyGames has an ad-free Basic Launch. Send or drop, one at a time. |
+| Israeli tech press | `press.md` | draft | — | — | contacts verified 2026-08-11; re-verify before sending | YOU | Re-verify the contacts (last checked 2026-08-11), then send the Hebrew letter with the derived numbers as the story. |
+| dev.to article | `dev.md` | draft | — | — | operator's to publish or discard | YOU | Yours to publish or drop. Needs an account we do not have. |
+| Reddit ×3 | `reddit.md` | draft | — | — | destinations returned an identical generic shell to an automated fetch; not yet actually read | YOU | Read each subreddit's rules in a BROWSER first - a script gets an identical generic shell from all three - then post one per community, a week apart. |
+| awesome-pwa (list PR) | `dev.md` | fired | 2026-08-12 | 2026-11-10 | **PR [#465](https://github.com/hemanth/awesome-pwa/pull/465), open, mergeable.** Found already open on 2026-08-20 while preparing to open it — the draft said "nothing is opened" for eight days. Entry corrected the same day: it advertised 23 games in Hebrew and English. List batches merges; last batch 2026-08-10, 10 PRs queued | WAIT | Nothing to do. PR #465 is open, mergeable and correct. The list batches and has merged nothing since 2026-08-10. Next look 2026-11-10. |
+| Show HN | `launch.md` | draft | — | — | **one shot.** Fires last, after every lane above is green | LAST | ONE SHOT. Do not fire until at least one lane above has produced a live link - a launch aimed at a site nobody has linked to spends the surface for nothing. |
+| Product Hunt | `launch.md` | draft | — | — | **one shot.** Same gate | LAST | ONE SHOT. Same gate as Show HN. |
+| awesome-phaser (list PR) | `dev.md` | dropped | — | — | dormant 16 months, every open PR unanswered. Ranked by merge recency, not stars | DONE | Closed. Dormant 16 months, every open PR unanswered. Do not re-derive this next quarter. |
 
 ## What the outside world has sent back (2026-08-21, first real measurement)
 

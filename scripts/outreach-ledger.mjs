@@ -62,11 +62,18 @@ export function rows(repo) {
     if (!line.startsWith("|")) continue;
     const cells = line.split("|").map((c) => c.trim());
     // cells[0] is the empty string before the leading pipe.
-    const [, surface, draft, status, fired, due] = cells;
+    // `who` and `next` are appended AFTER `notes`, so this destructure stays
+    // correct for a table written before they existed - they read as undefined
+    // rather than shifting a column. The board renders them; the gate ignores
+    // them, which is why they may be blank without failing anything.
+    const [, surface, draft, status, fired, due, notes, who, next] = cells;
     if (!surface || surface.startsWith("---") || surface === "Surface") continue;
     const file = (draft ?? "").replace(/`/g, "");
     if (!file.endsWith(".md")) continue;
-    out.push({ surface, file, status: (status ?? "").toLowerCase(), fired, due });
+    out.push({
+      surface, file, status: (status ?? "").toLowerCase(), fired, due,
+      notes: notes ?? "", who: (who ?? "").toLowerCase().replace(/[^a-z]/g, ""), next: next ?? "",
+    });
   }
   return out;
 }

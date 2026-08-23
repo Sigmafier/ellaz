@@ -5,6 +5,11 @@
       "status": "claimed",
       "lastLive": null,
       "checked": "2026-08-23"
+    },
+    "https://github.com/Sigmafier/ellaz": {
+      "status": "live",
+      "lastLive": "2026-08-23",
+      "checked": "2026-08-23"
     }
   }
 }

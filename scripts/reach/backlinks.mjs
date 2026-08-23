@@ -34,6 +34,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { rows as ledgerRows } from "../outreach-ledger.mjs";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const SRC = join(REPO, "docs/outreach/backlinks.md");
@@ -158,14 +159,50 @@ function board(rows, gsc, checked) {
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
+const REPO_BLOB = "https://github.com/Sigmafier/ellaz/blob/main/docs/outreach/";
+/** Markdown emphasis is noise in a rendered cell; the link syntax is worse. */
+const plain = (s) => String(s).replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/[*`\[\]]/g, "");
+
+/**
+ * The surfaces half: what to DO, read from `ledger.md`.
+ *
+ * WHY BOTH HALVES ARE ON ONE PAGE WHEN THE TWO FILES MUST STAY APART. They answer
+ * different questions - what EXISTS versus what WE DID - and collapsing the records
+ * would let a belief be mistaken for a measurement. But a person opening this board
+ * has one question, "what now", and the honest answer needs both: zero links is only
+ * actionable beside the list of surfaces that have not been fired. So the RECORDS
+ * stay separate and the VIEW joins them, which is the direction that cannot corrupt
+ * anything - a renderer has no state to drift.
+ *
+ * THE ORDER IS THE LEDGER'S ROW ORDER, untouched. Sorting here would be a second
+ * opinion about priority, held in a file nobody edits when they re-prioritise.
+ */
+function surfaceSection(surfaces) {
+  if (!surfaces.length) return "";
+  const open = surfaces.filter((s) => s.who !== "done");
+  const closed = surfaces.filter((s) => s.who === "done");
+  const yours = open.filter((s) => s.who === "you").length;
+  let i = 0;
+  const item = (s) => {
+    const num = s.who === "you" ? `<b class=num>${++i}</b>` : `<b class="num ${s.who}">&middot;</b>`;
+    return `<li class="s ${s.who}">${num}<div><h3>${esc(s.surface)}
+      <span class="tag ${s.who}">${esc(s.who || "?")}</span><span class=tag>${esc(s.status)}</span></h3>
+      <p class=n>${esc(plain(s.next)) || "&mdash; no instruction written. Add one to the Do next column."}</p>
+      <p><a href="${REPO_BLOB}${esc(s.file)}">${esc(s.file)}</a>${
+        s.due && /\d/.test(s.due) ? ` &middot; verdict due ${esc(s.due)}` : ""}</p></div></li>`;
+  };
+  return `<h2>do next &middot; ${yours} waiting on you</h2><ul>${open.map(item).join("")}</ul>` +
+    (closed.length ? `<h2>closed</h2><ul>${closed.map(item).join("")}</ul>` : "");
+}
+
 /** The page. Rendered FROM the same rows, so it can never be a second source. */
-export function html(rows, gsc, checked) {
+export function html(rows, gsc, checked, surfaces = []) {
   const n = (s) => rows.filter((r) => r.status === s).length;
   const tile = (s) => `<div class=t><b class="${s}">${n(s)}</b><span>${s}</span></div>`;
   const row = (r) => `<li class="${r.status}"><a href="${esc(r.url)}">${esc(r.url)}</a>
     <p>${esc(r.source)} &middot; first seen ${esc(r.first)} &middot; re-check ${esc(r.recheck)}${
       r.lastLive ? ` &middot; last live ${esc(r.lastLive)}` : ""}</p>
-    ${r.notes ? `<p class=n>${esc(r.notes.replace(/[*`\[\]]/g, ""))}</p>` : ""}</li>`;
+    ${r.notes ? `<p class=n>${esc(plain(r.notes))}</p>` : ""}</li>`;
   return `<!doctype html><meta charset=utf-8><title>Backlinks &middot; ${SITE}</title>
 <meta name=viewport content="width=device-width,initial-scale=1">
 <meta name=robots content="noindex,nofollow">
@@ -186,8 +223,26 @@ li.expected{border-color:#5a5768}li.unchecked{border-color:#7a76ff}
 b.live{color:#3fbf7f}b.gone{color:#e0574b}b.claimed{color:#e0b23f}b.unchecked{color:#7a76ff}
 a{color:var(--fg);word-break:break-all}p{margin:4px 0 0;color:var(--dim);font-size:13px}
 p.n{color:#c7c3d6;font-size:12px}.empty{color:var(--dim);font-size:13px}
-</style><h1>Backlinks &middot; ${SITE}</h1>
-<p class=sub>re-checked ${esc(checked)} &middot; generated from docs/outreach/backlinks.md &mdash; edit that, not this</p>
+li.s{display:flex;gap:12px;align-items:flex-start;border-inline-start-color:#5a5768}
+li.s.you{border-inline-start-color:#e0b23f}li.s.last{border-inline-start-color:#7a76ff}
+li.s.done{opacity:.55}h3{font-size:14px;margin:0 0 4px;font-weight:600}
+.num{flex:0 0 26px;height:26px;border-radius:8px;background:#2b2938;color:var(--dim);
+font-size:13px;display:grid;place-items:center;margin-top:1px}
+.num:not(.wait):not(.last):not(.done){background:#e0b23f;color:#14131c}
+.tag{display:inline-block;margin-inline-start:6px;padding:1px 7px;border-radius:99px;
+background:#2b2938;color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.07em;
+vertical-align:middle;font-weight:600}.tag.you{background:#e0b23f;color:#14131c}
+.tag.last{background:#7a76ff;color:#fff}
+.banner{background:#2b2938;border-inline-start:3px solid #7a76ff;border-radius:10px;
+padding:12px 14px;margin-bottom:20px;font-size:13px;color:#c7c3d6}
+</style><h1>Reach &middot; ${SITE}</h1>
+<p class=sub>re-checked ${esc(checked)} &middot; from docs/outreach/{backlinks,ledger}.md &mdash; edit those, not this</p>
+${gsc.measured ? "" : `<p class=banner><b>Nobody has exported Search Console&rsquo;s Links report</b>, so the
+  live count below is what WE can see, not what Google can. Until a
+  <code>Top linking sites</code> CSV lands in <code>docs/outreach/exports/</code>,
+  treat it as UNMEASURED rather than as the number.</p>`}
+${surfaceSection(surfaces)}
+<h2>links that exist</h2>
 <div class=tiles>${["live", "claimed", "gone", "unchecked"].map(tile).join("")}</div>
 ${["live", "gone", "claimed", "expected", "unchecked"].map((s) => {
     const hit = rows.filter((r) => r.status === s);
@@ -222,7 +277,7 @@ async function main() {
     console.log(`record:     docs/outreach/backlinks-checked.json`);
   }
   if (argv.includes("--html")) {
-    writeFileSync(PAGE, html(out, gsc, checked) + "\n");
+    writeFileSync(PAGE, html(out, gsc, checked, ledgerRows(REPO)) + "\n");
     console.log(`page:       file://${PAGE}`);
   }
   const gone = out.filter((r) => r.status === "gone");

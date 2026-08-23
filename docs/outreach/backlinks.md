@@ -68,6 +68,29 @@ this is exposed.
 
 ---
 
+## The board has two halves, and only one of them is this file
+
+`npm run reach:site` renders **do next** above **links that exist**. The first
+half is read from [`ledger.md`](ledger.md) - its `Who` and `Do next` columns, in
+its own row order, which IS the priority order. The second half is this file.
+
+That is not a merge of the two records and must not become one. They stay apart
+for the reason below; what is joined is the VIEW, and a renderer has no state to
+drift. The direction matters: a view can read two records, but a record that
+learns to read another record has two answers to one question.
+
+Three things the renderer does that are load-bearing rather than styling:
+
+- **A surface with an empty `Do next` says so on the page** rather than being
+  skipped. Dropped silently, a board with seven blank instructions reads as a
+  clean sweep; the placeholder is what makes an unwritten instruction visible.
+- **A `DONE` surface is listed once, in `closed`** - never also in do-next. The
+  control asserts the count, because asserting the closed *section exists*
+  survives a build that puts closed work in both places.
+- **Zero surfaces REFUSES the build**, exactly as zero rows does here. An empty
+  ledger parse renders `0 waiting on you`, which is an all-clear rather than an
+  empty section, and an all-clear is the one thing this board must never invent.
+
 ## Why this is separate from `ledger.md`
 
 They answer different questions and the answers routinely disagree.
@@ -118,9 +141,30 @@ apart so a belief can never be mistaken for a measurement.
 
 | URL | Source | Status | First seen | Re-check | Notes |
 |---|---|---|---|---|---|
+| https://github.com/Sigmafier/ellaz | our own repository's About box | live | 2026-08-23 | 2026-11-21 | **The only thing on the internet that points at ellaz.fun**, and it is ours. Measured 2026-08-23: 5 anchors on that page name the domain and **every one carries `rel="nofollow"`** - the homepage field, the README's own links, the sidebar. So it is discovery, never authority, which is one reason the Links report can be empty while this row is honestly `live`. It predates this row; 2026-08-23 is when it was first checked, not when it appeared. |
 | https://github.com/hemanth/awesome-pwa/pull/465 | awesome-pwa list PR | claimed | 2026-08-12 | 2026-11-10 | Open and mergeable since 2026-08-12, **not merged**, so there is no link yet — a PR page is not a listing. The list has merged nothing since 2026-08-10 and its queue went 10 → 24, so it batches. Do not wait on it. |
 
 <!-- /backlinks:rows -->
+
+## Three things answer TRUE and are none of them a backlink
+
+Measured 2026-08-23, because the obvious next move after reading this file is to
+run the checker over some candidates, and three of them come back `true` for
+reasons that have nothing to do with anybody linking to us:
+
+| Candidate | Body has `ellaz.fun` | Why it is not a row |
+|---|---|---|
+| `sigmafier.github.io/ellaz/` | yes | **it IS us** - our own mirror, `noindex` and `Disallow: /`. A site cannot link to itself into existence |
+| `web.archive.org/web/2026/https://ellaz.fun/` | yes | an archive OF our page, not a page pointing AT it |
+| `github.com/Sigmafier/ellaz/blob/main/README.md` | yes | the same repository as the row above. One link, one row - counting the README separately doubles a single reference |
+
+And the useful negative: `github.com/hemanth/awesome-pwa` itself answers **false**,
+which is the independent confirmation that PR #465 is still unmerged. The PR page
+answers `true` only because it renders its own diff.
+
+**The check is "does somebody else's page point at us", and the string test cannot
+tell that on its own.** A candidate is a row when a human has decided it is a
+third party. That decision is not automatable and should not be automated.
 
 ## What GSC says
 
