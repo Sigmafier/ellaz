@@ -49,6 +49,28 @@ jobs:
       # so a short generic one is almost certainly taken by somebody else - which
       # surfaces at project-creation time, long after the secrets are set.
       PAGES_PROJECT: ellaz-reach
+      # NOT `main`, and this is the whole reason the board is reachable at all.
+      #
+      # Pages' one-click "Enable access policy" (Settings > General) protects
+      # PREVIEW deployments and, in Cloudflare's own words, "not your *.pages.dev
+      # domain or custom domain". So the production URL is exactly the one it
+      # does NOT cover. The other route - a Zero Trust self-hosted application -
+      # wants a domain that "must belong to an active zone in your Cloudflare
+      # account", and pages.dev is not our zone; neither is ellaz.fun, whose DNS
+      # is at Hostinger.
+      #
+      # Deploying to a named BRANCH instead gives a stable preview alias,
+      # <branch>.<project>.pages.dev, which the one-click toggle does cover. That
+      # is the free, no-password, nothing-to-manage answer, and it needs no domain
+      # anywhere.
+      #
+      # UNVERIFIED, deliberately, and the gate is what settles it: Cloudflare's
+      # page describes the protected set as "randomly generated preview links",
+      # and whether a branch ALIAS is in that set is not stated. So this does not
+      # assert it - `assert-reach-live.mjs` MEASURES it on the first run after the
+      # toggle goes on, and says PROTECTED or PUBLIC. If it says PUBLIC, the
+      # answer is a real domain in Cloudflare, not a guess repeated louder.
+      PAGES_BRANCH: board
 
     steps:
       - uses: actions/checkout@v4
@@ -115,9 +137,9 @@ jobs:
           set -euo pipefail
           npx wrangler pages deploy dist-reach \
             --project-name "${PAGES_PROJECT}" \
-            --branch main \
+            --branch "${PAGES_BRANCH}" \
             --commit-dirty=true
-          echo "url=https://${PAGES_PROJECT}.pages.dev" >> "$GITHUB_OUTPUT"
+          echo "url=https://${PAGES_BRANCH}.${PAGES_PROJECT}.pages.dev" >> "$GITHUB_OUTPUT"
 
       # INVERTED POLARITY, deliberately: this asserts the board is NOT readable.
       # Advisory until the Access policy exists, then armed with
@@ -134,5 +156,8 @@ jobs:
             echo ""
             echo "<${{ steps.pages.outputs.url }}>"
             echo ""
-            echo "Private only while a Cloudflare Access policy sits on it."
+            echo "A PREVIEW alias, not the production URL - the production URL is the"
+            echo "one Pages' access policy does not cover. Private only while that"
+            echo "policy is on, and only if it reaches a branch alias; the gate above"
+            echo "is what says which."
           } >> "$GITHUB_STEP_SUMMARY"

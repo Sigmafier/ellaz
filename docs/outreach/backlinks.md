@@ -27,7 +27,23 @@ reasons rather than one:
 
 **The only thing making the board private is a Cloudflare Access policy**, which
 lives in a vendor dashboard, has no representation in this repository, and comes off
-with one click. So `scripts/assert-reach-live.mjs` runs after every deploy with its
+with one click.
+
+And the obvious way to apply one does not work, which is worth knowing before
+somebody tries it. Pages' own **Settings → General → Enable access policy** protects
+PREVIEW deployments and, in Cloudflare's words, *"not your `*.pages.dev` domain or
+custom domain"* — so the production URL is precisely the one it leaves open. The
+other route, a Zero Trust self-hosted application, wants a domain that *"must belong
+to an active zone in your Cloudflare account"*: `pages.dev` is not ours, and neither
+is `ellaz.fun`, whose DNS is at Hostinger.
+
+So the deploy publishes to a **named branch** rather than to production, which gives
+a stable preview alias (`board.ellaz-reach.pages.dev`) that the one-click toggle does
+cover. Whether it covers a branch ALIAS specifically is **not stated** in Cloudflare's
+page — it says "randomly generated preview links" — so nothing here asserts it. The
+gate measures it on the first run after the toggle goes on and answers PROTECTED or
+PUBLIC. If the answer is PUBLIC, the fix is a real domain in Cloudflare, not the same
+guess repeated louder. So `scripts/assert-reach-live.mjs` runs after every deploy with its
 polarity inverted: a **200 is the alarm**, not the success. It ships ADVISORY,
 because the Pages project necessarily exists before the policy does and an armed
 gate would red on correct work on day one; arm it with `REACH_BOARD_PROTECTED=1` in

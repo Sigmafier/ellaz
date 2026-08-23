@@ -17,6 +17,11 @@
  * not anyone links to it. Isolation is real; invisibility is not. The privacy
  * comes from Cloudflare Access, and only from there.
  *
+ * AND THE ONE-CLICK WAY TO APPLY ACCESS DOES NOT COVER THE PRODUCTION URL. Pages'
+ * own "Enable access policy" protects PREVIEW deployments and, in Cloudflare's
+ * words, "not your *.pages.dev domain or custom domain". So the deploy publishes to
+ * a named BRANCH, whose stable alias is a preview URL. See deploy-reach.yml.
+ *
  * SO THE THREE THINGS IN THIS FILE THAT LOOK LIKE BELT AND BRACES ARE THE
  * BRACES. `noindex` in the page, `Disallow: /` in robots.txt, `X-Robots-Tag` in
  * `_headers`: every one of them is unreachable while Access is on, because a
