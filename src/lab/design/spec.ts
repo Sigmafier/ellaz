@@ -81,15 +81,26 @@ export const SHIPPED: ChromeSpec = {
  * the row's clearance would have rewritten history to say G1 asked for it.
  *
  * It differed from `SHIPPED` in exactly one place when recovered - the
- * breadcrumb, which was plain text then and became a pill afterwards. The
- * second difference is `uh`, added 2026-08-22 when the utility row's
- * clearance went from 1px to 6.
+ * breadcrumb, which was plain text then and became a pill afterwards.
+ *
+ * AMENDED 2026-08-23, by the operator, deliberately and dated - which is the
+ * opposite of the drift above rather than an exception to it. `uh` was
+ * recovered as 52/46, and 46 against a 44px button is ONE PIXEL of clearance:
+ * not a number anybody picked, just what you get when a row is sized to its
+ * tallest child. It was raised to 60/56 on 2026-08-22 and the operator kept
+ * that when the bench could finally show them the difference ("Keep 56, update
+ * G1"). So the record now says 60/56 too, and the bench stops reporting a
+ * difference that was really "this record predates a fix".
+ *
+ * The rule the spread violated and this does not: a record may be CHANGED, by
+ * the person whose record it is, with the date and the reason written down. It
+ * may not change by itself because something else moved.
  */
 export const G1: ChromeSpec = {
   hh: 60,
   hhNarrow: 58,
-  uh: 52,
-  uhNarrow: 46,
+  uh: 60,
+  uhNarrow: 56,
   headerTap: 44,
   panelTap: 56,
   panelGap: 8,

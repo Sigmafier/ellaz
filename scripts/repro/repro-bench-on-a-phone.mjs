@@ -62,22 +62,24 @@
  * screen is still an ordinary long page.
  *
  * ---------------------------------------------------------------------------
- * IT CURRENTLY EXITS 1, ON PURPOSE - it is reproducing, which is its job. The
- * open finding is the one line that fails:
+ * 4. THE DEAD ZONE - this file found it on 2026-08-23 and it is fixed. A swipe
+ *    over the preview scrolled NOTHING, across 44% of the screen:
  *
- *     a swipe OVER the preview scrolls the lab   scrollTop 0 at y=312
+ *                                  before      after
+ *      y= 80 (the picture)            0px      123px
+ *      y=240 (the picture)            0px      123px
+ *      y=400 (the picture)            0px      123px
+ *      y=470 (the sheet)            123px      123px
  *
- * Measured 2026-08-23 at 390x844: the preview band y=43..415 is inert to a
- * wheel (44% of the screen) while the sheet below it scrolls its full 123px.
- * Scroll chaining only walks the ANCESTOR chain - the old layout worked
- * because the page was the scroller and therefore an ancestor; in the fixed
- * shell the page cannot scroll and the sheet is a SIBLING, so the gesture has
- * nowhere to go. The shield stops the frame eating it; it does not forward it.
+ *    Scroll chaining walks only the ANCESTOR chain. The old layout worked by
+ *    accident of hierarchy - the page was the scroller, so it was an ancestor
+ *    of everything. The fixed shell removed that ancestor deliberately, and
+ *    the sheet is a SIBLING, so the gesture had nowhere to go. The preview
+ *    zone forwards wheel/touchmove to the sheet now.
  *
- * Nothing is unreachable - 5/5 knobs are hittable without scrolling at all -
- * so this is reported rather than patched, and it is a design call as much as
- * a bug: a viewfinder that is deliberately inert is defensible. The fix, if
- * taken, is the preview zone forwarding wheel/touchmove deltas to the sheet.
+ *    Verified with real hit-testing, both arms: shield UP the picture forwards
+ *    (123px), shield DOWN - "tap to play" - it stops (0px) and the game owns
+ *    the gesture again, because an iframe's events never reach its parent.
  */
 import { chromium } from "playwright";
 

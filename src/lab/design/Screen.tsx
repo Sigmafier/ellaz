@@ -204,6 +204,8 @@ export function Screen() {
   const [vals, setVals] = useState<Record<string, number | undefined>>({});
   const [hits, setHits] = useState<Hit[]>([]);
   const [glyphs, setGlyphs] = useState<ReturnType<typeof readChrome>>([]);
+  const sheet = useRef<HTMLDivElement>(null);
+  const touchY = useRef<number | null>(null);
   const [row, setRow] = useState<ReturnType<typeof readPanel>>({ cells: [], lines: 0 });
   const frame = useRef<HTMLIFrameElement>(null);
 
@@ -272,6 +274,43 @@ export function Screen() {
   // its side. The picture goes beside the knobs rather than above them, and
   // the split control has nothing left to do.
   const side = narrow && typeof window !== "undefined" && window.innerWidth >= 720;
+
+  /**
+   * The picture forwards a gesture to the sheet, because it cannot chain to it.
+   *
+   * Scroll chaining walks the ANCESTOR chain and nothing else. The old layout
+   * worked by accident of hierarchy - the page was the scroller, so it was an
+   * ancestor of everything and every gesture found it. The fixed shell removed
+   * that ancestor on purpose (a knob below a fold is a knob that does not
+   * exist), and the sheet is a SIBLING, so a swipe over the picture had
+   * nowhere to go. Measured at 390x844: 372px of 844 - 44% of the screen -
+   * moved nothing.
+   *
+   * No `preventDefault`: nothing else wants this gesture. The shell clips, the
+   * preview zone does not scroll, and the shield is what stops the previewed
+   * DOCUMENT from taking it. Once "tap to play" is on, the shield lifts and the
+   * events stop reaching here at all - an iframe's do not cross into its
+   * parent - so forwarding ends exactly when the game should be getting them.
+   *
+   * See .claude/rules/a-fixed-shell-cannot-chain-a-gesture-to-a-sibling.md
+   */
+  const forward = {
+    onWheel: (e: React.WheelEvent) => sheet.current?.scrollBy(0, e.deltaY),
+    onTouchStart: (e: React.TouchEvent) => {
+      touchY.current = e.touches[0]?.clientY ?? null;
+    },
+    onTouchMove: (e: React.TouchEvent) => {
+      const y = e.touches[0]?.clientY;
+      if (y == null || touchY.current == null) return;
+      // A finger DOWN scrolls the content UP, which is why this subtracts the
+      // other way round from the wheel above.
+      sheet.current?.scrollBy(0, touchY.current - y);
+      touchY.current = y;
+    },
+    onTouchEnd: () => {
+      touchY.current = null;
+    },
+  };
 
   const controls = (
     <>
@@ -441,6 +480,7 @@ export function Screen() {
 
         <div style={side ? SIDE_WRAP : { display: "contents" }}>
           <div
+            {...forward}
             style={
               side
                 ? { flex: "0 0 auto", paddingInline: 8, overflow: "hidden" }
@@ -450,7 +490,10 @@ export function Screen() {
             {preview(side ? undefined : boxH, true)}
           </div>
 
-          <div style={side ? { ...SHEET, borderTop: "none", borderInlineStart: "1px solid #1e293b" } : SHEET}>
+          <div
+            ref={sheet}
+            style={side ? { ...SHEET, borderTop: "none", borderInlineStart: "1px solid #1e293b" } : SHEET}
+          >
             <div style={{ ...ROW, gap: 6, marginBottom: 8 }}>
               {side ? null : SPLITS.map((sp) => (
                 <button

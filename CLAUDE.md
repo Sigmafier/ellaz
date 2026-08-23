@@ -479,16 +479,26 @@ part offering nothing at all.
 2026-08-23, both reported rather than patched.** They are written here so nobody
 rediscovers them:
 
-- **A swipe over the preview scrolls nothing — 44% of the screen.** Measured at
-  390x844: the band y=43..415 is inert to a wheel while the sheet below it scrolls
-  its full 123px. Scroll chaining walks only the ANCESTOR chain, and in the fixed
-  shell the page cannot scroll and the sheet is a SIBLING, so the gesture has
-  nowhere to go. Nothing is unreachable (5/5 knobs hittable without scrolling), so
-  it is a design call as much as a bug - a viewfinder that is deliberately inert is
-  defensible. Fix if taken: the preview zone forwards `wheel`/`touchmove` to the
-  sheet. Rule:
+- ~~**A swipe over the preview scrolls nothing — 44% of the screen**~~ - **FIXED
+  2026-08-23**, on the operator's call ("forward the gesture"). Scroll chaining
+  walks only the ANCESTOR chain; the fixed shell removed the scrolling page
+  deliberately and the sheet is a SIBLING, so a swipe over the picture had nowhere
+  to go. The preview zone forwards `wheel`/`touchmove` to the sheet now:
+
+  ```
+                            before   after
+    y= 80  the picture         0px    123px
+    y=240  the picture         0px    123px
+    y=400  the picture         0px    123px
+    y=470  the sheet         123px    123px
+    guards: page-scroll 0, knobs 5/5, sideways 0 - unchanged
+  ```
+
+  No `preventDefault` - nothing else wants the gesture. Verified with real
+  hit-testing on both arms: shield UP the picture forwards, shield DOWN ("tap to
+  play") it stops and the game owns it again, because an iframe's events never
+  reach its parent. Rule:
   [`a-fixed-shell-cannot-chain-a-gesture-to-a-sibling.md`](.claude/rules/a-fixed-shell-cannot-chain-a-gesture-to-a-sibling.md).
-  `scripts/repro/repro-bench-on-a-phone.mjs` exits 1 on exactly this line.
 - ~~**Every numeric knob in the `?design` Drawer is INERT**~~ - **FIXED
   2026-08-23.** `applySpec` wrote everything onto `documentElement`, and
   `body.screen{--uh:56px}` is a declaration ON the body, which beats one
