@@ -142,10 +142,25 @@ jobs:
           echo "url=https://${PAGES_BRANCH}.${PAGES_PROJECT}.pages.dev" >> "$GITHUB_OUTPUT"
 
       # INVERTED POLARITY, deliberately: this asserts the board is NOT readable.
-      # Advisory until the Access policy exists, then armed with
-      # REACH_BOARD_PROTECTED=1 in the same change that makes it pass.
+      #
+      # ARMED 2026-08-23, in the commit that earned it - which is the other half
+      # of the rule that made it advisory in the first place. Measured on the wire
+      # the moment the operator turned Preview access on:
+      #
+      #   before  200 to an anonymous fetch
+      #   after   302 -> ellaz-reach-pages.cloudflareaccess.com/cdn-cgi/access/
+      #
+      # That also SETTLES the one thing this workflow refused to assert. Cloudflare
+      # auto-created an Access application whose destination is the WILDCARD
+      # `*.ellaz-reach.pages.dev`, so a named branch alias is covered after all -
+      # measured, not inferred from the docs, which never said either way.
+      #
+      # From here a deploy goes RED if the protection is ever removed. Kill switch:
+      # drop the env line, and say why in the same commit.
       - name: Is it actually private?
         if: steps.creds.outputs.have == 'true'
+        env:
+          REACH_BOARD_PROTECTED: "1"
         run: node scripts/assert-reach-live.mjs "${{ steps.pages.outputs.url }}"
 
       - name: Summary

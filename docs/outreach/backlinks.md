@@ -38,12 +38,24 @@ to an active zone in your Cloudflare account"*: `pages.dev` is not ours, and nei
 is `ellaz.fun`, whose DNS is at Hostinger.
 
 So the deploy publishes to a **named branch** rather than to production, which gives
-a stable preview alias (`board.ellaz-reach.pages.dev`) that the one-click toggle does
-cover. Whether it covers a branch ALIAS specifically is **not stated** in Cloudflare's
-page — it says "randomly generated preview links" — so nothing here asserts it. The
-gate measures it on the first run after the toggle goes on and answers PROTECTED or
-PUBLIC. If the answer is PUBLIC, the fix is a real domain in Cloudflare, not the same
-guess repeated louder. So `scripts/assert-reach-live.mjs` runs after every deploy with its
+a stable preview alias — `https://board.ellaz-reach.pages.dev` — that the toggle does
+cover. Production (`ellaz-reach.pages.dev`) is deliberately left empty and 404s; it is
+the URL the toggle would NOT have covered.
+
+**Measured 2026-08-23, the moment the toggle went on**: `200` to an anonymous fetch
+before, `302 → ellaz-reach-pages.cloudflareaccess.com/cdn-cgi/access/` after. That
+also settles the thing the docs never state — Cloudflare auto-creates an Access
+application whose destination is the **wildcard** `*.ellaz-reach.pages.dev`, so a
+named branch alias is covered. The gate is **ARMED** from that same change, so a
+future deploy reds if the protection is removed.
+
+**What is still UNMEASURED, and only the operator can measure it: WHO gets in.** The
+gate answers *whether* the board is readable anonymously, never *who* may sign in.
+The auto-created policy reads `Allow Members - Cloudflare Pages` in one panel and
+`Sources: All authenticated users` in another, and those are not the same claim. The
+check is one private window: if the login page offers a one-time PIN to any email
+address, anyone who receives that mail is in; if it demands a Cloudflare login, only
+account members are. So `scripts/assert-reach-live.mjs` runs after every deploy with its
 polarity inverted: a **200 is the alarm**, not the success. It ships ADVISORY,
 because the Pages project necessarily exists before the policy does and an armed
 gate would red on correct work on day one; arm it with `REACH_BOARD_PROTECTED=1` in
