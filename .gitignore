@@ -26,3 +26,9 @@ screenshots/
 # Never committed: a checked-in copy is a second source of truth that goes
 # stale the moment a link dies, which is the one thing the file exists to catch.
 docs/outreach/backlinks.html
+
+# The reach board's published artifact, built by `npm run reach:site` and by
+# .github/workflows/deploy-reach.yml. Never committed: it is a RENDERING of
+# docs/outreach/backlinks.md, and a checked-in copy is a second source of truth
+# that goes stale the moment a link dies - the one thing the board exists to catch.
+dist-reach/

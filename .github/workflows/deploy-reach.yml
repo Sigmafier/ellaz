@@ -1,0 +1,138 @@
+name: Deploy the reach board (Cloudflare)
+
+# The backlinks follow-up board, published to its own Cloudflare Pages project and
+# put behind Cloudflare Access. It is NOT part of ellaz.fun and must never become
+# part of it: four gates there would have to learn about a page that is deliberately
+# unreadable, and one of them (assert-live.mjs) asserts every artifact is fetchable,
+# which a 401 is not. See the header of scripts/reach/build-reach-site.mjs.
+#
+# THIS FILE MUST LIVE AT THE REPOSITORY ROOT. Workflows are discovered only in
+# `.github/workflows/` at the root; a nested one is an ordinary text file that
+# GitHub has never read, with no id, no runs, and no way to tell you so.
+# .claude/rules/a-workflow-outside-the-repo-root-is-an-ordinary-text-file.md
+#
+# Same two repo secrets as the poker deploy: CLOUDFLARE_API_TOKEN and
+# CLOUDFLARE_ACCOUNT_ID. Without them the job SKIPS with a warning rather than
+# failing - so a green tick is not proof it deployed. Read the summary.
+#
+# The daily schedule is the point of the board, not housekeeping: a link can die
+# with nothing in this repository changing, and nothing else here would notice.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/outreach/backlinks.md"
+      - "docs/outreach/backlinks-checked.json"
+      - "scripts/reach/backlinks.mjs"
+      - "scripts/reach/build-reach-site.mjs"
+      - "scripts/assert-reach-live.mjs"
+      - ".github/workflows/deploy-reach.yml"
+  schedule:
+    - cron: "20 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reach-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # A Pages project name becomes a globally-unique <name>.pages.dev hostname,
+      # so a short generic one is almost certainly taken by somebody else - which
+      # surfaces at project-creation time, long after the secrets are set.
+      PAGES_PROJECT: ellaz-reach
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for credentials
+        id: creds
+        run: |
+          if [ -z "${CLOUDFLARE_API_TOKEN}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID}" ]; then
+            echo "have=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID are not set — SKIPPING. Nothing was published."
+            {
+              echo "### Reach board deploy skipped"
+              echo ""
+              echo "Both secrets already exist if the poker table has ever deployed."
+              echo "Otherwise set them at"
+              echo "<https://github.com/${{ github.repository }}/settings/secrets/actions/new>."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "have=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # No `npm ci`. The builder is node built-ins plus one local import, and a
+      # check that must install 400 packages before it can run fails for its own
+      # reasons - the same argument crawlable.yml makes.
+      - uses: actions/setup-node@v4
+        if: steps.creds.outputs.have == 'true'
+        with:
+          node-version: 22
+
+      - name: Its own controls, before it publishes anything
+        if: steps.creds.outputs.have == 'true'
+        run: |
+          node scripts/reach/build-reach-site.mjs --control
+          node scripts/assert-reach-live.mjs --control
+
+      - name: Re-check every link and build the board
+        if: steps.creds.outputs.have == 'true'
+        run: node scripts/reach/build-reach-site.mjs
+
+      # `wrangler pages deploy` does NOT create a missing project - it fails with
+      # "Project not found", which reads like a typo in the name rather than a
+      # thing that has never existed. Idempotent by tolerating the second run's
+      # failure rather than by asking first: `project list` is another call that
+      # can fail, and its failure is indistinguishable from "no projects yet".
+      - name: Ensure the Pages project exists
+        if: steps.creds.outputs.have == 'true'
+        run: |
+          if npx wrangler pages project create "${PAGES_PROJECT}" \
+               --production-branch main 2>&1 | tee /tmp/create.log; then
+            echo "created ${PAGES_PROJECT}"
+          elif grep -qiE "already exists|8000009" /tmp/create.log; then
+            echo "${PAGES_PROJECT} already exists — continuing"
+          else
+            echo "::error::could not create the Pages project. If this mentions permission,"
+            echo "::error::the API token needs Cloudflare Pages: Edit."
+            cat /tmp/create.log
+            exit 1
+          fi
+
+      - name: Publish
+        if: steps.creds.outputs.have == 'true'
+        id: pages
+        run: |
+          set -euo pipefail
+          npx wrangler pages deploy dist-reach \
+            --project-name "${PAGES_PROJECT}" \
+            --branch main \
+            --commit-dirty=true
+          echo "url=https://${PAGES_PROJECT}.pages.dev" >> "$GITHUB_OUTPUT"
+
+      # INVERTED POLARITY, deliberately: this asserts the board is NOT readable.
+      # Advisory until the Access policy exists, then armed with
+      # REACH_BOARD_PROTECTED=1 in the same change that makes it pass.
+      - name: Is it actually private?
+        if: steps.creds.outputs.have == 'true'
+        run: node scripts/assert-reach-live.mjs "${{ steps.pages.outputs.url }}"
+
+      - name: Summary
+        if: steps.creds.outputs.have == 'true'
+        run: |
+          {
+            echo "### Reach board"
+            echo ""
+            echo "<${{ steps.pages.outputs.url }}>"
+            echo ""
+            echo "Private only while a Cloudflare Access policy sits on it."
+          } >> "$GITHUB_STEP_SUMMARY"

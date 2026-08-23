@@ -167,7 +167,9 @@ export function html(rows, gsc, checked) {
       r.lastLive ? ` &middot; last live ${esc(r.lastLive)}` : ""}</p>
     ${r.notes ? `<p class=n>${esc(r.notes.replace(/[*`\[\]]/g, ""))}</p>` : ""}</li>`;
   return `<!doctype html><meta charset=utf-8><title>Backlinks &middot; ${SITE}</title>
-<meta name=viewport content="width=device-width,initial-scale=1"><style>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<meta name=robots content="noindex,nofollow">
+<style>
 :root{--bg:#14131c;--fg:#e9e7f2;--dim:#9a96ad;--card:#1e1c29}
 *{box-sizing:border-box}body{margin:0;padding:24px;background:var(--bg);color:var(--fg);
 font:15px/1.55 ui-sans-serif,system-ui,sans-serif}h1{font-size:19px;margin:0 0 4px}

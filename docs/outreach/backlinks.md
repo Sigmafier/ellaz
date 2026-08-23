@@ -7,6 +7,37 @@ Read it with `npm run reach:backlinks`, which re-fetches every row and writes
 the result to `backlinks-checked.json`. `-- --html` renders the same board as a
 page.
 
+## Where the board lives, and what actually keeps it private
+
+`npm run reach:site` builds `dist-reach/` and `.github/workflows/deploy-reach.yml`
+publishes it to a Cloudflare Pages project of its own, re-checking every link on a
+daily schedule as well as on a push. It is a **separate site**, and there were two
+reasons rather than one:
+
+- Four gates on ellaz.fun would have had to learn about a page that is deliberately
+  unreadable — the PWA `globIgnores` (whose `**/*.html` glob would precache it onto
+  every child's phone), `assert-pages.mjs`'s sitemap bijection,
+  `assert-first-visit.mjs`'s full-path matcher, and `assert-live.mjs`, which asserts
+  every artifact in `dist/` is FETCHABLE and would red on a page that correctly
+  answers 401.
+- **A subdomain would not have helped.** A subdomain is a separate site, crawled and
+  indexed like any other, and every TLS certificate is published to public
+  Certificate Transparency logs — so the *name* is discoverable whether or not
+  anyone links to it. Isolation is real; invisibility is not.
+
+**The only thing making the board private is a Cloudflare Access policy**, which
+lives in a vendor dashboard, has no representation in this repository, and comes off
+with one click. So `scripts/assert-reach-live.mjs` runs after every deploy with its
+polarity inverted: a **200 is the alarm**, not the success. It ships ADVISORY,
+because the Pages project necessarily exists before the policy does and an armed
+gate would red on correct work on day one; arm it with `REACH_BOARD_PROTECTED=1` in
+the same change that applies the policy.
+
+`noindex`, `robots.txt` and `X-Robots-Tag` all ship too, and every one of them is
+unreachable while Access is on — a crawler never gets past the login. They are there
+for the window in which Access is *off*, which is the only window in which any of
+this is exposed.
+
 ---
 
 ## Why this is separate from `ledger.md`
