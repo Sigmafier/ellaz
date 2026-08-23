@@ -25,6 +25,7 @@
 // that plants the exact defect and requires the check to fire. A check nobody
 // has watched fail is not a check.
 import { readFileSync, existsSync, statSync, readdirSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { join } from "node:path";
 
 const DIST = process.env.DIST_DIR ?? "dist";
@@ -419,6 +420,61 @@ export function embeddedImages(html) {
  * gate red for pages nobody claimed to have fixed. Stated rather than skipped,
  * so the exemption stays a decision.
  */
+/**
+ * No two share cards are the SAME PICTURE.
+ *
+ * THE FAILURE THIS EXISTS FOR IS NOT A MISSING FILE. Measured 2026-08-23,
+ * `home-en.png`, `world-en.png` and `boards-en.png` were byte-identical in all
+ * four languages - twelve files, four pictures - because `/world/` and
+ * `/boards/` fell through to the site's own brand and tagline, so the three
+ * drew the same two strings on the same empty ground.
+ *
+ * Every gate in this repo was green over it, and the near miss is the useful
+ * part: `ogCard.test.ts` DOES assert distinctness, of FILE NAMES, which were
+ * always distinct. A gate can be pointed at the right subject and still be
+ * unable to express the failure. The byte floor could not see it either - a
+ * flat slab WITH TEXT on it compresses to 16 KB, four times over the 4096 B
+ * floor written to catch a flat colour.
+ *
+ * Compares content hashes rather than sizes, because two different mosaics of
+ * the same ten scenes differ by a handful of bytes and two identical renders
+ * differ by none - a size comparison is exactly the instrument that let a
+ * deploy skip 49 pages once already.
+ */
+function checkCardsAreDistinct() {
+  const dir = join(DIST, "og");
+  if (!existsSync(dir)) {
+    fail("dist/og does not exist - no share card was written at all");
+    return;
+  }
+  const names = readdirSync(dir).filter((n) => n.endsWith(".png"));
+  if (names.length === 0) {
+    fail("dist/og holds no cards");
+    return;
+  }
+  const byHash = new Map();
+  for (const name of names) {
+    const hash = createHash("sha256").update(readFileSync(join(dir, name))).digest("hex");
+    byHash.set(hash, [...(byHash.get(hash) ?? []), name]);
+  }
+  for (const [hash, group] of byHash) {
+    if (group.length > 1) {
+      fail(
+        `${group.length} share cards are the SAME PICTURE (sha256 ${hash.slice(0, 12)}): ` +
+          `${group.join(", ")} - each is advertising a page it does not describe`,
+      );
+    }
+  }
+  // Positive control. Without it a run that read ZERO cards - a moved
+  // directory, a changed extension - reports every card distinct and passes.
+  // The floor is the route count rather than 1, so a partial write is a
+  // failure rather than a quiet pass over whatever happened to be there.
+  if (names.length < 100) {
+    fail(`dist/og holds only ${names.length} cards - the emitter wrote a partial set`);
+  }
+  console.log(`   ${names.length} share cards, ${byHash.size} distinct pictures`);
+}
+
 function checkPageImage(html, where, kind, base) {
   const imgs = embeddedImages(html);
   if (kind !== "game") return imgs;
@@ -1077,6 +1133,11 @@ function main() {
   // a crawler can choose; the JSON-LD says which picture represents the page;
   // the sitemap is how the image is DISCOVERED. Checking any one alone is
   // checking the wrong thing, and it reads green.
+  // Every card is a distinct picture. Set-level, so it runs once rather than
+  // per page - the failure it catches is a RELATION between cards, which no
+  // per-page check can see.
+  checkCardsAreDistinct();
+
   {
     const artDir = join(DIST, "art");
     const art = existsSync(artDir) ? readdirSync(artDir) : [];

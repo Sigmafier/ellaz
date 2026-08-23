@@ -39,6 +39,7 @@ import { dirOf } from "../i18n/locales";
 import { SITE } from "../content/site";
 import { CATEGORY_CONTENT } from "../content/categories";
 import { artGround, gameArt, registerArt } from "../ui/gameArt";
+import { GAMES } from "../portal/games";
 import { REST } from "../ui/gameArtRest";
 import type { Route } from "./routes";
 
@@ -107,7 +108,12 @@ export function ogImagePath(route: Route): string {
  * layout engine to ask. Both dimensions are injected here rather than changed
  * at the source, because the app's copy must stay fluid.
  */
-export function artSvgSized(id: string, w = OG_WIDTH, h = OG_HEIGHT): string {
+export function artSvgSized(
+  id: string,
+  w = OG_WIDTH,
+  h = OG_HEIGHT,
+  fit?: "meet" | "slice",
+): string {
   // `xmlns` as well as the dimensions. `gameArt` emits a fragment meant to be
   // INLINED into an HTML document, where the namespace is implied and a
   // viewBox is all the sizing a CSS box needs. Handed to a rasteriser as a
@@ -125,6 +131,20 @@ export function artSvgSized(id: string, w = OG_WIDTH, h = OG_HEIGHT): string {
     `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" `,
   );
 
+  // `gameArt` hardcodes `xMidYMid slice`, which is the app's answer and not
+  // this one. REPLACED rather than appended: two `preserveAspectRatio`
+  // attributes on one element is not an error anywhere in the chain - the
+  // parser keeps the FIRST - so appending would emit a card that still crops
+  // while every assertion about the string passed.
+  const fitted = fit
+    ? sized.replace(/preserveAspectRatio="[^"]*"/, `preserveAspectRatio="xMidYMid ${fit}"`)
+    : sized;
+  if (fit && !fitted.includes(`xMidYMid ${fit}`)) {
+    throw new Error(
+      `game art for "${id}" declares no preserveAspectRatio, so the requested "${fit}" was never applied`,
+    );
+  }
+
   // Every scene ends with a full-bleed veil rect painted
   // `fill:var(--art-veil,transparent)` - invisible in a browser, because the
   // property is unset and the fallback wins. A rasteriser does not implement
@@ -135,7 +155,7 @@ export function artSvgSized(id: string, w = OG_WIDTH, h = OG_HEIGHT): string {
   // Resolved to the fallback here rather than removed, so a future veil that
   // is deliberately painted still works. The assertion is the point: an
   // unresolved `var()` must stop the build rather than quietly paint black.
-  const resolved = sized.replace(/var\(\s*--[\w-]+\s*,\s*([^)]*)\)/g, "$1");
+  const resolved = fitted.replace(/var\(\s*--[\w-]+\s*,\s*([^)]*)\)/g, "$1");
   if (resolved.includes("var(")) {
     throw new Error(
       `game art for "${id}" carries a CSS var() with no fallback; a rasteriser paints that black`,
@@ -184,16 +204,143 @@ export function ogCardText(route: Route, meta?: GameMeta): { title: string; sub:
   const group = route.category
     ? CATEGORY_CONTENT[route.locale][route.category].h1
     : undefined;
-  const title = meta ? gameName(meta.id, route.locale) : (group ?? site.brand);
-  const sub = meta || group ? site.brand : site.tagline;
+
+  // `/world/` and `/boards/` used to fall through to the brand, so home, world
+  // and boards rendered the SAME two strings and - measured 2026-08-23 - the
+  // same three BYTES: `sha256(home-en.png) === sha256(world-en.png) ===
+  // sha256(boards-en.png)`. The distinctness assertion in `ogCard.test.ts`
+  // compares FILE NAMES, which were always distinct, so nothing could see it.
+  const screen =
+    route.kind === "world"
+      ? site.worldPage.h1
+      : route.kind === "boards"
+        ? site.boardsPage.h1
+        : undefined;
+
+  const title = meta ? gameName(meta.id, route.locale) : (group ?? screen ?? site.brand);
+
+  // THE SECOND LINE NEVER CARRIES A COUNT, and that is a rule rather than a
+  // preference. A card is a BAKED PNG that WhatsApp, Facebook and iMessage
+  // cache on their own infrastructure for weeks; a number baked into one goes
+  // stale in caches this repo cannot reach or invalidate. `{games}` is safe in
+  // HTML precisely because the page is rebuilt on every deploy - an image
+  // sitting in someone else's scraper cache is not.
+  //
+  // `site.tagline` is the countless line, already written in every page
+  // locale, and it says what the reader GETS rather than repeating the brand.
+  // It used to be `site.brand` here, which spent the card's only spare line on
+  // a word the preview already prints under the picture as the domain.
+  const sub = site.tagline;
   return {
     title: toVisualOrder(title, route.locale),
     sub: toVisualOrder(sub, route.locale),
   };
 }
 
-export function ogCardTree(route: Route, meta?: GameMeta, artPngUri?: string): CardNode {
+/** One tile of a card's picture: which scene, and the box it fills. */
+export interface ArtTile {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** `meet` shows the WHOLE composition; `slice` fills the box and crops. */
+  fit: "meet" | "slice";
+}
+
+/** The bar across the foot. Everything above it is picture. */
+export const OG_BAR = 210;
+const BAND = OG_HEIGHT - OG_BAR;
+
+/** Up to ten scenes - past that a tile is too small to read as anything. */
+export const MONTAGE_MAX = 10;
+
+/**
+ * The grid for `n` scenes, chosen so the tiles fill the band EXACTLY.
+ *
+ * A mosaic with a short last row reads as a broken image rather than as a
+ * deliberate one, so the count is padded by cycling instead (see `montage`).
+ * One row under five scenes, because a 2x2 of 600px tiles is two enormous
+ * crops and `speed` really does hold only three games.
+ */
+export function montageGrid(n: number): { cols: number; rows: number } {
+  const rows = n <= 4 ? 1 : 2;
+  return { cols: Math.ceil(n / rows), rows };
+}
+
+/**
+ * Which scenes a card's picture shows.
+ *
+ * DERIVED from the roster, never listed, so a new game joins the home mosaic
+ * the moment `games.ts` names it and a new category page gets a real picture
+ * with no edit here. A category shows its OWN games - a "Kids games" card
+ * showing minesweeper would be a preview that misdescribes the link.
+ */
+export function montageIds(route: Route): string[] {
+  const pool = route.category
+    ? GAMES.filter((g) => g.category === route.category)
+    : // A spread rather than the first ten, so the home mosaic is not four
+      // shades of one category. `GAMES` is roster ORDER, which groups by
+      // category, so an even stride crosses the whole catalogue.
+      (() => {
+        const step = Math.max(1, Math.floor(GAMES.length / MONTAGE_MAX));
+        return GAMES.filter((_, i) => i % step === 0);
+      })();
+  return pool.slice(0, MONTAGE_MAX).map((g) => g.id);
+}
+
+/**
+ * The picture for any card: one whole scene for a game, a mosaic for every
+ * other kind.
+ *
+ * Until 2026-08-23 the art-less kinds - home, the five category pages, the
+ * room and the boards, 32 of 164 cards - drew NOTHING, so a shared
+ * `ellaz.fun` link previewed as a flat dark slab. Every tag was correct
+ * throughout, which is why no gate here could see it: they all read the
+ * markup, and the defect was that the markup pointed at an empty picture.
+ */
+export function cardArt(route: Route, meta?: GameMeta): ArtTile[] {
+  // A GAME shows its own scene WHOLE. `gameArt` declares
+  // `preserveAspectRatio="xMidYMid slice"`, which is right for a CSS-sized
+  // card in the app and wrong here: a 200x150 scene sliced into 1200x630
+  // renders 900px tall, so 135px is cut off each end and the bar covers 230px
+  // more - 44.4% of the composition survived, measured, and snake's tail and
+  // half the apple were among the casualties. `meet` letterboxes instead, and
+  // the letterbox is INVISIBLE because the card's ground already IS the
+  // scene's own ground colour.
+  if (meta) return [{ id: meta.id, x: 0, y: 0, w: OG_WIDTH, h: BAND, fit: "meet" }];
+
+  const ids = montageIds(route);
+  if (!ids.length) return [];
+  const { cols, rows } = montageGrid(ids.length);
+  const w = Math.ceil(OG_WIDTH / cols);
+  const h = Math.ceil(BAND / rows);
+  return Array.from({ length: cols * rows }, (_, i) => ({
+    // Cycle to fill. A short last row looks like a failed render; a repeated
+    // scene in a mosaic reads as pattern.
+    id: ids[i % ids.length]!,
+    x: (i % cols) * w,
+    y: Math.floor(i / cols) * h,
+    w,
+    h,
+    // A tile is a thumbnail, not a composition, so filling the box beats
+    // showing every pixel - `meet` here would ring each tile with its own
+    // letterbox and turn the mosaic into a grid of postage stamps.
+    fit: "slice" as const,
+  }));
+}
+
+export function ogCardTree(
+  route: Route,
+  meta?: GameMeta,
+  /** One rasterised PNG data URI per `cardArt` tile, in the same order. */
+  artUris: string[] = [],
+): CardNode {
   const rtl = dirOf(route.locale) === "rtl";
+  const tiles = cardArt(route, meta);
+  // The ground is the card's floor wherever a tile does not reach - the
+  // letterbox on a game card, and nothing at all on a mosaic. A game uses its
+  // OWN ground, which is what makes the letterbox invisible rather than a bar.
   const ground = meta ? artGround(meta.id) : "#241C3B";
   const { title, sub } = ogCardText(route, meta);
 
@@ -202,19 +349,21 @@ export function ogCardTree(route: Route, meta?: GameMeta, artPngUri?: string): C
   // floor - no warning, no error, just a flat colour card that looks like a
   // game whose art was never drawn. So the art is rendered to PNG first, by
   // the one component that is definitely willing to read SVG: resvg itself.
-  const art: CardNode[] = artPngUri
-    ? [
-        {
-          type: "img",
-          props: {
-            style: { position: "absolute", top: 0, left: 0 },
-            src: artPngUri,
-            width: OG_WIDTH,
-            height: OG_HEIGHT,
-          } as CardNode["props"],
-        },
-      ]
-    : [];
+  const art: CardNode[] = tiles.flatMap((t, i) => {
+    const src = artUris[i];
+    if (!src) return [];
+    return [
+      {
+        type: "img",
+        props: {
+          style: { position: "absolute", top: t.y, left: t.x },
+          src,
+          width: t.w,
+          height: t.h,
+        } as CardNode["props"],
+      },
+    ];
+  });
 
   return {
     type: "div",
@@ -239,14 +388,16 @@ export function ogCardTree(route: Route, meta?: GameMeta, artPngUri?: string): C
               left: 0,
               display: "flex",
               flexDirection: "column",
+              justifyContent: "center",
               alignItems: rtl ? "flex-end" : "flex-start",
-              gap: "8px",
+              gap: "10px",
               width: `${OG_WIDTH}px`,
-              padding: "40px 64px",
+              height: `${OG_BAR}px`,
+              padding: "0 64px",
               backgroundColor: "#241C3B",
             },
             children: [
-              text(title, { fontSize: 82, fontWeight: 800, color: "#FFF7EC", lineHeight: 1.1 }),
+              text(title, { fontSize: 76, fontWeight: 800, color: "#FFF7EC", lineHeight: 1.1 }),
               text(sub, { fontSize: 34, fontWeight: 400, color: "#FFF7EC", opacity: 0.85 }),
             ],
           },
