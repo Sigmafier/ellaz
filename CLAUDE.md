@@ -466,6 +466,32 @@ own test, is read by the component, and cannot be turned. Three mutations, three
 killed - an orphaned token, a part naming a token that does not exist, and a
 part offering nothing at all.
 
+**TWO THINGS ARE OPEN on it, both found by `/deep-test` during `/finalize` on
+2026-08-23, both reported rather than patched.** They are written here so nobody
+rediscovers them:
+
+- **A swipe over the preview scrolls nothing — 44% of the screen.** Measured at
+  390x844: the band y=43..415 is inert to a wheel while the sheet below it scrolls
+  its full 123px. Scroll chaining walks only the ANCESTOR chain, and in the fixed
+  shell the page cannot scroll and the sheet is a SIBLING, so the gesture has
+  nowhere to go. Nothing is unreachable (5/5 knobs hittable without scrolling), so
+  it is a design call as much as a bug - a viewfinder that is deliberately inert is
+  defensible. Fix if taken: the preview zone forwards `wheel`/`touchmove` to the
+  sheet. Rule:
+  [`a-fixed-shell-cannot-chain-a-gesture-to-a-sibling.md`](.claude/rules/a-fixed-shell-cannot-chain-a-gesture-to-a-sibling.md).
+  `scripts/repro/repro-bench-on-a-phone.mjs` exits 1 on exactly this line.
+- **Every numeric knob in the `?design` Drawer is INERT, so `#/lab/design`
+  under-reports.** `Drawer.tsx` writes the tokens onto `documentElement`, and
+  `body.screen{--uh:56px}` is a declaration ON the body, which beats one inherited
+  from its parent. Measured on the live G1 arm: `<html>` carries `--uh: 46px`, the
+  computed value on the body is **56px**, and the row draws **56**. Positive
+  control, same page and value: written on `<html>` the row stays 56, written on
+  `<body>` it becomes 46. So the compare table shows the breadcrumb differing (an
+  ATTRIBUTE, written where it is read) and every NUMBER identical - which is why
+  "G1 was already live" reads stronger than it is. `Buttons.tsx` carries a comment
+  about this exact trap and `Screen.tsx` writes to the body correctly; the lesson
+  never travelled to `Drawer.tsx`. One-word fix, not taken here.
+
 The per-game footers moved to **`#/lab/footers`** - what 33 authors did to a
 footer nothing governs, which is a different question from what one shared
 number should be. `Panel.tsx` became `panelRead.ts`: the screen went, the

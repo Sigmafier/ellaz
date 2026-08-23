@@ -84,12 +84,42 @@ compared against a number somebody else measured, either measure it yourself wit
 code that will do the comparing, or leave margin wide enough that the disagreement cannot
 matter.
 
+## The same decay for a SELECTOR, not a number (2026-08-23)
+
+**A probe that names a UI string is a tuned constant too, and it goes stale the same
+way — except its failure names the WRONG THING.**
+
+`scripts/repro/repro-bench-on-a-phone.mjs` drove four literal tab captions
+(`"SHARED · the bar"` and friends). The bench was rebuilt as one tap-a-part screen,
+two of those tabs were deleted and the other two moved to `#/lab/footers`, and the
+reproducer timed out on its first line:
+
+```
+locator.click: Timeout 30000ms exceeded.
+  waiting for locator('button').filter({ hasText: 'SHARED · the bar' })
+```
+
+Read that message cold and it says the bench is broken. It was not; the caption was
+renamed by the same commit that should have updated this file. **A repro that fails
+because the thing it drives was RENAMED is indistinguishable from the thing it drives
+being BROKEN**, which is the one failure mode a reproducer must never have — its whole
+value is that its verdict can be trusted without re-deriving it.
+
+The fix is the same shape as the one above: bind to the thing that is PINNED rather
+than to the thing that is prose. A route is pinned by `App.tsx` and by a test; a
+button's caption is prose that ships. So a surface became a ROUTE plus the shape it
+claims, and the four captions went away.
+
+Ask of any probe: **when this screen is redesigned, will this line fail loudly for the
+right reason, quietly for the wrong one, or not fail at all?**
+
 ## When to Apply
 
 - Committing or raising any tuned constant: a ceiling, a floor, a cap, a budget
 - Resolving a merge conflict in a file holding one
 - Reviewing a gate that passes by a small margin — ask what the margin is *against*
 - Any session running beside another that touches the same artifact
+- Writing or reviewing a probe that names a UI string, a label, a heading or a tab
 
 ## Related
 
