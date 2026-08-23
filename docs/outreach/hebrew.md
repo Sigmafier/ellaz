@@ -133,6 +133,62 @@ limitation because this audience will ask about tracking within the first two re
 
 ---
 
+## Post 4 - the Ministry's Hebrew-language group
+
+<!-- outreach-games: spell, letters, wordguess -->
+
+**Where**: `הוראת השפה העברית ביסודי`, run by the Ministry of Education's
+pedagogical secretariat. **Tone**: a colleague opening a design decision for
+discussion, not offering a tool. **Why it is its own post**: post 3 names seven
+games and not one of them is a language game, so pasting it into a Hebrew
+teaching group is the roster arriving where the subject was Hebrew. This one
+leads on `מרכיבים מילה`'s central decision, because that is the thing a Hebrew
+teacher would actually have an opinion about.
+
+**It links to `/he/games/learn/`, never the home page** - the learning category
+in Hebrew, which is where the three games below live. Verified 200 to Googlebot
+2026-08-23.
+
+> שלושה משחקים לעברית ביסודי, ושיקול אחד שהנחה אותם
+>
+> שלום. בניתי אתר משחקים לילדים, ושלושה מהם עוסקים ישירות בעברית. אני משתף כאן
+> בעיקר בגלל החלטה אחת בעיצוב שלהם, שאשמח לשמוע עליה דעות.
+>
+> ב"מרכיבים מילה" הילד רואה תמונה ומרכיב את שמה אות אחר אות, מתוך מגש אריחים.
+> ההחלטה: אריח שגוי לעולם לא מונח. לחיצה עליו מרעידה אותו ומוציאה אותו מהמשבצת
+> הנוכחית, כך שהמילה שעל המסך נכונה בכל רגע שהילד מסתכל בה.
+>
+> האפשרות השנייה, שלא בחרנו בה, היא לתת למלא את כל המשבצות ולבדוק בסוף. זה בוחן
+> איות במקום ללמד אותו, ובגיל הצעיר זה נגמר בשורת אותיות שגויה שאי אפשר להצביע על
+> מה בדיוק לא בסדר בה.
+>
+> ברמה הראשונה אין אריחים מסיחים כלל. במגש יש בדיוק את אותיות המילה, כך שהמשימה
+> היא סדר בלבד - מיומנות מוקדמת ושונה מלזהות שאות מסוימת לא שייכת למילה.
+>
+> "אות פותחת" הוא הצעד שלפניו: תמונה, ובאיזו אות השם שלה מתחיל. המילה עצמה לא
+> מוצגת ככתב, כי זה היה מוסר את התשובה.
+>
+> "נחשו מילה" הוא לכיתות הגבוהות יותר - ניחוש מילה, עם סימון של אותיות שנמצאות
+> במקום ושל אותיות שנמצאות אבל לא במקום.
+>
+> מגבלה שכדאי לדעת מראש: רשימות המילים קבועות, ואין דרך להוסיף מילים משלכם או
+> להתאים אותן לאוצר המילים של הכיתה. אם אתם מחפשים כלי שמתיישר עם תוכנית הלימודים
+> שלכם, זה לא הוא.
+>
+> הכל בחינם, בלי פרסומות, בלי הרשמה ובלי התקנה:
+> https://ellaz.fun/he/games/learn/
+>
+> אשמח לשמוע אם ההחלטה על האריח השגוי נכונה בעיניכם, או שדווקא יש ערך בלתת לטעות
+> להישאר על המסך.
+
+**The honest limitation is REAL and was verified, not softened**: `words.ts` in
+both games is a fixed list with no custom-word entry point (`grep -rniE
+"custom|addWord|userWord|editable"` returns nothing in either directory). A
+teacher cannot align it to their own vocabulary, and this audience is the one
+that will ask.
+
+---
+
 ## The destinations - and the one part of RCH5 nobody here can do
 
 RCH5 says the destination is fetched the way its readers see it before anything is
@@ -169,7 +225,13 @@ and the checklist at the end is what that read has to produce.
 | Group | Where | What is known |
 |---|---|---|
 | מורות משקיעות | `facebook.com/groups/morot.mashkiot` | **has a brokered promotion channel.** The group's own text directs anyone wanting to promote to it to contact a named person by phone, and separately bars whole topics from the main group |
-| הוראת השפה העברית ביסודי | `facebook.com/groups/2392746324230224` | a PUBLIC group run by the Ministry of Education's pedagogical secretariat. Language teaching, so the relevant games are אות פותחת and מרכיבים מילה - not the roster |
+
+### Post 4 - the Ministry's Hebrew-language group
+
+| Group | Where | What is known |
+|---|---|---|
+| הוראת השפה העברית ביסודי | `facebook.com/groups/2392746324230224` | a PUBLIC group run by the Ministry of Education's pedagogical secretariat. **Post 3 does not belong here** - it names seven games and not one of them is a language game, so it arrives as a roster in a room whose subject is Hebrew. Post 4 was written for it, leading on `מרכיבים מילה`, `אות פותחת` and `נחשו מילה`, and linking to `/he/games/learn/` rather than the home page |
+
 
 **The מורות משקיעות finding is the transferable one.** A room with a paid or brokered
 promotion channel reads an unbrokered link as somebody dodging it, and the fact that the

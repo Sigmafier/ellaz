@@ -64,7 +64,7 @@ separate players. That is a real limitation and I have not solved it.
 
 Some things I did not expect going in:
 
-- The first visit is 90,022 bytes gzipped and the build fails above 90,500.
+- The first visit is 90,022 bytes gzipped and the build fails above 91,000.
   Adding a game costs the shell about 300 bytes even though every game is a
   lazy chunk, because its metadata is in the statically imported roster.
 - Making an import lazy is three changes, not one. Miss the third (the

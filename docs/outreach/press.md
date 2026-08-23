@@ -87,7 +87,7 @@ browser. Lead with the last of those - it is the only part nobody else has writt
 
 **Every number in the letter is derived**: 90,022 bytes gzipped is the first visit
 measured on the built artifact by `scripts/assert-payload.mjs`, which fails the build
-above 90,500. 33 games and 164 pages come from the roster and the emitted sitemap.
+above 91,000. 33 games and 164 pages come from the roster and the emitted sitemap.
 
 <!-- outreach-facts:off -->
 **That figure has moved twice since this letter was first written, and the letter was
@@ -108,7 +108,7 @@ number written down last week.** `npm run assert:outreach` is that re-measuremen
 >
 > 33 משחקים, 164 עמודים, ואפס שרת. אין בסיס נתונים, אין הרשמה, אין איסוף מידע. הכל נשמר
 > על המכשיר עצמו. הטעינה הראשונה שוקלת 90,022 בתים דחוסים, פחות מתמונה בודדת בכתבה
-> ממוצעת, ויש בדיקה אוטומטית שמפילה את הבילד אם המספר עובר 90,500.
+> ממוצעת, ויש בדיקה אוטומטית שמפילה את הבילד אם המספר עובר 91,000.
 >
 > אבל מה שהייתי כותב עליו הוא זה: תוך שבועיים האתר נשבר שלוש פעמים בשלוש דרכים שאף אחת
 > מהן לא נראית מהדפדפן.

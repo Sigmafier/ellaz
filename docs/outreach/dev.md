@@ -168,7 +168,7 @@ I build a games site for kids. Hebrew first, English second, no accounts, no ads
 backend. Thirty-three games. The whole thing is a static site.
 
 The number I care about most is the first visit: **90,022 bytes gzipped**, of a ceiling of
-90,500 that fails the build. 478 bytes of room left. That figure is measured on the built
+91,000 that fails the build. 478 bytes of room left. That figure is measured on the built
 artifact by a script in the repo, not counted by hand, and it is the reason for most of the
 decisions below.
 
