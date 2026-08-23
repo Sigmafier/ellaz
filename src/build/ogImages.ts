@@ -19,6 +19,8 @@ import type { GameMeta } from "@sdk/index";
 import { metaFor } from "../portal/games";
 import {
   artSvgSized,
+  cardArt,
+  type ArtTile,
   OG_HEIGHT,
   OG_MAX_BYTES,
   OG_WIDTH,
@@ -109,9 +111,12 @@ function fonts() {
  * satori produced, and it fails by painting nothing. PNG in an `<image>` is
  * the path both tools agree on.
  */
-function artPngUri(id: string): string {
-  const png = new Resvg(artSvgSized(id), {
-    fitTo: { mode: "width", value: OG_WIDTH },
+function artPngUri(tile: ArtTile): string {
+  const png = new Resvg(artSvgSized(tile.id, tile.w, tile.h, tile.fit), {
+    // Rasterise at the tile's OWN width, not the card's. Rendering every
+    // mosaic tile at 1200 and letting satori scale it down is ten full-size
+    // PNGs base64'd into one card, and the 600 KB WhatsApp ceiling is real.
+    fitTo: { mode: "width", value: tile.w },
   })
     .render()
     .asPng();
@@ -165,7 +170,7 @@ export async function renderOgPng(route: Route, meta?: GameMeta): Promise<Uint8A
     );
   }
 
-  const svg = await satori(ogCardTree(route, meta, meta && artPngUri(meta.id)) as never, {
+  const svg = await satori(ogCardTree(route, meta, cardArt(route, meta).map(artPngUri)) as never, {
     width: OG_WIDTH,
     height: OG_HEIGHT,
     fonts: fonts(),
