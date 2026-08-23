@@ -1297,10 +1297,33 @@ reading this gate exists to disprove.
 
 ## The picture a shared link grows
 
-Every page carries an `og:image`: **50 cards, 1200x630**, emitted by `src/build/ogCard.ts`
-(pure, the layout) plus `ogImages.ts` (async, the rasteriser) from the same `gameArt` SVG
-the home grid uses. They cost nothing on a first visit — PNG is not in the precache glob
-and no shell asset fetches them.
+Every page carries an `og:image`, 1200x630, emitted by `src/build/ogCard.ts` (pure,
+the layout) plus `ogImages.ts` (async, the rasteriser) from the same `gameArt` SVG
+the home grid uses. Read the COUNT off `dist/og/`, never off this line - it said 50
+for weeks while 164 shipped. They cost nothing on a first visit — PNG is not in the
+precache glob and no shell asset fetches them.
+
+**A game card shows its WHOLE scene; every other kind shows a mosaic.** `cardArt()`
+returns the tiles and `preserveAspectRatio` is `meet` for a game - `gameArt` hardcodes
+`slice`, which is right for a CSS-sized card in the app and cropped 56% of the
+composition here (900px rendered, 135px cut each end, the bar over 230px more). The
+letterbox is invisible because the card's ground already IS the scene's own ground.
+The mosaic is DERIVED from the roster, so a new game joins the home card with no edit,
+and a category shows its own games - a "Kids games" card showing minesweeper would
+misdescribe the link it previews.
+
+**The second line is `site.tagline` and never a count.** A card is a baked PNG cached
+on the scraper's own infrastructure for weeks, so a number that is safe in HTML
+(rebuilt every deploy) goes stale where nothing here can reach it. Ratified as
+**SEO22** and **SEO23** in `/seo-doctrine` on 2026-08-23.
+
+**The gate compares the PICTURES, by content hash.** Until 2026-08-23, 32 of 164 cards
+drew nothing at all and 12 of those were byte-identical in threes, with every tag
+correct throughout. Each cheaper check passes the failure it is meant to catch: a tag
+check passes a blank image, a file-name check passed the identical twelve for months,
+and a byte floor written for a flat colour passes a flat slab with text on it (16 KB
+against a 4096 B floor). `checkCardsAreDistinct()` in `assert-pages.mjs`; plant a
+duplicate and it reds naming both files.
 
 **Text never reaches the rasteriser as text, and that is the whole design.** Neither
 `resvg` nor `satori` implements the Unicode bidi algorithm: both lay `<text>` out in
