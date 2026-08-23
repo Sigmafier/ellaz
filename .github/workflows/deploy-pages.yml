@@ -17,6 +17,7 @@ on:
       # in silence: drop the line in the same change.
       - "docs/outreach/**"
       - "scripts/reach/**"
+      - "scripts/outreach-ledger.mjs"
       - "scripts/assert-reach-live.mjs"
       - ".github/workflows/deploy-reach.yml"
   workflow_dispatch:

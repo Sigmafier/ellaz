@@ -24,6 +24,12 @@ on:
     paths:
       - "docs/outreach/backlinks.md"
       - "docs/outreach/backlinks-checked.json"
+      # The board's do-next half is read from the ledger and its parser, so a
+      # rewritten instruction has to reach the published page. Left out, editing
+      # `Do next` changes nothing anyone can see until the 06:20 cron happens to
+      # run - which reads as "the board ignored me" rather than as a stale filter.
+      - "docs/outreach/ledger.md"
+      - "scripts/outreach-ledger.mjs"
       - "scripts/reach/backlinks.mjs"
       - "scripts/reach/build-reach-site.mjs"
       - "scripts/assert-reach-live.mjs"
