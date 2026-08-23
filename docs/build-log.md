@@ -2287,3 +2287,673 @@ a rule:
   `PAGE_LOCALES` rather than typed, so it cannot re-break on the next game.
   It lives in a vendor panel no gate here can reach, so re-check it with
   `npm run reach:about` rather than trusting this line.
+
+
+---
+
+# Lifted out of CLAUDE.md, 2026-08-23
+
+Verbatim. These are accounts of things now settled, moved here to keep
+`CLAUDE.md` under its context budget. The live rule each one taught stayed
+behind in `CLAUDE.md`; what is here is the evidence for it.
+
+## lastmod: the four-day wake-up
+
+**It woke up on 2026-08-16 for four days, and it was a BUG that woke it.** The
+resolver asked git for `src/content/games/<id>.ts`, and the one game whose id is
+not its directory publishes its prose at `n2048.ts` — so `/games/2048/` was dated
+off its RENDERER alone and advertised 2026-08-12 while its prose had been rewritten
+on the 16th. `lastCommitISO` filters missing paths, so the wrong guess did not fail;
+it answered from whatever was left, and a plausible date is indistinguishable from a
+correct one downstream. **That one wrong row was the only thing keeping the field
+alive** — 28 games shared a date, 2048 differed, so `allSame()` never fired and 128
+dates shipped. Fixing it returned all 29 to one timestamp and the field went away
+again, which is the honest state.
+
+Two conventions live at once and the resolver now reads the tree instead of assuming
+either: the top-level file is named after the game's **directory** (`n2048.ts`), the
+per-locale ones under `fr/` after its **id** (`2048.ts`). The French prose was
+invisible to this for the same reason — a subdirectory nothing enumerated.
+
+Every gate here read the EMITTER (is the field absent when git cannot answer, is it
+in the right `<url>`, are the dates non-uniform) and all of them were green
+throughout, because the defect was upstream of everything they look at.
+`lastmod.test.ts` now asserts WHICH FILES a date is derived from, with the shipped
+assumption kept as a control; three mutations, each killed and named, and the
+subtlest — dropping `n2048.ts` while keeping `fr/2048.ts` — is caught only by the
+by-name pin on that game.
+
+## the 2026-08-04 first-visit reading
+
+**First visit measured on the artifact 2026-08-04: 72,984 B gz.** The plan's
+ceiling is 76,000; the live 2026-08-02 baseline was 69,624. The whole gap
+predates the page work - it read 74,391 before Phase 4 started and is
+un-isolated, which is worth someone's twenty minutes with `git bisect` and the
+gz sum.
+
+## chrome: the platform-vs-game split, measured
+
+- **A control is either GAME or PLATFORM, and they never share a bar.** Home,
+  the wallet, sound and full screen are platform and live in the emitted
+  header; difficulty, restart, pause and the game's own numbers are game and
+  live below it. The test is one question: would this control still make
+  sense on the World screen or the Boards? Mixing the two is how this page
+  ended up with four ways home and two things called "Level" 8px apart.
+  **Pause and restart are drawn OUTSIDE `GameChrome`**, in the UTILITY ROW
+  that carries the breadcrumb above the stage - for WIDTH, not for family. The
+  split inside the game family is buttons up there, difficulty and numbers in
+  the panel. The panel's row is 350px inside on a 390px phone and difficulty plus
+  two stats plus gaps already spends 344, so a fourth 56px cell takes it to
+  408: measured on the artifact, 25 of 33 games wrapped onto two lines with
+  restart in there, 1 of 33 with restart out (blocks, the only game carrying a
+  pause button too), and **0 of 33** with both buttons up in the row.
+  **Re-measured on the artifact 2026-08-21, 33 games x 390px: still 1 of 33,
+  and it is SUDOKU, not blocks.** The row has 335px; the difficulty floor
+  (132) plus the stat floor (88) plus sudoku's content-sized `Filled` cell
+  (100) plus two 8px gaps is 336. One pixel, so `Filled` drops to a second
+  line and is clipped by the panel. And the compact cell is sized by its own
+  TEXT, so which side of that pixel a game lands on moves with the score's
+  digit count - a row whose fit is a function of game state cannot be settled
+  by choosing a better constant. Both games named here were correct when
+  written; read the number off `#/lab/buttons` -> the game row. The row is in FLOW and `.box` is
+  `calc(100dvh - var(--hh) - var(--uh))`, so it cannot land on the board the
+  way the old floating breadcrumb pill did. The emitted button is `hidden`
+  until a game fills the slot (`src/ui/gameTools.ts`), and `claimRestartSlot()`
+  is what stops `GameChrome` drawing a second one - without it the standalone
+  single-game bundle, which has no emitted chrome at all, would ship with no
+  restart and no gate here could see it. **Pause carries STATE as well as a
+  handler**, so its slot is re-announced whenever `paused` flips and the button
+  repaints its glyph and its label; the two labels ride on `data-` attributes
+  because the runtime may not import `src/content`. `gameTools.ts` is pinned to
+  the `page` chunk for the `GameChrome` reason - left to the `src/ui/`
+  catch-all it went to the SHELL and `assert:payload` reded 81 B over.
+  **Mute travels WITH the wallet, at the far edge - and it did not, for as
+  long as the phone bar has existed.** The bar is `space-between` over four
+  items and `.gname` is `display:none` under 720px, so the three survivors were
+  spread evenly and mute landed in the dead centre, touching neither group.
+  Fixed 2026-08-23 with `margin-inline-start:auto` on the button: measured on
+  the artifact at 390px, one variable, its left edge moved **160 -> 220** and
+  the gap to the coins pill **67px -> 8px**, with home and the wallet both
+  unmoved. The wide arm is untouched, because
+  `.gname` is `flex:1 1 0` there and already eats the free space - which is
+  precisely why this was invisible to everyone reviewing it on a desktop, and
+  why no gate here could see it either (every one of them reads a document
+  built at ONE width, so a media query is just a string).
+  [`.claude/rules/space-between-spreads-whatever-survives-the-media-query.md`](.claude/rules/space-between-spreads-whatever-survives-the-media-query.md)
+  **The breadcrumb is PLAIN TEXT**, on the operator's call 2026-08-23 and
+  matching what `dist-g1` actually shipped - see § The Design Bench for the two
+  measurements and the comment that claimed an approval it did not have.
+  **The screen's NAME is hidden on a phone and never removed from the
+  document.** The bar was saying it twice inside 104px of chrome on the
+  narrowest screen we serve - once in `.gname` and again as the last crumb of
+  the breadcrumb one row below - so `@media (max-width:719px)` hides it. It is
+  a media query and NOT an emitter branch on purpose: the element stays in the
+  served HTML, so the name is still there for a crawler beside the `<title>`,
+  the `<h1>`, the breadcrumb and the JSON-LD (measured: "Sudoku" occurs 9 times
+  in the served document, unchanged). Responsive hiding is not cloaking; not
+  emitting it is a different thing, and every gate here reads a document built
+  at one width so nothing would have caught it. `--hbrand` is therefore inert
+  on the phone arm of the bench, and the knob says so.
+  **And a platform control is on EVERY screen**: one `screenChrome` bar serves
+  a game, the room and the boards, tinted per screen from `--g`, and
+  `screen-header-is-platform-only.test.ts` reduces all three headers to a
+  SHAPE and requires the three to be equal (the home page is the positive
+  control that proves the shape can disagree). Before that they were three
+  different bars, and the room drew its own way-out and its own wallet inside
+  the scene while the boards showed no wallet at all.
+  [`.claude/rules/game-controls-and-platform-chrome-never-share-a-bar.md`](.claude/rules/game-controls-and-platform-chrome-never-share-a-bar.md)
+
+## the design bench
+
+## The Design Bench - where a layout is looked at, dialled and pinned
+
+**Add `?design` to any game URL** and a drawer opens over the REAL chrome - the
+emitted header, the real `GameChrome`, the real board - with knobs for every
+size those already read. **`#/lab/design`** puts two arms side by side at phone
+width and MEASURES the difference out of both documents. `src/lab/design/`,
+inside the existing `lab-*` chunk, so a page without the query param fetches
+none of it.
+
+**A chrome decision is a NAMED VARIANT in `src/lab/design/spec.ts`**, and
+`variant-is-shipped.test.ts` reads `layout.ts` and `GameChrome.tsx` and reds if
+either stops matching `SHIPPED`. Six planted defects, six killed - a 1px `--uh`,
+the pill removed, the panel cell, the level floor, and a token read reverted to
+a raw literal. That test is what makes "ship != approved" a red build rather
+than an argument.
+
+**The finding that came out of building it: G1 was already live.** `dist-g1/`,
+the approved build of 2026-08-20 20:32, carries `--hh 60/58 --uh 52/46 --tap 44`
+- byte-identical to today. The only difference in the whole document is the
+breadcrumb, which was plain then and is a pill now, added afterwards. So the
+half that kept being called unwired is the PANEL, which G1 never specified.
+
+**That was true when written, became TWO differences, and is now ZERO** - the
+state this whole bench was built to reach, on 2026-08-23. `--uh` went 52/46 ->
+60/60 on 2026-08-22 for the row's clearance and the operator kept it ("Keep 56,
+update G1"), so the RECORD moved, dated and with the reason written into
+`spec.ts`. The breadcrumb went the other way: shown both arms measured, they
+picked **plain**, which is what `dist-g1` had all along.
+
+It is worth knowing HOW the `--uh` gap stayed invisible for a day: the compare
+screen could not show it, because every numeric knob in the drawer was inert,
+so a row that genuinely differed by 10px read as `same`. A claim about a
+comparison is only as good as the comparison's ability to disagree with it.
+
+**The comment over the breadcrumb rule was the sharper half.** It said the pill
+was "restored 2026-08-20 to the arrangement that was approved". `dist-g1`'s own
+rule is `.urow .bc{margin:0;flex:1 1 auto;min-width:0;white-space:nowrap;
+overflow:hidden;text-overflow:ellipsis}` - no radius, no fill. A comment citing
+an approval the artifact contradicts is worse than no comment, because it ends
+the argument. Two measurements settled it anyway: the same three words are
+**181px as a pill against 147px plain**, in a row where one 56px button was the
+difference between one line and two on 25 of 33 games; and the chip read
+**16.39:1** against the row - the loudest object on the screen - for a trail
+that is not a control. Plain reads 6.28:1, clear of AA, and it INHERITS
+`--doc-soft` so it cannot pick a theme.
+
+**Three knobs are labelled `records only` on purpose.** `statShape`, `restartAt`
+and `pauseAt` need the component to render differently, not the page to style
+differently, so the bench records the choice and does not fake the preview. A
+knob that writes an attribute nothing reads answers "yes, previewed" to
+everyone who turns it - and the compare screen caught exactly that, in the
+bench, an hour after it existed.
+
+`GameChrome`'s sizes are `var(--gc-tap, 56px)`-shaped reads with the shipped
+literal as the fallback, so nothing renders differently and the bench can turn
+them. The four `--gc-*` names are NOT declared in `tokens.css`: measured two
+arms, declaring them costs **110 B gz** against the headroom this repo has, and
+they are set at runtime like `--game`. `token-hygiene.test.ts` exempts them **by
+name rather than by prefix**, so a typo is still an orphan. Full rule and both
+measurement traps:
+[`.claude/rules/a-layout-nobody-can-look-at-drifts-into-a-different-one.md`](.claude/rules/a-layout-nobody-can-look-at-drifts-into-a-different-one.md).
+
+**The bench was unusable on the phone it exists for, and both reasons were
+invisible from a desktop.** Reported as one sentence - *"the lab doesnt do
+anything i tried moving stuff around"* - and measured on the live site at
+390x844 before anything was written.
+
+**A swipe that lands on the preview scrolls the PREVIEW's document**, and a
+game page is `body{overflow:hidden}`, so it scrolls nothing and the gesture is
+simply eaten. The preview spanned y=182..742 - two thirds of the screen - and
+a wheel over it moved the lab **0px** while the same wheel 40px lower moved it
+**1146px**. The knobs were below the fold behind a dead zone. `Preview` now
+lays a transparent sheet over the frame so the gesture reaches the page again;
+`tap to play` lifts it, because poking the game should be a deliberate act on
+a surface whose job is to be looked at.
+
+**And a knob applied on the next tick of a 500ms timer that every knob change
+REBUILT** - a range input fires while you drag, so the clock was reset faster
+than it could tick and nothing happened until you let go. Measured: the
+frame's body was untouched at the instant the pointer came up and carried
+`--gc-tap: 87px` 1.2s later. `useLiveApply` splits the two jobs, because they
+are two jobs: a change lands on the next commit, and the poll waits only for
+the frame to BOOT, keyed on the frame rather than on the knobs. It caught a
+third screen on the way - the footer standard's five knobs had the same 700ms
+timer.
+
+Three smaller things fell out of measuring rather than reasoning:
+
+- **`position: sticky` has to sit on the flex ITEM.** Two arms, one variable:
+  on a div inside the column the frame ended at top **-594** after a 700px
+  scroll, and on the item itself at top **0**. A sticky box is clamped to its
+  containing block, and a column exactly as tall as its preview has nowhere to
+  travel - so the wrong one scrolls away looking exactly like a browser with no
+  sticky support. That is why `Preview` owns the whole preview column, controls
+  and all, rather than being dropped inside one.
+- **The frame carries a box-SHADOW, not a border.** `* { box-sizing:
+  border-box }` is in the app's own reset, so a 1px border on a `width: 390`
+  frame previewed a **388px** viewport - on a bench whose whole subject is rows
+  that fit or wrap by ONE pixel. It had been 388 since the bench existed.
+- **It pins only if it still READS.** Capping an 844-tall frame to half an
+  844 screen produced a 195px thumbnail, so the tall arm scrolls and the short
+  ones pin at 93%.
+
+**`the-bench-works-on-a-phone.test.ts` pins all of it** - five mutations
+planted, five killed, each verified to have landed by checksum before the
+verdict was read. And the e2e probe that found it re-runs in one command:
+`scripts/repro/repro-bench-on-a-phone.mjs`, which drives all four tabs at 390x844 with touch and
+asserts no sideways scroll, a preview that is still a real 390px viewport
+inside, a swipe over the preview that scrolls, every knob reachable **by
+finger** (`elementFromPoint`, not a rectangle - a pinned preview satisfies the
+rectangle test while covering the control), and a knob that lands while the
+pointer is still down.
+
+**A lab screen that declares no scroller is CLIPPED, and two of the three did
+not.** `body.app-shell{overflow:hidden;height:100%}` is right for an app that
+manages its own scroll regions and it means the shell cuts off anything a lab
+route renders past the fold. `#/lab/buttons` scrolls by ACCIDENT - it sets
+`overflowX: hidden` to stop a 390px preview pushing the page sideways, and a
+block with a clipped x-axis computes `overflow-y` to `auto` whether or not
+anybody meant it. Measured at 390x844 with a wheel over the preview:
+`#/lab/buttons` **788px**, `#/lab/design` **0px**, and the inspector
+**0px** before it declared one. All three now name both axes; `#/lab/design`
+moves 900. It is the third distinct cause of "the lab doesn't do anything",
+after the swipe-eating preview and the knob that only landed on a timer, and
+the only one found by a gate rather than by a person.
+
+## The bench is the screen itself, at `#/lab/buttons`
+
+**Tap a part of a real game page and only its own numbers come up.** Chosen out
+of three proposals on 2026-08-22 - the operator picked the tap inspector - and
+the two that lost were deleted with the screen that offered them. What it
+replaced was two tabs of sliders named after the custom property each one wrote
+(`page row height`, `title size`), which asked you to already know which stripe
+on the screen that was.
+
+`PARTS` in `src/lab/design/Screen.tsx` is the primitive the old bench did not
+have: **the purple bar · the page row · the breadcrumb pill · the game row ·
+the board**, each with a selector read against the frame's own document, so a
+part a game does not draw simply disappears rather than offering knobs for
+something that is not there.
+
+Three things ride with the part rather than sitting in a separate tab:
+
+- **its numbers** - every `--hh`/`--gc-*` token, written onto the BODY of the
+  real page, so what you look at is the shipped rendering path;
+- **its shapes**, where a number cannot express the choice - a label under its
+  value, a glyph put back, pills. Only the game row has any, and a shape is a
+  real stylesheet injected into the page. A style writes `:root` and a knob
+  writes the body, so a knob always wins over the style it is dialling;
+- **its readout**, read off the live document rather than typed - the glyph
+  table for the bar (the `runtime` rows are glyphs no header rule can reach)
+  and `readPanel` for the game row (how many lines, and which text is
+  ellipsised INSIDE its own card while every overflow check reads clean).
+
+**`every-token-has-a-part.test.ts` is what the tap design can lose and the
+slider lists could not.** The old screens rendered `CHROME_TOKENS.map(...)`, so
+a new token appeared by construction; here a token is reached through a
+hand-written part, and one nobody names is a knob that exists, is pinned by its
+own test, is read by the component, and cannot be turned. Three mutations, three
+killed - an orphaned token, a part naming a token that does not exist, and a
+part offering nothing at all.
+
+**TWO THINGS ARE OPEN on it, both found by `/deep-test` during `/finalize` on
+2026-08-23, both reported rather than patched.** They are written here so nobody
+rediscovers them:
+
+- ~~**A swipe over the preview scrolls nothing — 44% of the screen**~~ - **FIXED
+  2026-08-23**, on the operator's call ("forward the gesture"). Scroll chaining
+  walks only the ANCESTOR chain; the fixed shell removed the scrolling page
+  deliberately and the sheet is a SIBLING, so a swipe over the picture had nowhere
+  to go. The preview zone forwards `wheel`/`touchmove` to the sheet now:
+
+  ```
+                            before   after
+    y= 80  the picture         0px    123px
+    y=240  the picture         0px    123px
+    y=400  the picture         0px    123px
+    y=470  the sheet         123px    123px
+    guards: page-scroll 0, knobs 5/5, sideways 0 - unchanged
+  ```
+
+  No `preventDefault` - nothing else wants the gesture. Verified with real
+  hit-testing on both arms: shield UP the picture forwards, shield DOWN ("tap to
+  play") it stops and the game owns it again, because an iframe's events never
+  reach its parent. Rule:
+  [`a-fixed-shell-cannot-chain-a-gesture-to-a-sibling.md`](.claude/rules/a-fixed-shell-cannot-chain-a-gesture-to-a-sibling.md).
+- ~~**Every numeric knob in the `?design` Drawer is INERT**~~ - **FIXED
+  2026-08-23.** `applySpec` wrote everything onto `documentElement`, and
+  `body.screen{--uh:56px}` is a declaration ON the body, which beats one
+  inherited from its parent - so every number the drawer set was inherited
+  straight past by the very rule that defines it. Measured on the live G1 arm
+  before the fix: `<html>` carried `--uh: 46px`, the computed value on the body
+  was **56px**, the row drew **56**.
+
+  **TWO surfaces, and they are not interchangeable** - which is why "just write
+  it all to the body" would have traded one silent half for the other. TOKENS go
+  on the BODY (`body.screen{...}` declares them); ATTRIBUTES go on the ROOT (the
+  candidate CSS selects `:root[data-design-*]`, which is why the breadcrumb was
+  the one thing that DID work). `applySpec` resolves both from the element it is
+  handed rather than trusting its caller.
+
+  Measured before and after on a real page, one variable:
+
+  ```
+                    html      body    computed   row draws
+    before        --uh 46      -         56          56
+    after            -      --uh 46      46          46
+    crumb attribute stayed on :root in both; radius 0px (plain) in both
+  ```
+
+  `spec.test.ts` could not have caught it: its DOM stub had no `ownerDocument`,
+  so root and body were the same object and every assertion read the same map.
+  It now builds two distinct surfaces, asserts each thing lands where the CSS
+  that reads it can see it, and carries the control that they are really
+  distinguishable. Three mutations planted and killed, including replanting the
+  shipped defect verbatim.
+
+The per-game footers moved to **`#/lab/footers`** - what 33 authors did to a
+footer nothing governs, which is a different question from what one shared
+number should be. `Panel.tsx` became `panelRead.ts`: the screen went, the
+knowing did not, because the knowing was never the sliders.
+
+Measured on the artifact, two arms from one tree: the promotion **gives back
+11 B gz** (90,614 -> 90,603) because it deletes a lazy route and adds none. Do
+not read the absolute figure as this work - the +582 since the previous entry
+is a peer's consent bar, which also raised the ceiling to 91,000.
+
+**The consent bar covers the bottom of any lab screen on a FIRST visit**, and
+that is worth knowing before probing one: a fresh browser context always sees
+it, the operator dismissed it once and never will again, so a probe that leaves
+it up is measuring a state nobody is in. Dismiss it, then measure.
+
+
+## the numbers we tell strangers - the full account
+
+## The numbers we tell strangers
+
+`docs/outreach/` holds eight drafts meant to leave this repository — Show HN,
+Product Hunt, dev.to, three Reddit posts, itch.io, Newgrounds, a Hebrew press
+letter, two pull requests into other people's lists. **Nothing is published.**
+
+It is also **the only place here where a number about this site is written by
+hand.** The sitemap, `llms.txt` and the emitted home read the roster, so they
+cannot be wrong about how many games there are; `src/content/` carries a
+`provenance` row per figure and `content.test.ts` checks the deriving script still
+exists. The drafts have the provenance column and nothing that reads it.
+
+Measured 2026-08-18, six days after they were written: **57 wrong figures.** 23
+games against a roster of 33, 52 pages against 144, two page languages against
+four, 88,234 B gz against 90,027, a ceiling of 90,000 against 90,500. Two were
+wrong when written rather than stale — a provenance row naming
+`src/games/snake/SnakeGame.tsx`, which has never existed, and a table saying
+sudoku has four difficulty tiers eight lines above a row correctly saying six.
+
+**One claim flipped rather than drifted, and no numeric matcher can see that
+class.** "under 90 KB" appears nine times; it was true at 88,234 and is false at
+90,027, by 27 bytes. The number in the sentence is the THRESHOLD, not the
+measurement, and it never changed — only the world did. It is carried as a
+PREDICATE in the gate, and the copy now says *about 90 KB*.
+
+**`npm run assert:outreach`** derives the facts and scans every draft; `--fix`
+rewrites the numeric drift in one command and `--control` runs six controls. It is
+**not in `build:check`, on purpose** — the same placement as `assert:standalone`,
+a gate for an artifact published by hand. Wiring it into the build would red every
+lane that adds a game until somebody edited eight markdown files.
+
+Three things in it earn their place, each found by the gate failing rather than by
+reasoning: **`minHits` per claim** is the positive control, so a matcher finding
+fewer occurrences than the corpus holds reports **BLIND** rather than clean (it
+caught two of its own holes immediately — `measured 88,234 on <date>` in three
+provenance rows and `one game out of 23` in three more); **Hebrew is in the
+population**, because `press.md` carries a Hebrew press letter quoting the counts
+and an English-only matcher would report the folder clean; and **`--fix` cannot
+tell a claim from a history** — it rewrote `press.md`'s account of its own figure
+moving into a sentence contradicting itself, so historical passages are wrapped in
+`<!-- outreach-facts:off -->` and the count of exempted regions prints every run.
+
+**Two things no gate here can reach.** There is **no inbound-link data in this
+project at all** — no Search Console, no index — so nothing here says whether any
+outreach ever produced a link. And the **GitHub repository description** still
+reads "in Hebrew and English" beside every link the outreach points at; homepage,
+topics and licence on that repo are correct. Enumerate the published SURFACES
+before enumerating the files.
+
+Full audit, including what held and both PR targets re-measured:
+[`docs/outreach/audit.md`](docs/outreach/audit.md). Rule:
+[`.claude/rules/a-hand-authored-number-that-leaves-the-repo.md`](.claude/rules/a-hand-authored-number-that-leaves-the-repo.md).
+
+**And a draft cannot be its own record.** Every file in that folder says "Status:
+drafts, nothing is posted", because that is how a draft is written - and it keeps
+saying it after somebody posts. For Show HN and Product Hunt, which fire once
+ever, that is the whole risk. [`docs/outreach/ledger.md`](docs/outreach/ledger.md)
+is the record; `scripts/outreach-ledger.mjs` (inside `npm run assert:outreach`)
+fails when the two disagree, when a surface has no row, or when a fired row
+carries no verdict date - a verdict nobody scheduled is one taken at three weeks,
+which measures the freshness boost and reverses a correct strategy. Controls:
+`npm run assert:outreach:control`.
+
+**Nothing here can see an inbound link.** Every gate reads `dist/` or fetches the
+live site as a crawler, which answers whether we can be *fetched*, never whether
+anyone points at us. `npm run reach:links` reads a Search Console "Top linking
+sites" export from `docs/outreach/exports/` and prints **UNMEASURED, exit 2**
+until one is dropped there - never `0`, because zero is a finding and unmeasured
+is a gap. Do not substitute a `site:` query: measured 2026-08-20, fetched by a
+script it returned ten results, none of them this site, beside a claimed 102,000.
+
+**The About box is derived too.** The GitHub repository description is the one
+sentence a list maintainer reads before deciding, it lives in a vendor panel no
+gate here can reach, and it said "in Hebrew and English" for weeks while the site
+served four written languages - with homepage, topics and licence all correct, so
+every audit that checked the *link* passed. `npm run reach:about` compares the
+live description against one DERIVED from the roster and `PAGE_LOCALES`;
+`node scripts/reach/repo-about.mjs --apply` writes it and reads it back. A typed
+count would re-break on the next game, silently, in public. The daily
+`crawlable.yml` runs the check `continue-on-error`, because a stale sentence is
+not an outage and a crawl block is.
+
+The law for all of this now lives in `/reach-doctrine` and `/reach-playbook`
+(seven routines, one per channel), with `/reach` as the hand-written map over
+them and `/seo-doctrine` inheriting the umbrella.
+
+
+## locales - the full account
+
+## THREE locale sets, and the difference between them is the whole point
+
+`src/i18n/locales.ts` holds all three. **`APP_LOCALES`** is what the interface
+speaks — currently 11: he, en, es, pt, fr, de, ar, it, ru, tr, id.
+**`PAGE_LOCALES`** is what has written prose — currently 4: he, en, **es**
+(promoted 2026-08-12, ~27,400 words) and **fr** (promoted 2026-08-16, 29 game
+pages plus `site.ts`). `ROUTES` derives from `PAGE_LOCALES`, so **adding a
+language to the app emits exactly zero documents** and cannot cost anything.
+
+**French cost the shell nothing and needed no gate edits**, which is the
+`SHIPPED_LOCALES` split below paying for itself: 128 emitted pages under both
+bases, first visit **89,469 B gz of 90,000**, and `globIgnores` derives from
+`PAGE_LOCALES` so `fr/**` excluded itself. Spanish, by contrast, killed six
+two-language constants on the way in. The one thing that did move was the
+GLOSSARY, and it moved three times for the same reason — see below.
+
+**It was written from a BRIEF, never from the English page.** `scripts/brief.mjs
+fr <game>` prints the language-neutral facts (`src/build/factSheet.ts`), the
+locked vocabulary (`src/content/glossary.ts`) and the voice rules that will be
+measured, and it deliberately refuses to print another language's prose. Two
+pages written from the brief share facts; two pages written from each other
+share structure, and structure is what a duplicate is.
+`node scripts/check-fr.mjs` runs the whole set through every gate at once.
+
+**Three glossary rules had to be NARROWED, and they are one defect wearing
+three costumes: a forbidden term that can occur innocently.** `le monde`
+collides with `tout le monde` (everyone); `mobile` is an ordinary adjective in
+*une cible mobile*; and `coin` is the ordinary French word for a **corner** —
+the word every grid game's tips reach for, so `avoid: ["coin"]` reds correct
+pages far more often than it catches an anglicism nobody types. Only the
+unambiguous noun forms are banned now, and `glossary.test.ts` pins each with a
+control. Its word-boundary example moved to `pub`, which hides inside
+`publicité` — the very word the rule steers writers toward. A gate that reds
+correct pages is a gate somebody switches off, which is the same lesson as
+[`a-gate-that-reds-on-day-one-teaches-you-to-ignore-it.md`](.claude/rules/a-gate-that-reds-on-day-one-teaches-you-to-ignore-it.md)
+from the vocabulary end.
+
+**`SHIPPED_LOCALES` is the third, and it exists since 2026-08-16 because the
+other two were quietly the same type.** It is what AUTHORED APP STRINGS are
+written in — a game's title, an animal's name, a shop item, an alphabet — the
+things a child's device downloads. It was `type Locale = PageLocale`, and that
+alias was the single thing standing between this site and pages in every
+language it speaks: `GameMeta.title` is `Record<Locale, string>` on the
+DOM-free meta, and the roster imports all 29 metas **statically**, so every
+PAGE language dragged 29 more titles into the shell.
+
+**Measured against the real chunk before the split: reaching eleven cost
++3,351 B gz in titles alone and +9,120 B gz across every shell record, against
+625 B of headroom.** A 14× overrun, to ship eleven names of one game to a reader
+who reads one.
+
+Pages now read a game's name from **`GameCopy.name`** via `gameName(id, locale)`
+in `src/build/gameName.ts` — build-time only, shipped to nobody. Ten emitter
+sites used to read `meta.title[locale]` (h1, breadcrumb, header bar, related
+cards, three JSON-LD nodes, the share card, the home grid, llms.txt) and now
+share one function, because ten call sites reading one fact ten ways is how a
+breadcrumb and an `h1` disagree about what a game is called. It **throws**
+rather than falling back: a French page whose heading silently reads "Snake" is
+indistinguishable downstream from a real name.
+
+**The result, and the number to re-run rather than trust: adding a locale to
+`PAGE_LOCALES` now reds ONLY `src/content` — 29 prose files, `site.ts` and
+`voice.ts`. Zero app, zero emitter, zero tests.** Before, it red ~120 sites
+across sdk/ui/shared/games/portal. The probe is one command and it is the whole
+proof of this design:
+
+```bash
+# add a 4th entry to PAGE_LOCALES, then:
+npx tsc --noEmit 2>&1 | grep "error TS" | grep -v "^src/content/"   # must be empty
+```
+
+Two funnels narrow an interface language to a list that is shorter:
+`pageLocaleFor()` for URLs, `shippedLocaleFor()` for authored strings, and
+`textFor()` wherever the record itself is in hand. **Widening `SHIPPED_LOCALES`
+is a PAYLOAD decision** — run `assert:payload` before and after — while widening
+`PAGE_LOCALES` is a prose decision the payload gate will not even notice.
+
+Three latent bugs fell out of the split, all one shape — a shipped record
+indexed by an interface language that already had eleven values, type-checking
+only because there is no `noUncheckedIndexedAccess`: `Boards` read
+`meta.title[locale]` directly rather than through `textFor()`, `World` read
+`item.name[locale]` in five places, and `boardLabel()`'s fallback returned
+`{he, en}` against a record needing `es`. Each rendered `undefined` into a
+heading for anyone reading in one of the eight app-only languages.
+
+**Promoting Spanish cost no first-visit bytes and it very nearly cost 1,363.**
+Content is build-time only, so 23 more articles move nothing. The chrome
+dictionary is a different matter: the gate shipped with the previous brick
+demanded `PAGE_LOCALES ⊆ STATIC_LOCALES`, which measured **90,864 B gz of
+90,000 — 864 over**, and would have billed a Hebrew-speaking four-year-old for
+the Spanish dictionary to reach a game with no Spanish in it. The invariant
+moved to where the fetch is: `bootContentPage` awaits `loadDict` before
+`createRoot`, behind the poster, so there is no flash to trade. **89,449 B gz,
+551 spare, ceiling untouched.** See `STATIC_LOCALES` in `src/i18n/strings.ts`.
+
+**Six two-language constants had to die for Spanish to land, and they are the
+same defect wearing six costumes** — each one correct while exactly two
+languages existed, each one silent or loudly wrong at three:
+
+| Where | Was | Now |
+|---|---|---|
+| `content.test.ts` `LOCALES` | `["he","en"]` literal | `[...PAGE_LOCALES]` — it ran **zero** Spanish pages through the voice gate and reported a clean sweep |
+| the placeholder matcher | `/\b(TODO\|…)\b/i` | caps-sensitive — `/todo/i` matches the Spanish word **todo**, flagging 17 of 23 good pages |
+| the roster-count gate | walked `SITE` only | walks `CONTENT` too, and knows `juegos` — it could not see a Spanish roster claim at all |
+| `build.test.ts` × 4 | `GAMES.length * 2`, `toBe(4)`, `rows.length * 2` | `* LOCALES.length` |
+| `assert-pages.mjs` | `byChunk.size * 2` | `* L.page.length`, read off the manifest |
+
+The useful half is which way each failed. The literal `LOCALES` and the roster
+gate failed **silently** — green over unmeasured prose. The placeholder matcher
+and the count assertions failed **loudly**, which cost an afternoon and nothing
+else. When adding a language, hunt the silent ones: ask of every gate not "is
+its logic right" but "which pages are in its population".
+
+That split exists because of one line of Google's documentation: *"Localized
+versions of a page are only considered duplicates if the main content of the page
+remains untranslated."* A German header over an English article is not a smaller
+German page — it is the named anti-pattern, once per game.
+
+`GameContent.copy` is `Record<PageLocale, GameCopy>` and `SITE` is
+`Record<PageLocale, SiteCopy>`, so **promoting a locale before its prose exists is
+a red build**, not a lint warning and not a script that can be wrong about what it
+scanned. Every other guard in this repo reads `dist/`, and the lesson of
+2026-08-08 is that such a script can be confidently wrong; a `Record<K,V>` cannot
+be wrong about whether a key exists. Promotion is always two commits: **prose
+first, then the list.** The other order fails to compile, which is the gate
+working.
+
+**Measured 2026-08-11: adding `"es"` with no Spanish prose reds 30 files** — 23
+content files, `site.ts`, `voice.ts`, plus `gamePage.ts`, `schema.ts`,
+`ogCard.ts`, `pageContext.ts` and `build.test.ts`, since `GameMeta.title` is
+`Record<Locale, string>` too. A game cannot even have a *name* in a language
+nobody has written for.
+
+`src/content/voice.ts` is on that wall on purpose. It used to be four
+`locale === "he" ? … : …` ternaries, so a third language would have joined the
+ELSE arm of all four and **Spanish prose would have been measured against the
+English banned list, passed, and reported clean**. It is now
+`VOICE: Record<PageLocale, VoiceRules>`. A gate that answers confidently for a
+language it has never heard of is worse than no gate, because somebody trusts it.
+
+**Four more gates live in `assert-pages.mjs`, and they read the locale lists off
+`dist/pages.json` rather than keeping their own copy** — the scripts are `.mjs`
+and cannot import a `.ts` module, so the manifest publishes `locales.{app, page,
+canonical, xDefault, dir, script}` and there is still exactly one list.
+
+| Gate | Catches |
+|---|---|
+| stray locale directory | `dist/de/` for a language with no prose - and, the other way, a missing `dist/en/`, so a broken emitter cannot pass by vacuum |
+| cross-locale body difference | the realistic mistake: a content file copied to start a language and never rewritten. Sentences of 5+ words, since a game's name and a nav label are identical across languages by design |
+| script sanity | a page emitted under the wrong locale's route. **URLs are stripped first** - six Hebrew letters beside one 34-char URL reads as 85% Latin |
+| hreflang reciprocity | A lists B while B never lists A. Google discards a one-directional cluster, and nothing asserted this before |
+
+The script check is a **comparison, not a threshold** — the expected script must
+simply be dominant — so there is no constant to go stale. Measured: a Hebrew page
+is 97% Hebrew, an English page 100% Latin, and a he/en twin pair shares **0%** of
+its long sentences against a 20% ceiling.
+
+**`/` had to be seeded into those gates by hand**, because it is `emitted: false`
+in the manifest — the app shell, head-enhanced in place. That is the same blind
+spot that let `/` serve a 29-byte body to every AI crawler for months, and it
+reproduced itself here on the first run: the reciprocity check reported that
+`/en/` pointed at a canonical "no emitted page has", when `/` carried a perfect
+cluster the gate simply could not see. **A blind spot that reports as a defect on
+the neighbouring page is the worst shape available.**
+
+`x-default` is **English, not Hebrew** — it answers "we have no page in your
+language", and Hebrew is the wrong answer to that for everyone except Hebrew
+speakers, who are matched by their own `hreflang` long before `x-default` is
+consulted. Since 2026-08-14 it points at `/`, which is the English home, so
+`x-default` and the canonical language are now the SAME. That is legal and
+correct — Google's own examples do it — and both constants are kept rather
+than collapsed into one, because they answer different questions and were
+different for months. The test on them asserts English rather than
+`!== CANONICAL`, so it stayed meaningful through the flip instead of
+inverting with it.
+
+Full rule, including why the picker carries autonyms and never flags:
+[`.claude/rules/a-locale-page-without-a-translated-body-is-a-duplicate.md`](.claude/rules/a-locale-page-without-a-translated-body-is-a-duplicate.md).
+
+**The interface speaks all eleven, and each language is its own lazy chunk.**
+`src/i18n/dict/<locale>.ts` holds one language of chrome (89 strings). `he` and
+`en` are STATIC — they are the two the shell has always carried, so the split
+cost the first visit nothing — and the other nine are `locale-<xx>` chunks
+fetched only by somebody who picked them, ~1.3 KB gz each, excluded from the
+precache. Until a chunk lands, strings resolve through **English, not Hebrew**:
+a Turkish visitor seeing English for 200 ms is reading a language they may know;
+Hebrew is an alphabet they cannot.
+
+**There are now two locale TYPES and they mean different things.** `AppLocale`
+is what the interface is speaking (11). `Locale` is still `he | en` and means
+*a human wrote this string* — a game title, a difficulty label, the name of an
+animal a game reads aloud. Widening `Locale` was tried first and the compiler
+answered with **200+ errors demanding a Spanish name for every balloon**, which
+is the right answer to the wrong question. It would also have been a payload
+disaster: `meta.ts` is statically imported by the roster, so eleven titles per
+game is 23 × 9 extra strings **in the shell**. Authored text is read through
+**`textFor(authored, locale)`**, which falls back to English rather than
+rendering `undefined` into a blank game card, and page links go through
+**`pageLocaleFor(locale)`** — the app can speak Spanish while its *pages* exist
+in two languages, which is the same answer `x-default` gives a crawler.
+
+**`globIgnores` no longer hardcodes `en/**`.** It is derived from
+`PAGE_LOCALES`, because the literal was correct and one commit from being a live
+defect: the day Spanish pages ship, `es/**` is 25 real documents that nothing
+excludes, so a child in Tel Aviv precaches the Spanish site. Nothing would have
+failed — green build, and the payload gate reads `index.html`, not the manifest.
+
+**The trap this cost, and the gate that now catches it: nine correctly-named,
+correctly-excluded, EMPTY chunks look exactly like success.** The dictionaries
+landed before the picker that fetches them, so nothing called `loadDict`, Rollup
+tree-shook them away, and the build emitted nine 0-byte files sharing one content
+hash. `assert-first-visit.mjs` now fails on an empty locale chunk, on two
+sharing a hash (two languages are never byte-identical), and on none existing at
+all. Mutation-proven 4 ways.
+
+Measured on the artifact, driven in a real browser at 390 px with a fresh
+context per language: the picker holds **11 languages over 6 rows** with no
+clipped label, each dictionary arrives **over the network**, Arabic flips
+`dir="rtl"`, and a game card falls back to `Memory` rather than blank. First
+visit **88,188 B gz of 90,000 — 1,812 spare**, up 1,261 B for the picker and the
+loader.
+
+**Still English-only behind the chrome**, stated rather than left to be
+discovered: `shared/cast.ts` (58 animal names), `portal/world/items.ts` (24 shop
+items), `sdk/names.ts` (the name pool) and the per-game strings are all still
+`he | en`. They live behind lazy chunks and fall back to English, so nothing
+breaks — a Spanish child gets Spanish chrome and English animal names.
+
