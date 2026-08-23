@@ -25,6 +25,20 @@ function element(): HTMLElement {
     dataset: {} as Record<string, string>,
   } as unknown as HTMLElement;
 }
+
+/**
+ * A ROOT and a BODY that are different objects, which the bare stub above is
+ * not - it has no `ownerDocument`, so `el.ownerDocument?.body ?? el` resolves
+ * to itself and every assertion reads the same map whichever surface was
+ * written. That is why this file was green through the whole life of the bug:
+ * it could not express the difference it exists to check.
+ */
+function page(): { root: HTMLElement; body: HTMLElement } {
+  const body = element();
+  const root = element();
+  (root as unknown as { ownerDocument: { body: HTMLElement } }).ownerDocument = { body };
+  return { root, body };
+}
 const written = (el: HTMLElement) =>
   (el.style as unknown as { _props: Map<string, string> })._props;
 
@@ -141,5 +155,56 @@ describe("the variant table", () => {
   it("has at least two entries that differ", () => {
     const seen = new Set(Object.values(VARIANTS).map((v: ChromeSpec) => JSON.stringify(v)));
     expect(seen.size).toBeGreaterThan(1);
+  });
+});
+
+/**
+ * TOKENS on the body, ATTRIBUTES on the root - and they are not interchangeable.
+ *
+ * `layout.ts` declares the tokens in `body.screen{...}`, and a declaration ON an
+ * element beats one inherited from its parent, so a token written to `<html>` is
+ * inherited straight past by the very rule that defines it. The candidate CSS,
+ * meanwhile, selects `:root[data-design-*]`, so the attributes have to go the
+ * other way. Writing both to one surface silently kills one half.
+ *
+ * Measured on the live G1 arm before the fix: `<html>` carried `--uh: 46px`, the
+ * computed value on the body was 56px, the row drew 56 - every numeric knob in
+ * the drawer inert, and `#/lab/design` comparing two arms that could only ever
+ * differ in the breadcrumb.
+ */
+describe("applySpec writes each thing where the CSS that reads it can see it", () => {
+  it("puts every token on the BODY", () => {
+    const { root, body } = page();
+    applySpec(SHIPPED, root);
+    for (const t of ["--hh", "--uh", "--tap", "--gc-tap", "--gc-gap", "--gc-radius"]) {
+      expect(written(body).get(t), `${t} did not reach the body`).toBeTruthy();
+      expect(written(root).has(t), `${t} was written to the root, where body.screen beats it`).toBe(false);
+    }
+  });
+
+  it("puts every attribute on the ROOT", () => {
+    const { root, body } = page();
+    applySpec(G1, root);
+    expect(root.dataset.designCrumb).toBe("plain");
+    expect(root.dataset.designStat).toBe(G1.statShape);
+    // The candidate CSS is `:root[data-design-crumb=...]`. On the body it selects
+    // nothing, and the breadcrumb - the one thing that DID work - would break.
+    expect(body.dataset.designCrumb, "the attribute went to the body, where no rule reads it").toBeUndefined();
+  });
+
+  it("clearSpec cleans both surfaces", () => {
+    const { root, body } = page();
+    applySpec(SHIPPED, root);
+    clearSpec(root);
+    expect(written(body).size, "tokens left on the body").toBe(0);
+    expect(root.dataset.designCrumb).toBeUndefined();
+  });
+
+  it("the control: the two surfaces are really distinguishable", () => {
+    // Every assertion above passes vacuously if root and body are the same
+    // object, which is exactly what the bare stub gives you.
+    const { root, body } = page();
+    expect(root).not.toBe(body);
+    expect(written(root)).not.toBe(written(body));
   });
 });

@@ -126,16 +126,40 @@ const TOKEN: Record<string, string> = {
  * and a custom property set on the root would beat it. The bench dials the arm
  * the current viewport is in; `hhNarrow`/`uhNarrow` exist so the pin can see
  * them and so a variant carries both.
+ *
+ * TWO SURFACES, and they are not interchangeable - this is the whole bug of
+ * 2026-08-23, found by ground-truth-probing a KPI rather than by reading code:
+ *
+ *   TOKENS     -> the BODY. `layout.ts` declares them in `body.screen{...}`,
+ *                 and a declaration ON an element beats one inherited from its
+ *                 parent - so a token written on `<html>` is inherited straight
+ *                 past by the very rule that defines it. Measured on the live
+ *                 G1 arm: `<html>` carried `--uh: 46px`, the computed value on
+ *                 the body was 56px, and the row drew 56. Every numeric knob in
+ *                 the drawer was inert, and `#/lab/design` therefore compared
+ *                 two arms that could only ever differ in the breadcrumb.
+ *
+ *   ATTRIBUTES -> the ROOT. The candidate CSS selects `:root[data-design-*]`,
+ *                 which is why the breadcrumb was the one thing that DID work,
+ *                 and why "just write everything to the body" would have traded
+ *                 one silent half for the other.
+ *
+ * So `applySpec` resolves both from the element it is handed rather than
+ * trusting the caller to pass the right one. `Buttons.tsx` has carried a
+ * comment about this exact trap since the bench existed; the lesson never
+ * travelled to `Drawer.tsx`, and nothing could see that because a token that
+ * does nothing renders identically to a token whose value already matches.
  */
 export function applySpec(spec: ChromeSpec, el: HTMLElement, narrow = false): void {
   const px = (k: keyof ChromeSpec) => `${spec[k] as number}px`;
-  el.style.setProperty(TOKEN.hh, narrow ? px("hhNarrow") : px("hh"));
-  el.style.setProperty(TOKEN.uh, narrow ? px("uhNarrow") : px("uh"));
-  el.style.setProperty(TOKEN.headerTap, px("headerTap"));
-  el.style.setProperty(TOKEN.panelTap, px("panelTap"));
-  el.style.setProperty(TOKEN.panelGap, px("panelGap"));
-  el.style.setProperty(TOKEN.statMinWidth, px("statMinWidth"));
-  el.style.setProperty("--gc-radius", spec.radius);
+  const box = el.ownerDocument?.body ?? el;
+  box.style.setProperty(TOKEN.hh, narrow ? px("hhNarrow") : px("hh"));
+  box.style.setProperty(TOKEN.uh, narrow ? px("uhNarrow") : px("uh"));
+  box.style.setProperty(TOKEN.headerTap, px("headerTap"));
+  box.style.setProperty(TOKEN.panelTap, px("panelTap"));
+  box.style.setProperty(TOKEN.panelGap, px("panelGap"));
+  box.style.setProperty(TOKEN.statMinWidth, px("statMinWidth"));
+  box.style.setProperty("--gc-radius", spec.radius);
   el.dataset.designStat = spec.statShape;
   el.dataset.designRestart = spec.restartAt;
   el.dataset.designPause = spec.pauseAt;
@@ -144,8 +168,9 @@ export function applySpec(spec: ChromeSpec, el: HTMLElement, narrow = false): vo
 
 /** Undo `applySpec`, so leaving the bench leaves the page as it was. */
 export function clearSpec(el: HTMLElement): void {
-  for (const t of Object.values(TOKEN)) el.style.removeProperty(t);
-  el.style.removeProperty("--gc-radius");
+  const box = el.ownerDocument?.body ?? el;
+  for (const t of Object.values(TOKEN)) box.style.removeProperty(t);
+  box.style.removeProperty("--gc-radius");
   delete el.dataset.designStat;
   delete el.dataset.designRestart;
   delete el.dataset.designPause;

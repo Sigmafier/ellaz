@@ -350,6 +350,15 @@ the approved build of 2026-08-20 20:32, carries `--hh 60/58 --uh 52/46 --tap 44`
 breadcrumb, which was plain then and is a pill now, added afterwards. So the
 half that kept being called unwired is the PANEL, which G1 never specified.
 
+**That was true when written and is TWO differences now** - `--uh` went 52/46 ->
+60/60 on 2026-08-22 for the row's clearance, so G1 also asks for a shorter
+utility row than ships. It is worth knowing HOW that stayed invisible for a day:
+the compare screen could not show it, because every numeric knob in the drawer
+was inert (see below), so a row that genuinely differed by 10px read as `same`.
+A claim about a comparison is only as good as the comparison's ability to
+disagree with it. `#/lab/design` reports 3 of 11 rows differing now, and it read
+2 of 11 while one of the two was a stale attribute.
+
 **Three knobs are labelled `records only` on purpose.** `statShape`, `restartAt`
 and `pauseAt` need the component to render differently, not the page to style
 differently, so the bench records the choice and does not fake the preview. A
@@ -480,17 +489,36 @@ rediscovers them:
   sheet. Rule:
   [`a-fixed-shell-cannot-chain-a-gesture-to-a-sibling.md`](.claude/rules/a-fixed-shell-cannot-chain-a-gesture-to-a-sibling.md).
   `scripts/repro/repro-bench-on-a-phone.mjs` exits 1 on exactly this line.
-- **Every numeric knob in the `?design` Drawer is INERT, so `#/lab/design`
-  under-reports.** `Drawer.tsx` writes the tokens onto `documentElement`, and
-  `body.screen{--uh:56px}` is a declaration ON the body, which beats one inherited
-  from its parent. Measured on the live G1 arm: `<html>` carries `--uh: 46px`, the
-  computed value on the body is **56px**, and the row draws **56**. Positive
-  control, same page and value: written on `<html>` the row stays 56, written on
-  `<body>` it becomes 46. So the compare table shows the breadcrumb differing (an
-  ATTRIBUTE, written where it is read) and every NUMBER identical - which is why
-  "G1 was already live" reads stronger than it is. `Buttons.tsx` carries a comment
-  about this exact trap and `Screen.tsx` writes to the body correctly; the lesson
-  never travelled to `Drawer.tsx`. One-word fix, not taken here.
+- ~~**Every numeric knob in the `?design` Drawer is INERT**~~ - **FIXED
+  2026-08-23.** `applySpec` wrote everything onto `documentElement`, and
+  `body.screen{--uh:56px}` is a declaration ON the body, which beats one
+  inherited from its parent - so every number the drawer set was inherited
+  straight past by the very rule that defines it. Measured on the live G1 arm
+  before the fix: `<html>` carried `--uh: 46px`, the computed value on the body
+  was **56px**, the row drew **56**.
+
+  **TWO surfaces, and they are not interchangeable** - which is why "just write
+  it all to the body" would have traded one silent half for the other. TOKENS go
+  on the BODY (`body.screen{...}` declares them); ATTRIBUTES go on the ROOT (the
+  candidate CSS selects `:root[data-design-*]`, which is why the breadcrumb was
+  the one thing that DID work). `applySpec` resolves both from the element it is
+  handed rather than trusting its caller.
+
+  Measured before and after on a real page, one variable:
+
+  ```
+                    html      body    computed   row draws
+    before        --uh 46      -         56          56
+    after            -      --uh 46      46          46
+    crumb attribute stayed on :root in both; radius 0px (plain) in both
+  ```
+
+  `spec.test.ts` could not have caught it: its DOM stub had no `ownerDocument`,
+  so root and body were the same object and every assertion read the same map.
+  It now builds two distinct surfaces, asserts each thing lands where the CSS
+  that reads it can see it, and carries the control that they are really
+  distinguishable. Three mutations planted and killed, including replanting the
+  shipped defect verbatim.
 
 The per-game footers moved to **`#/lab/footers`** - what 33 authors did to a
 footer nothing governs, which is a different question from what one shared
