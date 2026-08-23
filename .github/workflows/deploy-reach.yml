@@ -30,6 +30,11 @@ on:
       # run - which reads as "the board ignored me" rather than as a stale filter.
       - "docs/outreach/ledger.md"
       - "scripts/outreach-ledger.mjs"
+      # ...and the drafts themselves, now that the board carries the post TEXT.
+      # Editing a post that never reaches the board is the same stale filter as
+      # above, one input further in, and it reads as the board ignoring the edit.
+      - "docs/outreach/hebrew.md"
+      - "docs/outreach/reddit.md"
       - "scripts/reach/backlinks.mjs"
       - "scripts/reach/build-reach-site.mjs"
       - "scripts/assert-reach-live.mjs"

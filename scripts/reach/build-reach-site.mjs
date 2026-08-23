@@ -44,6 +44,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gscExported, html, loadRecord, parseRows, pointsAtUs, resolve1 } from "./backlinks.mjs";
 import { rows as ledgerRows } from "../outreach-ledger.mjs";
+import { loadPosts, parsePosts } from "./posts.mjs";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const SRC = join(REPO, "docs/outreach/backlinks.md");
@@ -54,7 +55,7 @@ const OUT = join(REPO, "dist-reach");
 const ROBOTS = "User-agent: *\nDisallow: /\n";
 const HEADERS = "/*\n  X-Robots-Tag: noindex, nofollow\n";
 
-export async function buildPages(md, rec, { offline = false, fetchImpl = fetch, surfaces = [] } = {}) {
+export async function buildPages(md, rec, { offline = false, fetchImpl = fetch, surfaces = [], posts = [] } = {}) {
   const rows = parseRows(md);
   // An empty parse is the shape that publishes a blank board OVER a real one and
   // reads as "nothing to report". Refuse, the same way the checker does.
@@ -69,7 +70,7 @@ export async function buildPages(md, rec, { offline = false, fetchImpl = fetch, 
     out.push(resolve1(r, probe, rec.seen));
   }
   const checked = offline ? (rec.checked ?? "never") : new Date().toISOString().slice(0, 10);
-  const page = html(out, gscExported(REPO), checked, surfaces);
+  const page = html(out, gscExported(REPO), checked, surfaces, posts);
   if (!/noindex/.test(page)) throw new Error("build-reach-site: the page carries no noindex - refusing to publish it.");
   return { rows: out, files: { "index.html": page + "\n", "robots.txt": ROBOTS, "_headers": HEADERS } };
 }
@@ -78,9 +79,12 @@ async function main() {
   const argv = process.argv.slice(2);
   if (argv.includes("--control")) return control();
   const surfaces = ledgerRows(REPO);
+  // The posts follow the LEDGER's order, not the folder's, so the text for the
+  // surface at the top of do-next is the first one a thumb reaches.
+  const posts = loadPosts(REPO, [...new Set(surfaces.filter((s) => s.who === "you").map((s) => s.file))]);
   const { rows, files } = await buildPages(readFileSync(SRC, "utf8"), loadRecord(), {
     offline: argv.includes("--offline"),
-    surfaces,
+    surfaces, posts,
   });
   rmSync(OUT, { recursive: true, force: true });
   mkdirSync(OUT, { recursive: true });
@@ -91,6 +95,11 @@ async function main() {
   console.log(`links:      ${n("live")} live · ${n("claimed")} claimed · ${n("gone")} gone · ${n("unchecked")} unchecked`);
   const w = (x) => surfaces.filter((s) => s.who === x).length;
   console.log(`surfaces:   ${surfaces.length} from ledger.md · ${w("you")} waiting on you · ${w("wait")} on a clock · ${w("last")} held back · ${w("done")} closed`);
+  const np = posts.reduce((a, f) => a + f.posts.length, 0);
+  console.log(`posts:      ${np} readable from ${posts.length} draft(s) · ` +
+    posts.map((f) => `${f.file} ${f.posts.length}/${f.declared}`).join(" · "));
+  const unread = posts.filter((f) => f.declared > f.posts.length);
+  if (unread.length) console.log(`UNREADABLE POST BODIES: ${unread.map((f) => f.file).join(", ")} - published as a note, not dropped`);
   const mute = surfaces.filter((s) => s.who !== "done" && !s.next.trim());
   if (mute.length) console.log(`NO INSTRUCTION: ${mute.map((s) => s.surface).join(", ")} - the board will say so rather than invent one`);
   const gone = rows.filter((r) => r.status === "gone");
@@ -150,6 +159,28 @@ async function control() {
   cases.push([/no instruction written/.test(mute.files["index.html"]), "a surface with no instruction says so", "-"]);
   // Positive control for that one: with an instruction, the placeholder is absent.
   cases.push([!/no instruction written/.test(files["index.html"]), "...and does not say so when there is one", "-"]);
+
+  // The posts half. Two conventions exist in this folder and both are real; a parser
+  // that reads one silently publishes a board with half the work missing.
+  const QUOTED = "## Post 1 - a room\n\n**Where**: a group.\n\n> line one\n>\n> line two\n\nprose after.\n";
+  const FENCED = "## Post 1 - a sub\n\n**Title**:\n\n```\nT\n```\n\n**Body**:\n\n```\nB one\nB two\n```\n";
+  const q = parsePosts(QUOTED, "q.md"), f = parsePosts(FENCED, "f.md");
+  cases.push([q.posts.length === 1 && q.posts[0].body === "line one\n\nline two", "the blockquote convention parses", JSON.stringify(q.posts[0]?.body)]);
+  cases.push([q.posts[0]?.where === "a group.", "...and its Where line", JSON.stringify(q.posts[0]?.where)]);
+  cases.push([f.posts[0]?.title === "T" && f.posts[0]?.body === "B one\nB two", "the fenced convention parses", JSON.stringify(f.posts[0]?.body)]);
+  // A declared heading whose body cannot be read must be COUNTED. Dropped, a draft
+  // whose format drifts renders as "no posts", which reads as nothing to send.
+  const drift = parsePosts("## Post 1 - a room\n\njust prose, no quote and no fence.\n", "d.md");
+  cases.push([drift.declared === 1 && drift.posts.length === 0, "a body-less heading is declared, not parsed away", `${drift.declared}/${drift.posts.length}`]);
+
+  const withPosts = await buildPages(md, rec, { offline: true, surfaces, posts: [q] });
+  const H = withPosts.files["index.html"];
+  cases.push([/line one/.test(H) && /posts ready to send/.test(H), "the page carries the post text", "-"]);
+  cases.push([(H.match(/<pre /g) ?? []).length === (H.match(/<button/g) ?? []).length,
+    "every post block has its own copy button", `${(H.match(/<pre /g) ?? []).length} pre / ${(H.match(/<button/g) ?? []).length} button`]);
+  const driftPage = await buildPages(md, rec, { offline: true, surfaces, posts: [{ ...q, declared: 3 }] });
+  cases.push([/declares 3 and 1 could be read/.test(driftPage.files["index.html"]), "an unreadable body is reported on the page", "-"]);
+  cases.push([!/could be read/.test(H), "...and is not reported when every body parsed", "-"]);
 
   for (const [pass, name, got] of cases) console.log(`${pass ? "  ok  " : "FAIL  "}${name}${pass ? "" : `  <- ${got}`}`);
   const bad = cases.filter(([p]) => !p).length;

@@ -68,9 +68,9 @@ this is exposed.
 
 ---
 
-## The board has two halves, and only one of them is this file
+## The board has three halves, and only one of them is this file
 
-`npm run reach:site` renders **do next** above **links that exist**. The first
+`npm run reach:site` renders **do next**, then **posts ready to send**, then **links that exist**. The first
 half is read from [`ledger.md`](ledger.md) - its `Who` and `Do next` columns, in
 its own row order, which IS the priority order. The second half is this file.
 
@@ -78,6 +78,18 @@ That is not a merge of the two records and must not become one. They stay apart
 for the reason below; what is joined is the VIEW, and a renderer has no state to
 drift. The direction matters: a view can read two records, but a record that
 learns to read another record has two answers to one question.
+
+The middle one carries the post TEXT with a copy button, read out of the drafts
+by `scripts/reach/posts.mjs`. Every surface marked `YOU` is blocked on one act - a
+person pasting text into a room this repository cannot reach - so the distance left
+is opening GitHub on a phone, finding the right markdown section, and select-dragging
+a Hebrew blockquote past its `> ` prefixes. That distance is the whole reason a
+drafted post stays drafted. **Two conventions are read, because two exist and neither
+is wrong**: `hebrew.md` quotes with `> `, `reddit.md` fences `**Title**` and `**Body**`,
+and normalising one to the other would be a rewrite of eight drafts to please a parser.
+A `## Post` heading whose body cannot be read is COUNTED and printed on the page, never
+dropped - a draft rendering as "no posts" is indistinguishable from one that never had
+any.
 
 Three things the renderer does that are load-bearing rather than styling:
 
@@ -90,6 +102,20 @@ Three things the renderer does that are load-bearing rather than styling:
 - **Zero surfaces REFUSES the build**, exactly as zero rows does here. An empty
   ledger parse renders `0 waiting on you`, which is an all-clear rather than an
   empty section, and an all-clear is the one thing this board must never invent.
+
+**The copy button is checked in a browser, not in a unit control**, by
+`scripts/repro/repro-reach-board-copy.mjs`: it taps every button at 390x844 and
+compares the CLIPBOARD byte-exact against what `posts.mjs` parsed. A unit control
+can assert the text is on the page and that each block has a button; neither says
+the button copies, and neither can see a handler that copies escaped markup into a
+Facebook group.
+
+**That probe carries a planted control post, and it had to.** Not one of the seven
+real posts contains `&`, `<` or `>` - only `"`, which a text node serialises back
+unescaped - so the mutation from `textContent` to `innerHTML` copies identical bytes
+and the escaping check passes over the bug it exists for. Measured 2026-08-23: it
+SURVIVED. With a fixture post carrying `Tom & Jerry <b>bold</b>`, the same mutation
+reds on two assertions. A probe is only as good as its ability to disagree.
 
 ## Why this is separate from `ledger.md`
 

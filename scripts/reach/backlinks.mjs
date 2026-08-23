@@ -195,8 +195,35 @@ function surfaceSection(surfaces) {
     (closed.length ? `<h2>closed</h2><ul>${closed.map(item).join("")}</ul>` : "");
 }
 
+/**
+ * The posts themselves, so the board is the thing you act FROM rather than an
+ * index of somewhere else. The COPY button reads the `<pre>`'s own textContent,
+ * never a data attribute - so what lands on the clipboard is the text a reader
+ * sees, and an escaping bug cannot ship `&amp;` into a Facebook group.
+ */
+function postSection(files) {
+  const n = files.reduce((a, f) => a + f.posts.length, 0);
+  if (!n) return "";
+  const one = (p) => `<li class=post><h3>${esc(p.heading)}<span class=tag>${esc(p.file)}</span></h3>
+    ${p.where ? `<p>${esc(plain(p.where))}</p>` : ""}
+    ${p.title ? `<pre dir=auto class=title>${esc(p.title)}</pre><button type=button>copy the title</button>` : ""}
+    <pre dir=auto>${esc(p.body)}</pre><button type=button>copy the post</button></li>`;
+  const mute = files.filter((f) => f.declared > f.posts.length)
+    .map((f) => `${f.file} declares ${f.declared} and ${f.posts.length} could be read`);
+  return `<h2>posts ready to send &middot; ${n}</h2>` +
+    (mute.length ? `<p class=banner>${esc(mute.join("; "))} &mdash; a heading whose body the parser
+      cannot read is reported here rather than dropped, because a draft that renders as
+      "no posts" is indistinguishable from one that never had any.</p>` : "") +
+    `<ul>${files.flatMap((f) => f.posts).map(one).join("")}</ul>` +
+    `<script>document.addEventListener("click",function(e){var b=e.target;
+      if(b.tagName!=="BUTTON")return;var pre=b.previousElementSibling;if(!pre)return;
+      navigator.clipboard.writeText(pre.textContent).then(function(){
+        var t=b.textContent;b.textContent="copied";setTimeout(function(){b.textContent=t},1400)},
+        function(){b.textContent="press and hold the text instead"})});</script>`;
+}
+
 /** The page. Rendered FROM the same rows, so it can never be a second source. */
-export function html(rows, gsc, checked, surfaces = []) {
+export function html(rows, gsc, checked, surfaces = [], posts = []) {
   const n = (s) => rows.filter((r) => r.status === s).length;
   const tile = (s) => `<div class=t><b class="${s}">${n(s)}</b><span>${s}</span></div>`;
   const row = (r) => `<li class="${r.status}"><a href="${esc(r.url)}">${esc(r.url)}</a>
@@ -235,6 +262,12 @@ vertical-align:middle;font-weight:600}.tag.you{background:#e0b23f;color:#14131c}
 .tag.last{background:#7a76ff;color:#fff}
 .banner{background:#2b2938;border-inline-start:3px solid #7a76ff;border-radius:10px;
 padding:12px 14px;margin-bottom:20px;font-size:13px;color:#c7c3d6}
+li.post{border-inline-start-color:#3fbf7f}
+pre{white-space:pre-wrap;word-break:break-word;background:#14131c;border-radius:8px;
+padding:12px;margin:8px 0 0;font:13px/1.6 ui-sans-serif,system-ui,sans-serif;max-height:15em;overflow:auto}
+pre.title{max-height:none;font-weight:600}
+button{margin-top:8px;padding:9px 16px;border:0;border-radius:8px;background:#3fbf7f;
+color:#14131c;font:600 13px/1 ui-sans-serif,system-ui,sans-serif;min-height:40px;cursor:pointer}
 </style><h1>Reach &middot; ${SITE}</h1>
 <p class=sub>re-checked ${esc(checked)} &middot; from docs/outreach/{backlinks,ledger}.md &mdash; edit those, not this</p>
 ${gsc.measured ? "" : `<p class=banner><b>Nobody has exported Search Console&rsquo;s Links report</b>, so the
@@ -242,6 +275,7 @@ ${gsc.measured ? "" : `<p class=banner><b>Nobody has exported Search Console&rsq
   <code>Top linking sites</code> CSV lands in <code>docs/outreach/exports/</code>,
   treat it as UNMEASURED rather than as the number.</p>`}
 ${surfaceSection(surfaces)}
+${postSection(posts)}
 <h2>links that exist</h2>
 <div class=tiles>${["live", "claimed", "gone", "unchecked"].map(tile).join("")}</div>
 ${["live", "gone", "claimed", "expected", "unchecked"].map((s) => {
