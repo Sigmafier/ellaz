@@ -68,12 +68,17 @@ export function parsePosts(md, file) {
   for (let s = 0; s < starts.length; s++) {
     const body = lines.slice(starts[s] + 1, starts[s + 1] ?? lines.length);
     const heading = lines[starts[s]].replace(/^##\s*/, "").trim();
-    const where = (body.find((l) => /^\*\*Where\*\*:/.test(l)) ?? "")
-      .replace(/^\*\*Where\*\*:\s*/, "").replace(/\*\*Tone\*\*.*$/, "").replace(/[*`]/g, "").trim();
+    const label = (name) => (body.find((l) => new RegExp(`^\\*\\*${name}\\*\\*:`).test(l)) ?? "")
+      .replace(new RegExp(`^\\*\\*${name}\\*\\*:\\s*`), "").replace(/\*\*Tone\*\*.*$/, "").replace(/[*`]/g, "").trim();
+    const where = label("Where");
+    // `Go` is a full URL or an honest sentence saying there is no checked room. It
+    // is never a group NAME: the board is read on a phone, and a name is something
+    // to search for while a URL is something to open. `Do` is one imperative line.
+    const go = label("Go"), doing = label("Do");
     const quoted = blockquote(body);
     const f = quoted ? {} : fenced(body);
     const text = quoted || f.body || "";
-    if (text) posts.push({ file, heading, where, title: quoted ? "" : (f.title ?? ""), body: text });
+    if (text) posts.push({ file, heading, where, go, do: doing, title: quoted ? "" : (f.title ?? ""), body: text });
   }
   return { file, declared: starts.length, posts };
 }

@@ -2133,6 +2133,69 @@ That destroyed my own wiring, and it would have destroyed a peer's uncommitted
 carries says to back up to a temp file and restore from THAT; the second round
 of mutations did, and the first did not. Luck is not method.
 
+## The reach board became the thing you act FROM (2026-08-23)
+
+It rendered one row and four zeros — honest, and unusable. The reach work has
+always lived in two records that must stay apart (`backlinks.md` is what EXISTS,
+`ledger.md` is what WE DID), so the published board now joins them in the **view**
+rather than merging them. A view can read two records; a record that learns to
+read another has two answers to one question.
+
+Three sections: **do next**, **posts ready to send**, **links that exist**.
+
+**`ledger.md` gained `Who` and `Do next`, and its ROW ORDER is the priority order**
+with no rank column beside it — a number is a second place for the order to live
+and drifts the first time somebody re-sorts one and not the other. Reads 7 waiting
+on the operator, 1 on a clock, 2 held back as one-shots, 1 closed.
+
+**`backlinks.md` gained one measured row and it is the finding.** The only thing on
+the internet pointing at ellaz.fun is our own repository's About box, and all five
+of its anchors carry `rel="nofollow"` — discovery, never authority, which is one
+reason Search Console's Links report can be empty while the row is honestly `live`.
+Three other candidates answer TRUE to the checker and are none of them backlinks
+(our own noindex mirror, an archive OF our page, the same repo's README); they are
+written down as non-rows so nobody re-probes them next month, along with the useful
+negative that `awesome-pwa` itself answers FALSE — independent confirmation PR #465
+is still unmerged.
+
+**The posts themselves are on the board, with a full destination URL, a one-line
+instruction and a copy button.** Every surface marked `YOU` is blocked on one act —
+a person pasting text into a room this repository cannot reach — so the distance
+left was opening GitHub on a phone, finding the right markdown section, and
+select-dragging a Hebrew blockquote past its `> ` prefixes. `scripts/reach/posts.mjs`
+reads **two conventions**, because two exist and neither is wrong: `hebrew.md` quotes
+with `> `, `reddit.md` fences `**Title**` and `**Body**`. Each `## Post` section
+declares `**Go**:` (a full URL, or an honest sentence when no room has been checked —
+post 1 has none) and `**Do**:` (one imperative line). A URL becomes a real link and a
+sentence is printed as text: the board is read on a phone, where a name is something
+to go and search for and a URL is something to press.
+
+**Verified in a browser, not in a unit control.**
+`scripts/repro/repro-reach-board-copy.mjs` taps every button at 390×844 with touch
+and compares the **clipboard** byte-exact against what the parser read: 7/7 exact, 0
+HTML escapes, every button ≥40px, `dir=rtl` on the Hebrew, no sideways scroll.
+
+**Two mutations survived and neither was a missing test**, which is the transferable
+half:
+
+- Removing the blank-line branch in the blockquote reader changed nothing on the
+  whole corpus (7 posts, byte-identical hash either way). It was dead **and** wrong —
+  a blank line ends a blockquote, so it would have merged two separate quotes in one
+  section into one post. Deleted rather than tested.
+- Swapping the copy handler from `textContent` to `innerHTML` copied **identical
+  bytes**, because not one real post contains `&`, `<` or `>` — only `"`, which a
+  text node serialises back unescaped. The probe could not see the bug it exists for.
+  It now plants a control post carrying `Tom & Jerry <b>bold</b>`, and the same
+  mutation reds on two assertions.
+
+27 build controls, 12 checker, 6 gate, `assert:outreach` green; 6 mutations planted
+and killed across the two sessions, each checksum-verified to have landed.
+
+**And the deploy path filters went stale three times in two days**, once per input
+the board gained — a hand-kept list mirroring an import graph. Fixed with a glob and
+a rule:
+[`.claude/rules/a-path-filter-is-a-hand-kept-mirror-of-an-import-graph.md`](../.claude/rules/a-path-filter-is-a-hand-kept-mirror-of-an-import-graph.md).
+
 ## Still open
 
 - **Wave C step 2b** — live two-way sync. Needs the profile to carry per-device

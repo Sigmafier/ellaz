@@ -42,6 +42,10 @@ is also far stricter. Treat that third post as optional.
 
 ## Post 1 - r/WebGames
 
+**Go**: https://www.reddit.com/r/WebGames/
+
+**Do**: Copy the title and the body separately - reddit takes them in two fields. Post from an account with history or an automated filter removes it before a human looks.
+
 Their audience is people who want a link to click right now. Short, no story.
 
 **Title**:
@@ -73,6 +77,10 @@ there are no accounts and I am not building any.
 ---
 
 ## Post 2 - r/playmygame
+
+**Go**: https://www.reddit.com/r/playmygame/
+
+**Do**: Same two fields. Never the same day as another sub - space the three across a week.
 
 Their audience is other developers, and they expect you to say what you want feedback on.
 Historically this sub also expects you to give feedback on other posts, so do that first.
@@ -112,6 +120,10 @@ choice for a kids' platform and it does cost the game something.
 ---
 
 ## Post 3 - r/InternetIsBeautiful (optional, strictest)
+
+**Go**: https://www.reddit.com/r/InternetIsBeautiful/
+
+**Do**: The strictest of the three and genuinely optional. Read the rules in a browser and decide; skipping it costs nothing.
 
 This sub removes anything that reads as marketing, and it wants one link that is
 interesting in itself. Post it only if the first two go well, and only after reading the

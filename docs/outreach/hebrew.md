@@ -35,6 +35,10 @@ dash. One honest limitation per post, stated before anyone discovers it themselv
 
 ## Post 1 - parents of 3 to 8 year olds
 
+**Go**: none verified yet - every candidate under The destinations below is a LEAD, and ynet's list is from 2023
+
+**Do**: Pick one candidate, open it, read its rules, and only then post. This is the one post with no checked room.
+
 <!-- outreach-games: -->
 
 **Where**: general parenting groups. **Tone**: a parent, not a company.
@@ -69,6 +73,10 @@ dash. One honest limitation per post, stated before anyone discovers it themselv
 ---
 
 ## Post 2 - gananot
+
+**Go**: https://www.facebook.com/groups/541317406624168
+
+**Do**: The cleanest room on the list - closest audience match, no known link rule. Read the pinned post and the About panel, then post.
 
 <!-- outreach-games: memory, sort, vanish, shadows, sequence, finddiff, math, coloring -->
 
@@ -106,6 +114,10 @@ age-appropriateness reasoning shown rather than claimed.
 
 ## Post 3 - primary school teachers
 
+**Go**: https://www.facebook.com/groups/morot.mashkiot
+
+**Do**: Phone the named promoter FIRST. This group brokers promotion, and an unbrokered link reads as dodging it however free the thing is.
+
 <!-- outreach-games: math, sudoku, minesweeper, 2048, wordguess, memory, finddiff -->
 
 **Where**: teacher groups, grades 1 to 3. **Tone**: practical, and it leads with the
@@ -134,6 +146,10 @@ limitation because this audience will ask about tracking within the first two re
 ---
 
 ## Post 4 - the Ministry's Hebrew-language group
+
+**Go**: https://www.facebook.com/groups/2392746324230224
+
+**Do**: Public, run by the Ministry's pedagogical secretariat. The post links /he/games/learn/ and NOT the home page - do not swap it. Expect replies about the wrong-tile decision; answer them.
 
 <!-- outreach-games: spell, letters, wordguess -->
 

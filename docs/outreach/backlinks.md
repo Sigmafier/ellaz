@@ -91,6 +91,18 @@ A `## Post` heading whose body cannot be read is COUNTED and printed on the page
 dropped - a draft rendering as "no posts" is indistinguishable from one that never had
 any.
 
+**Each post section declares `**Go**:` and `**Do**:`.** `Go` is a FULL URL, or an
+honest sentence when no room has been checked - post 1 in `hebrew.md` says
+`none verified yet`, because its candidates are leads and one of the lists behind
+them is from 2023. A URL becomes a real link on the board and a sentence is printed
+as amber text, never linked: the board is read on a phone, where a name is something
+to go and search for and a URL is something to press. `Do` is one imperative line -
+what this particular room needs, not what posting is in general, which is why post 3
+says *phone the promoter first* and post 4 says *do not swap the link for the home
+page*. A post missing either is NAMED on every build rather than rendered blank,
+because a guess in a published artifact is read as a decision by whoever opens it
+next, and the next reader here is the person about to post.
+
 Three things the renderer does that are load-bearing rather than styling:
 
 - **A surface with an empty `Do next` says so on the page** rather than being

@@ -98,6 +98,11 @@ async function main() {
   const np = posts.reduce((a, f) => a + f.posts.length, 0);
   console.log(`posts:      ${np} readable from ${posts.length} draft(s) · ` +
     posts.map((f) => `${f.file} ${f.posts.length}/${f.declared}`).join(" · "));
+  // A post with no destination and no instruction renders as a wall of Hebrew with
+  // nowhere to put it. Printed, never inferred - guessing a room from a post's tone
+  // is exactly the "suggested fix read as an instruction" shape.
+  const thin = posts.flatMap((f) => f.posts).filter((x) => !x.go || !x.do);
+  if (thin.length) console.log(`NO Go/Do: ${thin.map((x) => x.heading).join(" · ")} - add **Go**: <url> and **Do**: <one line> to the draft`);
   const unread = posts.filter((f) => f.declared > f.posts.length);
   if (unread.length) console.log(`UNREADABLE POST BODIES: ${unread.map((f) => f.file).join(", ")} - published as a note, not dropped`);
   const mute = surfaces.filter((s) => s.who !== "done" && !s.next.trim());
@@ -180,6 +185,21 @@ async function control() {
     "every post block has its own copy button", `${(H.match(/<pre /g) ?? []).length} pre / ${(H.match(/<button/g) ?? []).length} button`]);
   const driftPage = await buildPages(md, rec, { offline: true, surfaces, posts: [{ ...q, declared: 3 }] });
   cases.push([/declares 3 and 1 could be read/.test(driftPage.files["index.html"]), "an unreadable body is reported on the page", "-"]);
+
+  // The destination. A name is something to search for; a URL is something to press,
+  // and this board is read on a phone.
+  const GO = "## Post 1 - a room\n\n**Go**: https://example.test/g/1\n\n**Do**: Read the rules, then post.\n\n> body\n";
+  const g = parsePosts(GO, "g.md").posts[0];
+  cases.push([g?.go === "https://example.test/g/1", "the Go url parses", JSON.stringify(g?.go)]);
+  cases.push([g?.do === "Read the rules, then post.", "the Do line parses", JSON.stringify(g?.do)]);
+  const goPage = await buildPages(md, rec, { offline: true, surfaces, posts: [{ file: "g.md", declared: 1, posts: [g] }] });
+  cases.push([/<a href="https:\/\/example\.test\/g\/1">/.test(goPage.files["index.html"]), "a URL Go becomes a real link", "-"]);
+  const noRoom = parsePosts(GO.replace("https://example.test/g/1", "none verified yet"), "n.md").posts[0];
+  const noRoomPage = await buildPages(md, rec, { offline: true, surfaces, posts: [{ file: "n.md", declared: 1, posts: [noRoom] }] });
+  cases.push([/none verified yet/.test(noRoomPage.files["index.html"]) && !/<a href="none/.test(noRoomPage.files["index.html"]),
+    "a sentence Go is printed, never linked", "-"]);
+  cases.push([parsePosts(GO.replace(/\*\*Do\*\*:.*\n/, ""), "x.md").posts[0]?.do === "",
+    "a missing Do is empty, not inherited from a sibling", "-"]);
   cases.push([!/could be read/.test(H), "...and is not reported when every body parsed", "-"]);
 
   for (const [pass, name, got] of cases) console.log(`${pass ? "  ok  " : "FAIL  "}${name}${pass ? "" : `  <- ${got}`}`);

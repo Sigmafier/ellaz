@@ -204,7 +204,16 @@ function surfaceSection(surfaces) {
 function postSection(files) {
   const n = files.reduce((a, f) => a + f.posts.length, 0);
   if (!n) return "";
+  // A `Go` that is a URL becomes a real link; one that is a sentence ("no verified
+  // room yet") is printed as text. Never a link to a name, and never a name where a
+  // URL belongs - the board is opened on a phone, where a name is something to go
+  // and search for and a URL is something to press.
+  const dest = (g) => !g ? "" : /^https?:\/\//.test(g)
+    ? `<p class=go><a href="${esc(g)}">${esc(g)}</a></p>`
+    : `<p class="go none">${esc(plain(g))}</p>`;
   const one = (p) => `<li class=post><h3>${esc(p.heading)}<span class=tag>${esc(p.file)}</span></h3>
+    ${dest(p.go)}
+    ${p.do ? `<p class=n>${esc(plain(p.do))}</p>` : ""}
     ${p.where ? `<p>${esc(plain(p.where))}</p>` : ""}
     ${p.title ? `<pre dir=auto class=title>${esc(p.title)}</pre><button type=button>copy the title</button>` : ""}
     <pre dir=auto>${esc(p.body)}</pre><button type=button>copy the post</button></li>`;
@@ -263,6 +272,8 @@ vertical-align:middle;font-weight:600}.tag.you{background:#e0b23f;color:#14131c}
 .banner{background:#2b2938;border-inline-start:3px solid #7a76ff;border-radius:10px;
 padding:12px 14px;margin-bottom:20px;font-size:13px;color:#c7c3d6}
 li.post{border-inline-start-color:#3fbf7f}
+p.go{margin-top:6px}p.go a{color:#3fbf7f;font-weight:600}
+p.go.none{color:#e0b23f}
 pre{white-space:pre-wrap;word-break:break-word;background:#14131c;border-radius:8px;
 padding:12px;margin:8px 0 0;font:13px/1.6 ui-sans-serif,system-ui,sans-serif;max-height:15em;overflow:auto}
 pre.title{max-height:none;font-weight:600}
