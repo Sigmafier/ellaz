@@ -27,7 +27,9 @@
     "reach:perf:control": "node scripts/reach/gsc-performance.mjs --control",
     "reach:links:control": "node scripts/reach/gsc-links.mjs --control",
     "reach:about": "node scripts/reach/repo-about.mjs --check",
-    "reach:ci-payload": "node scripts/reach/ci-payload.mjs"
+    "reach:ci-payload": "node scripts/reach/ci-payload.mjs",
+    "reach:backlinks": "node scripts/reach/backlinks.mjs",
+    "reach:backlinks:control": "node scripts/reach/backlinks.mjs --control"
   },
   "dependencies": {
     "phaser": "^4.2.1",

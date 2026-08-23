@@ -32,7 +32,7 @@ const STATUSES = ["draft", "fired", "spent", "dropped"];
 // them here rather than inferring from "does it have a **Status**: line" is deliberate:
 // the missing-status check is what catches a real draft whose header was lost, and an
 // inference would turn that check off for exactly the file it exists to catch.
-export const RECORDS = new Set(["ledger.md", "audit.md", "measured.md"]);
+export const RECORDS = new Set(["ledger.md", "audit.md", "measured.md", "backlinks.md"]);
 
 /** Every draft in the folder, and the status its own header claims. */
 export function drafts(repo) {
