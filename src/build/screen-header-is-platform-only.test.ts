@@ -279,6 +279,62 @@ describe("a document is NOT a screen", () => {
   });
 });
 
+/**
+ * MUTE TRAVELS WITH THE WALLET, and this is a pin rather than a nicety.
+ *
+ * The bar is `space-between` over four items, and `.gname` is `display:none`
+ * under 720px - so on a phone the three survivors are spread evenly and mute
+ * lands in the DEAD CENTRE of the bar, touching neither group. It shipped that
+ * way and was reported as "the sound button just sits in the center".
+ *
+ * What makes it worth a test: on a DESKTOP it looks perfect. `.gname` is
+ * `flex:1 1 0` there and eats the free space, so the two platform controls are
+ * already adjacent and an auto margin resolves to zero. The defect exists in
+ * exactly the viewport nobody writing the CSS is looking at, and no assertion
+ * in this file - or any other here - reads a phone-width RENDER.
+ */
+describe("mute sits with the wallet, not in the middle of the bar", () => {
+  const declarations = DOCUMENT_CSS.replace(/\/\*[\s\S]*?\*\//g, "");
+
+  it("pushes it to the far edge with an auto margin", () => {
+    expect(declarations).toMatch(
+      /body\.screen \.top \[data-sound\]\{[^}]*margin-inline-start:\s*auto/,
+    );
+  });
+
+  it("uses a LOGICAL margin, so Hebrew flips it for free", () => {
+    // margin-left would strand it in the centre of an RTL bar and pass every
+    // assertion above it. There is no second rule for RTL and there must not
+    // be one - a direction-specific pair is two things to keep in step.
+    const m = /body\.screen \.top \[data-sound\]\{([^}]*)\}/.exec(declarations);
+    expect(m, "the mute rule is missing").not.toBeNull();
+    expect(m![1]).not.toMatch(/margin-left|margin-right/);
+  });
+
+  it("hangs it on the BUTTON, which is the element the runtime reveals", () => {
+    // A wrapper div would work and would be a second thing to keep in step
+    // with the `hidden` attribute - the button is emitted hidden because the
+    // build cannot know whether this player is muted.
+    expect(PAGES.game).toMatch(/<button[^>]*data-sound[^>]*hidden/);
+  });
+
+  it("still draws it BEFORE the wallet, so the pair reads mute-then-coins", () => {
+    // The auto margin decides where the group sits; source order decides what
+    // is inside it. Both matter: the coins pill is the thing a child looks
+    // for, so it keeps the corner.
+    //
+    // Scoped to the HEADER, and that is the whole test. Read against the
+    // document it is vacuous: `wallet-wrap` is also a selector in the
+    // stylesheet emitted into <head>, so the first hit is hundreds of lines
+    // above the markup and every order passes. Found by planting the swap and
+    // watching this survive.
+    const header = headerOf(PAGES.game);
+    expect(header).toContain("data-sound");
+    expect(header).toContain("wallet-wrap");
+    expect(header.indexOf("data-sound")).toBeLessThan(header.indexOf("wallet-wrap"));
+  });
+});
+
 describe("the breadcrumb on the utility row", () => {
   /* Declarations only. Every colour word below also appears in the comment
      explaining it, and a matcher that cannot tell those apart either fails on
@@ -290,39 +346,35 @@ describe("the breadcrumb on the utility row", () => {
     return m![1];
   })();
 
-  it("is a PILL, not a line of text", () => {
-    // The regression this exists for is a deletion, and it renders perfectly:
-    // plain text on the page ground, which is what shipped and was reported
-    // as "the header we decided is not live". Nothing else here would see it.
-    expect(rule).toMatch(/border-radius:\s*99px/);
-    expect(rule).toMatch(/padding:\s*7px 16px/);
+  it("is PLAIN TEXT, not a pill", () => {
+    // The operator's call, 2026-08-23, and the shape the APPROVED build
+    // (dist-g1) actually carries - the comment that used to sit over this rule
+    // claimed the pill WAS the approved arrangement, and it was believed for
+    // three days. Measured before deciding: the same three words are 181px as
+    // a pill against 147px plain, and the chip read 16.39:1 against the row,
+    // the loudest object on a screen, for something that is not a control.
+    expect(rule).not.toMatch(/border-radius/);
+    expect(rule).not.toMatch(/padding:/);
+    expect(rule).not.toMatch(/background/);
   });
 
-  it("takes both colours from the theme, never a literal", () => {
-    // The subtle mutation, and the one that looks correct in a screenshot: a
-    // hardcoded dark chip with cream text is a dark chip on a DARK ground for
-    // everyone on the night theme - legible in exactly one theme, which is the
-    // trap the pause cover carries a comment about. Inverting the doc tokens
-    // cannot go wrong in either.
-    expect(rule).toMatch(/background:[^;]*var\(--doc-ink\)/);
-    expect(rule).toMatch(/color:\s*var\(--doc-bg\)/);
+  it("takes its colour from the theme by INHERITING it, never a literal", () => {
+    // The trap a fill carried: a hardcoded dark chip with cream text is a dark
+    // chip on a DARK ground for everyone on the night theme - legible in
+    // exactly one of the two, which is what the pause cover carries a comment
+    // about. Plain text inherits `.bc{color:var(--doc-soft)}`, so it cannot
+    // pick a side; the only way to get that wrong again is to type a colour.
     expect(rule, "a literal colour is legible in one theme only").not.toMatch(/#[0-9a-f]{3,8}/i);
+    expect(rule).not.toMatch(/color:/);
+    expect(declarations, "the crumb must still have an ink to inherit").toMatch(
+      /\.bc\{[^}]*color:var\(--doc-soft\)/,
+    );
   });
 
-  it("hugs its words and still survives the longest trail", () => {
-    // flex:1 1 auto stretches the pill the whole width of the row, which reads
-    // as a second bar rather than a chip. And without the ellipsis a long
-    // locale (French runs longest) overflows a row that clips rather than
-    // scrolls - the defect a-row-that-grows-with-the-catalog-must-wrap.md is
-    // about, one component over.
-    expect(rule).toContain("flex:0 1 auto");
-    expect(rule).toContain("margin-inline-end:auto");
-    expect(rule).toContain("text-overflow:ellipsis");
-  });
-
-  it("gives the link the pill's own colour", () => {
-    // The page's brand pink on a near-black pill is the one combination here
-    // that is actually unreadable, and "Home" is a link.
+  it("gives the link the row's own ink", () => {
+    // The page's brand pink on this ground is the one combination here that is
+    // actually unreadable, and "Home" is a link. Colour therefore cannot be
+    // what says which words are tappable - the underline is.
     expect(declarations).toMatch(/body\.screen \.urow \.bc a\{[^}]*color:inherit/);
   });
 });

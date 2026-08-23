@@ -151,10 +151,35 @@ describe("the variant table", () => {
     expect(VARIANTS.g1).toBe(G1);
   });
 
-  /** The control: a table whose entries are all equal cannot show a difference. */
-  it("has at least two entries that differ", () => {
-    const seen = new Set(Object.values(VARIANTS).map((v: ChromeSpec) => JSON.stringify(v)));
-    expect(seen.size).toBeGreaterThan(1);
+  /**
+   * The two records AGREE, since 2026-08-23, and that is the finished state.
+   *
+   * This assertion used to be the opposite - "at least two entries differ" -
+   * as a control against a table that could not show a difference. It went red
+   * the day the bench succeeded: the operator picked plain, the code matched
+   * the approval, and `shipped` became equal to `g1` in every field. A control
+   * phrased as a disagreement between two records expires exactly when the
+   * work lands, so it was the wrong control to write.
+   *
+   * The real control moved to `variant-is-shipped.test.ts`, where the READER
+   * is handed two stylesheets it did not come from and must return two
+   * different answers. That one holds whether or not the records agree.
+   */
+  it("agrees, because everything g1 asked for has shipped", () => {
+    expect(VARIANTS.shipped).toEqual(VARIANTS.g1);
+  });
+
+  /**
+   * ...and the table can still HOLD a difference, which is what the old
+   * assertion was really reaching for. Proven on a third entry rather than on
+   * the two real ones, so it cannot expire again.
+   */
+  it("can still carry a variant that differs", () => {
+    const other: ChromeSpec = { ...SHIPPED, breadcrumb: "pill" };
+    const seen = new Set(
+      [...Object.values(VARIANTS), other].map((v: ChromeSpec) => JSON.stringify(v)),
+    );
+    expect(seen.size).toBe(2);
   });
 });
 

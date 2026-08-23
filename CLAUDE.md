@@ -350,14 +350,29 @@ the approved build of 2026-08-20 20:32, carries `--hh 60/58 --uh 52/46 --tap 44`
 breadcrumb, which was plain then and is a pill now, added afterwards. So the
 half that kept being called unwired is the PANEL, which G1 never specified.
 
-**That was true when written and is TWO differences now** - `--uh` went 52/46 ->
-60/60 on 2026-08-22 for the row's clearance, so G1 also asks for a shorter
-utility row than ships. It is worth knowing HOW that stayed invisible for a day:
-the compare screen could not show it, because every numeric knob in the drawer
-was inert (see below), so a row that genuinely differed by 10px read as `same`.
-A claim about a comparison is only as good as the comparison's ability to
-disagree with it. `#/lab/design` reports 3 of 11 rows differing now, and it read
-2 of 11 while one of the two was a stale attribute.
+**That was true when written, became TWO differences, and is now ZERO** - the
+state this whole bench was built to reach, on 2026-08-23. `--uh` went 52/46 ->
+60/60 on 2026-08-22 for the row's clearance and the operator kept it ("Keep 56,
+update G1"), so the RECORD moved, dated and with the reason written into
+`spec.ts`. The breadcrumb went the other way: shown both arms measured, they
+picked **plain**, which is what `dist-g1` had all along.
+
+It is worth knowing HOW the `--uh` gap stayed invisible for a day: the compare
+screen could not show it, because every numeric knob in the drawer was inert,
+so a row that genuinely differed by 10px read as `same`. A claim about a
+comparison is only as good as the comparison's ability to disagree with it.
+
+**The comment over the breadcrumb rule was the sharper half.** It said the pill
+was "restored 2026-08-20 to the arrangement that was approved". `dist-g1`'s own
+rule is `.urow .bc{margin:0;flex:1 1 auto;min-width:0;white-space:nowrap;
+overflow:hidden;text-overflow:ellipsis}` - no radius, no fill. A comment citing
+an approval the artifact contradicts is worse than no comment, because it ends
+the argument. Two measurements settled it anyway: the same three words are
+**181px as a pill against 147px plain**, in a row where one 56px button was the
+difference between one line and two on 25 of 33 games; and the chip read
+**16.39:1** against the row - the loudest object on the screen - for a trail
+that is not a control. Plain reads 6.28:1, clear of AA, and it INHERITS
+`--doc-soft` so it cannot pick a theme.
 
 **Three knobs are labelled `records only` on purpose.** `statShape`, `restartAt`
 and `pauseAt` need the component to render differently, not the page to style
@@ -854,6 +869,22 @@ separate three.js / Babylon / PlayCanvas bake-off.
   because the runtime may not import `src/content`. `gameTools.ts` is pinned to
   the `page` chunk for the `GameChrome` reason - left to the `src/ui/`
   catch-all it went to the SHELL and `assert:payload` reded 81 B over.
+  **Mute travels WITH the wallet, at the far edge - and it did not, for as
+  long as the phone bar has existed.** The bar is `space-between` over four
+  items and `.gname` is `display:none` under 720px, so the three survivors were
+  spread evenly and mute landed in the dead centre, touching neither group.
+  Fixed 2026-08-23 with `margin-inline-start:auto` on the button: measured on
+  the artifact at 390px, one variable, its left edge moved **160 -> 220** and
+  the gap to the coins pill **67px -> 8px**, with home and the wallet both
+  unmoved. The wide arm is untouched, because
+  `.gname` is `flex:1 1 0` there and already eats the free space - which is
+  precisely why this was invisible to everyone reviewing it on a desktop, and
+  why no gate here could see it either (every one of them reads a document
+  built at ONE width, so a media query is just a string).
+  [`.claude/rules/space-between-spreads-whatever-survives-the-media-query.md`](.claude/rules/space-between-spreads-whatever-survives-the-media-query.md)
+  **The breadcrumb is PLAIN TEXT**, on the operator's call 2026-08-23 and
+  matching what `dist-g1` actually shipped - see § The Design Bench for the two
+  measurements and the comment that claimed an approval it did not have.
   **The screen's NAME is hidden on a phone and never removed from the
   document.** The bar was saying it twice inside 104px of chrome on the
   narrowest screen we serve - once in `.gname` and again as the last crumb of

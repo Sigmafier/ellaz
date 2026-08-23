@@ -26,12 +26,25 @@ wide    --hh 60  --uh 52  --tap 44  --hgap 12  --hpad 20  --hbrand 22
 narrow  --hh 58  --uh 46            --hgap  8  --hpad 12  --hbrand 20
 ```
 
-Every one is **byte-identical to what ships today**. The emitted half of G1 had
-been live since the day it was approved, and the only difference in the whole
-document is the breadcrumb, which was plain text then and is a pill now - an
-addition made afterwards, not a deviation.
+Every one was **byte-identical to what shipped that day**. The emitted half of
+G1 had been live since the day it was approved, and the only difference in the
+whole document is the breadcrumb, which was plain text then and became a pill
+afterwards - an addition, not a deviation.
 
 So "G1 is not wired" was true of a real thing and false of the thing it named.
+
+**Both halves are closed now, and they closed in OPPOSITE directions, which is
+the point.** `--uh` moved 52/46 -> 60/56 on 2026-08-22 for the row's clearance,
+and shown the two arms the operator kept the change and amended the RECORD
+("Keep 56, update G1") - dated, with the reason, in `spec.ts`. The breadcrumb
+went the other way: shown the two arms measured, they chose plain, and the CODE
+moved back to what `dist-g1` always had. `SHIPPED` and `G1` are now equal in
+every field and the pin asserts it.
+
+A record may be CHANGED, by the person whose record it is, with the date and
+the reason written down. It may not change by ITSELF because something else
+moved - which is what a `{...SHIPPED}` spread would have done silently, and did
+until 2026-08-22.
 The panel - the level toggle, the stat cards, the footer each game fills
 itself - is the half G1 never specified, and no amount of re-reading the
 approval could have said so, because the approval was a picture of a header.

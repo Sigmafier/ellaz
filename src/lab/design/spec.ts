@@ -67,7 +67,15 @@ export const SHIPPED: ChromeSpec = {
   statShape: "merged",
   restartAt: "urow",
   pauseAt: "urow",
-  breadcrumb: "pill",
+  /*
+   * PLAIN since 2026-08-23, on the operator's ACK - so this now EQUALS `G1`,
+   * and the bench reports zero differences between what shipped and what was
+   * approved. That is the state this whole bench was built to reach, and it
+   * is also the state in which the pin's positive control goes vacuous: see
+   * `variant-is-shipped.test.ts`, which now proves its READER can tell the
+   * two shapes apart rather than leaning on the tree to differ.
+   */
+  breadcrumb: "plain",
 };
 
 /**
@@ -81,7 +89,10 @@ export const SHIPPED: ChromeSpec = {
  * the row's clearance would have rewritten history to say G1 asked for it.
  *
  * It differed from `SHIPPED` in exactly one place when recovered - the
- * breadcrumb, which was plain text then and became a pill afterwards.
+ * breadcrumb, which was plain text then and became a pill afterwards. That
+ * last difference CLOSED on 2026-08-23: the operator was shown both arms
+ * measured and chose plain, so the shipped rule went back to what this record
+ * always said. `SHIPPED` and `G1` are now equal in every field.
  *
  * AMENDED 2026-08-23, by the operator, deliberately and dated - which is the
  * opposite of the drift above rather than an exception to it. `uh` was

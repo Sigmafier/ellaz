@@ -294,35 +294,37 @@ body[data-page="game"] #game-frame,body[data-page="world"] #game-frame{flex:0 0 
    (Comments in DOCUMENT_CSS are SERVED; keep them short here.) */
 body.screen .urow{display:flex;align-items:center;gap:10px;height:var(--uh);
   padding-inline:var(--hpad);background:var(--doc-bg)}
-/* A PILL, not a line of text - restored 2026-08-20 to the arrangement that was
-   approved. It went plain when the row stopped floating over the board, and
-   nothing needed it to: the reason the old one was removed was WHERE it sat,
-   never what it looked like.
+/* PLAIN TEXT, on the operator's call 2026-08-23 - and this is what the
+   APPROVED build actually has. dist-g1's rule is .urow .bc with margin:0,
+   flex:1 1 auto, min-width:0, nowrap and text-overflow:ellipsis - no radius
+   and no fill of any kind. The comment that stood here
+   claimed the pill was "restored to the arrangement that was approved"; the
+   artifact says otherwise, and it was believed for three days.
 
-   The two colours are the doc tokens INVERTED, never literals. The app ships a
-   cream theme and a night one, so a hardcoded dark chip with cream text is a
-   dark chip on a dark ground for half the catalogue's readers - the same trap
-   the pause cover carries a comment about. Inverting the pair cannot go wrong
-   in either: whatever the page is, the pill is its opposite.
+   Two measurements decided it beyond the provenance. The same three words are
+   181px as a pill and 147px plain, in a row where one 56px button was the
+   difference between one line and two on 25 of 33 games. And the chip read
+   16.39:1 against the row - the highest-contrast object on the screen - for a
+   trail that is not a control. Plain reads 6.28:1, clear of AA.
+
+   The colour is INHERITED from .bc, which is --doc-soft, never a literal, so
+   it follows the cream theme and the night one. Do not put a fill back without
+   measuring the row at 390px first.
 
    flex:0 1 auto plus margin-inline-end:auto makes it hug its own words and
    push the tools to the far edge, and it still shrinks and ellipsises rather
    than overflowing when a locale spells the trail long (French runs longest).
    Logical properties, so RTL flips it for free. */
 body.screen .urow .bc{margin:0;flex:0 1 auto;margin-inline-end:auto;min-width:0;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  padding:7px 16px;border-radius:99px;font-weight:700;
-  background:var(--doc-ink);
-  background:color-mix(in srgb,var(--doc-ink) 82%,transparent);
-  color:var(--doc-bg)}
-/* The link takes the pill's colour - brand pink on this ground is unreadable -
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+/* The link takes the row's own ink - brand pink on this ground is unreadable -
    so colour cannot say which words are tappable and an underline does. The
    leaf stays plain because you are already there. (Comments in DOCUMENT_CSS
    are SERVED, unlike the ones in global.css; keep them short here.) */
-/* The LINK carries the tap target, not the pill - these measured 20px tall
-   against a 44px floor. Padding the pill leaves the link at 20 and only moves
-   the picture, so the padding goes here and the negative margin keeps the
-   pill the height it was. */
+/* The LINK carries the tap target, not the crumb - these measured 20px tall
+   against a 44px floor. Padding the crumb leaves the link at 20 and only moves
+   the picture, so the padding goes here and the negative margin keeps the row
+   the height it was. */
 body.screen .urow .bc a{color:inherit;text-decoration:underline;
   text-underline-offset:3px;text-decoration-thickness:1px;
   display:inline-block;padding-block:12px;margin-block:-12px;
@@ -452,6 +454,20 @@ body.screen .gname{flex:1 1 0;min-width:0;
    17px glyph, which is 33px of nothing either side of the thing you are
    aiming at - and five of those do not fit a phone. */
 .hbtn.ico{width:var(--tap);padding:0}
+/* Mute sits WITH the wallet, at the far edge - it is the second platform
+   control, not a thing in the middle of the bar.
+
+   On a wide screen .gname is flex:1 1 0 and eats every spare pixel, so the
+   two already end up adjacent and this margin resolves to nothing. Under 720
+   .gname is display:none, and space-between then spreads three items evenly:
+   home at the start, wallet at the end and MUTE STRANDED IN THE CENTRE, which
+   is what shipped. An auto margin absorbs the free space instead, so the pair
+   travels to the end together. Measured at 390px: mute's left edge 165 -> 264.
+
+   Logical, not margin-left, so Hebrew flips it for free - and on the button
+   rather than a wrapper, because a wrapper is a second thing to keep in step
+   with the hidden attribute when the runtime reveals it. */
+body.screen .top [data-sound]{margin-inline-start:auto}
 .hbtn:hover{background:rgba(255,255,255,.2)}
 .hbtn.pri{background:#FFF6E9;color:#241C2B}
 .hbtn.pri:hover{background:#fff}

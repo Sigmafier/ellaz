@@ -65,8 +65,22 @@ function readShipped(): Pick<
     uhNarrow: emittedToken("--uh", "narrow"),
     headerTap: emittedToken("--tap", "wide"),
     panelTap: chromeFallback("--gc-tap"),
-    breadcrumb: /\.urow\s*\.bc\{[^}]*border-radius:\s*99px/s.test(LAYOUT) ? "pill" : "plain",
+    breadcrumb: crumbShape(LAYOUT),
   };
+}
+
+/**
+ * Pill or plain, read off a stylesheet.
+ *
+ * Extracted from `readShipped` so the control below can hand it CSS that is
+ * NOT this tree's. It used to be inline, and the control asserted that the two
+ * variants differ - which was a real control only while they did. They stopped
+ * differing the moment the operator picked plain and the tree matched the
+ * approval, i.e. exactly when the bench had done its job, and the assertion
+ * would then have been satisfied by the two readers going blind together.
+ */
+export function crumbShape(css: string): "pill" | "plain" {
+  return /\.urow\s*\.bc\{[^}]*border-radius:\s*99px/s.test(css) ? "pill" : "plain";
 }
 
 describe("the shipped chrome matches the variant that says it is shipped", () => {
@@ -89,15 +103,35 @@ describe("the shipped chrome matches the variant that says it is shipped", () =>
   });
 
   /**
-   * The positive control. Every assertion above passes vacuously if the two
-   * readers quietly stop matching and return the same wrong thing, so one
-   * variant must DISAGREE - `g1` predates the pill, and if it stops
-   * disagreeing the readers have gone blind rather than the tree having
-   * changed.
+   * The positive control, and it is deliberately NOT "the two variants
+   * differ".
+   *
+   * It was that until 2026-08-23, when the operator picked plain and shipped
+   * became byte-equal to `g1`. A control phrased as a difference between two
+   * records goes vacuous precisely when the work SUCCEEDS - the bench exists
+   * to make those two agree - and a reader that had quietly stopped matching
+   * anything would then pass it too, since both sides would read `plain`.
+   *
+   * So the control proves the READER can express both answers, by handing it
+   * two stylesheets it did not come from. That holds whether or not the tree
+   * and the record agree.
    */
-  it("can tell two variants apart", () => {
-    expect(VARIANTS.g1.breadcrumb).not.toBe(VARIANTS.shipped.breadcrumb);
-    expect(readShipped().breadcrumb).not.toBe(VARIANTS.g1.breadcrumb);
+  it("can tell a pill from a plain crumb", () => {
+    const pill = "body.screen .urow .bc{margin:0;padding:7px 16px;border-radius:99px}";
+    const plain = "body.screen .urow .bc{margin:0;white-space:nowrap}";
+    expect(crumbShape(pill)).toBe("pill");
+    expect(crumbShape(plain)).toBe("plain");
+    // ...and it is reading OUR rule, not any rounded thing on the page.
+    expect(crumbShape("body.screen .urow .tools{border-radius:99px}")).toBe("plain");
+  });
+
+  /**
+   * Where the two records stand. Written as an assertion rather than left to
+   * the reader, because "shipped == approved" is the whole verdict of the
+   * bench and it should break loudly if anything reopens it.
+   */
+  it("has shipped everything g1 asked for", () => {
+    expect(VARIANTS.shipped).toEqual(VARIANTS.g1);
   });
 
   /** A number nobody can read is a number nobody can pin. */
