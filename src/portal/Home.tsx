@@ -320,26 +320,55 @@ export function Home({
                 is the same currency-shaped readout: something you have, not
                 something you owe. */}
             <DailyChip locale={locale} />
-            <BoardsButton locale={locale} onTap={tap} />
             <LanguagePicker locale={locale} onPick={onPickLocale} onTap={tap} />
             <ThemeToggle locale={locale} onTap={tap} />
           </div>
         </header>
 
         {/* THE ROOM FIRST, then today's puzzle, then the games. Operator
-            ruling 2026-08-24: "then my world then games".
-
-            The boards CARD that used to sit here is gone - it is the trophy
-            in the bar now, and two doors to one room is the thing this whole
-            pass is undoing. One consequence is worth stating rather than
-            leaving to be found: that card appeared only once you had played
-            ("a first visit is for games"), and a bar icon is always there. So
-            a first-time visitor now sees a leaderboards control that leads to
-            an empty board. That is a real reversal of a stated decision, and
-            it is the operator's, not mine - `BoardsButton` carries the note. */}
+            ruling 2026-08-24: "then my world then games". The boards card
+            follows, on its own gate - see the comment on it below. */}
         <WorldHero profile={profile} locale={locale} onTap={tap} />
 
         <DailyCard locale={locale} onTap={tap} />
+
+        {/* The boards, and only once there is something to be on.
+            A first visit is for games. A leaderboard link on a home screen
+            nobody has played yet leads to "play a game and you'll show up
+            here", which is honest and is still clutter in front of a child
+            choosing their first game. It appears the moment it means
+            something. Deliberately NOT nested inside the room card above:
+            an <a> inside an <a> is invalid and browsers close the outer one
+            mid-DOM, which would take the room card apart.
+
+            This gate came BACK on 2026-08-24. For one day the boards were a
+            trophy in the header instead, which is always-on by construction,
+            so a child who had played nothing was offered a door to an empty
+            room. The operator removed the trophy; the card returns rather
+            than nothing, because Home.tsx is the ONLY place in the app that
+            links to /boards/ - legacyHash.ts merely redirects old bookmarks -
+            so leaving the bar empty would have orphaned the screen. */}
+        {recent.length > 0 && (
+          <a
+            href={boardsHref(pageLocaleFor(locale))}
+            onClick={tap}
+            style={{
+              display: "block",
+              width: "calc(100% - 8px)",
+              margin: "0 4px 20px",
+              padding: "11px 14px",
+              borderRadius: "var(--radius-3)",
+              background: "var(--surface-2)",
+              boxShadow: "var(--shadow-1)",
+              color: "var(--text)",
+              textDecoration: "none",
+              fontWeight: 800,
+              fontSize: 15,
+            }}
+          >
+            <span aria-hidden="true">🏆</span> {t("boards")}
+          </a>
+        )}
 
         {/* Sharing, and only once there is something that happened TODAY.
             A button whose card would say "today I played nothing" is worse
@@ -467,48 +496,6 @@ export function Home({
   );
 }
 
-/**
- * The leaderboards, as an icon in the bar. Operator ruling 2026-08-24: "also
- * add leaderboards icon there".
- *
- * It replaces the full-width card that used to sit under the room, and the
- * swap is not neutral. That card was gated on `recent.length > 0` on purpose -
- * "a first visit is for games", and a leaderboard link for somebody who has
- * played nothing leads to a screen that says so. A bar icon is always there,
- * so that gate is gone. Ungating it was the ruling; recording that it WAS a
- * decision is this comment's job, so the next reader does not restore the
- * gate thinking it was dropped by accident.
- *
- * An `<a>`, not a button, because it navigates: middle-click, long-press and
- * "open in new tab" all have to keep working, which is the same reason the
- * home grid's cards are real links.
- */
-function BoardsButton({ locale, onTap }: { locale: AppLocale; onTap: () => void }) {
-  const t = makeT(locale);
-  return (
-    <a
-      href={boardsHref(pageLocaleFor(locale))}
-      onClick={onTap}
-      aria-label={t("boards")}
-      style={{
-        // The same box the theme toggle holds, so the three icons in this bar
-        // are one row of one shape rather than three sizes that nearly match.
-        minHeight: "var(--tap)",
-        minWidth: "var(--tap)",
-        flexShrink: 0,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: "var(--radius-pill)",
-        background: "var(--surface-2)",
-        color: "var(--text)",
-        textDecoration: "none",
-      }}
-    >
-      <Icon name="trophy" />
-    </a>
-  );
-}
 
 /**
  * Day / night, as one pill beside the language toggle.

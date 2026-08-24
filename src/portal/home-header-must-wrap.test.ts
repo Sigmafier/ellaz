@@ -163,12 +163,17 @@ describe("the language button", () => {
  * any of the four.
  */
 describe("the home bar the operator specified", () => {
-  it("carries stars, leaderboards, language and dark - and nothing else", () => {
-    const group = controlGroup() + HEADER.slice(HEADER.indexOf("<LanguagePicker"), HEADER.indexOf("</header>"));
+  it("carries stars, language and dark - and NOT the boards", () => {
+    const group =
+      controlGroup() + HEADER.slice(HEADER.indexOf("<LanguagePicker"), HEADER.indexOf("</header>"));
     expect(group).toMatch(/<WalletChip starsOnly/);
-    expect(group).toMatch(/<BoardsButton/);
     expect(group).toMatch(/<LanguagePicker/);
     expect(group).toMatch(/<ThemeToggle/);
+    // The trophy was in this bar for ONE day, 2026-08-24, and the operator
+    // took it out again. A bar icon is always-on by construction, so it
+    // offered a first-time visitor a door to an empty board - which is the
+    // exact gate the card below has carried since it was written.
+    expect(group, "the boards trophy is back in the bar").not.toMatch(/<BoardsButton/);
   });
 
   it("keeps the card-style toggle OUT of the bar", () => {
@@ -196,11 +201,28 @@ describe("the home bar the operator specified", () => {
     expect(rail, "the category rail must come after both").toBeGreaterThan(daily);
   });
 
-  it("has no leaderboards CARD left, because the bar icon replaced it", () => {
-    // Two doors to one room is the thing this pass undid. If the card comes
-    // back, the icon should go - not both.
-    expect(HEADER, "the boards card is back beside the boards icon").not.toMatch(
-      /boardsHref\([^)]*\)\}\s*\n\s*onClick=\{tap\}\s*\n\s*style=\{\{\s*\n\s*display: "block"/,
+  it("keeps the boards reachable, behind the gate that says a first visit is for games", () => {
+    // Home.tsx is the ONLY place in the app that links to /boards/ -
+    // legacyHash.ts merely redirects old #/boards bookmarks, which nobody can
+    // click. So "no trophy in the bar" must not mean "no way in": the card
+    // comes back rather than nothing, or the screen is orphaned.
+    expect(HEADER, "nothing on the home screen links to the boards").toMatch(/boardsHref\(/);
+    // And it is GATED. An always-on link is what the trophy was.
+    //
+    // Anchored on the card's own comment and sliced FORWARD to the href, not
+    // a fixed lookback window. The first draft of this used `at - 700` and the
+    // control below caught it the moment the comment grew past 700 chars - a
+    // window tuned against the text in front of you goes stale exactly like
+    // any other threshold here.
+    const cardAt = HEADER.indexOf("The boards, and only");
+    expect(cardAt, "the boards card's comment is gone").toBeGreaterThan(-1);
+    const hrefAt = HEADER.indexOf("boardsHref(", cardAt);
+    // `slice(cardAt, -1)` on a miss would hand back most of the file and pass,
+    // so the ORDER is asserted before the slice is taken.
+    expect(hrefAt, "boardsHref does not follow the card's comment").toBeGreaterThan(cardAt);
+    const card = HEADER.slice(cardAt, hrefAt);
+    expect(card, "the boards link is no longer gated on having played").toMatch(
+      /\{recent\.length > 0 && \(/,
     );
   });
 
