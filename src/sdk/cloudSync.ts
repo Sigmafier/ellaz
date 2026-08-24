@@ -17,6 +17,7 @@ import type { BoardStanding, BoardWindow, Cloud, CloudIdentity, DeviceState } fr
 import { boardId } from "./board";
 import { readRecords } from "./records";
 import { wallet } from "./wallet";
+import type { PooledRow } from "./pooled";
 
 /**
  * How long the app sits on a change before uploading.
@@ -252,4 +253,15 @@ export async function boardStanding(
   const cloud = await load();
   if (!cloud) return null;
   return cloud.board(id, window, unit);
+}
+
+/**
+ * Every score row on the platform, for the pooled standings and medals
+ * screens. `null` when the cloud is unreachable — same shape as every other
+ * function here, so callers already know how to show it.
+ */
+export async function allScores(): Promise<{ rows: PooledRow[]; truncated: boolean } | null> {
+  const cloud = await load();
+  if (!cloud) return null;
+  return cloud.scores();
 }

@@ -319,3 +319,85 @@ describe("fail-soft everywhere", () => {
     expect(id?.code).not.toBe("2345-6789");
   });
 });
+
+describe("reading every score row (scores)", () => {
+  /** A canned collection-group `:runQuery` response, decoded field-by-field. */
+  function scoreDoc(board: string, uid: string, fields: Record<string, unknown>) {
+    return {
+      document: {
+        name: `projects/p/databases/(default)/documents/boards/${board}/scores/${uid}`,
+        fields: Object.fromEntries(
+          Object.entries(fields).map(([k, v]) => [
+            k,
+            typeof v === "number" ? { doubleValue: v } : { stringValue: String(v) },
+          ]),
+        ),
+      },
+    };
+  }
+
+  function withRunQuery(backend: ReturnType<typeof fakeBackend>, docs: unknown[]) {
+    const fetchImpl: FetchLike = async (url, init) => {
+      if (url.endsWith(":runQuery") && !url.includes("/boards/")) {
+        return ok(docs);
+      }
+      return backend.fetchImpl(url, init);
+    };
+    return fetchImpl;
+  }
+
+  it("decodes board and uid off the document path, and every field", async () => {
+    const backend = fakeBackend();
+    const docs = [
+      scoreDoc("snake__default", "u1", {
+        name: "adj__noun",
+        unit: "points",
+        best: 42,
+        d: "2026-08-24",
+        dBest: 42,
+        w: "2026-W35",
+        wBest: 42,
+        m: "2026-08",
+        mBest: 42,
+      }),
+    ];
+    const cloud = createCloud({ fetchImpl: withRunQuery(backend, docs), store: memStore() });
+
+    const res = await cloud.scores();
+    expect(res?.truncated).toBe(false);
+    expect(res?.rows).toEqual([
+      {
+        board: "snake__default",
+        uid: "u1",
+        name: "adj__noun",
+        unit: "points",
+        best: 42,
+        d: "2026-08-24",
+        dBest: 42,
+        w: "2026-W35",
+        wBest: 42,
+        m: "2026-08",
+        mBest: 42,
+      },
+    ]);
+  });
+
+  it("a row with no `best` field is dropped rather than crashing the read", async () => {
+    const backend = fakeBackend();
+    const docs = [{ document: { name: "…/boards/g__d/scores/u1", fields: {} } }];
+    const cloud = createCloud({ fetchImpl: withRunQuery(backend, docs), store: memStore() });
+
+    const res = await cloud.scores();
+    expect(res?.rows).toEqual([]);
+  });
+
+  it("`null` when the cloud cannot be reached at all", async () => {
+    const cloud = createCloud({
+      fetchImpl: (async () => {
+        throw new Error("offline");
+      }) as FetchLike,
+      store: memStore(),
+    });
+    expect(await cloud.scores()).toBeNull();
+  });
+});

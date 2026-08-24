@@ -451,6 +451,15 @@ export default defineConfig({
           if (/\/src\/sdk\/share\.ts$/.test(path)) return "share";
           if (/\/src\/portal\/(ShareSheet\.tsx|shareCard(Render)?\.ts)$/.test(path)) return "share";
 
+          // The pooled-standings ranking policy. Only `Boards.tsx` (already
+          // `page`) ever imports its VALUES — `cloud.ts` (chunk `cloud`) takes
+          // only a type-only import of `PooledRow`, which is erased, so this
+          // pin creates no edge from `cloud` into `page`. Same arrangement and
+          // same reason as `share` above, carved out before the `src/sdk/`
+          // catch-all would otherwise pin it to the shell and ship the whole
+          // ranking module to every child before they had chosen a game.
+          if (/\/src\/sdk\/(medals|pooled)\.ts$/.test(path)) return "page";
+
           if (/\/src\/portal\/(PageApp|GameHost|Boards)\.tsx$/.test(path)) return "page";
           if (/\/src\/portal\/world\/(World|Backup)\.tsx$/.test(path)) return "page";
           // `selectionDismiss.ts` clears a stray highlight off a game board and

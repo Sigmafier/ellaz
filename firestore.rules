@@ -59,7 +59,17 @@ service cloud.firestore {
     // The board is PUBLIC to any signed-in player, which is the point of a
     // board. What it exposes is a two-word name from a fixed list and a number
     // — there is nothing here that identifies a child, by construction.
-    match /boards/{board}/scores/{uid} {
+    //
+    // `{path=**}` rather than `boards/{board}` — deliberately, and it costs
+    // nothing the specific match did not already grant. A single-collection
+    // match only ever satisfies a query issued against ONE board; the pooled
+    // standings screen reads every board in one COLLECTION GROUP query, and
+    // Firestore denies a collection-group read unless a rule reaches it via a
+    // recursive wildcard (its own docs: "configure a security rule for that
+    // collection group... using wildcards"). The write clause below never
+    // referenced `board` in the first place, so widening the match changes
+    // nothing about who may write where — only which READS are now reachable.
+    match /{path=**}/scores/{uid} {
       allow read: if request.auth != null;
 
       // Write only your own row. This is the whole integrity story for who a

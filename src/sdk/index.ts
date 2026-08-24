@@ -118,9 +118,27 @@ export {
   cloudRestore,
   publishScore,
   boardStanding,
+  allScores,
 } from "./cloudSync";
 export { boardId, windowsFor, isSafeId, type BoardWindows } from "./board";
 export type { CloudIdentity, DeviceState, BoardStanding, BoardWindow, BoardRow } from "./cloud";
+// Medals — what a placing on a board is worth, pooled across the platform.
+export { medalFor, placingPoints, MEDAL_POINTS, BOARD_POINT, type Medal } from "./medals";
+// The pooled standings screen's pure half — every board, ranked, at once.
+export {
+  pooledTables,
+  myPlacings,
+  pooledPlayers,
+  betterThan,
+  splitBoard,
+  POOLED_LIMIT,
+  type PooledRow,
+  type BoardTable,
+  type Entry,
+  type Placing,
+  type PooledPlayer,
+  type PooledOptions,
+} from "./pooled";
 // The no-last-place rule, and the only place it is decided.
 export {
   standingView,

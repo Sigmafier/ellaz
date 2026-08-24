@@ -32,6 +32,12 @@ import { makeBackupCode, normalizeBackupCode } from "./backupCode";
 import { migrateProfile, type ProfileV1 } from "./profile";
 import type { Records } from "./records";
 import { windowsFor } from "./board";
+// TYPE-ONLY. `pooled.ts` is chunked with the page runtime, same reasoning as
+// `LOW_UNITS` below: importing a VALUE from it here would pull the ranking
+// module into the lazy `cloud` chunk, which every child fetches the moment
+// they earn their first coin — long before they have ever opened the boards.
+// A type import is erased at compile time and costs nothing.
+import type { PooledRow } from "./pooled";
 
 /** Where the anonymous identity is kept. Cleared with the rest of storage. */
 export const CLOUD_KEY = "ellaz:cloud:v1";
@@ -131,6 +137,12 @@ export interface Cloud {
   publish(entry: BoardPublish): Promise<boolean>;
   /** Read a board: the leaders, the size, and where the reader sits. */
   board(board: string, window: BoardWindow, unit: string): Promise<BoardStanding | null>;
+  /**
+   * Every score row on the platform, for the pooled standings + medals
+   * screens. One collection-group read rather than one request per board — see
+   * `pooled.ts` for why. `null` on any failure, including "not connected".
+   */
+  scores(): Promise<{ rows: PooledRow[]; truncated: boolean } | null>;
 }
 
 /** A request that cannot outlive TIMEOUT_MS, and never rejects. */
@@ -209,6 +221,15 @@ function decodeState(doc: unknown): DeviceState | null {
  * board ranks backwards — so the two are pinned together by a test.
  */
 const LOW_UNITS = new Set(["ms", "moves"]);
+
+/**
+ * Duplicated from `pooled.ts`'s `POOLED_LIMIT`, for the same reason `LOW_UNITS`
+ * above is duplicated from `score.ts`: importing the VALUE would pull the
+ * ranking module into this lazy chunk for one number. `pooled.test.ts` pins
+ * the two constants equal, so a change to one that forgets the other fails the
+ * build rather than silently truncating one screen and not the other.
+ */
+const SCORES_ROW_LIMIT = 3000;
 
 function numberField(doc: unknown, field: string): number | undefined {
   if (!isRecord(doc) || !isRecord(doc.fields)) return undefined;
@@ -580,6 +601,74 @@ export function createCloud(options: CloudOptions = {}): Cloud {
             });
 
       return { rows, total: total ?? rows.length, better: better ?? 0, mine: myValue };
+    },
+
+    /**
+     * One collection-group query across every `boards/<id>/scores/<id>` document —
+     * no filter, no order, so it needs no composite index (a plain group scan
+     * is covered by Firestore's automatic per-collection indexing). Ranking,
+     * windowing and pooling all happen client-side, in `pooled.ts`, which is
+     * pure and therefore testable without a network.
+     *
+     * `firestore.rules` had to widen its match from `boards/{board}/scores/{uid}`
+     * to `{path=**}/scores/{uid}` for this to be legal at all — a rule scoped to
+     * one board never authorises a query across all of them, whatever it says
+     * about read access at any single path. See the rules file for the "the
+     * write clause never used `board`, so nothing about who may write changed"
+     * argument that made the widening safe.
+     *
+     * Requesting one more than the limit is how a full page is told apart from
+     * an exactly-full corpus — asking for exactly `POOLED_LIMIT` can never
+     * distinguish "there were precisely this many" from "there were more".
+     */
+    async scores() {
+      if (!stored) await connect();
+      const bearer = await token();
+      if (!bearer) return null;
+
+      const res = await request(fetchImpl, `${docBase}:runQuery`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${bearer}` },
+        body: JSON.stringify({
+          structuredQuery: {
+            from: [{ collectionId: "scores", allDescendants: true }],
+            limit: SCORES_ROW_LIMIT + 1,
+          },
+        }),
+      });
+      if (!Array.isArray(res)) return null;
+
+      const rows: PooledRow[] = [];
+      for (const entry of res) {
+        if (!isRecord(entry) || !isRecord(entry.document)) continue;
+        const doc = entry.document;
+        const path = str(doc.name);
+        if (!path) continue;
+        // `.../documents/boards/<board>/scores/<uid>` — the collection group
+        // itself already told Firestore where to look; the path is only read
+        // here to recover WHICH board and WHOSE row this document is.
+        const parts = path.split("/");
+        const board = parts[parts.length - 3];
+        const uid = parts[parts.length - 1];
+        const best = numberField(doc, "best");
+        if (!board || !uid || best === undefined) continue;
+        rows.push({
+          board,
+          uid,
+          name: stringField(doc, "name") ?? "",
+          unit: stringField(doc, "unit") ?? "points",
+          best,
+          d: stringField(doc, "d") ?? "",
+          dBest: numberField(doc, "dBest") ?? best,
+          w: stringField(doc, "w") ?? "",
+          wBest: numberField(doc, "wBest") ?? best,
+          m: stringField(doc, "m") ?? "",
+          mBest: numberField(doc, "mBest") ?? best,
+        });
+      }
+
+      const truncated = rows.length > SCORES_ROW_LIMIT;
+      return { rows: truncated ? rows.slice(0, SCORES_ROW_LIMIT) : rows, truncated };
     },
   };
 
