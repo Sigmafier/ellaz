@@ -10,15 +10,15 @@ export const lettercrossFr: GameCopy = {
       name: "Lettres croisées",
       metaTitle: "Lettres croisées - Jeu de mots gratuit, sans téléchargement",
       metaDescription:
-        "Posez des jetons de lettres sur un plateau de 11 sur 11 et formez des mots croisés. Quatre jokers, 94 jetons. Gratuit, sans compte, hors ligne.",
+        "Posez des jetons de lettres sur un plateau de 9 sur 9 et formez des mots croisés. Quatre jokers, 94 jetons. Gratuit, sans compte, hors ligne.",
       lede:
-        "Lettres croisées est un jeu de jetons qui s'ouvre et se joue tout de suite. Vous recevez huit lettres. Vous posez un mot sur le plateau. Chaque mot suivant doit toucher ce qui s'y trouve déjà.",
+        "Lettres croisées est un jeu de jetons qui s'ouvre et se joue tout de suite. Vous recevez huit lettres. Vous posez un mot où vous voulez. Le suivant va lui aussi où vous voulez, et la seule chose que le plateau demande, c'est que tout ce que le nouveau mot effleure se lise encore comme un mot.",
       body: [
-        "Le plateau fait onze cases sur onze. C'est plus petit que celui que vous imaginez sans doute, et cela change la partie bien plus que ça n'en a l'air : les bords arrivent vite, les cases colorées ne sont jamais loin, et une partie se termine dans le temps dont vous disposez vraiment, pas dans celui qu'un jeu de société suppose.",
+        "Le plateau fait neuf cases sur neuf. C'est plus petit que celui que vous imaginez sans doute, et cela change la partie bien plus que ça n'en a l'air : les bords arrivent vite, chaque case est exactement la même case, si bien que l'endroit où vous jouez est votre décision et jamais celle du plateau, et une partie se termine dans le temps dont vous disposez vraiment, pas dans celui qu'un jeu de société suppose.",
         "Il y a 94 jetons. Quatre-vingt-dix sont des lettres et quatre sont des jokers, soit deux fois plus que d'habitude. Un joker prend la lettre que vous voulez. Il ne rapporte aucun point, et il reste le plus souvent le meilleur jeton de la main, parce que la lettre qui vous manque est justement celle qui bloque le mot que vous voyez déjà.",
         "Les mots se posent à l'horizontale ou à la verticale. Deux lettres suffisent. C'est tout.",
         "Quand vous posez des jetons contre des lettres déjà présentes, chaque nouvelle suite de deux lettres ou plus doit également former un vrai mot. C'est la partie qui surprend, et c'est aussi celle qui rend le jeu intéressant plutôt que mécanique.",
-        "Le score, ce sont les lettres plus les cases. Une lettre rare vaut 12 points et une lettre courante en vaut un. Certaines cases doublent ou triplent la lettre posée dessus et d'autres multiplient le mot entier, et la case centrale, celle que le premier mot doit traverser, ne multiplie rien du tout.",
+        "Le score, ce sont les lettres, et rien d'autre. Une lettre rare vaut 12 points et une lettre courante en vaut un. Aucune case ne double quoi que ce soit, aucune ne multiplie un mot, et il n'y a pas de coin porte-bonheur. Un mot faible reste faible où que vous le posiez.",
         "Le dictionnaire compte 28,515 mots anglais. Il est construit à partir d'une liste du domaine public puis filtré, et le filtrage est voulu : les mots obscurs de deux lettres qui n'existent qu'en compétition n'y sont pas.",
       ],
       howToPlay: [
@@ -28,7 +28,7 @@ export const lettercrossFr: GameCopy = {
         },
         {
           title: "Le premier mot passe par le centre",
-          body: "Le mot d'ouverture doit couvrir la case centrale. Ensuite, tout ce que vous construisez doit toucher une lettre déjà posée.",
+          body: "Il n'y a pas de case de départ et rien n'oblige à toucher ce qui est déjà posé. Un mot tient sur une seule ligne, sans trou dedans, et c'est un vrai mot. C'est tout.",
         },
         {
           title: "Appuyez sur jouer quand cela vous convient",
@@ -45,8 +45,8 @@ export const lettercrossFr: GameCopy = {
           body: "Poser un mot le long d'un autre marque chaque paire ainsi créée, d'un seul coup. Un mot de cinq lettres posé en parallèle d'un autre peut marquer six mots en un tour.",
         },
         {
-          title: "Regardez les cases avant les lettres",
-          body: "Une case triple avec une lettre chère dessus vaut mieux qu'un long mot posé n'importe où. Trouvez la case d'abord, cherchez ce qui rentre ensuite.",
+          title: "L'endroit où vous ouvrez compte vraiment",
+          body: "Rien ne pousse le premier mot vers le milieu. Près d'un bord, le plateau reste ouvert et les croisements sont rares. Au milieu, vous avez quatre directions pour grandir et moins de place dans chacune.",
         },
       ],
       teaches: [
@@ -60,7 +60,7 @@ export const lettercrossFr: GameCopy = {
         },
         {
           title: "Anticiper d'un tour",
-          body: "La meilleure case du plateau est souvent une case qu'il vaut mieux ne pas ouvrir. Le remarquer, c'est de la stratégie, et les enfants l'attrapent plus vite que les adultes ne le croient.",
+          body: "Le mot qui rapporte le plus maintenant est souvent celui qui vous bouche la ligne dont vous aviez besoin ensuite. Le remarquer, c'est de la stratégie, et les enfants l'attrapent plus vite que les adultes ne le croient.",
         },
       ],
       ages: [
@@ -74,7 +74,7 @@ export const lettercrossFr: GameCopy = {
         },
         {
           title: "Les adultes, sans s'excuser",
-          body: "Ce n'est pas un jeu pour enfants avec un mode adulte ajouté par-dessus. Le niveau difficile distribue sept jetons au lieu de huit, ce qui est réellement plus dur, et le plateau de 11 sur 11 récompense celui qui voit deux tours à l'avance.",
+          body: "Ce n'est pas un jeu pour enfants avec un mode adulte ajouté par-dessus. Le niveau difficile distribue sept jetons au lieu de huit, ce qui est réellement plus dur, et le plateau de 9 sur 9 récompense celui qui voit deux tours à l'avance.",
         },
       ],
       accessibility:
@@ -89,8 +89,8 @@ export const lettercrossFr: GameCopy = {
           body: "Quand le plateau refuse un mot, cherchez-le ensemble plutôt que de passer à autre chose. C'est le moment où quelqu'un apprend un mot, et c'est le seul moment que le jeu fabrique exprès.",
         },
         {
-          title: "Jouez les cases, pas le score",
-          body: "Essayez une manche dont le seul but est de poser un jeton sur chaque case colorée au moins une fois. Cela donne quelque chose à gagner au joueur le plus faible pendant que l'autre court après les points.",
+          title: "Jouez la forme, pas le score",
+          body: "Essayez une manche dont le seul but est le mot le plus long que quelqu'un arrive à poser. Cela donne quelque chose à gagner au joueur le plus faible pendant que l'autre court après les points.",
         },
       ],
       faq: [

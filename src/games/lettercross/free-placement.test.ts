@@ -25,7 +25,15 @@ describe("a word goes anywhere", () => {
   const g = newGame("medium", () => 0.5);
 
   it("takes the opening word in any corner, and in the middle, and scores them the same", () => {
-    const spots: [number, number][] = [[0, 0], [0, 8], [10, 0], [10, 8], [5, 4]];
+    // DERIVED from SIZE, never typed out. These were [0,8],[10,0],[10,8],[5,4]
+    // - correct on an 11-wide board and, the day it became 9 wide, three of
+    // them ran off the edge and one wrapped onto the next row. A coordinate
+    // literal in a test is a threshold tuned against today's tree.
+    const last = SIZE - "cat".length;          // the rightmost start that fits
+    const spots: [number, number][] = [
+      [0, 0], [0, last], [SIZE - 1, 0], [SIZE - 1, last],
+      [Math.floor(SIZE / 2), Math.floor(last / 2)],
+    ];
     const totals = spots.map((s) => {
       const v = validate(g.board, lay(s[0], s[1], "cat"));
       expect(v.ok, `refused at ${s}`).toBe(true);

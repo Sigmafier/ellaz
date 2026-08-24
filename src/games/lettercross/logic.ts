@@ -11,7 +11,7 @@
  * tiles per turn, at least half the letter values, at least half the letter
  * distribution, the premium-square pattern and the centre star. So:
  *
- *   board        11 x 11, not 15 x 15
+ *   board        9 x 9, not 15 x 15
  *   rack         8 tiles at the middle level, not 7
  *   values       14 of 26 letters differ (pinned by logic.test.ts)
  *   distribution its own, built from English letter frequency
@@ -24,8 +24,21 @@
  */
 import { WORDS } from "./words";
 
-export const SIZE = 11;
-export const CENTRE = 5 * SIZE + 5;
+/**
+ * NINE, and it moved 11 -> 9 on 2026-08-24 for a reason that is not aesthetic.
+ *
+ * The board now carries a one-cell ring of prize boxes outside it, and the ring
+ * has to come from somewhere. Measured on the artifact at 390px: with the ring
+ * added to an 11-wide board the cell falls to 28.2px, the smallest tap target
+ * in this catalogue - against a 44px generic floor and a 64px `--tap-kids`. At
+ * nine the whole stage is the width the board alone used to be and the cell is
+ * back to 33.3px, so the ring costs the player nothing.
+ *
+ * It is also further from the famous 15 x 15 than it was, which the header's
+ * distinctiveness list depends on, and it takes away squares an eight-tile rack
+ * was never going to reach.
+ */
+export const SIZE = 9;
 /** The middle level's rack. `rackFor` is the real answer; this is medium's. */
 export const RACK = 8;
 

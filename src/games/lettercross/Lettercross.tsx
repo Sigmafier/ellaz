@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import type { GameContext, SessionSpec } from "@sdk/index";
 import type { Locale } from "@i18n/index";
 import { haptic } from "@juice/index";
@@ -6,6 +6,7 @@ import { GameChrome, type ChromeLevel } from "@ui/GameChrome";
 import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
 import { seedFrom, mulberry32 } from "@shared/rng";
 import { streakStep } from "@sdk/streak";
+import { BOXES, BOX_RADIUS, sideOf, type BoxArt } from "./boxes";
 import {
   SIZE, LETTER_VALUE, newGame, apply, validate,
   isOver, bestLevel, type Level, type Placement, type State,
@@ -27,19 +28,26 @@ const STR = {
 } as const;
 const str = (loc: Locale) => (STR as unknown as Record<string, typeof STR.en>)[loc] ?? STR.en;
 
-type LettercrossSession = { level: Level; state: State };
+type LettercrossSession = { level: Level; state: State; bestFired: boolean };
 
 /**
  * The snapshot gate. Handed whatever was on the disk, so it assumes nothing and
  * never throws - a wrong answer here renders a plausible board the rules can no
  * longer explain. See .claude/rules/session-snapshot-convention.md.
  *
- * There is no reward latch to carry: this game grants exactly once, at the end
- * of a run, and a finished run is not stored (`live: !over`). So resuming
- * cannot pay a player twice, which is the usual trap here.
+ * IT CARRIES A REWARD LATCH, and that comment used to say the opposite. The
+ * claim was "this game grants exactly once, at the end of a run", which stopped
+ * being true when the record moved off the end of the run (see `play`). The
+ * score only ever climbs, so once a run is above the old best EVERY turn is a
+ * new best - without `bestFired` on the disk, walking out and back in re-arms
+ * the reward and the run pays a star per resume, for ever.
+ *
+ * `version` is 2 because the shape changed. Nothing is migrated: a half-played
+ * board is worth a few minutes, and migration code for it is a second copy of
+ * the game's rules that nothing keeps in sync.
  */
 const SESSION: SessionSpec<LettercrossSession> = {
-  version: 1,
+  version: 2,
   validate: (value): value is LettercrossSession => {
     const s = value as Partial<LettercrossSession> | null;
     if (typeof s !== "object" || s === null) return false;
@@ -49,17 +57,29 @@ const SESSION: SessionSpec<LettercrossSession> = {
     if (!Array.isArray(g.board) || g.board.length !== SIZE * SIZE) return false;
     if (!Array.isArray(g.rack) || !Array.isArray(g.bag)) return false;
     if (typeof g.score !== "number" || !Number.isFinite(g.score)) return false;
+    if (typeof s.bestFired !== "boolean") return false;
     return true;
   },
 };
 
 /**
- * The board sizes against the VIEWPORT, not its container, so the stage can
- * break out of the page gutter on a phone. Written as one uninterrupted
+ * The STAGE is the board PLUS the one-cell ring of prize boxes around it, and
+ * it is the thing that sizes against the VIEWPORT - not its container, so it
+ * can break out of the page gutter on a phone. Written as one uninterrupted
  * `min(...)` because `game-panel-clears-widest-board.test.ts` reads every px
  * term out of this source - see the comment on its regex.
+ *
+ * The ring is one cell on every side, so the stage is SIZE + 2 cells across and
+ * the BOARD is derived from it rather than the other way round. That is the
+ * whole reason the cell size did not move when the ring arrived: the stage is
+ * still the width the bare 11-wide board used to be.
  */
-const BOARD = `min(94vw, 52vh, 430px)`;
+const STAGE = `min(94vw, 52vh, 430px)`;
+const RING = SIZE + 2;
+// The board itself is never sized in CSS: it spans SIZE of the stage's RING
+// tracks, so it IS SIZE/RING of the stage and cannot disagree with the ring
+// beside it. A second `calc()` saying the same thing is a second place to be
+// wrong when SIZE moves.
 
 // The board is a PHYSICAL OBJECT, not a themed surface: warm tiles, pastel
 // premium squares, dark ink, one look in both themes. That is deliberate, and
@@ -85,6 +105,55 @@ const INK = "#241C17";        // every letter, on any of the above
 // an emitted page alike - but a fallback costs nothing and closes exactly the
 // class of bug above. It mirrors meta.color.
 const ACCENT = "var(--g, #B33A3A)";
+
+// The prize boxes. Hardcoded like PAPER and INK above, and for the same
+// reason: they are a physical object sitting on the board, not a themed
+// surface, so they read the same in both themes.
+const GOLD_LIT = "#FFDE86";   // the lit top edge of a box
+const GOLD = "#F2B93F";       // its face
+const GOLD_EDGE = "#B07C1C";  // its border
+const GOLD_INK = "#5A3A05";   // a number printed on it
+
+/**
+ * Original art, drawn here rather than pulled from `@ui/gameArt` - that module
+ * is the CARD art for the home grid and the share cards, and it ships in the
+ * shell, so a glyph only this game draws must not live in it. These ride the
+ * lazy `game-lettercross-*` chunk and cost a first visit nothing.
+ */
+const BOX_ART: Readonly<Record<BoxArt, ReactNode>> = {
+  gem: (
+    <>
+      <polygon points="12,3 20,10 12,21 4,10" fill="#5EC8E5" stroke="#1B6F86" strokeWidth="1.4" />
+      <path d="M4 10h16M12 3v18" stroke="#1B6F86" strokeWidth="1" />
+    </>
+  ),
+  star: (
+    <polygon points="12,3 14.6,9.3 21.4,9.8 16.2,14.2 17.8,20.8 12,17.2 6.2,20.8 7.8,14.2 2.6,9.8 9.4,9.3"
+      fill="#FFD34D" stroke="#B8860B" strokeWidth="1.2" />
+  ),
+  leaf: (
+    <path d="M12 21C6 17 4 11 6 4c7-1 12 3 13 9 .5 4-3 7-7 8z"
+      fill="#7DC96B" stroke="#2F6B27" strokeWidth="1.3" />
+  ),
+  bell: (
+    <>
+      <path d="M12 3a5 5 0 0 0-5 5v5l-2 3h14l-2-3V8a5 5 0 0 0-5-5z"
+        fill="#F0A33C" stroke="#8A4B12" strokeWidth="1.3" />
+      <circle cx="12" cy="19" r="2" fill="#8A4B12" />
+    </>
+  ),
+  drop: (
+    <path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"
+      fill="#E8748C" stroke="#8E2B41" strokeWidth="1.3" />
+  ),
+  lock: (
+    <>
+      <rect x="5" y="10" width="14" height="11" rx="2.5" fill="#C9CDD6" stroke="#5A6070" strokeWidth="1.4" />
+      <path d="M8.5 10V7.5a3.5 3.5 0 0 1 7 0V10" fill="none" stroke="#5A6070" strokeWidth="1.7" />
+    </>
+  ),
+};
+
 
 /**
  * Why a play was refused. Four reasons now, not six: `start` (the first word
@@ -126,8 +195,16 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
    */
   const streakRef = useRef(0);
 
+  /**
+   * Has THIS run already been paid for beating the record? The score only goes
+   * up, so from the turn it passes the old best every later turn is also a
+   * personal best - unlatched, that is a star and a coin per word for the rest
+   * of the game. It rides the snapshot so leaving is not a way to re-arm it.
+   */
+  const bestFiredRef = useRef(resume?.bestFired ?? false);
+
   const over = isOver(state) && pending.length === 0;
-  useGameSession(ctx, SESSION, () => ({ level, state }), { live: !over });
+  useGameSession(ctx, SESSION, () => ({ level, state, bestFired: bestFiredRef.current }), { live: !over });
 
   const best = ctx.score?.best(bestLevel(level));
 
@@ -135,6 +212,7 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
     setState(newGame(next, mulberry32(seedFrom(`lettercross-${next}-${Date.now()}`))));
     setPending([]); setHeld(null); setAsking(null); setNote("");
     streakRef.current = 0;
+    bestFiredRef.current = false;
   }, []);
 
   /** The board as it looks with this turn's tentative tiles on it. */
@@ -195,17 +273,38 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
     else ctx.audio.play("streak", { semitones: step });
     haptic.success();
 
-    if (isOver(next)) {
+    // THE RECORD IS WRITTEN EVERY TURN, not at the end of the run, and that is
+    // a fix rather than a preference. This used to hang off `isOver`, which is
+    // bag-empty AND rack-empty - and tiles leave the rack only by being placed,
+    // so on 81 squares a 94-tile bag can never empty. Thirteen tiles are
+    // stranded by arithmetic, `isOver` is unreachable, and it was the ONLY path
+    // that recorded a score: "Best" read "-" for ever. (At 11 x 11 it was 121
+    // squares against 94 tiles - reachable in principle, and in practice never.)
+    //
+    // Reporting per turn is not a weaker version of reporting at the end. This
+    // score only ever climbs, so the last report of a run IS its total, and
+    // `report` keeps the better value itself - which is also why this game
+    // holds no `best` of its own (score-contract-convention.md).
+    const scored = ctx.score?.report({
+      value: next.score, unit: "points", board: bestLevel(level),
+    });
+
+    // ...but the MOMENT is once per run. `isPersonalBest` is true on every turn
+    // after the first crossing, so the latch is what stands between a beaten
+    // record and a star per word. No confetti: this is a milestone inside a run,
+    // not the end of one (rewards-economy-convention.md).
+    if (scored?.isPersonalBest && !bestFiredRef.current) {
+      bestFiredRef.current = true;
       winMoment(ctx, {
         reason: "personal_best",
         tier: level,
         level: `lettercross-${level}`,
-        score: { value: next.score, unit: "points", board: bestLevel(level) },
+        confetti: false,
       });
     }
   }, [ctx, level, pending, state]);
 
-  const cell = `calc(${BOARD} / ${SIZE})`;
+  const cell = `calc(${STAGE} / ${RING})`;
 
   return (
     <GameChrome
@@ -241,10 +340,50 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
         display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
         position: "relative", // the wild picker is an overlay inside this column
       }}>
+        {/* THE STAGE: one RING x RING grid holding the board in the middle and
+            the prize boxes in the ring around it. The boxes are placed by GRID
+            AREA rather than absolute px, which is what makes "in line with a
+            row or column" true by construction instead of by arithmetic that
+            can drift - a box and the squares it lines up with are literally in
+            the same grid track. */}
         <div style={{
+          display: "grid", gridTemplateColumns: `repeat(${RING}, 1fr)`,
+          gridTemplateRows: `repeat(${RING}, 1fr)`, width: STAGE, height: STAGE,
+          flexShrink: 0,
+        }}>
+          {BOXES.map((b, n) => {
+            const side = sideOf(b);
+            return (
+              // Nothing here does anything yet - reaching a box is step 2 - so
+              // it carries no information and is hidden from a screen reader
+              // rather than announced as a control that ignores you. The label
+              // arrives in the same change as the rule.
+              <div key={n} aria-hidden="true" style={{
+                gridRow: b.row + 2, gridColumn: b.col + 2,
+                display: "grid", placeItems: "center", position: "relative",
+                background: `linear-gradient(160deg, ${GOLD_LIT}, ${GOLD})`,
+                border: `1px solid ${GOLD_EDGE}`, boxSizing: "border-box",
+                borderRadius: BOX_RADIUS[side],
+              }}>
+                <svg viewBox="0 0 24 24" width="74%" height="74%" aria-hidden="true">
+                  {BOX_ART[b.art]}
+                </svg>
+                {b.value !== undefined && (
+                  <span style={{
+                    position: "absolute", insetInlineEnd: "4%", bottom: 0,
+                    fontSize: `calc(${cell} * 0.34)`, fontWeight: 800,
+                    lineHeight: 1, color: GOLD_INK,
+                  }}>{b.value}</span>
+                )}
+              </div>
+            );
+          })}
+
+        <div style={{
+          gridArea: `2 / 2 / span ${SIZE} / span ${SIZE}`,
           display: "grid", gridTemplateColumns: `repeat(${SIZE}, 1fr)`,
-          gridTemplateRows: `repeat(${SIZE}, 1fr)`, width: BOARD, height: BOARD,
-          gap: 1, background: RULE, borderRadius: 8, overflow: "hidden",
+          gridTemplateRows: `repeat(${SIZE}, 1fr)`,
+          gap: 1, background: RULE, overflow: "hidden",
           // A flex item shrinks by DEFAULT. Without this the board is squeezed
           // by whatever appears below it - measured 367 -> 328px the moment the
           // 26-letter wild picker opens, which is a board that changes size
@@ -272,6 +411,7 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
               </button>
             );
           })}
+        </div>
         </div>
 
         {/* The rack. A tile is TAPPED, never dragged - drag is never required

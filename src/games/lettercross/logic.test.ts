@@ -12,8 +12,13 @@ const lay = (r: number, c: number, word: string, down = false) =>
   [...word].map((ch, i) => ({ index: down ? idx(r + i, c) : idx(r, c + i), letter: ch, wild: false }));
 
 describe("the board", () => {
-  it("is 11x11", () => {
-    expect(SIZE).toBe(11);
+  it("is 9x9, so the ring of prize boxes costs the player no tap target", () => {
+    // It was 11 until 2026-08-24. The board grew a one-cell ring of boxes and
+    // the ring has to come from somewhere: measured on the artifact at 390px,
+    // ring + 11 gives a 28.2px cell - the smallest in this catalogue, against
+    // a 44px floor - and ring + 9 gives 33.3px, which is what the bare 11-wide
+    // board already had. Also further from the famous 15 x 15, not nearer.
+    expect(SIZE).toBe(9);
   });
 
   // There is nothing else to say about the board any more, and that is the
