@@ -2,11 +2,19 @@ import { describe, expect, it } from "vitest";
 import {
   SIZE, RACK, LETTER_VALUE, BAG, TOTAL_TILES,
   newGame, validate, apply, isOver, bestLevel,
+  boardAt,
 } from "./logic";
 import { WORDS } from "./words";
 
 const rng = (seed: number) => { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); };
-const idx = (r: number, c: number) => r * SIZE + c;
+/**
+ * Board coordinates, 0..SIZE-1. It is `boardAt` rather than `r * SIZE + c`
+ * because the index space is the whole stage since 2026-08-25 - the board sits
+ * inside a one-cell ring of prize squares, so a board square's own row and
+ * column are not its index. Written out again here it would be a second place
+ * to be wrong.
+ */
+const idx = boardAt;
 /** Lay letters left-to-right starting at (r,c) as a placement list. */
 const lay = (r: number, c: number, word: string, down = false) =>
   [...word].map((ch, i) => ({ index: down ? idx(r + i, c) : idx(r, c + i), letter: ch, wild: false }));

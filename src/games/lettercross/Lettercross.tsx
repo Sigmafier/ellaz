@@ -6,11 +6,11 @@ import { GameChrome, type ChromeLevel } from "@ui/GameChrome";
 import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
 import { seedFrom, mulberry32 } from "@shared/rng";
 import { streakStep } from "@sdk/streak";
-import { BOXES, BOX_RADIUS, sideOf, reachedBoxes, isLocked, type BoxArt } from "./boxes";
+import { BOXES, BOX_RADIUS, boxIndex, sideOf, reachedBoxes, isLocked, type BoxArt } from "./boxes";
 import { BONUS_ARTS, type BonusTier } from "./bonus";
 import { BonusRound } from "./BonusRound";
 import {
-  SIZE, LETTER_VALUE, newGame, apply, validate,
+  SIZE, CELLS, boardAt, LETTER_VALUE, newGame, apply, validate,
   isOver, bestLevel, type Level, type Placement, type State,
 } from "./logic";
 
@@ -57,8 +57,8 @@ type LettercrossSession = { level: Level; state: State; bestFired: boolean;
  * new best - without `bestFired` on the disk, walking out and back in re-arms
  * the reward and the run pays a star per resume, for ever.
  *
- * IT CARRIES `reached` FOR THE SAME REASON. A box is collected once, and the
- * square next to it stays filled for the rest of the run - so a snapshot that
+ * IT CARRIES `reached` FOR THE SAME REASON. A box is collected once, and its
+ * square stays filled for the rest of the run - so a snapshot that
  * forgets which boxes are already open re-collects every one of them on the
  * first word after a resume, and walking out and back in is a coin press.
  *
@@ -67,20 +67,22 @@ type LettercrossSession = { level: Level; state: State; bestFired: boolean;
  * would come back to a collected box and no round - the prize gone with no
  * error anywhere. Carrying the open queue means leaving is a pause.
  *
- * `version` is 5 because the shape has changed four times, most recently when
- * one open round became a QUEUE of them. Nothing is migrated: a half-played
+ * `version` is 6 because the shape has changed five times, most recently when
+ * the prize boxes became SQUARES - the board grew from SIZE x SIZE to the whole
+ * stage, so every index in an older snapshot means a different square. Nothing
+ * is migrated: a half-played
  * board is worth a few minutes, and migration code for it is a second copy of
  * the game's rules that nothing keeps in sync.
  */
 const SESSION: SessionSpec<LettercrossSession> = {
-  version: 5,
+  version: 6,
   validate: (value): value is LettercrossSession => {
     const s = value as Partial<LettercrossSession> | null;
     if (typeof s !== "object" || s === null) return false;
     if (s.level !== "easy" && s.level !== "medium" && s.level !== "hard") return false;
     const g = s.state as Partial<State> | undefined;
     if (typeof g !== "object" || g === null) return false;
-    if (!Array.isArray(g.board) || g.board.length !== SIZE * SIZE) return false;
+    if (!Array.isArray(g.board) || g.board.length !== CELLS) return false;
     if (!Array.isArray(g.rack) || !Array.isArray(g.bag)) return false;
     if (typeof g.score !== "number" || !Number.isFinite(g.score)) return false;
     if (typeof s.bestFired !== "boolean") return false;
@@ -191,9 +193,11 @@ const BOX_ART: Readonly<Record<BoxArt, ReactNode>> = {
  */
 const REASON: Record<string, Record<string, string>> = {
   en: { line: "One row or one column", gap: "No gaps",
-        word: "Not a word we know", empty: "Place a tile first" },
+        word: "Not a word we know", empty: "Place a tile first",
+        off: "Not a square you can play on" },
   he: { line: "שורה אחת או טור אחד", gap: "בלי רווחים",
-        word: "לא מילה שאנחנו מכירים", empty: "הניחו אריח" },
+        word: "לא מילה שאנחנו מכירים", empty: "הניחו אריח",
+        off: "לא משבצת שאפשר לשחק עליה" },
 };
 
 export function Lettercross({ ctx }: { ctx: GameContext }) {
@@ -238,7 +242,7 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
    */
   const [reached, setReached] = useState<readonly number[]>(() => resume?.reached ?? []);
   /** Where the coins fly FROM: the box itself, not the middle of the screen. */
-  const boxEls = useRef<(HTMLDivElement | null)[]>([]);
+  const boxEls = useRef<(HTMLButtonElement | null)[]>([]);
 
   /**
    * The boxes whose bonus rounds are waiting, HEAD FIRST. A QUEUE rather than
@@ -316,12 +320,20 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
     // note - the ladder's own bottom - so `if (!step)` would play `success`
     // on the third word forever and the ladder would never start.
     /**
-     * STEP 2 OF THE GAME PLAN: reaching a box collects it.
+     * STEP 2 OF THE GAME PLAN: a letter IN a box collects it.
+     *
+     * Not a letter beside it. Until 2026-08-25 a box was collected by filling
+     * the board square next to it, and the operator's correction on seeing the
+     * first bonus round is why this changed: "the mini game only apply if you
+     * put a letter in the outside boxes not near them." That is BONUS's own
+     * rule - its first or last letter of a word ON a bonus square - and it now
+     * needs no code of its own at all, because a box is a playable square and a
+     * word simply runs off the edge of the board into one.
      *
      * Reached is asked of the WHOLE BOARD rather than of this turn's tiles - a
-     * box is arrived at when its square is occupied, by whichever turn put a
-     * tile there. Which means the square stays filled for the rest of the run,
-     * so `reached` is what stops the box collecting itself again on every later
+     * box is taken when its square is occupied, by whichever turn put a tile
+     * there. Which means the square stays filled for the rest of the run, so
+     * `reached` is what stops the box collecting itself again on every later
      * word. It rides the snapshot for the same reason (see SESSION).
      *
      * A PADLOCK IS FOUND, NOT OPENED. Step 4 gives the wild tile a job and
@@ -379,10 +391,11 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
     // THE RECORD IS WRITTEN EVERY TURN, not at the end of the run, and that is
     // a fix rather than a preference. This used to hang off `isOver`, which is
     // bag-empty AND rack-empty - and tiles leave the rack only by being placed,
-    // so on 81 squares a 94-tile bag can never empty. Thirteen tiles are
-    // stranded by arithmetic, `isOver` is unreachable, and it was the ONLY path
-    // that recorded a score: "Best" read "-" for ever. (At 11 x 11 it was 121
-    // squares against 94 tiles - reachable in principle, and in practice never.)
+    // so on 81 squares a 94-tile bag could never empty. Thirteen tiles were
+    // stranded by arithmetic, `isOver` was unreachable, and it was the ONLY
+    // path that recorded a score: "Best" read "-" for ever. (The prize boxes
+    // became playable on 2026-08-25, so it is 93 squares against 94 tiles now -
+    // no longer impossible, and still not something anyone will reach.)
     //
     // Reporting per turn is not a weaker version of reporting at the end. This
     // score only ever climbs, so the last report of a run IS its total, and
@@ -480,40 +493,57 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
           gridTemplateRows: `repeat(${RING}, 1fr)`, width: STAGE, height: STAGE,
           flexShrink: 0,
         }}>
+          {/* A PRIZE BOX IS A SQUARE YOU PLAY ON, not a decoration beside one.
+              It takes a tile exactly the way a board square does - same
+              `placeAt`, same index space - which is what makes "the first or
+              last letter of a word lands in the box" a consequence of the
+              geometry rather than a rule anyone had to write. */}
           {BOXES.map((b, n) => {
             const side = sideOf(b);
             const shut = isLocked(b);
             const here = reached.includes(n);
-            // Three states, and only two of them are gold. A COLLECTED box is
-            // an empty frame - the prize left it, which is the whole point -
-            // while a FOUND padlock stays gold and gains an inner ring, so it
-            // reads as "you got here and it is shut" rather than as taken.
-            const taken = here && !shut;
+            const i = boxIndex(b);
+            const c = shown[i];
+            const tentative = pending.some((p) => p.index === i);
+            // The gold NEVER leaves while a tile is on it - a filled box is a
+            // tile in a gold frame, so the board still reads back as "that word
+            // ran all the way out to the star". `taken` is the empty-frame
+            // state, which now only happens if a tile is somehow taken off one.
+            const taken = here && !shut && !c;
             return (
-              <div key={n} ref={(el) => { boxEls.current[n] = el; }}
-                role="img" aria-label={taken ? T.taken : shut ? T.locked : T.prize}
+              <button key={n} ref={(el) => { boxEls.current[n] = el; }}
+                onClick={() => placeAt(i)}
+                aria-label={c ? c.letter : taken ? T.taken : shut ? T.locked : T.prize}
                 style={{
                 gridRow: b.row + 2, gridColumn: b.col + 2,
                 display: "grid", placeItems: "center", position: "relative",
-                background: taken ? SQUARE : `linear-gradient(160deg, ${GOLD_LIT}, ${GOLD})`,
-                border: `1px solid ${taken ? RULE : GOLD_EDGE}`, boxSizing: "border-box",
+                padding: 0, boxSizing: "border-box",
+                background: c
+                  ? (tentative ? PAPER_NEW : PAPER)
+                  : taken ? SQUARE : `linear-gradient(160deg, ${GOLD_LIT}, ${GOLD})`,
+                border: `1px solid ${taken ? RULE : GOLD_EDGE}`,
                 borderRadius: BOX_RADIUS[side],
                 boxShadow: here && shut ? `inset 0 0 0 2px ${GOLD_INK}` : undefined,
                 opacity: taken ? 0.5 : 1,
+                fontSize: `calc(${cell} * 0.46)`, fontWeight: 700, lineHeight: 1,
+                color: c?.wild ? ACCENT : INK,
+                cursor: over ? "default" : "pointer",
                 transition: "background 220ms, opacity 220ms",
               }}>
-                <svg viewBox="0 0 24 24" width="74%" height="74%" aria-hidden="true"
-                  style={{ opacity: taken ? 0.3 : 1 }}>
-                  {BOX_ART[b.art]}
-                </svg>
-                {b.value !== undefined && (
+                {c ? c.letter.toUpperCase() : (
+                  <svg viewBox="0 0 24 24" width="74%" height="74%" aria-hidden="true"
+                    style={{ opacity: taken ? 0.3 : 1 }}>
+                    {BOX_ART[b.art]}
+                  </svg>
+                )}
+                {b.value !== undefined && !c && (
                   <span style={{
                     position: "absolute", insetInlineEnd: "4%", bottom: 0,
                     fontSize: `calc(${cell} * 0.34)`, fontWeight: 800,
                     lineHeight: 1, color: GOLD_INK,
                   }}>{b.value}</span>
                 )}
-              </div>
+              </button>
             );
           })}
 
@@ -529,7 +559,14 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
           // surface scrolls instead.
           flexShrink: 0,
         }}>
-          {shown.map((c, i) => {
+          {Array.from({ length: SIZE * SIZE }, (_, k) => {
+            // The board is SIZE x SIZE of squares inside a stage that is two
+            // wider, so a board square's own index is not its index on the
+            // stage. `boardAt` is the one conversion and it lives in `grid.ts`
+            // beside the rest of the geometry - a second `+1` written out here
+            // is a second place to be wrong when the ring changes thickness.
+            const i = boardAt(Math.floor(k / SIZE), k % SIZE);
+            const c = shown[i];
             // EVERY SQUARE IS THE SAME SQUARE. No premium colours, no centre
             // star - operator's call, 2026-08-24: "we dont need the color
             // blocks, all should be placeable". The board is now a sheet of

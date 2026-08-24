@@ -145,7 +145,7 @@ describe("the wiring", () => {
   it("bumped the snapshot version when the shape changed", () => {
     // `bonus: number | null` became `rounds: readonly number[]`. A stored v4
     // read as a v5 restores a board with no queue and a prize quietly gone.
-    expect(SRC).toMatch(/version: 5,/);
+    expect(SRC).toMatch(/version: 6,/);
   });
 
 });

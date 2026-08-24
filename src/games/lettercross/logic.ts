@@ -23,29 +23,33 @@
  * See NOTICE.md for the word-list provenance, which is the other half of this.
  */
 import { WORDS } from "./words";
+import { BOX_INDICES } from "./boxes";
+import { CELLS, SIZE, W, at, boardAt, colOf, rowOf, type Board, type Cell } from "./grid";
+
+export { SIZE, W, CELLS, boardAt, at, type Board, type Cell };
 
 /**
  * NINE, and it moved 11 -> 9 on 2026-08-24 for a reason that is not aesthetic.
  *
- * The board now carries a one-cell ring of prize boxes outside it, and the ring
- * has to come from somewhere. Measured on the artifact at 390px: with the ring
- * added to an 11-wide board the cell falls to 28.2px, the smallest tap target
- * in this catalogue - against a 44px generic floor and a 64px `--tap-kids`. At
- * nine the whole stage is the width the board alone used to be and the cell is
- * back to 33.3px, so the ring costs the player nothing.
+ * The board carries a one-cell ring of prize boxes outside it, and the ring has
+ * to come from somewhere. Measured on the artifact at 390px: with the ring added
+ * to an 11-wide board the cell falls to 28.2px, the smallest tap target in this
+ * catalogue - against a 44px generic floor and a 64px `--tap-kids`. At nine the
+ * whole stage is the width the board alone used to be and the cell is back to
+ * 33.3px, so the ring costs the player nothing.
  *
  * It is also further from the famous 15 x 15 than it was, which the header's
  * distinctiveness list depends on, and it takes away squares an eight-tile rack
  * was never going to reach.
+ *
+ * It lives in `grid.ts` now and is re-exported here, so the forty places that
+ * import it from this module still do. See that file for why the index space is
+ * the whole W x W stage rather than the SIZE x SIZE board.
  */
-export const SIZE = 9;
 /** The middle level's rack. `rackFor` is the real answer; this is medium's. */
 export const RACK = 8;
 
 export type Level = "easy" | "medium" | "hard";
-/** A square: a letter, and whether the tile spelling it was a wild (scores 0). */
-export type Cell = { readonly letter: string; readonly wild: boolean } | null;
-export type Board = readonly Cell[];
 /** A tile in hand. "?" is a wild; it becomes a letter only when placed. */
 export type Tile = string;
 export type Placement = { readonly index: number; readonly letter: string; readonly wild: boolean };
@@ -109,7 +113,7 @@ export function newGame(level: Level, rng: () => number = Math.random): State {
   const n = rackFor(level);
   return {
     level,
-    board: Array<Cell>(SIZE * SIZE).fill(null),
+    board: Array<Cell>(CELLS).fill(null),
     rack: bag.slice(0, n),
     bag: bag.slice(n),
     score: 0,
@@ -123,13 +127,29 @@ export function draw(rack: readonly Tile[], bag: readonly Tile[], want: number) 
   return { rack: [...rack, ...bag.slice(0, need)], bag: bag.slice(need) };
 }
 
+/**
+ * WHICH SQUARES A TILE MAY GO ON: the inner SIZE x SIZE board, plus the twelve
+ * prize boxes in the ring, and nothing else. The rest of the ring - the four
+ * corners and the gaps between boxes - is stage, not board.
+ *
+ * It is what makes the prize squares need no special case anywhere else. A word
+ * runs off the edge of the board into a box exactly the way it runs from one
+ * board square to the next, because a box IS a square; and it cannot run ALONG
+ * the ring, because the cells either side of a box are dead and a run stops at
+ * an empty square. `boxes-are-in-line.test.ts` pins that no two boxes are
+ * adjacent, which is the assumption underneath that second half.
+ */
+export const PLAYABLE: readonly boolean[] = (() => {
+  const ok = Array<boolean>(CELLS).fill(false);
+  for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) ok[boardAt(r, c)] = true;
+  for (const i of BOX_INDICES) ok[i] = true;
+  return ok;
+})();
+
 export type Scored = { readonly word: string; readonly score: number };
 export type Verdict =
   | { readonly ok: true; readonly words: readonly Scored[]; readonly total: number }
-  | { readonly ok: false; readonly reason: "line" | "gap" | "word" | "empty" };
-
-const rowOf = (i: number) => Math.floor(i / SIZE);
-const colOf = (i: number) => i % SIZE;
+  | { readonly ok: false; readonly reason: "line" | "gap" | "word" | "empty" | "off" };
 
 /** Walk a filled run through `index` along a step, and return it with its cells. */
 function runThrough(board: Board, index: number, step: number): number[] {
@@ -138,13 +158,14 @@ function runThrough(board: Board, index: number, step: number): number[] {
   let start = index;
   while (start - step >= 0 && sameLine(start, start - step) && board[start - step]) start -= step;
   const run: number[] = [];
-  for (let i = start; i < SIZE * SIZE && board[i] && (i === start || sameLine(i, i - step)); i += step) run.push(i);
+  for (let i = start; i < CELLS && board[i] && (i === start || sameLine(i, i - step)); i += step) run.push(i);
   return run;
 }
 
 export function validate(board: Board, placements: readonly Placement[]): Verdict {
   if (placements.length === 0) return { ok: false, reason: "empty" };
   if (placements.some((p) => board[p.index] !== null)) return { ok: false, reason: "line" };
+  if (placements.some((p) => !PLAYABLE[p.index])) return { ok: false, reason: "off" };
 
   const rows = new Set(placements.map((p) => rowOf(p.index)));
   const cols = new Set(placements.map((p) => colOf(p.index)));
@@ -160,7 +181,7 @@ export function validate(board: Board, placements: readonly Placement[]): Verdic
   // Checked BEFORE the start-square rule: two tiles either side of the centre
   // with a hole between them is a gap, and calling that "you missed the start"
   // would send the player to fix the wrong thing.
-  const step = horizontal ? 1 : SIZE;
+  const step = horizontal ? 1 : W;
   const idxs = placements.map((p) => p.index).sort((a, b) => a - b);
   for (let i = idxs[0]; i <= idxs[idxs.length - 1]; i += step) if (!next[i]) return { ok: false, reason: "gap" };
 
@@ -199,7 +220,7 @@ export function validate(board: Board, placements: readonly Placement[]): Verdic
 
   // The main word along the axis of play, then every cross-word a new tile made.
   if (!collect(runThrough(next, idxs[0], step))) return { ok: false, reason: "word" };
-  for (const p of placements) if (!collect(runThrough(next, p.index, step === 1 ? SIZE : 1))) return { ok: false, reason: "word" };
+  for (const p of placements) if (!collect(runThrough(next, p.index, step === 1 ? W : 1))) return { ok: false, reason: "word" };
 
   // A PLAY MUST MAKE A WORD. With the start square and the touch rule gone
   // (2026-08-24) nothing else stops a single tile being dropped on an empty

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { newGame, validate, apply, SIZE } from "./logic";
+import { newGame, validate, apply, SIZE, boardAt } from "./logic";
 
 /**
  * What the board is FOR, since 2026-08-24. The operator, verbatim:
@@ -17,7 +17,14 @@ import { newGame, validate, apply, SIZE } from "./logic";
  * the removals opened: with nothing left to enforce WHERE a tile goes, a single
  * tile went anywhere for zero points. See the last block.
  */
-const idx = (r: number, c: number) => r * SIZE + c;
+/**
+ * Board coordinates, 0..SIZE-1. It is `boardAt` rather than `r * SIZE + c`
+ * because the index space is the whole stage since 2026-08-25 - the board sits
+ * inside a one-cell ring of prize squares, so a board square's own row and
+ * column are not its index. Written out again here it would be a second place
+ * to be wrong.
+ */
+const idx = boardAt;
 const lay = (r: number, c: number, w: string, down = false) =>
   [...w].map((letter, k) => ({ index: down ? idx(r + k, c) : idx(r, c + k), letter, wild: false }));
 

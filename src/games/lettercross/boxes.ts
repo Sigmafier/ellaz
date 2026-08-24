@@ -6,7 +6,7 @@
  * `boxes-are-in-line.test.ts` run the real rule rather than read the source
  * for it.
  */
-import { SIZE, type Board } from "./logic";
+import { SIZE, at, type Board } from "./grid";
 
 export type BoxArt = "gem" | "star" | "leaf" | "bell" | "drop" | "lock";
 
@@ -76,25 +76,30 @@ export const BOX_RADIUS: Readonly<Record<BoxSide, string>> = {
 
 
 /**
- * THE SQUARE A WORD MUST OCCUPY TO ARRIVE AT THIS BOX - the far end of the line
- * the box caps. A box on column 3 above the board is reached at (row 0, col 3);
- * one on row 5 to the right of it is reached at (row 5, col SIZE-1).
+ * THE SQUARE THIS BOX *IS* - its own cell in the stage's index space.
  *
- * It is derived from the box's own coordinates rather than listed beside them,
- * so it cannot disagree with `lineOf` - the two answer the same question, one
- * in prose and one in an index, and a hand-kept table of twelve indices is a
- * second place to be wrong every time SIZE moves.
+ * Until 2026-08-25 this function was `reachIndex` and returned the board square
+ * NEXT to the box, because the box itself had no index to return. That made
+ * "reaching" a box mean filling the square beside it, and the operator's
+ * correction is the whole reason this file changed: "the mini game only apply
+ * if you put a letter in the outside boxes not near them."
  *
- * A corner box has no answer here, which is why `boxes-are-in-line.test.ts`
- * refuses one: `lineOf` returning null and this returning nonsense are the same
- * defect seen from two sides.
+ * A box is addressed in BOARD coordinates (-1 is the ring above or left, SIZE
+ * the ring below or right) and the stage is the board plus that one-cell ring,
+ * so the conversion is one `+1` on each axis and there is no table of twelve
+ * indices to keep in step with anything.
  */
-export function reachIndex(b: PrizeBox): number {
-  if (b.row < 0) return b.col;                            // top    -> the first row
-  if (b.row >= SIZE) return (SIZE - 1) * SIZE + b.col;    // bottom -> the last row
-  if (b.col < 0) return b.row * SIZE;                     // left   -> the first column
-  return b.row * SIZE + (SIZE - 1);                       // right  -> the last column
+export function boxIndex(b: PrizeBox): number {
+  return at(b.row + 1, b.col + 1);
 }
+
+/**
+ * Every prize square, as a set. `logic.ts` reads this to build the mask of what
+ * may be played on: the inner board plus these twelve, and nothing else in the
+ * ring. It is derived from `BOXES` rather than listed beside it, so a box moved
+ * is a square moved and the two cannot drift apart.
+ */
+export const BOX_INDICES: ReadonlySet<number> = new Set(BOXES.map(boxIndex));
 
 /**
  * A PADLOCK IS SHUT, and reaching one is not the same as opening it.
@@ -108,16 +113,16 @@ export function reachIndex(b: PrizeBox): number {
 export const isLocked = (b: PrizeBox) => b.art === "lock";
 
 /**
- * Which boxes this board has arrived at, as indices into `BOXES`.
+ * Which boxes hold a letter, as indices into `BOXES`.
  *
- * Takes the WHOLE board rather than this turn's placements: a box is reached
- * when its square is occupied, by whichever turn put a tile there. Diffing the
+ * Takes the WHOLE board rather than this turn's placements: a box is taken when
+ * its own square is occupied, by whichever turn put a tile there. Diffing the
  * result against what was already reached is the caller's job, and that record
  * rides the session snapshot - without it, walking out and back in re-collects
  * every box on the board (session-snapshot-convention.md).
  */
 export function reachedBoxes(board: Board): number[] {
   const out: number[] = [];
-  BOXES.forEach((b, i) => { if (board[reachIndex(b)]) out.push(i); });
+  BOXES.forEach((b, i) => { if (board[boxIndex(b)]) out.push(i); });
   return out;
 }

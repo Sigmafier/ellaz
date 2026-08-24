@@ -39,15 +39,33 @@ describe("every shipped box", () => {
     expect(stranded, `unreachable by any word: ${stranded.join(" | ")}`).toEqual([]);
   });
 
-  it("is OUTSIDE the board, not on a playable square", () => {
+  it("is in the RING, never on a board square", () => {
     const onBoard = BOXES.filter(
       (b) => b.row >= 0 && b.row < SIZE && b.col >= 0 && b.col < SIZE,
     ).map(key);
-    expect(onBoard, `sitting on a square a tile needs: ${onBoard.join(" | ")}`).toEqual([]);
+    expect(onBoard, `taking a square the board needs: ${onBoard.join(" | ")}`).toEqual([]);
   });
 
   it("has the ring to itself - no two boxes in one cell", () => {
     expect(new Set(BOXES.map(key)).size).toBe(BOXES.length);
+  });
+
+  /**
+   * AND NO TWO ARE NEIGHBOURS. Since 2026-08-25 a box is a square a tile goes
+   * on, so this stopped being tidiness and became a rule: the reason a word
+   * cannot run ALONG the ring is that the cells either side of a box are dead
+   * for ever, and a run stops at an empty square. Two boxes side by side would
+   * be a two-letter word laid entirely in the ring, touching no board square
+   * and collecting two prizes for it. `logic.ts`'s `PLAYABLE` says this
+   * assumption out loud; this is the assertion under it.
+   */
+  it("has no two boxes side by side", () => {
+    const touching: string[] = [];
+    for (const a of BOXES) for (const b of BOXES) {
+      if (a === b) continue;
+      if (Math.abs(a.row - b.row) + Math.abs(a.col - b.col) === 1) touching.push(`${key(a)} / ${key(b)}`);
+    }
+    expect(touching, `adjacent in the ring: ${touching.join(" | ")}`).toEqual([]);
   });
 
   it("knows which side it is on, and that side has a radius", () => {
