@@ -204,6 +204,41 @@ describe("the home bar the operator specified", () => {
     );
   });
 
+  it("gives the room card the COINS and the bar the STARS, with no overlap", () => {
+    // The star count printed TWICE on one screen until 2026-08-24 - once in the
+    // bar, once in this card's subtitle about 90px below it. The bar keeps the
+    // trophy (never spent, never lost) and the card keeps the balance that is
+    // spent inside the room it opens - `RewardsPort` has no `spend()`, so that
+    // room is the only place in the app a coin goes.
+    const hero = HEADER.slice(HEADER.indexOf("function WorldHero"));
+    const at = hero.indexOf("profile.coins > 0");
+    const line = hero.slice(at, hero.indexOf("</span>", at));
+    expect(line, "the room card prints a star count again").not.toMatch(/t\("stars"\)/);
+    // The control. Every assertion above passes over an EMPTY string, which is
+    // exactly what these two indexOf calls return once somebody renames the
+    // component or the gate - so prove the slice IS the subtitle first.
+    expect(line, "the WorldHero subtitle slice is empty - the matcher moved").toMatch(
+      /t\("coins"\)/,
+    );
+  });
+
+  it("keeps the starsOnly justification in step with what the card prints", () => {
+    // Not idle prose: that paragraph is the stated REASON the prop exists, and
+    // it argued from the card printing both numbers. Same class as the three
+    // DOCUMENT_CSS notes that were false for a day and a half while a commit
+    // message quoted them as fact - a stale instruction does not read as stale,
+    // it reads as a rule. Present tense is the discriminator: the corrected
+    // text says the card PRINTED both until 2026-08-24.
+    expect(CHIP, "WalletChip still claims the room card prints both numbers").not.toMatch(
+      /already prints both numbers/,
+    );
+    // Control: prove we are reading the justification at all, not an empty file
+    // or a doc block that lost the subject entirely.
+    expect(CHIP, "the starsOnly doc no longer mentions the card it argues from").toMatch(
+      /My world card/,
+    );
+  });
+
   it("hides the tagline on a phone WITHOUT removing it from the document", () => {
     // A media query, never a conditional render: responsive hiding is not
     // cloaking, and not rendering it takes the line from a crawler too.

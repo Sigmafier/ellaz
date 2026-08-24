@@ -741,10 +741,26 @@ function WorldHero({
         </strong>
         <span style={{ color: "var(--text-dim)", fontSize: 13.5 }} dir="auto">
           {/* Before the first coin this is an INVITATION, not a balance. Showing
-              "0 coins" to a child who has not played yet reads as a debt. */}
-          {profile.coins > 0
-            ? `${t("coins")}: ${profile.coins} · ${t("stars")}: ${profile.stars}`
-            : t("worldInvite")}
+              "0 coins" to a child who has not played yet reads as a debt.
+
+              COINS ONLY, since 2026-08-24. The bar directly above this card
+              prints the star count, so a star total here was the same number
+              twice on one screen, about 90px apart.
+
+              Coins are this card's own subject: `RewardsPort` has no `spend()`
+              at all, by design, so the World screen is the ONE place in the
+              whole app where a coin is spent. This line is that room's price
+              tag.
+
+              Stars are NOT irrelevant to the room - outfit_space, hat_crown
+              and pet_dragon gate on 5, 10 and 20 of them - so the tidy story
+              ("the room has nothing to do with stars") would be false. They
+              are simply not needed on the DOOR: `/world/` mounts
+              `<WalletChip bare />`, which draws coins AND stars, and a locked
+              item draws its own star requirement beside itself. The count is
+              one tap away, on the screen where it decides something, next to
+              the thing it decides. */}
+          {profile.coins > 0 ? `${t("coins")}: ${profile.coins}` : t("worldInvite")}
         </span>
       </div>
       <span

@@ -46,10 +46,18 @@ export interface WalletChipProps {
    * coins+stars wraps the header to two rows at 320, 360, 390 and 430 alike,
    * while stars alone is one row from 390 up.
    *
-   * It is not only a width argument. The My world card sits directly under the
-   * bar now and already prints both numbers, so the bar's coin count was the
-   * DUPLICATE rather than the original - and coins are what a child spends in
-   * that room, so the room is where they belong.
+   * It is not only a width argument. Coins and stars answer different
+   * questions, so they belong on different surfaces: a coin is SPENT - and
+   * only ever in the World screen, since `RewardsPort` has no `spend()` - while
+   * a star is a trophy count that is never spent and never lost. The standing
+   * platform bar therefore carries the trophy, and the room's own card carries
+   * the balance a child will spend inside it.
+   *
+   * Those two readouts USED to overlap. The My world card printed both numbers
+   * until 2026-08-24, which is what made the bar's coin half a duplicate; the
+   * card prints coins only now (Home.tsx), so the two are the halves of one
+   * split rather than a copy and an original. Do not re-derive that from this
+   * paragraph alone - read the card.
    *
    * This chip is still the flyTo anchor either way. A coin granted while a game
    * is mounted flies to the game page's own chip, which is `bare` and whole;
