@@ -32,6 +32,7 @@ import { meta as spell } from "../games/spell/meta";
 import { meta as bubbleshooter } from "../games/bubbleshooter/meta";
 import { meta as match3 } from "../games/match3/meta";
 import { meta as jigsaw } from "../games/jigsaw/meta";
+import { meta as lettercross } from "../games/lettercross/meta";
 
 /** The games below the fold. Fetched on idle; never part of a first visit. */
 export const REST: ReadonlyArray<GameMeta> = [
@@ -129,4 +130,10 @@ export const REST: ReadonlyArray<GameMeta> = [
   // piece, because trying one somewhere and seeing that it does not belong IS
   // the puzzle. Appended, so its card art stays lazy.
   jigsaw,
+  // Wave 10. `lettercross` is a crossword tile game - lay letters, every run of two
+  // or more has to be a word. Its dictionary is a lazy chunk of its own, so the
+  // 28,515 words cost a first visit nothing; only this metadata row does.
+  // Appended, so its card art stays lazy too. See src/games/lettercross/NOTICE.md for
+  // where the word list comes from and what the name risks.
+  lettercross,
 ];

@@ -368,4 +368,25 @@ export const REST: Record<string, Scene> = {
     </g>
     <g fill="${PAL.paper}" opacity=".85">
       <circle cx="20" cy="26" r="3.4"/><circle cx="186" cy="70" r="2.8"/><circle cx="24" cy="132" r="2.8"/></g>` },
+  lettercross: { a: "#B33A3A", b: "#D97070", d: "band", s: `
+    <rect x="22" y="18" width="156" height="116" rx="9" fill="${PAL.paper}"/>
+    <g stroke="${PAL.clay}" stroke-width="2" opacity=".35">
+      <path d="M61 18v116M100 18v116M139 18v116M22 47h156M22 76h156M22 105h156"/></g>
+    <g fill="${PAL.sunflower}" opacity=".55">
+      <rect x="22" y="18" width="39" height="29"/><rect x="139" y="105" width="39" height="29"/></g>
+    <g fill="${PAL.lagoon}" opacity=".4">
+      <rect x="139" y="18" width="39" height="29"/><rect x="22" y="105" width="39" height="29"/></g>
+    <g font-family="Rubik,system-ui,sans-serif" font-weight="800" text-anchor="middle">
+      <g fill="${I}" font-size="23">
+        <rect x="64" y="50" width="33" height="26" rx="5" fill="${PAL.paper}" stroke="${I}" stroke-width="2.4"/>
+        <text x="80" y="71">W</text>
+        <rect x="103" y="50" width="33" height="26" rx="5" fill="${PAL.paper}" stroke="${I}" stroke-width="2.4"/>
+        <text x="119" y="71">O</text>
+        <rect x="103" y="79" width="33" height="26" rx="5" fill="${PAL.paper}" stroke="${I}" stroke-width="2.4"/>
+        <text x="119" y="100">R</text>
+      </g>
+      <rect x="142" y="79" width="33" height="26" rx="5" fill="${PAL.raspberry}" stroke="${I}" stroke-width="2.4"/>
+      <text x="158" y="100" fill="${PAL.paper}" font-size="21">★</text>
+    </g>
+    <g fill="${PAL.paper}" opacity=".8"><circle cx="14" cy="30" r="3"/><circle cx="190" cy="118" r="2.6"/></g>` },
 };

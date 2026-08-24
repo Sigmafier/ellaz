@@ -333,6 +333,7 @@ const ART: Record<string, Scene> = {
  * `game-art-split.test.ts` pins each one against `REST`'s own `a`.
  */
 const LAZY_GROUNDS: Record<string, string> = {
+  lettercross: "#B33A3A",
   balloons: "#FF4D8D",
   bubbles: "#26B0E6",
   shadows: "#4F5BD5",

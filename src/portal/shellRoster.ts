@@ -85,6 +85,7 @@ export const ROSTER_IDS: ReadonlyArray<string> = [
   "bubbleshooter",
   "match3",
   "jigsaw",
+  "lettercross",
 ];
 
 /**
@@ -113,6 +114,7 @@ export const ROSTER_CATEGORY: Readonly<Record<string, Category>> = {
   snake: "classics",
   blocks: "classics",
   wordguess: "learn",
+  lettercross: "classics",
   sequence: "think",
   vanish: "think",
   shadows: "think",

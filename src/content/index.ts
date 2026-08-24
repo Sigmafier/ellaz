@@ -20,6 +20,7 @@ import { reaction } from "./games/reaction";
 import { snake } from "./games/snake";
 import { sudoku } from "./games/sudoku";
 import { tictactoe } from "./games/tictactoe";
+import { lettercross } from "./games/lettercross";
 import { wordguess } from "./games/wordguess";
 import { sort } from "./games/sort";
 import { merge } from "./games/merge";
@@ -72,6 +73,7 @@ export const CONTENT: Record<string, GameContent> = {
   [finddiff.id]: finddiff,
   [hidden.id]: hidden,
   [math.id]: math,
+  [lettercross.id]: lettercross,
   [wordguess.id]: wordguess,
   [sort.id]: sort,
   [merge.id]: merge,
