@@ -28,7 +28,12 @@ const SRC = readFileSync(new URL("./Lettercross.tsx", import.meta.url), "utf8");
  */
 function playBody(): string {
   const from = SRC.indexOf("const play = useCallback(");
-  const to = SRC.indexOf("}, [ctx, level, pending, state]);", from);
+  // Anchored on the callback's own closing line rather than on its DEPENDENCY
+  // LIST - the deps move whenever the handler reads one more thing, and a
+  // matcher that goes blind on an ordinary edit reports a clean sweep over a
+  // handler it never read. The length floor below is the control that catches
+  // it either way.
+  const to = SRC.indexOf("\n  }, [", from);
   if (from < 0 || to < 0) return "";
   return SRC.slice(from, to).replace(/\/\/[^\n]*/g, "");
 }

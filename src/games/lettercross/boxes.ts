@@ -6,7 +6,7 @@
  * `boxes-are-in-line.test.ts` run the real rule rather than read the source
  * for it.
  */
-import { SIZE } from "./logic";
+import { SIZE, type Board } from "./logic";
 
 export type BoxArt = "gem" | "star" | "leaf" | "bell" | "drop" | "lock";
 
@@ -74,3 +74,50 @@ export const BOX_RADIUS: Readonly<Record<BoxSide, string>> = {
   left: "22% 0 0 22%", right: "0 22% 22% 0",
 };
 
+
+/**
+ * THE SQUARE A WORD MUST OCCUPY TO ARRIVE AT THIS BOX - the far end of the line
+ * the box caps. A box on column 3 above the board is reached at (row 0, col 3);
+ * one on row 5 to the right of it is reached at (row 5, col SIZE-1).
+ *
+ * It is derived from the box's own coordinates rather than listed beside them,
+ * so it cannot disagree with `lineOf` - the two answer the same question, one
+ * in prose and one in an index, and a hand-kept table of twelve indices is a
+ * second place to be wrong every time SIZE moves.
+ *
+ * A corner box has no answer here, which is why `boxes-are-in-line.test.ts`
+ * refuses one: `lineOf` returning null and this returning nonsense are the same
+ * defect seen from two sides.
+ */
+export function reachIndex(b: PrizeBox): number {
+  if (b.row < 0) return b.col;                            // top    -> the first row
+  if (b.row >= SIZE) return (SIZE - 1) * SIZE + b.col;    // bottom -> the last row
+  if (b.col < 0) return b.row * SIZE;                     // left   -> the first column
+  return b.row * SIZE + (SIZE - 1);                       // right  -> the last column
+}
+
+/**
+ * A PADLOCK IS SHUT, and reaching one is not the same as opening it.
+ *
+ * Step 2 of the game plan collects a box by arriving at it. Step 4 gives the
+ * wild tile a job and opens the padlocks, so a lock reached today is FOUND and
+ * not COLLECTED - the number printed on it still means nothing and nothing here
+ * pretends otherwise. Marking it found is what stops the note firing again on
+ * every later turn, since the square next to it stays filled for ever.
+ */
+export const isLocked = (b: PrizeBox) => b.art === "lock";
+
+/**
+ * Which boxes this board has arrived at, as indices into `BOXES`.
+ *
+ * Takes the WHOLE board rather than this turn's placements: a box is reached
+ * when its square is occupied, by whichever turn put a tile there. Diffing the
+ * result against what was already reached is the caller's job, and that record
+ * rides the session snapshot - without it, walking out and back in re-collects
+ * every box on the board (session-snapshot-convention.md).
+ */
+export function reachedBoxes(board: Board): number[] {
+  const out: number[] = [];
+  BOXES.forEach((b, i) => { if (board[reachIndex(b)]) out.push(i); });
+  return out;
+}

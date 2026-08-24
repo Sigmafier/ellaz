@@ -6,7 +6,7 @@ import { GameChrome, type ChromeLevel } from "@ui/GameChrome";
 import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
 import { seedFrom, mulberry32 } from "@shared/rng";
 import { streakStep } from "@sdk/streak";
-import { BOXES, BOX_RADIUS, sideOf, type BoxArt } from "./boxes";
+import { BOXES, BOX_RADIUS, sideOf, reachedBoxes, isLocked, type BoxArt } from "./boxes";
 import {
   SIZE, LETTER_VALUE, newGame, apply, validate,
   isOver, bestLevel, type Level, type Placement, type State,
@@ -20,15 +20,18 @@ const LEVEL_OPTIONS: ChromeLevel<Level>[] = [
 
 const STR = {
   en: { play: "Play", recall: "Take back", tiles: "Tiles", score: "Score",
-        pickLetter: "Pick a letter for the wild", over: "No tiles left" },
+        pickLetter: "Pick a letter for the wild", over: "No tiles left",
+        prize: "Prize box", taken: "Prize box, taken", locked: "Locked" },
   he: { play: "לשחק", recall: "להחזיר", tiles: "אריחים", score: "ניקוד",
-        pickLetter: "בחרו אות לג'וקר", over: "נגמרו האריחים" },
+        pickLetter: "בחרו אות לג'וקר", over: "נגמרו האריחים",
+        prize: "תיבת פרס", taken: "תיבת פרס, נלקחה", locked: "נעול" },
   es: { play: "Jugar", recall: "Retirar", tiles: "Fichas", score: "Puntos",
-        pickLetter: "Elige una letra para el comodín", over: "No quedan fichas" },
+        pickLetter: "Elige una letra para el comodín", over: "No quedan fichas",
+        prize: "Caja de premio", taken: "Caja de premio, recogida", locked: "Cerrado" },
 } as const;
 const str = (loc: Locale) => (STR as unknown as Record<string, typeof STR.en>)[loc] ?? STR.en;
 
-type LettercrossSession = { level: Level; state: State; bestFired: boolean };
+type LettercrossSession = { level: Level; state: State; bestFired: boolean; reached: readonly number[] };
 
 /**
  * The snapshot gate. Handed whatever was on the disk, so it assumes nothing and
@@ -42,12 +45,17 @@ type LettercrossSession = { level: Level; state: State; bestFired: boolean };
  * new best - without `bestFired` on the disk, walking out and back in re-arms
  * the reward and the run pays a star per resume, for ever.
  *
- * `version` is 2 because the shape changed. Nothing is migrated: a half-played
- * board is worth a few minutes, and migration code for it is a second copy of
- * the game's rules that nothing keeps in sync.
+ * IT CARRIES `reached` FOR THE SAME REASON. A box is collected once, and the
+ * square next to it stays filled for the rest of the run - so a snapshot that
+ * forgets which boxes are already open re-collects every one of them on the
+ * first word after a resume, and walking out and back in is a coin press.
+ *
+ * `version` is 3 because the shape changed twice. Nothing is migrated: a
+ * half-played board is worth a few minutes, and migration code for it is a
+ * second copy of the game's rules that nothing keeps in sync.
  */
 const SESSION: SessionSpec<LettercrossSession> = {
-  version: 2,
+  version: 3,
   validate: (value): value is LettercrossSession => {
     const s = value as Partial<LettercrossSession> | null;
     if (typeof s !== "object" || s === null) return false;
@@ -58,6 +66,7 @@ const SESSION: SessionSpec<LettercrossSession> = {
     if (!Array.isArray(g.rack) || !Array.isArray(g.bag)) return false;
     if (typeof g.score !== "number" || !Number.isFinite(g.score)) return false;
     if (typeof s.bestFired !== "boolean") return false;
+    if (!Array.isArray(s.reached) || s.reached.some((n) => !Number.isInteger(n))) return false;
     return true;
   },
 };
@@ -203,8 +212,17 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
    */
   const bestFiredRef = useRef(resume?.bestFired ?? false);
 
+  /**
+   * Every box the run has ARRIVED at - collected if it was open, found if it
+   * was a padlock. One list rather than two because the question it answers is
+   * "has this already happened", and both kinds must stop happening again.
+   */
+  const [reached, setReached] = useState<readonly number[]>(() => resume?.reached ?? []);
+  /** Where the coins fly FROM: the box itself, not the middle of the screen. */
+  const boxEls = useRef<(HTMLDivElement | null)[]>([]);
+
   const over = isOver(state) && pending.length === 0;
-  useGameSession(ctx, SESSION, () => ({ level, state, bestFired: bestFiredRef.current }), { live: !over });
+  useGameSession(ctx, SESSION, () => ({ level, state, bestFired: bestFiredRef.current, reached }), { live: !over });
 
   const best = ctx.score?.best(bestLevel(level));
 
@@ -213,6 +231,7 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
     setPending([]); setHeld(null); setAsking(null); setNote("");
     streakRef.current = 0;
     bestFiredRef.current = false;
+    setReached([]);
   }, []);
 
   /** The board as it looks with this turn's tentative tiles on it. */
@@ -267,11 +286,55 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
     // "too short", and the explicit `=== undefined` is why: rung 0 is a REAL
     // note - the ladder's own bottom - so `if (!step)` would play `success`
     // on the third word forever and the ladder would never start.
+    /**
+     * STEP 2 OF THE GAME PLAN: reaching a box collects it.
+     *
+     * Reached is asked of the WHOLE BOARD rather than of this turn's tiles - a
+     * box is arrived at when its square is occupied, by whichever turn put a
+     * tile there. Which means the square stays filled for the rest of the run,
+     * so `reached` is what stops the box collecting itself again on every later
+     * word. It rides the snapshot for the same reason (see SESSION).
+     *
+     * A PADLOCK IS FOUND, NOT OPENED. Step 4 gives the wild tile a job and
+     * opens them; today a lock says so and pays nothing, and the number printed
+     * on it still means nothing. Marking it reached anyway is what stops the
+     * note firing again every turn.
+     */
+    const arrived = reachedBoxes(next.board).filter((n) => !reached.includes(n));
+    const opened = arrived.filter((n) => !isLocked(BOXES[n]));
+    const found = arrived.filter((n) => isLocked(BOXES[n]));
+    if (arrived.length) setReached((r) => [...r, ...arrived]);
+
     streakRef.current += 1;
-    const step = streakStep(streakRef.current);
-    if (step === undefined) ctx.audio.play("success");
-    else ctx.audio.play("streak", { semitones: step });
-    haptic.success();
+
+    // THE BOX REPLACES THE WORD SOUND rather than stacking on it - the same
+    // argument the streak ladder makes eight lines down, and the reason it is
+    // an `else` rather than two `play` calls: two voices on one event is a
+    // pile, not an escalation. `winMoment` below plays the win chord, so a
+    // turn that opens a box sounds like opening a box.
+    if (opened.length === 0) {
+      const step = streakStep(streakRef.current);
+      if (step === undefined) ctx.audio.play("success");
+      else ctx.audio.play("streak", { semitones: step });
+      haptic.success();
+    }
+
+    // Coins for progress, and the game says WHAT HAPPENED rather than what it
+    // is worth: `milestone` is a flat coin and no star in `economy.ts`, which
+    // is the whole reason a box cannot quietly become worth twelve
+    // (rewards-economy-convention.md). `at` is the BOX, so the coins arc from
+    // the thing that just opened rather than from the middle of the screen.
+    for (const n of opened) {
+      const r = boxEls.current[n]?.getBoundingClientRect();
+      winMoment(ctx, {
+        reason: "milestone",
+        tier: level,
+        level: `lettercross-box-${BOXES[n].art}`,
+        confetti: false,
+        at: r ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : undefined,
+      });
+    }
+    if (found.length) setNote(T.locked);
 
     // THE RECORD IS WRITTEN EVERY TURN, not at the end of the run, and that is
     // a fix rather than a preference. This used to hang off `isOver`, which is
@@ -302,7 +365,7 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
         confetti: false,
       });
     }
-  }, [ctx, level, pending, state]);
+  }, [ctx, level, pending, reached, state, T.locked]);
 
   const cell = `calc(${STAGE} / ${RING})`;
 
@@ -353,19 +416,28 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
         }}>
           {BOXES.map((b, n) => {
             const side = sideOf(b);
+            const shut = isLocked(b);
+            const here = reached.includes(n);
+            // Three states, and only two of them are gold. A COLLECTED box is
+            // an empty frame - the prize left it, which is the whole point -
+            // while a FOUND padlock stays gold and gains an inner ring, so it
+            // reads as "you got here and it is shut" rather than as taken.
+            const taken = here && !shut;
             return (
-              // Nothing here does anything yet - reaching a box is step 2 - so
-              // it carries no information and is hidden from a screen reader
-              // rather than announced as a control that ignores you. The label
-              // arrives in the same change as the rule.
-              <div key={n} aria-hidden="true" style={{
+              <div key={n} ref={(el) => { boxEls.current[n] = el; }}
+                role="img" aria-label={taken ? T.taken : shut ? T.locked : T.prize}
+                style={{
                 gridRow: b.row + 2, gridColumn: b.col + 2,
                 display: "grid", placeItems: "center", position: "relative",
-                background: `linear-gradient(160deg, ${GOLD_LIT}, ${GOLD})`,
-                border: `1px solid ${GOLD_EDGE}`, boxSizing: "border-box",
+                background: taken ? SQUARE : `linear-gradient(160deg, ${GOLD_LIT}, ${GOLD})`,
+                border: `1px solid ${taken ? RULE : GOLD_EDGE}`, boxSizing: "border-box",
                 borderRadius: BOX_RADIUS[side],
+                boxShadow: here && shut ? `inset 0 0 0 2px ${GOLD_INK}` : undefined,
+                opacity: taken ? 0.5 : 1,
+                transition: "background 220ms, opacity 220ms",
               }}>
-                <svg viewBox="0 0 24 24" width="74%" height="74%" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="74%" height="74%" aria-hidden="true"
+                  style={{ opacity: taken ? 0.3 : 1 }}>
                   {BOX_ART[b.art]}
                 </svg>
                 {b.value !== undefined && (
