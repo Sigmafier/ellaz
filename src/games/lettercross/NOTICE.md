@@ -63,6 +63,20 @@ affirmative allowlist, not from this file.** Same reasoning as
 `.claude/rules/name-pool-convention.md`: constrain the space so the bad output
 is not representable, rather than filtering it afterwards.
 
+**That allowlist exists now: `puzzleWords.ts`**, written 2026-08-25 for the
+bonus screens, which are the first thing here that shows a word rather than
+judging one. 346 concrete words a five-year-old could point at, authored by hand
+and grouped under labels so it can be audited by reading. `puzzle-words.test.ts`
+holds the three rules that keep it honest - it never imports this file, every
+word in it is also in this file, and it stays big enough to ask a puzzle from.
+
+**A measured gap in the mirror, found by that second rule**: `knife` is absent
+from `words.ts` while `knifed`, `knifer` and `knifes` are all present. It is one
+word out of 346 checked, so this is a hole in the ENABLE copy rather than a
+pattern - but it is the concrete evidence behind the paragraph above asking for a
+better-attested source, and it is why the kitchen row of the allowlist says
+`fork`.
+
 The two-letter words are authored rather than filtered, for the same reason and
 one more: ENABLE's 96 two-letter entries are tournament cheese, and a child told
 that `at` is invalid while `za` scores is being taught the game is arbitrary.
