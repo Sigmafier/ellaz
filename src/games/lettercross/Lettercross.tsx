@@ -1,10 +1,11 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { GameContext, SessionSpec } from "@sdk/index";
 import type { Locale } from "@i18n/index";
 import { haptic } from "@juice/index";
 import { GameChrome, type ChromeLevel } from "@ui/GameChrome";
 import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
 import { seedFrom, mulberry32 } from "@shared/rng";
+import { streakStep } from "@sdk/streak";
 import {
   SIZE, CENTRE, LETTER_VALUE, premiumAt, newGame, apply, validate,
   isOver, bestLevel, type Level, type Placement, type State,
@@ -108,6 +109,17 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
   const [asking, setAsking] = useState<number | null>(null);
   const [note, setNote] = useState<string>("");
 
+  /**
+   * How many words in a row have been ACCEPTED. Held in a ref rather than
+   * state because nothing renders from it - it only ever decides which sound
+   * the next accepted word makes, and a re-render per word would be paid for
+   * nothing. `sdk/streak.ts` alone turns it into a rung; this game reports the
+   * count and never picks a pitch, the same shape as `economy.ts` and
+   * `score.ts`. A REFUSED word resets it: the run is of good words, not of
+   * attempts.
+   */
+  const streakRef = useRef(0);
+
   const over = isOver(state) && pending.length === 0;
   useGameSession(ctx, SESSION, () => ({ level, state }), { live: !over });
 
@@ -116,6 +128,7 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
   const reset = useCallback((next: Level) => {
     setState(newGame(next, mulberry32(seedFrom(`lettercross-${next}-${Date.now()}`))));
     setPending([]); setHeld(null); setAsking(null); setNote("");
+    streakRef.current = 0;
   }, []);
 
   /** The board as it looks with this turn's tentative tiles on it. */
@@ -128,7 +141,8 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
   const takeBack = useCallback((index: number) => {
     setPending((ps) => ps.filter((p) => p.index !== index));
     setNote("");
-  }, []);
+    ctx.audio.play("flip");
+  }, [ctx]);
 
   const placeAt = useCallback((index: number) => {
     if (over) return;
@@ -138,13 +152,15 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
     if (tile === "?") { setAsking(index); return; }
     setPending((ps) => [...ps, { index, letter: tile, wild: false }]);
     setHeld(null); setNote("");
-  }, [held, over, pending, state.board, state.rack, takeBack]);
+    ctx.audio.play("pop"); haptic.tap();
+  }, [ctx, held, over, pending, state.board, state.rack, takeBack]);
 
   const chooseWild = useCallback((letter: string) => {
     if (asking === null) return;
     setPending((ps) => [...ps, { index: asking, letter, wild: true }]);
     setAsking(null); setHeld(null); setNote("");
-  }, [asking]);
+    ctx.audio.play("pop"); haptic.tap();
+  }, [asking, ctx]);
 
   const play = useCallback(() => {
     const v = validate(state.board, pending);
@@ -152,12 +168,27 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
       // A refusal is not an error. Say which rule, once, and leave the tiles
       // where they are so nothing has to be laid out again.
       setNote((REASON[ctx.locale] ?? REASON.en)[v.reason] ?? "");
-      haptic.fail();
+      ctx.audio.play("fail"); haptic.fail();
+      streakRef.current = 0;
       return;
     }
     const next = apply(state, pending);
     setState(next);
     setPending([]); setHeld(null); setNote("");
+
+    // The ladder REPLACES the ordinary success sound rather than stacking on
+    // it - two voices on one event is a pile, not an escalation. Below the
+    // floor a word sounds like Wood run; from the third in a row it sounds
+    // like Glass, climbing. `streakStep` returns `undefined` rather than 0 for
+    // "too short", and the explicit `=== undefined` is why: rung 0 is a REAL
+    // note - the ladder's own bottom - so `if (!step)` would play `success`
+    // on the third word forever and the ladder would never start.
+    streakRef.current += 1;
+    const step = streakStep(streakRef.current);
+    if (step === undefined) ctx.audio.play("success");
+    else ctx.audio.play("streak", { semitones: step });
+    haptic.success();
+
     if (isOver(next)) {
       winMoment(ctx, {
         reason: "personal_best",
@@ -242,7 +273,7 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
             const spent = pending.filter((p) => (p.wild ? "?" : p.letter) === tile).length;
             const usedUp = state.rack.slice(0, i + 1).filter((t) => t === tile).length <= spent;
             return (
-              <button key={i} onClick={() => setHeld(held === i ? null : i)} disabled={usedUp || over}
+              <button key={i} onClick={() => { setHeld(held === i ? null : i); ctx.audio.play("tap"); }} disabled={usedUp || over}
                 style={{
                   width: 44, height: 48, borderRadius: 10, fontSize: 20, fontWeight: 800,
                   border: held === i ? `3px solid ${ACCENT}` : `1px solid ${RULE}`,
