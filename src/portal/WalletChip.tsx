@@ -37,9 +37,28 @@ export interface WalletChipProps {
    * add a third caller.
    */
   bare?: boolean;
+  /**
+   * Draw the STAR count only, with no coin half.
+   *
+   * The home bar, and only the home bar. Operator ruling 2026-08-24: that bar
+   * carries "stars and dark" plus the language and the leaderboards, and the
+   * coin half is what makes those four not fit - measured on the built page,
+   * coins+stars wraps the header to two rows at 320, 360, 390 and 430 alike,
+   * while stars alone is one row from 390 up.
+   *
+   * It is not only a width argument. The My world card sits directly under the
+   * bar now and already prints both numbers, so the bar's coin count was the
+   * DUPLICATE rather than the original - and coins are what a child spends in
+   * that room, so the room is where they belong.
+   *
+   * This chip is still the flyTo anchor either way. A coin granted while a game
+   * is mounted flies to the game page's own chip, which is `bare` and whole;
+   * nothing flies to the home bar, because no game is running behind it.
+   */
+  starsOnly?: boolean;
 }
 
-export function WalletChip({ bare = false }: WalletChipProps = {}) {
+export function WalletChip({ bare = false, starsOnly = false }: WalletChipProps = {}) {
   const ref = useRef<HTMLDivElement>(null);
   const [coins, setCoins] = useState(() => wallet.coins);
   const [stars, setStars] = useState(() => wallet.stars);
@@ -104,7 +123,7 @@ export function WalletChip({ bare = false }: WalletChipProps = {}) {
       ref={ref}
       // Numbers read left-to-right even in the Hebrew RTL shell.
       dir="ltr"
-      aria-label={`${coins} coins, ${stars} stars`}
+      aria-label={starsOnly ? `${stars} stars` : `${coins} coins, ${stars} stars`}
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -137,17 +156,19 @@ export function WalletChip({ bare = false }: WalletChipProps = {}) {
           and a yellow star on top of it are two more accents competing with
           the one colour the bar exists to show - and `--orange-ink` is tuned
           for the cream shell, not for a saturated dark surface. */}
-      <span
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "var(--space-1)",
-          color: bare ? "inherit" : "var(--orange-ink)",
-        }}
-      >
-        <Icon name="coin" />
-        {coins}
-      </span>
+      {!starsOnly && (
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "var(--space-1)",
+            color: bare ? "inherit" : "var(--orange-ink)",
+          }}
+        >
+          <Icon name="coin" />
+          {coins}
+        </span>
+      )}
       <span
         style={{
           display: "inline-flex",

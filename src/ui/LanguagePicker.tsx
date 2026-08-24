@@ -28,17 +28,25 @@ import { AVAILABLE, makeT } from "@i18n/strings";
  * 3. THE CURRENT LANGUAGE IS MARKED BY SHAPE, NOT COLOUR. A ring plus a check
  *    glyph, so it reads for a colour-blind parent and in a screenshot.
  *
- * 4. THE AUTONYM ON THE BUTTON IS HIDDEN ON A NARROW SCREEN. `Bahasa Indonesia`
- *    made this control 134px wide beside three 48px siblings, and the home
- *    header has no 134px to give: measured at 390px it asked for 509px of a
- *    350px box. The label is a convenience, not the control - the globe is the
- *    control, `aria-label` carries the name, and the sheet it opens writes
- *    every language in itself. Nothing is lost that the next tap does not show.
+ * 4. THE BUTTON IS A GLOBE AT EVERY WIDTH. It used to carry the autonym above
+ *    430px and hide it below, through an `.ellaz-lang-label` class the
+ *    stylesheet owned. Operator ruling 2026-08-24, verbatim: "always show
+ *    language as globe icon but it must be there". So there is no label, no
+ *    class and no media query - one control, one appearance, everywhere.
  *
- *    It is a CLASS rather than a `useState` on window width, because a resize
- *    listener re-renders on every drag and reads wrong on the first paint; and
- *    because these styles are inline, the label's `display` has to be the one
- *    thing the stylesheet owns or a media query cannot reach it at all.
+ *    "But it must be there" is the load-bearing half, and it is why this
+ *    control is never folded behind a settings button. Measured that day: the
+ *    four home shells (`/`, `/he/`, `/es/`, `/fr/`) emit NO language offer bar
+ *    - 0 hits against 7 on every content page, because they render no
+ *    DOCUMENT_CSS - so on those four pages THIS is the only language
+ *    affordance in existence. `/` is also the canonical entry and the
+ *    x-default target, and `storedLocale()` answers a first visit in English
+ *    by design, while Search Console says 76% of the queries reaching this
+ *    site are Hebrew. Hiding this button hides the way out.
+ *
+ *    The name is not lost with the label: `aria-label` carries it, in the
+ *    "Theme: Night" shape the sibling toggles already use, and the sheet it
+ *    opens still writes every language in itself.
  *
  * Each entry carries its own `dir` and `lang`, so an Arabic autonym renders
  * right-to-left inside an otherwise left-to-right sheet. Without that, the label
@@ -71,7 +79,10 @@ export function LanguagePicker({
   return (
     <div style={{ position: "relative" }}>
       <button
-        aria-label={t("language")}
+        // The autonym rides the accessible name now that the button draws no
+        // label - the same "Theme: Night" shape ThemeToggle uses, so a screen
+        // reader still hears which language is current.
+        aria-label={`${t("language")}: ${AUTONYM[locale]}`}
         aria-expanded={open}
         aria-haspopup="true"
         onClick={() => {
@@ -80,9 +91,10 @@ export function LanguagePicker({
         }}
         style={{
           minHeight: "var(--tap)",
-          // The tap target has to survive losing its label: 14px of padding
-          // either side of an 18px globe is 46, which is under the floor every
-          // other control in that header holds.
+          // The tap target is the globe and nothing else now, so `minWidth`
+          // is the whole width rather than a floor under a label: 14px of
+          // padding either side of an 18px globe is 46, under the 48px floor
+          // every other control in that header holds.
           minWidth: "var(--tap)",
           padding: "0 14px",
           borderRadius: "var(--radius-pill)",
@@ -98,9 +110,6 @@ export function LanguagePicker({
         }}
       >
         <GlobeIcon />
-        <span className="ellaz-lang-label" lang={locale} dir={dirOf(locale)}>
-          {AUTONYM[locale]}
-        </span>
       </button>
 
       {open && (

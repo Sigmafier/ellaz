@@ -252,7 +252,18 @@ export function Home({
             padding: "12px 4px 16px",
           }}
         >
-          <div style={{ fontSize: 40 }} aria-hidden="true">
+          {/* 26 rather than 40, and the tagline below is hidden on a phone -
+              together they are the 73px that gets this bar onto ONE row.
+              Measured on the built page at 390px: the identity block alone
+              claimed 342 of the 350 available, which is why removing controls
+              changed the height by exactly zero and shrinking the identity is
+              the only lever that moves it.
+
+              The controller stays, on the operator's ruling (they were shown
+              the same bar with and without it and picked with). It is
+              aria-hidden decoration, so it costs a crawler and a screen reader
+              nothing. */}
+          <div style={{ fontSize: 26 }} aria-hidden="true">
             🎮
           </div>
           {/* `minWidth: 0` because a flex item's default `min-width: auto`
@@ -260,8 +271,15 @@ export function Home({
               title push the controls off the screen instead of the row
               wrapping. The wrap above does nothing without it. */}
           <div style={{ flex: "1 1 auto", minWidth: 0 }}>
-            <h1 style={{ fontSize: 30, lineHeight: 1 }}>{t("appName")}</h1>
-            <div style={{ color: "var(--text-dim)", fontSize: 14 }}>{t("tagline")}</div>
+            <h1 style={{ fontSize: 24, lineHeight: 1 }}>{t("appName")}</h1>
+            {/* HIDDEN on a phone, never removed. A media query rather than a
+                conditional render, for the reason the emitted screen name
+                already carries: responsive hiding is not cloaking, and not
+                rendering it at all is a different thing - a crawler and a
+                screen reader still get the line. */}
+            <div className="ellaz-tagline" style={{ color: "var(--text-dim)", fontSize: 14 }}>
+              {t("tagline")}
+            </div>
           </div>
           {/* The four controls travel together. Without this wrapper the row
               wraps one control at a time, and a phone gets the language pill
@@ -291,50 +309,37 @@ export function Home({
               marginInlineStart: "auto",
             }}
           >
-            <WalletChip />
+            {/* STARS, not coins and stars. Operator ruling 2026-08-24. The My
+                world card sits directly under this bar now and prints both
+                numbers, so the coin count here was the duplicate - and coins
+                are what a child spends in that room. It is also what makes
+                four controls fit: measured, coins+stars wraps this header to
+                two rows at 320, 360, 390 and 430 alike. */}
+            <WalletChip starsOnly />
             {/* Beside the wallet, and only once there is a streak to show. It
                 is the same currency-shaped readout: something you have, not
                 something you owe. */}
             <DailyChip locale={locale} />
-            <CardStyleToggle locale={locale} onTap={tap} />
-            <ThemeToggle locale={locale} onTap={tap} />
+            <BoardsButton locale={locale} onTap={tap} />
             <LanguagePicker locale={locale} onPick={onPickLocale} onTap={tap} />
+            <ThemeToggle locale={locale} onTap={tap} />
           </div>
         </header>
 
-        <DailyCard locale={locale} onTap={tap} />
+        {/* THE ROOM FIRST, then today's puzzle, then the games. Operator
+            ruling 2026-08-24: "then my world then games".
 
+            The boards CARD that used to sit here is gone - it is the trophy
+            in the bar now, and two doors to one room is the thing this whole
+            pass is undoing. One consequence is worth stating rather than
+            leaving to be found: that card appeared only once you had played
+            ("a first visit is for games"), and a bar icon is always there. So
+            a first-time visitor now sees a leaderboards control that leads to
+            an empty board. That is a real reversal of a stated decision, and
+            it is the operator's, not mine - `BoardsButton` carries the note. */}
         <WorldHero profile={profile} locale={locale} onTap={tap} />
 
-        {/* The boards, and only once there is something to be on.
-            A first visit is for games. A leaderboard link on a home screen
-            nobody has played yet leads to "play a game and you'll show up
-            here", which is honest and is still clutter in front of a child
-            choosing their first game. It appears the moment it means
-            something. Deliberately NOT nested inside the room card above:
-            an <a> inside an <a> is invalid and browsers close the outer one
-            mid-DOM, which would take the room card apart. */}
-        {recent.length > 0 && (
-          <a
-            href={boardsHref(pageLocaleFor(locale))}
-            onClick={tap}
-            style={{
-              display: "block",
-              width: "calc(100% - 8px)",
-              margin: "0 4px 20px",
-              padding: "11px 14px",
-              borderRadius: "var(--radius-3)",
-              background: "var(--surface-2)",
-              boxShadow: "var(--shadow-1)",
-              color: "var(--text)",
-              textDecoration: "none",
-              fontWeight: 800,
-              fontSize: 15,
-            }}
-          >
-            <span aria-hidden="true">🏆</span> {t("boards")}
-          </a>
-        )}
+        <DailyCard locale={locale} onTap={tap} />
 
         {/* Sharing, and only once there is something that happened TODAY.
             A button whose card would say "today I played nothing" is worse
@@ -391,12 +396,24 @@ export function Home({
           </section>
         )}
 
+        {/* The grid's own controls, in one strip above the grid: WHICH games,
+            and HOW they are drawn.
+
+            The card-style toggle used to sit in the header. It left when the
+            operator named that bar's four controls on 2026-08-24 and it was
+            not among them, and it does not fit anyway - stars plus four 48px
+            icons is 299px of controls beside a 110px identity in a 350px box.
+            It lands here rather than being deleted because this is its actual
+            subject: it restyles the cards below it and nothing else on the
+            screen. That keeps the header platform-level and this strip
+            grid-level, which is the split the whole pass is about. */}
         <CategoryRail
           chips={chips}
           value={filter}
           onChange={setFilter}
           locale={locale}
           allLabel={t("allCategories")}
+          trailing={<CardStyleToggle locale={locale} onTap={tap} />}
         />
 
         <div
@@ -447,6 +464,49 @@ export function Home({
         </p>
       </div>
     </div>
+  );
+}
+
+/**
+ * The leaderboards, as an icon in the bar. Operator ruling 2026-08-24: "also
+ * add leaderboards icon there".
+ *
+ * It replaces the full-width card that used to sit under the room, and the
+ * swap is not neutral. That card was gated on `recent.length > 0` on purpose -
+ * "a first visit is for games", and a leaderboard link for somebody who has
+ * played nothing leads to a screen that says so. A bar icon is always there,
+ * so that gate is gone. Ungating it was the ruling; recording that it WAS a
+ * decision is this comment's job, so the next reader does not restore the
+ * gate thinking it was dropped by accident.
+ *
+ * An `<a>`, not a button, because it navigates: middle-click, long-press and
+ * "open in new tab" all have to keep working, which is the same reason the
+ * home grid's cards are real links.
+ */
+function BoardsButton({ locale, onTap }: { locale: AppLocale; onTap: () => void }) {
+  const t = makeT(locale);
+  return (
+    <a
+      href={boardsHref(pageLocaleFor(locale))}
+      onClick={onTap}
+      aria-label={t("boards")}
+      style={{
+        // The same box the theme toggle holds, so the three icons in this bar
+        // are one row of one shape rather than three sizes that nearly match.
+        minHeight: "var(--tap)",
+        minWidth: "var(--tap)",
+        flexShrink: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: "var(--radius-pill)",
+        background: "var(--surface-2)",
+        color: "var(--text)",
+        textDecoration: "none",
+      }}
+    >
+      <Icon name="trophy" />
+    </a>
   );
 }
 
@@ -511,22 +571,32 @@ function CardStyleToggle({ locale, onTap }: { locale: AppLocale; onTap: () => vo
         onTap();
         setStyle(next);
       }}
+      // The RAIL item's shape, not the header pill's - it lives in that strip
+      // now, and a 48px round pill among 64px two-line cards reads as a stray
+      // control rather than as the last item in a row.
       style={{
-        minHeight: "var(--tap)",
-        minWidth: "var(--tap)",
-        padding: 0,
-        flexShrink: 0,
-        borderRadius: "var(--radius-pill)",
+        flex: "0 0 auto",
+        minWidth: "var(--tap-kids)",
+        minHeight: "var(--tap-kids)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 2,
+        padding: "6px 10px",
         border: "none",
-        background: "var(--surface-2)",
+        borderRadius: "var(--radius-2)",
+        background: "var(--surface)",
         color: "var(--text)",
-        fontSize: 18,
-        lineHeight: 1,
+        boxShadow: "var(--shadow-1)",
       }}
     >
       {/* The glyph is the destination too: a palette means "switch to the
           drawings", a smiley means "switch back to the icons". */}
-      <span aria-hidden="true">{next === "art" ? "🎨" : "🙂"}</span>
+      <span style={{ fontSize: 26, lineHeight: 1 }} aria-hidden="true">
+        {next === "art" ? "🎨" : "🙂"}
+      </span>
+      <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-dim)" }}>{label}</span>
     </button>
   );
 }
@@ -699,12 +769,14 @@ function CategoryRail({
   onChange,
   locale,
   allLabel,
+  trailing,
 }: {
   chips: typeof CATEGORY_ORDER;
   value: Filter;
   onChange: (f: Filter) => void;
   locale: AppLocale;
   allLabel: string;
+  trailing?: React.ReactNode;
 }) {
   const t = makeT(locale);
   const btn = (id: Filter, glyph: string, label: string) => {
@@ -754,6 +826,13 @@ function CategoryRail({
     >
       {btn(ALL, "🎲", allLabel)}
       {chips.map((c) => btn(c.category, c.glyph, t(c.titleKey)))}
+      {/* INSIDE the scroller, not beside it. Sitting it next to the rail as a
+          flex sibling narrows the scroll region and parks a 48px pill over the
+          rail's own scrolling edge - measured on the artifact at 390px, the
+          last chip renders half-hidden behind it with nothing overflowing
+          anywhere for a width check to find. In here it is one more item in a
+          strip of grid controls: which games, then how they are drawn. */}
+      {trailing}
     </div>
   );
 }
