@@ -189,3 +189,100 @@ describe("a Placing feeds standingView with `better`, not `beat`", () => {
     expect(me.beat).not.toBe(me.rank - 1);
   });
 });
+
+
+/**
+ * A board no writer of ours could have created.
+ *
+ * WHAT CHANGED. Until 2026-08-24 the boards screen read ONE board at a time
+ * through `cloud.board()`, whose id is assembled by `boardId()` and is therefore
+ * anchored to `^[A-Za-z0-9_-]+$` on both halves. Nothing this app could ASK for
+ * reached a document our own code had not named. That day added a COLLECTION
+ * GROUP read over every `scores` descendant, and widened `firestore.rules` to
+ * `match /{path=**}/scores/{uid}` so the query is authorised at all.
+ *
+ * The write clause did not change and never referenced the board segment - which
+ * is precisely `a-ramp-re-scopes-the-guards-beneath-it.md`. The rule is unchanged,
+ * still correct for its original callers, and its blast radius moved while it
+ * stood still: any signed-in client may create `<anything>/scores/<their own
+ * uid>`, and from that day the app READS all of it. The rule bounds every FIELD
+ * it accepts (`name` <= 64, `unit`/`d`/`w`/`m` <= 16, the numbers `is number`)
+ * and says nothing whatever about the PATH.
+ *
+ * The filter is STRUCTURAL rather than a catalogue lookup, and that is the whole
+ * design decision. `Boards.tsx` derives `known` from `allMetas`, which arrives in
+ * TWO BEATS - the shell roster first, the rest after `ensureFullCatalog()` - so a
+ * catalogue filter would drop every below-the-fold game's board for one render
+ * and show a wrong percentile before correcting itself. A wrong number that
+ * settles is worse than a slow one. The shape our own writer produces does not
+ * move between beats.
+ *
+ * Measured against the live corpus the day this landed: 208 rows, 56 boards,
+ * path depth uniformly 4 (`boards/<id>/scores/<uid>`), and 56 of 56 board ids
+ * match the shape below. The filter drops nothing real.
+ *
+ * What it does NOT fix, stated so nobody reads this as closed: junk documents
+ * still consume the server-side `POOLED_LIMIT` budget, because the limit is
+ * applied by the query and not by us. That half needs a path constraint in the
+ * rules or a server-side rollup, and neither is reachable from this repo.
+ */
+describe("a board our own writer could not have produced", () => {
+  const real = [
+    row({ board: "snake__default", uid: "alice", best: 40 }),
+    row({ board: "snake__default", uid: "bob", best: 10 }),
+    row({ board: "memory__easy", uid: "alice", best: 8 }),
+    row({ board: "memory__easy", uid: "bob", best: 4 }),
+  ];
+  const forged = Array.from({ length: 250 }, (_, i) =>
+    row({ board: `zz-not-a-game-${i}`, uid: "mallory", best: 1 }),
+  );
+
+  it("is not ranked, so a client that has played nothing cannot lead", () => {
+    const tables = pooledTables([...real, ...forged], { window: "all", now: NOW });
+    const players = pooledPlayers(tables);
+
+    expect(tables.map((t) => t.board).sort()).toEqual(["memory__easy", "snake__default"]);
+    expect(players.map((p) => p.uid).sort()).toEqual(["alice", "bob"]);
+    expect(players[0].uid).toBe("alice");
+  });
+
+  it("does not move a real player's standing underneath them", () => {
+    const clean = pooledPlayers(pooledTables(real, { window: "all", now: NOW }));
+    const dirty = pooledPlayers(pooledTables([...real, ...forged], { window: "all", now: NOW }));
+
+    // `betterThan` is what the Standings screen turns into "you're in the top
+    // N%". It must not answer differently because somebody else wrote junk.
+    expect(betterThan(dirty, "alice")).toBe(betterThan(clean, "alice"));
+    expect(betterThan(dirty, "bob")).toBe(betterThan(clean, "bob"));
+  });
+
+  it("keeps every shape our own writer CAN produce", () => {
+    // `boardId()` is `<game>__<board>` with both halves `isSafeId`, so a game id
+    // that itself contains `__` is legal and must survive. So must a hyphen and
+    // a 64-character half - the exact edges `isSafeId` permits.
+    const long = "a".repeat(64);
+    const rows = [
+      row({ board: "a__b__easy", uid: "u", best: 1 }),
+      row({ board: "tic-tac__hard", uid: "u", best: 1 }),
+      row({ board: `${long}__${long}`, uid: "u", best: 1 }),
+    ];
+    const tables = pooledTables(rows, { window: "all", now: NOW });
+    expect(tables.map((t) => t.board).sort()).toEqual(
+      ["a__b__easy", "tic-tac__hard", `${long}__${long}`].sort(),
+    );
+  });
+
+  it("drops the shapes it cannot have produced", () => {
+    // No separator; a path separator; over the 64-char half; empty halves; and
+    // the `__x__` form `isSafeId` refuses outright.
+    const rows = [
+      row({ board: "nogame", uid: "u", best: 1 }),
+      row({ board: "a/b__easy", uid: "u", best: 1 }),
+      row({ board: `${"a".repeat(65)}__easy`, uid: "u", best: 1 }),
+      row({ board: "__easy", uid: "u", best: 1 }),
+      row({ board: "game__", uid: "u", best: 1 }),
+      row({ board: "‮eliforp__easy", uid: "u", best: 1 }),
+    ];
+    expect(pooledTables(rows, { window: "all", now: NOW })).toEqual([]);
+  });
+});

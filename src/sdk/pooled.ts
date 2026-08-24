@@ -177,6 +177,26 @@ export interface PooledOptions {
 }
 
 /**
+ * A board id this app's own writer could have produced.
+ *
+ * `boardId()` is `<game>__<board>` with BOTH halves through `isSafeId`, so this
+ * is that shape restated as one pattern. It is deliberately STRUCTURAL rather
+ * than a lookup against the catalogue: `Boards.tsx` derives `known` from
+ * `allMetas`, which arrives in two beats, so a catalogue filter would drop every
+ * below-the-fold game's board for one render and print a wrong percentile before
+ * correcting itself. A wrong number that settles is worse than a slow one. This
+ * shape does not move between beats.
+ *
+ * It exists because the pooled read is a COLLECTION GROUP query over every
+ * `scores` descendant, and `firestore.rules` bounds the FIELDS of a score
+ * document while leaving the PATH free - so a signed-in client may create a
+ * board at any id it likes, and since 2026-08-24 this app reads all of them.
+ * Measured against the live corpus that day: 56 of 56 real boards match, so
+ * nothing real is dropped.
+ */
+const OUR_BOARD = /^[A-Za-z0-9_-]{1,64}__[A-Za-z0-9_-]{1,64}$/;
+
+/**
  * Every board, ranked, in one window.
  *
  * A row counts for a window only if it was SET inside it — a best from last
@@ -190,6 +210,12 @@ export function pooledTables(rows: readonly PooledRow[], opts: PooledOptions): B
 
   for (const row of rows) {
     if (typeof row.board !== "string" || row.board === "") continue;
+    // Not ours, so it is not ranked. See `OUR_BOARD`. Dropping it here rather
+    // than at the network parse is deliberate: this is the ONE funnel both
+    // pooled screens go through (`myPlacings` and `pooledPlayers` each read
+    // these tables), so one guard covers the class instead of two that can
+    // drift.
+    if (!OUR_BOARD.test(row.board)) continue;
     const inWindow = win === "all" || row[win] === now[win];
     if (!inWindow) continue;
     const value = win === "all" ? num(row.best) : num(row[WINDOW_VALUE[win]]);
