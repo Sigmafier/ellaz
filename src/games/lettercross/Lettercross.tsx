@@ -60,6 +60,31 @@ const SESSION: SessionSpec<LettercrossSession> = {
  */
 const BOARD = `min(94vw, 52vh, 430px)`;
 
+// The board is a PHYSICAL OBJECT, not a themed surface: warm tiles, pastel
+// premium squares, dark ink, one look in both themes. That is deliberate, and
+// undoing it is how this broke the first time.
+//
+// The defect this replaces: the tile backgrounds were hardcoded light hex while
+// the letter took `var(--ink)` - a token defined NOWHERE in this repo, and only
+// this file ever read it. An undefined var() makes the whole declaration
+// invalid at computed-value time, so `color` fell back to `inherit` and the
+// letter took the THEME's text colour. Measured on the live page in night:
+// #f5f6ff on #fff7ec, contrast 1.01 - a board of invisible letters, with no
+// error anywhere and the market theme perfect.
+//
+// The rule: a background and the text on it are ONE decision. Both hardcoded or
+// both tokens. A mixed pair only agrees in the theme you happened to look at.
+const PAPER = "#FFF7EC";      // a tile already on the board
+const PAPER_NEW = "#FFF0C2";  // placed this turn, not yet played
+const PAPER_SPENT = "#E8E0D4"; // a rack tile whose letter is already down
+const SQUARE = "#FAF4EA";     // a plain empty square
+const RULE = "#E4D8C6";       // the grid lines, and the rack tile borders
+const INK = "#241C17";        // every letter, on any of the above
+// `--g` is emitted per page onto the body, so it is present in the app and on
+// an emitted page alike - but a fallback costs nothing and closes exactly the
+// class of bug above. It mirrors meta.color.
+const ACCENT = "var(--g, #B33A3A)";
+
 const REASON: Record<string, Record<string, string>> = {
   en: { line: "One row or one column", gap: "No gaps", start: "The first word crosses the middle",
         touch: "Touch a letter already there", word: "Not a word we know", empty: "Place a tile first" },
@@ -161,12 +186,12 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
           <button onClick={play} disabled={pending.length === 0}
             style={{ minWidth: 96, minHeight: 44, borderRadius: 12, border: "none",
               background: pending.length ? "var(--g)" : "var(--surface-2)",
-              color: pending.length ? "#fff" : "var(--ink-soft)", fontWeight: 700, fontSize: 16 }}>
+              color: pending.length ? "#fff" : "var(--text-dim)", fontWeight: 700, fontSize: 16 }}>
             {T.play}
           </button>
           <button onClick={() => { setPending([]); setNote(""); }} disabled={pending.length === 0}
             style={{ minWidth: 96, minHeight: 44, borderRadius: 12, border: "1px solid var(--line)",
-              background: "transparent", color: "var(--ink)", fontSize: 16 }}>
+              background: "transparent", color: "var(--text)", fontSize: 16 }}>
             {T.recall}
           </button>
         </div>
@@ -179,22 +204,28 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
         <div style={{
           display: "grid", gridTemplateColumns: `repeat(${SIZE}, 1fr)`,
           gridTemplateRows: `repeat(${SIZE}, 1fr)`, width: BOARD, height: BOARD,
-          gap: 1, background: "var(--line)", borderRadius: 8, overflow: "hidden",
+          gap: 1, background: RULE, borderRadius: 8, overflow: "hidden",
+          // A flex item shrinks by DEFAULT. Without this the board is squeezed
+          // by whatever appears below it - measured 367 -> 328px the moment the
+          // 26-letter wild picker opens, which is a board that changes size
+          // when you tap a tile. Nothing in this column shrinks; the play
+          // surface scrolls instead.
+          flexShrink: 0,
         }}>
           {shown.map((c, i) => {
             const pr = premiumAt(i);
             const tentative = pending.some((p) => p.index === i);
             const bg = c
-              ? (tentative ? "#FFF0C2" : "var(--paper, #FFF7EC)")
+              ? (tentative ? PAPER_NEW : PAPER)
               : pr === "tw" ? "#F6C6C6" : pr === "dw" ? "#F8DEDE"
               : pr === "tl" ? "#C7DDF3" : pr === "dl" ? "#E1EDF9"
-              : i === CENTRE ? "#EFE6D8" : "var(--surface)";
+              : i === CENTRE ? "#EFE6D8" : SQUARE;
             return (
               <button key={i} onClick={() => placeAt(i)} aria-label={c ? c.letter : `${i}`}
                 style={{
                   border: "none", padding: 0, background: bg, minWidth: 0, minHeight: 0,
                   fontSize: `calc(${cell} * 0.46)`, fontWeight: 700, lineHeight: 1,
-                  color: c?.wild ? "var(--g)" : "var(--ink)",
+                  color: c?.wild ? ACCENT : INK,
                   cursor: over ? "default" : "pointer",
                 }}>
                 {c ? c.letter.toUpperCase() : ""}
@@ -206,7 +237,7 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
         {/* The rack. A tile is TAPPED, never dragged - drag is never required
             here (see CLAUDE.md, kids games), and a rack that only responds to a
             sustained gesture takes the game away from the people it is for. */}
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center", minHeight: 52 }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center", minHeight: 52, flexShrink: 0 }}>
           {state.rack.map((tile, i) => {
             const spent = pending.filter((p) => (p.wild ? "?" : p.letter) === tile).length;
             const usedUp = state.rack.slice(0, i + 1).filter((t) => t === tile).length <= spent;
@@ -214,9 +245,9 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
               <button key={i} onClick={() => setHeld(held === i ? null : i)} disabled={usedUp || over}
                 style={{
                   width: 44, height: 48, borderRadius: 10, fontSize: 20, fontWeight: 800,
-                  border: held === i ? "3px solid var(--g)" : "1px solid var(--line)",
-                  background: usedUp ? "var(--surface-2)" : "var(--paper, #FFF7EC)",
-                  color: tile === "?" ? "var(--g)" : "var(--ink)",
+                  border: held === i ? `3px solid ${ACCENT}` : `1px solid ${RULE}`,
+                  background: usedUp ? PAPER_SPENT : PAPER,
+                  color: tile === "?" ? ACCENT : INK,
                   opacity: usedUp ? 0.35 : 1, cursor: usedUp ? "default" : "pointer",
                 }}>
                 {tile === "?" ? "★" : tile.toUpperCase()}
@@ -229,20 +260,20 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
         </div>
 
         {asking !== null && (
-          <div style={{ textAlign: "center" }}>
+          <div style={{ textAlign: "center", flexShrink: 0 }}>
             <div style={{ fontSize: 14, marginBottom: 6 }}>{T.pickLetter}</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "center", maxWidth: 320 }}>
               {[..."abcdefghijklmnopqrstuvwxyz"].map((ch) => (
                 <button key={ch} onClick={() => chooseWild(ch)}
                   style={{ width: 30, height: 34, borderRadius: 7, border: "1px solid var(--line)",
-                    background: "var(--surface)", fontWeight: 700 }}>{ch.toUpperCase()}</button>
+                    background: "var(--surface)", color: "var(--text)", fontWeight: 700 }}>{ch.toUpperCase()}</button>
               ))}
             </div>
           </div>
         )}
 
         {(note || over) && (
-          <div style={{ fontSize: 14, color: "var(--ink-soft)", minHeight: 20 }}>
+          <div style={{ fontSize: 14, color: "var(--text-dim)", minHeight: 20, flexShrink: 0 }}>
             {over ? T.over : note}
           </div>
         )}
