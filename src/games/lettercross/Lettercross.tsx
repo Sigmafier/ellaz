@@ -7,7 +7,7 @@ import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
 import { seedFrom, mulberry32 } from "@shared/rng";
 import { streakStep } from "@sdk/streak";
 import { BOXES, BOX_RADIUS, sideOf, reachedBoxes, isLocked, type BoxArt } from "./boxes";
-import { BONUS_ARTS, type BonusArt, type BonusTier } from "./bonus";
+import { BONUS_ARTS, type BonusTier } from "./bonus";
 import { BonusRound } from "./BonusRound";
 import {
   SIZE, LETTER_VALUE, newGame, apply, validate,
@@ -24,24 +24,21 @@ const STR = {
   en: { play: "Play", recall: "Take back", tiles: "Tiles", score: "Score",
         pickLetter: "Pick a letter for the wild", over: "No tiles left",
         prize: "Prize box", taken: "Prize box, taken", locked: "Locked",
-        stop: { bell: "Tap to stop", gem: "Watch the gem, then pick a cup",
-                star: "Tap each star as it lights", leaf: "How many leaves?",
-                drop: "Hold to fill, let go at the line" },
-        bonus: "Bonus round" },
+        bonus: "Bonus round", bonusHint: "Build words. Everything you make counts.",
+        start: "Start", finish: "Done", points: "points",
+        bad: "One of those wasn't a word" },
   he: { play: "לשחק", recall: "להחזיר", tiles: "אריחים", score: "ניקוד",
         pickLetter: "בחרו אות לג'וקר", over: "נגמרו האריחים",
         prize: "תיבת פרס", taken: "תיבת פרס, נלקחה", locked: "נעול",
-        stop: { bell: "הקישו לעצור", gem: "עקבו אחרי היהלום ובחרו כוס",
-                star: "הקישו על כל כוכב שנדלק", leaf: "כמה עלים היו?",
-                drop: "החזיקו למילוי, שחררו בקו" },
-        bonus: "סיבוב בונוס" },
+        bonus: "סיבוב בונוס", bonusHint: "הרכיבו מילים. כל מה שתרכיבו נספר.",
+        start: "התחל", finish: "סיימתי", points: "נקודות",
+        bad: "אחת מהן לא הייתה מילה" },
   es: { play: "Jugar", recall: "Retirar", tiles: "Fichas", score: "Puntos",
         pickLetter: "Elige una letra para el comodín", over: "No quedan fichas",
         prize: "Caja de premio", taken: "Caja de premio, recogida", locked: "Cerrado",
-        stop: { bell: "Toca para parar", gem: "Sigue la gema y elige un vaso",
-                star: "Toca cada estrella al encenderse", leaf: "¿Cuántas hojas?",
-                drop: "Mantén para llenar, suelta en la línea" },
-        bonus: "Ronda de bonus" },
+        bonus: "Ronda de bonus", bonusHint: "Forma palabras. Todo lo que hagas cuenta.",
+        start: "Empezar", finish: "Listo", points: "puntos",
+        bad: "Una de ellas no era palabra" },
 } as const;
 const str = (loc: Locale) => (STR as unknown as Record<string, typeof STR.en>)[loc] ?? STR.en;
 
@@ -587,10 +584,9 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
         {rounds.length > 0 && (
           <BonusRound
             key={rounds[0]}
-            art={BOXES[rounds[0]].art as BonusArt}
             glyph={BOX_ART[BOXES[rounds[0]].art]}
-            hint={T.stop[BOXES[rounds[0]].art as BonusArt]}
-            label={T.bonus}
+            t={{ label: T.bonus, hint: T.bonusHint, start: T.start,
+                 finish: T.finish, points: T.points, bad: T.bad }}
             onStop={finishBonus}
             playTap={() => ctx.audio.play("tap")}
           />
