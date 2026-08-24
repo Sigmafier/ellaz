@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  SIZE, CENTRE, RACK, LETTER_VALUE, BAG, TOTAL_TILES, premiumAt,
+  SIZE, RACK, LETTER_VALUE, BAG, TOTAL_TILES,
   newGame, validate, apply, isOver, bestLevel,
 } from "./logic";
 import { WORDS } from "./words";
@@ -12,31 +12,14 @@ const lay = (r: number, c: number, word: string, down = false) =>
   [...word].map((ch, i) => ({ index: down ? idx(r + i, c) : idx(r, c + i), letter: ch, wild: false }));
 
 describe("the board", () => {
-  it("is 11x11 with the start cell at its centre", () => {
+  it("is 11x11", () => {
     expect(SIZE).toBe(11);
-    expect(CENTRE).toBe(idx(5, 5));
   });
 
-  it("does not multiply the start cell, so the opening word is not a bonus", () => {
-    // Scrabble doubles its centre star. Ours is a plain square that merely says
-    // 'begin here' - one of the deliberate separations from that board.
-    expect(premiumAt(CENTRE)).toBe("none");
-  });
-
-  it("puts triple-word squares only at the corners and edge midpoints", () => {
-    const tw = [...Array(SIZE * SIZE).keys()].filter((i) => premiumAt(i) === "tw");
-    expect(tw.sort((a, b) => a - b)).toEqual(
-      [idx(0, 0), idx(0, 5), idx(0, 10), idx(5, 0), idx(5, 10), idx(10, 0), idx(10, 5), idx(10, 10)]
-        .sort((a, b) => a - b),
-    );
-  });
-
-  it("is symmetric under both reflections, or the board would favour a corner", () => {
-    for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
-      expect(premiumAt(idx(r, c))).toBe(premiumAt(idx(r, SIZE - 1 - c)));
-      expect(premiumAt(idx(r, c))).toBe(premiumAt(idx(SIZE - 1 - r, c)));
-    }
-  });
+  // There is nothing else to say about the board any more, and that is the
+  // point: every square is identical. The premium map, the centre star and
+  // their four tests were removed on 2026-08-24 - "we dont need the color
+  // blocks, all should be placeable", "i dont need the bonus or special boxes".
 });
 
 describe("the tiles", () => {
@@ -77,13 +60,16 @@ describe("opening a game", () => {
 describe("validating a play", () => {
   const g = newGame("medium", rng(3));
 
-  it("refuses a first word that misses the start cell", () => {
+  it("takes the very first word in the far corner, nowhere near the middle", () => {
+    // This ASSERTED THE OPPOSITE until 2026-08-24, when the start square was
+    // removed. Keeping it as a positive control rather than deleting it: the
+    // freedom is the feature, so something has to fail if it comes back.
     const v = validate(g.board, lay(0, 0, "cat"));
-    expect(v.ok).toBe(false);
-    if (!v.ok) expect(v.reason).toBe("start");
+    expect(v.ok).toBe(true);
+    if (v.ok) expect(v.words.map((w) => w.word)).toEqual(["cat"]);
   });
 
-  it("accepts a first word across the start cell", () => {
+  it("takes a first word in the middle too - anywhere means anywhere", () => {
     const v = validate(g.board, lay(5, 4, "cat"));
     expect(v.ok).toBe(true);
     if (v.ok) expect(v.words.map((w) => w.word)).toEqual(["cat"]);
@@ -113,11 +99,13 @@ describe("validating a play", () => {
     if (!v.ok) expect(v.reason).toBe("gap");
   });
 
-  it("requires a later word to touch what is already there", () => {
+  it("takes a later word that touches nothing at all", () => {
+    // Also asserted the opposite until 2026-08-24. A word may sit on its own
+    // island; the board is a sheet of paper, not a single connected crossword.
     const after = apply(g, lay(5, 4, "cat")).board;
     const v = validate(after, lay(0, 0, "dog"));
-    expect(v.ok).toBe(false);
-    if (!v.ok) expect(v.reason).toBe("touch");
+    expect(v.ok).toBe(true);
+    if (v.ok) expect(v.words.map((w) => w.word)).toEqual(["dog"]);
   });
 
   it("reads the cross-words a placement creates, and refuses an invalid one", () => {
@@ -143,7 +131,7 @@ describe("scoring", () => {
     const g = newGame("medium", rng(4));
     const v = validate(g.board, lay(5, 4, "cat"));
     expect(v.ok).toBe(true);
-    // c=2 a=1 t=1 -> 4, and none of (5,4),(5,5),(5,6) is a premium square.
+    // c=2 a=1 t=1 -> 4. A word is worth its letters and nothing else.
     if (v.ok) expect(v.total).toBe(4);
   });
 
@@ -158,14 +146,20 @@ describe("scoring", () => {
     if (v.ok) { expect(v.words[0].word).toBe("cat"); expect(v.total).toBe(2); }
   });
 
-  it("applies a letter premium to that letter only, and a word premium to the whole word", () => {
+  it("scores the same word the same wherever it is put", () => {
+    // The old version of this test asserted (5,2) doubled the 'c' to make 7.
+    // With premiums gone the whole point is that POSITION CANNOT MATTER, so
+    // the test now compares two placements of one word instead of naming a
+    // number - a constant would pass even if one square were still special.
     const g = newGame("medium", rng(6));
-    // (5,2) is on the diamond |r-5|+|c-5| == 3 -> double letter.
-    expect(premiumAt(idx(5, 2))).toBe("dl");
-    const v = validate(g.board, lay(5, 2, "cats"));
-    // c=2 doubled -> 4, a=1, t=1, s=1  => 7
-    expect(v.ok).toBe(true);
-    if (v.ok) expect(v.total).toBe(7);
+    const corner = validate(g.board, lay(0, 0, "cats"));
+    const middle = validate(g.board, lay(5, 2, "cats"));
+    expect(corner.ok).toBe(true);
+    expect(middle.ok).toBe(true);
+    if (corner.ok && middle.ok) {
+      expect(corner.total).toBe(middle.total);
+      expect(corner.total).toBe(5); // c2 a1 t1 s1
+    }
   });
 });
 

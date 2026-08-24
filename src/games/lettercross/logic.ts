@@ -30,7 +30,6 @@ export const CENTRE = 5 * SIZE + 5;
 export const RACK = 8;
 
 export type Level = "easy" | "medium" | "hard";
-export type Premium = "none" | "dl" | "tl" | "dw" | "tw";
 /** A square: a letter, and whether the tile spelling it was a wild (scores 0). */
 export type Cell = { readonly letter: string; readonly wild: boolean } | null;
 export type Board = readonly Cell[];
@@ -83,23 +82,6 @@ export function bestLevel(level: Level): string {
   return level;
 }
 
-/**
- * The premium map, as a RULE rather than a hand-drawn table. Two reasons: a
- * rule is symmetric by construction, so no corner is quietly luckier than
- * another; and a rule is demonstrably our own arrangement rather than a
- * transcription of somebody else's board.
- */
-export function premiumAt(index: number): Premium {
-  if (index === CENTRE) return "none"; // the start square multiplies nothing
-  const dr = Math.abs(Math.floor(index / SIZE) - 5);
-  const dc = Math.abs((index % SIZE) - 5);
-  if ((dr === 5 && dc === 5) || (dr === 5 && dc === 0) || (dr === 0 && dc === 5)) return "tw";
-  if (dr === 4 && dc === 4) return "dw";
-  if (dr === 2 && dc === 2) return "tl";
-  if (dr + dc === 3) return "dl";
-  return "none";
-}
-
 function shuffle<T>(xs: readonly T[], rng: () => number): T[] {
   const a = [...xs];
   for (let i = a.length - 1; i > 0; i--) {
@@ -131,7 +113,7 @@ export function draw(rack: readonly Tile[], bag: readonly Tile[], want: number) 
 export type Scored = { readonly word: string; readonly score: number };
 export type Verdict =
   | { readonly ok: true; readonly words: readonly Scored[]; readonly total: number }
-  | { readonly ok: false; readonly reason: "line" | "gap" | "start" | "touch" | "word" | "empty" };
+  | { readonly ok: false; readonly reason: "line" | "gap" | "word" | "empty" };
 
 const rowOf = (i: number) => Math.floor(i / SIZE);
 const colOf = (i: number) => i % SIZE;
@@ -169,21 +151,18 @@ export function validate(board: Board, placements: readonly Placement[]): Verdic
   const idxs = placements.map((p) => p.index).sort((a, b) => a - b);
   for (let i = idxs[0]; i <= idxs[idxs.length - 1]; i += step) if (!next[i]) return { ok: false, reason: "gap" };
 
-  const firstMove = board.every((c) => c === null);
-  if (firstMove) {
-    if (!placements.some((p) => p.index === CENTRE)) return { ok: false, reason: "start" };
-  } else {
-    const touches = placements.some((p) => {
-      const r = rowOf(p.index), c = colOf(p.index);
-      return (
-        (r > 0 && board[p.index - SIZE]) || (r < SIZE - 1 && board[p.index + SIZE]) ||
-        (c > 0 && board[p.index - 1]) || (c < SIZE - 1 && board[p.index + 1])
-      );
-    });
-    if (!touches) return { ok: false, reason: "touch" };
-  }
+  // A WORD GOES ANYWHERE. There is deliberately no start square and no
+  // requirement to touch what is already down - operator's call, 2026-08-24:
+  // "user should put any word they want anywhere".
+  //
+  // What survives is only what a WORD is: it lies in one line, it has no holes
+  // in it, and it is a real word. Those three are the game. A centre-start and
+  // a connection rule are the borrowed part, and dropping them is what makes
+  // this a placing game rather than a tighter one.
+  //
+  // Cross-words are still checked, because two words that happen to meet must
+  // both read - that is not a connection RULE, it is what a grid means.
 
-  const placed = new Set(placements.map((p) => p.index));
   const seen = new Set<string>();
   const words: Scored[] = [];
 
@@ -194,27 +173,30 @@ export function validate(board: Board, placements: readonly Placement[]): Verdic
     seen.add(key);
     const word = run.map((i) => next[i]!.letter).join("");
     if (!WORDS.has(word)) return false;
+    // A word is worth its letters. No premium squares, no multipliers -
+    // operator's call, 2026-08-24: "i dont need the bonus or special boxes".
     let sum = 0;
-    let mult = 1;
     for (const i of run) {
       const cell = next[i]!;
-      let v = cell.wild ? 0 : (LETTER_VALUE[cell.letter] ?? 0);
-      if (placed.has(i)) {
-        const pr = premiumAt(i);
-        if (pr === "dl") v *= 2;
-        else if (pr === "tl") v *= 3;
-        else if (pr === "dw") mult *= 2;
-        else if (pr === "tw") mult *= 3;
-      }
-      sum += v;
+      sum += cell.wild ? 0 : (LETTER_VALUE[cell.letter] ?? 0);
     }
-    words.push({ word, score: sum * mult });
+    words.push({ word, score: sum });
     return true;
   };
 
   // The main word along the axis of play, then every cross-word a new tile made.
   if (!collect(runThrough(next, idxs[0], step))) return { ok: false, reason: "word" };
   for (const p of placements) if (!collect(runThrough(next, p.index, step === 1 ? SIZE : 1))) return { ok: false, reason: "word" };
+
+  // A PLAY MUST MAKE A WORD. With the start square and the touch rule gone
+  // (2026-08-24) nothing else stops a single tile being dropped on an empty
+  // square: `collect` passes any run shorter than two letters, so one tile
+  // formed no word, broke no rule, and was accepted for zero points - a way to
+  // empty the bag rather than a turn. Measured the moment those guards came
+  // out: `{"ok":true,"words":[],"total":0}`.
+  //
+  // "Any word anywhere" is the freedom. A word is still the price.
+  if (words.length === 0) return { ok: false, reason: "word" };
 
   return { ok: true, words, total: words.reduce((n, w) => n + w.score, 0) };
 }

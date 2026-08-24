@@ -7,7 +7,7 @@ import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
 import { seedFrom, mulberry32 } from "@shared/rng";
 import { streakStep } from "@sdk/streak";
 import {
-  SIZE, CENTRE, LETTER_VALUE, premiumAt, newGame, apply, validate,
+  SIZE, LETTER_VALUE, newGame, apply, validate,
   isOver, bestLevel, type Level, type Placement, type State,
 } from "./logic";
 
@@ -86,11 +86,17 @@ const INK = "#241C17";        // every letter, on any of the above
 // class of bug above. It mirrors meta.color.
 const ACCENT = "var(--g, #B33A3A)";
 
+/**
+ * Why a play was refused. Four reasons now, not six: `start` (the first word
+ * must cross the middle) and `touch` (a word must connect to what is there)
+ * were removed on 2026-08-24 along with the rules themselves - a word goes
+ * anywhere, so there is nothing left to say about where it went.
+ */
 const REASON: Record<string, Record<string, string>> = {
-  en: { line: "One row or one column", gap: "No gaps", start: "The first word crosses the middle",
-        touch: "Touch a letter already there", word: "Not a word we know", empty: "Place a tile first" },
-  he: { line: "שורה אחת או טור אחד", gap: "בלי רווחים", start: "המילה הראשונה עוברת במרכז",
-        touch: "צריך לגעת באות שכבר על הלוח", word: "לא מילה שאנחנו מכירים", empty: "הניחו אריח" },
+  en: { line: "One row or one column", gap: "No gaps",
+        word: "Not a word we know", empty: "Place a tile first" },
+  he: { line: "שורה אחת או טור אחד", gap: "בלי רווחים",
+        word: "לא מילה שאנחנו מכירים", empty: "הניחו אריח" },
 };
 
 export function Lettercross({ ctx }: { ctx: GameContext }) {
@@ -231,7 +237,10 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
       {/* The grid is pinned LTR: it is a spatial board, and in the Hebrew app an
           unpinned grid mirrors, so column 0 lands on the right and every word
           reads backwards. See .claude/rules/rtl-spatial-grid-dir-ltr.md */}
-      <div dir="ltr" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+      <div dir="ltr" style={{
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
+        position: "relative", // the wild picker is an overlay inside this column
+      }}>
         <div style={{
           display: "grid", gridTemplateColumns: `repeat(${SIZE}, 1fr)`,
           gridTemplateRows: `repeat(${SIZE}, 1fr)`, width: BOARD, height: BOARD,
@@ -244,13 +253,13 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
           flexShrink: 0,
         }}>
           {shown.map((c, i) => {
-            const pr = premiumAt(i);
+            // EVERY SQUARE IS THE SAME SQUARE. No premium colours, no centre
+            // star - operator's call, 2026-08-24: "we dont need the color
+            // blocks, all should be placeable". The board is now a sheet of
+            // paper, and the only thing that varies on it is whether a tile is
+            // on it and whether that tile was laid this turn.
             const tentative = pending.some((p) => p.index === i);
-            const bg = c
-              ? (tentative ? PAPER_NEW : PAPER)
-              : pr === "tw" ? "#F6C6C6" : pr === "dw" ? "#F8DEDE"
-              : pr === "tl" ? "#C7DDF3" : pr === "dl" ? "#E1EDF9"
-              : i === CENTRE ? "#EFE6D8" : SQUARE;
+            const bg = c ? (tentative ? PAPER_NEW : PAPER) : SQUARE;
             return (
               <button key={i} onClick={() => placeAt(i)} aria-label={c ? c.letter : `${i}`}
                 style={{
@@ -290,8 +299,17 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
           })}
         </div>
 
+        {/* The picker is an OVERLAY rather than a row in the column, for the
+            same reason. Twenty-six buttons appearing in flow is the biggest
+            reflow this screen has; as a layer over the board it costs the
+            layout nothing and nothing below it moves. */}
         {asking !== null && (
-          <div style={{ textAlign: "center", flexShrink: 0 }}>
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 2,
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+            gap: 6, background: "color-mix(in oklab, var(--surface) 88%, transparent)",
+            textAlign: "center",
+          }}>
             <div style={{ fontSize: 14, marginBottom: 6 }}>{T.pickLetter}</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "center", maxWidth: 320 }}>
               {[..."abcdefghijklmnopqrstuvwxyz"].map((ch) => (
@@ -303,11 +321,22 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
           </div>
         )}
 
-        {(note || over) && (
-          <div style={{ fontSize: 14, color: "var(--text-dim)", minHeight: 20, flexShrink: 0 }}>
-            {over ? T.over : note}
-          </div>
-        )}
+        {/* THE NOTE IS ALWAYS IN THE LAYOUT, empty or not.
+            Conditionally rendering it is what made the game "keep shrinking and
+            growing as I play": measured on the built artifact at 1440x900, the
+            panel went 661 -> 695px and the Play button moved 34px DOWN the
+            instant a word was refused, then back up the moment the note
+            cleared. Refuse a word, take it back, refuse another - the button
+            you are aiming at moves every single turn.
+            `flexShrink: 0` on the board (2026-08-23) fixed a different defect
+            with the same symptom - the board being SQUEEZED - and left this
+            one untouched. Reserving the row is what closes it. */}
+        <div aria-live="polite" style={{
+          fontSize: 14, color: "var(--text-dim)", height: 20, lineHeight: "20px",
+          flexShrink: 0, textAlign: "center",
+        }}>
+          {over ? T.over : note}
+        </div>
       </div>
     </GameChrome>
   );
