@@ -8,10 +8,96 @@ import { parseRecordKey, recordKey, type GameMeta, type ScoreUnit } from "@sdk/i
 // are all the caller's problem - which is what makes the card-and-detail
 // agreement below testable rather than merely intended.
 
+/**
+ * Every rung of every ladder in the catalogue, easiest first.
+ *
+ * Boards used to be sorted with a bare `.sort()`, which is alphabetical, so
+ * sudoku's difficulty pills read Easy / Hard / Med and snake's card opened on
+ * `fast` - an order nobody chose, and one that reads as a bug rather than as a
+ * scale. A ladder is an ORDER, and the only place that order exists is the
+ * `DifficultyOption[]` each renderer declares, which is source this module
+ * cannot import: `boardsView` is pure and `Sudoku.tsx` is a component.
+ *
+ * So the order is restated here and PINNED to those declarations by
+ * `boardsView.test.ts`, which reads the games tree and fails when a rung is
+ * missing or out of sequence. The alternative - `levels` on the DOM-free
+ * `meta.ts`, derived rather than restated - is the right end state and costs
+ * shell bytes on a roster imported statically by the home grid, so it is not
+ * this change.
+ *
+ * The six ladders fold into one list without contradicting each other, which is
+ * what makes a single list possible at all: `medium` is the middle rung of both
+ * easy/medium/hard and short/medium/long, and `normal` the middle of both
+ * easy/normal/hard and slow/normal/fast. No id sits at two different heights.
+ *
+ * `pip`/`mo`/`tuli` are not difficulties - they are which pet you chose - but
+ * they are board ids and they need an order, so they take the one `PETS`
+ * declares rather than the alphabetical one.
+ */
+export const BOARD_ORDER: readonly string[] = [
+  "default",
+  // Below easy: sudoku's animal boards and 2048's kids grid.
+  "kids4",
+  "kids6",
+  "kids",
+  // The low rung, under four different names.
+  "short",
+  "slow",
+  "easy",
+  // The middle.
+  "classic",
+  "normal",
+  "medium",
+  // The high rung.
+  "long",
+  "fast",
+  "hard",
+  "expert",
+  // Math picks a TOPIC and an OPERATION rather than a difficulty. Neither is a
+  // board id today (math records on `default`), but they are rungs a game
+  // declares, so they are ordered here rather than left to sort by spelling if
+  // math ever scopes its record by topic.
+  "count",
+  "match",
+  "visual",
+  "up5",
+  "up10",
+  "up20",
+  "mult",
+  "add",
+  "sub",
+  "mixed",
+  // Which pet, not how hard.
+  "pip",
+  "mo",
+  "tuli",
+];
+
+const BOARD_RANK = new Map(BOARD_ORDER.map((id, i) => [id, i]));
+
+/**
+ * Ladder order, with anything unregistered sorted LAST and alphabetically.
+ *
+ * Last rather than first, deliberately: `firstBoard` reads `boards[0]`, so an
+ * id this list has never heard of would otherwise decide which board a card
+ * quotes and which board the drill-down opens. Sorting it last keeps that
+ * answer on a rung somebody chose, and leaves the new id visible at the end of
+ * the row instead of silently rearranging the screen. Alphabetically among
+ * themselves so the result is stable rather than input-ordered.
+ */
+export function byDifficulty(a: string, b: string): number {
+  const ra = BOARD_RANK.get(a);
+  const rb = BOARD_RANK.get(b);
+  if (ra !== undefined && rb !== undefined) return ra - rb;
+  if (ra !== undefined) return -1;
+  if (rb !== undefined) return 1;
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
 export interface Playable {
   meta: GameMeta;
   unit: ScoreUnit;
-  /** The boards this player actually holds a record on, sorted. */
+  /** The boards this player holds a record on, easiest rung first. */
   boards: string[];
 }
 
@@ -50,7 +136,7 @@ export function myGames(
     .map((meta) => ({
       meta,
       unit: meta.scoreUnit as ScoreUnit,
-      boards: (boardsByGame.get(meta.id) ?? ["default"]).slice().sort(),
+      boards: (boardsByGame.get(meta.id) ?? ["default"]).slice().sort(byDifficulty),
     }));
 }
 
