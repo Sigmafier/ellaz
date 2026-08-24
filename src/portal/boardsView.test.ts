@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { GameMeta } from "@sdk/index";
-import { cardBest, firstBoard, myGames } from "./boardsView";
+import { cardBest, firstBoard, myGames, resolveOpen, type Playable } from "./boardsView";
 
 // The pure half of the boards screen: which games a player sees, which boards
 // each one has, and which number the card quotes. No DOM, no wallet, no
@@ -115,5 +115,48 @@ describe("the card and the board it opens quote the same record", () => {
       boards: ["default"],
     };
     expect(cardBest(game, { "ellaz:a:b:score:default": 5 })).toBeUndefined();
+  });
+});
+
+describe("resolveOpen - drilling into a board from either entry point", () => {
+  const snake = meta("snake", "points");
+  const sudoku = meta("sudoku", "ms");
+  const coloring = meta("coloring");
+  const mine: Playable[] = [{ meta: snake, unit: "points", boards: ["easy", "hard"] }];
+
+  it("prefers the player's OWN entry, so every board they hold stays reachable", () => {
+    const got = resolveOpen({ id: "snake", board: "hard" }, mine, [snake, sudoku]);
+    expect(got?.boards).toEqual(["easy", "hard"]);
+  });
+
+  it("falls back to the catalogue for a game this DEVICE has never played", () => {
+    // The pooled read is the whole platform, so a standing can name a game
+    // absent from local storage - a record set on another device, or restored
+    // from a backup code. Without the fallback the tap resolves to `undefined`
+    // and drops the reader back on the grid, which reads as a dead button.
+    const got = resolveOpen({ id: "sudoku", board: "expert" }, mine, [snake, sudoku]);
+    expect(got?.meta.id).toBe("sudoku");
+    expect(got?.unit).toBe("ms");
+  });
+
+  it("carries ONLY the board it was told about, never every board the game defines", () => {
+    // The other boards are exactly what is unknown here. Listing them offers
+    // difficulty pills that open boards this player has no record on.
+    const got = resolveOpen({ id: "sudoku", board: "expert" }, mine, [snake, sudoku]);
+    expect(got?.boards).toEqual(["expert"]);
+  });
+
+  it("is undefined for a game the catalogue has never heard of", () => {
+    expect(resolveOpen({ id: "nosuch", board: "easy" }, mine, [snake])).toBeUndefined();
+  });
+
+  it("is undefined for a game that keeps no record at all", () => {
+    // coloring, forever - ranking a child's drawing is the opposite of the
+    // premise, so it must not become reachable through a standings tap either.
+    expect(resolveOpen({ id: "coloring" }, [], [coloring])).toBeUndefined();
+  });
+
+  it("is undefined when nothing is open", () => {
+    expect(resolveOpen(null, mine, [snake])).toBeUndefined();
   });
 });

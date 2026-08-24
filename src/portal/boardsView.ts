@@ -81,3 +81,35 @@ export function cardBest(
   const key = recordKey(game.meta.id, firstBoard(game));
   return key ? records[key] : undefined;
 }
+
+/**
+ * The game a drill-down opens, from either entry point.
+ *
+ * The grid can only ever name a game the player has played on THIS device, so
+ * for it this is a plain lookup. A standing cannot: the pooled read is the
+ * whole platform, and a reader can hold a record set on another device, or
+ * restored from a backup code, or simply be looking at a board they reached
+ * through the cloud. `myGames` is built from local storage, so that game is
+ * absent from it and a lookup returns `undefined` - which renders as the grid,
+ * i.e. a tap that appears to do nothing.
+ *
+ * So fall back to the catalogue and synthesise a `Playable` carrying the ONE
+ * board we were actually told about. Not every board the game defines: this
+ * player's other boards are exactly what we do not know here, and listing them
+ * would offer difficulty pills that open empty boards.
+ *
+ * `undefined` still means "no such game" - an id the catalogue has never heard
+ * of, or one with no `scoreUnit` (coloring, forever). Both are honest.
+ */
+export function resolveOpen(
+  open: { id: string; board?: string } | null,
+  mine: readonly Playable[],
+  catalog: readonly GameMeta[],
+): Playable | undefined {
+  if (!open) return undefined;
+  const owned = mine.find((g) => g.meta.id === open.id);
+  if (owned) return owned;
+  const meta = catalog.find((m) => m.id === open.id);
+  if (!meta || meta.scoreUnit === undefined) return undefined;
+  return { meta, unit: meta.scoreUnit, boards: [open.board ?? "default"] };
+}

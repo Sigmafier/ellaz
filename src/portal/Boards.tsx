@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Locale } from "@i18n/index";
 import type { AppLocale } from "@i18n/locales";
-import { backArrow, makeT, pageLocaleFor, textFor } from "@i18n/index";
+import { DIR, backArrow, makeT, pageLocaleFor, textFor } from "@i18n/index";
 import {
   allScores,
   audioPort,
@@ -32,7 +32,7 @@ import { DifficultySelector } from "@ui/DifficultySelector";
 import { GameArt } from "@ui/gameArtView";
 import { inkFor } from "@ui/ink";
 import { catalog, ensureFullCatalog, subscribeCatalog } from "./catalog";
-import { cardBest, firstBoard, myGames, type Playable } from "./boardsView";
+import { cardBest, firstBoard, myGames, resolveOpen, type Playable } from "./boardsView";
 import { gameHref } from "./paths";
 
 // The boards — the one screen where a child sees that other people are here.
@@ -68,11 +68,19 @@ import { gameHref } from "./paths";
 // where `score-unit-declared.test.ts` pins it to the renderer. Guessing either
 // one shows a fast time ranked as if slow were better.
 
+// All time FIRST, and it is also the default every window row opens on. A
+// board scoped to today is empty most of the time - a player who set their
+// record last week opens the screen, reads a blank board, and the honest
+// answer to "how am I doing" is one they never see. The narrower windows are
+// the interesting question only once the broad one has been answered, so they
+// come after it. `POOLED_WINDOWS` is this same list rather than a copy of it:
+// two window rows that can disagree is a screen offering Today in one place
+// and not the other, which is exactly the bug that shipped.
 const WINDOWS: { id: BoardWindow; label: Record<Locale, string> }[] = [
-  { id: "d", label: { he: "היום", en: "Today", es: "Hoy" } },
-  { id: "w", label: { he: "השבוע", en: "This week", es: "Esta semana" } },
-  { id: "m", label: { he: "החודש", en: "This month", es: "Este mes" } },
   { id: "all", label: { he: "תמיד", en: "All time", es: "Siempre" } },
+  { id: "m", label: { he: "החודש", en: "This month", es: "Este mes" } },
+  { id: "w", label: { he: "השבוע", en: "This week", es: "Esta semana" } },
+  { id: "d", label: { he: "היום", en: "Today", es: "Hoy" } },
 ];
 
 /**
@@ -126,7 +134,12 @@ export function Boards({ locale }: { locale: AppLocale }) {
     void ensureFullCatalog();
     return stop;
   }, []);
-  const [openId, setOpenId] = useState<string | null>(null);
+  // WHICH game, and optionally WHICH board of it. The board matters because a
+  // standing is a fact about one board - tapping "Sudoku · Hard" and landing on
+  // the easy board shows a different field, a different record and a different
+  // position, all of it rendering perfectly. The grid passes no board and gets
+  // `firstBoard`, exactly as before.
+  const [open, setOpen] = useState<{ id: string; board?: string } | null>(null);
   const [tab, setTab] = useState<BoardsTab>("games");
   // Fetched once, lazily - not until the reader actually asks to see it. Both
   // pooled screens rank from this SAME read (see pooled.ts), so switching
@@ -162,13 +175,25 @@ export function Boards({ locale }: { locale: AppLocale }) {
     };
   }, [wantsPooled]);
 
-  const game = games.find((g) => g.meta.id === openId);
+  // A standing can name a game this DEVICE has never played - the pooled read
+  // is the whole platform, and `games` is only what is in local storage. So
+  // resolve against the catalogue too and synthesise a `Playable` carrying the
+  // one board we actually know about. Without this the drill-down resolves to
+  // `undefined` and silently drops the reader back on the grid, which reads as
+  // a dead tap rather than as a missing game.
+  const game = resolveOpen(open, games, allMetas);
 
   return (
     <div className="ellaz-scroll" style={{ flex: 1 }}>
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "8px 16px 32px" }}>
         {game ? (
-          <GameBoard game={game} locale={locale} t={t} onBack={() => setOpenId(null)} />
+          <GameBoard
+            game={game}
+            initialBoard={open?.board}
+            locale={locale}
+            t={t}
+            onBack={() => setOpen(null)}
+          />
         ) : (
           <>
             <DifficultySelector
@@ -178,9 +203,16 @@ export function Boards({ locale }: { locale: AppLocale }) {
               locale={locale}
             />
             {tab === "games" ? (
-              <GameGrid games={games} locale={locale} t={t} onOpen={setOpenId} />
+              <GameGrid games={games} locale={locale} t={t} onOpen={(id) => setOpen({ id })} />
             ) : tab === "standings" ? (
-              <Standings pooled={pooled} myUid={myUid} metasAll={allMetas} locale={locale} t={t} />
+              <Standings
+                pooled={pooled}
+                myUid={myUid}
+                metasAll={allMetas}
+                locale={locale}
+                t={t}
+                onOpen={(id, board) => setOpen({ id, board })}
+              />
             ) : (
               <Medals pooled={pooled} myUid={myUid} metasAll={allMetas} locale={locale} t={t} />
             )}
@@ -211,14 +243,22 @@ type PooledLoad =
   | { kind: "offline" }
   | { kind: "ready"; rows: PooledRow[]; truncated: boolean };
 
-const POOLED_WINDOWS: { id: BoardWindow; label: Record<Locale, string> }[] = [
-  { id: "all", label: { he: "תמיד", en: "All time", es: "Siempre" } },
-  { id: "m", label: { he: "החודש", en: "This month", es: "Este mes" } },
-  { id: "w", label: { he: "השבוע", en: "This week", es: "Esta semana" } },
-];
+// The SAME four windows the per-game board offers, in the same order and for
+// the same reason - and it is four rather than three because a screen that
+// offers Today in one place and not the other is not a narrower screen, it is
+// an inconsistent one. It costs nothing to serve: every pooled row already
+// carries its value in all four windows (see `pooledTables`), so the day pill
+// re-ranks what is already in hand rather than fetching anything.
+const POOLED_WINDOWS = WINDOWS;
 
 const COPY = {
   everyone: { he: "כל השחקנים", en: "Everyone playing", es: "Todos jugando" },
+  // The SHORT form of the percentile, for the standings list only. The
+  // dictionary's `boardsTop` is a whole sentence ("You're in the top"), which
+  // is right on the detail view's own full-width line and wrong in a numeric
+  // column beside a game's name - measured at 390px it squeezed the title
+  // until "Color Sort · Easy" ellipsised. Same fact, sized for its column.
+  top: { he: "עשירון", en: "Top", es: "Top" },
   aheadOf: { he: "לפני", en: "ahead of", es: "por delante de" },
   others: { he: "אחרים", en: "others", es: "otros" },
   points: { he: "נקודות", en: "points", es: "puntos" },
@@ -228,6 +268,87 @@ const COPY = {
   bronze: { he: "ארד", en: "Bronze", es: "Bronce" },
   boardsWord: { he: "לוחות", en: "boards", es: "tableros" },
 } satisfies Record<string, Record<Locale, string>>;
+
+/**
+ * The window picker - a SEGMENTED control, not a row of pills.
+ *
+ * It is its own component rather than another `DifficultySelector` for two
+ * reasons, and only the second one is about pixels.
+ *
+ * A window is not a difficulty. `DifficultySelector` is the row a GAME draws to
+ * pick how hard it is; twenty games render it, and widening its remit to cover
+ * "when" is how one component ends up owning two decisions. This row also holds
+ * a fixed four options forever, where that one takes whatever the player's own
+ * records hand it - which is exactly why it must WRAP and this must not.
+ *
+ * And on the pixels: four `DifficultySelector` pills do not fit 358px of phone,
+ * so `Today` wrapped alone onto a second line. Segments share one frame, split
+ * the width evenly (`flex: 1`, `minWidth: 0`) and carry no gaps, so the row is
+ * one line at any width by construction rather than by a constant that goes
+ * stale the day a fifth window is added.
+ *
+ * One frame also does the job the `When` label was added for: it reads as ONE
+ * control, so it can no longer be mistaken for a continuation of the tab pills
+ * above it.
+ */
+function WindowRow<T extends string>({
+  options,
+  value,
+  onChange,
+  locale,
+}: {
+  options: readonly { id: T; label: Record<Locale, string> }[];
+  value: T;
+  onChange: (id: T) => void;
+  locale: AppLocale;
+}) {
+  return (
+    <div
+      role="group"
+      style={{
+        display: "flex",
+        borderRadius: "var(--radius-3)",
+        background: "var(--surface-2)",
+        boxShadow: "var(--shadow-1)",
+        overflow: "hidden",
+      }}
+    >
+      {options.map((o) => {
+        const on = o.id === value;
+        return (
+          <button
+            key={o.id}
+            type="button"
+            aria-pressed={on}
+            onClick={() => {
+              audioPort.play("tap");
+              onChange(o.id);
+            }}
+            style={{
+              flex: 1,
+              // Without this a long label sets the segment's floor and the row
+              // overflows its frame instead of sharing the width - the flex
+              // trap this repo has now hit three times.
+              minWidth: 0,
+              border: "none",
+              cursor: "pointer",
+              minHeight: 40,
+              padding: "0 4px",
+              fontSize: 13.5,
+              fontWeight: 800,
+              fontFamily: "inherit",
+              whiteSpace: "nowrap",
+              background: on ? "var(--brand)" : "transparent",
+              color: on ? "var(--on-brand)" : "var(--text)",
+            }}
+          >
+            {textFor(o.label, locale)}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 function PooledStatus({
   pooled,
@@ -251,12 +372,14 @@ function Standings({
   metasAll,
   locale,
   t,
+  onOpen,
 }: {
   pooled: PooledLoad;
   myUid: string | null;
   metasAll: Playable["meta"][];
   locale: AppLocale;
   t: (key: string) => string;
+  onOpen: (id: string, board: string) => void;
 }) {
   const [win, setWin] = useState<BoardWindow>("all");
   const status = <PooledStatus pooled={pooled} t={t} />;
@@ -272,12 +395,12 @@ function Standings({
 
   return (
     <>
-      <DifficultySelector
-        options={POOLED_WINDOWS}
-        value={win}
-        onChange={setWin}
-        locale={locale}
-      />
+      {/* One framed control, so it cannot be read as a continuation of the tab
+          pills above it - which is what "the buttons are not laid out good"
+          was describing. See `WindowRow`. */}
+      <div style={{ marginTop: 12 }}>
+        <WindowRow options={POOLED_WINDOWS} value={win} onChange={setWin} locale={locale} />
+      </div>
       {placings.length === 0 ? (
         <p style={{ marginTop: 18, fontSize: 15, color: "var(--text-dim)" }}>{t("boardsPlayToJoin")}</p>
       ) : (
@@ -292,7 +415,14 @@ function Standings({
             }}
           >
             {shown.map((p) => (
-              <StandingRow key={p.board} placing={p} metasAll={metasAll} locale={locale} t={t} />
+              <StandingRow
+                key={p.board}
+                placing={p}
+                metasAll={metasAll}
+                locale={locale}
+                t={t}
+                onOpen={onOpen}
+              />
             ))}
           </ol>
           {placings.length > 10 ? (
@@ -332,11 +462,13 @@ function StandingRow({
   metasAll,
   locale,
   t,
+  onOpen,
 }: {
   placing: Placing;
   metasAll: Playable["meta"][];
   locale: AppLocale;
   t: (key: string) => string;
+  onOpen: (id: string, board: string) => void;
 }) {
   const meta = metasAll.find((m) => m.id === p.game);
   // `better` is how many did BETTER — `rank - 1`. NOT `total - rank`, which is
@@ -346,22 +478,46 @@ function StandingRow({
   // Measured on the live boards — a player with 8 golds showed none.
   const view = standingView({ total: p.total, better: p.rank - 1 });
   const badge =
-    view.kind === "rank" ? `#${view.rank}` : view.kind === "percentile" ? `${t("boardsTop")} ${view.top}%` : null;
+    view.kind === "rank"
+      ? `#${view.rank}`
+      : view.kind === "percentile"
+        ? `${textFor(COPY.top, locale)} ${view.top}%`
+        : null;
   const level = p.level === "default" ? "" : ` · ${textFor(boardLabel(p.level), locale)}`;
 
+  const title = meta ? textFor(meta.title, locale) : p.game;
+
   return (
-    <li
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        padding: "10px 14px",
-        borderRadius: "var(--radius-2)",
-        background: "var(--surface-2)",
-        boxShadow: "var(--shadow-1)",
-      }}
-    >
-      {meta ? <GameArt id={meta.id} emoji={meta.emoji} height={40} /> : null}
+    <li style={{ display: "grid" }}>
+      {/* The whole row is the target, not a chevron at the end of it - this is
+          a kids platform and the minimum is a 2x2cm tap. It carries the BOARD
+          as well as the game: a standing is a fact about one board, so landing
+          on a different one shows a different field, a different record and a
+          different position, all of it rendering perfectly. */}
+      <button
+        type="button"
+        aria-label={`${title}${level} — ${t("boardsWhen")}`}
+        onClick={() => {
+          audioPort.play("tap");
+          onOpen(p.game, p.level);
+        }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          width: "100%",
+          padding: "10px 14px",
+          border: "none",
+          font: "inherit",
+          color: "inherit",
+          textAlign: "start",
+          cursor: "pointer",
+          borderRadius: "var(--radius-2)",
+          background: "var(--surface-2)",
+          boxShadow: "var(--shadow-1)",
+        }}
+      >
+        {meta ? <GameArt id={meta.id} emoji={meta.emoji} height={40} /> : null}
       <span style={{ flex: 1, minWidth: 0 }}>
         <span
           style={{
@@ -373,7 +529,7 @@ function StandingRow({
             textOverflow: "ellipsis",
           }}
         >
-          {meta ? textFor(meta.title, locale) : p.game}
+          {title}
           {level}
         </span>
         {/* No sub-line at all when there is no standing to report. The number
@@ -387,12 +543,21 @@ function StandingRow({
           </span>
         ) : null}
       </span>
-      <span dir="ltr" style={{ fontSize: 14, fontWeight: 800, textAlign: "end" }}>
-        {badge ? <span style={{ display: "block" }}>{badge}</span> : null}
-        {formatScore(p.value, p.unit)}
-      </span>
+        <span dir="ltr" style={{ fontSize: 14, fontWeight: 800, textAlign: "end" }}>
+          {badge ? <span style={{ display: "block" }}>{badge}</span> : null}
+          {formatScore(p.value, p.unit)}
+        </span>
+        <span aria-hidden="true" style={{ fontSize: 18, color: "var(--text-dim)" }}>
+          {chevron(locale)}
+        </span>
+      </button>
     </li>
   );
+}
+
+/** Points the way the reader's language reads, so it never points backwards. */
+function chevron(locale: AppLocale): string {
+  return DIR[locale] === "rtl" ? "‹" : "›";
 }
 
 function Medals({
@@ -699,17 +864,25 @@ function GameCard({
  */
 function GameBoard({
   game,
+  initialBoard,
   locale,
   t,
   onBack,
 }: {
   game: Playable;
+  /** The board a standing named, when the reader arrived by tapping one. */
+  initialBoard?: string;
   locale: AppLocale;
   t: (key: string) => string;
   onBack: () => void;
 }) {
-  const [board, setBoard] = useState<string>(() => firstBoard(game));
-  const [window_, setWindow] = useState<BoardWindow>("d");
+  // Validated against the game's own list, never trusted - an id this player
+  // holds no record on resolves to `-1` in `DifficultySelector`'s lookup, so
+  // the pills would render with NOTHING selected over a board that is showing.
+  const [board, setBoard] = useState<string>(() =>
+    initialBoard && game.boards.includes(initialBoard) ? initialBoard : firstBoard(game),
+  );
+  const [window_, setWindow] = useState<BoardWindow>("all");
   const { meta } = game;
 
   return (
@@ -744,12 +917,7 @@ function GameBoard({
       ) : null}
 
       <Label>{t("boardsWhen")}</Label>
-      <DifficultySelector
-        options={WINDOWS.map((w) => ({ id: w.id, label: w.label }))}
-        value={window_}
-        onChange={(id) => setWindow(id as BoardWindow)}
-        locale={locale}
-      />
+      <WindowRow options={WINDOWS} value={window_} onChange={setWindow} locale={locale} />
 
       <Board
         gameId={meta.id}
