@@ -184,7 +184,7 @@ describe("the game actually collects them", () => {
   it("does not pay out a padlock", () => {
     const body = playBody();
     expect(body).toMatch(/opened\s*=\s*arrived\.filter\(\s*\(n\)\s*=>\s*!isLocked/);
-    expect(body).toMatch(/for\s*\(const n of opened\)/);
+    expect(body).toMatch(/for\s*\(const n of prize\)/);
   });
 
   /**
@@ -218,7 +218,7 @@ describe("the game actually collects them", () => {
    */
   it("carries the collected boxes in the session snapshot", () => {
     expect(SRC).toMatch(/useGameSession\([\s\S]{0,200}?\breached\b/);
-    expect(SRC).toMatch(/version:\s*3/);
+    expect(SRC).toMatch(/version:\s*4/);
     expect(SRC).toMatch(/s\.reached\)/);
   });
 
@@ -228,5 +228,33 @@ describe("the game actually collects them", () => {
     const to = SRC.indexOf("\n  }, [", from);
     expect(from, "could not slice reset - the matcher is blind").toBeGreaterThan(0);
     expect(SRC.slice(from, to)).toMatch(/setReached\(\[\]\)/);
+  });
+});
+
+/**
+ * THE INVARIANT UNDER THE VERSION NUMBER.
+ *
+ * A snapshot gains a field and somebody forgets to check it: `validate` then
+ * passes a shape it has never seen, and the game restores state written by a
+ * build that does not exist any more. Bumping `version` is the other half and
+ * is easy to remember; this half is not, because nothing fails when it is
+ * missed - the wrong board just renders.
+ */
+describe("the snapshot gate keeps up with the snapshot", () => {
+  const SRC = readFileSync(new URL("./Lettercross.tsx", import.meta.url), "utf8");
+
+  it("checks every field the session declares", () => {
+    const decl = SRC.match(/type LettercrossSession = \{([\s\S]*?)\};/);
+    expect(decl, "could not find the session type - the matcher is blind").not.toBeNull();
+    const fields = [...decl![1].matchAll(/(\w+)\s*:/g)].map((m) => m[1]);
+    expect(fields.length, "found no fields at all").toBeGreaterThan(3);
+
+    const gate = SRC.slice(SRC.indexOf("validate: (value)"), SRC.indexOf("\n};", SRC.indexOf("validate: (value)")));
+    expect(gate.length, "could not slice validate - the matcher is blind").toBeGreaterThan(200);
+    for (const f of fields) {
+      // `state` is checked through its own local, so accept either spelling.
+      expect(gate, `the snapshot declares ${f} and validate never reads it`)
+        .toMatch(new RegExp(`\\b(s\\.${f}\\b|${f}\\s*=)`));
+    }
   });
 });

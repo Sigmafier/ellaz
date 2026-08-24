@@ -7,6 +7,8 @@ import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
 import { seedFrom, mulberry32 } from "@shared/rng";
 import { streakStep } from "@sdk/streak";
 import { BOXES, BOX_RADIUS, sideOf, reachedBoxes, isLocked, type BoxArt } from "./boxes";
+import { BONUS_ART, type BonusTier } from "./bonus";
+import { BonusRound } from "./BonusRound";
 import {
   SIZE, LETTER_VALUE, newGame, apply, validate,
   isOver, bestLevel, type Level, type Placement, type State,
@@ -21,17 +23,21 @@ const LEVEL_OPTIONS: ChromeLevel<Level>[] = [
 const STR = {
   en: { play: "Play", recall: "Take back", tiles: "Tiles", score: "Score",
         pickLetter: "Pick a letter for the wild", over: "No tiles left",
-        prize: "Prize box", taken: "Prize box, taken", locked: "Locked" },
+        prize: "Prize box", taken: "Prize box, taken", locked: "Locked",
+        stop: "Tap to stop", bonus: "Bonus round - tap to stop the marker" },
   he: { play: "לשחק", recall: "להחזיר", tiles: "אריחים", score: "ניקוד",
         pickLetter: "בחרו אות לג'וקר", over: "נגמרו האריחים",
-        prize: "תיבת פרס", taken: "תיבת פרס, נלקחה", locked: "נעול" },
+        prize: "תיבת פרס", taken: "תיבת פרס, נלקחה", locked: "נעול",
+        stop: "הקישו לעצור", bonus: "סיבוב בונוס - הקישו כדי לעצור את הסמן" },
   es: { play: "Jugar", recall: "Retirar", tiles: "Fichas", score: "Puntos",
         pickLetter: "Elige una letra para el comodín", over: "No quedan fichas",
-        prize: "Caja de premio", taken: "Caja de premio, recogida", locked: "Cerrado" },
+        prize: "Caja de premio", taken: "Caja de premio, recogida", locked: "Cerrado",
+        stop: "Toca para parar", bonus: "Ronda de bonus - toca para parar el marcador" },
 } as const;
 const str = (loc: Locale) => (STR as unknown as Record<string, typeof STR.en>)[loc] ?? STR.en;
 
-type LettercrossSession = { level: Level; state: State; bestFired: boolean; reached: readonly number[] };
+type LettercrossSession = { level: Level; state: State; bestFired: boolean;
+  reached: readonly number[]; bonus: number | null };
 
 /**
  * The snapshot gate. Handed whatever was on the disk, so it assumes nothing and
@@ -50,12 +56,17 @@ type LettercrossSession = { level: Level; state: State; bestFired: boolean; reac
  * forgets which boxes are already open re-collects every one of them on the
  * first word after a resume, and walking out and back in is a coin press.
  *
- * `version` is 3 because the shape changed twice. Nothing is migrated: a
+ * AND `bonus`, which is the same argument a third time. The box is marked
+ * reached the instant it is arrived at, so a player who walks out mid-round
+ * would come back to a collected box and no round - the prize gone with no
+ * error anywhere. Carrying the open round means leaving is a pause.
+ *
+ * `version` is 4 because the shape changed three times. Nothing is migrated: a
  * half-played board is worth a few minutes, and migration code for it is a
  * second copy of the game's rules that nothing keeps in sync.
  */
 const SESSION: SessionSpec<LettercrossSession> = {
-  version: 3,
+  version: 4,
   validate: (value): value is LettercrossSession => {
     const s = value as Partial<LettercrossSession> | null;
     if (typeof s !== "object" || s === null) return false;
@@ -67,6 +78,7 @@ const SESSION: SessionSpec<LettercrossSession> = {
     if (typeof g.score !== "number" || !Number.isFinite(g.score)) return false;
     if (typeof s.bestFired !== "boolean") return false;
     if (!Array.isArray(s.reached) || s.reached.some((n) => !Number.isInteger(n))) return false;
+    if (s.bonus !== null && !Number.isInteger(s.bonus)) return false;
     return true;
   },
 };
@@ -221,8 +233,15 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
   /** Where the coins fly FROM: the box itself, not the middle of the screen. */
   const boxEls = useRef<(HTMLDivElement | null)[]>([]);
 
+  /**
+   * The box whose bonus round is OPEN, or null. Exactly one box has one - see
+   * `BONUS_ART` - and it is state rather than a ref because the round is a
+   * screen, and it rides the snapshot because leaving must be a pause.
+   */
+  const [bonus, setBonus] = useState<number | null>(() => resume?.bonus ?? null);
+
   const over = isOver(state) && pending.length === 0;
-  useGameSession(ctx, SESSION, () => ({ level, state, bestFired: bestFiredRef.current, reached }), { live: !over });
+  useGameSession(ctx, SESSION, () => ({ level, state, bestFired: bestFiredRef.current, reached, bonus }), { live: !over });
 
   const best = ctx.score?.best(bestLevel(level));
 
@@ -232,6 +251,7 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
     streakRef.current = 0;
     bestFiredRef.current = false;
     setReached([]);
+    setBonus(null);
   }, []);
 
   /** The board as it looks with this turn's tentative tiles on it. */
@@ -303,6 +323,12 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
     const arrived = reachedBoxes(next.board).filter((n) => !reached.includes(n));
     const opened = arrived.filter((n) => !isLocked(BOXES[n]));
     const found = arrived.filter((n) => isLocked(BOXES[n]));
+    // STEP 3: ONE box opens a ROUND instead of paying a coin, and the rest keep
+    // step 2's flat coin - which is what lets both be felt in the same run.
+    // Marked reached HERE rather than when the round resolves: the round rides
+    // the snapshot, so a player who walks out mid-round comes back to it.
+    const round = opened.find((n) => BOXES[n].art === BONUS_ART);
+    const prize = opened.filter((n) => n !== round);
     if (arrived.length) setReached((r) => [...r, ...arrived]);
 
     streakRef.current += 1;
@@ -324,7 +350,7 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
     // is the whole reason a box cannot quietly become worth twelve
     // (rewards-economy-convention.md). `at` is the BOX, so the coins arc from
     // the thing that just opened rather than from the middle of the screen.
-    for (const n of opened) {
+    for (const n of prize) {
       const r = boxEls.current[n]?.getBoundingClientRect();
       winMoment(ctx, {
         reason: "milestone",
@@ -335,6 +361,7 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
       });
     }
     if (found.length) setNote(T.locked);
+    if (round !== undefined) setBonus(round);
 
     // THE RECORD IS WRITTEN EVERY TURN, not at the end of the run, and that is
     // a fix rather than a preference. This used to hang off `isOver`, which is
@@ -367,6 +394,32 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
     }
   }, [ctx, level, pending, reached, state, T.locked]);
 
+  /**
+   * The round hands back a TIER and this hands that to `winMoment` - the game
+   * still never names an amount, and `economy.ts` still owns the table.
+   *
+   * `level_complete` rather than `milestone`, and the choice is forced: a
+   * milestone is a flat coin with no way to say the round went well, so a
+   * mini-game paying the same for a bullseye and a near-miss is not a
+   * mini-game. `level_complete` is the one reason carrying a tier, and its own
+   * definition in `economy.ts` says "a level, round, or puzzle was finished".
+   * The overload is real and worth knowing: everywhere else a tier is the
+   * DIFFICULTY the player chose, and here it is how well they aimed.
+   */
+  const finishBonus = useCallback((tier: BonusTier) => {
+    const n = bonus;
+    setBonus(null);
+    if (n === null) return;
+    const r = boxEls.current[n]?.getBoundingClientRect();
+    winMoment(ctx, {
+      reason: "level_complete",
+      tier,
+      level: `lettercross-bonus-${BOXES[n].art}`,
+      confetti: false,
+      at: r ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : undefined,
+    });
+  }, [bonus, ctx]);
+
   const cell = `calc(${STAGE} / ${RING})`;
 
   return (
@@ -382,13 +435,13 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
       onRestart={() => reset(level)}
       footer={
         <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-          <button onClick={play} disabled={pending.length === 0}
+          <button onClick={play} disabled={pending.length === 0 || bonus !== null}
             style={{ minWidth: 96, minHeight: 44, borderRadius: 12, border: "none",
               background: pending.length ? "var(--g)" : "var(--surface-2)",
               color: pending.length ? "#fff" : "var(--text-dim)", fontWeight: 700, fontSize: 16 }}>
             {T.play}
           </button>
-          <button onClick={() => { setPending([]); setNote(""); }} disabled={pending.length === 0}
+          <button onClick={() => { setPending([]); setNote(""); }} disabled={pending.length === 0 || bonus !== null}
             style={{ minWidth: 96, minHeight: 44, borderRadius: 12, border: "1px solid var(--line)",
               background: "transparent", color: "var(--text)", fontSize: 16 }}>
             {T.recall}
@@ -510,6 +563,20 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
             );
           })}
         </div>
+
+        {/* The round covers the column exactly as the picker does, so the board
+            and the rack behind it stop taking taps. The two footer buttons are
+            OUTSIDE this column - they are disabled above rather than covered,
+            which is the part that is easy to miss. */}
+        {bonus !== null && (
+          <BonusRound
+            glyph={BOX_ART[BOXES[bonus].art]}
+            hint={T.stop}
+            label={T.bonus}
+            onStop={finishBonus}
+            playTap={() => ctx.audio.play("tap")}
+          />
+        )}
 
         {/* The picker is an OVERLAY rather than a row in the column, for the
             same reason. Twenty-six buttons appearing in flow is the biggest
