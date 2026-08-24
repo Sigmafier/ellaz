@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { AppLocale } from "@i18n/locales";
 import { AUTONYM, dirOf } from "@i18n/locales";
 import { AVAILABLE, makeT } from "@i18n/strings";
+import { Icon } from "./icons";
 
 /**
  * The language control.
@@ -92,24 +93,29 @@ export function LanguagePicker({
         style={{
           minHeight: "var(--tap)",
           // The tap target is the globe and nothing else now, so `minWidth`
-          // is the whole width rather than a floor under a label: 14px of
-          // padding either side of an 18px globe is 46, under the 48px floor
-          // every other control in that header holds.
+          // is the whole width rather than a floor under a label.
+          //
+          // NO horizontal padding, which is what makes this pill the same
+          // SHAPE as the theme pill beside it: `minWidth` already holds the
+          // 48px target, and `0 14px` on top of it made this one 18px wider
+          // than its sibling for no reason a reader could see. Two round
+          // controls of different widths, side by side, is the thing that
+          // reads as unfinished.
           minWidth: "var(--tap)",
-          padding: "0 14px",
+          padding: 0,
           borderRadius: "var(--radius-pill)",
           border: "none",
           background: "var(--surface-2)",
           color: "var(--text)",
           fontWeight: 800,
-          fontSize: 15,
+          fontSize: 18,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           gap: 6,
         }}
       >
-        <GlobeIcon />
+        <Icon name="globe" />
       </button>
 
       {open && (
@@ -193,12 +199,3 @@ export function LanguagePicker({
 }
 
 /** Original, and a globe rather than a flag for the reason above. */
-function GlobeIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none">
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
-      <ellipse cx="12" cy="12" rx="4" ry="9" stroke="currentColor" strokeWidth="2" />
-      <path d="M3.5 9h17M3.5 15h17" stroke="currentColor" strokeWidth="2" />
-    </svg>
-  );
-}

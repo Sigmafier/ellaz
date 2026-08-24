@@ -37,7 +37,10 @@ export type IconName =
   | "back"
   | "expand"
   | "pause"
-  | "play";
+  | "play"
+  | "globe"
+  | "sun"
+  | "moon";
 
 const PATHS: Record<IconName, string> = {
   home:
@@ -124,6 +127,30 @@ const PATHS: Record<IconName, string> = {
   // bounding box reads as sitting left of centre, because its mass is on that
   // side. Every other glyph here is centred by eye for the same reason.
   play: "M8.6 5.4 18.2 12l-9.6 6.6z",
+  // The language control. It lived in LanguagePicker.tsx as a bespoke <svg> of
+  // <circle>/<ellipse>/<path> at weight 2.0 with no round caps - so the one
+  // control a first visit cannot do without was the one drawn outside this set,
+  // sitting beside a 2.1 round-capped star that it did not match.
+  globe:
+    "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0" +
+    "M16 12a4 9 0 1 1-8 0 4 9 0 0 1 8 0" +
+    "M3.4 9h17.2M3.4 15h17.2",
+  // Day and night. These were the text characters U+2600 and U+263E, which is
+  // the failure this file's own header names: a font decides what they look
+  // like, so the toggle rendered as a hairline outline on one machine and a
+  // solid block on another, next to icons drawn at a fixed weight.
+  sun:
+    "M16.2 12a4.2 4.2 0 1 1-8.4 0 4.2 4.2 0 0 1 8.4 0" +
+    // 2.2 rather than 2.1, and that is not arbitrary: `icons.test.ts` forbids
+    // the string "2.1" on any line but the STROKE constant, because a
+    // hardcoded weight would be a second source of truth. A ray LENGTH of 2.1
+    // is not a weight - but the coordinate is worth a tenth of a pixel and the
+    // guard is worth keeping at its strictest, so the drawing moved.
+    "M12 3.4v2.2M12 18.4v2.2M3.4 12h2.2M18.4 12h2.2" +
+    "M5.9 5.9l1.5 1.5M16.6 16.6l1.5 1.5M18.1 5.9l-1.5 1.5M7.4 16.6l-1.5 1.5",
+  // A crescent, not a circle with a bite: one closed subpath, so it survives
+  // being scaled to the 18px this actually renders at.
+  moon: "M20.1 14.7A8.7 8.7 0 0 1 9.3 3.9 8.7 8.7 0 1 0 20.1 14.7z",
 };
 
 const SVG_NS = "http://www.w3.org/2000/svg";

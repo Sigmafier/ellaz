@@ -1,3 +1,4 @@
+import type { IconName } from "./icons";
 /**
  * The theme list, and the single place any part of the build may learn it.
  *
@@ -27,8 +28,14 @@ export interface Theme {
    * English on a screen that is not.
    */
   readonly label: Record<ShippedLocale, string>;
-  /** One glyph, so the control reads without reading. */
-  readonly glyph: string;
+  /**
+   * One icon, so the control reads without reading - and a NAME from the app's
+   * own set rather than a character, because a text glyph is drawn by whatever
+   * font the machine has and cannot match the icons beside it. See the header
+   * of `ui/icons.tsx`, which says exactly this and which this field used to
+   * contradict.
+   */
+  readonly icon: IconName;
   /**
    * `<meta name="theme-color">` and the PWA manifest's `theme_color`: the
    * colour the phone paints its own chrome. This used to be the literal
@@ -44,14 +51,14 @@ export const THEMES: readonly Theme[] = [
   {
     id: "market",
     label: { he: "יום", en: "Day", es: "Día" },
-    glyph: "☀",
+    icon: "sun",
     browserChrome: "#ff4d8d",
     background: "#fff6e9",
   },
   {
     id: "night",
     label: { he: "לילה", en: "Night", es: "Noche" },
-    glyph: "☾",
+    icon: "moon",
     browserChrome: "#6c5ce7",
     background: "#0f1226",
   },

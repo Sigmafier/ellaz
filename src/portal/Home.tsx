@@ -320,6 +320,39 @@ export function Home({
                 is the same currency-shaped readout: something you have, not
                 something you owe. */}
             <DailyChip locale={locale} />
+            {/* The leaderboards, back in the bar. Operator ruling 2026-08-24,
+                after the trophy had been removed from it earlier the same day:
+                "i dont see the leaderbors icon in header".
+
+                It is a LINK, not a button, so middle-click and long-press
+                behave - the same reason the game cards are anchors. It is
+                always-on by construction, which is exactly what the gated card
+                below was for, so the two now overlap for a player who has
+                played something; the card is the one that carries a label, and
+                a bar icon on its own is not discoverable to a five-year-old.
+                Kept until the operator says which one goes. */}
+            <a
+              href={boardsHref(pageLocaleFor(locale))}
+              onClick={tap}
+              aria-label={t("boards")}
+              style={{
+                // The same square the two pills beside it hold, so the row
+                // reads as one set of controls rather than three sizes.
+                minHeight: "var(--tap)",
+                minWidth: "var(--tap)",
+                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "var(--radius-pill)",
+                background: "var(--surface-2)",
+                color: "var(--text)",
+                textDecoration: "none",
+                fontSize: 18,
+              }}
+            >
+              <Icon name="trophy" />
+            </a>
             <LanguagePicker locale={locale} onPick={onPickLocale} onTap={tap} />
             <ThemeToggle locale={locale} onTap={tap} />
           </div>
@@ -353,7 +386,11 @@ export function Home({
             href={boardsHref(pageLocaleFor(locale))}
             onClick={tap}
             style={{
-              display: "block",
+              // flex, not block: the trophy is an <Icon> now rather than an
+              // emoji in a text run, so it needs a baseline the row sets.
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
               width: "calc(100% - 8px)",
               margin: "0 4px 20px",
               padding: "11px 14px",
@@ -366,7 +403,7 @@ export function Home({
               fontSize: 15,
             }}
           >
-            <span aria-hidden="true">🏆</span> {t("boards")}
+            <Icon name="trophy" /> {t("boards")}
           </a>
         )}
 
@@ -505,8 +542,13 @@ export function Home({
  * five-year-old has to learn to leave.
  *
  * It shows the theme it will switch TO, not the one you are in, because the
- * glyph is a button label rather than a status readout. Its `aria-label` says
+ * icon is a button label rather than a status readout. Its `aria-label` says
  * so in words, since a sun on its own is ambiguous either way.
+ *
+ * It draws from `@ui/icons` like every other control in this bar. It used to
+ * render `next.glyph` - the characters U+2600 and U+263E - so the machine's
+ * font decided the weight, and the result sat beside a 2.1 round-capped star
+ * and globe looking like it came from somewhere else. It did.
  */
 function ThemeToggle({ locale, onTap }: { locale: AppLocale; onTap: () => void }) {
   const [theme, setTheme] = useTheme();
@@ -533,7 +575,7 @@ function ThemeToggle({ locale, onTap }: { locale: AppLocale; onTap: () => void }
         lineHeight: 1,
       }}
     >
-      <span aria-hidden="true">{next.glyph}</span>
+      <Icon name={next.icon} />
     </button>
   );
 }
