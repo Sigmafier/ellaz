@@ -11,19 +11,18 @@ import { DAILY_KEY } from "./daily";
 import { GAMES } from "../portal/games";
 import { SHIPPED_LOCALES } from "@i18n/locales";
 import {
-  MAX_ITEMS,
   assertShareSafe,
-  buildShare,
+  buildGameInvite,
   containsSecret,
   scrub,
-  type DayPlay,
+  type GameInvite,
   type SharePayload,
 } from "./share";
 
-const LABELS = { today: "Today I played", invite: "Come and play on Ellaz" };
-const URL = "https://ellaz.fun/";
+const LABELS = { note: "Free in your browser. No ads, no account.", invite: "Come and play on Ellaz" };
+const URL = "https://ellaz.fun/games/snake/";
 
-const play = (over: Partial<DayPlay> = {}): DayPlay => ({
+const game = (over: Partial<GameInvite> = {}): GameInvite => ({
   gameId: "snake",
   title: "Snake",
   emoji: "🐍",
@@ -32,7 +31,13 @@ const play = (over: Partial<DayPlay> = {}): DayPlay => ({
 
 /** Every string a payload carries, so nothing can hide in a field nobody read. */
 function everyString(payload: SharePayload): string[] {
-  return [payload.date, payload.headline, payload.invite, payload.text, payload.url, ...payload.items];
+  // `date` is optional since the per-game invite landed - an invite is not about
+  // a day. Filtered rather than defaulted to `""`, because a `""` in this list
+  // is a string the secret scan would happily pass and nobody would notice it
+  // was standing in for a field that was never there.
+  return [payload.date, payload.headline, payload.invite, payload.text, payload.url, ...payload.items].filter(
+    (v): v is string => typeof v === "string",
+  );
 }
 
 describe("nothing that restores a profile may ever leave the device", () => {
@@ -50,11 +55,7 @@ describe("nothing that restores a profile may ever leave the device", () => {
     // A REAL code from the real generator, not a hand-typed lookalike. If
     // `makeBackupCode` ever changes alphabet or shape, this is what notices.
     const code = makeBackupCode(mulberry32(7));
-    const payload = buildShare(
-      { date: "2026-08-13", plays: [play({ title: `Snake ${code}` })] },
-      LABELS,
-      URL,
-    );
+    const payload = buildGameInvite(game({ title: `Snake ${code}` }), LABELS, URL);
     expect(payload).toBeDefined();
     for (const value of everyString(payload!)) {
       expect(value, `payload string: ${value}`).not.toContain(code);
@@ -65,9 +66,9 @@ describe("nothing that restores a profile may ever leave the device", () => {
     // The title is the obvious door. The result string, the labels and the URL
     // are the three nobody thinks about, and each of them is caller-supplied.
     const code = makeBackupCode(mulberry32(99));
-    const payload = buildShare(
-      { date: `2026-08-13 ${code}`, plays: [play({ result: `1:12 ${code}` })] },
-      { today: `Today ${code}`, invite: `Play ${code}` },
+    const payload = buildGameInvite(
+      game({ title: `Snake ${code}` }),
+      { note: `Free ${code}`, invite: `Play ${code}` },
       `${URL}?c=${code}`,
     );
     for (const value of everyString(payload!)) {
@@ -80,11 +81,7 @@ describe("nothing that restores a profile may ever leave the device", () => {
     // has to be added here too - and imported from its owner, so a rename
     // cannot leave this test asserting about a key that no longer exists.
     for (const key of [PROFILE_KEY, CLOUD_KEY, DAILY_KEY, `${SCORE_KEY_PREFIX}easy`]) {
-      const payload = buildShare(
-        { date: "2026-08-13", plays: [play({ title: `Snake ${key}` })] },
-        LABELS,
-        URL,
-      );
+      const payload = buildGameInvite(game({ title: `Snake ${key}` }), LABELS, URL);
       for (const value of everyString(payload!)) {
         expect(value, `${key} in: ${value}`).not.toMatch(/ellaz:/i);
       }
@@ -103,11 +100,7 @@ describe("nothing that restores a profile may ever leave the device", () => {
     // is how the first version of this test passed over the planted defect.
     const code = makeBackupCode(mulberry32(3));
     const padding = "x".repeat(32);
-    const payload = buildShare(
-      { date: "2026-08-13", plays: [play({ title: `${padding}${code}` })] },
-      LABELS,
-      URL,
-    );
+    const payload = buildGameInvite(game({ title: `${padding}${code}` }), LABELS, URL);
     const joined = everyString(payload!).join("\n");
     // The whole code, and also the fragment a cap would have left behind.
     expect(joined).not.toContain(code);
@@ -175,11 +168,7 @@ describe("nothing that restores a profile may ever leave the device", () => {
     // above on its first honest run, not reasoned about in advance.
     const code = makeBackupCode(mulberry32(21));
     expect(containsSecret(`snake${code}`)).toBe(true);
-    const payload = buildShare(
-      { date: "2026-08-13", plays: [play({ title: `snake${code}` })] },
-      LABELS,
-      URL,
-    );
+    const payload = buildGameInvite(game({ title: `snake${code}` }), LABELS, URL);
     expect(everyString(payload!).join("\n")).not.toContain(code);
   });
 
@@ -198,52 +187,53 @@ describe("nothing that restores a profile may ever leave the device", () => {
   it("leaves an ordinary title completely alone", () => {
     // The positive control, and it is what stops all of the above being
     // satisfied by a scrubber that simply blanks everything.
-    const payload = buildShare(
-      { date: "2026-08-13", plays: [play({ title: "2048", emoji: "🔢", result: "1:12" })] },
-      LABELS,
-      URL,
-    );
-    expect(payload!.items).toEqual(["🔢 2048 · 1:12"]);
+    const payload = buildGameInvite(game({ title: "2048", emoji: "🔢" }), LABELS, URL);
+    expect(payload!.headline).toBe("🔢 2048");
+    expect(payload!.items).toEqual(["Free in your browser. No ads, no account."]);
     expect(payload!.url).toBe(URL);
-    expect(payload!.text).toContain("Come and play on Ellaz https://ellaz.fun/");
+    expect(payload!.text).toContain("Come and play on Ellaz https://ellaz.fun/games/snake/");
   });
 });
 
-describe("one day, and there is nowhere to put a second", () => {
-  it("says nothing at all for a day with no plays", () => {
-    // Not an empty card. A share saying "today I played nothing" is worse than
-    // no button, and `undefined` is what keeps the button off the screen.
-    expect(buildShare({ date: "2026-08-13", plays: [] }, LABELS, URL)).toBeUndefined();
+describe("an invite, and there is nowhere to put a score", () => {
+  it("says nothing at all for a game with no name", () => {
+    // Not an empty sheet. `undefined` is what keeps a dead button off the
+    // screen, the same rule the day payload carried for an empty day.
+    expect(buildGameInvite(game({ title: "   " }), LABELS, URL)).toBeUndefined();
   });
 
-  it("drops a play with no name rather than shipping a blank line", () => {
-    expect(
-      buildShare({ date: "2026-08-13", plays: [play({ title: "   " })] }, LABELS, URL),
-    ).toBeUndefined();
-  });
-
-  it("caps the list and counts the rest as a bare number", () => {
-    const plays = Array.from({ length: MAX_ITEMS + 3 }, (_, i) =>
-      play({ gameId: `g${i}`, title: `Game ${i}` }),
-    );
-    const payload = buildShare({ date: "2026-08-13", plays }, LABELS, URL);
-    expect(payload!.items).toHaveLength(MAX_ITEMS + 1);
-    // `+3` needs no entry in eleven dictionaries and reads in all of them.
-    expect(payload!.items.at(-1)).toBe("+3");
-  });
-
-  it("carries no field a streak, a total or a history could live in", () => {
+  it("carries no field a score, a time or a streak could live in", () => {
     // The structural half of the guarantee, asserted rather than described.
-    // The product decision is "today's result only"; this is that decision
-    // expressed as a shape, so a future caller has nowhere to put a streak.
-    const payload = buildShare({ date: "2026-08-13", plays: [play()] }, LABELS, URL)!;
+    // Operator ruling 2026-08-25: "An invite - just the game." This is that
+    // decision expressed as a shape, so a future caller has nowhere to put a
+    // record - which is also why `coloring`, the one game that deliberately
+    // keeps no score, can share exactly like the other 33.
+    const payload = buildGameInvite(game(), LABELS, URL)!;
     expect(Object.keys(payload).sort()).toEqual(
-      ["date", "headline", "invite", "items", "text", "url"].sort(),
+      ["headline", "invite", "items", "text", "url"].sort(),
+    );
+    // And no `date`: an invite is not about a day. Absent rather than empty,
+    // because a `""` is a string the secret scan passes and nobody notices it
+    // is standing in for a field that was never there.
+    expect("date" in payload).toBe(false);
+  });
+
+  it("names ONE game and links to that game's own page", () => {
+    const payload = buildGameInvite(game(), LABELS, URL)!;
+    expect(payload.headline).toBe("🐍 Snake");
+    expect(payload.url).toBe("https://ellaz.fun/games/snake/");
+    // The whole message, in the order it is read: what it is, what it costs,
+    // where to go.
+    expect(payload.text).toBe(
+      "🐍 Snake\nFree in your browser. No ads, no account." +
+        "\nCome and play on Ellaz https://ellaz.fun/games/snake/",
     );
   });
 
-  it("names one day and never a range", () => {
-    const payload = buildShare({ date: "2026-08-13", plays: [play()] }, LABELS, URL)!;
-    expect(payload.date).toBe("2026-08-13");
+  it("still builds a message for a game with no glyph", () => {
+    // `emoji` is optional on the meta and two games could lose theirs without
+    // this noticing - the headline must not become " Snake" with a leading gap.
+    const payload = buildGameInvite(game({ emoji: undefined }), LABELS, URL)!;
+    expect(payload.headline).toBe("Snake");
   });
 });

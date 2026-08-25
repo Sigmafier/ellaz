@@ -449,13 +449,18 @@ export default defineConfig({
           // above, and it MUST be carved out before both catch-alls below -
           // `share.ts` lives under src/sdk/ and the other three under
           // src/portal/, so each would otherwise be pinned to the shell and the
-          // dynamic import in Home.tsx would buy nothing.
+          // dynamic import in `wireShare` would buy nothing.
           //
-          // `sdk/shareDay.ts` is deliberately NOT here and the `\.ts$` anchor is
-          // what keeps it out. Home has to ask "was this played today?" to
-          // decide whether the button belongs on the page at all, so that one
-          // predicate is shell-side; pulling it in from `share.ts` would drag
-          // the whole payload policy onto a first visit for two functions.
+          // The importer moved from `Home.tsx` to `PageApp.tsx` on 2026-08-25,
+          // when the share became a per-game invite - so this now keeps the
+          // sheet out of the PAGE chunk rather than out of the shell. The carve
+          // is if anything more load-bearing there: `page` is fetched by every
+          // visitor who opens a game, and only a fraction of them tap share.
+          //
+          // `sdk/shareDay.ts` used to be deliberately excluded here; it is
+          // DELETED, along with the whole day payload, so the `\.ts$` anchor now
+          // guards nothing in particular. It stays because it is still the right
+          // shape: an anchor cannot accidentally swallow a future sibling.
           if (/\/src\/sdk\/share\.ts$/.test(path)) return "share";
           if (/\/src\/portal\/(ShareSheet\.tsx|shareCard(Render)?\.ts)$/.test(path)) return "share";
 

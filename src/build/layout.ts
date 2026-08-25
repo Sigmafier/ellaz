@@ -788,7 +788,7 @@ function groundStyle(chrome: HeaderChrome | undefined): string {
  * app is redrawn here with no second edit.
  */
 export function icon(
-  name: "back" | "expand" | "globe" | "home" | "pause" | "play" | "redo" | "sound",
+  name: "back" | "expand" | "globe" | "home" | "pause" | "play" | "redo" | "share" | "sound",
   cls = "",
 ): RawHtml {
   // Every subpath its own <path>: `home` is three of them concatenated, and a

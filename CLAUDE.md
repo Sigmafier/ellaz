@@ -730,8 +730,12 @@ separate three.js / Babylon / PlayCanvas bake-off.
   lifecycle + ads shape matches the **Poki + CrazyGames** union so games can list on
   those portals later with no rewrites.
 - **A control is either GAME or PLATFORM, and they never share a bar.** Home,
-  the wallet, sound and full screen are platform; difficulty, restart, pause
-  and the game's own numbers are game. The test is one question: would this
+  the wallet, sound and full screen are platform; difficulty, restart, pause,
+  share and the game's own numbers are game. **Share is the sharpest case and
+  answers the test cleanly**: sharing THIS game means nothing on the room or
+  the boards, so it is emitted by `gamePage` alone rather than by
+  `screenChrome`, which serves all three. It is a button, so it goes on the
+  utility row. The test is one question: would this
   control still make sense on the World screen or the Boards? Mixing the two
   is how this page ended up with four ways home and two things called "Level"
   8px apart. Inside the game family there is a second split, and it is about

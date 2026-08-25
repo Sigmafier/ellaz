@@ -3303,14 +3303,44 @@ an available move. Playwright's own router serves the build straight off disk,
 so there is no port to pick and two arms can be captured while somebody else
 is working.
 
-### What is not done
+### The per-game share, and the day payload that had to leave with it
 
-The per-game share. The operator ruled its CONTENT (an invite - the game's art,
-its name, that game's URL, no score) and ruled the daily digest deleted, but
-**not its placement**, and it is deliberately not being guessed. The two
-candidates are a button on the utility row - measured free on 32 games,
-truncating the breadcrumb on snake and blocks at 390 where `.gname` is already
-hidden - and a post-win panel, which is not a button at all: `winMoment()`
-grants, plays, throws confetti and leaves nothing behind, so that arm is a
-feature and an interruption to get-straight-back-to-play. Both go up as
-pictures over the real page before either is built.
+The operator ruled the CONTENT first (an invite - the game's name, its glyph,
+that game's URL, no score), then the daily digest deleted, then the GLYPH: five
+candidates drawn on the real utility row at 390px and 3x, and they picked the
+**three-node Android share mark** over the iOS box-and-arrow, a paper plane, a
+forward arrow and a chain link. Placement was asked four times and never ruled;
+the utility row is what shipped, because it is the only arm with a real artifact
+- the other candidate was a post-win panel, which is not a placement at all:
+`winMoment()` grants, plays, throws confetti and leaves nothing behind, so that
+arm is a feature and an interruption to get-straight-back-to-play.
+
+**The day payload was DELETED in the same change, not left beside the new one.**
+`buildShare`, `ShareDay`, `DayPlay`, `MAX_ITEMS` and the whole of
+`sdk/shareDay.ts` are gone; `buildGameInvite` is the only builder. Two payload
+builders, one wired and one not, is exactly
+`no-half-migrated-duplicate-systems.md`, and the cost of leaving it would have
+been paid by whoever next tried to work out which one the sheet uses.
+
+What did NOT get deleted is the security half. Every scrubbing test in
+`share.test.ts` - the real backup code through a title, the storage keys by
+name, the cap-bisect trap, the 200-real-codes drift check, the stateful-regex
+trap, the whole-catalog over-match control - was PORTED onto `buildGameInvite`
+rather than dropped with the payload it was written against. They are the most
+valuable assertions in the file: a share is seen by strangers, and a backup code
+hands one the whole profile.
+
+**Three things the build already knew, so the runtime does not look them up.**
+The button carries `data-share-title` and `data-share-emoji`, the same
+arrangement the pause button's two labels use. The tempting alternative -
+`metaFor(id)` in `PageApp` - imports all 33 metas to find the one this page is
+already about, and `no-app-imports.test.ts` refuses it BY NAME. It caught this
+on the first full run, which is the gate doing its job rather than a nuisance.
+It also gets the name in the PAGE's language for free: `meta.title` carries only
+the two SHIPPED locales, so a Spanish or French page would have shared an
+English name.
+
+Six assertions pin the placement in `screen-header-is-platform-only.test.ts` -
+on the game page, on neither the room nor the boards, never in the header,
+emitted hidden, an accessible name, and the three-node glyph by subpath count.
+Five mutations planted, each checksum-verified to have landed.

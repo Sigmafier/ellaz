@@ -119,22 +119,32 @@ export async function renderCardPng(svg: string, size: number): Promise<Blob | n
 /**
  * A file name a stranger will see in their downloads folder.
  *
- * The date and nothing else. NOT the game, not the player - a file name is a
- * piece of text that travels with the picture into somebody else's phone, and
- * it is exactly the kind of place a device-scoped id gets attached by accident.
+ * A DAY or a GAME ID, and nothing else. NOT the player, not a record, not a
+ * code - a file name is a piece of text that travels with the picture into
+ * somebody else's phone, and it is exactly the kind of place a device-scoped id
+ * gets attached by accident. The game id was added 2026-08-25 with the per-game
+ * invite, which is about a game rather than a day; it is catalogue data, the
+ * same string that is already in the shared URL.
  */
-export function cardFileName(date: string): string {
-  const safe = /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : "today";
-  return `ellaz-${safe}.png`;
+export function cardFileName(stamp?: string): string {
+  // TWO shapes are allowed and everything else becomes `today`: a DAY, which is
+  // what the digest card was about, and a GAME ID, which is what an invite card
+  // is about. Both are allow-listed by pattern rather than sanitised, because
+  // this string becomes a filename on somebody else's device - `../../etc/passwd`
+  // and `ellaz:profile:v1` are both refused by the character class, and the
+  // tests below plant exactly those two.
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(stamp ?? "");
+  const game = /^[a-z0-9][a-z0-9-]{0,23}$/.test(stamp ?? "");
+  return `ellaz-${day || game ? stamp : "today"}.png`;
 }
 
 /** The PNG as a `File`, which is what `navigator.share` wants. */
-export function toShareFile(blob: Blob, date: string): File | null {
+export function toShareFile(blob: Blob, stamp?: string): File | null {
   // `File` is missing on some older Android WebViews that have `Blob` and
   // `navigator.share` - so this is a real branch, not defensive noise.
   if (typeof File !== "function") return null;
   try {
-    return new File([blob], cardFileName(date), { type: "image/png" });
+    return new File([blob], cardFileName(stamp), { type: "image/png" });
   } catch {
     return null;
   }

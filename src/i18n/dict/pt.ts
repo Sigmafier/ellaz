@@ -108,7 +108,7 @@ export const pt: Record<StringKey, string> = {
   difficulty: "Dificuldade",
   stage: "Fase",
   share: "Compartilhar",
-  shareToday: "Hoje eu joguei",
+  shareNote: "Grátis no navegador. Sem anúncios, sem conta.",
   shareInvite: "Venha jogar no Ellaz",
   shareCopy: "Copiar link",
   shareCopied: "Link copiado",

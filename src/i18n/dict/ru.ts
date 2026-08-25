@@ -110,7 +110,7 @@ export const ru: Record<StringKey, string> = {
   difficulty: "Сложность",
   stage: "Этап",
   share: "Поделиться",
-  shareToday: "Сегодня я играл в",
+  shareNote: "Бесплатно в браузере. Без рекламы и без аккаунта.",
   shareInvite: "Заходи играть в Ellaz",
   shareCopy: "Скопировать ссылку",
   shareCopied: "Ссылка скопирована",

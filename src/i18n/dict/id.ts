@@ -114,7 +114,7 @@ export const id: Record<StringKey, string> = {
   difficulty: "Kesulitan",
   stage: "Tahap",
   share: "Bagikan",
-  shareToday: "Hari ini aku main",
+  shareNote: "Gratis di peramban. Tanpa iklan, tanpa akun.",
   shareInvite: "Ayo main di Ellaz",
   shareCopy: "Salin tautan",
   shareCopied: "Tautan disalin",

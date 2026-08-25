@@ -78,6 +78,17 @@ export interface SiteCopy {
      * heading of the sheet it opens, never a visible label beside it.
      */
     language: string;
+    /**
+     * The utility row's share control. It draws the three-node mark and no
+     * word (operator ruling 2026-08-25, picked from five glyphs on the real
+     * row), so this is its accessible name rather than a visible label.
+     *
+     * It is a GAME control, not platform chrome - the thing being shared is
+     * THIS game, which means nothing on the room or the boards, which is why
+     * it is emitted by `gamePage` alone and not by `screenChrome`.
+     * See .claude/rules/game-controls-and-platform-chrome-never-share-a-bar.md
+     */
+    share: string;
   };
   /** Section headings on a game page, in render order. */
   headings: {
@@ -118,6 +129,7 @@ const he: SiteCopy = {
     pause: "השהיה", resume: "המשך",
     beta: "בטא", betaNote: "המשחק הזה עדיין בבנייה",
     language: "שפה",
+    share: "שיתוף",
   },
   headings: {
     howToPlay: "איך משחקים?",
@@ -200,6 +212,7 @@ const en: SiteCopy = {
     pause: "Pause", resume: "Resume",
     beta: "Beta", betaNote: "This game is still being built",
     language: "Language",
+    share: "Share",
   },
   headings: {
     howToPlay: "How do you play?",
@@ -294,6 +307,7 @@ const es: SiteCopy = {
     restart: "Reiniciar", pause: "Pausa", resume: "Continuar",
     beta: "Beta", betaNote: "Este juego todavía se está construyendo",
     language: "Idioma",
+    share: "Compartir",
   },
   headings: {
     howToPlay: "¿Cómo se juega?",
@@ -384,6 +398,7 @@ const fr: SiteCopy = {
     restart: "Recommencer", pause: "Pause", resume: "Reprendre",
     beta: "Bêta", betaNote: "Ce jeu est encore en construction",
     language: "Langue",
+    share: "Partager",
   },
   headings: {
     howToPlay: "Comment on joue ?",

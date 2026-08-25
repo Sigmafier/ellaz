@@ -211,6 +211,27 @@ export function gamePage(opts: GamePageOptions): string {
         // for mid-run and restart is the one they must not hit by accident.
         // Pause stays hidden on the 31 games that never pass one - a turn-based
         // game already pauses itself when a hand leaves the screen.
+        //
+        // SHARE last of the three, and on the GAME page alone. It is a game
+        // control by the one test that decides the question - "would this still
+        // mean anything on the room or the boards?" - so it is emitted here
+        // rather than in `screenChrome`, which serves all three screens.
+        // Operator, 2026-08-25: "the share card in homepage shouldmove from
+        // here. we should add per game share options instead."
+        //
+        // Emitted `hidden` like its two neighbours, and for a third reason of
+        // its own: the sheet is a lazy chunk and the abilities behind it
+        // (`navigator.share`, the clipboard) are the browser's, so the build
+        // cannot know whether this device can do anything with a tap.
+        //
+        // The NAME AND GLYPH ride on `data-` attributes rather than being
+        // looked up at runtime, exactly as the pause button's two labels do.
+        // The alternative is `metaFor(id)` in `PageApp`, which imports the FULL
+        // roster - `no-app-imports.test.ts` refuses that by name, and it is
+        // right to: this page already knows which game it is, so shipping 33
+        // metas to find out again is a lookup the build already did. It also
+        // gets the name in the PAGE's language for free, which `meta.title`
+        // could not - that record only carries the two SHIPPED locales.
         tools: html`<button
             type="button"
             class="ubtn"
@@ -224,6 +245,17 @@ export function gamePage(opts: GamePageOptions): string {
           </button>
           <button type="button" class="ubtn" data-restart aria-label="${site.chrome.restart}" hidden>
             ${icon("redo")}
+          </button>
+          <button
+            type="button"
+            class="ubtn"
+            data-share
+            data-share-title="${gameName(meta.id, locale)}"
+            data-share-emoji="${meta.emoji}"
+            aria-label="${site.chrome.share}"
+            hidden
+          >
+            ${icon("share")}
           </button>`,
         // LAST in the row, at the far edge. `utilityRow` appends it after
         // whatever is in `tools`, so the order is decided in one place

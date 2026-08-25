@@ -113,7 +113,7 @@ export const ar: Record<StringKey, string> = {
   difficulty: "الصعوبة",
   stage: "المرحلة",
   share: "مشاركة",
-  shareToday: "اليوم لعبت",
+  shareNote: "مجاناً في المتصفح. بلا إعلانات وبلا حساب.",
   shareInvite: "تعال العب في إلاز",
   shareCopy: "نسخ الرابط",
   shareCopied: "تم نسخ الرابط",

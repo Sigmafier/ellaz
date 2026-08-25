@@ -562,3 +562,60 @@ describe.each(Object.entries(PAGES))("the %s screen's language globe", (_name, h
     expect(summary, "the globe has no accessible name").toContain("aria-label");
   });
 });
+
+/**
+ * SHARE - a GAME control, so it is on the game page and nowhere else.
+ *
+ * The rule's own test settles which family it is in: "would this control still
+ * mean anything on the World screen or the Boards?" Sharing THIS game does not,
+ * so it is emitted by `gamePage` rather than by `screenChrome`, and it belongs
+ * on the utility row with pause and restart rather than in the header with
+ * mute and the wallet.
+ *
+ * That is worth pinning rather than trusting, because the header is a string
+ * built by one function and the row by another, and a button moved from one to
+ * the other type-checks, renders, and passes every other assertion in this file.
+ * Operator ruling 2026-08-25: "we should add per game share options instead."
+ */
+describe("the utility row's share", () => {
+  it("is on the GAME page", () => {
+    expect(urowOf(PAGES.game)).toContain("data-share");
+  });
+
+  it("is on NEITHER the room nor the boards", () => {
+    // Not "absent from their utility rows" - absent from their whole documents.
+    // A share button drawn anywhere on the room would be a control with no game
+    // to share, which is the failure this asserts against rather than describes.
+    expect(PAGES.world).not.toContain("data-share");
+    expect(PAGES.boards).not.toContain("data-share");
+  });
+
+  it("is NOT in the header, on any of the three", () => {
+    for (const [name, html] of Object.entries(PAGES)) {
+      expect(headerOf(html), `${name} header carries a game control`).not.toContain("data-share");
+    }
+  });
+
+  it("is emitted hidden, like the three buttons beside it", () => {
+    // The sheet is a lazy chunk and what a tap can do is the browser's to
+    // decide, so the build cannot draw an honest button. `wireShare` reveals it.
+    const row = urowOf(PAGES.game);
+    const button = row.slice(row.indexOf("data-share"));
+    expect(button.slice(0, button.indexOf(">"))).toContain("hidden");
+  });
+
+  it("carries an accessible name, because it is glyph-only", () => {
+    const row = urowOf(PAGES.game);
+    const button = row.slice(row.indexOf("<button", row.indexOf("data-share") - 200));
+    expect(button.slice(0, button.indexOf(">"))).toMatch(/aria-label="[^"]+"/);
+  });
+
+  it("draws the three-node mark the operator picked, not a box and an arrow", () => {
+    // Five subpaths: three nodes and the two edges between them. The glyph was
+    // chosen from five drawn on this row at 390px; `icons.test.ts` pins the
+    // path data, and this pins that THIS button is the one drawing it.
+    const row = urowOf(PAGES.game);
+    const button = row.slice(row.indexOf("data-share"), row.indexOf("</button>", row.indexOf("data-share")));
+    expect((button.match(/<path /g) ?? []).length).toBe(5);
+  });
+});

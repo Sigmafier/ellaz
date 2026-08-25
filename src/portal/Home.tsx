@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useReducer, useRef, useState, type CSSProperties } from "react";
 import type { AppLocale } from "@i18n/locales";
 import { makeT, textFor, pageLocaleFor } from "@i18n/index";
 import {
@@ -31,15 +31,6 @@ import { attachShellJuice } from "@juice/index";
 import { LanguagePicker } from "@ui/LanguagePicker";
 import { HEADER_PILL } from "@ui/headerPill";
 import { WalletChip } from "./WalletChip";
-// TYPE-ONLY, and that matters: `@sdk/share` is pinned to the lazy `share-*`
-// chunk, and a value import here would put the whole payload policy in the
-// shell. A type import is erased before Rollup ever sees it.
-import type { ShareDay } from "@sdk/share";
-import type { ShareSheetProps } from "./ShareSheet";
-// The runtime half that IS shell-side, and the only reason it is a separate
-// module: this screen has to know whether anything was played today before it
-// can decide whether the button belongs on the page at all.
-import { localDay, playedOn } from "@sdk/shareDay";
 import { DailyChip } from "./DailyChip";
 import { todayKey, todaysGame } from "./dailyRotation";
 import { Scene } from "./world/Scene";
@@ -123,59 +114,6 @@ export function Home({
     .map((id) => findEntry(id))
     .filter((e): e is CatalogEntry => Boolean(e))
     .slice(0, RECENT_LIMIT);
-
-  // WHAT HAPPENED TODAY, and nothing else. `sdk/share.ts` takes one day and has
-  // no field a streak, a lifetime total or a history could live in.
-  //
-  // `lastPlayedAt` is the only day-scoped fact this screen holds. `stars` and
-  // `coins` sitting next to it are LIFETIME totals, so neither may travel as
-  // "today" - which is the whole reason this is derived here rather than handed
-  // the profile.
-  //
-  // Memoised on the profile and the locale: a fresh object every render would
-  // restart the card rasterisation inside the sheet on every unrelated
-  // re-render, and the sheet's effect keys on this object.
-  const today = useMemo<ShareDay>(() => {
-    const now = new Date();
-    return {
-      date: localDay(now),
-      plays: catalog().filter((e) => playedOn(profile.games[e.meta.id]?.lastPlayedAt, now)).map(
-        (e) => ({ gameId: e.meta.id, title: textFor(e.meta.title, locale), emoji: e.meta.emoji }),
-      ),
-    };
-  }, [profile, locale]);
-
-  // Where the reader actually is, base and all. Read at runtime rather than
-  // hardcoded so it is right on ellaz.fun, on the Pages copy under /ellaz/, and
-  // on a phone pointed at a dev server.
-  const shareUrl =
-    typeof location === "undefined" ? "" : `${location.origin}${import.meta.env.BASE_URL}`;
-
-  const [Sheet, setSheet] = useState<React.ComponentType<ShareSheetProps> | null>(null);
-
-  /**
-   * The sheet's chunk is fetched INSIDE the handler, never at module scope.
-   *
-   * A module-scope `lazy(() => import(...))` keeps the chunk in the production
-   * module graph, so Vite writes a `<link rel="modulepreload">` for it into
-   * index.html and every child downloads it on first paint - with the dynamic
-   * import, the named `manualChunks` branch and the `globIgnores` entry all
-   * correctly in place, and nothing failing. That shipped live once already.
-   * See `.claude/rules/precache-glob-sweeps-new-chunks.md`.
-   */
-  const openShare = async () => {
-    tap();
-    try {
-      const mod = await import("./ShareSheet");
-      // The updater form: React calls a bare function argument, so
-      // `setSheet(mod.ShareSheet)` would invoke the component instead of
-      // storing it.
-      setSheet(() => mod.ShareSheet);
-    } catch {
-      // A failed chunk fetch - an open tab meeting a new deploy is the usual
-      // cause - costs the share and nothing else.
-    }
-  };
 
   const juiceRef = useRef<HTMLDivElement>(null);
 
@@ -374,44 +312,16 @@ export function Home({
 
         <DailyCard locale={locale} onTap={tap} />
 
-        {/* Sharing, and only once there is something that happened TODAY.
-            A button whose card would say "today I played nothing" is worse
-            than no button, so the gate is the payload's own emptiness rule
-            (`buildShare` returns undefined) expressed one layer up, where it
-            can keep the control off the screen instead of opening an empty
-            sheet. */}
-        {today.plays.length > 0 && shareUrl !== "" && (
-          <button
-            onClick={() => void openShare()}
-            style={{
-              display: "block",
-              width: "calc(100% - 8px)",
-              margin: "0 4px 20px",
-              minHeight: "var(--tap)",
-              padding: "11px 14px",
-              border: "none",
-              borderRadius: "var(--radius-3)",
-              background: "var(--surface-2)",
-              boxShadow: "var(--shadow-1)",
-              color: "var(--text)",
-              textAlign: "start",
-              fontWeight: 800,
-              fontSize: 15,
-            }}
-          >
-            <span aria-hidden="true">💌</span> {t("share")}
-          </button>
-        )}
+        {/* SHARING LEFT THIS SCREEN. Operator ruling 2026-08-25: "the share
+            card in homepage shouldmove from here. we should add per game share
+            options instead."
 
-        {Sheet && (
-          <Sheet
-            locale={locale}
-            day={today}
-            url={shareUrl}
-            onTap={tap}
-            onClose={() => setSheet(null)}
-          />
-        )}
+            What stood here was a DAILY DIGEST - it shared the site root with a
+            list of what had been played today, which is a thing about the
+            player rather than a thing about a game. The share is now one button
+            on each game's own utility row (`gamePage.ts` emits it, `wireShare`
+            in `PageApp.tsx` opens the sheet), and what it sends is an invite to
+            THAT game at THAT game's URL. */}
 
         {recent.length > 0 && (
           <section style={{ marginBottom: 20 }}>

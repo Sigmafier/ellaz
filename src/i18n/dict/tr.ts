@@ -112,7 +112,7 @@ export const tr: Record<StringKey, string> = {
   difficulty: "Zorluk",
   stage: "Aşama",
   share: "Paylaş",
-  shareToday: "Bugün şunu oynadım",
+  shareNote: "Tarayıcıda ücretsiz. Reklamsız, hesapsız.",
   shareInvite: "Ellaz'da oynamaya gel",
   shareCopy: "Bağlantıyı kopyala",
   shareCopied: "Bağlantı kopyalandı",

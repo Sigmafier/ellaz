@@ -202,7 +202,7 @@ function line(
  * The card, as a standalone SVG document.
  *
  * Throws on anything that must not leave the device. This is the SECOND exit -
- * `buildShare` guards the text, this guards the picture - and a guard on one
+ * `buildGameInvite` guards the text, this guards the picture - and a guard on one
  * exit only is how the other one ships.
  */
 export function shareCardSvg(input: ShareCardInput): string {

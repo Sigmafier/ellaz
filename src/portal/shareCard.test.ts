@@ -88,7 +88,7 @@ describe("Hebrew, and the trap that is INVERTED here", () => {
 
 describe("nothing that restores a profile reaches the picture either", () => {
   it("refuses a card carrying a backup code", () => {
-    // The SECOND exit. `buildShare` guards the text; this guards the picture.
+    // The SECOND exit. `buildGameInvite` guards the text; this guards the picture.
     // A guard on one exit only is how the other one ships.
     const code = makeBackupCode(mulberry32(42));
     expect(() => shareCardSvg({ ...base, lines: [`Snake ${code}`] })).toThrow(

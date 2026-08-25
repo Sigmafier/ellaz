@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { AppLocale } from "@i18n/locales";
 import { DIR, makeT } from "@i18n/index";
 import { audioPort } from "@sdk/index";
-import { buildShare, type ShareDay } from "@sdk/share";
+import { buildGameInvite, type GameInvite } from "@sdk/share";
 import { CARD_SIZE, emojiFree, shareCardSvg } from "./shareCard";
 import { renderCardPng, toShareFile } from "./shareCardRender";
 
@@ -32,9 +32,17 @@ import { renderCardPng, toShareFile } from "./shareCardRender";
 
 export interface ShareSheetProps {
   locale: AppLocale;
-  /** ONE day. `sdk/share.ts` has nowhere to put a second. */
-  day: ShareDay;
-  /** Where the reader is, already carrying the base. */
+  /**
+   * ONE game, as an INVITE. Operator ruling 2026-08-25, asked which of two
+   * shapes a per-game share should take: "An invite - just the game."
+   *
+   * `sdk/share.ts` has nowhere to put a score, and that absence is the ruling
+   * expressed as a type. It is also what lets this open on all 34 games -
+   * `coloring` deliberately keeps no score, and would otherwise be the one game
+   * with nothing to share.
+   */
+  game: GameInvite;
+  /** THIS GAME's page, already carrying the base. */
   url: string;
   onClose: () => void;
   onTap?: () => void;
@@ -43,16 +51,16 @@ export interface ShareSheetProps {
 /** What this device can actually do, once the file exists. */
 type Ability = "pending" | "share-with-picture" | "share-link-only" | "copy" | "show";
 
-export function ShareSheet({ locale, day, url, onClose, onTap }: ShareSheetProps) {
+export function ShareSheet({ locale, game, url, onClose, onTap }: ShareSheetProps) {
   const t = makeT(locale);
   const rtl = DIR[locale] === "rtl";
 
   const payload = useMemo(
-    () => buildShare(day, { today: t("shareToday"), invite: t("shareInvite") }, url),
+    () => buildGameInvite(game, { note: t("shareNote"), invite: t("shareInvite") }, url),
     // `t` is rebuilt every render; the labels behind it change only with the
     // locale, which is what this actually depends on.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [day, url, locale],
+    [game, url, locale],
   );
 
   const [ability, setAbility] = useState<Ability>("pending");
@@ -74,12 +82,12 @@ export function ShareSheet({ locale, day, url, onClose, onTap }: ShareSheetProps
           // `emojiFree` for why a rasterised glyph is a bad idea.
           lines: payload.items.map(emojiFree),
           url: payload.url,
-          artId: day.plays[0]?.gameId,
+          artId: game.gameId,
           rtl,
         });
         const png = await renderCardPng(svg, CARD_SIZE);
         if (png) {
-          file = toShareFile(png, payload.date);
+          file = toShareFile(png, game.gameId);
           objectUrl = URL.createObjectURL(png);
         }
       } catch {

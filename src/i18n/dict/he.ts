@@ -112,7 +112,7 @@ export const he = {
   difficulty: "קושי",
   stage: "שלב",
   share: "שיתוף",
-  shareToday: "היום שיחקתי",
+  shareNote: "חינם בדפדפן. בלי פרסומות ובלי הרשמה.",
   shareInvite: "בואו לשחק גם אתם באלז",
   shareCopy: "העתקת הקישור",
   shareCopied: "הקישור הועתק",
