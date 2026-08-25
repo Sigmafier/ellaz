@@ -36,18 +36,59 @@ something anyone can reason to — it is a property of the tree on the day.
 - **Say what did NOT get measured.** *"kept as a class because a theme can override a
   class and cannot override a style attribute"* is a REASON. It stops being a lie the
   moment it stops claiming bytes.
-- **A claim about a SET goes in a test, not a sentence.** NOTICE.md now describes the two
+- **A claim about a SET goes in a test, not a sentence.** NOTICE.md now describes the
   modules allowed to read the dictionary and `rounds-are-wired.test.ts` asserts the set,
-  so a third arrival is a red build naming itself rather than a sentence quietly
+  so a new arrival is a red build naming itself rather than a sentence quietly
   becoming false. Prose describes; only code can hold.
+- **And the sentence names the POPULATION it ranges over.** See below - a set claim
+  with no scope word is a different false claim from a set claim with the wrong members,
+  and the test standing behind it can be green over both.
 - **Date the claim** when it is about the tree — see
   [`a-threshold-tuned-against-todays-tree-goes-stale.md`](a-threshold-tuned-against-todays-tree-goes-stale.md).
+
+## A fourth instance, and the wrinkle is the SCOPE WORD (2026-08-25)
+
+The same day the NOTICE was fixed, the corrected claim was restated in `CLAUDE.md`
+**without its qualifier** — in the same commit as the fix:
+
+```
+NOTICE.md   TWO modules IN THE ROUND TREE import this one, not one.   <- true
+CLAUDE.md   Exactly two modules may import the dictionary             <- false
+```
+
+`logic.ts` imports it too, to judge a word placed on the 9x9. So the sentence was
+false at the scope it stated, while every member it listed was correct — a different
+defect from naming the wrong members, and one that survives a careful reading of the
+member list.
+
+**Three things made it worse than an ordinary error:**
+
+- **The test was green over it.** `rounds-are-wired.test.ts` scanned the round tree
+  and passed, so the green run read as evidence for the broader sentence. A test can
+  only ever answer the question it asks; it cannot notice that the prose asked a
+  bigger one.
+- **A reviewer re-derived it.** An independent review agent reading the docs that
+  afternoon reported "confirmed limited to exactly the two sanctioned modules" — the
+  false claim laundered back as verified. A wrong scope propagates to anyone who
+  trusts the file, which is the file's whole purpose.
+- **The population was hand-kept.** The test's own module list was an array of seven
+  filenames, so a new round module reading the dictionary would simply not have been
+  in it — the mirror-of-a-directory defect one layer out
+  ([`a-path-filter-is-a-hand-kept-mirror-of-an-import-graph.md`](a-path-filter-is-a-hand-kept-mirror-of-an-import-graph.md)).
+  It is `readdirSync` now, and the full set and the round-tree subset are two separate
+  assertions, because they are two separate claims.
+
+**The rule that falls out:** write the scope, then check the sentence is true AT that
+scope, then make the test's population match the scope the sentence claims. All three,
+or the guard answers a narrower question than the reader is asking.
 
 ## The tell
 
 You are typing *because*, *which is cheaper*, *for free*, *costs nothing*, *a fraction
 of* — and you have not run the thing in this paragraph on this tree today. Also: a
 comment that would take a full build to check, in a file nobody rebuilds to read.
+And for a set claim: the sentence names members but no population — *"exactly N
+modules"*, *"the only caller"*, *"nothing else reads"* with no "in X" attached.
 
 ## When to Apply
 
