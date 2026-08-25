@@ -3344,3 +3344,111 @@ Six assertions pin the placement in `screen-header-is-platform-only.test.ts` -
 on the game page, on neither the room nor the boards, never in the header,
 emitted hidden, an accessible name, and the three-node glyph by subpath count.
 Five mutations planted, each checksum-verified to have landed.
+
+## The home bar on one line, and the buttons that were invisible in daylight
+
+Two operator reports on 2026-08-25, hours apart, and the second one is the
+better finding.
+
+### The bar - four levers, and no single one of them does it
+
+*"i want this entirely to be in one line, so suggest how, show just coints
+instead of stars maybe and suggest more options."*
+
+The diagnosis that mattered was measured rather than reasoned: the header is
+three children, and the middle one - the block holding the wordmark - was
+`flex: 1 1 auto`, so it **GREW to 310 of the 358 available at 390px to hold a
+~60px word**. That is why removing controls from the bar changed its height by
+exactly zero, and it is why the operator's own suggestion (show coins instead of
+stars) does not fix it on its own.
+
+Twenty-two arms were priced on the built page across three wallets and four
+widths. The ruling then tightened twice, and each tightening retired a whole
+round:
+
+| ruling | date | what it killed |
+|---|---|---|
+| "we must keep the name ELLAZ in the logo" | 2026-08-25 | arms K-N, which hid the WORD |
+| "must keeop the elllaz logo and text" | same day | arms Q/S/T, which hid the EMOJI |
+
+Arm **P** was picked from four that keep both halves. It is four changes and the
+measurement is the argument for keeping all four - rows at 390px on a real
+wallet, one variable at a time:
+
+```
+as shipped                  2 rows
++ identity stops growing    2 rows   <- on its own, nothing
++ coins only                2 rows
++ word 18px                 2 rows
++ pill 40px                 1 row
+```
+
+Removing any one of them is a regression rather than a tidy-up.
+
+**The 40px pill is its own token, not a smaller `--tap`.** `--tap` is the
+platform target for every control in every game and the age-five target is
+`--tap-kids` at 64px, so shrinking it globally - which is what the MOCK did -
+would have taken 8px off every button a child touches. `--hpill` is 40px on a
+phone and `var(--tap)` from 560px up, declared in `global.css` because it is the
+only file here that can carry a media query. The wordmark's size moved to a
+class for the same reason: an inline `fontSize` on the same element beats any
+rule, so the media query would have been dead code that reads as present.
+
+**The shipped bar measured what the mock predicted** - one row at 390 and up on
+a real wallet, still two at 360 - which is the useful part of having mocked it.
+
+### The buttons - a contrast defect that only exists in daylight
+
+*"NOTICE: the icon are not looking like buttons in light mode, they lose the
+card DS."*
+
+`--surface-2` against the page background:
+
+```
+night    #262b52 on #0f1226   1.37 : 1   reads as a shape
+market   #fff3e0 on #fff6e9   1.02 : 1   nothing at all
+```
+
+3:1 is the WCAG floor for a graphical object. So on the light theme these were
+not quiet buttons, they were **invisible** ones - and the bug is invisible in
+the dark theme most of this work happens in, which is the whole reason it
+shipped. Neither replacement value is new: the fill is the CARD one and the hard
+ink offset is what every DS `Button` and the wallet chip 8px away already carry.
+The pill had drifted out of the design system; the system did not lack an answer.
+
+### Two things the measurement found that no source test could
+
+**The globe read as a SQUARE, and the mock was what was wrong.** The language
+button is wrapped in a positioning `<div>` for its popover, that wrapper is
+`border-radius: 0`, and the mock's selector walked the header group's children
+and caught the wrapper instead of the button. Shipping through `HEADER_PILL`
+puts the paint where the radius already is. Every source assertion was green
+throughout: all three controls really do share one style object, and that object
+really does carry `borderRadius: var(--radius-pill)`.
+
+**The coin chip was 48px in a row of 40px pills** - my own divergence from the
+arm I was implementing, since the mock shrank `--tap` globally and the
+implementation scoped it to the pills. That 8px is the entire difference between
+the mock's 68px header and the first shipped 76px.
+
+`scripts/repro/repro-header-pills-are-round.mjs` measures the RENDERED boxes at
+both widths and reds on either fault. Two decisions in it earn their place: it
+asks whether an element is **painted** before demanding a shape, because the
+transparent wrapper is not a defect but a defect waiting; and it refuses to
+report OK on fewer than 8 controls, because every assertion in it passes
+vacuously over an empty selector.
+
+### The numbers
+
+```
+first visit   90,791 B gz of 91,200 - 409 spare
+slope         69.1 B gz per game, budget 140 - 70.9 spare
+tests         144 files, 3,647 tests
+mutations     7 planted on arm P, 7 killed, control passes
+```
+
+One of those seven **survived first**: the identity assertion matched the
+control group four lines down, which carries a byte-identical
+`flex: "0 1 auto", minWidth: 0`. It is the trap the language button's own test
+in that same file already warns about - an assertion that reads back the rest of
+the file is asserting about something else - and it is anchored to the block now.

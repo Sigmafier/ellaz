@@ -745,7 +745,49 @@ separate three.js / Babylon / PlayCanvas bake-off.
   STATE (a compact cell is sized by its own text), so it cannot be settled by
   choosing a better constant - read it off `#/lab/buttons` -> the game row
   rather than off any number written down.
-  **Mute travels WITH the wallet, at the far edge** (`margin-inline-start:auto`;
+  **The home bar is ONE LINE at 390px and up, and it took four changes.** The
+identity block was `flex: 1 1 auto` and GREW to 310 of 358px to hold a ~60px
+word, which is why removing controls from it changed its height by exactly
+zero. Arm P, the operator's pick of four drawn on the real page: the block
+stops growing, the chip shows COINS only, the wordmark is 18px on a phone, and
+the round controls are 40px. **No single one does it** - measured one variable
+at a time at 390px, the first three each leave it at two rows - so removing any
+one is a regression rather than a tidy-up. 360px is still two rows on a real
+wallet, and 320px is two on every arm anyone measured; that is the honest
+finding, not a tuning failure.
+
+**`--hpill` is NOT a smaller `--tap`**, and the distinction is load-bearing:
+`--tap` is the platform target for every control in every game and the age-five
+target is `--tap-kids` at 64px, so the mock's global shrink would have taken
+8px off every button a child touches. It is 40px on a phone and `var(--tap)`
+from 560px up, in `global.css`, the only file here that can carry a media
+query - and the wordmark's size is a CLASS for the same reason, because an
+inline `fontSize` beats any rule and would make the query dead code that reads
+as present.
+
+**The three round controls carry the CARD treatment, and that is a contrast
+defect rather than a taste call.** `--surface-2` on the page background is
+1.37:1 on night and **1.02:1 on market**, against a 3:1 WCAG floor for a
+graphical object - so in daylight they were not quiet buttons, they were
+invisible ones, and the bug cannot be seen in the dark theme most of this work
+happens in. The fill is the CARD one and the hard offset is what every DS
+`Button` and the wallet chip 8px away already carry: the pill had drifted out
+of the design system, the system did not lack an answer.
+
+**`repro-header-pills-are-round.mjs` measures what no source test can.** All
+three controls share one style object and that object carries
+`borderRadius: var(--radius-pill)` - every one of those assertions was green
+while a mock rendered the globe as a hard-cornered slab, because the language
+button is wrapped in a `border-radius: 0` positioning div and a selector
+walking the header group catches the WRAPPER. The gate asks whether an element
+is **painted** before demanding a shape (a transparent wrapper is not a defect,
+it is a defect waiting) and refuses to report OK on fewer than 8 controls, since
+every assertion in it passes vacuously over an empty selector. It also fails a
+row of two different heights, which is how the 48px chip beside 40px pills was
+caught. Full account: [`docs/build-log.md`](docs/build-log.md) § the home bar on
+one line.
+
+**Mute travels WITH the wallet, at the far edge** (`margin-inline-start:auto`;
   it sat in the dead centre of the phone bar for as long as that bar existed).
   **The breadcrumb is PLAIN TEXT**, on the operator's call 2026-08-23.
   **The screen's NAME is hidden on a phone and never removed from the
