@@ -173,10 +173,18 @@ export default defineConfig({
     react(),
     swPurgePlugin(),
     VitePWA({
-      // autoUpdate: a new deploy activates on the user's next load and reloads the
-      // page, so returning players always get new games/fixes. (Prompt mode left
-      // users stuck on a stale cache with no visible update path.)
-      registerType: "autoUpdate",
+      // "prompt" here means "WE decide when", not "ask the user" - there is no
+      // dialog and nothing to tap. It is the only mode that hands the timing
+      // over: `autoUpdate` installs an ungated `window.location.reload()` on
+      // the worker's `activated` event, and vite-plugin-pwa exposes no option
+      // to suppress it, so the mode is the knob. That reload is what pulled a
+      // child out of a game a minute in, on the first visit after any deploy.
+      //
+      // This is NOT the old bare prompt mode that stranded returning players on
+      // a stale cache (.claude/rules/pwa-stale-bundle-qa.md) - that one needed
+      // an update UI nobody built. `src/portal/swUpdate.ts` applies the update
+      // automatically and silently, the first moment no game is mounted.
+      registerType: "prompt",
       includeAssets: ["favicon.svg", "icon.svg"],
       manifest: {
         name: "Ellaz Games",

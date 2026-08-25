@@ -8,6 +8,7 @@ import { redirectLegacyHash } from "./portal/legacyHash";
 import { themePort } from "@ui/theme";
 import { cardStylePort } from "@ui/cardStyle";
 import { registerSW } from "virtual:pwa-register";
+import { applyWhenSafe } from "./portal/swUpdate";
 
 // One bundle, two shapes of page.
 //
@@ -22,7 +23,14 @@ import { registerSW } from "virtual:pwa-register";
 // site ships under two bases ("/" and "/ellaz/"), and a runtime that re-derives
 // the base gets it wrong on one host and renders prose that never mounts a game.
 
-registerSW({ immediate: true });
+// The update still applies by itself, with nothing to tap. `applyWhenSafe`
+// only decides WHEN - never while a game is on screen. See swUpdate.ts for the
+// line in vite-plugin-pwa that used to reload a child out of their game, and
+// why suppressing it meant changing the registerType rather than an option.
+const updateSW = registerSW({
+  immediate: true,
+  onNeedRefresh: () => applyWhenSafe(updateSW),
+});
 
 // Old links first, before anything renders. Every URL this app ever shared was
 // a hash - #/game/snake, #/world - and those are in bookmarks and in messages.
