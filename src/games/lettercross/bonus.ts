@@ -36,6 +36,30 @@ export type BonusArt = "bell" | "gem" | "star" | "leaf" | "drop";
 export const BONUS_ARTS: readonly BonusArt[] = ["bell", "gem", "star", "leaf", "drop"];
 
 /**
+ * WHICH SCREEN A BOX OPENS. The symbol on the box is the promise, so it has to
+ * mean the same thing every time you land on it.
+ *
+ * Three of the five now, and the mapping is not arbitrary: the star is the
+ * rarest-feeling art and gets the round the original paid most for (100 against
+ * 40), while the bell is the only art on the board exactly ONCE, so its round
+ * can be played at most once a game. `boxes.ts` decides those counts, which is
+ * why a test reads them rather than this file asserting them.
+ *
+ * ONE OPEN QUESTION, worth reading before adding to this table. BONUS's own
+ * bonuses look drawn from a POOL used up once each per game rather than fixed
+ * per symbol - strongly implied by the record, never proven. If that is right
+ * then keying on `art` at all is wrong, and this table is the thing to delete.
+ */
+export type RoundKind = "crossword" | "shared2" | "shared3";
+export const ROUND_OF: Readonly<Record<BonusArt, RoundKind>> = {
+  star: "shared3",
+  bell: "shared2",
+  gem: "crossword",
+  leaf: "crossword",
+  drop: "crossword",
+};
+
+/**
  * HOW WELL DID THAT GO -> WHAT IT WAS WORTH. The one place every round agrees.
  *
  * THERE IS NO MISS, and that is a rule rather than a generosity. This platform

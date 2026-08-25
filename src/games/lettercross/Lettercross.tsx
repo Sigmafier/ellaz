@@ -7,8 +7,9 @@ import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
 import { seedFrom, mulberry32 } from "@shared/rng";
 import { streakStep } from "@sdk/streak";
 import { BOXES, BOX_RADIUS, boxIndex, sideOf, reachedBoxes, isLocked, type BoxArt } from "./boxes";
-import { BONUS_ARTS, type BonusTier } from "./bonus";
+import { BONUS_ARTS, ROUND_OF, type BonusTier } from "./bonus";
 import { BonusRound } from "./BonusRound";
+import { SharedLetterRound } from "./SharedLetterRound";
 import {
   SIZE, CELLS, boardAt, LETTER_VALUE, newGame, apply, validate,
   isOver, bestLevel, type Level, type Placement, type State,
@@ -26,19 +27,31 @@ const STR = {
         prize: "Prize box", taken: "Prize box, taken", locked: "Locked",
         bonus: "Bonus round", bonusHint: "Build words. Everything you make counts.",
         start: "Start", finish: "Done", points: "points",
-        bad: "One of those wasn't a word" },
+        bad: "One of those wasn't a word",
+        letters: "Letter round",
+        shared2: "The same letter is missing from both words.",
+        shared3: "The same letter is missing from all three words.",
+        got: "That's the one!", missed: "Time is up - here it is" },
   he: { play: "לשחק", recall: "להחזיר", tiles: "אריחים", score: "ניקוד",
         pickLetter: "בחרו אות לג'וקר", over: "נגמרו האריחים",
         prize: "תיבת פרס", taken: "תיבת פרס, נלקחה", locked: "נעול",
         bonus: "סיבוב בונוס", bonusHint: "הרכיבו מילים. כל מה שתרכיבו נספר.",
         start: "התחל", finish: "סיימתי", points: "נקודות",
-        bad: "אחת מהן לא הייתה מילה" },
+        bad: "אחת מהן לא הייתה מילה",
+        letters: "סיבוב אותיות",
+        shared2: "אותה אות חסרה בשתי המילים.",
+        shared3: "אותה אות חסרה בשלוש המילים.",
+        got: "בדיוק!", missed: "נגמר הזמן - הנה היא" },
   es: { play: "Jugar", recall: "Retirar", tiles: "Fichas", score: "Puntos",
         pickLetter: "Elige una letra para el comodín", over: "No quedan fichas",
         prize: "Caja de premio", taken: "Caja de premio, recogida", locked: "Cerrado",
         bonus: "Ronda de bonus", bonusHint: "Forma palabras. Todo lo que hagas cuenta.",
         start: "Empezar", finish: "Listo", points: "puntos",
-        bad: "Una de ellas no era palabra" },
+        bad: "Una de ellas no era palabra",
+        letters: "Ronda de letras",
+        shared2: "La misma letra falta en las dos palabras.",
+        shared3: "La misma letra falta en las tres palabras.",
+        got: "¡Esa es!", missed: "Se acabó el tiempo - aquí está" },
 } as const;
 const str = (loc: Locale) => (STR as unknown as Record<string, typeof STR.en>)[loc] ?? STR.en;
 
@@ -618,16 +631,40 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
             and the rack behind it stop taking taps. The two footer buttons are
             OUTSIDE this column - they are disabled above rather than covered,
             which is the part that is easy to miss. */}
-        {rounds.length > 0 && (
-          <BonusRound
-            key={rounds[0]}
-            glyph={BOX_ART[BOXES[rounds[0]].art]}
-            t={{ label: T.bonus, hint: T.bonusHint, start: T.start,
-                 finish: T.finish, points: T.points, bad: T.bad }}
-            onStop={finishBonus}
-            playTap={() => ctx.audio.play("tap")}
-          />
-        )}
+        {/* WHICH screen this box opens is `ROUND_OF`'s call, not this file's -
+            the symbol is a promise and it has to mean the same thing every time
+            you land on it. `key` is the box index, so two boxes opening the same
+            KIND of round still get a fresh puzzle each. */}
+        {rounds.length > 0 && (() => {
+          const art = BOXES[rounds[0]].art;
+          const glyph = BOX_ART[art];
+          const kind = ROUND_OF[art as keyof typeof ROUND_OF] ?? "crossword";
+          const tap = () => ctx.audio.play("tap");
+          if (kind === "crossword") {
+            return (
+              <BonusRound
+                key={rounds[0]}
+                glyph={glyph}
+                t={{ label: T.bonus, hint: T.bonusHint, start: T.start,
+                     finish: T.finish, points: T.points, bad: T.bad }}
+                onStop={finishBonus}
+                playTap={tap}
+              />
+            );
+          }
+          const count = kind === "shared3" ? 3 : 2;
+          return (
+            <SharedLetterRound
+              key={rounds[0]}
+              count={count}
+              glyph={glyph}
+              t={{ label: T.letters, hint: count === 3 ? T.shared3 : T.shared2,
+                   start: T.start, got: T.got, missed: T.missed }}
+              onStop={finishBonus}
+              playTap={tap}
+            />
+          );
+        })()}
 
         {/* The picker is an OVERLAY rather than a row in the column, for the
             same reason. Twenty-six buttons appearing in flow is the biggest

@@ -53,8 +53,13 @@ async function open() {
 }
 
 const click = async (p, fn, arg) => { await p.evaluate(fn, arg); await p.waitForTimeout(150); };
+/**
+ * Tap a rack tile by its letter, skipping any already spent this turn. `find` on
+ * the letter alone taps the FIRST match, which is disabled once its tile is on
+ * the board - so a word with a repeated letter lays one letter and then nothing.
+ */
 const rackTile = (p, ch) => click(p, (c) => [...document.querySelectorAll("button")]
-  .find((e) => /^[A-Z]\d+$/.test(e.textContent.trim()) && e.textContent.trim()[0] === c)?.click(), ch.toUpperCase());
+  .find((e) => !e.disabled && /^[A-Z]\d+$/.test(e.textContent.trim()) && e.textContent.trim()[0] === c)?.click(), ch.toUpperCase());
 const boxSquare = (p, r, c) => click(p, ({ r, c, q }) => [...document.querySelectorAll(q)]
   .find((e) => { const s = getComputedStyle(e); return +s.gridRowStart === r && +s.gridColumnStart === c; })?.click(), { r, c, q: BOXQ });
 const boardGrid = (r, c) => {
