@@ -97,6 +97,15 @@ const OPTIONS = {
   "L word hidden + coins only": ["word", "coins"],
   "M word hidden + coins + 40px pills": ["word", "coins", "pills"],
   "N word hidden + coins + compact": ["word", "coins", "compact"],
+  // KEEPS THE WORD. Operator ruling 2026-08-25: "we must keep the name ELLAZ in
+  // the logo", which retires K-N above - they are left in as the measured
+  // counterfactual, not as candidates.
+  "O identity + coins + word 18px": ["identity", "coins", "smallword"],
+  "P identity + coins + word 18px + 40px pills": ["identity", "coins", "smallword", "pills"],
+  "Q identity + coins + word 18px + no emoji": ["identity", "coins", "smallword", "emoji"],
+  "R identity + word 18px + 40px pills": ["identity", "smallword", "pills"],
+  "S ...word 18px + no emoji + 40px pills": ["identity", "coins", "smallword", "emoji", "pills"],
+  "T ...word 18px + no emoji + theme out": ["identity", "coins", "smallword", "emoji", "theme"],
 };
 
 /** Runs in the page. `steps` is the option's list of names. */
@@ -134,6 +143,14 @@ const applySteps = (steps) => {
       if (h1) h1.style.display = "none";
       const id = h?.children[1];
       if (id) id.style.flex = "0 1 auto";
+    },
+    smallword: () => {
+      // The operator's hard constraint, 2026-08-25: "we must keep the name
+      // ELLAZ in the logo". So the word may get SMALLER on a phone - the
+      // treatment the tagline gets one step short of hiding - but it may not
+      // leave. 24 -> 18 is a step the tokens already use elsewhere.
+      const h1 = h?.querySelector("h1");
+      if (h1) h1.style.fontSize = "18px";
     },
     theme: () => {
       const g = h?.lastElementChild;
@@ -227,7 +244,17 @@ const browser = await chromium.launch();
 const WIDTHS = [320, 360, 390, 430];
 const results = {};
 
-for (const [oname, steps] of Object.entries(OPTIONS)) {
+// ONLY="S,T" runs the shipped baseline plus those arms. A follow-up question is
+// usually about two shapes, and re-pricing all twenty to answer it is ten
+// minutes of measuring things nobody asked about again.
+const only = process.env.ONLY ? new Set(process.env.ONLY.split(",").map((s) => s.trim())) : null;
+const CHOSEN = only
+  ? Object.fromEntries(
+      Object.entries(OPTIONS).filter(([n]) => n === "0 as shipped" || only.has(n.split(" ")[0])),
+    )
+  : OPTIONS;
+
+for (const [oname, steps] of Object.entries(CHOSEN)) {
   results[oname] = {};
   for (const [pname, profile] of Object.entries(PROFILES)) {
     for (const w of WIDTHS) {

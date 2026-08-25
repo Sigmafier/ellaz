@@ -77,6 +77,21 @@ describe("every glyph is well formed", () => {
     expect(moves.slice(1).filter((c) => c === "m")).toEqual(["m"]);
   });
 
+  it("draws share as the three-node mark the operator picked", () => {
+    // Five subpaths: three nodes and the two edges between them. Operator
+    // ruling 2026-08-25, chosen from five glyphs rendered on the real utility
+    // row - so this is a RECORD of a decision, not a style preference, and a
+    // silent swap back to a box-and-arrow is what it exists to catch.
+    expect((ICON_PATHS.share.match(/[Mm]/g) ?? []).length).toBe(5);
+    // Three `a` commands, one per node - each carries TWO arc segments (the
+    // second is an implicit repeat with no letter of its own, which is why this
+    // counts 3 and not 6; the first draft expected 6 and was wrong about SVG,
+    // not about the glyph). A box-and-arrow, a plane, a forward arrow and a
+    // link all have zero, which is what makes this discriminate rather than
+    // merely pass.
+    expect((ICON_PATHS.share.match(/a2\.6 2\.6 /g) ?? []).length).toBe(3);
+  });
+
   it("draws the coin as something other than the clock", () => {
     // The first coin was the clock's own ring with a dot in it, and at the
     // wallet chip's real 17px that renders as a bullseye. It is now an ellipse

@@ -40,7 +40,8 @@ export type IconName =
   | "play"
   | "globe"
   | "sun"
-  | "moon";
+  | "moon"
+  | "share";
 
 const PATHS: Record<IconName, string> = {
   home:
@@ -151,6 +152,25 @@ const PATHS: Record<IconName, string> = {
   // A crescent, not a circle with a bite: one closed subpath, so it survives
   // being scaled to the 18px this actually renders at.
   moon: "M20.1 14.7A8.7 8.7 0 0 1 9.3 3.9 8.7 8.7 0 1 0 20.1 14.7z",
+  // THREE NODES AND TWO EDGES - the Android share mark. Operator ruling
+  // 2026-08-25, picked from five glyphs drawn on the real utility row at 390px
+  // and 3x: a box-with-an-arrow, this, a paper plane, a forward arrow and a
+  // chain link.
+  //
+  // The circles are ARCS rather than <circle> elements because this set has one
+  // renderer for one path string, and a second element type would need both
+  // `Icon` and `iconNode` to learn it. Geometry is byte-identical to the mock
+  // that was eyeballed: r 2.6 at (17.8,5.6), (6.2,12), (17.8,18.4).
+  //
+  // The two edges are `M x y  x y` - an implicit lineto after the moveto, which
+  // is what the mock drew. Relative `a` is fine here and relative `m` is not;
+  // see the concatenation invariant in icons.test.ts.
+  share:
+    "M15.2 5.6a2.6 2.6 0 1 0 5.2 0 2.6 2.6 0 1 0-5.2 0" +
+    "M3.6 12a2.6 2.6 0 1 0 5.2 0 2.6 2.6 0 1 0-5.2 0" +
+    "M15.2 18.4a2.6 2.6 0 1 0 5.2 0 2.6 2.6 0 1 0-5.2 0" +
+    "M8.5 10.7 15.5 7" +
+    "M8.5 13.3 15.5 17",
 };
 
 const SVG_NS = "http://www.w3.org/2000/svg";

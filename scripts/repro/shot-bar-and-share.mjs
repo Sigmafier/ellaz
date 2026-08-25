@@ -35,11 +35,22 @@ function fulfilFromDisk(dist) {
 const SEED = { v: 1, coins: 1240, stars: 24, owned: [], placed: {}, games: { snake: { lastPlayedAt: Date.now() } } };
 
 // ---- set 1: the home bar ---------------------------------------------------
+/**
+ * ROUND TWO. The first set hid the WORD, and the operator's ruling on it was
+ * "we must keep the name ELLAZ in the logo" - so every arm here keeps the
+ * wordmark and pays for the line somewhere else. Row counts:
+ * `repro-home-bar-one-line.mjs`, arms H/J/Q/S/T.
+ *
+ * The lever every arm shares is `identity`: the block holding the h1 is
+ * `flex: 1 1 auto`, so it GROWS to 310 of 358px to hold a ~60px word. Pinning
+ * it to `0 1 auto` is what makes the rest of the bar's arithmetic possible, and
+ * on its own it changes nothing at all (arm F, 12 cells unmoved).
+ */
 const BAR = {
   "bar-0-shipped": [],
-  "bar-A-coins-only": ["coins"],
-  "bar-L-word-hidden-coins": ["word", "coins"],
-  "bar-M-word-coins-40px": ["word", "coins", "pills"],
+  "bar-Q-word18-no-emoji": ["identity", "coins", "smallword", "emoji"],
+  "bar-S-word18-no-emoji-40px": ["identity", "coins", "smallword", "emoji", "pills"],
+  "bar-T-word18-no-emoji-no-theme": ["identity", "coins", "smallword", "emoji", "theme"],
 };
 
 const applySteps = (steps) => {
@@ -57,6 +68,21 @@ const applySteps = (steps) => {
       if (id) id.style.flex = "0 1 auto";
     },
     pills: () => document.documentElement.style.setProperty("--tap", "40px"),
+    identity: () => {
+      const id = h?.children[1];
+      if (id) id.style.flex = "0 1 auto";
+    },
+    smallword: () => {
+      const h1 = h?.querySelector("h1");
+      if (h1) h1.style.fontSize = "18px";
+    },
+    emoji: () => {
+      if (h?.firstElementChild) h.firstElementChild.style.display = "none";
+    },
+    theme: () => {
+      const g = h?.lastElementChild;
+      if (g?.lastElementChild) g.lastElementChild.style.display = "none";
+    },
   };
   for (const n of steps) step[n]?.();
 };
