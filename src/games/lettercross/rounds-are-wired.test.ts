@@ -298,4 +298,40 @@ describe("each round itself", () => {
     // The control: something in the tree does import it, or this proves nothing.
     expect(read("patterns.ts")).toMatch(/from "\.\/words"/);
   });
+
+  it("keeps the list of modules allowed to READ the dictionary to exactly two", () => {
+    // NOTICE.md names this list, and it named it WRONG until 2026-08-25 - it
+    // said `patterns.ts` was the only one, while `bonusBoard.ts` had imported
+    // the dictionary since the crossword shipped. The safety property held
+    // (neither SHOWS a word from it), but the sentence was checkable and false,
+    // in the one file here whose job is to be precise about this.
+    //
+    // So the set is asserted rather than described. A third module arriving is
+    // a red build naming itself, instead of a NOTICE that quietly stops being
+    // true - and the two that are here each carry their reason:
+    //
+    //   patterns.ts    answers "is that a word" for the three pool-fed screens
+    //   bonusBoard.ts  the crossword, which judges what the player built from
+    //                  their OWN deal and shows nothing from the dictionary
+    const ROUND_MODULES = [
+      "patterns.ts", "bonusBoard.ts", "sharedLetter.ts", "fillGaps.ts",
+      "anagram.ts", "bonus.ts", "puzzleWords.ts",
+    ];
+    const readers = ROUND_MODULES.filter((f) => /from "\.\/words"/.test(read(f)));
+    expect(readers.sort(), `the set of dictionary readers moved - update NOTICE.md in the same change`)
+      .toEqual(["bonusBoard.ts", "patterns.ts"]);
+    // Positive control: the matcher can see a NON-reader, so an empty answer
+    // above would be a broken regex rather than a clean tree.
+    expect(readers.length, "the matcher found nothing - it is broken, not the tree")
+      .toBeLessThan(ROUND_MODULES.length);
+  });
+
+  it("keeps NOTICE.md agreeing with that set", () => {
+    // The doc and the code state the same fact; only one of them is executable.
+    const notice = read("NOTICE.md");
+    expect(notice, "NOTICE.md still claims patterns.ts is the ONLY reader")
+      .not.toMatch(/`patterns\.ts` is the only module in the round tree/);
+    expect(notice, "NOTICE.md no longer names bonusBoard.ts as the second reader")
+      .toContain("bonusBoard.ts");
+  });
 });

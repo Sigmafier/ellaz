@@ -80,8 +80,62 @@ pet, reaction, sequence, shadows, sort, sortsize, spell, vanish) and 9 `"all"`
 wordguess).
 Counts here go stale fast — `src/portal/catalog.ts` is the source of truth and
 `catalog.test.ts` ratchets the count. This line said 25 for about six hours on
-2026-08-13 while four more games shipped, which is the ordinary rate of decay:
-read it off the roster rather than off this sentence.
+2026-08-13 while four more games shipped, and it said 33 with `lettercross`
+already live and shipping, which is the ordinary rate of decay: read it off the
+roster rather than off this sentence.
+
+**A game may declare itself UNFINISHED, and two surfaces say so.** `GameMeta.beta`
+is a plain boolean on the DOM-free meta; the home-grid card draws a pill in its
+top-right corner and the emitted game page draws one beside the game's name in the
+utility row. **One field, because the two surfaces cannot see each other** — the
+card is React in the shell and the page is a string written by `src/build`, which
+may never import the app, so anything else is two lists of beta games and the day
+they disagree a player taps an unbadged card and lands on a page that says beta.
+It is a DECLARATION and never a behaviour: nothing is gated on it, nothing is
+hidden, a beta game plays and ranks exactly like a finished one.
+
+The PAGE carries the translated sentence and the CARD carries only the word, and
+that split is the payload — `src/build` ships to nobody, so the note is free
+there, while every character on the card is in the shell chunk every child
+downloads before choosing anything (both, with a title and an aria-label: 293 B
+gz; the word alone: 163). `beta-is-declared.test.ts` pins both surfaces against
+the one field and **reds the day the last flag comes off** — with no beta game
+every assertion in it passes over nothing, so delete the file then rather than
+softening it into a skip.
+
+Two traps in the badge, both measured on the artifact rather than reasoned. It is
+a **SIBLING of the breadcrumb, never a child** (`.bc` is `overflow:hidden` +
+`text-overflow:ellipsis`, so anything inside it is cut from the END first — which
+is exactly where a badge after the game's name sits, and it would vanish on a
+narrow phone with every width check reading clean). And the card badge is pinned
+**physically `right`**, because the star badge sharing that card carries
+`dir="ltr"` for its digit and logical insets resolve against an element's OWN
+direction — so in Hebrew a logical inset put both badges in the same corner while
+English looked perfect:
+[`rtl-spatial-grid-dir-ltr.md`](.claude/rules/rtl-spatial-grid-dir-ltr.md) §
+the other edge of the same knife.
+
+**`lettercross` is the one game with a dictionary, and it is the one game with a
+NOTICE.** It is BONUS (1993) rebuilt: a 9x9 board, twelve prize boxes in a ring
+around it, and **five bonus screens** — a 60s crossword, "the same letter is
+missing from THREE words" (100 pts), the same from TWO (40), an anagram of all
+the letters (30-100 by length) and fill-the-missing-letters. `ROUND_OF` in
+`bonus.ts` says which art opens which, and every round reports a QUALITY in 0..1
+and never a payout, the same shape as `economy.ts` and `score.ts`.
+
+**Two word lists, and they are NOT interchangeable.** `puzzleWords.ts` (346
+authored, concrete words) is what a screen may SHOW; `words.ts` (ENABLE1 behind a
+blocklist) is what JUDGES. Getting that backwards costs something real in each
+direction, and the asymmetry is written down twice — in
+`src/games/lettercross/NOTICE.md` and in `sharedLetter.ts`. **Exactly two modules
+may import the dictionary** — `patterns.ts`, which answers "is that a word" for
+the three pool-fed screens, and `bonusBoard.ts`, the crossword, which judges what
+the player built from their own deal and shows nothing from it.
+`rounds-are-wired.test.ts` asserts that SET rather than describing it, because
+NOTICE.md named it wrong for a day.
+
+The game is `beta: true` today. The board and all five screens play; the
+placement rules, the padlocks and the music do not exist yet.
 
 **`create` is no longer empty.** It was declared in `CATEGORY_ORDER` from the
 beginning and held zero games, so that heading never rendered once. `music` is

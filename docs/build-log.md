@@ -2957,3 +2957,167 @@ items), `sdk/names.ts` (the name pool) and the per-game strings are all still
 `he | en`. They live behind lazy chunks and fall back to English, so nothing
 breaks — a Spanish child gets Spanish chrome and English animal names.
 
+
+---
+
+# The Lettercross bonus arc — 2026-08-25
+
+Six commits, `705b78d..18faa02`. BONUS (1993) had five bonus screens behind its
+prize boxes; this is the arc that built all five, then admitted in public that
+the game they sit in is not finished.
+
+```
+d2754f2  the bonus box opens a word game, because that is what BONUS put there
+b4e99ca  a letter IN the box collects it - a letter beside it never did
+d5046c7  the words a bonus screen may SHOW, because words.ts may never be one
+95557ad  the same letter, missing from every word            (two screens)
+02f4471  all five of BONUS's screens, and a decoy that cannot exist
+18faa02  Lettercross says it is unfinished, on the card and on its own page
+```
+
+## The five, and which art opens which
+
+| art | screen | the original's own price |
+|---|---|---|
+| gem | 60s crossword from your own letters | the words' own points |
+| star | the same letter missing from THREE words | 100 |
+| bell | the same letter missing from TWO words | 40 |
+| leaf | build a word from ALL the letters | 30-100 by length |
+| drop | fill the missing letters | *(the record is silent)* |
+
+`leaf` and `drop` were the two arts left free, and which got which is an argument
+from the BOARD rather than from taste: `boxes.ts` puts exactly one leaf and two
+drops on it, so the round that can pay the top price went on the art you meet
+once. **star and bell were not touched** — their arrangement was settled when the
+shared-letter screens landed, and adding two more rounds is not a reason to
+reopen it.
+
+The open question that could delete this table: BONUS's own bonuses look drawn
+from a POOL used once each per game rather than fixed per symbol. Strongly
+implied by the record, never proven. If it is right, keying on `art` at all is
+wrong and `ROUND_OF` is the thing to delete.
+
+## The decoy that cannot exist
+
+Fill-the-gaps was built with a row of eight letters: the answer, plus decoys
+chosen as "letters that nearly work" — completing one gap correctly with the
+other wrong. The test came back **0%**, across 400 single-gap completions over
+200 puzzles.
+
+Not a bug. A **proof**: for a 2-gap pattern with a unique answer, any letter
+completing one gap while the other is correct produces a word matching the whole
+pattern — so it IS a second answer, and the pattern was chosen to have exactly
+one. The set is empty by construction.
+
+So the round is **recognition, not elimination**, and the padding is drawn from
+letters that really stand at those positions in pool words of that length —
+because eight uniform a-z draws carry q/x/z about a third of the time, and a row
+holding three impossible letters has already narrowed itself. The theorem is
+pinned as a test, so the tempting "improvement" cannot be re-attempted quietly.
+
+## Two gaps is a measurement, not a choice
+
+```
+1 gap    499 patterns   - but that IS the shared-letter round with one word
+2 gaps   275 patterns   - 85 five-letter, 190 six-letter
+3 gaps    39 patterns   - 36 of them six-letter, so the round repeats itself
+```
+
+One is disqualified on DESIGN and three on SUPPLY. 39 puzzles is a round a child
+sees twice in an evening.
+
+## Two word lists, and the day the NOTICE was wrong about them
+
+`puzzleWords.ts` — 346 authored, concrete words — is what a screen may SHOW.
+`words.ts` — ENABLE1 behind a blocklist — is what JUDGES. Showing from the
+dictionary would eventually put an ugly word in front of a five-year-old; judging
+against the pool would call a puzzle settled when an ordinary word the player
+knows also fits it.
+
+**NOTICE.md said `patterns.ts` was the only module in the round tree importing
+the dictionary, and it was false the day it was written.** `bonusBoard.ts` — the
+crossword — had imported it since that screen shipped, to judge what the player
+built from their own deal. The safety property held the whole time (neither
+SHOWS a word from it), but the sentence was checkable, false, and sitting in the
+one file here whose entire job is precision about that list.
+
+Found by `/finalize` grepping its own chat claim rather than trusting it. The set
+is now asserted (`rounds-are-wired.test.ts`) instead of described, so a third
+arrival is a red build naming itself. Rule:
+[`a-comment-that-explains-a-cost-must-name-its-measurement.md`](../.claude/rules/a-comment-that-explains-a-cost-must-name-its-measurement.md).
+
+## The beta badge, and what it cost
+
+| arm | first visit, one tree, one machine |
+|---|---|
+| before the badge | 90,703 B gz |
+| card badge as an inline style object | 90,959 (+256) |
+| card badge as a CSS class | **90,996 (+293)** |
+| card badge, one word, CSS class | **90,866 (+163)** |
+| CI, Node 22, the number that counts | **90,859 of 91,000 — 141 spare** |
+
+Two things in that table are worth more than the badge.
+
+**Moving the badge to a CSS class COST 37 B rather than saving any** (shell JS
+−70, shell CSS +109) — and the comment shipped with the prediction written in as
+though it were a measurement. The reasoning was sound in general and lost to a
+property of the tree on the day. It stays a class for a reason that is not about
+bytes: a theme can override a class and cannot override a style attribute.
+
+**CI came in 7 B LIGHTER than this machine.** The first time that spread has been
+measured in that direction, and the reason 134 B of local headroom was treated as
+sufficient rather than comfortable —
+[`a-number-belongs-to-the-toolchain-that-ships-it.md`](../.claude/rules/a-number-belongs-to-the-toolchain-that-ships-it.md).
+
+## The Hebrew corner collision
+
+The card badge shipped for the length of one build with `inset-inline-end`, which
+is the correct instinct in this app and wrong here. Measured on the artifact, the
+Hebrew home at 390px:
+
+```
+                    card         star badge      beta badge
+  Hebrew, before    263..374     270..290        270..305    <- same corner
+  Hebrew, after     263..374     270..290        332..367
+  English, always    16..127      23..43          81..120
+```
+
+The star badge is declared `insetInlineStart` with a comment saying — twice, in
+one declaration — that the logical inset keeps it on the leading edge in both
+directions. It carries `dir="ltr"` for its digit-beside-a-glyph, and logical
+insets resolve against an element's OWN direction, so it has been physically LEFT
+since that `dir` was added. The comment was describing an intention.
+
+**English looked perfect throughout.** No test here could see it — the markup is
+right and the CSS is right, and the collision only exists once a browser resolves
+`dir` against `inset-inline-*`. `scripts/repro/repro-beta-badge.mjs` walks three
+locales at two widths on the built artifact and exits 1 on any overlap. The star
+badge was NOT moved: that is a visual change to 34 cards nobody asked for.
+
+## The traps this arc re-hit, both already written down
+
+- **`git commit -- <paths>` skips UNTRACKED files.** The first commit of `02f4471`
+  was 8 files and imported 8 modules it did not contain. Caught by
+  `git show --name-only --format="" HEAD | wc -l`, which is the only check that
+  reads the artifact instead of the intent.
+- **The repro laid words only from the top and left edges** and reported PASS
+  over two rounds it could not reach — `leaf` is bottom-only and `drop` is
+  bottom+right. Then an off-by-one in the fix left a hole between the word and the
+  box.
+
+And one that was new: **a backtick inside a `DOCUMENT_CSS` comment ends the
+template literal**, and the file stops parsing twelve errors deep with no mention
+of a comment. Those comments are free — `SERVED_CSS` strips them — but they are
+not inert. Said so in the file.
+
+## Where it stands
+
+Live on ellaz.fun, verified by the deploy's own SHA-256 comparison of served
+bytes against the build, then curled as Googlebot in en and he. 3,605 tests,
+every gate green, slope 67.6 B gz per game against a budget of 140.
+
+Not built: the two acked placement rules (a letter may enter a box but never in
+the run's FIRST word; the first word goes anywhere on the 9x9 except a box and
+every word after must connect — which reverses `5425074` and needs the stale
+comment in `logic.ts` rewritten in the same change), locks as a player tool, and
+the music. That is what the badge is for.

@@ -72,11 +72,26 @@ word in it is also in this file, and it stays big enough to ask a puzzle from.
 
 **Four of the five bonus screens draw from it, and none of them imports this
 file.** `sharedLetter.ts` (two screens), `fillGaps.ts` and `anagram.ts` all take
-what they SHOW from the pool and ask `patterns.ts` what is TRUE - and
-`patterns.ts` is the only module in the round tree that imports this one.
-`rounds-are-wired.test.ts` asserts that boundary from both ends: no round
-component may import `./words`, and something in the tree must, or the check is
-green over a tree where nothing judges anything.
+what they SHOW from the pool and ask `patterns.ts` what is TRUE.
+
+**TWO modules in the round tree import this one, not one.** `patterns.ts`, which
+answers "is that a word" for the three pool-fed screens, and `bonusBoard.ts`,
+the crossword - the fifth screen, and the only one that shows the player no
+dictionary word at all, because every letter on it came off their own deal. It
+imports this file to JUDGE what they built, which is the same thing `logic.ts`
+does for the main board and is the use this file has always been safe for.
+
+That sentence said "`patterns.ts` is the only module" until 2026-08-25 and it
+was false the day it was written, in the one file here whose entire job is to be
+precise about this list. The safety property it was reaching for held the whole
+time - nothing shows a word from here - but a NOTICE that overstates its own
+boundary is worth less than one that names the exception, because the next
+reader checks the sentence rather than the tree.
+
+`rounds-are-wired.test.ts` asserts the boundary from both ends now: no round
+component may import `./words`, and the SET of round modules that do must be
+exactly those two - so a third arrival is a red build rather than a sentence
+that quietly stops being true.
 
 The split is not symmetrical in cost, which is why it is written down twice.
 Showing from here would eventually put an ugly word in front of a five-year-old
