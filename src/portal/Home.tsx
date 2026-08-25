@@ -29,6 +29,7 @@ import { useTheme } from "@ui/useTheme";
 import { themeById } from "@ui/themes";
 import { attachShellJuice } from "@juice/index";
 import { LanguagePicker } from "@ui/LanguagePicker";
+import { HEADER_PILL } from "@ui/headerPill";
 import { WalletChip } from "./WalletChip";
 // TYPE-ONLY, and that matters: `@sdk/share` is pinned to the lazy `share-*`
 // chunk, and a value import here would put the whole payload policy in the
@@ -309,13 +310,26 @@ export function Home({
               marginInlineStart: "auto",
             }}
           >
-            {/* STARS, not coins and stars. Operator ruling 2026-08-24. The My
-                world card sits directly under this bar now and prints both
-                numbers, so the coin count here was the duplicate - and coins
-                are what a child spends in that room. It is also what makes
-                four controls fit: measured, coins+stars wraps this header to
-                two rows at 320, 360, 390 and 430 alike. */}
-            <WalletChip starsOnly />
+            {/* COINS AND STARS. Operator ruling 2026-08-25, reversing the
+                stars-only ruling of the day before - and the width argument
+                that had been recorded beside it was measured and found to
+                blame the wrong control. Re-measured live at 390px, changing
+                ONE variable at a time:
+
+                    stars  0  ->  header  76px   ONE row
+                    stars 24  ->  header 122px   TWO rows   <- coins not in it
+                    stars  5  ->  header  76px   ONE row    (reverses cleanly)
+
+                The wrap is the STAR count reaching two digits, not the coin
+                half. With coins restored at 320px on a four-digit balance:
+                nothing wider than the header, nothing clipped inside its own
+                box, no horizontal overflow. The wrapper below is what absorbs
+                it, and it was already doing that job.
+
+                See .claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md -
+                a measurement recorded without its one-variable control is a
+                hypothesis that reads like a finding. */}
+            <WalletChip />
             {/* Beside the wallet, and only once there is a streak to show. It
                 is the same currency-shaped readout: something you have, not
                 something you owe. */}
@@ -327,29 +341,24 @@ export function Home({
                 It is a LINK, not a button, so middle-click and long-press
                 behave - the same reason the game cards are anchors. It is
                 always-on by construction, which is exactly what the gated card
-                below was for, so the two now overlap for a player who has
-                played something; the card is the one that carries a label, and
-                a bar icon on its own is not discoverable to a five-year-old.
-                Kept until the operator says which one goes. */}
+                below the room used to be for, so for a day the two overlapped
+                and a player who had played something saw the leaderboards
+                twice. Operator ruling 2026-08-25: "only icon in header". The
+                card is gone; THIS is the way to /boards/ from the home screen.
+
+                Which makes one thing load-bearing rather than incidental: the
+                emitted home shell in `sitePages.ts` carries its own /boards/
+                link, removed on mount, and that is now the ONLY inbound link a
+                crawler or a no-JavaScript visitor can follow. Removing it
+                orphans the screen. */}
             <a
               href={boardsHref(pageLocaleFor(locale))}
               onClick={tap}
               aria-label={t("boards")}
-              style={{
-                // The same square the two pills beside it hold, so the row
-                // reads as one set of controls rather than three sizes.
-                minHeight: "var(--tap)",
-                minWidth: "var(--tap)",
-                flexShrink: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: "var(--radius-pill)",
-                background: "var(--surface-2)",
-                color: "var(--text)",
-                textDecoration: "none",
-                fontSize: 18,
-              }}
+              // The same square the two pills beside it hold, so the row reads
+              // as one set of controls rather than three sizes - and now
+              // literally the same object, so it cannot stop being true.
+              style={HEADER_PILL}
             >
               <Icon name="trophy" />
             </a>
@@ -364,48 +373,6 @@ export function Home({
         <WorldHero profile={profile} locale={locale} onTap={tap} />
 
         <DailyCard locale={locale} onTap={tap} />
-
-        {/* The boards, and only once there is something to be on.
-            A first visit is for games. A leaderboard link on a home screen
-            nobody has played yet leads to "play a game and you'll show up
-            here", which is honest and is still clutter in front of a child
-            choosing their first game. It appears the moment it means
-            something. Deliberately NOT nested inside the room card above:
-            an <a> inside an <a> is invalid and browsers close the outer one
-            mid-DOM, which would take the room card apart.
-
-            This gate came BACK on 2026-08-24. For one day the boards were a
-            trophy in the header instead, which is always-on by construction,
-            so a child who had played nothing was offered a door to an empty
-            room. The operator removed the trophy; the card returns rather
-            than nothing, because Home.tsx is the ONLY place in the app that
-            links to /boards/ - legacyHash.ts merely redirects old bookmarks -
-            so leaving the bar empty would have orphaned the screen. */}
-        {recent.length > 0 && (
-          <a
-            href={boardsHref(pageLocaleFor(locale))}
-            onClick={tap}
-            style={{
-              // flex, not block: the trophy is an <Icon> now rather than an
-              // emoji in a text run, so it needs a baseline the row sets.
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              width: "calc(100% - 8px)",
-              margin: "0 4px 20px",
-              padding: "11px 14px",
-              borderRadius: "var(--radius-3)",
-              background: "var(--surface-2)",
-              boxShadow: "var(--shadow-1)",
-              color: "var(--text)",
-              textDecoration: "none",
-              fontWeight: 800,
-              fontSize: 15,
-            }}
-          >
-            <Icon name="trophy" /> {t("boards")}
-          </a>
-        )}
 
         {/* Sharing, and only once there is something that happened TODAY.
             A button whose card would say "today I played nothing" is worse
@@ -560,20 +527,11 @@ function ThemeToggle({ locale, onTap }: { locale: AppLocale; onTap: () => void }
         onTap();
         setTheme(next.id);
       }}
-      style={{
-        // No horizontal padding: minWidth already holds the 48px tap target,
-        // and on a narrow header every pixel here comes out of the title.
-        minHeight: "var(--tap)",
-        minWidth: "var(--tap)",
-        padding: 0,
-        flexShrink: 0,
-        borderRadius: "var(--radius-pill)",
-        border: "none",
-        background: "var(--surface-2)",
-        color: "var(--text)",
-        fontSize: 18,
-        lineHeight: 1,
-      }}
+      // THE SHARED PILL, and this button is why it exists. Hand-written, this
+      // block omitted display/alignItems/justifyContent, so the moon rendered
+      // 15px LEFT of centre on every screen size while its two neighbours were
+      // centred. See @ui/headerPill.
+      style={HEADER_PILL}
     >
       <Icon name={next.icon} />
     </button>

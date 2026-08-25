@@ -40,28 +40,31 @@ export interface WalletChipProps {
   /**
    * Draw the STAR count only, with no coin half.
    *
-   * The home bar, and only the home bar. Operator ruling 2026-08-24: that bar
-   * carries "stars and dark" plus the language and the leaderboards, and the
-   * coin half is what makes those four not fit - measured on the built page,
-   * coins+stars wraps the header to two rows at 320, 360, 390 and 430 alike,
-   * while stars alone is one row from 390 up.
+   * NOTHING PASSES THIS TODAY, and the reason is worth keeping rather than
+   * deleting the prop over. The home bar passed it from 2026-08-24 to
+   * 2026-08-25, on a width argument recorded here as measured fact:
+   * "coins+stars wraps the header to two rows at 320, 360, 390 and 430 alike".
    *
-   * It is not only a width argument. Coins and stars answer different
-   * questions, so they belong on different surfaces: a coin is SPENT - and
-   * only ever in the World screen, since `RewardsPort` has no `spend()` - while
-   * a star is a trophy count that is never spent and never lost. The standing
-   * platform bar therefore carries the trophy, and the room's own card carries
-   * the balance a child will spend inside it.
+   * That measurement was real and its ATTRIBUTION was wrong. Re-run live at
+   * 390px changing one variable at a time:
    *
-   * Those two readouts USED to overlap. The My world card printed both numbers
-   * until 2026-08-24, which is what made the bar's coin half a duplicate; the
-   * card prints coins only now (Home.tsx), so the two are the halves of one
-   * split rather than a copy and an original. Do not re-derive that from this
-   * paragraph alone - read the card.
+   *     stars  0  ->  header  76px   ONE row
+   *     stars 24  ->  header 122px   TWO rows
+   *     stars  5  ->  header  76px   ONE row     (reverses cleanly)
    *
-   * This chip is still the flyTo anchor either way. A coin granted while a game
-   * is mounted flies to the game page's own chip, which is `bare` and whole;
-   * nothing flies to the home bar, because no game is running behind it.
+   * The bar wraps when the STAR count reaches two digits. Coins were never in
+   * it - a chip with coins restored, at 320px, on a four-digit balance,
+   * overflows nothing and clips nothing. A number measured without a
+   * one-variable control is a hypothesis that reads like a finding, and this
+   * one then cost the operator a control they wanted:
+   * `.claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md`.
+   *
+   * Operator ruling 2026-08-25: "add back coins". The prop stays because it is
+   * supported and harmless, and because a surface may yet want a stars-only
+   * readout for a reason that is actually about stars.
+   *
+   * This chip is the flyTo anchor either way. A coin granted while a game is
+   * mounted flies to the game page's own chip, which is `bare` and whole.
    */
   starsOnly?: boolean;
 }
