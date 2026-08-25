@@ -3,6 +3,7 @@ import type { AppLocale } from "@i18n/locales";
 import { AUTONYM, dirOf } from "@i18n/locales";
 import { AVAILABLE, makeT } from "@i18n/strings";
 import { Icon } from "./icons";
+import { HEADER_PILL } from "./headerPill";
 
 /**
  * The language control.
@@ -90,30 +91,14 @@ export function LanguagePicker({
           onTap?.();
           setOpen((v) => !v);
         }}
-        style={{
-          minHeight: "var(--tap)",
-          // The tap target is the globe and nothing else now, so `minWidth`
-          // is the whole width rather than a floor under a label.
-          //
-          // NO horizontal padding, which is what makes this pill the same
-          // SHAPE as the theme pill beside it: `minWidth` already holds the
-          // 48px target, and `0 14px` on top of it made this one 18px wider
-          // than its sibling for no reason a reader could see. Two round
-          // controls of different widths, side by side, is the thing that
-          // reads as unfinished.
-          minWidth: "var(--tap)",
-          padding: 0,
-          borderRadius: "var(--radius-pill)",
-          border: "none",
-          background: "var(--surface-2)",
-          color: "var(--text)",
-          fontWeight: 800,
-          fontSize: 18,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 6,
-        }}
+        // The tap target is the globe and nothing else now, so the shared
+        // pill's `minWidth` is the whole width rather than a floor under a
+        // label - and being the SAME OBJECT as the theme pill beside it is
+        // what makes the two the same shape. They drifted 18px apart once,
+        // when this one carried `padding: 0 14px` and its sibling did not; two
+        // round controls of different widths side by side is exactly what
+        // reads as unfinished. See @ui/headerPill.
+        style={HEADER_PILL}
       >
         <Icon name="globe" />
       </button>
