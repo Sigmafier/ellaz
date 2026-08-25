@@ -3121,3 +3121,196 @@ the run's FIRST word; the first word goes anywhere on the 9x9 except a box and
 every word after must connect — which reverses `5425074` and needs the stale
 comment in `logic.ts` rewritten in the same change), locks as a player tool, and
 the music. That is what the badge is for.
+
+---
+
+## Six things the operator could see, and one of them threw a child out of a game
+
+2026-08-25. Six reports, every one reproduced against the live site before
+anything was designed, and two of them turned out to be about a different
+thing than the words said.
+
+### 1. "games are being loaded then after few seconds they load back again"
+
+Root-caused to one line in the served bundle, and it is not ours.
+`vite-plugin-pwa`'s `register.js` installs this whenever `registerType` is
+`"autoUpdate"`:
+
+```js
+wb.addEventListener("activated", (event) => {
+  if (event.isUpdate || event.isExternal) window.location.reload();
+});
+```
+
+There is no option to keep `autoUpdate` and suppress it, so the MODE had to
+change. `"prompt"` is a misleading name for what shipped: there is no dialog
+and nothing to tap. It is the only branch that hands the timing over, and
+`src/portal/swUpdate.ts` applies the update by itself the first moment no game
+is on screen.
+
+**This is NOT the old bare prompt mode** that stranded returning players on a
+stale cache ([`pwa-stale-bundle-qa.md`](../.claude/rules/pwa-stale-bundle-qa.md)).
+That one needed an update UI nobody built.
+
+Three decisions in it worth keeping:
+
+- **The signal is `.ellaz-game-stage` in the DOM, not `hasRestart()`.**
+  `@ui/gameTools` is the registry that already knows whether a game is
+  mounted - and it is pinned to the `page` chunk, so importing it from
+  `main.tsx` makes the SHELL import from the page chunk. That is the exact
+  failure `assert-first-visit.mjs` exists to catch and has caught three times.
+  The DOM read costs zero imports.
+- **Deferring forever on a game page costs nothing**, which is the fact the
+  whole design rests on. Every route here is a real document and the navigate
+  rule is NetworkFirst, so walking to the next page fetches the new build
+  anyway - the player is on it after one navigation, with no reload at all.
+- **`/` is the page that genuinely needs the worker replaced**, because it is
+  precached and served cache-first until then. It is also the page where a
+  reload costs a scroll position and nothing else, which is why "no game
+  mounted" means apply NOW rather than at the next `visibilitychange`.
+
+### 2 and 3. The duplicate boards link, and a width argument that was wrong
+
+Two `/boards/` links in the home DOM: the header trophy at x=983 and a
+full-width row at x=283. The row is deleted; the trophy stays. **The emitted
+home shell's own `/boards/` link is now load-bearing** - `sitePages.ts` carries
+one, removed on mount, and it is the only inbound link a crawler or a
+no-JavaScript visitor can follow. Removing it orphans the screen.
+
+The coins are back, and the interesting part is why they went. `starsOnly` was
+added on 2026-08-24 with a measurement recorded beside it as fact:
+*"coins+stars wraps this header to two rows at 320, 360, 390 and 430 alike"*.
+The measurement was real. Its ATTRIBUTION was wrong. Re-run live at 390px,
+changing one variable at a time:
+
+```
+stars  0  ->  header  76px   ONE row
+stars 24  ->  header 122px   TWO rows      <- coins are not in it
+stars  5  ->  header  76px   ONE row       (reverses cleanly)
+```
+
+The bar wraps when the STAR count reaches two digits. Measured on the built
+artifact with coins restored, 1240 coins and 24 stars at 390: one row, nothing
+wider than the bar, nothing clipped inside its own box.
+
+A number measured without a one-variable control is a hypothesis that reads
+like a finding, and this one cost the operator a control they wanted for a
+day. See
+[`a-comment-that-explains-a-cost-must-name-its-measurement.md`](../.claude/rules/a-comment-that-explains-a-cost-must-name-its-measurement.md).
+
+### 4. The language globe was missing from 36 pages, not from the header
+
+Reported as "the language bar in desktop header is missing". It is not missing
+from the HOME header - measured there at 1440 and at 390. It was missing from
+all 34 game pages, the room and the boards, which is where a reader who
+followed a search result lands. Search Console says 76% of the queries
+reaching this site are Hebrew.
+
+It is a `<details>`, not the app's `LanguagePicker`, and that is the whole
+design: `src/build/**` ships to nobody, so an emitted disclosure costs a first
+visit zero bytes, is on screen in the first paint rather than after the bundle,
+and works with JavaScript off. Four real `<a href>` links to this page's own
+translations are worth something to a crawler too.
+
+**It offers the PAGE locales, never the eleven the app speaks.** A document can
+only offer a language it EXISTS in; seven of the eleven would be 404s. Built
+from the page's own hreflang cluster, so this, `offerBar` and the footer cannot
+promise different sets.
+
+**The auto margin moved with it, and that is the recurrence.**
+`space-between-spreads-whatever-survives-the-media-query.md` was written when
+mute stranded in the dead centre of the phone bar; the fix put
+`margin-inline-start:auto` on `[data-sound]`. The globe now LEADS that group,
+so left alone the fix relocates the bug one element along. Both rules are kept
+- the adjacent-sibling pair wins where the globe exists, the bare one still
+holds a page with no translations - because two auto margins split the free
+space and set both adrift.
+
+Measured, five pages x two widths: 44x44, always nearer the wallet than the
+home button in both directions, sheet clearing both screen edges. **84vw and
+never 100vw** - that literal is banned in `build.test.ts` after 8px of sideways
+scroll shipped on a live page.
+
+### 5. The dark-mode moon, and four copies of one pill
+
+Reported as "not centered". Measured, comparing the four siblings, at 320 and
+at 1440 alike:
+
+```
+Leaderboards   display:flex     glyph dx =   0
+Language       display:flex     glyph dx =   0
+Theme: Night   display:block    glyph dx = -15    <- the odd one out
+CardStyle      display:flex     (centred, in the rail)
+```
+
+`ThemeToggle` was the only one of three hand-written style blocks that omitted
+`display/alignItems/justifyContent`, so its `<svg>` laid out as an inline child
+at the start of a block box. Nine declarations agreed and three did not.
+
+So the fix is not three declarations, it is `@ui/headerPill` - one object the
+trophy, the globe and the theme toggle all hand over whole. **Three copies is
+not a duplication problem, it is a drift problem**: the two that drifted before
+(18px of width, from one `padding: 0 14px`) each looked like a local tweak at
+the time, and the fourth copy would have drifted too. The card-style toggle is
+deliberately NOT on it - a 48px round pill among 64px two-line rail items is a
+stray control, which is a decision rather than a drift, and the test pins the
+exclusion by name.
+
+**A grep for "flex" could not have caught this.** `display: block` wins by
+DEFAULT, so the defect is an absence with no token to search for.
+
+### Two assertions that could never have fired
+
+Both found while editing the files this work had to touch.
+
+`home-header-must-wrap.test.ts:176` read
+`expect(group).not.toMatch(/<BoardsButton/)` under a comment saying the trophy
+had been REMOVED from the bar. No component of that name has ever existed in
+this repo, and the trophy was sitting in that same slice as an inline `<a>`.
+Green over the exact state its own comment forbade, for as long as it existed.
+
+The same file's tap-target pin sliced `PICKER.indexOf("aria-haspopup")` to
+`PICKER.indexOf("<GlobeIcon")`, and no `<GlobeIcon` has existed since that
+component moved to `<Icon name="globe" />`. `slice(at, -1)` handed back the
+rest of the file, so the assertion was passing on some other part of the
+component.
+
+And a third, planted deliberately and SURVIVING the first version of the new
+globe pins: dropping every per-entry `lang` attribute left all 84 tests green,
+because **`hreflang="es"` contains `lang="es"`** and the matcher could not tell
+them apart. Fixed with a lookbehind.
+[`a-diagnostic-that-truncates-what-it-compares.md`](../.claude/rules/a-diagnostic-that-truncates-what-it-compares.md)
+has the running table; these are three more instances in one afternoon.
+
+### The probe, and the seed that makes it able to see anything
+
+`scripts/repro/repro-six-defects.mjs` reads a built artifact and exits 1 on any
+defect still present - 33/33 on the new build, 9 real failures on the old one,
+which is what makes the green a real one.
+
+**Its first run reported the duplicate boards link as ALREADY FIXED on the
+broken build.** The row is gated on `recent.length > 0`, so a fresh browser
+context shows one link either way. This repo had the note already -
+`a-row-that-grows-with-the-catalog-must-wrap.md`: *"an empty profile hides this
+bug completely, which is why it survived a screenshot review"* - and it caught
+the probe anyway. Every home check now runs against a seeded profile, which is
+also the two-digit star count the width argument was really about.
+
+**No HTTP server, on purpose.** The obvious shape is a static server on a port;
+5180 - this repo's own documented preview port - was held by a peer's dev
+server, and `never-invent-a-port.md` is explicit that picking a free one is not
+an available move. Playwright's own router serves the build straight off disk,
+so there is no port to pick and two arms can be captured while somebody else
+is working.
+
+### What is not done
+
+The per-game share. The operator ruled its CONTENT (an invite - the game's art,
+its name, that game's URL, no score) and ruled the daily digest deleted, but
+**not its placement**, and it is deliberately not being guessed. The two
+candidates are a button on the utility row - measured free on 32 games,
+truncating the breadcrumb on snake and blocks at 390 where `.gname` is already
+hidden - and a post-win panel, which is not a button at all: `winMoment()`
+grants, plays, throws confetti and leaves nothing behind, so that arm is a
+feature and an interruption to get-straight-back-to-play. Both go up as
+pictures over the real page before either is built.
