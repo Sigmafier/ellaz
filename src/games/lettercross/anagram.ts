@@ -32,7 +32,8 @@
  * a word, measured across all four lengths, so this is always satisfiable.
  */
 import { PUZZLE_WORDS } from "./puzzleWords";
-import { isWord, letterKey, shuffled } from "./patterns";
+import { isWord, letterKey } from "./patterns";
+import { pick, shuffle } from "@shared/rng";
 import { HARD_Q, MEDIUM_Q } from "./bonus";
 
 /**
@@ -104,14 +105,14 @@ export function answersFor(letters: readonly string[]): string[] {
  * the question is about each word, so it can be asked of every one of them.
  */
 export function makeAnagram(rng: () => number = Math.random): AnagramPuzzle | undefined {
-  const pick = CANDIDATES[Math.floor(rng() * CANDIDATES.length)];
-  const order = scramble(pick, rng);
-  return order ? { word: pick, letters: order } : undefined;
+  const chosen = pick(CANDIDATES, rng);
+  const order = scramble(chosen, rng);
+  return order ? { word: chosen, letters: order } : undefined;
 }
 
 export function scramble(word: string, rng: () => number = Math.random): string[] | undefined {
   for (let attempt = 0; attempt < 60; attempt++) {
-    const order = shuffled([...word], rng);
+    const order = shuffle([...word], rng);
     if (!isWord(order.join(""))) return order;
   }
   const walk = (cur: string[], rest: string[]): string[] | undefined => {

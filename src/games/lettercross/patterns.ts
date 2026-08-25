@@ -37,15 +37,15 @@ export function solvers(patterns: readonly string[]): string[] {
   return AZ.filter((c) => patterns.every((p) => WORDS.has(fill(p, c))));
 }
 
-/** Fisher-Yates on a copy, so nothing here mutates a shared array. */
-export function shuffled<T>(xs: readonly T[], rng: () => number): T[] {
-  const a = [...xs];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
+/* NO `shuffled` HERE ANY MORE - the three rounds call `shuffle` from
+   `@shared/rng` directly. It was an 8-line Fisher-Yates byte-identical in
+   behaviour to the shared one: same descending loop, same
+   `Math.floor(rng() * (i + 1))` draw, same swap, `[...xs]` against `.slice()`.
+   That identity is what made the swap safe to make at all - a Fisher-Yates
+   that walks the other way consumes the same rng stream and returns a
+   DIFFERENT permutation, so a seeded generator would have produced different
+   puzzles and every seeded test would have moved with it. Checked before
+   deleting, rather than assumed from the two functions having one name. */
 
 /** The letters of a word, sorted - two words are anagrams when these match. */
 export const letterKey = (w: string) => [...w].sort().join("");

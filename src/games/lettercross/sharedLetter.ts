@@ -31,7 +31,8 @@
  * different game. Only the chrome around it translates.
  */
 import { PUZZLE_WORDS } from "./puzzleWords";
-import { AZ, blank, shuffled, solvers } from "./patterns";
+import { AZ, blank, solvers } from "./patterns";
+import { pick, shuffle } from "@shared/rng";
 import { HARD_Q, MEDIUM_Q } from "./bonus";
 
 /**
@@ -90,14 +91,14 @@ const BY_LETTER = patternsByLetter();
 function choicesFor(patterns: readonly string[], answer: string, rng: () => number): string[] {
   const near = new Set<string>();
   for (const p of patterns) for (const c of solvers([p])) if (c !== answer) near.add(c);
-  const picked = shuffled([...near], rng).slice(0, CHOICES - 1);
+  const picked = shuffle([...near], rng).slice(0, CHOICES - 1);
   if (picked.length < CHOICES - 1) {
-    for (const c of shuffled(AZ, rng)) {
+    for (const c of shuffle(AZ, rng)) {
       if (picked.length >= CHOICES - 1) break;
       if (c !== answer && !picked.includes(c)) picked.push(c);
     }
   }
-  return shuffled([...picked, answer], rng);
+  return shuffle([...picked, answer], rng);
 }
 
 /**
@@ -133,7 +134,7 @@ const OPEN_ENOUGH = 2;
  * inside a bonus round.
  */
 export function makeShared(count: number, rng: () => number = Math.random): SharedPuzzle | undefined {
-  const letters = shuffled([...BY_LETTER.keys()], rng);
+  const letters = shuffle([...BY_LETTER.keys()], rng);
 
   const build = (
     ch: string,
@@ -171,10 +172,10 @@ export function makeShared(count: number, rng: () => number = Math.random): Shar
   ];
   for (const pass of PASSES) {
     for (let attempt = 0; attempt < pass.tries; attempt++) {
-      const ch = letters[Math.floor(rng() * letters.length)];
+      const ch = pick(letters, rng);
       const bucket = BY_LETTER.get(ch)!;
       if (bucket.length < count) continue;
-      const picks = shuffled(bucket, rng).slice(0, count);
+      const picks = shuffle(bucket, rng).slice(0, count);
       const made = build(ch, picks, pass.want);
       if (made) return made;
     }

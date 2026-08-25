@@ -34,7 +34,8 @@
  * from `puzzleWords.ts`, the answer is CHECKED against `words.ts`.
  */
 import { PUZZLE_WORDS } from "./puzzleWords";
-import { AZ, isWord, shuffled } from "./patterns";
+import { AZ, isWord } from "./patterns";
+import { pick, shuffle } from "@shared/rng";
 import { MEDIUM_Q } from "./bonus";
 
 /** How many letters to offer - the same row `sharedLetter.ts` draws. */
@@ -135,17 +136,17 @@ function choicesFor(word: string, gaps: readonly number[], rng: () => number): s
   const picked = new Set<string>(gaps.map((i) => word[i]));
   const plausible = new Set<string>();
   for (const i of gaps) for (const c of AT_POSITION.get(`${word.length}:${i}`) ?? []) plausible.add(c);
-  for (const c of shuffled([...plausible], rng)) {
+  for (const c of shuffle([...plausible], rng)) {
     if (picked.size >= CHOICES) break;
     picked.add(c);
   }
   // Only if a position is so narrow it cannot fill the row, so the row's SIZE
   // never leaks how tight the puzzle is.
-  for (const c of shuffled(AZ, rng)) {
+  for (const c of shuffle(AZ, rng)) {
     if (picked.size >= CHOICES) break;
     picked.add(c);
   }
-  return shuffled([...picked], rng);
+  return shuffle([...picked], rng);
 }
 
 /**
@@ -172,14 +173,14 @@ export function makeFill(rng: () => number = Math.random): FillPuzzle | undefine
   };
 
   for (let attempt = 0; attempt < 400; attempt++) {
-    const w = CANDIDATES[Math.floor(rng() * CANDIDATES.length)];
+    const w = pick(CANDIDATES, rng);
     if (!w) break;
-    const gaps = shuffled([...w].map((_, i) => i), rng).slice(0, GAPS).sort((a, b) => a - b);
+    const gaps = shuffle([...w].map((_, i) => i), rng).slice(0, GAPS).sort((a, b) => a - b);
     const made = build(w, gaps);
     if (made) return made;
   }
 
-  for (const w of shuffled(CANDIDATES, rng)) {
+  for (const w of shuffle(CANDIDATES, rng)) {
     for (let a = 0; a < w.length; a++) {
       for (let b = a + 1; b < w.length; b++) {
         const made = build(w, [a, b]);

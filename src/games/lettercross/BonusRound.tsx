@@ -4,11 +4,17 @@ import { tierOf, type BonusTier } from "./bonus";
 import {
   BH, BONUS_MS, BW, dealTiles, emptyMini, miniQuality, scoreMini, type MiniCell,
 } from "./bonusBoard";
+// THE PALETTE IS THE SHELL'S, even though this round does not use the shell.
+// It carried its own `INK`/`EDGE` and inlined GOLD and WRONG as raw hex until
+// 2026-08-25 - byte-identical to the exports two files over, so a palette
+// change would have moved four screens and left this one behind, with nothing
+// to catch it. Importing the constants is free of any behaviour: the values are
+// the same values. What this round genuinely does NOT share is the clock, and
+// that stays stated below rather than quietly fixed.
+import { EDGE, GOLD, INK, WRONG } from "./roundShell";
 
 /** How long the outcome stays lit before the round hands back. */
 const DWELL_MS = 1500;
-const INK = "#241C17";
-const EDGE = "#B07C1C";
 /** One cell. The main board's own size, which is the point of a 9-wide strip. */
 const CELL = "min(9.2vw, 34px)";
 
@@ -146,14 +152,21 @@ export function BonusRound({ glyph, t, onStop, playTap }: {
           </div>
           <button type="button" onClick={start} style={{
             minHeight: 52, minWidth: 132, borderRadius: 12, border: `2px solid ${EDGE}`,
-            background: "#F2B93F", color: INK, fontSize: 18, fontWeight: 800, cursor: "pointer",
+            background: GOLD, color: INK, fontSize: 18, fontWeight: 800, cursor: "pointer",
           }}>{t.start}</button>
         </>
       )}
 
       {phase !== "ready" && (
         <>
-          <div aria-live="off" style={{ fontVariantNumeric: "tabular-nums", fontSize: 20, fontWeight: 800, color: secs <= 10 ? "#E2612F" : "var(--text)" }}>
+          {/* TEN, AGAINST THE SHELL'S FIVE, AND IT IS THE SAME FRACTION.
+              This round runs BONUS_MS = 60s and the shell's longest runs
+              ANAGRAM_MS = 30s, so 10/60 and 5/30 are both the last sixth. It
+              is proportion, not a number that slipped - which is worth a line
+              here because three independent reviewers read it as drift on the
+              same afternoon, each correctly noting 10 != 5 and none of them
+              dividing by the round. A bare constant cannot say "one sixth". */}
+          <div aria-live="off" style={{ fontVariantNumeric: "tabular-nums", fontSize: 20, fontWeight: 800, color: secs <= 10 ? WRONG : "var(--text)" }}>
             {secs}
           </div>
 
@@ -177,8 +190,8 @@ export function BonusRound({ glyph, t, onStop, playTap }: {
                 <button key={k} type="button" onClick={() => { setSel(k); playTap(); }}
                   style={{
                     width: 34, height: 40, borderRadius: 6, padding: 0,
-                    border: `2px solid ${sel === k ? "#E2612F" : EDGE}`,
-                    background: sel === k ? "#F2B93F" : "#F6E7C1",
+                    border: `2px solid ${sel === k ? WRONG : EDGE}`,
+                    background: sel === k ? GOLD : "#F6E7C1",
                     color: INK, fontSize: 16, fontWeight: 800, textTransform: "uppercase", cursor: "pointer",
                   }}>{ch}</button>
               ))}

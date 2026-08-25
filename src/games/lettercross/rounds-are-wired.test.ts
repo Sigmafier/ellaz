@@ -15,7 +15,7 @@
  * exists to prevent is deleting it instead, and reading the green suite as
  * proof the invariant is still held.
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import { BONUS_ARTS, ROUND_OF, type BonusArt, type RoundKind } from "./bonus";
 import { BOXES } from "./boxes";
@@ -299,31 +299,58 @@ describe("each round itself", () => {
     expect(read("patterns.ts")).toMatch(/from "\.\/words"/);
   });
 
-  it("keeps the list of modules allowed to READ the dictionary to exactly two", () => {
+  it("keeps the modules allowed to READ the dictionary to exactly three, and names the scope", () => {
     // NOTICE.md names this list, and it named it WRONG until 2026-08-25 - it
     // said `patterns.ts` was the only one, while `bonusBoard.ts` had imported
     // the dictionary since the crossword shipped. The safety property held
     // (neither SHOWS a word from it), but the sentence was checkable and false,
     // in the one file here whose job is to be precise about this.
     //
-    // So the set is asserted rather than described. A third module arriving is
-    // a red build naming itself, instead of a NOTICE that quietly stops being
-    // true - and the two that are here each carry their reason:
+    // So the set is asserted rather than described. A new module arriving is a
+    // red build naming itself, instead of a NOTICE that quietly stops being
+    // true - and each reader carries its reason:
     //
     //   patterns.ts    answers "is that a word" for the three pool-fed screens
     //   bonusBoard.ts  the crossword, which judges what the player built from
     //                  their OWN deal and shows nothing from the dictionary
-    const ROUND_MODULES = [
+    //   logic.ts       the 9x9 board itself, judging a word the player placed
+    //
+    // THE POPULATION IS DERIVED, NOT LISTED. It was a hand-kept array of seven
+    // filenames until 2026-08-25, which is the same defect one layer out: a
+    // sixth round module reading the dictionary would simply not have been in
+    // the array, so the assertion would have passed over it and the green run
+    // would have read as coverage. Any list that mirrors a directory goes stale
+    // the first time the directory grows - see
+    // `.claude/rules/a-path-filter-is-a-hand-kept-mirror-of-an-import-graph.md`.
+    const PRODUCTION = readdirSync(new URL(".", import.meta.url))
+      .filter((f) => /\.tsx?$/.test(f) && !f.endsWith(".test.ts") && f !== "words.ts")
+      .sort();
+    const readers = PRODUCTION.filter((f) => /from "\.\/words"/.test(read(f)));
+    expect(readers, `the set of dictionary readers moved - update NOTICE.md and CLAUDE.md in the same change`)
+      .toEqual(["bonusBoard.ts", "logic.ts", "patterns.ts"]);
+    // Two positive controls, because each covers a different way to read green
+    // over nothing: the population must be real (a broken readdir yields []),
+    // and the matcher must be able to see a NON-reader (a regex that matches
+    // everything would return the whole directory and still "find" the three).
+    expect(PRODUCTION.length, "the directory scan found almost nothing - it is broken, not the tree")
+      .toBeGreaterThan(10);
+    expect(readers.length, "every production module matched - the regex is broken, not the tree")
+      .toBeLessThan(PRODUCTION.length);
+  });
+
+  it("keeps the ROUND TREE's own share of that set to exactly two", () => {
+    // The narrower claim, and the one NOTICE.md makes: within the round tree,
+    // two modules read the dictionary. `logic.ts` is the third reader overall
+    // and sits OUTSIDE this tree, which is exactly why the scope word matters -
+    // CLAUDE.md dropped it for a day and stated the narrow claim broadly, with
+    // this file's green run reading as proof of the wider sentence.
+    const ROUND_TREE = [
       "patterns.ts", "bonusBoard.ts", "sharedLetter.ts", "fillGaps.ts",
-      "anagram.ts", "bonus.ts", "puzzleWords.ts",
+      "anagram.ts", "bonus.ts", "puzzleWords.ts", "roundShell.tsx",
+      "AnagramRound.tsx", "BonusRound.tsx", "FillGapsRound.tsx", "SharedLetterRound.tsx",
     ];
-    const readers = ROUND_MODULES.filter((f) => /from "\.\/words"/.test(read(f)));
-    expect(readers.sort(), `the set of dictionary readers moved - update NOTICE.md in the same change`)
+    expect(ROUND_TREE.filter((f) => /from "\.\/words"/.test(read(f))).sort())
       .toEqual(["bonusBoard.ts", "patterns.ts"]);
-    // Positive control: the matcher can see a NON-reader, so an empty answer
-    // above would be a broken regex rather than a clean tree.
-    expect(readers.length, "the matcher found nothing - it is broken, not the tree")
-      .toBeLessThan(ROUND_MODULES.length);
   });
 
   it("keeps NOTICE.md agreeing with that set", () => {

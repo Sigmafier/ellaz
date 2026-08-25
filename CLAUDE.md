@@ -128,11 +128,20 @@ authored, concrete words) is what a screen may SHOW; `words.ts` (ENABLE1 behind 
 blocklist) is what JUDGES. Getting that backwards costs something real in each
 direction, and the asymmetry is written down twice — in
 `src/games/lettercross/NOTICE.md` and in `sharedLetter.ts`. **Exactly two modules
-may import the dictionary** — `patterns.ts`, which answers "is that a word" for
-the three pool-fed screens, and `bonusBoard.ts`, the crossword, which judges what
-the player built from their own deal and shows nothing from it.
+IN THE ROUND TREE may import the dictionary** — `patterns.ts`, which answers "is
+that a word" for the three pool-fed screens, and `bonusBoard.ts`, the crossword,
+which judges what the player built from their own deal and shows nothing from it.
 `rounds-are-wired.test.ts` asserts that SET rather than describing it, because
 NOTICE.md named it wrong for a day.
+
+**Read that scope literally: `logic.ts` imports it too**, to judge a word placed
+on the 9x9, and that is the third production reader. The sentence above said
+"exactly two modules" with no qualifier until 2026-08-25 — false as written, in
+the same commit that fixed the identical defect in NOTICE.md, which HAD the
+qualifier. Worse than a plain error: the test passes, because it scans the round
+tree, so a green run reads as proof of the broader claim. **A prose claim about a
+SET states the population it ranges over, or the test standing behind it is
+answering a narrower question than the sentence asks.**
 
 The game is `beta: true` today. The board and all five screens play; the
 placement rules, the padlocks and the music do not exist yet.

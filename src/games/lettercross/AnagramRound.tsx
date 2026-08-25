@@ -2,7 +2,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { haptic } from "@juice/index";
 import { tierOf, type BonusTier } from "./bonus";
 import { ANAGRAM_MS, anagramQuality, isAnswer, makeAnagram } from "./anagram";
-import { EDGE, INK, RoundShell, Tile, useNoPuzzleGuard, useRoundClock, type RoundText } from "./roundShell";
+import { BARE_BUTTON, CHOICE_ROW, EDGE, INK, RoundShell, Tile, useNoPuzzleGuard, useRoundClock, type RoundText } from "./roundShell";
 
 /**
  * "Build a word from ALL the letters in front of you" - the fifth and last of
@@ -83,7 +83,7 @@ export function AnagramRound({ glyph, t, onStop, playTap }: {
             {shown.map((ch, k) => (
               reveal ? <Tile key={k} tone="filled">{ch}</Tile> : (
                 <button key={k} type="button" onClick={() => take(k)} aria-label={`${ch} placed`}
-                  style={{ border: 0, background: "none", padding: 0, cursor: "pointer" }}>
+                  style={{ ...BARE_BUTTON, cursor: "pointer" }}>
                   <Tile tone="filled">{ch}</Tile>
                 </button>
               )
@@ -92,15 +92,12 @@ export function AnagramRound({ glyph, t, onStop, playTap }: {
           </div>
 
           {clock.phase === "playing" && (
-            <div dir="ltr" style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 6, maxWidth: 300 }}>
+            <div dir="ltr" style={CHOICE_ROW}>
               {letters.map((c, i) => {
                 const spent = laid.includes(i);
                 return (
                   <button key={i} type="button" onClick={() => lay(i)} disabled={spent}
-                    aria-label={`${c} tile`} style={{
-                      border: 0, background: "none", padding: 0,
-                      cursor: spent ? "default" : "pointer",
-                    }}>
+                    aria-label={`${c} tile`} style={{ ...BARE_BUTTON, cursor: spent ? "default" : "pointer" }}>
                     <Tile tone={spent ? "spent" : "plain"} size={44}>{c.toUpperCase()}</Tile>
                   </button>
                 );

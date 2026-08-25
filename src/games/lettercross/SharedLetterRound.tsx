@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { haptic } from "@juice/index";
 import { tierOf, type BonusTier } from "./bonus";
-import { RoundShell, Tile, useNoPuzzleGuard, useRoundClock, type RoundText } from "./roundShell";
+import { BARE_BUTTON, CHOICE_ROW, RoundShell, Tile, useNoPuzzleGuard, useRoundClock, type RoundText } from "./roundShell";
 import { CHOICES, SHARED_MS, makeShared, sharedQuality } from "./sharedLetter";
 
 /**
@@ -77,15 +77,12 @@ export function SharedLetterRound({ count, glyph, t, onStop, playTap }: {
           </div>
 
           {clock.phase === "playing" && (
-            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 6, maxWidth: 300 }}>
+            <div style={CHOICE_ROW}>
               {puzzle.choices.map((c) => {
                 const no = wrong.includes(c);
                 return (
                   <button key={c} type="button" onClick={() => guess(c)} disabled={no}
-                    aria-label={c} style={{
-                      border: 0, background: "none", padding: 0,
-                      cursor: no ? "default" : "pointer",
-                    }}>
+                    aria-label={c} style={{ ...BARE_BUTTON, cursor: no ? "default" : "pointer" }}>
                     <Tile tone={no ? "spent" : "plain"} size={44}>{c.toUpperCase()}</Tile>
                   </button>
                 );

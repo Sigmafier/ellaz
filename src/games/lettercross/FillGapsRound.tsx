@@ -2,7 +2,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { haptic } from "@juice/index";
 import { tierOf, type BonusTier } from "./bonus";
 import { isWord } from "./patterns";
-import { RoundShell, Tile, useNoPuzzleGuard, useRoundClock, type RoundText } from "./roundShell";
+import { BARE_BUTTON, CHOICE_ROW, RoundShell, Tile, useNoPuzzleGuard, useRoundClock, type RoundText } from "./roundShell";
 import { FILL_MS, fillQuality, makeFill } from "./fillGaps";
 
 /**
@@ -95,7 +95,7 @@ export function FillGapsRound({ glyph, t, onStop, playTap }: {
               return (
                 <button key={i} type="button" onClick={() => pull(k)}
                   aria-label={`${ch} placed`}
-                  style={{ border: 0, background: "none", padding: 0, cursor: "pointer" }}>
+                  style={{ ...BARE_BUTTON, cursor: "pointer" }}>
                   <Tile tone={tone}>{ch}</Tile>
                 </button>
               );
@@ -103,10 +103,10 @@ export function FillGapsRound({ glyph, t, onStop, playTap }: {
           </div>
 
           {clock.phase === "playing" && (
-            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 6, maxWidth: 300 }}>
+            <div style={CHOICE_ROW}>
               {puzzle.choices.map((c) => (
                 <button key={c} type="button" onClick={() => tap(c)} aria-label={c}
-                  style={{ border: 0, background: "none", padding: 0, cursor: "pointer" }}>
+                  style={{ ...BARE_BUTTON, cursor: "pointer" }}>
                   <Tile size={44}>{c.toUpperCase()}</Tile>
                 </button>
               ))}

@@ -34,6 +34,30 @@ export const GOLD = "#F2B93F";
 export const RIGHT = "#3E9E5B";
 export const WRONG = "#E2612F";
 
+/**
+ * THE ROW OF TAPPABLE LETTERS, and the button that carries one - as STYLE
+ * rather than as a component, which is the whole decision here.
+ *
+ * All three rounds that offer a choice drew this literal themselves, and the
+ * style object was byte-identical in all three. The obvious repair is a
+ * `<ChoiceRow>` - and it is the wrong one: the three rows agree on how they
+ * LOOK and on nothing else. Anagram keys by INDEX (its letters repeat, so the
+ * character is not a key), labels `"{c} tile"`, and carries `dir="ltr"`;
+ * fillgaps never disables a choice and has no tone; sharedLetter keys by the
+ * character and disables on a wrong guess. A component covering that takes
+ * five props to serve three callers who differ in four of them, which is the
+ * same code with a layer over it.
+ *
+ * So the CONSTANT is shared and the STRUCTURE is not. A style literal has no
+ * parameters to get wrong, and each round keeps the row it actually needs.
+ */
+export const CHOICE_ROW = {
+  display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 6, maxWidth: 300,
+} as const;
+
+/** A button that is only a hit target - the Tile inside it does the drawing. */
+export const BARE_BUTTON = { border: 0, background: "none", padding: 0 } as const;
+
 /** Every round asks a different question and says the same four things around it. */
 export type RoundText = {
   readonly label: string;
