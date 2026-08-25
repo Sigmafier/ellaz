@@ -234,7 +234,67 @@ function ciNodeMajor() {
 // leaves about five games of room, and a comfortable ceiling removes the only
 // pressure that gets `docs/scaling-the-first-visit.md` step 3 done.
 // Read on Node 24; CI builds on Node 22 and runs ~14 B apart.
-const CEILING = 91_000;
+//
+// RAISED 91,000 -> 91,200 on 2026-08-25, for the service-worker fix, and the
+// number below is quoted off CI rather than off this machine - which is what
+// the NOTE above exists to insist on.
+//
+//   run 32861903220, commit 8fea36c, Node 22:  91,008 B gz of 91,000, 8 B over
+//
+// The deploy reded at this gate and nothing was uploaded, so ellaz.fun went on
+// serving the previous build. That is the gate working; it is also why main
+// could not deploy until this line moved.
+//
+// WHAT THE 8 BYTES ARE, and it is not what it was first attributed to. Two arms
+// on one tree, one machine, one hour: 90,866 without the change, 91,001 with,
+// so 135 B gz. Split by chunk, and the split is structural rather than inferred:
+//
+//   entry index-*.js   1,116 -> 1,232   +116   ONLY main.tsx feeds this chunk,
+//                                              and the only edit to main.tsx is
+//                                              the service-worker gating
+//   shell-*.js        38,377 -> 38,397   +20   coins back in the home bar, minus
+//                                              the deleted leaderboards row,
+//                                              plus the shared header pill
+//   index.html         3,953 ->  3,952    -1
+//
+// So this is the SERVICE-WORKER fix almost entirely: `registerType: "autoUpdate"`
+// installs an unconditional `window.location.reload()` on activate, with no
+// option to suppress it, so stopping a new build from throwing a child out of
+// the game they are playing means taking vite-plugin-pwa's non-auto branch -
+// which carries the "installed" / "waiting" / "externalwaiting" / "controlling"
+// handling the auto branch does not.
+//
+// THE LANGUAGE GLOBE COSTS THIS BUDGET NOTHING, though it was reasonably
+// suspected. Measured on the artifact: its copy lives in `src/content/site.ts`
+// and its markup in `src/build/layout.ts`, both of which ship to nobody, and
+// `no-app-imports.test.ts` proves the app cannot reach `src/content`. The words
+// "Language" and the Hebrew for it occur exactly once in the shell in BOTH arms
+// - they are the app picker's own pre-existing i18n strings.
+//
+// TRIMMED FIRST, as the last raise did, and there was nothing to take. The one
+// candidate was `applyWhenSafe`'s `why` parameter, which exists only for two
+// `import.meta.env.DEV` debug lines; reading the minified shell shows terser had
+// already dead-coded the parameter AND both string literals at the call sites
+// (`const r=i=>{...}` with `n=()=>r()`). It ships as ~140 raw bytes with no slack.
+// The alternatives were worse than the 8 bytes: hand-rolling SW registration to
+// dodge the library's branch trades 80-odd bytes for a class of bug this repo
+// already has three rule files about, and shaving unrelated CSS would hide real
+// growth behind a saving that has nothing to do with it.
+//
+// 91,200 and not more. 192 B of headroom over the CI reading, which is one game
+// at the measured 192 B gz per game (`docs/scaling-the-first-visit.md`) and
+// roughly 4x the toolchain spread, so it is a ceiling rather than a tripwire -
+// 91,100 would have left half a game and reded on the next one. The pressure the
+// comment above wants kept is kept: one game of room, then this conversation
+// happens again, which is the point.
+//
+// AND THE SPREAD IS NOT A CONSTANT. This file says 54 B eleven lines up and
+// ~14 B one line up, and both are true of the trees they were measured on. This
+// change adds a third reading: 8fea36c is ~90,992 on Node 24 here against 91,008
+// on Node 22 in CI, so ~16 B, with Node 22 the HIGHER of the two. Do not treat
+// any of the three as the number; treat "the toolchain moves this by tens of
+// bytes" as the fact, and read the absolute off a CI run.
+const CEILING = 91_200;
 
 function gzBytes(path) {
   return gzipSync(readFileSync(path)).length;
