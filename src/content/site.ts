@@ -53,7 +53,25 @@ export interface SiteCopy {
   /** Shown instead, when the visitor has data saver on and we wait for a tap. */
   dataSaver: string;
   /** The two controls in a game page's header. */
-  chrome: { back: string; fullScreen: string; sound: string; restart: string; pause: string; resume: string };
+  chrome: {
+    back: string;
+    fullScreen: string;
+    sound: string;
+    restart: string;
+    pause: string;
+    resume: string;
+    /**
+     * The word ON the badge of a game still being built, and the sentence a
+     * screen reader says instead. Two fields rather than one because "Beta"
+     * alone is jargon: it means nothing to the parent deciding whether to hand
+     * over the tablet, and it is exactly them the badge is for.
+     *
+     * `SiteCopy` is `Record<PageLocale, ...>`, so a language promoted without
+     * these is a red build rather than a badge that quietly reads English.
+     */
+    beta: string;
+    betaNote: string;
+  };
   /** Section headings on a game page, in render order. */
   headings: {
     howToPlay: string;
@@ -88,7 +106,11 @@ const he: SiteCopy = {
   noScript: "המשחק דורש JavaScript. שאר העמוד לא.",
   loading: "המשחק נטען מעצמו. אין מה ללחוץ.",
   dataSaver: "חיסכון בנתונים פעיל, אז אנחנו מחכים לאישור ולא מורידים לבד.",
-  chrome: { back: "כל המשחקים", fullScreen: "מסך מלא", sound: "צליל", restart: "מהתחלה", pause: "השהיה", resume: "המשך" },
+  chrome: {
+    back: "כל המשחקים", fullScreen: "מסך מלא", sound: "צליל", restart: "מהתחלה",
+    pause: "השהיה", resume: "המשך",
+    beta: "בטא", betaNote: "המשחק הזה עדיין בבנייה",
+  },
   headings: {
     howToPlay: "איך משחקים?",
     about: "על המשחק",
@@ -165,7 +187,11 @@ const en: SiteCopy = {
   noScript: "The game needs JavaScript. The rest of this page does not.",
   loading: "The game loads by itself. Nothing to tap.",
   dataSaver: "Data saver is on, so we wait for your tap instead of downloading on our own.",
-  chrome: { back: "All games", fullScreen: "Full screen", sound: "Sound", restart: "Restart", pause: "Pause", resume: "Resume" },
+  chrome: {
+    back: "All games", fullScreen: "Full screen", sound: "Sound", restart: "Restart",
+    pause: "Pause", resume: "Resume",
+    beta: "Beta", betaNote: "This game is still being built",
+  },
   headings: {
     howToPlay: "How do you play?",
     about: "About this game",
@@ -254,7 +280,11 @@ const es: SiteCopy = {
   noScript: "El juego necesita JavaScript. El resto de la página, no.",
   loading: "El juego se carga solo. No hay que tocar nada.",
   dataSaver: "Tienes el ahorro de datos activado, así que esperamos a que toques tú.",
-  chrome: { back: "Todos los juegos", fullScreen: "Pantalla completa", sound: "Sonido", restart: "Reiniciar", pause: "Pausa", resume: "Continuar" },
+  chrome: {
+    back: "Todos los juegos", fullScreen: "Pantalla completa", sound: "Sonido",
+    restart: "Reiniciar", pause: "Pausa", resume: "Continuar",
+    beta: "Beta", betaNote: "Este juego todavía se está construyendo",
+  },
   headings: {
     howToPlay: "¿Cómo se juega?",
     about: "Sobre el juego",
@@ -339,7 +369,11 @@ const fr: SiteCopy = {
   noScript: "Le jeu a besoin de JavaScript. Le reste de la page, non.",
   loading: "Le jeu se charge tout seul. Il n'y a rien à toucher.",
   dataSaver: "L'économiseur de données est actif, alors nous attendons que vous appuyiez.",
-  chrome: { back: "Tous les jeux", fullScreen: "Plein écran", sound: "Son", restart: "Recommencer", pause: "Pause", resume: "Reprendre" },
+  chrome: {
+    back: "Tous les jeux", fullScreen: "Plein écran", sound: "Son",
+    restart: "Recommencer", pause: "Pause", resume: "Reprendre",
+    beta: "Bêta", betaNote: "Ce jeu est encore en construction",
+  },
   headings: {
     howToPlay: "Comment on joue ?",
     about: "À propos du jeu",

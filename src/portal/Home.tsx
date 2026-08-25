@@ -938,6 +938,38 @@ function RecentCard({
   );
 }
 
+/**
+ * "This game is still being built", on the card, before the player taps it.
+ *
+ * ONE WORD, AND THE PAGE CARRIES THE SENTENCE. The badge on the game's own
+ * page reads "Beta" with the whole translated note beside it for a screen
+ * reader, and that costs a first visit NOTHING because `src/build` ships to
+ * nobody. Here, every character is in the shell chunk every child downloads
+ * before choosing anything - so this one says the word and stops, and the
+ * explanation waits for the page the tap leads to. Measured: the sentence in
+ * three languages plus a title, an aria-label and a role was 293 B gz; the
+ * word alone is a fraction of it, on a budget with about five games of room.
+ *
+ * The word is INLINE rather than an i18n key for the same reason: `makeT` keys
+ * ride in all eleven lazy locale chunks, `textFor` reads three strings once.
+ *
+ * It is on the GRID card and nowhere else among the three. The daily card and
+ * the keep-playing rail are both about a game the player has already met - and
+ * the game's own PAGE carries the badge whatever route they arrived by, which
+ * is the guarantee that actually matters. This one is the courtesy of saying
+ * so before they spend a tap.
+ *
+ * No `dir` here, unlike the star badge beside it: that one pins LTR because it
+ * holds a DIGIT next to a glyph and the pair reorders, while this is one word
+ * with no digits, which renders the same either way - and pinning LTR would be
+ * pinning the wrong direction for the Hebrew word.
+ */
+function BetaPill({ locale }: { locale: AppLocale }) {
+  return (
+    <span className="ellaz-beta">{textFor({ en: "Beta", he: "בטא", es: "Beta" }, locale)}</span>
+  );
+}
+
 function GameCard({
   entry,
   locale,
@@ -984,13 +1016,28 @@ function GameCard({
       }}
     >
       <span
-        // Logical inset, so the badge sits on the leading edge in both Hebrew
-        // RTL and English LTR rather than jumping corners between locales.
         style={{
           position: "absolute",
           top: 7,
-          // Logical inset, so the badge sits on the leading edge in both Hebrew
-          // RTL and English LTR rather than jumping corners between locales.
+          // A logical inset that DOES NOT FLIP, and the reason is the `dir` on
+          // this same element ten lines down. An element's logical insets
+          // resolve against its OWN direction, so `dir="ltr"` pins this badge
+          // physically LEFT in every locale - Hebrew included.
+          //
+          // The comment that stood here said the opposite, twice, in the same
+          // declaration: that the logical inset kept the badge on the leading
+          // edge in both directions. Measured on the artifact at 390px, the
+          // Hebrew card puts this at [270,290] and the card at [263,374] - the
+          // LEFT corner, which is Hebrew's trailing edge. It has behaved that
+          // way since the `dir` was added; the comment was describing the
+          // intention.
+          //
+          // Left in place rather than "fixed", because moving it is a visual
+          // change to 34 cards that nobody asked for and the digit still needs
+          // its `dir`. What it forces is that the BETA badge beside it is
+          // pinned PHYSICALLY right (see .ellaz-beta in global.css): a logical
+          // inset there flips under Hebrew and lands both badges in this one
+          // corner, which is exactly what shipped for the length of one build.
           insetInlineStart: 7,
           // The dark pill is EARNED. An unearned slot is a bare outline star,
           // because a filled disc on all sixteen cards reads to a new player as
@@ -1016,6 +1063,7 @@ function GameCard({
         <Icon name="star" filled={stars > 0} />
         {stars > 0 ? stars : null}
       </span>
+      {meta.beta ? <BetaPill locale={locale} /> : null}
       {/* The art carries its own ground, so the `.ellaz-tint` wash that used to
           sit behind the emoji is gone here - two backgrounds fighting under one
           picture is just mud. A game with no art still gets the wash, because

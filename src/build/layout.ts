@@ -1,7 +1,7 @@
 import { stripCssComments } from "./css";
 import type { Locale } from "../content/types";
 import { AUTONYM, DEFAULT_LOCALE, OG_LOCALE, dirOf } from "../i18n/locales";
-import { SITE } from "../content/site";
+import { SITE, type SiteCopy } from "../content/site";
 import { analyticsTag } from "./analytics";
 import { html, raw, jsonLd, toHtml, type RawHtml } from "./html";
 import type { HeadAssets } from "./assets";
@@ -96,6 +96,32 @@ a{color:var(--doc-brand)}
 #wallet-slot{flex:0 0 auto}
 .bc{font-size:.82rem;font-weight:600;color:var(--doc-soft);margin-block:18px 0}
 .bc a{text-decoration:none}
+/* Read by a screen reader, drawn for nobody. display:none and
+   visibility:hidden both take it out of the accessibility tree as well as off
+   the screen, which is the opposite of the point; a 1px clipped box is the
+   arrangement that is still announced. */
+.vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;
+  clip-path:inset(50%);white-space:nowrap;border:0}
+/* STILL BEING BUILT. Amber on its own ground rather than the game's, because
+   the badge means the same thing on every game and a per-game hue would read
+   as decoration. It is the one object in this row that is not a control and
+   not a trail, so it is the one that gets a fill.
+
+   flex:0 0 auto is load-bearing - see betaBadge() for why the trail must be
+   the thing that shrinks. The :has() rule hands it the auto margin so it hugs
+   the game's name instead of drifting over to the buttons; without it .bc's
+   own margin-inline-end:auto pushes the badge to the far edge and parks a
+   label in among the taps. :has() is already relied on for
+   body.app-shell:has(#home-doc) in global.css.
+
+   NOTE - this is inside a template literal, so a BACKTICK here ends
+   DOCUMENT_CSS and the file stops parsing. Write these comments in plain
+   words; they are free (SERVED_CSS strips them) but they are not inert. */
+.beta{font-size:.68rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+  padding:3px 8px;border-radius:var(--radius-pill,999px);
+  background:#F2B93F;color:#241C17;white-space:nowrap;flex:0 0 auto;align-self:center}
+body.screen .urow:has(.beta) .bc{margin-inline-end:0}
+body.screen .urow .beta{margin-inline-end:auto}
 /* The BREADCRUMB sits with the prose, under the stage, on every screen that
    has one. It used to float over the stage as a dark pill - which is where a
    44px row of buttons then landed on top of the board, because a game that
@@ -766,7 +792,7 @@ export function icon(
  */
 export function utilityRow(
   crumb: RawHtml,
-  opts: { tools?: RawHtml; fullLabel?: string } = {},
+  opts: { tools?: RawHtml; fullLabel?: string; badge?: RawHtml } = {},
 ): RawHtml {
   const full = opts.fullLabel
     ? html`<button type="button" class="ubtn" data-fullscreen aria-label="${opts.fullLabel}" hidden>
@@ -775,8 +801,32 @@ export function utilityRow(
     : raw("");
   const tools = opts.tools ?? raw("");
   return html`<div class="urow">
-    ${crumb}${opts.tools || opts.fullLabel ? html`<div class="tools">${tools}${full}</div>` : raw("")}
+    ${crumb}${opts.badge ?? raw("")}${opts.tools || opts.fullLabel ? html`<div class="tools">${tools}${full}</div>` : raw("")}
   </div>`;
+}
+
+/**
+ * "This game is still being built", as one word beside the trail.
+ *
+ * IT IS A SIBLING OF `.bc`, NEVER A CHILD, and that is the whole reason this
+ * is a function rather than three words appended to the breadcrumb. `.bc` is
+ * `overflow:hidden;text-overflow:ellipsis`, so anything inside it is cut from
+ * the END first when the row is tight - and the end is exactly where a badge
+ * after the game name would sit. It would vanish on the narrow screens most
+ * players are on, with nothing overflowing, nothing wider than its frame, and
+ * every overflow check reading clean.
+ * See .claude/rules/a-row-that-grows-with-the-catalog-must-wrap.md
+ *
+ * So the badge is `flex:0 0 auto` and the trail keeps `0 1 auto`: when the row
+ * runs out of room the crumb loses "Classics" and the badge stays. That is the
+ * right order - a player can work out where they are from the page, and cannot
+ * work out that a game is unfinished from anything.
+ */
+export function betaBadge(site: SiteCopy): RawHtml {
+  return html`<span class="beta" title="${site.chrome.betaNote}">
+    <span aria-hidden="true">${site.chrome.beta}</span>
+    <span class="vh">${site.chrome.betaNote}</span>
+  </span>`;
 }
 
 /**

@@ -336,6 +336,25 @@ export interface GameMeta {
    * opposite of this platform's premise.
    */
   scoreUnit?: ScoreUnit;
+  /**
+   * THIS GAME IS STILL BEING BUILT. Absent means finished, which is the whole
+   * roster except the one that declares it.
+   *
+   * It lives here, on the DOM-free meta, because the two surfaces that must
+   * agree cannot see each other: the home grid is React in the shell and the
+   * game page is a string written by `src/build`, which may never import the
+   * app. Anything else means two lists of beta games, and the day they
+   * disagree is the day a player taps a card with no badge and lands on a page
+   * that says beta - or worse, the other way round.
+   *
+   * It is a DECLARATION and never a behaviour. Nothing gates on it, nothing is
+   * hidden, no feature is switched off: a beta game plays exactly like a
+   * finished one and is ranked on the same boards. The badge is a promise to
+   * the player about what they are about to spend time on, not a flag.
+   *
+   * `beta-is-declared.test.ts` pins both surfaces against this one field.
+   */
+  beta?: boolean;
 }
 
 export interface GameModule {

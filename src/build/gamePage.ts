@@ -4,7 +4,7 @@ import { gameName } from "./gameName";
 import type { GameCopy, Locale, Titled } from "../content/types";
 import { SITE, type SiteCopy } from "../content/site";
 import { html, type RawHtml } from "./html";
-import { icon, renderDocument, utilityRow } from "./layout";
+import { betaBadge, icon, renderDocument, utilityRow } from "./layout";
 import { LOCALES, PAGED_CATEGORIES, categoryPath, gamePath, homePath, href } from "./routes";
 import { gameGraph } from "./schema";
 import { lazyPreloadTags, type HeadAssets } from "./assets";
@@ -229,6 +229,11 @@ export function gamePage(opts: GamePageOptions): string {
         // whatever is in `tools`, so the order is decided in one place
         // rather than by whichever screen happened to pass what.
         fullLabel: site.chrome.fullScreen,
+        // BESIDE THE GAME'S NAME, on the one screen where the player has
+        // already committed. It is derived from `meta.beta`, the same field
+        // the home card reads, so the badge on the card and the badge here
+        // cannot disagree about which game is unfinished.
+        badge: meta.beta ? betaBadge(site) : undefined,
       },
     )}
     ${stage(meta.emoji, site)}

@@ -39,6 +39,20 @@
   --radius-3: 22px;
   --radius-pill: 999px;
 
+  /* THE BETA BADGE, and the one colour pair in this file that does NOT follow
+     the theme. It is here, in the block that holds sizes rather than colours,
+     because that is what "the same on every ground" means: a badge saying a
+     game is unfinished means the same thing at night and in the market, and a
+     per-theme amber would read as decoration rather than as a notice. The pill
+     carries its own background, so it is legible over either page.
+
+     `src/build/layout.ts` paints the emitted twin of this badge and cannot
+     read a token that only exists once the bundle loads - it names the same
+     two values as literals, and `beta-is-declared.test.ts` compares them
+     against these declarations so the two copies cannot drift. */
+  --beta-fill: #F2B93F;
+  --beta-ink: #241C17;
+
   --tap: 48px; /* minimum interactive target */
   --tap-kids: 64px; /* age-5 target (~2cm+) */
 

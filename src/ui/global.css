@@ -76,6 +76,44 @@ body.app-shell {
   height: 100%;
 }
 
+/* THE BETA BADGE on a home-grid card. A class rather than an inline style
+   object, and NOT because it is cheaper - measured on one tree, the same badge
+   was 90,959 B gz as a style literal here and 90,996 as this rule, so the move
+   COST 37 B (shell JS -70, shell CSS +109). A prediction that it would save
+   bytes was written into this comment as though it were a measurement, which
+   is the mistake, not the 37 B. It stays a class because a theme can override
+   a class and cannot override a style attribute, and because the emitted twin
+   in src/build/layout.ts is a rule too, so the two read alike.
+
+   `right`, PHYSICALLY, and not `inset-inline-end` - which is the opposite of
+   this repo's usual rule and is a measurement rather than a preference. The
+   star badge it shares a card with is declared `inset-inline-start` AND
+   `dir="ltr"`, and an element's logical insets resolve against its OWN
+   direction, so that `dir` pins the star physically LEFT in every locale. A
+   logical inset here therefore flips to LEFT under Hebrew and lands the two
+   badges in the same corner. Measured on the artifact at 390px: star
+   [270,290], beta [270,305], overlapping, while English had them 60px apart.
+   `repro-beta-badge.mjs` re-measures it and exits 1 on any overlap.
+
+   The two colours are the theme-independent pair from tokens.css; the emitted
+   twin in src/build/layout.ts names the same values, and
+   beta-is-declared.test.ts holds them in step. */
+.ellaz-beta {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  z-index: 1;
+  background: var(--beta-fill);
+  color: var(--beta-ink);
+  border-radius: var(--radius-pill);
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.6;
+}
+
 .ellaz-tint {
   background:
     radial-gradient(
