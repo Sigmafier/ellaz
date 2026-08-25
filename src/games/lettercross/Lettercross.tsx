@@ -8,7 +8,9 @@ import { seedFrom, mulberry32 } from "@shared/rng";
 import { streakStep } from "@sdk/streak";
 import { BOXES, BOX_RADIUS, boxIndex, sideOf, reachedBoxes, isLocked, type BoxArt } from "./boxes";
 import { BONUS_ARTS, ROUND_OF, type BonusTier } from "./bonus";
+import { AnagramRound } from "./AnagramRound";
 import { BonusRound } from "./BonusRound";
+import { FillGapsRound } from "./FillGapsRound";
 import { SharedLetterRound } from "./SharedLetterRound";
 import {
   SIZE, CELLS, boardAt, LETTER_VALUE, newGame, apply, validate,
@@ -31,7 +33,10 @@ const STR = {
         letters: "Letter round",
         shared2: "The same letter is missing from both words.",
         shared3: "The same letter is missing from all three words.",
-        got: "That's the one!", missed: "Time is up - here it is" },
+        got: "That's the one!", missed: "Time is up - here it is",
+        gaps: "Word round", gapsHint: "Two letters are missing. Put them back.",
+        anagram: "Letter mix", anagramHint: "Use every letter to make a word.",
+        clear: "Clear" },
   he: { play: "לשחק", recall: "להחזיר", tiles: "אריחים", score: "ניקוד",
         pickLetter: "בחרו אות לג'וקר", over: "נגמרו האריחים",
         prize: "תיבת פרס", taken: "תיבת פרס, נלקחה", locked: "נעול",
@@ -41,7 +46,10 @@ const STR = {
         letters: "סיבוב אותיות",
         shared2: "אותה אות חסרה בשתי המילים.",
         shared3: "אותה אות חסרה בשלוש המילים.",
-        got: "בדיוק!", missed: "נגמר הזמן - הנה היא" },
+        got: "בדיוק!", missed: "נגמר הזמן - הנה היא",
+        gaps: "סיבוב מילה", gapsHint: "שתי אותיות חסרות. החזירו אותן.",
+        anagram: "ערבוב אותיות", anagramHint: "השתמשו בכל האותיות כדי להרכיב מילה.",
+        clear: "לנקות" },
   es: { play: "Jugar", recall: "Retirar", tiles: "Fichas", score: "Puntos",
         pickLetter: "Elige una letra para el comodín", over: "No quedan fichas",
         prize: "Caja de premio", taken: "Caja de premio, recogida", locked: "Cerrado",
@@ -51,7 +59,10 @@ const STR = {
         letters: "Ronda de letras",
         shared2: "La misma letra falta en las dos palabras.",
         shared3: "La misma letra falta en las tres palabras.",
-        got: "¡Esa es!", missed: "Se acabó el tiempo - aquí está" },
+        got: "¡Esa es!", missed: "Se acabó el tiempo - aquí está",
+        gaps: "Ronda de palabra", gapsHint: "Faltan dos letras. Devuélvelas.",
+        anagram: "Mezcla de letras", anagramHint: "Usa todas las letras para formar una palabra.",
+        clear: "Borrar" },
 } as const;
 const str = (loc: Locale) => (STR as unknown as Record<string, typeof STR.en>)[loc] ?? STR.en;
 
@@ -652,14 +663,36 @@ export function Lettercross({ ctx }: { ctx: GameContext }) {
               />
             );
           }
+          const said = { start: T.start, got: T.got, missed: T.missed };
+          if (kind === "fillgaps") {
+            return (
+              <FillGapsRound
+                key={rounds[0]}
+                glyph={glyph}
+                t={{ ...said, label: T.gaps, hint: T.gapsHint }}
+                onStop={finishBonus}
+                playTap={tap}
+              />
+            );
+          }
+          if (kind === "anagram") {
+            return (
+              <AnagramRound
+                key={rounds[0]}
+                glyph={glyph}
+                t={{ ...said, label: T.anagram, hint: T.anagramHint, clear: T.clear }}
+                onStop={finishBonus}
+                playTap={tap}
+              />
+            );
+          }
           const count = kind === "shared3" ? 3 : 2;
           return (
             <SharedLetterRound
               key={rounds[0]}
               count={count}
               glyph={glyph}
-              t={{ label: T.letters, hint: count === 3 ? T.shared3 : T.shared2,
-                   start: T.start, got: T.got, missed: T.missed }}
+              t={{ ...said, label: T.letters, hint: count === 3 ? T.shared3 : T.shared2 }}
               onStop={finishBonus}
               playTap={tap}
             />

@@ -22,10 +22,12 @@
  *   ?    fill the missing letters in the word in front of you
  *   60s  build a crossword from as many letters as you can   the words' own points
  *
- * The last one is what `bonusBoard.ts` builds, and it is first because it is
- * the only one that shows the player no dictionary word at all - every letter
- * comes off their own deal, so it needs nothing this repo is not allowed to
- * put on a screen (`words.ts`, and NOTICE.md).
+ * All five are built now, one file each: `bonusBoard.ts`, `sharedLetter.ts`
+ * (two of them), `fillGaps.ts` and `anagram.ts`. The crossword came first
+ * because it is the only one that shows the player no dictionary word at all -
+ * every letter comes off their own deal, so it needed nothing this repo is not
+ * allowed to put on a screen (`words.ts`, and NOTICE.md). The other four all
+ * draw what they show from `puzzleWords.ts`, which exists for exactly that.
  */
 
 /** The three outcomes, which are `economy.ts`'s tiers and not a payout. */
@@ -39,24 +41,34 @@ export const BONUS_ARTS: readonly BonusArt[] = ["bell", "gem", "star", "leaf", "
  * WHICH SCREEN A BOX OPENS. The symbol on the box is the promise, so it has to
  * mean the same thing every time you land on it.
  *
- * Three of the five now, and the mapping is not arbitrary: the star is the
- * rarest-feeling art and gets the round the original paid most for (100 against
- * 40), while the bell is the only art on the board exactly ONCE, so its round
- * can be played at most once a game. `boxes.ts` decides those counts, which is
- * why a test reads them rather than this file asserting them.
+ * ALL FIVE NOW, one screen per art, and the mapping argues from how often each
+ * art is ON the board rather than from taste. `boxes.ts` decides those counts -
+ * exactly one bell and one leaf, two each of gem, star and drop - so a test
+ * reads them from there rather than this file asserting them.
  *
- * ONE OPEN QUESTION, worth reading before adding to this table. BONUS's own
+ * The two arts added here took the two that were free, and which got which
+ * follows the same rule the first three did. `anagram` is the only new round
+ * that can pay the top price (30-100 by length), so it goes on the LEAF, the
+ * other art the board holds exactly once - a 100 is reachable at most once more
+ * per game. `fillgaps` pays flat and cheaper, so it goes on the DROP, which
+ * appears twice.
+ *
+ * The star and the bell are UNCHANGED and predate this: their arrangement was
+ * settled when the two shared-letter screens landed, and nothing about adding
+ * two more rounds is a reason to re-open it.
+ *
+ * ONE OPEN QUESTION, unchanged and now load-bearing for all five. BONUS's own
  * bonuses look drawn from a POOL used up once each per game rather than fixed
  * per symbol - strongly implied by the record, never proven. If that is right
  * then keying on `art` at all is wrong, and this table is the thing to delete.
  */
-export type RoundKind = "crossword" | "shared2" | "shared3";
+export type RoundKind = "crossword" | "shared2" | "shared3" | "fillgaps" | "anagram";
 export const ROUND_OF: Readonly<Record<BonusArt, RoundKind>> = {
   star: "shared3",
   bell: "shared2",
+  leaf: "anagram",
+  drop: "fillgaps",
   gem: "crossword",
-  leaf: "crossword",
-  drop: "crossword",
 };
 
 /**

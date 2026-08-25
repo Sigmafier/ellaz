@@ -10,21 +10,32 @@
  * repro runs under plain `node` only because `words.ts` imports nothing.
  *
  * BONUS put five bonus screens behind its boxes and every one was a word game.
- * Three of ours are live, and `ROUND_OF` in `bonus.ts` says which art opens
+ * All five are live now, and `ROUND_OF` in `bonus.ts` says which art opens
  * which:
  *
  *   star -> the same letter missing from THREE words   (30s, the original's 100)
  *   bell -> the same letter missing from TWO words     (20s, the original's 40)
- *   gem, leaf, drop -> build a crossword from 16 letters (60s)
+ *   leaf -> build a word from ALL the letters          (30s, the original's 30-100)
+ *   drop -> fill the two missing letters               (20s, unpriced in the record)
+ *   gem  -> build a crossword from 16 letters          (60s)
  *
- * `shared-letter-is-wired.test.ts` reads the source and proves the table is
- * consulted. It cannot prove the screen a child ends up looking at, which is
- * three files away from that table - a box index, an art, a kind, a component.
- * This lands a real word in a real box and reads what came up.
+ * `rounds-are-wired.test.ts` reads the source and proves the table is consulted.
+ * It cannot prove the screen a child ends up looking at, which is three files
+ * away from that table - a box index, an art, a kind, a component. This lands a
+ * real word in a real box and reads what came up.
  *
- * THE THIRD ARM IS THE CONTROL. "The star opens the three-word round" is equally
- * true of a build where EVERY box opens it, and that build is one typo away: the
- * gem must still open the crossword.
+ * THE CROSSWORD ARM IS THE CONTROL. "The star opens the three-word round" is
+ * equally true of a build where EVERY box opens it, and that build is one typo
+ * away: the gem must still open the crossword.
+ *
+ * IT LAYS FROM ALL FOUR EDGES, and that is a fix rather than a flourish. This
+ * probe used to skip any box on the bottom or right row, which was invisible
+ * while the three live rounds all sat on a top or left box. The leaf is on the
+ * board exactly once, on the BOTTOM edge, and the drop's boxes are bottom and
+ * right - so the day two rounds moved onto those arts, a probe that still
+ * reported PASS would have been reporting it about three screens and calling it
+ * five. A box on a far edge holds the word's LAST letter, not its first: a word
+ * reads top-to-bottom and left-to-right wherever it starts.
  *
  * Same three disciplines as its sibling repro, each of which cost a wrong
  * reading first: one click per `evaluate` with a wait (a tile and a square in
@@ -50,6 +61,11 @@ const LOOKS_LIKE = {
   crossword: { label: "Bonus round", lines: 0 },
   shared2: { label: "Letter round", lines: 2 },
   shared3: { label: "Letter round", lines: 3 },
+  fillgaps: { label: "Word round", lines: 1 },
+  // The anagram shows loose letters and no gapped line at all, so it is told
+  // apart by its label. That is enough BECAUSE the crossword arm is running
+  // beside it: a build where every box opened the same screen fails there.
+  anagram: { label: "Letter mix", lines: 0 },
 };
 
 const browser = await chromium.launch();
@@ -102,21 +118,43 @@ const boardText = (p, r, c) => p.evaluate(({ r, c, size }) => {
 }, { r, c, size: SIZE });
 
 /**
- * Lay `word` starting IN `box` and running onto the board. A top box runs
- * downward and a left box runs rightward - either way the box holds the first
- * letter, which is half of BONUS's own rule.
+ * Lay `word` so that one of its letters lands IN `box`, which is BONUS's own
+ * rule for collecting one.
+ *
+ * WHICH letter depends on the edge, and getting that backwards lays a word
+ * nothing will accept. A word always reads top-to-bottom or left-to-right, so a
+ * box on the TOP or LEFT edge takes the word's FIRST letter and the rest run
+ * onto the board away from it; a box on the BOTTOM or RIGHT edge takes its LAST,
+ * and the board squares before it are the ones leading up to it.
  */
+function cellsFor(box, len) {
+  const down = box.row < 0 || box.row >= SIZE;   // vertical, through box.col
+  const far = box.row >= SIZE || box.col >= SIZE; // the box holds the LAST letter
+  const cells = [];
+  for (let k = 0; k < len; k++) {
+    const boxAt = far ? len - 1 : 0;
+    if (k === boxAt) { cells.push({ box: true }); continue; }
+    // Board index along the run: counted from 0 at the near edge, or backwards
+    // from the far edge so the last board square is the one TOUCHING the box.
+    // The `+ 1` is that touch. Without it the run stops one square short and
+    // leaves a hole between the word and the box - which lays perfectly, is
+    // refused by the rules, and reports as "no round opened".
+    const step = far ? SIZE - len + 1 + k : k - 1;
+    cells.push(down ? { r: step, c: box.col } : { r: box.row, c: step });
+  }
+  return cells;
+}
+
 async function layFromBox(p, box, word) {
-  const down = box.row < 0;
+  const cells = cellsFor(box, word.length);
   for (let k = 0; k < word.length; k++) {
     await tapRack(p, word[k]);
-    if (k === 0) { await tapBox(p, box.row + 2, box.col + 2); continue; }
-    const r = down ? k - 1 : box.row;
-    const c = down ? box.col : k - 1;
-    await tapBoard(p, r, c);
-    const got = await boardText(p, r, c);
+    const at = cells[k];
+    if (at.box) { await tapBox(p, box.row + 2, box.col + 2); continue; }
+    await tapBoard(p, at.r, at.c);
+    const got = await boardText(p, at.r, at.c);
     if (got.toLowerCase() !== word[k]) {
-      throw new Error(`"${word[k]}" did not land at ${r},${c} (reads "${got}") - the probe dropped a tile`);
+      throw new Error(`"${word[k]}" did not land at ${at.r},${at.c} (reads "${got}") - the probe dropped a tile`);
     }
   }
 }
@@ -151,6 +189,114 @@ const onScreen = (p) => p.evaluate(() => {
   };
 });
 
+const AZ = "abcdefghijklmnopqrstuvwxyz".split("");
+
+/** Tap a button by its exact aria-label. */
+const tapLabel = (p, label) => click(p, (a) => [...document.querySelectorAll("button[aria-label]")]
+  .find((e) => e.getAttribute("aria-label") === a)?.click(), label);
+
+/** Every real word a gapped pattern could be - walks the gaps, not the dictionary. */
+function fits(pattern) {
+  const gaps = [...pattern].map((c, i) => (c === "_" ? i : -1)).filter((i) => i >= 0);
+  const out = [];
+  const walk = (k, cur) => {
+    if (k === gaps.length) { const w = cur.join(""); if (WORDS.has(w)) out.push(w); return; }
+    for (const c of AZ) { cur[gaps[k]] = c; walk(k + 1, cur); }
+  };
+  walk(0, [...pattern]);
+  return out;
+}
+
+/** Every real word these loose letters spell, using all of them. */
+function spells(letters) {
+  const out = new Set();
+  const walk = (cur, rest) => {
+    if (!rest.length) { const w = cur.join(""); if (WORDS.has(w)) out.add(w); return; }
+    for (let i = 0; i < rest.length; i++) walk([...cur, rest[i]], [...rest.slice(0, i), ...rest.slice(i + 1)]);
+  };
+  walk([], [...letters]);
+  return [...out];
+}
+
+/**
+ * Solve whatever round is on the screen, WORKING IT OUT FROM THE SCREEN.
+ *
+ * Every answer here is derived from what the page is showing, against the
+ * dictionary - never read out of the generator. That is what makes this able to
+ * catch a round whose puzzle and whose offered letters disagree: a round that
+ * shows one puzzle and accepts the answer to another renders perfectly.
+ */
+async function solve(p, kind) {
+  const gapped = () => p.evaluate(() => [...document.querySelectorAll("[aria-label]")]
+    .map((e) => e.getAttribute("aria-label")).filter((a) => a && a.includes("_")));
+  const offered = (re) => p.evaluate((src) => [...document.querySelectorAll("button[aria-label]")]
+    .map((e) => e.getAttribute("aria-label")).filter((a) => new RegExp(src).test(a ?? "")), re);
+
+  if (kind === "shared2" || kind === "shared3") {
+    const patterns = await gapped();
+    const answer = AZ.filter((c) => patterns.every((pat) => WORDS.has(pat.replace("_", c))));
+    if (answer.length !== 1) {
+      return { skip: true, why: `FAIL the page shows ${patterns.join(" + ")} with ${answer.length} answers` };
+    }
+    const row = await offered("^[a-z]$");
+    if (!row.includes(answer[0])) {
+      return { skip: true, why: `FAIL the answer "${answer[0]}" is not offered (${row.join("")})` };
+    }
+    await tapLabel(p, answer[0]);
+    await p.waitForTimeout(400);
+    return { how: `"${answer[0]}"` };
+  }
+
+  if (kind === "fillgaps") {
+    const [pattern] = await gapped();
+    if (!pattern) return { skip: true, why: "FAIL no gapped word is on the screen" };
+    const answers = fits(pattern);
+    if (answers.length !== 1) {
+      return { skip: true, why: `FAIL the page shows ${pattern} with ${answers.length} answers` };
+    }
+    const word = answers[0];
+    const gaps = [...pattern].map((c, i) => (c === "_" ? i : -1)).filter((i) => i >= 0);
+    const row = await offered("^[a-z]$");
+    const missing = gaps.map((i) => word[i]).filter((c) => !row.includes(c));
+    if (missing.length) {
+      return { skip: true, why: `FAIL ${word} needs "${missing.join("")}" and the row is (${row.join("")})` };
+    }
+    // Left to right, because that is the order the gaps take letters in.
+    for (const i of gaps) await tapLabel(p, word[i]);
+    await p.waitForTimeout(400);
+    return { how: `"${pattern}" -> "${word}"` };
+  }
+
+  if (kind === "anagram") {
+    const tiles = await offered("^[a-z] tile$");
+    if (!tiles.length) return { skip: true, why: "FAIL no letter tiles are on the screen" };
+    const letters = tiles.map((a) => a[0]);
+    const answers = spells(letters);
+    if (!answers.length) {
+      return { skip: true, why: `FAIL "${letters.join("")}" spells nothing in the dictionary` };
+    }
+    // The scramble must not already BE the answer - that is the one way this
+    // round can be broken and still look perfect.
+    if (WORDS.has(letters.join(""))) {
+      return { skip: true, why: `FAIL the letters are laid out as "${letters.join("")}", already a word` };
+    }
+    const word = answers[0];
+    const left = [...letters];
+    for (const ch of word) {
+      const at = left.indexOf(ch);
+      if (at < 0) return { skip: true, why: `FAIL "${word}" wants a "${ch}" that is not on the table` };
+      left[at] = null;
+      // Tap the FIRST tile still carrying that letter and not yet spent -
+      // `puppy` has two p's and one of them is already down.
+      await click(p, (c) => [...document.querySelectorAll("button[aria-label]")]
+        .find((e) => !e.disabled && e.getAttribute("aria-label") === `${c} tile`)?.click(), ch);
+    }
+    await p.waitForTimeout(400);
+    return { how: `"${letters.join("")}" -> "${word}"` };
+  }
+  return { skip: true, why: `FAIL no solver for ${kind}` };
+}
+
 let bad = 0, skipped = 0;
 
 // One box per ROUND KIND, so the third arm is the control on the other two.
@@ -158,8 +304,6 @@ const perKind = new Map();
 for (const b of BOXES) {
   const kind = ROUND_OF[b.art];
   if (!kind || perKind.has(kind)) continue;
-  // Only a top or left box, so one lay-direction covers it.
-  if (b.row >= SIZE || b.col >= SIZE) continue;
   perKind.set(kind, b);
 }
 
@@ -198,35 +342,30 @@ for (const [kind, box] of perKind) {
    * generator whose puzzle and whose offered letters disagree.
    */
   if (kind !== "crossword") {
-    const patterns = await p.evaluate(() => [...document.querySelectorAll("[aria-label]")]
-      .map((e) => e.getAttribute("aria-label")).filter((a) => a && a.includes("_")));
-    const AZ = "abcdefghijklmnopqrstuvwxyz".split("");
-    const answer = AZ.filter((c) => patterns.every((pat) => WORDS.has(pat.replace("_", c))));
-    if (answer.length !== 1) {
-      console.log(`          FAIL the page is showing ${patterns.join(" + ")} with ${answer.length} answers`);
+    const solved = await solve(p, kind);
+    if (solved.skip) {
+      console.log(`          ${solved.why}`);
       bad++;
     } else {
-      const offered = await p.evaluate(() => [...document.querySelectorAll("button[aria-label]")]
-        .map((e) => e.getAttribute("aria-label")).filter((a) => /^[a-z]$/.test(a ?? "")));
-      if (!offered.includes(answer[0])) {
-        console.log(`          FAIL the answer "${answer[0]}" is not among the letters offered (${offered.join("")})`);
+      await p.screenshot({ path: `${SHOTS}/round-${kind}-solved.png` });
+      const end = await p.evaluate(() => {
+        const round = document.querySelector('[role="group"][aria-label]');
+        return {
+          text: (round?.innerText ?? "").replace(/\n/g, " ").slice(0, 70),
+          blanksLeft: [...(round?.querySelectorAll("[aria-label]") ?? [])]
+            .filter((e) => (e.getAttribute("aria-label") ?? "").includes("_")).length,
+        };
+      });
+      // THE WIN IS READ OFF THE ROUND'S OWN VERDICT LINE, not off the blanks.
+      // A round that filled its blanks in because the CLOCK ran out looks
+      // identical to one that was solved, and this probe is slow enough that
+      // that is a real possibility rather than a hypothetical.
+      const won = end.text.includes("That's the one!");
+      console.log(`          ${won ? "PASS" : "FAIL"} solved with ${solved.how} -> ${JSON.stringify(end.text)}`);
+      if (!won) bad++;
+      if (kind !== "anagram" && end.blanksLeft !== 0) {
+        console.log(`          FAIL ${end.blanksLeft} blank(s) still on screen after a win`);
         bad++;
-      } else {
-        await click(p, (c) => [...document.querySelectorAll("button[aria-label]")]
-          .find((e) => e.getAttribute("aria-label") === c)?.click(), answer[0]);
-        await p.waitForTimeout(400);
-        await p.screenshot({ path: `${SHOTS}/round-${kind}-solved.png` });
-        const end = await p.evaluate(() => {
-          const round = document.querySelector('[role="group"][aria-label]');
-          return {
-            text: (round?.innerText ?? "").replace(/\n/g, " ").slice(0, 60),
-            blanksLeft: [...(round?.querySelectorAll("[aria-label]") ?? [])]
-              .filter((e) => (e.getAttribute("aria-label") ?? "").includes("_")).length,
-          };
-        });
-        const won = end.blanksLeft === 0;
-        console.log(`          ${won ? "PASS" : "FAIL"} solved with "${answer[0]}" -> ${JSON.stringify(end.text)}`);
-        if (!won) bad++;
       }
     }
   }

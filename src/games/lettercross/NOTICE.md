@@ -70,6 +70,20 @@ and grouped under labels so it can be audited by reading. `puzzle-words.test.ts`
 holds the three rules that keep it honest - it never imports this file, every
 word in it is also in this file, and it stays big enough to ask a puzzle from.
 
+**Four of the five bonus screens draw from it, and none of them imports this
+file.** `sharedLetter.ts` (two screens), `fillGaps.ts` and `anagram.ts` all take
+what they SHOW from the pool and ask `patterns.ts` what is TRUE - and
+`patterns.ts` is the only module in the round tree that imports this one.
+`rounds-are-wired.test.ts` asserts that boundary from both ends: no round
+component may import `./words`, and something in the tree must, or the check is
+green over a tree where nothing judges anything.
+
+The split is not symmetrical in cost, which is why it is written down twice.
+Showing from here would eventually put an ugly word in front of a five-year-old
+with nobody in the loop. Judging from the pool would call a puzzle settled when
+a perfectly ordinary word the player knows also fits it - the game would be
+right by its own list and wrong to the person playing.
+
 **A measured gap in the mirror, found by that second rule**: `knife` is absent
 from `words.ts` while `knifed`, `knifer` and `knifes` are all present. It is one
 word out of 346 checked, so this is a hole in the ENABLE copy rather than a

@@ -31,10 +31,17 @@
  * different game. Only the chrome around it translates.
  */
 import { PUZZLE_WORDS } from "./puzzleWords";
-import { WORDS } from "./words";
+import { AZ, blank, shuffled, solvers } from "./patterns";
 import { HARD_Q, MEDIUM_Q } from "./bonus";
 
-const AZ = "abcdefghijklmnopqrstuvwxyz".split("");
+/**
+ * `solvers` moved to `patterns.ts` the moment a THIRD round needed to ask the
+ * dictionary the same question. Re-exported here because this round's own test
+ * reaches for it, and a test that has to follow a move is a test that stops
+ * being run.
+ */
+export { solvers };
+
 /** How many letters to offer. Eight is a comfortable phone row, two rows of four. */
 export const CHOICES = 8;
 
@@ -50,28 +57,6 @@ export type SharedPuzzle = {
   /** The answer plus decoys, shuffled. Every decoy solves at least one line. */
   readonly choices: readonly string[];
 };
-
-const blank = (w: string, i: number) => `${w.slice(0, i)}_${w.slice(i + 1)}`;
-const fill = (p: string, c: string) => p.replace("_", c);
-
-/**
- * Every letter that turns ALL of these patterns into real words - asked of the
- * DICTIONARY, never of the pool. A puzzle is only fair when its answer is the
- * only one a player could defend.
- */
-export function solvers(patterns: readonly string[]): string[] {
-  return AZ.filter((c) => patterns.every((p) => WORDS.has(fill(p, c))));
-}
-
-/** Fisher-Yates on a copy, so nothing here mutates a shared array. */
-function shuffled<T>(xs: readonly T[], rng: () => number): T[] {
-  const a = [...xs];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
 /** Every (word, blanked pattern) the pool offers, grouped by the letter removed. */
 function patternsByLetter(): Map<string, { p: string; w: string }[]> {
