@@ -31,7 +31,6 @@ import { attachShellJuice } from "@juice/index";
 import { LanguagePicker } from "@ui/LanguagePicker";
 import { HEADER_PILL } from "@ui/headerPill";
 import { WalletChip } from "./WalletChip";
-import { DailyChip } from "./DailyChip";
 import { todayKey, todaysGame } from "./dailyRotation";
 import { Scene } from "./world/Scene";
 
@@ -280,10 +279,20 @@ export function Home({
                 a measurement recorded without its one-variable control is a
                 hypothesis that reads like a finding. */}
             <WalletChip coinsOnly />
-            {/* Beside the wallet, and only once there is a streak to show. It
-                is the same currency-shaped readout: something you have, not
-                something you owe. */}
-            <DailyChip locale={locale} />
+            {/* NO STREAK CHIP HERE. Operator ruling 2026-08-25: "remove the
+                streak fire icon from the header, we dont need it there."
+
+                It stood beside the wallet and rendered only once there was a
+                streak to show, so most visits never saw it - which is also why
+                it is a DELETION FROM THIS BAR and not from the app. The daily
+                card below still carries the streak, and the game page's own
+                header still draws it `bare`; nothing about the feature, the
+                storage or the rotation changed.
+
+                The bar it left is the one-line bar of arm P, and every control
+                in it is now something a player can ACT on: coins, the
+                leaderboards, the language, the theme. A number that appears
+                and disappears on its own was the odd one out. */}
             {/* The leaderboards, back in the bar. Operator ruling 2026-08-24,
                 after the trophy had been removed from it earlier the same day:
                 "i dont see the leaderbors icon in header".

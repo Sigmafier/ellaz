@@ -3452,3 +3452,31 @@ control group four lines down, which carries a byte-identical
 `flex: "0 1 auto", minWidth: 0`. It is the trap the language button's own test
 in that same file already warns about - an assertion that reads back the rest of
 the file is asserting about something else - and it is anchored to the block now.
+
+### The streak chip, and why a measurement turned a preference into a defect
+
+*"remove the streak fire icon from the header, we dont need it there."*
+
+`DailyChip` renders **null until there is a streak**, and every profile used to
+price the twenty-two bar arms was a fresh one or a wallet-only one. So the chip
+was outside the entire measurement, invisibly, and the arm that was picked was
+priced on a bar that a real returning player does not have.
+
+Seeded with a five-day streak, on the build that is live:
+
+```
+with the chip     5 controls   123px   TWO rows
+without           4 controls    76px   one row
+```
+
+A player with a streak - which is to say the player this whole feature is for -
+was getting the two-row bar the pick was supposed to fix. The removal is not a
+tidy-up; it is what makes arm P's claim true.
+
+**A removal, not a deletion.** The daily card below still carries the streak and
+the game page's own header still draws it `bare`; nothing about the feature, its
+storage or its rotation changed. `home-header-must-wrap.test.ts` asserts BOTH
+sides, because a chip that renders nothing on a first visit makes a removal and
+a deletion indistinguishable from the outside - the same reason the shot script
+now seeds a streak before taking a before/after. **A control that cannot show
+the thing being removed is not a control.**

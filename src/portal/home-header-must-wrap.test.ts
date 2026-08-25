@@ -253,6 +253,22 @@ describe("the home bar the operator specified", () => {
     );
   });
 
+  it("keeps the streak chip OUT of the bar, without deleting the feature", () => {
+    // Operator ruling 2026-08-25: "remove the streak fire icon from the
+    // header, we dont need it there."
+    //
+    // BOTH halves are asserted, because a removal and a deletion look
+    // identical from inside this file - and the chip renders null until there
+    // IS a streak, so a first visit could never tell them apart by looking.
+    // The game page's own header still draws it, which is what makes this a
+    // change to one bar rather than to the feature.
+    expect(HEADER, "the streak chip is back in the home bar").not.toMatch(/<DailyChip/);
+    const page = readFileSync(fileURLToPath(new URL("./PageApp.tsx", import.meta.url)), "utf8");
+    expect(page, "the streak chip was DELETED rather than removed from one bar").toMatch(
+      /<DailyChip locale=\{locale\} bare \/>/,
+    );
+  });
+
   it("keeps the card-style toggle OUT of the bar", () => {
     // It was not among the four the operator named, and it does not fit: stars
     // plus four 48px icons is 299px of controls beside a 110px identity in a

@@ -756,6 +756,18 @@ one is a regression rather than a tidy-up. 360px is still two rows on a real
 wallet, and 320px is two on every arm anyone measured; that is the honest
 finding, not a tuning failure.
 
+**The streak chip is NOT in the home bar, and its absence is load-bearing
+rather than cosmetic.** Operator ruling 2026-08-25, "we dont need it there" -
+and measuring it turned a preference into a defect: `DailyChip` renders null
+until there IS a streak, so it was outside every arm ever measured. Seeded with
+a five-day streak the shipped arm-P bar is **123px, two rows**, and without the
+chip it is **76px, one row**. A player with a streak was getting the two-row bar
+the whole pick was about. It is a removal from ONE BAR and not a deletion: the
+daily card below still carries the streak and the game page's header still draws
+it `bare`, and `home-header-must-wrap.test.ts` asserts both sides, because a
+chip that renders nothing on a first visit makes the two indistinguishable by
+looking.
+
 **`--hpill` is NOT a smaller `--tap`**, and the distinction is load-bearing:
 `--tap` is the platform target for every control in every game and the age-five
 target is `--tap-kids` at 64px, so the mock's global shrink would have taken

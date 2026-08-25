@@ -38,6 +38,14 @@ const serve = (d) => async (r, q) => {
 const SEED = { v:1, coins:1240, stars:24, owned:[], placed:{}, games:{ snake:{ lastPlayedAt: Date.now() } } };
 
 /**
+ * A STREAK, seeded on purpose. `DailyChip` renders null until there is one, so
+ * a before/after taken on a fresh profile shows two identical bars and proves
+ * nothing about whether the chip was removed - the control has to be able to
+ * show the thing being removed.
+ */
+const DAILY = { v: 1, current: 5, longest: 5, days: 5, last: new Date().toISOString().slice(0, 10), paid: 3 };
+
+/**
  * Four treatments for the three icon pills. Applied to the LIVE page, so what
  * is judged is the real control at the real size beside its real neighbours.
  *
@@ -70,12 +78,23 @@ const paint = (css) => {
 const shoot = async (browser, dist, name, css) => {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3 });
   await ctx.route("**/*", serve(dist));
-  await ctx.addInitScript((p) => { try { localStorage.setItem("ellaz:profile:v1", JSON.stringify(p)); } catch {} }, SEED);
+  await ctx.addInitScript(({ p, d }) => {
+    try {
+      localStorage.setItem("ellaz:profile:v1", JSON.stringify(p));
+      localStorage.setItem("ellaz:daily:v1", JSON.stringify(d));
+    } catch { /* incognito */ }
+  }, { p: SEED, d: DAILY });
   const page = await ctx.newPage();
   await page.goto("http://ellaz.local/", { waitUntil: "load" });
   await page.waitForSelector("header", { timeout: 10000 });
   await page.waitForTimeout(900);
   const theme = await page.evaluate(() => document.documentElement.getAttribute("data-theme") ?? "(none - :root default)");
+  // The control for the streak seed: a shot whose BEFORE arm never rendered the
+  // chip cannot show it being removed.
+  const streak = await page.evaluate(() => {
+    const h = document.querySelector("header");
+    return [...h.lastElementChild.children].length;
+  });
   let n = 3;
   if (css) n = await page.evaluate(paint, css);
   await page.waitForTimeout(150);
@@ -86,7 +105,7 @@ const shoot = async (browser, dist, name, css) => {
     return { x: 0, y: 0, width: 390, height: Math.ceil(b.bottom) + 96 };
   });
   await page.screenshot({ path: join(OUT, `${name}.png`), clip: box });
-  console.log(`  ${name.padEnd(28)} theme=${theme}  pills=${n}  header=${box.height - 96}px`);
+  console.log(`  ${name.padEnd(28)} theme=${theme}  controls=${streak}  pills=${n}  header=${box.height - 96}px`);
   await ctx.close();
 };
 
@@ -100,5 +119,7 @@ await shoot(browser, "dist-P", "bar-after-arm-P", null);
 // circles, which is a defect in the mock and not in the arm. Shipping it
 // through HEADER_PILL puts it on the BUTTON, where the radius already is.
 await shoot(browser, "dist-B", "bar-shipped-B", null);
+// The streak chip removed - operator, "we dont need it there".
+await shoot(browser, "dist-D", "bar-no-streak-chip", null);
 for (const [name, css] of Object.entries(PILLS)) await shoot(browser, "dist-P", name, css);
 await browser.close();
