@@ -84,8 +84,22 @@ describe.each(Object.entries(PAGES))("the %s screen's header", (_name, html) => 
   });
 
   it("offers exactly ONE way home", () => {
-    const links = header.match(/<a\b/g) ?? [];
-    expect(links.length, "the header should hold one link, home").toBe(1);
+    // Counted on DESTINATION, not on the anchor count. Since 2026-08-25 the
+    // bar also holds the language sheet, which is three more <a> - and every
+    // one of them points at THIS page in another language, so none of them is
+    // a second way home. The anchor count was 1 and is now 4; the number that
+    // has to stay 1 is how many of them leave for somewhere else.
+    // An alternate carries `hreflang`; a way out does not. That attribute is
+    // the discriminator rather than a class name, because it is the thing
+    // that MAKES the link a translation of this page.
+    const tags = header.match(/<a\b[^>]*>/g) ?? [];
+    expect(tags.length, "the header holds no links at all").toBeGreaterThan(0);
+    const alternates = tags.filter((t) => /hreflang=/.test(t));
+    const ways = tags.filter((t) => !/hreflang=/.test(t));
+    expect(ways.length, `the header should hold one non-alternate link, home: ${ways}`).toBe(1);
+    // The control. Without it this passes on a build that lost the language
+    // sheet entirely - which is the state the operator reported.
+    expect(alternates.length, "the header lost its language alternates").toBe(3);
     expect(header).toContain('class="hbtn home"');
   });
 
@@ -293,12 +307,28 @@ describe("a document is NOT a screen", () => {
  * exactly the viewport nobody writing the CSS is looking at, and no assertion
  * in this file - or any other here - reads a phone-width RENDER.
  */
-describe("mute sits with the wallet, not in the middle of the bar", () => {
+describe("the trailing group sits at the far edge, not in the middle of the bar", () => {
   const declarations = DOCUMENT_CSS.replace(/\/\*[\s\S]*?\*\//g, "");
 
-  it("pushes it to the far edge with an auto margin", () => {
-    expect(declarations).toMatch(
+  it("pushes it to the far edge with an auto margin on whichever control LEADS", () => {
+    // THE MARGIN MOVED, 2026-08-25, and the reason is the whole point of this
+    // block: the language globe joined the group in front of mute, so the
+    // rule that used to fix the bug now leaves the GLOBE stranded mid-bar
+    // instead. The fix does not stay fixed by staying still.
+    //
+    // Both rules are asserted. The bare [data-sound] one still holds a page
+    // with no translations to offer, and dropping it would be a silent
+    // regression on exactly the page nobody screenshots.
+    expect(declarations, "the globe does not lead the trailing group").toMatch(
+      /body\.screen \.top \.lang\{[^}]*margin-inline-start:\s*auto/,
+    );
+    expect(declarations, "mute lost its fallback auto margin").toMatch(
       /body\.screen \.top \[data-sound\]\{[^}]*margin-inline-start:\s*auto/,
+    );
+    // And mute must GIVE IT UP when the globe is there, or two auto margins
+    // split the free space between them and both controls end up adrift.
+    expect(declarations, "two auto margins would split the free space").toMatch(
+      /\.lang \+ \[data-sound\]\{[^}]*margin-inline-start:\s*0/,
     );
   });
 
@@ -306,9 +336,14 @@ describe("mute sits with the wallet, not in the middle of the bar", () => {
     // margin-left would strand it in the centre of an RTL bar and pass every
     // assertion above it. There is no second rule for RTL and there must not
     // be one - a direction-specific pair is two things to keep in step.
-    const m = /body\.screen \.top \[data-sound\]\{([^}]*)\}/.exec(declarations);
-    expect(m, "the mute rule is missing").not.toBeNull();
-    expect(m![1]).not.toMatch(/margin-left|margin-right/);
+    for (const re of [
+      /body\.screen \.top \.lang\{([^}]*)\}/,
+      /body\.screen \.top \[data-sound\]\{([^}]*)\}/,
+    ]) {
+      const m = re.exec(declarations);
+      expect(m, `the rule ${re} is missing`).not.toBeNull();
+      expect(m![1]).not.toMatch(/margin-left|margin-right/);
+    }
   });
 
   it("hangs it on the BUTTON, which is the element the runtime reveals", () => {
@@ -318,7 +353,29 @@ describe("mute sits with the wallet, not in the middle of the bar", () => {
     expect(PAGES.game).toMatch(/<button[^>]*data-sound[^>]*hidden/);
   });
 
-  it("still draws it BEFORE the wallet, so the pair reads mute-then-coins", () => {
+  it("orders the group globe, then mute, then the wallet", () => {
+    // Source order decides what is INSIDE the group; the auto margin above
+    // decides where the group sits. Both matter, and the coins pill keeps the
+    // corner because it is the thing a child looks for.
+    //
+    // Scoped to the HEADER, and that is what makes it a test at all: read
+    // against the whole document it is vacuous, because `.lang`, `data-sound`
+    // and `wallet-wrap` are all SELECTORS in the stylesheet emitted into
+    // <head>, hundreds of lines above the markup, so every order passes.
+    // Found by planting the swap and watching the document-scoped version
+    // survive it.
+    const header = headerOf(PAGES.game);
+    const lang = header.indexOf('class="lang"');
+    const sound = header.indexOf("data-sound");
+    const wallet = header.indexOf("wallet-wrap");
+    expect(lang, "the language globe is not in the header").toBeGreaterThan(-1);
+    expect(sound, "mute is not in the header").toBeGreaterThan(-1);
+    expect(wallet, "the wallet is not in the header").toBeGreaterThan(-1);
+    expect(lang).toBeLessThan(sound);
+    expect(sound).toBeLessThan(wallet);
+  });
+
+  it("still draws mute BEFORE the wallet, so the pair reads mute-then-coins", () => {
     // The auto margin decides where the group sits; source order decides what
     // is inside it. Both matter: the coins pill is the thing a child looks
     // for, so it keeps the corner.
@@ -422,5 +479,86 @@ describe("the header's name is hidden on a phone and still in the document", () 
     // emits must NOT be found either.
     expect(DOCUMENT_CSS).not.toMatch(/@media \(max-width:718px\)\{body\.screen \.gname/);
     expect(PAGES.game).not.toContain('class="gname-does-not-exist"');
+  });
+});
+
+/**
+ * The language globe, on every emitted screen.
+ *
+ * Operator report 2026-08-25: "i see the language bar in desktop header is
+ * missing!". It is not missing from the HOME header - measured there at 1440
+ * and at 390 - it was missing from all 34 game pages, the room and the boards,
+ * which is where a reader who followed a search result lands. Search Console
+ * says 76% of the queries reaching this site are Hebrew.
+ *
+ * Every assertion here is about the EMITTED markup, because that is the whole
+ * design: `src/build/**` ships to nobody, so this control costs a first visit
+ * zero bytes, is on screen in the first paint rather than after the bundle,
+ * and works with JavaScript off. A <details> gets that for free; a React
+ * picker would cost a chunk, a wiring step, and a second control that can
+ * disagree with the first.
+ */
+describe.each(Object.entries(PAGES))("the %s screen's language globe", (_name, html) => {
+  const header = headerOf(html);
+  const sheet = header.slice(header.indexOf('class="lang"'), header.indexOf("</details>") + 10);
+
+  it("is there at all", () => {
+    expect(header, "no language control in this screen's header").toContain('<details class="lang"');
+  });
+
+  it("needs no JavaScript to open", () => {
+    // The one property that decides the whole implementation. A <button> here
+    // would be inert on a document page until the bundle lands - and inert on
+    // a page a crawler reads, forever.
+    expect(sheet).toContain("<summary");
+    expect(sheet, "the globe became a scripted control").not.toMatch(/onclick|data-lang-open/i);
+  });
+
+  it("offers the PAGE locales, never the eleven the app speaks", () => {
+    // A document can only offer a language it EXISTS in. Seven of the app's
+    // eleven would be 404s, and a 404 behind a globe is worse than no globe.
+    const alts = sheet.match(/hreflang="[a-z]{2}"/g) ?? [];
+    expect(alts.length, `expected 3 alternates, got ${alts}`).toBe(3);
+  });
+
+  it("names the current language rather than hiding it, and does not link to it", () => {
+    // The sheet says where you ARE as well as where you can go - the same
+    // shape the app's picker uses. Shape, not colour: a check glyph, so it
+    // reads in a screenshot and for a colour-blind parent.
+    expect(sheet, "the current language is not marked").toMatch(/<b[^>]*class="on"/);
+    // `</b`, never `</b>`. The emitter writes the closing tag as `</b\n>` so
+    // the JSX-style line break does not become a space inside the label, and
+    // a `"</b>"` matcher therefore returns -1 - which `slice(at, -1)` turns
+    // into "the rest of the sheet", so the assertion below reads three <a>
+    // tags that have nothing to do with it. Exactly the shape of
+    // .claude/rules/a-diagnostic-that-truncates-what-it-compares.md, and it
+    // failed LOUDLY here only by luck: pointed the other way it passes.
+    const bAt = sheet.indexOf("<b");
+    const bEnd = sheet.indexOf("</b", bAt);
+    expect(bEnd, "the current-language entry has no closing tag").toBeGreaterThan(bAt);
+    const current = sheet.slice(bAt, bEnd);
+    expect(current, "the current language became a link to itself").not.toContain("<a");
+    expect(current, "the check glyph is gone").toContain("&#10003;");
+  });
+
+  it("gives every entry its own lang and dir", () => {
+    // Without them the Hebrew autonym renders left-to-right inside an English
+    // document - which is exactly the label somebody looking for Hebrew has to
+    // read to find it.
+    const entries = sheet.match(/<(a|b)\b[^>]*hreflang="[a-z]{2}"[^>]*>|<b[^>]*class="on"[^>]*>/g) ?? [];
+    expect(entries.length, "no sheet entries found").toBeGreaterThan(0);
+    for (const e of entries) {
+      // `(?<!href)`, and it is not fussiness: `hreflang="es"` CONTAINS
+      // `lang="es"`, so a bare /lang="[a-z]{2}"/ is satisfied by the attribute
+      // that is already asserted two lines up. Planting the removal of every
+      // per-entry `lang` left all 84 tests green.
+      expect(e, `entry without its own lang: ${e}`).toMatch(/(?<!href)lang="[a-z]{2}"/);
+      expect(e, `entry without dir: ${e}`).toMatch(/dir="(ltr|rtl)"/);
+    }
+  });
+
+  it("labels itself, because it is glyph-only", () => {
+    const summary = sheet.slice(sheet.indexOf("<summary"), sheet.indexOf(">", sheet.indexOf("<summary")));
+    expect(summary, "the globe has no accessible name").toContain("aria-label");
   });
 });

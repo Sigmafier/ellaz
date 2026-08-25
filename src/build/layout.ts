@@ -490,8 +490,53 @@ body.screen .gname{flex:1 1 0;min-width:0;
 
    Logical, not margin-left, so Hebrew flips it for free - and on the button
    rather than a wrapper, because a wrapper is a second thing to keep in step
-   with the hidden attribute when the runtime reveals it. */
+   with the hidden attribute when the runtime reveals it.
+
+   THE MARGIN BELONGS TO WHICHEVER CONTROL LEADS THAT GROUP, which is now the
+   language globe. Left on mute with the globe in front of it, the globe is
+   what gets stranded mid-bar and the fix has simply moved along one element.
+   Both rules are kept: the adjacent-sibling pair wins on specificity where
+   the globe exists, and the bare [data-sound] rule still holds a page that
+   has no translations to offer. */
+body.screen .top .lang{margin-inline-start:auto}
+body.screen .top .lang + [data-sound]{margin-inline-start:0}
 body.screen .top [data-sound]{margin-inline-start:auto}
+
+/* THE LANGUAGE GLOBE - a <details>, so it opens with no JavaScript at all.
+   The summary IS the pill: .hbtn sets display:inline-flex, which replaces
+   summary's display:list-item and takes the disclosure triangle with it in
+   most engines - list-style and the -webkit marker rule close the rest, and
+   without them a triangle appears INSIDE a 44px round button. */
+body.screen .top .lang{position:relative;flex:0 0 auto}
+body.screen .top .lang>summary{list-style:none}
+body.screen .top .lang>summary::-webkit-details-marker{display:none}
+body.screen .top .lang>summary::marker{content:""}
+/* Pinned to the INLINE END so it opens inward in both directions rather than
+   off the edge of the screen in Hebrew. The bar is position:relative with
+   z-index 6 and no overflow, so this escapes the bar without a portal. */
+.langsheet{position:absolute;inset-inline-end:0;top:calc(var(--tap) + 6px);
+  /* The globe sits ~26px from the bar's inline end, so a sheet pinned to it
+     reaches within 26px of the screen edge - and at 170px wide it went PAST
+     it, by 3px, at 390. Measured, not guessed. The max-width is the guard that
+     survives a narrower phone than any we test on - 84vw, never 100vw, which
+     includes the scrollbar and is banned in this file (build.test.ts pins it,
+     after 8px of sideways scroll shipped on a live page). At 320 it leaves the
+     sheet 25px of clearance. */
+  z-index:7;min-width:152px;max-width:min(84vw,300px);padding:6px;
+  display:flex;flex-direction:column;gap:2px;
+  border-radius:var(--urad);background:var(--doc-card);
+  border:1px solid var(--doc-line);box-shadow:0 10px 30px rgba(0,0,0,.25)}
+/* Document ink, not header ink: the sheet sits ON the page surface, and
+   inheriting the bar's cream would be cream text on a cream card. */
+.langsheet>a,.langsheet>b{display:flex;align-items:center;gap:8px;
+  min-height:var(--tap);padding:0 10px;border-radius:10px;
+  font:600 15px/1 inherit;color:var(--doc-ink);text-decoration:none}
+.langsheet>a:hover{background:color-mix(in oklab,var(--doc-ink) 8%,transparent)}
+/* Shape, not colour, and the empty span holds the check's width on every row
+   so the autonyms do not shift sideways when the current language changes. */
+.langsheet>b{font-weight:800;
+  background:color-mix(in oklab,var(--doc-ink) 8%,transparent)}
+.langsheet>a>span,.langsheet>b>span{width:14px;flex:0 0 14px;text-align:center}
 .hbtn:hover{background:rgba(255,255,255,.2)}
 .hbtn.pri{background:#FFF6E9;color:#241C2B}
 .hbtn.pri:hover{background:#fff}
@@ -743,7 +788,7 @@ function groundStyle(chrome: HeaderChrome | undefined): string {
  * app is redrawn here with no second edit.
  */
 export function icon(
-  name: "back" | "expand" | "home" | "pause" | "play" | "redo" | "sound",
+  name: "back" | "expand" | "globe" | "home" | "pause" | "play" | "redo" | "sound",
   cls = "",
 ): RawHtml {
   // Every subpath its own <path>: `home` is three of them concatenated, and a
@@ -851,17 +896,82 @@ export function betaBadge(site: SiteCopy): RawHtml {
  * beside it and now sits on the utility row - see `utilityRow` for why, and
  * note that it is still platform chrome, just one row lower.
  */
-function screenChrome(chrome: HeaderChrome, homeHref: string, slot: RawHtml | undefined): RawHtml {
+function screenChrome(
+  chrome: HeaderChrome,
+  homeHref: string,
+  slot: RawHtml | undefined,
+  langs: RawHtml | "",
+): RawHtml {
   return html`
     <a class="hbtn home" href="${homeHref}" aria-label="${chrome.backLabel}">
       ${icon("back", "arw")}${icon("home")}
     </a>
     <b class="gname">${chrome.title}</b>
+    ${langs}
     <button type="button" class="hbtn ico" data-sound aria-label="${chrome.soundLabel}" hidden>
       ${icon("sound")}
     </button>
     <div class="wallet-wrap">${slot ?? raw("")}</div>
   `;
+}
+
+/**
+ * The language globe, on every emitted screen - and it needs no JavaScript.
+ *
+ * Operator report 2026-08-25: "i see the language bar in desktop header is
+ * missing". Measured: the globe is on the HOME header at 1440 and at 390, and
+ * absent from all 34 game pages, the room and the boards - so a reader who
+ * followed a link into a game had no way to change language at all, on the
+ * pages where 76% of this site's search queries land.
+ *
+ * A `<details>` rather than the app's `LanguagePicker`, and that is the whole
+ * design. This is a DOCUMENT: `src/build/**` ships to nobody, so an emitted
+ * disclosure costs the first visit zero bytes, is on screen in the first paint
+ * rather than after the bundle, and works for a visitor with no JavaScript and
+ * for a crawler - which four real `<a href>` links to the page's own
+ * translations are worth something to. Re-implementing the React picker here
+ * would cost a chunk, cost a wiring step, and be a second control that can
+ * disagree with the first.
+ *
+ * IT OFFERS THE PAGE LOCALES, NOT THE APP LOCALES. The app speaks eleven
+ * languages; four have written prose. A document can only offer a language it
+ * EXISTS in, so this is built from the page's own hreflang cluster - the same
+ * source `offerBar` and the footer read, so the three cannot promise different
+ * sets. Do not "fix" it into eleven entries: seven of them would be 404s.
+ *
+ * The current language is listed and NOT a link, marked with a check - shape,
+ * not colour, the same as the app's picker - so the sheet says where you are
+ * as well as where you can go. Every entry carries its own `lang` and `dir`,
+ * or the Hebrew autonym renders left-to-right inside an English document,
+ * which is precisely the label somebody looking for Hebrew has to read.
+ */
+function langPick(
+  locale: Locale,
+  label: string,
+  siblings: Array<{ locale: Locale; path: string }>,
+  base: string,
+): RawHtml | "" {
+  if (siblings.length < 2) return "";
+  return html`<details class="lang">
+    <summary class="hbtn ico" aria-label="${`${label}: ${AUTONYM[locale]}`}">
+      ${icon("globe")}
+    </summary>
+    <div class="langsheet" role="group" aria-label="${label}">
+      ${siblings.map((a) =>
+        a.locale === locale
+          ? html`<b lang="${a.locale}" dir="${dirOf(a.locale)}" class="on"
+              ><span aria-hidden="true">&#10003;</span>${AUTONYM[a.locale]}</b
+            >`
+          : html`<a
+              href="${href(a.path, base)}"
+              hreflang="${a.locale}"
+              lang="${a.locale}"
+              dir="${dirOf(a.locale)}"
+              ><span aria-hidden="true"></span>${AUTONYM[a.locale]}</a
+            >`,
+      )}
+    </div>
+  </details>`;
 }
 
 export function renderDocument(opts: DocumentOptions): string {
@@ -924,7 +1034,12 @@ export function renderDocument(opts: DocumentOptions): string {
     <header class="top" ${raw(groundStyle(opts.headerChrome))}>
       <div class="in">
         ${opts.headerChrome
-          ? screenChrome(opts.headerChrome, href(homePath(locale), base), opts.headerSlot)
+          ? screenChrome(
+              opts.headerChrome,
+              href(homePath(locale), base),
+              opts.headerSlot,
+              langPick(locale, site.chrome.language, siblings, base),
+            )
           : html`<a class="brand" href="${href(homePath(locale), base)}">${site.brand}</a>
               <span class="tagline">${site.tagline}</span>
               ${opts.headerSlot}`}

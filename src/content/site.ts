@@ -71,6 +71,13 @@ export interface SiteCopy {
      */
     beta: string;
     betaNote: string;
+    /**
+     * The header's language control. It draws a GLOBE and no word - the same
+     * ruling the app's picker follows (operator 2026-08-24, "always show
+     * language as globe icon") - so this string is its accessible name and the
+     * heading of the sheet it opens, never a visible label beside it.
+     */
+    language: string;
   };
   /** Section headings on a game page, in render order. */
   headings: {
@@ -110,6 +117,7 @@ const he: SiteCopy = {
     back: "כל המשחקים", fullScreen: "מסך מלא", sound: "צליל", restart: "מהתחלה",
     pause: "השהיה", resume: "המשך",
     beta: "בטא", betaNote: "המשחק הזה עדיין בבנייה",
+    language: "שפה",
   },
   headings: {
     howToPlay: "איך משחקים?",
@@ -191,6 +199,7 @@ const en: SiteCopy = {
     back: "All games", fullScreen: "Full screen", sound: "Sound", restart: "Restart",
     pause: "Pause", resume: "Resume",
     beta: "Beta", betaNote: "This game is still being built",
+    language: "Language",
   },
   headings: {
     howToPlay: "How do you play?",
@@ -284,6 +293,7 @@ const es: SiteCopy = {
     back: "Todos los juegos", fullScreen: "Pantalla completa", sound: "Sonido",
     restart: "Reiniciar", pause: "Pausa", resume: "Continuar",
     beta: "Beta", betaNote: "Este juego todavía se está construyendo",
+    language: "Idioma",
   },
   headings: {
     howToPlay: "¿Cómo se juega?",
@@ -373,6 +383,7 @@ const fr: SiteCopy = {
     back: "Tous les jeux", fullScreen: "Plein écran", sound: "Son",
     restart: "Recommencer", pause: "Pause", resume: "Reprendre",
     beta: "Bêta", betaNote: "Ce jeu est encore en construction",
+    language: "Langue",
   },
   headings: {
     howToPlay: "Comment on joue ?",
