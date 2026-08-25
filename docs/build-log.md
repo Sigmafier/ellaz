@@ -3480,3 +3480,25 @@ sides, because a chip that renders nothing on a first visit makes a removal and
 a deletion indistinguishable from the outside - the same reason the shot script
 now seeds a streak before taking a before/after. **A control that cannot show
 the thing being removed is not a control.**
+
+**And then the same chip, from the GAME page's header.** *"in the game channel
+itself, remove the firestreak from the header. i still see it there."*
+
+It survived the first removal because the two headers are different code:
+`Home.tsx` renders the home bar and `PageApp.tsx` mounts the game page's wallet
+slot, and the chip was in both. Worse, **the chip renders null until there is a
+streak**, so on any device without one the game header looked identical either
+way - a removal and a miss are indistinguishable by looking, which is precisely
+how it stayed there.
+
+`home-header-must-wrap.test.ts` now asserts BOTH headers on the source, plus two
+things that keep "removed the readout" apart from "deleted the feature": the
+home screen's daily card is still rendered, and `dueMilestone` still exists in
+`sdk/daily.ts`. Without that second half, the assertions are equally satisfied
+by ripping the daily puzzle out of the app.
+
+**What it costs, stated rather than found later**: the streak COUNT is now shown
+nowhere. The streak is untouched - it accrues, it pays its milestones, and the
+daily card still marks the day done. `DailyChip.tsx` is kept rather than deleted:
+it has no importer so Rollup drops it and it costs a visit nothing, and putting
+the readout back somewhere is one line rather than a rewrite.

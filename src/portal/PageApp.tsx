@@ -18,7 +18,6 @@ import {
   runRestart,
   type PauseSlot,
 } from "@ui/gameTools";
-import { DailyChip } from "./DailyChip";
 import { homeHref } from "./paths";
 import type { ShareSheetProps } from "./ShareSheet";
 import type { PageContext } from "./pageContext";
@@ -79,16 +78,25 @@ function connectionIsStingy(): boolean {
  * and never reconciled. A second slot would mean a second emitter change and a
  * second thing to keep in step; a flex row inside this one costs neither.
  *
- * `DailyChip` renders null until there is a streak, so on a page belonging to a
- * player who has never finished a daily puzzle this is exactly what it was.
+ * NO STREAK CHIP. Operator ruling 2026-08-25, after the same removal from the
+ * home bar: "in the game channel itself, remove the firestreak from the header.
+ * i still see it there."
+ *
+ * So the wallet is the only thing in this slot now, and the span around it is
+ * kept rather than collapsed - it is the arrangement the emitter expects, and
+ * removing it would be a second change to keep in step for no gain.
+ *
+ * WHAT THIS COSTS, stated rather than discovered later: the streak COUNT is
+ * now displayed nowhere. The streak itself is untouched - it accrues, it pays
+ * its milestones through `dueMilestone`/`paid`, and the daily card on the home
+ * screen still marks the day done. Only the readout went.
  */
-function mountWallet(slot: HTMLElement | undefined, locale: PageLocale): Root | null {
+function mountWallet(slot: HTMLElement | undefined): Root | null {
   if (!slot) return null;
   const root = createRoot(slot);
   root.render(
     <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-3)" }}>
       <WalletChip bare />
-      <DailyChip locale={locale} bare />
     </span>,
   );
   return root;
@@ -346,7 +354,7 @@ export function bootContentPage(ctx: PageContext): void {
   // in the header (`.wallet-wrap`), so a chip carrying its own would be a
   // lozenge inside a lozenge. The room used to float its own chip over the
   // scene instead, which is exactly the per-screen difference this removed.
-  mountWallet(ctx.walletSlot, locale);
+  mountWallet(ctx.walletSlot);
   wireFullScreen();
   wireSound();
   wireRestart();

@@ -257,16 +257,27 @@ describe("the home bar the operator specified", () => {
     // Operator ruling 2026-08-25: "remove the streak fire icon from the
     // header, we dont need it there."
     //
-    // BOTH halves are asserted, because a removal and a deletion look
-    // identical from inside this file - and the chip renders null until there
-    // IS a streak, so a first visit could never tell them apart by looking.
-    // The game page's own header still draws it, which is what makes this a
-    // change to one bar rather than to the feature.
+    // It went from the home bar first and from the GAME page's header hours
+    // later, on a second ruling: "in the game channel itself, remove the
+    // firestreak from the header. i still see it there." So neither header
+    // renders it now.
+    //
+    // The chip renders null until there IS a streak, which is why this is
+    // asserted on the SOURCE rather than by looking: a first visit cannot tell
+    // "removed" from "never had one" on screen, and that is exactly how it
+    // stayed in the game header after the home bar lost it.
     expect(HEADER, "the streak chip is back in the home bar").not.toMatch(/<DailyChip/);
     const page = readFileSync(fileURLToPath(new URL("./PageApp.tsx", import.meta.url)), "utf8");
-    expect(page, "the streak chip was DELETED rather than removed from one bar").toMatch(
-      /<DailyChip locale=\{locale\} bare \/>/,
-    );
+    expect(page, "the streak chip is back in the game page header").not.toMatch(/<DailyChip/);
+
+    // THE FEATURE IS NOT DELETED, and this is the half that keeps the two
+    // apart. The streak still accrues, still pays its milestones, and the home
+    // screen's daily card still marks the day done - only the READOUT went.
+    // Without this, the assertions above are equally satisfied by ripping the
+    // daily puzzle out of the app.
+    expect(HEADER, "the daily card went with the chip").toMatch(/<DailyCard/);
+    const daily = readFileSync(fileURLToPath(new URL("../sdk/daily.ts", import.meta.url)), "utf8");
+    expect(daily, "the streak ladder itself was deleted").toMatch(/export function dueMilestone/);
   });
 
   it("keeps the card-style toggle OUT of the bar", () => {

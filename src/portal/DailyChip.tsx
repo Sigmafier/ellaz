@@ -23,6 +23,17 @@ import { todayKey } from "./dailyRotation";
 // on the world card - and a child who has never met this feature should not have
 // to ask what the dim flame means.
 
+// NOTHING RENDERS THIS TODAY, and that is a decision rather than an oversight.
+// Operator, 2026-08-25, twice: the chip left the home bar ("we dont need it
+// there") and then the game page's header ("i still see it there"). Those were
+// its only two call sites.
+//
+// The file is KEPT rather than deleted. It has no importer, so Rollup drops it
+// and it costs a visit nothing; the streak it reads is still live, still
+// accruing and still paying milestones; and putting the readout back somewhere
+// is then one line rather than a rewrite. `home-header-must-wrap.test.ts`
+// asserts both headers stay clear of it, so it cannot drift back in unnoticed.
+
 export interface DailyChipProps {
   locale: AppLocale;
   /**
