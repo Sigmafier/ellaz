@@ -106,6 +106,12 @@ const OPTIONS = {
   "R identity + word 18px + 40px pills": ["identity", "smallword", "pills"],
   "S ...word 18px + no emoji + 40px pills": ["identity", "coins", "smallword", "emoji", "pills"],
   "T ...word 18px + no emoji + theme out": ["identity", "coins", "smallword", "emoji", "theme"],
+  // KEEPS THE LOGO AS WELL AS THE WORD. Operator, 2026-08-25, tightening the
+  // ruling above: "must keeop the elllaz logo and text" - so Q/S/T are out too,
+  // since all three hide the emoji. These pay for the line without touching
+  // either half of the identity.
+  "U identity + coins + word 18px + theme out": ["identity", "coins", "smallword", "theme"],
+  "V identity + coins + word 18px + 40px pills + theme out": ["identity", "coins", "smallword", "pills", "theme"],
 };
 
 /** Runs in the page. `steps` is the option's list of names. */

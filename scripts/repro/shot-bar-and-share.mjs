@@ -36,10 +36,10 @@ const SEED = { v: 1, coins: 1240, stars: 24, owned: [], placed: {}, games: { sna
 
 // ---- set 1: the home bar ---------------------------------------------------
 /**
- * ROUND TWO. The first set hid the WORD, and the operator's ruling on it was
- * "we must keep the name ELLAZ in the logo" - so every arm here keeps the
- * wordmark and pays for the line somewhere else. Row counts:
- * `repro-home-bar-one-line.mjs`, arms H/J/Q/S/T.
+ * ROUND THREE. Round two kept the WORD and paid with the EMOJI; the operator
+ * tightened the ruling to "must keeop the elllaz logo and text", which retires
+ * that whole set. Every arm here keeps BOTH halves of the identity and pays
+ * somewhere else. Row counts: `repro-home-bar-one-line.mjs`, arms P/U/V.
  *
  * The lever every arm shares is `identity`: the block holding the h1 is
  * `flex: 1 1 auto`, so it GROWS to 310 of 358px to hold a ~60px word. Pinning
@@ -48,9 +48,9 @@ const SEED = { v: 1, coins: 1240, stars: 24, owned: [], placed: {}, games: { sna
  */
 const BAR = {
   "bar-0-shipped": [],
-  "bar-Q-word18-no-emoji": ["identity", "coins", "smallword", "emoji"],
-  "bar-S-word18-no-emoji-40px": ["identity", "coins", "smallword", "emoji", "pills"],
-  "bar-T-word18-no-emoji-no-theme": ["identity", "coins", "smallword", "emoji", "theme"],
+  "bar-P-word18-40px": ["identity", "coins", "smallword", "pills"],
+  "bar-U-word18-no-theme": ["identity", "coins", "smallword", "theme"],
+  "bar-V-word18-40px-no-theme": ["identity", "coins", "smallword", "pills", "theme"],
 };
 
 const applySteps = (steps) => {
@@ -143,7 +143,7 @@ for (const [name, steps] of Object.entries(BAR)) {
   await ctx.close();
 }
 
-for (const [name, inner] of Object.entries(SHARE)) {
+for (const [name, inner] of process.env.BAR_ONLY ? [] : Object.entries(SHARE)) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3 });
   await ctx.route("**/*", fulfilFromDisk(DIST));
   await ctx.addInitScript((p) => { try { localStorage.setItem("ellaz:profile:v1", JSON.stringify(p)); } catch { /* incognito */ } }, SEED);
