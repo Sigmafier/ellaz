@@ -47,7 +47,26 @@ export const HEADER_PILL: CSSProperties = {
   justifyContent: "center",
   borderRadius: "var(--radius-pill)",
   border: "none",
-  background: "var(--surface-2)",
+  // THE CARD TREATMENT. Operator pick, 2026-08-25, of four drawn on the real
+  // bar: "the icon are not looking like buttons in light mode, they lose the
+  // card DS".
+  //
+  // It is a contrast defect with a number, not a taste call. `--surface-2` on
+  // the page background:
+  //
+  //     night    #262b52 on #0f1226   1.37 : 1   reads as a shape
+  //     market   #fff3e0 on #fff6e9   1.02 : 1   nothing at all
+  //
+  // 3:1 is the WCAG floor for a graphical object, so on the light theme these
+  // were not quiet buttons, they were invisible ones - and the bug is
+  // invisible in the dark theme most of this work is done in.
+  //
+  // `--surface` is the CARD fill, lighter than the page rather than recessed
+  // into it, and `--shadow-1` is the hard ink offset every DS `Button` and the
+  // wallet chip 8px away already carry. Neither is a new value: this pill had
+  // drifted out of the design system, the system did not lack an answer.
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-1)",
   color: "var(--text)",
   // For the trophy, which is an <a> - it is a LINK so middle-click and
   // long-press behave, and a link carries an underline unless told otherwise.

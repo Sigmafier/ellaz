@@ -67,6 +67,22 @@ describe("the shared header pill", () => {
     expect(PILL).toMatch(/minWidth:\s*"var\(--hpill\)"/);
   });
 
+  it("carries the card treatment, because the flat fill was invisible on cream", () => {
+    // Measured: `--surface-2` #fff3e0 on `--bg` #fff6e9 is 1.02:1, against a
+    // 3:1 WCAG floor for a graphical object. The shadow is what the DS
+    // `Button` and the wallet chip already do; the fill is the CARD one, which
+    // is lighter than the page rather than recessed into it.
+    expect(PILL, "the header pill lost its hard ink offset").toMatch(
+      /boxShadow:\s*"var\(--shadow-1\)"/,
+    );
+    expect(PILL, "the header pill is back on the recessed fill").toMatch(
+      /background:\s*"var\(--surface\)"/,
+    );
+    expect(PILL, "--surface-2 is back, and it is 1.02:1 on the light theme").not.toMatch(
+      /background:\s*"var\(--surface-2\)"/,
+    );
+  });
+
   it("survives the group being squeezed rather than being squashed", () => {
     // The control group is `flex: 0 1 auto` so its own wrap can fire. Without
     // flexShrink:0 on the items, that shrink lands on the buttons instead and

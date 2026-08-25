@@ -94,5 +94,11 @@ await mkdir(OUT, { recursive: true });
 const browser = await chromium.launch();
 await shoot(browser, "dist", "bar-before-two-rows", null);
 await shoot(browser, "dist-P", "bar-after-arm-P", null);
+// THE SHIPPED B, drawn by the app rather than painted on by the step above.
+// The mocked B put its fill on the language picker's positioning WRAPPER -
+// `border-radius: 0` - so the globe came out a hard-cornered slab between two
+// circles, which is a defect in the mock and not in the arm. Shipping it
+// through HEADER_PILL puts it on the BUTTON, where the radius already is.
+await shoot(browser, "dist-B", "bar-shipped-B", null);
 for (const [name, css] of Object.entries(PILLS)) await shoot(browser, "dist-P", name, css);
 await browser.close();

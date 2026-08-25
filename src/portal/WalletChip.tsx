@@ -169,7 +169,12 @@ export function WalletChip({
         ...(bare
           ? { color: "inherit", fontSize: "inherit" }
           : {
-              minHeight: "var(--tap)",
+              // `--hpill`, the same height as the three round controls beside
+              // it. It was `--tap` and they became 40px on a phone with arm P,
+              // which left a 48px chip in a row of 40px pills - 8px of the
+              // header's own height, and the reason the shipped bar measured
+              // 76px where the mock that was picked measured 68.
+              minHeight: "var(--hpill)",
               padding: "0 var(--space-4)",
               borderRadius: "var(--radius-pill)",
               background: "var(--surface-2)",
