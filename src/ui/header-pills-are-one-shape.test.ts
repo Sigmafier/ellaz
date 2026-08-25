@@ -63,8 +63,8 @@ describe("the shared header pill", () => {
     // One axis makes it a pill that happens to look round while its glyph
     // fits - which is a different control at a different width the first time
     // somebody puts two characters in it.
-    expect(PILL).toMatch(/minHeight:\s*"var\(--tap\)"/);
-    expect(PILL).toMatch(/minWidth:\s*"var\(--tap\)"/);
+    expect(PILL).toMatch(/minHeight:\s*"var\(--hpill\)"/);
+    expect(PILL).toMatch(/minWidth:\s*"var\(--hpill\)"/);
   });
 
   it("survives the group being squeezed rather than being squashed", () => {

@@ -209,8 +209,20 @@ export function Home({
               refuses to shrink below its own content - which is what let the
               title push the controls off the screen instead of the row
               wrapping. The wrap above does nothing without it. */}
-          <div style={{ flex: "1 1 auto", minWidth: 0 }}>
-            <h1 style={{ fontSize: 24, lineHeight: 1 }}>{t("appName")}</h1>
+          {/* `0 1 auto`, not `1 1 auto` - operator pick, arm P, 2026-08-25.
+              At `1 1 auto` this block GREW to hold a ~60px word: measured on
+              the built page at 390px it claimed 310 of the 358 available, which
+              is why removing controls from the bar changed its height by
+              exactly zero. `minWidth: 0` stays, because a flex item's default
+              `min-width: auto` refuses to shrink below its own content - which
+              is what let the title push the controls off the screen instead of
+              the row wrapping. The wrap above does nothing without it. */}
+          <div style={{ flex: "0 1 auto", minWidth: 0 }}>
+            {/* The size is a CLASS - 18px on a phone, 24px from 560px up - and
+                an inline `fontSize` here would beat the media query that does
+                it. The WORD ITSELF never goes: operator, 2026-08-25, "must
+                keeop the elllaz logo and text". */}
+            <h1 className="ellaz-wordmark">{t("appName")}</h1>
             {/* HIDDEN on a phone, never removed. A media query rather than a
                 conditional render, for the reason the emitted screen name
                 already carries: responsive hiding is not cloaking, and not
@@ -267,7 +279,7 @@ export function Home({
                 See .claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md -
                 a measurement recorded without its one-variable control is a
                 hypothesis that reads like a finding. */}
-            <WalletChip />
+            <WalletChip coinsOnly />
             {/* Beside the wallet, and only once there is a streak to show. It
                 is the same currency-shaped readout: something you have, not
                 something you owe. */}

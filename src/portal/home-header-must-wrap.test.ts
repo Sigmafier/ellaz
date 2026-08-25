@@ -37,6 +37,9 @@ const PICKER = readFileSync(
 const CSS = readFileSync(fileURLToPath(new URL("../ui/global.css", import.meta.url)), "utf8");
 const CHIP = readFileSync(fileURLToPath(new URL("./WalletChip.tsx", import.meta.url)), "utf8");
 const PILL = readFileSync(fileURLToPath(new URL("../ui/headerPill.ts", import.meta.url)), "utf8");
+/** The token file, so a floor can be checked at its DEFINITION and not only
+ *  at the one place that reads it. */
+const TOKENS = readFileSync(fileURLToPath(new URL("../ui/tokens.css", import.meta.url)), "utf8");
 
 /** The <header> element's own style object, so a `flexWrap` elsewhere in the file cannot pass for it. */
 function headerStyle(): string {
@@ -74,12 +77,51 @@ describe("the home header", () => {
     expect(headerStyle()).toMatch(/rowGap:/);
   });
 
-  it("lets the title block shrink below its content", () => {
-    // A flex item defaults to `min-width: auto` and refuses to go under its
-    // content width. That is what let the title push the controls off the
-    // screen instead of letting the row wrap, so the wrap above does nothing
-    // without this.
-    expect(HEADER).toMatch(/flex:\s*"1 1 auto",\s*minWidth:\s*0/);
+  it("lets the title block shrink below its content, and stops it GROWING", () => {
+    // TWO properties, and the second arrived with arm P on 2026-08-25.
+    //
+    // `minWidth: 0` is the original: a flex item defaults to `min-width: auto`
+    // and refuses to go under its content width, which is what let the title
+    // push the controls off the screen instead of letting the row wrap. The
+    // wrap above does nothing without it.
+    //
+    // `0 1 auto` rather than `1 1 auto` is the new half. At `1` this block
+    // GREW to hold a ~60px word - measured on the built page at 390px it took
+    // 310 of the 358 available - which is why removing controls from the bar
+    // changed its height by exactly zero, and why every arm of the pick starts
+    // here. Assert them as one string, because a diff that keeps `minWidth: 0`
+    // and quietly restores the grow is the regression this is for.
+    // SCOPED TO THE BLOCK, not to the file. The control group four lines down
+    // carries a byte-identical `flex: "0 1 auto", minWidth: 0`, so an
+    // unanchored matcher passes while the identity block grows again -
+    // measured, this exact assertion survived that mutation. It is the trap
+    // the language-button test one screen up already carries: an assertion
+    // that reads back the rest of the file is asserting about something else.
+    const h1 = HEADER.indexOf("<h1");
+    expect(h1, "the home bar has no <h1>").toBeGreaterThan(-1);
+    const block = HEADER.slice(HEADER.lastIndexOf("<div", h1), h1);
+    expect(block, "the identity block grows again, so the bar is two rows").toMatch(
+      /flex:\s*"0 1 auto",\s*minWidth:\s*0/,
+    );
+  });
+
+  it("sizes the wordmark from a CLASS, because an inline size beats a media query", () => {
+    // The word shrinks 24 -> 18px on a phone and comes back at 560px, and that
+    // is half of what buys the bar its line. It has to be a class: an inline
+    // `fontSize` on the same element wins over any rule in `global.css`, so
+    // the media query would be dead code that reads as present.
+    const at = HEADER.indexOf("<h1");
+    expect(at, "the home bar has no <h1>").toBeGreaterThan(-1);
+    const tag = HEADER.slice(at, HEADER.indexOf(">", at) + 1);
+    expect(tag, "the wordmark stopped using the class").toMatch(/className="ellaz-wordmark"/);
+    expect(tag, "an inline fontSize is back on the wordmark, and it beats the media query")
+      .not.toMatch(/fontSize/);
+    expect(CSS, "the .ellaz-wordmark rule is gone from global.css").toMatch(
+      /\.ellaz-wordmark\s*\{[^}]*font-size:\s*18px/,
+    );
+    expect(CSS, "the wordmark no longer comes back at the tablet breakpoint").toMatch(
+      /min-width:\s*560px\)\s*\{[\s\S]*?\.ellaz-wordmark\s*\{[^}]*font-size:\s*24px/,
+    );
   });
 
   it("keeps the four controls in one group that wraps as a unit", () => {
@@ -160,8 +202,15 @@ describe("the language button", () => {
     expect(PICKER.slice(at, iconAt), "the language button stopped using the shared pill").toMatch(
       /style=\{HEADER_PILL\}/,
     );
+    // `--hpill`, not `--tap`, since arm P: it IS `--tap` from 560px up and
+    // 40px on a phone. Both halves are asserted, because the token alone could
+    // be redeclared as anything - the floor is only a floor while its default
+    // is the platform target.
     expect(PILL, "the shared header pill lost its tap-target floor").toMatch(
-      /minWidth:\s*"var\(--tap\)"/,
+      /minWidth:\s*"var\(--hpill\)"/,
+    );
+    expect(TOKENS, "--hpill no longer defaults to the platform tap target").toMatch(
+      /--hpill:\s*var\(--tap\)/,
     );
   });
 
@@ -214,19 +263,36 @@ describe("the home bar the operator specified", () => {
     expect(HEADER, "CardStyleToggle was deleted rather than rehomed").toMatch(/<CardStyleToggle/);
   });
 
-  it("shows COINS and stars - the width argument for dropping coins was wrong", () => {
-    // Operator ruling 2026-08-25: "add back coins". The stars-only ruling of
-    // the day before rested on a measurement - "coins+stars wraps this header
-    // to two rows at 320, 360, 390 and 430 alike" - that was real and blamed
-    // the wrong control. One variable at a time, live, at 390px: stars 0 ->
-    // 76px one row; stars 24 -> 122px two rows; stars 5 -> 76px one row. The
-    // COIN half was never in it.
+  it("shows COINS, and it is the STAR half that left - operator pick, arm P", () => {
+    // TWO rulings a day apart, and the order matters because the second reads
+    // as a reversal of the first and is not one.
+    //
+    //   2026-08-25 morning  "add back coins"      <- the stars-only bar was
+    //                       argued from "coins+stars wraps this header at 320,
+    //                       360, 390 and 430 alike", which was real and blamed
+    //                       the wrong control. One variable at a time at 390px:
+    //                       stars 0 -> 76px, stars 24 -> 122px, stars 5 -> 76px.
+    //                       The COIN half was never in it.
+    //   2026-08-25 evening  arm P, picked from four drawn on the real page.
+    //                       The star half goes, along with three other things,
+    //                       and together they are what makes the bar one line.
+    //
+    // So the bar carries coins in both rulings, and what changed is which half
+    // pays. `starsOnly` here would be the reverted state; `coinsOnly` is the
+    // picked one, and a bar passing NEITHER is the pre-pick two-row bar.
     expect(HEADER, "the home bar is passing starsOnly again").not.toMatch(/<WalletChip\s+starsOnly/);
-    expect(HEADER, "the home bar no longer renders a wallet at all").toMatch(/<WalletChip\s*\/>/);
-    // The prop stays supported - dropping it would be a deletion nobody asked
-    // for - so the gate it drives has to keep working for any future caller.
+    expect(HEADER, "the home bar is not asking for the coins-only chip").toMatch(
+      /<WalletChip coinsOnly \/>/,
+    );
+    // Both props stay supported - dropping either would be a deletion nobody
+    // asked for - so the gates they drive keep working for any future caller.
     expect(CHIP, "WalletChip lost the starsOnly prop").toMatch(/starsOnly\?: boolean/);
-    expect(CHIP, "the coin half is no longer gated").toMatch(/\{!starsOnly && \(/);
+    expect(CHIP, "WalletChip lost the coinsOnly prop").toMatch(/coinsOnly\?: boolean/);
+    // The both-flags contradiction has its own file, because it is the one
+    // question neither branch can answer alone.
+    expect(CHIP, "the coin half is no longer gated on the derived value").toMatch(
+      /\{!onlyStars && \(/,
+    );
   });
 
   it("puts the room before the puzzle, and both before the games", () => {

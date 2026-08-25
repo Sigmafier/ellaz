@@ -54,6 +54,14 @@
   --beta-ink: #241C17;
 
   --tap: 48px; /* minimum interactive target */
+  /* The round control in the home bar. It is --tap on a tablet and up and
+     40px on a phone, and that 8px is what buys the bar its single line -
+     measured, arm P: at 48px the same bar is TWO rows at 390 on a real
+     wallet. Its own name rather than a smaller --tap, because --tap is the
+     platform target for every control in every game and a five-year-old's
+     is --tap-kids at 64. The phone value lives in global.css, which is the
+     only file here that can carry a media query. */
+  --hpill: var(--tap);
   --tap-kids: 64px; /* age-5 target (~2cm+) */
 
   --font: "Heebo", "Assistant", "Rubik", system-ui, -apple-system, "Segoe UI", sans-serif;

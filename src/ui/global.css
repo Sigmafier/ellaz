@@ -394,6 +394,39 @@ body.app-shell h3,
   }
 }
 
+/* THE ONE-LINE HOME BAR - operator pick, 2026-08-25, arm P of four drawn on
+ * the real page. Two declarations, both phone-only, both restored at the
+ * SAME breakpoint the tagline uses so there is one number to reason about.
+ *
+ * They are here rather than inline because an inline style cannot carry a
+ * media query and would beat one that could - the same reason the game panel's
+ * desktop cap lives in this file. Measured rows at 390px on a real wallet
+ * (1240 coins), one variable at a time:
+ *
+ *     as shipped                        2 rows
+ *     + identity stops growing          2 rows   <- on its own, nothing
+ *     + coins only                      2 rows
+ *     + word 18px                       2 rows
+ *     + pill 40px                       1 row    <- all four together
+ *
+ * No single one of them does it, which is why the arm is all four and why
+ * removing any one is a regression rather than a tidy-up. */
+.ellaz-wordmark {
+  font-size: 18px;
+  line-height: 1;
+}
+:root {
+  --hpill: 40px;
+}
+@media (min-width: 560px) {
+  .ellaz-wordmark {
+    font-size: 24px;
+  }
+  :root {
+    --hpill: var(--tap);
+  }
+}
+
 /* The autonym on the language button used to live here, hidden below 430px
  * and restored above it. It is GONE, along with the class and the media
  * query: operator ruling 2026-08-24, "always show language as globe icon".

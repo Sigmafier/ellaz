@@ -67,9 +67,32 @@ export interface WalletChipProps {
    * mounted flies to the game page's own chip, which is `bare` and whole.
    */
   starsOnly?: boolean;
+
+  /**
+   * The mirror image, and the HOME BAR's setting since 2026-08-25. Operator
+   * pick, arm P of four drawn on the real page: the star half is what stops
+   * that bar being one line, because it is the count that reaches two digits
+   * first and the wrap is a function of the star count rather than the coin
+   * one (measured: stars 0 -> 76px, stars 24 -> 122px, stars 5 -> 76px again).
+   *
+   * The stars are NOT gone from the app - the game page's own chip is `bare`
+   * and whole, and the World screen counts them. What went is a readout in the
+   * one place that has no room for it.
+   *
+   * Passing BOTH is a contradiction rather than a nuance, so `coinsOnly` wins
+   * and `wallet-chip-halves.test.ts` pins that rather than leaving it to
+   * whichever branch happens to be read first.
+   */
+  coinsOnly?: boolean;
 }
 
-export function WalletChip({ bare = false, starsOnly = false }: WalletChipProps = {}) {
+export function WalletChip({
+  bare = false,
+  starsOnly = false,
+  coinsOnly = false,
+}: WalletChipProps = {}) {
+  // A chip asked for both halves alone shows the coins - see `coinsOnly`.
+  const onlyStars = starsOnly && !coinsOnly;
   const ref = useRef<HTMLDivElement>(null);
   const [coins, setCoins] = useState(() => wallet.coins);
   const [stars, setStars] = useState(() => wallet.stars);
@@ -134,7 +157,9 @@ export function WalletChip({ bare = false, starsOnly = false }: WalletChipProps 
       ref={ref}
       // Numbers read left-to-right even in the Hebrew RTL shell.
       dir="ltr"
-      aria-label={starsOnly ? `${stars} stars` : `${coins} coins, ${stars} stars`}
+      aria-label={
+        onlyStars ? `${stars} stars` : coinsOnly ? `${coins} coins` : `${coins} coins, ${stars} stars`
+      }
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -167,7 +192,7 @@ export function WalletChip({ bare = false, starsOnly = false }: WalletChipProps 
           and a yellow star on top of it are two more accents competing with
           the one colour the bar exists to show - and `--orange-ink` is tuned
           for the cream shell, not for a saturated dark surface. */}
-      {!starsOnly && (
+      {!onlyStars && (
         <span
           style={{
             display: "inline-flex",
@@ -180,17 +205,19 @@ export function WalletChip({ bare = false, starsOnly = false }: WalletChipProps 
           {coins}
         </span>
       )}
-      <span
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "var(--space-1)",
-          color: bare ? "inherit" : "var(--yellow)",
-        }}
-      >
-        <Icon name="star" filled />
-        {stars}
-      </span>
+      {!coinsOnly && (
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "var(--space-1)",
+            color: bare ? "inherit" : "var(--yellow)",
+          }}
+        >
+          <Icon name="star" filled />
+          {stars}
+        </span>
+      )}
     </div>
   );
 }

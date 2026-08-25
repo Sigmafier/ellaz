@@ -27,10 +27,12 @@ import type { CSSProperties } from "react";
  * emitted document pages also carry - two owners for one shape.
  */
 export const HEADER_PILL: CSSProperties = {
-  // `--tap` is the 48px platform target. Both axes, so it is a circle rather
-  // than a pill that happens to look round while its glyph fits.
-  minHeight: "var(--tap)",
-  minWidth: "var(--tap)",
+  // `--hpill` is `--tap` (48px) on a tablet and up, 40px on a phone - see the
+  // token's own comment for why it is not just a smaller `--tap`. Both axes, so
+  // it is a circle rather than a pill that happens to look round while its
+  // glyph fits, and both read the SAME name so they cannot drift apart.
+  minHeight: "var(--hpill)",
+  minWidth: "var(--hpill)",
   // No horizontal padding: `minWidth` already holds the target, and on a narrow
   // header every pixel here comes out of the title.
   padding: 0,
