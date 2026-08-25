@@ -68,7 +68,8 @@ export const es: Record<StringKey, string> = {
   backupHint:
     "Apunta este código en un papel. Si se borra el dispositivo, o quieres tu cuarto en otro, este código lo devuelve todo.",
   backupOffline: "Ahora mismo no hay conexión",
-  backupUnsaved: "No pudimos guardar ahora. El código funcionará cuando se guarde.",
+  backupUnsaved:
+    "No pudimos guardar ahora. El código funcionará cuando se guarde.",
   backupRetry: "Inténtalo otra vez",
   haveCode: "Tengo un código",
   enterCode: "Escribe el código",
@@ -95,6 +96,11 @@ export const es: Record<StringKey, string> = {
   place: "Colocar",
   needStars: "Faltan estrellas",
   needStreak: "Faltan días seguidos",
+  catWindow: "Ventana",
+  catLight: "Lámpara",
+  catToy: "Juguete",
+  placed: "Puesto",
+  preview: "Solo mirando",
   catHat: "Gorro",
   catOutfit: "Ropa",
   catPet: "Mascota",

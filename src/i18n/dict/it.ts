@@ -63,7 +63,8 @@ export const it: Record<StringKey, string> = {
   backupHint:
     "Scrivi questo codice su un foglio. Se il dispositivo viene cancellato, o vuoi la tua stanza su un altro, il codice riporta tutto.",
   backupOffline: "Nessuna connessione al momento",
-  backupUnsaved: "Non siamo riusciti a salvare. Il codice funziona solo dopo il salvataggio.",
+  backupUnsaved:
+    "Non siamo riusciti a salvare. Il codice funziona solo dopo il salvataggio.",
   backupRetry: "Riprova",
   haveCode: "Ho un codice",
   enterCode: "Scrivi il codice",
@@ -71,7 +72,8 @@ export const it: Record<StringKey, string> = {
   codeNotFound: "Non abbiamo trovato quel codice",
   restoreFound: "In questo codice:",
   restoreHere: "Su questo dispositivo adesso:",
-  restoreReplaces: "Il ripristino sostituisce quello che c'è adesso su questo dispositivo.",
+  restoreReplaces:
+    "Il ripristino sostituisce quello che c'è adesso su questo dispositivo.",
   restoreConfirm: "Ripristina",
   restoreCancel: "Annulla",
   restoreDone: "Ripristinato!",
@@ -90,6 +92,11 @@ export const it: Record<StringKey, string> = {
   place: "Metti",
   needStars: "Mancano stelle",
   needStreak: "Mancano giorni di fila",
+  catWindow: "Finestra",
+  catLight: "Lampada",
+  catToy: "Giocattolo",
+  placed: "Messo",
+  preview: "Solo un'occhiata",
   catHat: "Cappello",
   catOutfit: "Vestiti",
   catPet: "Animaletto",

@@ -1,4 +1,5 @@
 import type { Locale } from "@i18n/index";
+import type { ExtraArtId } from "./itemsRest";
 
 // The shop catalogue — pure data, no art and no React.
 //
@@ -17,8 +18,11 @@ export const CATEGORIES = [
   "wall",
   "floor",
   "rug",
+  "window",
+  "light",
   "plant",
   "poster",
+  "toy",
   "outfit",
   "hat",
   "pet",
@@ -86,6 +90,15 @@ export const ITEMS = [
   { id: "plant_palm", category: "plant", price: 35, art: "plant_palm",
     name: { he: "דקל", en: "Palm", es: "Palmera" } },
 
+  { id: "window_none", category: "window", price: 0, art: "window_none",
+    name: { he: "בלי חלון", en: "No window", es: "Sin ventana" } },
+
+  { id: "light_none", category: "light", price: 0, art: "light_none",
+    name: { he: "בלי מנורה", en: "No light", es: "Sin lámpara" } },
+
+  { id: "toy_none", category: "toy", price: 0, art: "toy_none",
+    name: { he: "בלי צעצוע", en: "No toy", es: "Sin juguete" } },
+
   { id: "poster_none", category: "poster", price: 0, art: "poster_none",
     name: { he: "בלי פוסטר", en: "No poster", es: "Sin póster" } },
   { id: "poster_rocket", category: "poster", price: 30, art: "poster_rocket",
@@ -138,8 +151,9 @@ export const ITEMS = [
  * questions ("when does a streak pay" versus "what does it open"), and
  * `items.test.ts` pins that the shelf's rungs are real rungs of that ladder.
  *
- * SEPARATE FROM `ITEMS` ONLY BECAUSE OF THE ART REGISTRY — see the streak-shelf
- * block in `Scene.tsx`. It carries no meaning and should be folded in.
+ * SEPARATE FROM `ITEMS` because it is keyed by its own art-id union and drawn
+ * by its own map, `streakArt.tsx`. Both halves ship in the SHELL, so the split
+ * costs nothing and buys a per-half `tsc` exhaustiveness check.
  */
 export const STREAK_ITEMS = [
   { id: "poster_flame", category: "poster", price: 15, requiresStreak: 3, art: "poster_flame",
@@ -163,14 +177,27 @@ export type ArtId = (typeof ITEMS)[number]["art"];
 /** The set of art keys `streakArt.tsx` draws, under the same guarantee. */
 export type StreakArtId = (typeof STREAK_ITEMS)[number]["art"];
 
-/** Anything the room can draw, from either registry. */
-export type AnyArtId = ArtId | StreakArtId;
+/** Anything the room can draw, from any of the three registries. */
+export type AnyArtId = ArtId | StreakArtId | ExtraArtId;
 
-/** The catalogue as a plain array — the const tuples are awkward to iterate. */
-export const ALL_ITEMS: readonly ShopItem<AnyArtId>[] = [...ITEMS, ...STREAK_ITEMS];
+/**
+ * The half of the catalogue that ships in the SHELL — everything a returning
+ * player can already have equipped, plus every category's free default.
+ *
+ * The other half is `itemsRest.ts`, and the split is PAYLOAD, not meaning. This
+ * module is pinned to the shell because Home draws the child's real room in its
+ * world card, so every row here is downloaded by every child before they have
+ * chosen a game. Measured on the artifact when the second shelf landed: its 52
+ * rows cost 2,448 B gz in here, against 718 B of headroom.
+ *
+ * `SHOP_ITEMS` over there is the WHOLE catalogue and is what the shop renders.
+ * Never iterate this one to answer a question about the shop — it is two thirds
+ * short, and a shelf rendered from it looks complete.
+ */
+export const SHELL_ITEMS: readonly ShopItem<AnyArtId>[] = [...ITEMS, ...STREAK_ITEMS];
 
 export function itemById(id: string): ShopItem<AnyArtId> | undefined {
-  return ALL_ITEMS.find((item) => item.id === id);
+  return SHELL_ITEMS.find((item) => item.id === id);
 }
 
 /**
@@ -178,7 +205,7 @@ export function itemById(id: string): ShopItem<AnyArtId> | undefined {
  * "exactly one price-0 item per category", which is what makes this total.
  */
 export function defaultFor(category: ItemCategory): ShopItem<AnyArtId> {
-  const found = ALL_ITEMS.find((item) => item.category === category && item.price === 0);
+  const found = SHELL_ITEMS.find((item) => item.category === category && item.price === 0);
   if (!found) throw new Error(`no free default for category "${category}"`);
   return found;
 }
@@ -189,9 +216,21 @@ export function defaultFor(category: ItemCategory): ShopItem<AnyArtId> {
  * belongs to a different slot — so a stale profile still renders a full room.
  */
 export function artFor(category: ItemCategory, equippedId: string | undefined): AnyArtId {
-  const equipped = equippedId ? itemById(equippedId) : undefined;
-  const chosen = equipped && equipped.category === category ? equipped : defaultFor(category);
-  return chosen.art;
+  if (!equippedId) return defaultFor(category).art;
+  const known = itemById(equippedId);
+  if (known) return known.category === category ? known.art : defaultFor(category).art;
+
+  // Not in the shell half. It is either a row from the LAZY shelf — whose art
+  // key IS its id, and whose id begins with its slot — or an item retired in a
+  // later release. Guessing costs nothing: a guess that is wrong lands on an
+  // art key `roomPiece` has never been handed, and its answer for that is this
+  // category's default, which is exactly what a retired id already resolved to.
+  //
+  // The invariant it leans on (`art === id`, and `id` starts with `category_`)
+  // holds for all 82 rows and is pinned by `shop-previews-before-it-buys.test.ts`,
+  // so a future row that breaks it is a red build rather than a wall that
+  // quietly stops drawing for the one child who bought it.
+  return equippedId.startsWith(`${category}_`) ? (equippedId as AnyArtId) : defaultFor(category).art;
 }
 
 /**

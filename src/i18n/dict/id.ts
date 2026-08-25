@@ -71,7 +71,8 @@ export const id: Record<StringKey, string> = {
   backupHint:
     "Tulis kode ini di kertas. Kalau perangkat terhapus, atau kamu mau kamarmu di perangkat lain, kode ini mengembalikan semuanya.",
   backupOffline: "Sedang tidak ada koneksi",
-  backupUnsaved: "Kami belum bisa menyimpan. Kode baru berfungsi setelah tersimpan.",
+  backupUnsaved:
+    "Kami belum bisa menyimpan. Kode baru berfungsi setelah tersimpan.",
   backupRetry: "Coba lagi",
   haveCode: "Aku punya kode",
   enterCode: "Ketik kodenya",
@@ -79,7 +80,8 @@ export const id: Record<StringKey, string> = {
   codeNotFound: "Kami tidak menemukan kode itu",
   restoreFound: "Di kode ini:",
   restoreHere: "Di perangkat ini sekarang:",
-  restoreReplaces: "Memulihkan akan mengganti yang ada di perangkat ini sekarang.",
+  restoreReplaces:
+    "Memulihkan akan mengganti yang ada di perangkat ini sekarang.",
   restoreConfirm: "Pulihkan",
   restoreCancel: "Batal",
   restoreDone: "Dipulihkan!",
@@ -98,6 +100,11 @@ export const id: Record<StringKey, string> = {
   place: "Taruh",
   needStars: "Perlu bintang",
   needStreak: "Perlu main beruntun",
+  catWindow: "Jendela",
+  catLight: "Lampu",
+  catToy: "Mainan",
+  placed: "Dipakai",
+  preview: "Lihat dulu",
   catHat: "Topi",
   catOutfit: "Baju",
   catPet: "Peliharaan",

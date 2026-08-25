@@ -67,7 +67,8 @@ export const ru: Record<StringKey, string> = {
   backupHint:
     "Запиши этот код на бумажке. Если устройство очистят, или ты захочешь свою комнату на другом, код вернёт всё обратно.",
   backupOffline: "Сейчас нет связи",
-  backupUnsaved: "Сейчас не удалось сохранить. Код заработает только после сохранения.",
+  backupUnsaved:
+    "Сейчас не удалось сохранить. Код заработает только после сохранения.",
   backupRetry: "Ещё раз",
   haveCode: "У меня есть код",
   enterCode: "Введи код",
@@ -94,6 +95,11 @@ export const ru: Record<StringKey, string> = {
   place: "Поставить",
   needStars: "Нужны звёзды",
   needStreak: "Нужны дни подряд",
+  catWindow: "Окно",
+  catLight: "Лампа",
+  catToy: "Игрушка",
+  placed: "Надето",
+  preview: "Просто смотрю",
   catHat: "Шапка",
   catOutfit: "Одежда",
   catPet: "Питомец",

@@ -262,6 +262,17 @@ export default defineConfig({
           "**/vendor-analytics-*.js",
           "**/cloud-*.js",
           "**/page-*.js",
+          // The room's SECOND SHELF - 52 more shop items, their drawings and
+          // their catalogue rows, in one chunk. `art.tsx` and `items.ts` ship
+          // in the SHELL (Home draws the child's real room in its world card),
+          // and the first visit had 718 B gz of headroom the day they landed:
+          // the drawings measured 6.8 KB gz and the ROWS ALONE 2.4 KB. Home
+          // fetches them on browser idle, the World screen pulls them beside
+          // its own chunk. Without this entry the glob above precaches them
+          // anyway, every child downloads a picture of every shop item before
+          // choosing a game, and the build is green - which is the entire
+          // reason this list exists.
+          "**/world-art-*.js",
           // The sound lab at `#/lab`. Reachable in production on purpose - it
           // is opened from a phone - but no child who never types that fragment
           // should carry it. Precaching it would be the whole point of the lazy
@@ -443,6 +454,28 @@ export default defineConfig({
           // failing. Naming it is half of what makes the lazy import real; the
           // globIgnores entry above is the other half.
           if (path.includes("/src/lab/")) return "lab";
+
+          // The room's second shelf - its drawings AND its catalogue rows.
+          // Both, and the rows are the half that surprises: measured on the
+          // artifact, the 52 rows alone were 2,448 B gz in the shell, so
+          // carving out the pictures and leaving the data behind fails the
+          // payload gate by more than it saves.
+          //
+          // It MUST be carved out before the `src/portal/world/` rule below,
+          // which would otherwise pin it to `page` - and `page` is fetched by
+          // every visitor who opens a GAME, most of whom never see the shop.
+          //
+          // NAMING it is the second of the three changes that make the split
+          // real (the dynamic import in `roomArt.ts` is the first, the
+          // `world-art-*.js` globIgnores entry above the third). An unnamed
+          // chunk is emitted as `module-<hash>.js`, which no globIgnores entry
+          // can match, so it lands straight back in the precache.
+          //
+          // `art.tsx`, `streakArt.tsx`, `roomArt.ts`, `Scene.tsx` and
+          // `items.ts` are deliberately NOT here: they are the half a
+          // returning player needs at first paint, plus the registry that
+          // merges the two.
+          if (/\/src\/portal\/world\/(artRest\.tsx|itemsRest\.ts)$/.test(path)) return "world-art";
 
           // Sharing: the payload policy, the card, the browser rasteriser and
           // the sheet. Same arrangement and same reason as `cloud` and `page`

@@ -294,7 +294,28 @@ function ciNodeMajor() {
 // on Node 22 in CI, so ~16 B, with Node 22 the HIGHER of the two. Do not treat
 // any of the three as the number; treat "the toolchain moves this by tens of
 // bytes" as the fact, and read the absolute off a CI run.
-const CEILING = 91_200;
+//
+// 91,200 -> 91,600 on 2026-08-25, for the World's second shelf. Two arms of one
+// tree, one hour, `git archive HEAD` into a scratch dir so a peer's in-flight
+// games could not contaminate either side: 90,482 without it, 91,019 with -
+// +537 B gz for 55 more shop items, three more slots in the room, a preview
+// step before every purchase and five more strings in the two shell
+// dictionaries.
+//
+// What the 537 is NOT is the content. The 52 new drawings (6.8 KB gz) and their
+// 52 catalogue ROWS (2.4 KB) are carved into a lazy `world-art` chunk that
+// neither the first visit nor a game page fetches; the 537 is the registry that
+// merges the two halves, the subscription that redraws when the lazy one lands,
+// and the three new categories. The catalogue can now treble again for about
+// the same number.
+//
+// The raise is 400 and not 0, and that is the deliberate part. Measured leaves
+// 181 B spare, which is inside the toolchain spread this file spends fifteen
+// lines warning about - so the next lane's ordinary 200 B change would red for
+// a reason that has nothing to do with it, on a repo that has two other lanes
+// working today. 91,600 puts the room back to ~580 B, which is about where this
+// file has been operating, and keeps the pressure the comment above wants kept.
+const CEILING = 91_600;
 
 function gzBytes(path) {
   return gzipSync(readFileSync(path)).length;

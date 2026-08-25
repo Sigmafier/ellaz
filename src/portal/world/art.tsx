@@ -13,11 +13,17 @@ import type { ArtId } from "./items";
 // player taps is exactly what they will get.
 //
 // Layout bands: wall y 0-210 · floor y 210-300 · character x 110-190.
+//
+// `star`, `nothing`, `wallBase`, `pot`, `posterFrame` and `outfitShape` are
+// EXPORTED because `artRest.tsx` - the lazy half of the same room - draws with
+// them. Sharing them is what keeps a poster on the second shelf the same size
+// and in the same place as a poster on the first, which a second copy of the
+// frame would lose the first time one of them was nudged.
 
-const WALL_Y = 210;
+export const WALL_Y = 210;
 
 /** A five-pointed star as a polygon — used on the wall, the crown, and posters. */
-function star(cx: number, cy: number, r: number, fill: string, key?: string): ReactElement {
+export function star(cx: number, cy: number, r: number, fill: string, key?: string): ReactElement {
   const points: string[] = [];
   for (let i = 0; i < 10; i++) {
     const radius = i % 2 === 0 ? r : r * 0.45;
@@ -28,11 +34,11 @@ function star(cx: number, cy: number, r: number, fill: string, key?: string): Re
 }
 
 /** The empty slot — "no rug", "no hat". A real choice, so it draws nothing. */
-const nothing = (): ReactElement => <g />;
+export const nothing = (): ReactElement => <g />;
 
 // ── walls ─────────────────────────────────────────────────────────────────
 
-const wallBase = (fill: string) => <rect x="0" y="0" width="300" height={WALL_Y} fill={fill} />;
+export const wallBase = (fill: string) => <rect x="0" y="0" width="300" height={WALL_Y} fill={fill} />;
 
 const wall_plain = (): ReactElement => <g>{wallBase("#454a80")}</g>;
 
@@ -122,7 +128,7 @@ const rug_rainbow = (): ReactElement => (
 
 // ── plants (right of the character, standing on the floor) ────────────────
 
-const pot = (fill = "#c97b4a") => <path d={`M240 266 H280 L275 292 H245 Z`} fill={fill} />;
+export const pot = (fill = "#c97b4a") => <path d={`M240 266 H280 L275 292 H245 Z`} fill={fill} />;
 
 const plant_cactus = (): ReactElement => (
   <g>
@@ -164,7 +170,7 @@ const plant_palm = (): ReactElement => (
 
 // ── posters (on the wall, left of the character) ──────────────────────────
 
-const posterFrame = (fill: string) => (
+export const posterFrame = (fill: string) => (
   <>
     <rect x="28" y="36" width="72" height="88" rx="6" fill="#fdcb6e" />
     <rect x="34" y="42" width="60" height="76" rx="3" fill={fill} />
@@ -199,7 +205,7 @@ const poster_cat = (): ReactElement => (
 
 // ── outfits (the character's torso + arms; the body is drawn by Scene) ────
 
-const outfitShape = (fill: string) => (
+export const outfitShape = (fill: string) => (
   <>
     <rect x="124" y="176" width="52" height="60" rx="17" fill={fill} />
     <rect x="108" y="182" width="15" height="42" rx="7.5" fill={fill} />
@@ -320,6 +326,9 @@ export const ART: Record<ArtId, () => ReactElement> = {
   hat_none: nothing,
   hat_cap,
   hat_crown,
+  window_none: nothing,
+  light_none: nothing,
+  toy_none: nothing,
   pet_none: nothing,
   pet_cat,
   pet_dog,

@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import type { AppLocale } from "@i18n/locales";
 import { makeT, textFor } from "@i18n/index";
 import {
@@ -10,13 +17,13 @@ import {
   type DailyStateV1,
   type ProfileV1,
 } from "@sdk/index";
-import { IconButton } from "@ui/components";
+import { Button, IconButton } from "@ui/components";
 import { Icon } from "@ui/icons";
 import { burst, popEl, shake } from "@juice/index";
 import { Scene } from "./Scene";
 import { Backup } from "./Backup";
+import { loadRoomArtRest, roomArtRevision, shopItems, subscribeRoomArt } from "./roomArt";
 import {
-  ALL_ITEMS,
   CATEGORIES,
   defaultFor,
   isUnlocked,
@@ -47,8 +54,11 @@ const CATEGORY_EMOJI: Record<ItemCategory, string> = {
   wall: "🧱",
   floor: "🪵",
   rug: "🧶",
+  window: "🪟",
+  light: "💡",
   plant: "🪴",
   poster: "🖼️",
+  toy: "🧸",
   outfit: "👕",
   hat: "🎩",
   pet: "🐾",
@@ -59,8 +69,11 @@ const CATEGORY_KEY: Record<ItemCategory, string> = {
   wall: "catWall",
   floor: "catFloor",
   rug: "catRug",
+  window: "catWindow",
+  light: "catLight",
   plant: "catPlant",
   poster: "catPoster",
+  toy: "catToy",
   outfit: "catOutfit",
   hat: "catHat",
   pet: "catPet",
@@ -74,7 +87,37 @@ export function World({ locale }: { locale: AppLocale }) {
   // for the reason `requiresStreak` gives: a missed day must cost nothing.
   const [daily, setDaily] = useState<DailyStateV1>(() => dailyStreak.read());
   const [active, setActive] = useState<ItemCategory>("wall");
+  // WHAT THE BIG ROOM IS SHOWING, which is not always what the player owns.
+  //
+  // The shop used to buy on the card tap: one tap, coins gone, item worn. That
+  // is fine for three rugs and wrong for eighty items - the picture on a 132px
+  // card is the only thing a child has to go on, and the only way to see a hat
+  // properly was to own it. So a tap now SELECTS, the room above redraws with
+  // that one slot swapped, and buying is a separate, named button.
+  //
+  // `undefined` means "showing the room as it is", which is the state the
+  // screen opens in and returns to on every category change. It is deliberately
+  // not "the equipped item of the active category": those render identically,
+  // and only this one lets the action bar say nothing rather than inviting a
+  // tap on something already worn.
+  const [preview, setPreview] = useState<ShopItem | undefined>(undefined);
+
+  // The catalogue GROWS, from 33 rows to 82, when the lazy chunk lands.
+  //
+  // Nothing here may import that chunk statically. `PageApp` imports this
+  // module, so a static import would put the whole second shelf in `page` -
+  // and `page` is fetched by every visitor who opens a GAME. Measured on the
+  // artifact, that arrangement took a game page's runtime from 19.3 to 28.5 KB
+  // gz to carry pictures of shop items no game will ever draw.
+  //
+  // So the shop asks for it on mount, IMMEDIATELY rather than on idle: `Scene`
+  // waits for `requestIdleCallback` because the home screen's room can afford
+  // to, and a shop cannot. Both calls reach the same idempotent loader.
+  useSyncExternalStore(subscribeRoomArt, roomArtRevision, roomArtRevision);
+  useEffect(loadRoomArtRest, []);
+  const catalogue = shopItems();
   const sceneRef = useRef<HTMLDivElement>(null);
+  const barRef = useRef<HTMLDivElement>(null);
 
   // wallet.subscribe returns its own unsubscribe, so it IS the cleanup.
   useEffect(() => wallet.subscribe(setProfile), []);
@@ -87,30 +130,64 @@ export function World({ locale }: { locale: AppLocale }) {
     wallet.ensureName();
   }, []);
 
-  const shown = ALL_ITEMS.filter((item) => item.category === active);
+  const shown = catalogue.filter((item) => item.category === active);
   const earned: Earned = { stars: profile.stars, longestStreak: daily.longest };
+
+  // The collection counter under each tab. Derived from the catalogue every
+  // render rather than stored, so a shelf added tomorrow counts itself. A free
+  // default is owned from the first boot, exactly as the cards read it.
+  const counts = Object.fromEntries(
+    CATEGORIES.map((category) => {
+      const all = catalogue.filter((item) => item.category === category);
+      return [
+        category,
+        {
+          owned: all.filter(
+            (item) => item.price === 0 || profile.owned.includes(item.id),
+          ).length,
+          total: all.length,
+        },
+      ];
+    }),
+  ) as Record<ItemCategory, { owned: number; total: number }>;
 
   const equippedId = (category: ItemCategory): string =>
     profile.equipped[category] ?? defaultFor(category).id;
 
-  const tap = (item: ShopItem, card: HTMLElement) => {
+  /** Tapping a card only ever LOOKS. Nothing is bought and nothing is spent. */
+  const select = (item: ShopItem) => {
+    audioPort.play("tap");
+    setPreview(item);
+    const scene = sceneRef.current;
+    if (scene) popEl(scene);
+  };
+
+  /**
+   * The one button that spends. Buys if it must, then always places.
+   *
+   * Kept as one action rather than a buy step and a wear step, because the
+   * thing a child wants is the thing on the screen in front of them - being
+   * asked to press a second button to put on the hat they just bought is a
+   * step that exists only in the shop's head.
+   */
+  const buyOrPlace = (item: ShopItem) => {
+    const bar = barRef.current;
     if (!wallet.owns(item.id)) {
       if (!isUnlocked(item, earned) || !wallet.canAfford(item.price)) {
         // The whole refusal: a gentle wiggle. Nothing is said, nothing is lost.
-        shake(card, 5, 220);
+        if (bar) shake(bar, 5, 220);
         return;
       }
       const result = wallet.buy(item.id, item.price, item.category);
       if (!result.ok) {
-        shake(card, 5, 220);
+        if (bar) shake(bar, 5, 220);
         return;
       }
-      if (item.price > 0) {
-        const box = card.getBoundingClientRect();
+      if (item.price > 0 && bar) {
+        const box = bar.getBoundingClientRect();
         burst(box.left + box.width / 2, box.top + box.height / 2);
       }
     }
-    // Buying always places the thing too — one tap, one visible result.
     wallet.equip(item.category, item.id);
     audioPort.play("pop");
     const scene = sceneRef.current;
@@ -119,7 +196,9 @@ export function World({ locale }: { locale: AppLocale }) {
 
   return (
     <div className="ellaz-scroll" style={{ flex: 1 }}>
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "8px 16px 32px" }}>
+      <div
+        style={{ maxWidth: 900, margin: "0 auto", padding: "8px 16px 32px" }}
+      >
         {/* NO header row here, and that is the normalisation.
             The way out and the wallet are PLATFORM chrome, so they are in the
             page header - the same bar, in the same place, carrying the same
@@ -131,8 +210,40 @@ export function World({ locale }: { locale: AppLocale }) {
 
         <NamePlate profile={profile} locale={locale} t={t} />
 
+        {/* The room, showing the PREVIEW when one is selected. One picture,
+            not a room beside a swatch: a child comparing two hats needs to see
+            them on the same head in the same room, which is the whole reason
+            the card thumbnails were already whole-room renders. */}
         <div ref={sceneRef}>
-          <Scene equipped={profile.equipped} />
+          <Scene
+            equipped={
+              preview
+                ? { ...profile.equipped, [preview.category]: preview.id }
+                : profile.equipped
+            }
+          />
+        </div>
+
+        {/* The bar's space is RESERVED whether or not it is showing. Without
+            this the tabs and the whole grid jump 74px down on the first tap -
+            under the finger that just tapped, which on a phone means the card
+            below the one they wanted is now where their thumb is. The bar
+            itself renders nothing until something is selected, because a
+            permanent one would be a control that does nothing sitting exactly
+            where the one that does something goes. */}
+        <div style={{ minHeight: 74 }}>
+          <ActionBar
+            barRef={barRef}
+            item={preview}
+            profile={profile}
+            earned={earned}
+            equipped={
+              preview ? equippedId(preview.category) === preview.id : false
+            }
+            locale={locale}
+            t={t}
+            onAct={buyOrPlace}
+          />
         </div>
 
         <nav
@@ -155,6 +266,10 @@ export function World({ locale }: { locale: AppLocale }) {
                 onClick={() => {
                   audioPort.play("tap");
                   setActive(category);
+                  // Back to the room as it is. Carrying a preview across tabs
+                  // would leave the big picture wearing something from a
+                  // shelf the player is no longer looking at.
+                  setPreview(undefined);
                 }}
                 style={{
                   flex: "0 0 auto",
@@ -171,11 +286,35 @@ export function World({ locale }: { locale: AppLocale }) {
                   padding: "6px 10px",
                 }}
               >
-                <span aria-hidden="true" style={{ fontSize: 28, lineHeight: 1 }}>
+                <span
+                  aria-hidden="true"
+                  style={{ fontSize: 28, lineHeight: 1 }}
+                >
                   {CATEGORY_EMOJI[category]}
                 </span>
-                <span style={{ fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    whiteSpace: "nowrap",
+                  }}
+                >
                   {t(CATEGORY_KEY[category])}
+                </span>
+                {/* How much of this shelf the player has. A collection is more
+                    fun when you can see it filling up, and with eighty items
+                    the shop is otherwise a wall with no sense of progress.
+                    dir="ltr" so "3/9" is not reordered inside the Hebrew app. */}
+                <span
+                  dir="ltr"
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    opacity: 0.7,
+                    letterSpacing: 0.2,
+                  }}
+                >
+                  {counts[category].owned}/{counts[category].total}
                 </span>
               </button>
             );
@@ -196,9 +335,10 @@ export function World({ locale }: { locale: AppLocale }) {
               profile={profile}
               earned={earned}
               equipped={equippedId(item.category) === item.id}
+              previewing={preview?.id === item.id}
               locale={locale}
               t={t}
-              onTap={tap}
+              onTap={select}
             />
           ))}
         </div>
@@ -261,7 +401,9 @@ function NamePlate({
         {emoji ?? "🙂"}
       </span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{t("yourName")}</div>
+        <div style={{ fontSize: 12, color: "var(--text-dim)" }}>
+          {t("yourName")}
+        </div>
         {/* dir="auto" per string, not per container: one name is one script, so
             each resolves its own direction and an English name inside the
             Hebrew app still reads correctly. */}
@@ -285,11 +427,156 @@ function NamePlate({
   );
 }
 
+/**
+ * The one control on this screen that spends a coin.
+ *
+ * IT IS THE WHOLE POINT OF THE 2026-08-25 REWORK. Before it, tapping a shop
+ * card bought the item — so with three rugs on a shelf a child could look at
+ * their room, and with eighty items they could not look at anything without
+ * paying for it. Preview and purchase were one gesture, and the cheaper of the
+ * two was the one nobody could do.
+ *
+ * Four states, one button, and the word on it is always the thing that will
+ * happen next:
+ *
+ *   nothing selected  the bar is not rendered at all
+ *   locked            the requirement, and a shake if pressed
+ *   not owned         Buy · <coins>, and a shake if the wallet is short
+ *   owned             Place, or Placed when it is already on
+ *
+ * NO DISABLED BUTTONS, and that is a rule rather than a style: this platform
+ * answers "you have not earned that yet" with a gentle wiggle and no words, so
+ * a locked item stays pressable and simply wiggles. A greyed-out control that
+ * refuses a tap tells a five-year-old they did something wrong; a wiggle tells
+ * them the same thing without saying it. See `Button`'s own note on `disabled`.
+ *
+ * The shake lands on the BAR rather than the card, because the bar is what was
+ * pressed. Shaking a card the player is not looking at is a refusal aimed at
+ * the wrong place on the screen.
+ */
+function ActionBar({
+  barRef,
+  item,
+  profile,
+  earned,
+  equipped,
+  locale,
+  t,
+  onAct,
+}: {
+  barRef: RefObject<HTMLDivElement>;
+  item: ShopItem | undefined;
+  profile: ProfileV1;
+  earned: Earned;
+  equipped: boolean;
+  locale: AppLocale;
+  t: (key: string) => string;
+  onAct: (item: ShopItem) => void;
+}) {
+  if (!item) {
+    // Nothing selected: the room is simply the room. A permanent empty bar
+    // would be a control that does nothing, sitting where the one that does
+    // something goes.
+    return null;
+  }
+
+  const owned = item.price === 0 || profile.owned.includes(item.id);
+  const unlocked = isUnlocked(item, earned);
+  const affordable = profile.coins >= item.price;
+  const ready = owned || (unlocked && affordable);
+
+  const label: ReactNode = owned ? (
+    equipped ? (
+      <>✓ {t("placed")}</>
+    ) : (
+      t("place")
+    )
+  ) : !unlocked && item.requiresStars !== undefined ? (
+    <>
+      <Icon name="star" filled /> {item.requiresStars}
+    </>
+  ) : !unlocked && item.requiresStreak !== undefined ? (
+    <>
+      <span aria-hidden="true">🔥</span> {item.requiresStreak}
+    </>
+  ) : (
+    <>
+      {t("buy")} <Icon name="coin" /> {item.price}
+    </>
+  );
+
+  // Spoken separately from the label, so a screen reader hears words rather
+  // than "star 10" — the same split the cards already make.
+  const spoken = owned
+    ? equipped
+      ? `${textFor(item.name, locale)}, ${t("placed")}`
+      : `${textFor(item.name, locale)}, ${t("place")}`
+    : !unlocked && item.requiresStars !== undefined
+      ? `${textFor(item.name, locale)}, ${t("needStars")} ${item.requiresStars}`
+      : !unlocked && item.requiresStreak !== undefined
+        ? `${textFor(item.name, locale)}, ${t("needStreak")} ${item.requiresStreak}`
+        : `${textFor(item.name, locale)}, ${t("buy")} ${item.price} ${t("coins")}`;
+
+  return (
+    <div
+      ref={barRef}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        margin: "12px auto 0",
+        maxWidth: "min(90vw, 60vh, 420px)",
+        padding: "10px 12px",
+        borderRadius: "var(--radius-2)",
+        background: "var(--surface-2)",
+        boxShadow: "var(--shadow-1)",
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          dir="auto"
+          style={{
+            fontSize: 16,
+            fontWeight: 800,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {textFor(item.name, locale)}
+        </div>
+        <div style={{ fontSize: 12, color: "var(--text-dim)" }}>
+          {owned ? t("owned") : t("preview")}
+        </div>
+      </div>
+      <Button
+        kids
+        ariaLabel={spoken}
+        variant={ready && !equipped ? "primary" : "ghost"}
+        onClick={() => onAct(item)}
+        style={{
+          // The glyph is an SVG block, so the row has to be a flex line or the
+          // icon and the number sit on different baselines.
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          flex: "0 0 auto",
+          fontSize: 18,
+          opacity: ready ? 1 : 0.55,
+        }}
+      >
+        {label}
+      </Button>
+    </div>
+  );
+}
+
 function ItemCard({
   item,
   profile,
   earned,
   equipped,
+  previewing,
   locale,
   t,
   onTap,
@@ -298,9 +585,11 @@ function ItemCard({
   profile: ProfileV1;
   earned: Earned;
   equipped: boolean;
+  /** This card is the one the big room is currently showing. */
+  previewing: boolean;
   locale: AppLocale;
   t: (key: string) => string;
-  onTap: (item: ShopItem, card: HTMLElement) => void;
+  onTap: (item: ShopItem) => void;
 }) {
   // A free default is owned the moment the game boots, whether or not the
   // player has ever tapped it — otherwise the room's starting look would read
@@ -311,7 +600,9 @@ function ItemCard({
   // by both would show the stars, which is the older and better-understood of
   // the two; nothing carries both today.
   const starLocked =
-    !owned && item.requiresStars !== undefined && earned.stars < item.requiresStars;
+    !owned &&
+    item.requiresStars !== undefined &&
+    earned.stars < item.requiresStars;
   const streakLocked =
     !owned &&
     !starLocked &&
@@ -351,20 +642,32 @@ function ItemCard({
 
   // Spoken separately from the badge: a screen reader should hear words, not
   // "star 10".
+  // A tap SHOWS - it does not buy - so the label says so. It used to promise
+  // "buy, 30 coins" on a control that charged the moment it was pressed; the
+  // button under the room is what charges now, and it carries that wording.
   const spoken = owned
-    ? `${textFor(item.name, locale)}, ${equipped ? t("place") : t("owned")}`
+    ? `${textFor(item.name, locale)}, ${equipped ? t("placed") : t("owned")}, ${t("preview")}`
     : starLocked
-      ? `${textFor(item.name, locale)}, ${t("needStars")} ${item.requiresStars}`
+      ? `${textFor(item.name, locale)}, ${t("needStars")} ${item.requiresStars}, ${t("preview")}`
       : streakLocked
-        ? `${textFor(item.name, locale)}, ${t("needStreak")} ${item.requiresStreak}`
-        : `${textFor(item.name, locale)}, ${t("buy")} ${item.price} ${t("coins")}`;
+        ? `${textFor(item.name, locale)}, ${t("needStreak")} ${item.requiresStreak}, ${t("preview")}`
+        : `${textFor(item.name, locale)}, ${item.price} ${t("coins")}, ${t("preview")}`;
 
   return (
     <button
-      onClick={(e) => onTap(item, e.currentTarget)}
+      onClick={() => onTap(item)}
       aria-label={spoken}
+      aria-pressed={previewing}
       style={{
-        border: equipped ? "3px solid var(--brand-2)" : "3px solid transparent",
+        // Two different marks, because they are two different facts. The solid
+        // ring is "this is what you are wearing"; the dashed one is "this is
+        // what the room above is showing you". A player comparing four hats has
+        // one of each on screen and must be able to tell them apart.
+        border: equipped
+          ? "3px solid var(--brand-2)"
+          : previewing
+            ? "3px dashed var(--brand)"
+            : "3px solid transparent",
         borderRadius: "var(--radius-3)",
         padding: 8,
         background: "var(--surface)",

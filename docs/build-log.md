@@ -3502,3 +3502,96 @@ nowhere. The streak is untouched - it accrues, it pays its milestones, and the
 daily card still marks the day done. `DailyChip.tsx` is kept rather than deleted:
 it has no importer so Rollup drops it and it costs a visit nothing, and putting
 the readout back somewhere is one line rather than a rewrite.
+
+## The World's second shelf - 27 items to 82, and where the bytes actually went
+
+**2026-08-25.** The ask was more to buy, more ways to customise, some genuinely
+expensive things to want - and a fix: tapping a shop card BOUGHT the item, so
+the only way to see a hat properly was to own it.
+
+**What shipped.** 55 more items (27 -> 82), three new slots in the room
+(**window**, **light**, **toy**, each with its own free default), a price ladder
+that now runs 20 to 500 coins, and a shop where a tap PREVIEWS and one named
+button under the room BUYS. The top tier - a 500-coin unicorn, a 380-coin
+rainbow suit, a 300-coin halo - is star-gated as well as priced, because a
+session is capped at 40 coins and anything reachable in one afternoon gives a
+child nothing to want tomorrow.
+
+### The three payload traps, in the order they bit
+
+Everything here is a measurement on two arms of ONE tree, built an hour apart
+from `git archive HEAD` into a scratch directory - because two peer lanes were
+mid-way through adding games and their untracked files fail the build. A delta
+measured across a working session is not a delta.
+
+**One: the drawings.** `art.tsx` is pinned to the SHELL, because Home draws the
+child's real room in its world card. The first visit had **718 B gz** of
+headroom. 52 more scenes measured **6.8 KB gz**. Carved into a lazy `world-art`
+chunk, the documented three changes: a dynamic import inside a function, a NAMED
+`manualChunks` branch, a `world-art-*.js` entry in `globIgnores`.
+
+**Two: the ROWS, which is the half nobody expects.** With the pictures carved
+out the gate still failed - 92,930 of 91,200. `items.ts` is in the shell too,
+and 52 catalogue rows with three languages of names each measured **2,448 B gz**
+on their own. Carving out the art and leaving the data behind fails the gate by
+more than it saves.
+
+**Three: a static import is free for the first visit and expensive for every
+GAME.** With both halves lazy, `World.tsx` still imported them statically - and
+`PageApp` imports `World`, so the whole shelf landed in `page`. Measured: a game
+page's runtime went **19.3 -> 28.5 KB gz, +47%**, to carry pictures of shop
+items no game will ever draw. Nothing in the first-visit gate can see that: `/`
+never fetches `page`. It was found by grepping which chunks reference the new
+one, after the gate had already gone green.
+
+So the shop reads a catalogue that GROWS. `shopItems()` returns 33 rows until
+the chunk lands and 82 after; `World` subscribes with `useSyncExternalStore` and
+asks for it on mount, immediately rather than on idle. The room in Home's card
+asks on idle, because a home screen can afford to wait and a shop cannot.
+
+**The whole change costs the first visit +537 B gz** - the registry, the
+subscription, three categories and five dictionary strings. The 9.2 KB of actual
+content costs it nothing. The catalogue can treble again for about the same
+number.
+
+### A missing drawing is a legal state
+
+`roomPiece` falls back to the slot's free default for any art it has not been
+handed, and `artFor` resolves an id the shell has never heard of by that id's
+own prefix. So a room can be briefly INCOMPLETE on the home screen and is never
+WRONG. Two invariants make that safe and both are pinned: every free default and
+every pre-existing row stays in the shell half (they are what everything falls
+back TO, and what a returning player already has equipped), and every row keeps
+`art === id` with `id` starting with `<category>_`.
+
+### The gate that had nothing to say about the thing that broke
+
+`shop-previews-before-it-buys.test.ts` was written for the buy path. Six
+mutations planted, and the first battery killed five - **the survivor was the
+shop reading `SHELL_ITEMS` instead of the whole catalogue**: a shelf that
+type-checks, renders, scrolls and is missing 52 items, with nothing on screen
+saying so. The gate now pins both directions at once, because the two fixes pull
+against each other: the shop may not read the shell half, AND it may not import
+the lazy half statically. Each is the other's regression. Second battery: 6 of 6
+killed, control green before and after.
+
+### Two things measured rather than reasoned
+
+**The ceiling moved 91,200 -> 91,600, and the reason is in the file.** Measured
+leaves 181 B spare, which is inside the toolchain spread `assert-payload.mjs`
+spends fifteen lines warning about - the next lane's ordinary 200 B change would
+have reded for a reason that had nothing to do with it, on a repo with two other
+lanes working that day.
+
+**The action bar's space is reserved whether or not it is showing.** Without it
+the tabs and the whole grid jump 74px down on the first tap - under the finger
+that just tapped, which on a phone means the card below the one they wanted is
+now where their thumb is.
+
+### And one process note worth keeping
+
+`npx prettier --write` was run over the changed files. **This repo has no
+prettier config**, so it reformatted at 80 columns against a tree written at
+~100 - turning a 16-line edit to `art.tsx` into 109 added lines, and touching
+`Backup.tsx`, which this change never meant to open. Every affected tracked file
+was reverted and the edits re-applied by script. Do not run prettier here.

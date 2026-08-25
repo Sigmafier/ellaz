@@ -69,7 +69,8 @@ export const tr: Record<StringKey, string> = {
   backupHint:
     "Bu kodu bir kâğıda yaz. Cihaz silinirse, ya da odanı başka bir cihazda istersen, bu kod her şeyi geri getirir.",
   backupOffline: "Şu anda bağlantı yok",
-  backupUnsaved: "Şu anda kaydedemedik. Kod ancak kaydedildikten sonra çalışır.",
+  backupUnsaved:
+    "Şu anda kaydedemedik. Kod ancak kaydedildikten sonra çalışır.",
   backupRetry: "Tekrar dene",
   haveCode: "Kodum var",
   enterCode: "Kodu yaz",
@@ -96,6 +97,11 @@ export const tr: Record<StringKey, string> = {
   place: "Yerleştir",
   needStars: "Yıldız gerek",
   needStreak: "Üst üste gün gerek",
+  catWindow: "Pencere",
+  catLight: "Lamba",
+  catToy: "Oyuncak",
+  placed: "Takılı",
+  preview: "Sadece bakıyorum",
   catHat: "Şapka",
   catOutfit: "Kıyafet",
   catPet: "Hayvan",

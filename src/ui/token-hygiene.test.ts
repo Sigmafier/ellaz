@@ -41,6 +41,13 @@ const COLOUR_EXEMPT = new Map<string, string>([
   ],
   ["portal/world/Scene.tsx", "the room's frame and floor, same reason as art.tsx"],
   [
+    "portal/world/artRest.tsx",
+    "the second shelf's 52 scenes - the lazy half of the same room, and the " +
+      "same reason as art.tsx. Item ids live in profile.owned forever, so a " +
+      "shop thumbnail cannot be allowed to mean a different picture per theme.",
+  ],
+  ["portal/world/streakArt.tsx", "the streak shelf's three scenes, same reason as art.tsx"],
+  [
     "ui/ink.ts",
     "INK_DARK and INK_LIGHT are the two candidates the contrast helper chooses " +
       "between. They are deliberately not theme tokens: a name strip sits on a " +

@@ -5,15 +5,11 @@ import { readFileSync } from "node:fs";
 // speaks. Iterating the app list here would demand a Turkish name for every
 // rug, which is the payload mistake this whole split exists to avoid.
 import { SHIPPED_LOCALES } from "@i18n/locales";
-import {
-  ALL_ITEMS,
-  CATEGORIES,
-  STREAK_ITEMS,
-  artFor,
-  defaultFor,
-  isUnlocked,
-  itemById,
-} from "./items";
+import { CATEGORIES, STREAK_ITEMS, artFor, defaultFor, isUnlocked, itemById } from "./items";
+// The WHOLE catalogue. `SHELL_ITEMS` is the half that ships early and is two
+// thirds short of the shop, so every invariant below would pass over a third
+// of it - see the note on `SHOP_ITEMS`.
+import { SHOP_ITEMS } from "./itemsRest";
 import { milestoneFor } from "@sdk/daily";
 
 // The catalogue is persisted data: an id here ends up in a player's
@@ -22,13 +18,13 @@ import { milestoneFor } from "@sdk/daily";
 
 describe("catalogue integrity", () => {
   it("has no duplicate ids", () => {
-    const ids = ALL_ITEMS.map((i) => i.id);
+    const ids = SHOP_ITEMS.map((i) => i.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
   it("gives every category exactly one free default", () => {
     for (const category of CATEGORIES) {
-      const free = ALL_ITEMS.filter((i) => i.category === category && i.price === 0);
+      const free = SHOP_ITEMS.filter((i) => i.category === category && i.price === 0);
       expect(free, `category "${category}" free defaults`).toHaveLength(1);
     }
   });
@@ -36,7 +32,7 @@ describe("catalogue integrity", () => {
   it("represents every category in the union", () => {
     for (const category of CATEGORIES) {
       expect(
-        ALL_ITEMS.some((i) => i.category === category),
+        SHOP_ITEMS.some((i) => i.category === category),
         `category "${category}" has no items`,
       ).toBe(true);
     }
@@ -44,13 +40,13 @@ describe("catalogue integrity", () => {
 
   it("uses only declared categories", () => {
     const known = new Set<string>(CATEGORIES);
-    for (const item of ALL_ITEMS) {
+    for (const item of SHOP_ITEMS) {
       expect(known.has(item.category), `${item.id} category`).toBe(true);
     }
   });
 
   it("names every item in both locales", () => {
-    for (const item of ALL_ITEMS) {
+    for (const item of SHOP_ITEMS) {
       for (const locale of SHIPPED_LOCALES) {
         expect(item.name[locale], `${item.id}.name.${locale}`).toBeTruthy();
         expect(item.name[locale].trim().length, `${item.id}.name.${locale}`).toBeGreaterThan(0);
@@ -59,14 +55,14 @@ describe("catalogue integrity", () => {
   });
 
   it("prices every item at a non-negative whole number", () => {
-    for (const item of ALL_ITEMS) {
+    for (const item of SHOP_ITEMS) {
       expect(Number.isInteger(item.price), `${item.id} price integer`).toBe(true);
       expect(item.price, `${item.id} price`).toBeGreaterThanOrEqual(0);
     }
   });
 
   it("keeps requiresStars non-negative when present", () => {
-    for (const item of ALL_ITEMS) {
+    for (const item of SHOP_ITEMS) {
       if (item.requiresStars === undefined) continue;
       expect(Number.isInteger(item.requiresStars), `${item.id} requiresStars integer`).toBe(true);
       expect(item.requiresStars, `${item.id} requiresStars`).toBeGreaterThanOrEqual(0);
@@ -74,13 +70,13 @@ describe("catalogue integrity", () => {
   });
 
   it("never star-locks a free default — the room must be reachable from zero", () => {
-    for (const item of ALL_ITEMS) {
+    for (const item of SHOP_ITEMS) {
       if (item.price === 0) expect(item.requiresStars, `${item.id}`).toBeUndefined();
     }
   });
 
   it("gives every item a non-empty art key", () => {
-    for (const item of ALL_ITEMS) {
+    for (const item of SHOP_ITEMS) {
       expect(item.art.length, `${item.id} art`).toBeGreaterThan(0);
     }
   });
@@ -117,7 +113,7 @@ describe("lookup helpers", () => {
 });
 
 describe("the streak shelf", () => {
-  const streak = ALL_ITEMS.filter((i) => i.requiresStreak !== undefined);
+  const streak = SHOP_ITEMS.filter((i) => i.requiresStreak !== undefined);
 
   it("exists — there is something only a streak opens", () => {
     expect(streak.length).toBeGreaterThan(0);
@@ -141,7 +137,7 @@ describe("the streak shelf", () => {
   });
 
   it("carries whole, non-negative day counts", () => {
-    for (const item of ALL_ITEMS) {
+    for (const item of SHOP_ITEMS) {
       if (item.requiresStreak === undefined) continue;
       expect(Number.isInteger(item.requiresStreak), `${item.id}`).toBe(true);
       expect(item.requiresStreak, `${item.id}`).toBeGreaterThan(0);
@@ -149,7 +145,7 @@ describe("the streak shelf", () => {
   });
 
   it("never streak-locks a free default — the room must be reachable from zero", () => {
-    for (const item of ALL_ITEMS) {
+    for (const item of SHOP_ITEMS) {
       if (item.price === 0) expect(item.requiresStreak, `${item.id}`).toBeUndefined();
     }
   });
@@ -158,12 +154,12 @@ describe("the streak shelf", () => {
     // The shelf adds to existing categories, so this is the invariant it could
     // most easily have broken.
     for (const category of CATEGORIES) {
-      expect(ALL_ITEMS.filter((i) => i.category === category && i.price === 0)).toHaveLength(1);
+      expect(SHOP_ITEMS.filter((i) => i.category === category && i.price === 0)).toHaveLength(1);
     }
   });
 
   it("keeps every id unique across both halves of the catalogue", () => {
-    const ids = ALL_ITEMS.map((i) => i.id);
+    const ids = SHOP_ITEMS.map((i) => i.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
 });

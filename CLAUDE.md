@@ -591,14 +591,64 @@ their players' records survived; a read-through `legacyKey` shim carries those
 old keys, and it has a kill date. Full rule, the board table, and the `ms`-is-a-
 duration trap: [`.claude/rules/score-contract-convention.md`](.claude/rules/score-contract-convention.md).
 
-**The World** (`#/world`) is a room and a character with 8 slots (wall, floor,
-rug, plant, poster, outfit, hat, pet) holding 24 items in original inline SVG.
-Buying also places the item, one tap, no confirm dialog. An item the player
-cannot afford or has not unlocked answers with a gentle shake and says nothing,
-because a refusal is not an error. Every category ships exactly one free
-`price: 0` default (pinned by `world/items.test.ts`), so the room is complete
-before a player has earned anything. **Item ids are persisted in
-`profile.owned` forever: never rename one, never reuse one.**
+**The World** (`/world/`) is a room and a character with **11 slots** (wall,
+floor, rug, window, light, plant, poster, toy, outfit, hat, pet) holding **82
+items** in original inline SVG. Read those two off `CATEGORIES` and the
+catalogue rather than off this line. An item the player cannot afford or has
+not unlocked answers with a gentle shake and says nothing, because a refusal is
+not an error. Every category ships exactly one free `price: 0` default (pinned
+by `world/items.test.ts`), so the room is complete before a player has earned
+anything. **Item ids are persisted in `profile.owned` forever: never rename
+one, never reuse one.**
+
+**A tap PREVIEWS. A button BUYS.** Tapping a shop card used to buy the item on
+the spot, which was tolerable at 27 items and wrong at 82: the picture on a
+132px card was all a child had to go on, and the only way to see a hat properly
+was to own it. A tap now swaps that one slot into the big room above and marks
+the card with a dashed ring; a single named button under the room says exactly
+what will happen next - **Buy · 30**, **Place**, **✓ Placed**, or the
+requirement that is holding it. There is still no confirm dialog: buying places
+the thing too, so it is one press and one visible result.
+
+**No disabled buttons, and that is a rule rather than a style.** A locked or
+unaffordable item stays pressable and answers with the same gentle wiggle the
+cards always gave. `Button`'s `disabled` is reserved for actions that are
+genuinely impossible, and "you have not earned this yet" is not one - it would
+be the first fail-punishment in the app. The shake lands on the BAR, because
+the bar is what was pressed. The bar's height is reserved whether or not it is
+showing, or the grid jumps 74px under the finger that just tapped it.
+
+**Three things the expansion could not do naively, all of them payload.**
+`items.ts`, `art.tsx` and `Scene.tsx` are pinned to the SHELL - Home draws the
+child's real room in its world card - and the first visit had **718 B gz of
+headroom**. Measured on two arms of one tree: the 52 new drawings are 6.8 KB gz
+and their 52 catalogue ROWS another 2.4 KB. Both now live in one lazy
+`world-art` chunk (`artRest.tsx` + `itemsRest.ts`), and the whole change costs
+the first visit **+436 B gz**.
+
+The rows are the half that surprises, and the second trap is one further out:
+a STATIC import of that chunk from `World.tsx` costs a first visit nothing and
+charges every visitor who opens a **game**, because `PageApp` imports `World`
+and the shelf lands in `page` - measured 19.3 → 28.5 KB gz on a game page,
+**+47%**, to carry pictures of shop items no game will ever draw. So `World`
+reads a catalogue that GROWS: `shopItems()` in `roomArt.ts` returns 33 rows
+until the chunk lands and 82 after, and the screen re-renders on that one event.
+`shop-previews-before-it-buys.test.ts` pins both directions - the shop may not
+read the shell half, and it may not import the lazy half statically - because
+each fix is the other's regression. Six mutations planted, six killed.
+
+**A missing drawing is a legal state, not an error.** `roomPiece` falls back to
+the slot's free default for any art it has not been handed, and `artFor`
+resolves an id the shell has never heard of by that id's own prefix - so the
+room on the home screen can be briefly INCOMPLETE and is never WRONG. That
+leans on `art === id` and `id` starting with `<category>_`, true of all 82 rows
+and pinned, so a row that breaks it is a red build rather than a wall that
+quietly stops drawing for the one child who bought it.
+
+**Every free default must stay in the SHELL half**, since it is the fallback
+everything else falls back TO; in the lazy half it would be a fallback that is
+itself missing. Same for every pre-existing row: a returning player has those
+equipped already.
 
 **The player's name.** Every player is called something — one adjective plus one
 animal, drawn from a pool of 16 × 20 in `src/sdk/names.ts` and shown on the World
