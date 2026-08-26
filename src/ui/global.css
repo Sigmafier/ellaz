@@ -154,6 +154,27 @@ body.app-shell:has(#home-doc) #root:empty {
   display: none;
 }
 
+/* ...and its exact complement, which is the one that had never been measured.
+   The moment #root HAS children the document leaves the layout in the SAME
+   style recalculation that lets #root in, so the hand-off is one reflow.
+
+   Without it there is a painted frame carrying BOTH - the whole app laid out
+   underneath the whole document - and on the site's canonical entry that
+   measures CLS 1.000. Every game page reads 0.003-0.010; nothing had ever
+   measured `/`. The DOM removal in main.tsx runs on the next animation frame,
+   which was right while React 18 committed asynchronously and is a frame too
+   late now that preact/compat's render() returns with the DOM already there.
+
+   Measured 2026-08-26, 8 interleaved runs per arm, 390x844, CPU 4x, one tree
+   with only the alias reverted: preact CLS 1.709 in 8/8, react 0.685 in 7/8.
+
+   CSS rather than moving the removal earlier, because a rule cannot be wrong
+   about WHEN a runtime committed - it fires on the same recalculation under
+   either one, and it needs no teardown when the node goes. */
+body.app-shell:has(#root:not(:empty)) #home-doc {
+  display: none;
+}
+
 #home-doc {
   max-width: 44rem;
   margin-inline: auto;

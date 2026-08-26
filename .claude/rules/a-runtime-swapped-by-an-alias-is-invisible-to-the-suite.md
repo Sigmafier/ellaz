@@ -80,6 +80,49 @@ difference between arms, plus the one case where NEITHER arm loaded, which is th
 case whose summary is otherwise empty. And it must say which reason it is red,
 because a non-zero status over a table of zeros reads as a broken harness.
 
+## And the thing it changed was WHEN, which is the half nobody looks for
+
+The parity sweep compared 42 games and found 0 behaviour differences and 0
+unexplained pixels, and it was right: both runtimes draw the same page. What it
+could not see is that they draw it at different MOMENTS.
+
+`main.tsx` removes the emitted SEO document on the next animation frame after
+`render()`. That was correct while React 18 committed asynchronously - the
+removal and the commit landed together. `preact/compat`'s `render()` returns with
+the DOM already committed, so the removal is now a frame LATE, and one painted
+frame carries the whole app laid out underneath the whole document.
+
+Measured 2026-08-26, 10 interleaved runs per arm, CPU 4x, 390x844, one tree with
+one variable:
+
+```
+                        CLS on /     `ellaz-scroll` shifted
+  react                   0.685              0/10
+  preact                  1.709              9/10        <- the regression
+  preact + one CSS rule   0.685              0/10
+```
+
+`/world/` had been measured at 0.2713 and fixed; every game page reads 0.003 to
+0.010. `/` - the canonical entry, the `x-default` target, the most-linked page -
+had never been measured at all, so a doubling on it was invisible from both
+sides: the suite cannot see the runtime, and the runtime probes did not read
+Core Web Vitals.
+
+**A swap that changes commit TIMING breaks whatever was written against the old
+timing, and nothing in a pixel diff or a behaviour diff can show it.** Grep for
+what the old runtime's scheduling was load-bearing for - a `requestAnimationFrame`
+hand-off, a `setTimeout(0)`, a "React has not committed yet" comment - and check
+each one against the new one. Here there was exactly one, and its comment said
+so in plain English.
+
+The fix went in CSS rather than in the timer, because a rule fires on the same
+style recalculation under either runtime and so cannot be wrong about when a
+runtime committed. `scripts/repro/repro-home-boot-shift.mjs` gates it, and its
+own control had to be a second BUILD: injecting `display:block!important` at
+runtime to put the old behaviour back reads HEALTHY on the very build that
+measures 1.709 without the rule, because a stylesheet added after the navigation
+commits does not reproduce a stylesheet that was never there.
+
 ## When to Apply
 
 - Any `resolve.alias` that substitutes a package for a different implementation
