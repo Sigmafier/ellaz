@@ -45,13 +45,26 @@ const argOf = (f, d) => { const i = process.argv.indexOf(f); return i === -1 ? d
 const PORTS = { preact: argOf("--preact", "5176"), react: argOf("--react", "5177") };
 const OUT = argOf("--out", "/tmp/arm-parity");
 const ONLY = argOf("--only", null);
+const CONTROL = process.argv.includes("--control");
 
 const GAMES = (() => {
   const j = JSON.parse(readFileSync(new URL("../../dist/pages.json", import.meta.url), "utf8"));
   const rows = Array.isArray(j) ? j : j.pages;
   return [...new Set(rows.filter((r) => r.kind === "game" && r.locale === "en").map((r) => r.id))];
 })();
-const LIST = ONLY ? [ONLY] : GAMES;
+// --control drives the verdict to RED with no server setup at all: a game id
+// nothing is called cannot mount in either arm, which is the same shape as a
+// dead port, a wrong path or a torn build. It is the one case whose summary was
+// otherwise ALL ZEROS while nothing had loaded, so it is the one worth being
+// able to re-run. The other two controls need a second artifact and so are
+// recipes rather than a flag:
+//
+//   one arm is not the site       --only memory --react 8772
+//   a real rendering difference   append `.ellaz-play-surface{transform:translateY(14px)}`
+//                                 to the react arm's shell-*.css, then --only memory
+//                                 (a deterministic game, so self-difference is 0 and
+//                                  the classifier cannot excuse it as the deal)
+const LIST = CONTROL ? ["__no_such_game__"] : ONLY ? [ONLY] : GAMES;
 
 mkdirSync(OUT, { recursive: true });
 const browser = await chromium.launch();
@@ -170,7 +183,17 @@ for (const r of suspects) {
 const behaviour = rows.filter((r) =>
   r.react.mounted !== r.preact.mounted || r.react.reacts !== r.preact.reacts ||
   r.react.errors.length !== r.preact.errors.length || r.react.failed.length !== r.preact.failed.length);
-const dead = rows.filter((r) => !r.preact.mounted || !r.preact.reacts);
+// NOT "did preact react" - `reacts` presses buttons, and 13 of 42 games are
+// driven by a keyboard, a swipe or a drag, so a false there is the HARNESS's
+// reach and not the build's health. Counting it made a wholly healthy sweep
+// exit 1 every single time, with three summary lines all reading clean, which
+// is the shape that teaches a reader to stop reading the exit code
+// (.claude/rules/a-gate-that-reds-on-day-one-teaches-you-to-ignore-it.md).
+// This harness compares two arms; an absolute claim about ONE arm belongs in
+// its verdict only where NEITHER arm managed to load - which is a dead port, a
+// wrong path or a torn build, and is the one case whose summary would otherwise
+// be all zeros.
+const broken = rows.filter((r) => !r.react.mounted && !r.preact.mounted);
 const unexplained = suspects.filter((r) => !r.random);
 
 console.log(`\n${"=".repeat(72)}`);
@@ -181,10 +204,29 @@ console.log(`pixels identical            ${rows.filter(r => r.cross.pct === 0).l
 console.log(`pixels differ, random       ${suspects.filter(r => r.random).length}`);
 console.log(`pixels differ, UNEXPLAINED  ${unexplained.length}${unexplained.length ? "  -> " + unexplained.map(r => r.id).join(", ") : ""}`);
 console.log(`console errors              preact ${rows.reduce((a, r) => a + r.preact.errors.length, 0)}   react ${rows.reduce((a, r) => a + r.react.errors.length, 0)}`);
+console.log(`NEITHER arm loaded          ${broken.length}${broken.length ? "  -> " + broken.map(r => r.id).join(", ") : ""}`);
+const cannotPress = rows.filter((r) => r.preact.mounted && !r.preact.reacts).length;
+if (cannotPress) console.log(`(${cannotPress} game(s) mounted but take a key, a swipe or a drag, which this harness cannot press. That is its reach, not a defect.)`);
 for (const r of rows) for (const e of r.preact.errors) console.log(`    preact ${r.id}: ${e}`);
 for (const r of rows) for (const e of r.react.errors) console.log(`    react  ${r.id}: ${e}`);
 
 writeFileSync(`${OUT}/report.json`, JSON.stringify(rows, null, 1));
 console.log(`\nshots + report.json in ${OUT}`);
 await browser.close();
-process.exit(behaviour.length === 0 && unexplained.length === 0 && dead.length === 0 ? 0 : 1);
+const why = [
+  behaviour.length && `behaviour differs on ${behaviour.length}`,
+  unexplained.length && `${unexplained.length} unexplained pixel difference(s)`,
+  broken.length && `${broken.length} game(s) where NEITHER arm loaded`,
+].filter(Boolean);
+// Say WHY it is red, on the line above the exit. A non-zero status with a
+// summary of zeros is how injection 2 read before this existed.
+console.log(why.length ? `\nFAIL  ${why.join("; ")}` : `\nOK  the two builds agree`);
+
+if (CONTROL) {
+  const ok = broken.length === 1 && why.length === 1;
+  console.log(ok
+    ? "\nCONTROL OK  the verdict goes red, and says which of the three reasons it is"
+    : "\nCONTROL FAILED  a game that cannot exist did not red the verdict - this harness cannot fail, so none of its green runs mean anything");
+  process.exit(ok ? 0 : 2);
+}
+process.exit(why.length ? 1 : 0);

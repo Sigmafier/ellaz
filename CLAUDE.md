@@ -2359,10 +2359,25 @@ both measured as two arms of one tree:
   child downloaded before choosing anything was a rendering library and none of
   it was a game.
 
-**Nothing in the test suite can see the second one.** `vitest.config.ts` has its
-own resolve block, its environment is `node` and its include is `*.test.ts`, so
-all 4,303 tests render no component and pass either way - and the two ways it
-breaks do not throw. `useSyncExternalStore` is what re-renders the grid when the
+**Nothing in the test suite can see the second one, and for a day the suite was
+lying about which runtime it tested.** `vitest.config.ts` resolves aliases from
+ITS OWN config and carried the five path aliases and not those two, so all 4,303
+tests exercised React 18 - still installed, still a dependency - while the site
+shipped preact. They passed before the swap, after it, and would have passed had
+it been broken. The two aliases are in `vitest.config.ts` now, so a future
+component test tests what ships; nothing renders a component TODAY, so this buys
+honesty rather than coverage. **The obvious control does not work**: measured,
+`preact/compat` reports `version: "18.3.1"`, the same
+`$$typeof: Symbol(react.element)` and even React's
+`__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED`, so each of those passes
+under React. A vnode's `constructor` is `undefined` in preact and `Object` in
+React, and that is the whole discriminator;
+`nested-root-teardown.test.ts` asserts it and has been watched failing with the
+aliases removed. Full account:
+[`.claude/rules/a-runtime-swapped-by-an-alias-is-invisible-to-the-suite.md`](.claude/rules/a-runtime-swapped-by-an-alias-is-invisible-to-the-suite.md).
+
+The environment is `node` and the include is `*.test.ts`, so the suite still
+renders nothing, and the two ways the swap breaks do not throw. `useSyncExternalStore` is what re-renders the grid when the
 lazy metadata and card art land, so a subtle difference leaves every card below
 the fold blank forever with a clean console; and `reactHost.tsx` tears down a
 nested root inside the portal's tree, which is a different code path in preact.
@@ -2370,6 +2385,27 @@ nested root inside the portal's tree, which is a different code path in preact.
 real browser, both lazy-arrival controls fire (`art-rest` blocked reads 15 of 39
 cards, `meta-rest` blocked reads 15 labelled), and the home, the room and the
 boards render BYTE-IDENTICAL to the React arm at 390x844.
+
+**A second harness compares the two builds head to head.**
+`scripts/repro/repro-arm-parity.mjs` runs both arms over all 42 games and judges
+pixels and behaviour separately, because a game can render identically and be
+dead. Most games here are RANDOM, so a cross-arm pixel difference is the
+EXPECTED reading and not a finding: a second pass re-shoots ONE build for exactly
+the games that differed, and where a build differs from itself as much as the two
+builds differ there is nothing left for the engine to explain. Measured
+2026-08-26 on one tree with only the alias reverted: **42 games, 0 behaviour
+differences, 0 unexplained pixel differences, 0 console errors in either arm, 11
+screens byte-identical and the other 31 explained by their own deal.** Three
+games were flagged and re-run three times each before that was said out loud.
+`--control` drives its verdict red with no setup, because a harness nobody has
+watched fail is not a harness - and this one had two verdict defects of its own
+when `/deep-test` went looking (its header carries them).
+
+**Reverting is four lines and a build**: drop the two aliases from
+`vite.config.ts` and the two from `vitest.config.ts`. `react` and `react-dom` are
+deliberately still installed and still dependencies - they cost the bundle
+nothing, they carry the types, and they are what makes that revert a config edit
+rather than an install.
 
 **That probe was wrong twice before it was right, and the React arm is why I
 know.** Its first card-art counter read 1 of 39 and its node floor called snake,

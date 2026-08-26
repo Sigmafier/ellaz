@@ -285,9 +285,17 @@ in that comment block that is a cut rather than a raise.
 
 It was a two-line config change and a browser probe, not a rewrite, because
 `preact/compat` carries the whole API surface this app uses. What it needed was
-EVIDENCE rather than engineering: nothing in the 3,944-test suite renders a
-component (`vitest.config.ts` has its own resolve block, its environment is
-`node`, its include is `*.test.ts`), and the two ways it breaks do not throw.
+EVIDENCE rather than engineering: nothing in the 4,304-test suite renders a
+component (its environment is `node`, its include is `*.test.ts`), and the two
+ways it breaks do not throw.
+
+**And `vitest.config.ts` resolves aliases from its own config, which carried the
+five path aliases and NOT those two** - so for a day the whole suite exercised
+React 18 while the site shipped preact, green either way. Both aliases are there
+now (2026-08-26). It buys honesty for the next component test rather than
+coverage today, and the control that proves it is in force cannot be any of the
+obvious ones: `preact/compat` reports version `18.3.1`, the same `$$typeof` and
+even React's secret-internals key. Only a vnode's `constructor` differs.
 `scripts/repro/repro-preact-swap.mjs` is what answers: 42 of 42 games mount in a
 real browser, both lazy-arrival controls fire, and the home, the room and the
 boards render byte-identical to the React arm at 390x844.

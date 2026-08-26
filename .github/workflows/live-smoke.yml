@@ -1,0 +1,73 @@
+name: Does the live site still play?
+
+# The only check in this repo that OPENS the live site in a browser.
+#
+# `assert-crawlable.yml` reads the network as a crawler and never runs a line of
+# our JavaScript. `assert-live.mjs` fetches every artifact and compares hashes,
+# which cannot tell a 200 that executes from a 200 that throws. Everything else
+# reads dist/ or a source tree. So nothing has ever asked the question a child
+# asks: does it play?
+#
+# That gap is the exact size of the runtime swap shipped 2026-08-26 - `react` and
+# `react-dom` aliased onto `preact/compat`. No test in the suite renders a
+# component, both of that swap's failure modes are silent, and a service worker
+# can serve a returning visitor a page from a build nobody is looking at any more.
+# See .claude/rules/a-runtime-swapped-by-an-alias-is-invisible-to-the-suite.md
+#
+# It SAMPLES. Hostinger's CDN bot challenge arms on a run of requests from one IP
+# - that is the 2026-08-08 outage, and it is why the crawl check was cut from a
+# 200-URL walk to 40. A reconciler regression is not per-game, so opening all 42
+# every day would sit beside that budget for no extra signal. Four screens run
+# daily and the rest rotate on the date.
+
+on:
+  schedule:
+    # Daily, 07:20 UTC - 40 minutes after the crawl check, so the two never put
+    # their requests on the same minute from the same runner IP.
+    - cron: "20 7 * * *"
+  workflow_dispatch:
+    inputs:
+      all:
+        description: "Open every game instead of the daily sample"
+        type: boolean
+        default: false
+
+# Never on push. A push already runs assert-live.mjs inside the deploy job, and
+# a browser cannot tell "not deployed yet" from "broken" during propagation -
+# that is a-gate-must-tell-not-yet-from-wrong.md, and it would red this job on
+# every good release.
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Only playwright, and only chromium. `npm ci` would install the whole
+      # toolchain to run a script that touches none of it.
+      - name: Install a browser
+        run: npm i --no-save playwright@1 && npx playwright install --with-deps chromium
+
+      # The control runs FIRST and is BLOCKING. A smoke test that cannot fail
+      # reports the site healthy on the day it goes down, and this job's whole
+      # value is that its green means something. It asks the live site for a game
+      # that does not exist and requires the verdict to go red.
+      - name: Control - prove the verdict can fail
+        run: node scripts/repro/repro-live-smoke.mjs --control
+
+      - name: Open the live site
+        run: |
+          node scripts/repro/repro-live-smoke.mjs \
+            ${{ inputs.all && '--all' || '' }}

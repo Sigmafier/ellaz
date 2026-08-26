@@ -3595,3 +3595,116 @@ prettier config**, so it reformatted at 80 columns against a tree written at
 ~100 - turning a 16-line edit to `art.tsx` into 109 added lines, and touching
 `Backup.tsx`, which this change never meant to open. Every affected tracked file
 was reverted and the edits re-applied by script. Do not run prettier here.
+
+## Preact replaced React, and the suite was green about the wrong runtime
+
+Shipped 2026-08-26. Two lines in `resolve.alias` and nothing else: `react` and
+`react-dom` point at `preact/compat`. The numbers, measured on ONE tree with only
+the alias reverted for the other arm - not against yesterday's build, which also
+differed by four games:
+
+```
+                          REACT arm        PREACT (shipped)
+  drawing library           45,239 B gz          7,936 B gz
+  everything else           44,959              45,196
+  FIRST VISIT               90,198              53,132        -41%
+```
+
+The 237 B the rest of the shell gains is `preact/compat`'s shims being inlined.
+`CEILING` came down 91,600 -> 56,000 in the same change, the only cut in that
+comment block rather than another raise.
+
+### What it costs, measured rather than recited
+
+Nine runs per arm, interleaved so run order cannot bias it, on Chrome's Slow 4G
+profile (1.6 Mbps, 150 ms RTT) with a fresh context and the service worker
+blocked. The bracket is the 17-83% range:
+
+```
+  JS work during load        55 ms          ->   36 ms
+  time to first game card    820 [802-877]  ->  699 [681-785]     ~120 ms sooner
+  tap a card -> board ready  1168 [1100-1217] -> 1146 [1114-1177] NO DIFFERENCE
+  memory after load          3,230 KB       -> 2,734 KB           a wash
+```
+
+Two of those four are real and two are not, and the brackets are what say which.
+First-card ranges barely overlap; tap-to-board ranges overlap completely, and an
+earlier run had memory going the OTHER way. **Do not quote the memory figure.**
+
+### The failure nobody could have seen, because it was in the test config
+
+`vitest.config.ts` resolves aliases from its OWN config. It carried the five path
+aliases (`@sdk`, `@ui`, `@juice`, `@i18n`, `@shared`) and not `react` - so all
+4,303 tests went on exercising React 18, which is still installed and still a
+dependency. They passed before the swap, after the swap, and would have passed
+had the swap been broken. Nothing in any diff said so: the alias is two lines in a
+build config, and the test config is a different file nobody opened.
+
+Three things were true at once, and it needed all three:
+
+- the alias list in `vitest.config.ts` looked COMPLETE, because five of seven
+  aliases were there;
+- `react` and `react-dom` are still installed, so an import resolves happily;
+- no test rendered a component, so the divergence was latent. The first component
+  test written after the swap would have tested React and passed.
+
+**The obvious control does not work.** Measured on the installed packages:
+
+| marker | React 18.3.1 | `preact/compat` |
+|---|---|---|
+| `version` | `"18.3.1"` | `"18.3.1"` |
+| `createElement(...).$$typeof` | `Symbol(react.element)` | `Symbol(react.element)` |
+| `__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED` | present | present |
+| **`createElement(...).constructor`** | **`Object`** | **`undefined`** |
+
+Only the last discriminates. A control built on any of the other three passes
+under React and reports the alias working. `nested-root-teardown.test.ts` carries
+it and has been watched failing: with the two lines removed it reds with
+`expected [Function Object] to be undefined`.
+
+### The head-to-head harness, and the two defects it had itself
+
+`scripts/repro/repro-arm-parity.mjs` drives both builds over all 42 games and
+judges pixels and behaviour separately, because a game can render identically and
+be dead. **Most games here are random**, so a cross-arm pixel difference is the
+expected reading rather than a finding - a naive run reports thirty-odd failures
+that are all the deal changing. A second pass re-shoots ONE build for exactly the
+games that differed; where a build differs from ITSELF as much as the two builds
+differ, there is nothing left for the engine to explain.
+
+Result, 2026-08-26: **42 games, 0 behaviour differences, 0 unexplained pixel
+differences, 0 console errors and 0 uncaught throws in either arm**, 11 screens
+byte-identical, the other 31 explained by their own deal. Three were flagged and
+re-run three times each first - `snake` (a live board, so it moves between two
+shots of one build), `fit` (a randomly dealt tray) and `parking` (two presses
+that must agree, so it answers by luck).
+
+`/deep-test` then found two defects in the harness itself, and they had to be
+fixed together because the obvious fix for the first creates the second:
+
+1. **It exited 1 on a wholly healthy sweep.** Its `dead` check counted "did the
+   board answer a tap", and 14 of 42 games take a key, a swipe or a drag that the
+   harness cannot press. So the status was red every run with three summary lines
+   all reading clean - the exact shape of
+   [`a-gate-that-reds-on-day-one-teaches-you-to-ignore-it.md`](../.claude/rules/a-gate-that-reds-on-day-one-teaches-you-to-ignore-it.md).
+   And the first sweep quoted in this repo was read WITHOUT its exit code, because
+   the shell line ended in an `echo`.
+2. **With both arms pointed at something that is not the site, every printed line
+   read zero.** behaviour differs 0, unexplained 0, pixels identical 0/1. Deleting
+   the always-red check - the natural fix for (1) - would have made that case exit
+   0 as well. The verdict now names which of three reasons it is red, and a
+   `NEITHER arm loaded` line exists for the case whose summary is otherwise empty.
+
+`--control` drives it red with no server setup at all, by asking for a game id
+nothing is called. The other two controls need a second artifact and are recipes
+in the file's header: point one arm at a port that is not the site, and append
+`.ellaz-play-surface{transform:translateY(14px)}` to the react arm's shell CSS -
+that last one is the positive control that proves the harness can report a real
+rendering difference, and it does, naming the game.
+
+### Reverting
+
+Four lines and a build: drop the two aliases from `vite.config.ts` and the two
+from `vitest.config.ts`. `react` and `react-dom` stay installed on purpose -
+nothing bundles them, they carry the types, and they are what makes the revert a
+config edit rather than an install.

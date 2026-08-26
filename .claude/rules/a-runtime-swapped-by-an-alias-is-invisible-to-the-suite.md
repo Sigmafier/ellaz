@@ -58,6 +58,28 @@ because nothing here renders the app. The evidence that the site works is a brow
   behaviour compared, with a second pass that re-shoots ONE build to separate a
   random deal from a rendering difference.
 
+## The harness written to replace the suite had the same disease
+
+`scripts/repro/repro-arm-parity.mjs` was built precisely because the suite cannot
+see this. `/deep-test` then found two verdict defects in it, and they are worth
+keeping because the second is created by the obvious fix for the first:
+
+- **It exited 1 on a wholly healthy sweep.** Its liveness check counted "did the
+  board answer a tap", and 14 of 42 games take a key, a swipe or a drag that no
+  harness of this shape can press. A status that is red every run carries no
+  information at all - and the first sweep quoted from it was read WITHOUT its
+  exit code, because the shell line ended in an `echo`, so a verdict was reported
+  from an ABSENCE of complaint.
+- **With both arms pointed at something that is not the site, every printed line
+  read zero**: behaviour differs 0, unexplained 0, pixels identical 0/1. Deleting
+  the always-red check would have made that exit 0 too.
+
+The rule that falls out is narrower than "test your harness": **a comparison
+harness must not put an ABSOLUTE claim about one arm in its verdict** - only a
+difference between arms, plus the one case where NEITHER arm loaded, which is the
+case whose summary is otherwise empty. And it must say which reason it is red,
+because a non-zero status over a table of zeros reads as a broken harness.
+
 ## When to Apply
 
 - Any `resolve.alias` that substitutes a package for a different implementation
