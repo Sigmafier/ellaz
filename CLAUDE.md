@@ -1494,6 +1494,28 @@ An EMPTY content-sized `#game-frame` centred in a 740px box sits at y=474; the
 empty, so the finished layout is unchanged - measured identical to the control at
 both viewports, three interleaved runs, 0.2713 -> 0.0032.
 
+**That fix REGRESSED under preact and the regression is live (2026-08-26, OPEN).**
+The room's own probe, one tree with only the alias reverted, positive control
+firing on both arms:
+
+```
+  /world/   preact build   0.3164  0.3307  0.3307    median 0.3307   POOR
+  /world/   react  build   0.0264  0.0066  0.0064    median 0.0066   good
+  live      ellaz.fun      0.0064  0.3164  0.0064  <- about one load in three
+```
+
+**And the probe's own verdict cannot see it**: it reports the MEDIAN of three
+runs, so a defect on one load in three reads as `OK`. Read the per-run column,
+not the median, until that is changed.
+
+The mechanism is narrowed and not settled - `:empty` releases its reservation the
+moment the frame stops being empty, and under `preact/compat`'s synchronous
+commit that is a frame before the scene's content has a size, which is the SAME
+class as the `/` hand-off below. Two quick attempts were inconclusive (an
+unconditional `min-height` read 0.006 once and 0.316 twice; a runtime-injected
+variant perturbs the timing being measured) and were stopped rather than shipped
+- `debugging/no-band-aids.md`, two failures means trace, not patch.
+
 `flex-start` on the room (the game pages' own fix) moves the desktop room y=120
 -> y=260 and breaks the centring `layout.ts` defends on purpose. An unscoped
 `min-height` moved the finished height 4px in one run of three. Both measured,

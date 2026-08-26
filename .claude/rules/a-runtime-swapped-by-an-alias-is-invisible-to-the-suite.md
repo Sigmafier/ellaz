@@ -123,6 +123,37 @@ runtime to put the old behaviour back reads HEALTHY on the very build that
 measures 1.709 without the rule, because a stylesheet added after the navigation
 commits does not reproduce a stylesheet that was never there.
 
+## It happened TWICE, on two pages, and the second one had a probe already
+
+`/world/` had been measured at 0.2713, fixed to 0.0032 on 2026-08-22, and given
+its own reproducer with a working positive control. Nobody re-ran it after the
+swap. Measured 2026-08-26, one tree with only the alias reverted:
+
+```
+  /world/   preact   0.3164  0.3307  0.3307    median 0.3307   POOR
+  /world/   react    0.0264  0.0066  0.0064    median 0.0066   good
+```
+
+Same class as `/`: a reservation released a frame before the content had a size,
+because `render()` now returns already committed. Different page, different
+selector, no shared code - so fixing one says nothing about the other.
+
+**So a timing swap needs a SWEEP, not a fix.** Enumerate every place the old
+runtime's scheduling was load-bearing and re-run each one's own probe:
+
+- every `requestAnimationFrame` / `setTimeout(0)` hand-off after a render
+- every `:empty` / `:has()` rule that reserves space until content arrives
+- every existing reproducer that measures a TRANSIENT rather than a final state
+
+The last is the cheap one and it is the one that was skipped. A repo with probes
+for its layout shifts already has the sweep written; it just has to be run.
+
+**And re-read what the probe's verdict actually computes.** The room's reports the
+MEDIAN of three runs, and live the page reads `0.0064 / 0.3164 / 0.0064` - one bad
+load in three, and a green verdict over it. A median is the wrong statistic for an
+intermittent defect, and a gate that is green on a page that is poor a third of
+the time is worse than no gate.
+
 ## When to Apply
 
 - Any `resolve.alias` that substitutes a package for a different implementation

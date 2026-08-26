@@ -3708,3 +3708,104 @@ Four lines and a build: drop the two aliases from `vite.config.ts` and the two
 from `vitest.config.ts`. `react` and `react-dom` stay installed on purpose -
 nothing bundles them, they carry the types, and they are what makes the revert a
 config edit rather than an install.
+
+## The split second of plain text before the home page, and the CLS underneath it
+
+The operator: *"when we load the app, it shows UNCSSed page for a split second
+then it loads."* It is not unstyled and it is not a bug on its own - it is
+`#home-doc`, the emitted home page that exists because no AI crawler runs
+JavaScript, sitting on screen until the app mounts and `main.tsx` removes it. A
+no-JavaScript visitor keeps it. What nobody had done was cost what a HUMAN sees.
+
+**Measuring it turned up something the flash was hiding.** 390x844, CPU 4x, 10
+interleaved runs per arm, ONE tree with only the react/preact alias reverted:
+
+| arm | the document is on screen | CLS on `/` | of which the hand-off |
+|---|---|---|---|
+| react (before the swap) | 2534 ms | 0.685 | 0.000 |
+| preact (shipped) | 504 ms | **1.709** | **1.000** |
+| preact + one CSS rule | 504 ms | 0.685 | 0.000 |
+
+Two separate things, and only one of them is the flash.
+
+**The flash is five times shorter than it was**, because the swap cut the work
+between the stylesheet landing and the app committing. It is not gone. Removing
+it entirely trades half a second of readable page for half a second of blank one,
+which is not obviously better and has not been put to anyone.
+
+**The CLS 1.000 was a regression the swap introduced.** `main.tsx` removes the
+document on the next animation frame - correct while React 18 committed
+asynchronously, a frame late under `preact/compat`, whose `render()` returns with
+the DOM already committed. So one painted frame carried the whole app laid out
+underneath the whole document. Closed in `global.css` by
+`body.app-shell:has(#root:not(:empty)) #home-doc{display:none}` - the exact
+complement of the `#root:empty` rule sitting above it, so the document leaves the
+layout in the same style recalculation that lets the app in. **CSS rather than
+moving the removal earlier**, because a rule cannot be wrong about WHEN a runtime
+committed the way a timer can. Cost: **14 B gz**. `ellaz-scroll` shifted 9/10 runs
+before and 0/10 after; live it reads 0.690 with the hand-off at 0.000.
+
+**`/` had never been measured at all.** `/world/` was measured at 0.2713 and
+fixed; every game page reads 0.003 to 0.010; the boards 0.028. So "the worst page
+on the site" had been said about a set the site's canonical entry, its
+`x-default` target and its most-linked page was not in.
+
+**The remaining 0.685 is older than the swap and is NOT fixed.** About 800 ms
+after mount the lazy roster lands, the daily card appears above the category rail,
+and 100 px of page moves down. It is on both runtimes. Reported by the probe,
+deliberately not gated.
+
+### The probe's control had to be a second BUILD
+
+The obvious control - inject `display:block!important` at runtime to put the
+pre-fix behaviour back - reads **0.689, healthy**, on the very build that measures
+1.709 without the rule. A stylesheet added after the navigation commits does not
+reproduce a stylesheet that was never there; the layout tree is already built. So
+a control that could not fail was reporting FAIL on a correct page, which is the
+worst of both. `repro-home-boot-shift.mjs` takes `--control-base` at a build whose
+`global.css` lacks the rule, and says out loud when it was not given one.
+
+### And the same swap had broken the room, where a probe already existed
+
+`/world/` was fixed at 0.2713 -> 0.0032 on 2026-08-22 and given its own
+reproducer with a working positive control. Nobody re-ran it after the swap.
+
+```
+  /world/   preact build   0.3164  0.3307  0.3307   median 0.3307   POOR
+  /world/   react  build   0.0264  0.0066  0.0064   median 0.0066   good
+  live      ellaz.fun      0.0064  0.3164  0.0064   about one load in three
+```
+
+Same class - a reservation released a frame before the content has a size - on a
+different page with a different selector and no shared code, so fixing one said
+nothing about the other. **A timing swap needs a SWEEP of every probe that
+measures a TRANSIENT, not a fix on the page somebody happened to look at.**
+
+**The room's probe reports the MEDIAN of three runs**, so it prints `OK` over a
+page that is POOR on a third of loads. A median is the wrong statistic for an
+intermittent defect. Both are OPEN: two quick attempts at the room were
+inconclusive - an unconditional `min-height` read 0.006 once and 0.316 twice, and
+a runtime-injected variant perturbs the timing being measured - and were stopped
+rather than shipped.
+
+### The deep-test found two more defects, both in my own harnesses
+
+The first pass reported five failures and all five were the harness: **one sample
+per cell**, against a defect measured at 9/10; and a **byte-compared full-page
+screenshot of a live, animating game**, which differs from itself between two runs
+of the same build. And the browser died after ~30 contexts and reported it as a
+page fault. N per cell, frequency instead of booleans, scope asserted
+structurally, and a browser that recycles and retries.
+
+### Shipped
+
+`cf79016`. Suite 154 files / 4,304 tests; CI Node 22 first visit **53,136 B gz of
+56,000**, slope 29.3/45, 41/41 planted defects caught. Deploy run 32987033252 with
+`Upload to Hostinger` and `Verify the live site is serving this build` both
+`success`; live smoke 10/10 screens; the rule present in the served stylesheet.
+
+**The push did not trigger a run.** Actions was enabled, the workflows active, and
+`paths-ignore` did not match - GitHub simply registered no run for the commit, and
+`gh workflow run deploy-hostinger.yml --ref main` was used instead. Worth knowing
+that "I pushed and nothing happened" has a third cause beyond the two already in
+`CLAUDE.md`.
