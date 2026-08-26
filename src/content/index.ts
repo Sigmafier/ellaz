@@ -33,6 +33,10 @@ import { maze } from "./games/maze";
 import { letters } from "./games/letters";
 import { spell } from "./games/spell";
 import { bubbleshooter } from "./games/bubbleshooter";
+import { flow } from "./games/flow";
+import { arrowtap } from "./games/arrowtap";
+import { fruit } from "./games/fruit";
+import { parking } from "./games/parking";
 
 export type { GameContent, GameCopy, FaqItem, Titled, Provenance, Locale, PageLocale } from "./types";
 
@@ -86,6 +90,10 @@ export const CONTENT: Record<string, GameContent> = {
   [letters.id]: letters,
   [spell.id]: spell,
   [bubbleshooter.id]: bubbleshooter,
+  [flow.id]: flow,
+  [arrowtap.id]: arrowtap,
+  [fruit.id]: fruit,
+  [parking.id]: parking,
 };
 
 /** The ids that have prose today. */

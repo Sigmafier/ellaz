@@ -352,6 +352,10 @@ const LAZY_GROUNDS: Record<string, string> = {
   bubbleshooter: "#2BA8F0",
   match3: "#B43594",
   jigsaw: "#17798F",
+  flow: "#D9522B",
+  arrowtap: "#0F7FD4",
+  fruit: "#D63031",
+  parking: "#E8930C",
 };
 
 /* ---------------------------------------------------------------------------

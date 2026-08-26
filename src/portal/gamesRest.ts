@@ -33,6 +33,10 @@ import { meta as bubbleshooter } from "../games/bubbleshooter/meta";
 import { meta as match3 } from "../games/match3/meta";
 import { meta as jigsaw } from "../games/jigsaw/meta";
 import { meta as lettercross } from "../games/lettercross/meta";
+import { meta as flow } from "../games/flow/meta";
+import { meta as arrowtap } from "../games/arrowtap/meta";
+import { meta as fruit } from "../games/fruit/meta";
+import { meta as parking } from "../games/parking/meta";
 
 /** The games below the fold. Fetched on idle; never part of a first visit. */
 export const REST: ReadonlyArray<GameMeta> = [
@@ -136,4 +140,8 @@ export const REST: ReadonlyArray<GameMeta> = [
   // Appended, so its card art stays lazy too. See src/games/lettercross/NOTICE.md for
   // where the word list comes from and what the name risks.
   lettercross,
+  flow,
+  arrowtap,
+  fruit,
+  parking,
 ];

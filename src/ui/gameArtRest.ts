@@ -389,4 +389,86 @@ export const REST: Record<string, Scene> = {
       <text x="158" y="100" fill="${PAL.paper}" font-size="21">★</text>
     </g>
     <g fill="${PAL.paper}" opacity=".8"><circle cx="14" cy="30" r="3"/><circle cx="190" cy="118" r="2.6"/></g>` },
+
+  /* Pipe Flow. Two dots of a colour and the route between them - the picture
+     has to say "join these up", so the paths are drawn thick and rounded and
+     the endpoints are the same colour as their pipe. The faint grid behind is
+     what makes the routes read as CHOICES rather than as decoration. */
+  flow: { a: "#D9522B", b: "#F0855F", d: "band", s: `
+    <rect x="20" y="16" width="160" height="118" rx="10" fill="${PAL.paper}" stroke="${I}" stroke-width="3.5"/>
+    <g stroke="${PAL.inkSoft}" stroke-width="1.6" opacity=".22">
+      <path d="M52 16v118M84 16v118M116 16v118M148 16v118M20 45h160M20 75h160M20 105h160"/></g>
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="11">
+      <path d="M36 30h96v30H68v30h64" stroke="${PAL.lagoon}"/>
+      <path d="M36 90v30h32" stroke="${PAL.sunflower}"/>
+      <path d="M164 30v90" stroke="${PAL.raspberry}"/></g>
+    <g stroke="${I}" stroke-width="3">
+      <circle cx="36" cy="30" r="9" fill="${PAL.lagoon}"/>
+      <circle cx="132" cy="90" r="9" fill="${PAL.lagoon}"/>
+      <circle cx="36" cy="90" r="9" fill="${PAL.sunflower}"/>
+      <circle cx="68" cy="120" r="9" fill="${PAL.sunflower}"/>
+      <circle cx="164" cy="30" r="9" fill="${PAL.raspberry}"/>
+      <circle cx="164" cy="120" r="9" fill="${PAL.raspberry}"/></g>` },
+
+  /* Arrows Out. Four arrows facing four ways, and a fifth already leaving the
+     board at the right - the departure is the whole mechanic, so it is the one
+     thing the thumbnail has to show. Chevrons are drawn as paths rather than as
+     an OS arrow emoji, which renders differently on every platform and cannot
+     take the ink colour. */
+  arrowtap: { a: "#0F7FD4", b: "#5AB0EE", d: "arc", s: `
+    <rect x="20" y="16" width="140" height="118" rx="10" fill="${PAL.paper}" stroke="${I}" stroke-width="3.5"/>
+    <g stroke="${PAL.inkSoft}" stroke-width="1.5" opacity=".2">
+      <path d="M55 16v118M90 16v118M125 16v118M20 45h140M20 75h140M20 105h140"/></g>
+    <g stroke="${I}" stroke-width="3">
+      <rect x="26" y="22" width="46" height="46" rx="9" fill="${PAL.sunflower}"/>
+      <rect x="94" y="22" width="46" height="46" rx="9" fill="${PAL.lagoon}"/>
+      <rect x="26" y="82" width="46" height="46" rx="9" fill="${PAL.lime}"/>
+      <rect x="94" y="82" width="46" height="46" rx="9" fill="${PAL.raspberry}"/></g>
+    <g stroke="${I}" stroke-width="4.4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M39 45h20m-7-7 7 7-7 7"/>
+      <g transform="rotate(90 117 45)"><path d="M107 45h20m-7-7 7 7-7 7"/></g>
+      <g transform="rotate(-90 49 105)"><path d="M39 105h20m-7-7 7 7-7 7"/></g>
+      <path d="M107 105h20m-7-7 7 7-7 7"/></g>
+    <g opacity=".55" stroke="${I}" stroke-width="4.4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M168 45h18m-6-6 6 6-6 6"/></g>
+    <g stroke="${PAL.paper}" stroke-width="3" opacity=".7" stroke-linecap="round">
+      <path d="M150 38h8M150 52h8"/></g>` },
+
+  /* Fruit Drop. The ladder is the game, so the jar shows four sizes at once and
+     a fifth on its way down. Every circle keeps the ink outline the rest of the
+     set uses, which is what stops five flat discs reading as a colour swatch. */
+  fruit: { a: "#D63031", b: "#F0706F", d: "hill", s: `
+    <circle cx="60" cy="22" r="12" fill="${PAL.lime}" stroke="${I}" stroke-width="3"/>
+    <g stroke="${PAL.paper}" stroke-width="3" opacity=".6" stroke-linecap="round">
+      <path d="M60 2v6M46 8l4 5M74 8l-4 5"/></g>
+    <path d="M44 40v70a14 14 0 0 0 14 14h84a14 14 0 0 0 14-14V40"
+          fill="${PAL.paper}" stroke="${I}" stroke-width="3.5" stroke-linecap="round"/>
+    <g stroke="${I}" stroke-width="3">
+      <circle cx="74" cy="94" r="26" fill="${PAL.jade}"/>
+      <circle cx="124" cy="100" r="20" fill="${PAL.tangerine}"/>
+      <circle cx="118" cy="60" r="15" fill="${PAL.raspberry}"/>
+      <circle cx="86" cy="52" r="11" fill="${PAL.sunflower}"/></g>
+    <g fill="${I}">
+      <circle cx="67" cy="90" r="3"/><circle cx="81" cy="90" r="3"/>
+      <circle cx="118" cy="97" r="2.6"/><circle cx="130" cy="97" r="2.6"/></g>
+    <path d="M67 102q7 6 14 0" stroke="${I}" stroke-width="3" fill="none" stroke-linecap="round"/>` },
+
+  /* Escape the Jam. The player's car is the one facing the gap, and it is told
+     apart by a MARKER as well as by its colour - the cars sit at thumbnail size
+     where a red and an orange block are one hue apart. The notch in the right
+     wall is the only thing on the card that says where this is going. */
+  parking: { a: "#E8930C", b: "#FBC15A", d: "band", s: `
+    <rect x="18" y="16" width="164" height="118" rx="9" fill="${PAL.paper}" stroke="${I}" stroke-width="3.5"/>
+    <g stroke="${PAL.inkSoft}" stroke-width="1.5" opacity=".2">
+      <path d="M51 16v118M84 16v118M116 16v118M149 16v118M18 45h164M18 75h164M18 105h164"/></g>
+    <rect x="176" y="52" width="12" height="26" fill="${PAL.paper}"/>
+    <g stroke="${I}" stroke-width="3">
+      <rect x="88" y="53" width="58" height="24" rx="7" fill="${PAL.clay}"/>
+      <rect x="24" y="22" width="56" height="22" rx="7" fill="${PAL.lagoon}"/>
+      <rect x="122" y="84" width="24" height="46" rx="7" fill="${PAL.indigo}"/>
+      <rect x="26" y="60" width="24" height="46" rx="7" fill="${PAL.orchid}"/>
+      <rect x="152" y="18" width="24" height="30" rx="7" fill="${PAL.jade}"/></g>
+    <g fill="${PAL.paper}"><circle cx="100" cy="65" r="5"/><circle cx="134" cy="65" r="5"/></g>
+    <g stroke="${PAL.paper}" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M162 65h16m-6-6 6 6-6 6" stroke="${I}"/></g>` },
 };

@@ -69,6 +69,10 @@ const LOADERS: Record<string, () => Promise<{ default: GameModule }>> = {
   bubbleshooter: () => import("../games/bubbleshooter/index"),
   match3: () => import("../games/match3/index"),
   jigsaw: () => import("../games/jigsaw/index"),
+  flow: () => import("../games/flow/index"),
+  arrowtap: () => import("../games/arrowtap/index"),
+  fruit: () => import("../games/fruit/index"),
+  parking: () => import("../games/parking/index"),
 };
 
 // Curated order — this is the order the home grid renders in.

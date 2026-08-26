@@ -73,11 +73,14 @@ src/
    └─ <Renderer>      React component (DOM) or Phaser scene (canvas)
 ```
 
-**Games (33)** — 24 `ageBand: "kids"` (balloons, bees, bubbles, coloring, echo,
-evolve, finddiff, frog, hidden, jigsaw, match3, maze, math, memory, merge, music,
-pet, reaction, sequence, shadows, sort, sortsize, spell, vanish) and 9 `"all"`
-(blocks, bubbleshooter, fit, minesweeper, n2048, snake, sudoku, tictactoe,
-wordguess).
+**Games (38)** — 25 `ageBand: "kids"` (balloons, bees, bubbles, coloring, echo,
+evolve, finddiff, frog, fruit, hidden, jigsaw, letters, match3, math, maze,
+memory, merge, music, pet, reaction, sequence, shadows, sort, spell, vanish) and
+13 `"all"` (2048, arrowtap, blocks, bubbleshooter, fit, flow, lettercross,
+minesweeper, parking, snake, sudoku, tictactoe, wordguess). Both lists were
+re-derived from the metas on 2026-08-26 and both were wrong before that: the
+`kids` half named `sortsize`, which has never existed, and omitted `letters`;
+the `all` half said `n2048`, which is the DIRECTORY and not the id.
 Counts here go stale fast — `src/portal/catalog.ts` is the source of truth and
 `catalog.test.ts` ratchets the count. This line said 25 for about six hours on
 2026-08-13 while four more games shipped, and it said 33 with `lettercross`
@@ -114,6 +117,52 @@ direction — so in Hebrew a logical inset put both badges in the same corner wh
 English looked perfect:
 [`rtl-spatial-grid-dir-ltr.md`](.claude/rules/rtl-spatial-grid-dir-ltr.md) §
 the other edge of the same knife.
+
+**Four games landed together on 2026-08-26, and each one is a puzzle whose
+boards are BUILT BACKWARDS rather than shuffled and hoped over.** That is the
+`sort` discipline applied four more times, and it is the whole reason none of
+them can hand a child something impossible.
+
+- **`flow`** (Pipe Flow) joins pairs of dots and wins only when every square is
+  covered. Its walk is a Hamiltonian path cut into one segment per colour, and
+  the walk is produced by BACKBITE - seed the row-by-row zigzag, then fold a
+  suffix of it ~9,800 times, each fold leaving it still visiting every square
+  once. It shipped for an afternoon as a budgeted depth-first SEARCH instead,
+  which is correct whenever it finishes and gave up on **91.2% of hard deals**,
+  so nine boards in ten were cut from the same underlying zigzag. Nothing threw
+  and every gate was green; the only thing that saw it was `scripts/sim/flow-routes.mjs`
+  measuring which branch ran. Its `snake deals` column is a permanent regression
+  guard and must stay at 0.
+- **`arrowtap`** (Arrows Out) clears a grid of arrows that can only leave when
+  their lane is clear, dealt backwards from the empty board. Measured over
+  12,000 boards: **you cannot strand yourself** - a tap only ever empties a
+  square and an empty square blocks nothing - so a cleared board always takes
+  exactly one tap per arrow. That is why the record is the CLOCK: the tap count
+  cannot be a score.
+- **`fruit`** (Fruit Drop) is the one real physics simulation here, circles only,
+  written as arithmetic in `logic.ts` with no engine. The renderer consumes REAL
+  elapsed time in `DT`-sized sub-steps (`fixed-timestep-must-match-display.md`),
+  and the loop STOPS once the pile settles, which is why it has no pause control.
+- **`parking`** (Escape the Jam) is 6x6 Rush Hour, and it is the one that needed
+  a second pass. Walking away from a solved board until "a car is in the way"
+  produced a 40-move walk over a board whose true minimum was **2.1 moves, with
+  ~90% solvable in two** - the recorded walk's length and the puzzle's depth are
+  different numbers and nothing about the first can see the second. `deal` now
+  GRADES candidates with a saturating breadth-first search over the shipped
+  rules and keeps the deepest of up to 250 layouts. Floors are 4/5/5, measured
+  rather than chosen: medium and hard share one because the ceiling is a
+  property of the LAYOUT, not of the scramble.
+
+**`scripts/repro/repro-new-games-play.mjs` is the only check here that watches a
+game MOVE.** Every other gate reads `dist/` or a source tree, and `logic.test.ts`
+drives the rules in node where there is no frame clock at all - so a game whose
+rules are perfect and whose renderer never advances passes all of them. It opens
+each of the four in headless Chromium and asserts the board responds. Read its
+header before trusting a hand-run browser check: driving a real Chrome through
+the extension reported Fruit Drop frozen in mid-air and every tap ignored,
+because the window was minimised and `requestAnimationFrame` is paused in a
+hidden tab. The harness asserts a bare rAF loop ticks BEFORE it opens a game,
+for exactly that reason.
 
 **`lettercross` is the one game with a dictionary, and it is the one game with a
 NOTICE.** It is BONUS (1993) rebuilt: a 9x9 board, twelve prize boxes in a ring
