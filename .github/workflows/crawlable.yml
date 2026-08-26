@@ -18,6 +18,16 @@ on:
     # event, daily detection is soon enough, and ~50 requests a day stays well
     # under the traffic that arms a bot challenge in the first place. An
     # off-the-hour minute avoids the crowd every cron job lands in.
+    #
+    # THAT BUDGET IS NOW ENFORCED RATHER THAN HOPED FOR. The walk was every URL
+    # the sitemap listed - 48 when this was written, 200 today - so this comment
+    # had been describing a run four times its own size for months, at the host
+    # whose bot challenge is the thing being watched for. `sampleUrls` caps it
+    # at 40, taking one URL of every kind in every language and then a
+    # date-seeded rotation, which keeps the run CRAWL-SHAPED (the burst is half
+    # of what this check is) without being the burst that arms the fault.
+    #
+    # `CRAWL_FULL_WALK=1` walks all of them, for a deliberate audit.
     - cron: "40 6 * * *"
   workflow_dispatch:
     inputs:

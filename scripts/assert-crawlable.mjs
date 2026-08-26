@@ -380,6 +380,97 @@ async function get(url, ua = UA) {
   return { status: res.status, body: await res.text() };
 }
 
+/**
+ * How many URLs one daily run may ask for.
+ *
+ * THE WALK IS THE BURST TEST, and that is why this is a number rather than a
+ * removal. Hostinger's CDN challenge arms on a RUN of requests from one IP, not
+ * on the first - roughly 40 requests in two minutes was what armed it in the
+ * 2026-08-08 outage this whole script exists to detect. So the run has to be
+ * crawl-SHAPED, and 40 is exactly the shape that did it.
+ *
+ * WHAT WAS WRONG. This walked every URL the sitemap listed - 48 when it was
+ * written, 184 by 2026-08-22, 200 today - against a workflow comment that
+ * budgets "~50 requests a day stays well under the traffic that arms a bot
+ * challenge". Four times its own stated premise, daily, from one GitHub IP,
+ * at the host whose bot challenge is the thing being watched for. A check that
+ * can arm the fault it is looking for reports on itself.
+ */
+const CRAWL_SAMPLE = 40;
+
+/**
+ * A crawl-shaped subset: one URL of every KIND in every LANGUAGE, then game
+ * pages until the cap.
+ *
+ * THE KINDS COME FIRST because they are what differ. A category page and a
+ * game page fail in different ways, and 20 game pages in one language say
+ * nothing about either of the others - the site has now shipped a defect
+ * scoped to exactly one page kind twice (the empty `/`, the 429 keyed on one
+ * bot), and both times the population was the blind spot rather than the logic.
+ *
+ * THE REST ROTATES BY DAY, seeded off the date, so every game page is reached
+ * within a few days and the sequence is reproducible from the date alone. A
+ * fixed subset would be a permanent blind spot with a rotating one's costs.
+ *
+ * `CRAWL_FULL_WALK=1` restores every URL, for a deliberate audit rather than
+ * for the daily run.
+ */
+export function sampleUrls(urls, sitemapXml, today = new Date().toISOString().slice(0, 10)) {
+  if (process.env.CRAWL_FULL_WALK === "1") return urls;
+
+  // A game page carries an `<image:image>` in its sitemap block and no other
+  // kind does - so the sitemap already says which is which, and nothing here
+  // has to keep a second copy of the route table.
+  const games = new Set();
+  for (const block of sitemapXml.split("<url>").slice(1)) {
+    const loc = /<loc>([^<]+)<\/loc>/.exec(block)?.[1]?.trim();
+    if (loc && block.includes("<image:")) games.add(loc);
+  }
+
+  const kindOf = (u) => {
+    const path = u.replace(/^https?:\/\/[^/]+/, "");
+    if (games.has(u)) return "game";
+    if (/\/world\/$/.test(path)) return "world";
+    if (/\/boards\/$/.test(path)) return "boards";
+    if (/\/games\/[^/]+\/$/.test(path)) return "category";
+    return "home";
+  };
+  const localeOf = (u) => {
+    const path = u.replace(/^https?:\/\/[^/]+/, "");
+    const first = path.split("/")[1] ?? "";
+    return /^[a-z]{2}$/.test(first) ? first : "-";
+  };
+
+  // A tiny deterministic shuffle seeded off the date. Not cryptography - it
+  // only has to move, and to move the same way twice on the same day.
+  let seed = [...today].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+  const roll = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32);
+
+  const groups = new Map();
+  for (const u of urls) {
+    const key = `${kindOf(u)}|${localeOf(u)}`;
+    groups.set(key, [...(groups.get(key) ?? []), u]);
+  }
+
+  const picked = [];
+  const seen = new Set();
+  for (const list of [...groups.values()]) {
+    const u = list[Math.floor(roll() * list.length)];
+    if (!seen.has(u)) {
+      seen.add(u);
+      picked.push(u);
+    }
+  }
+
+  const rest = urls.filter((u) => !seen.has(u));
+  for (let i = rest.length - 1; i > 0; i--) {
+    const j = Math.floor(roll() * (i + 1));
+    [rest[i], rest[j]] = [rest[j], rest[i]];
+  }
+  picked.push(...rest.slice(0, Math.max(0, CRAWL_SAMPLE - picked.length)));
+  return picked;
+}
+
 /** Fetch `urls` a few at a time, reporting anything a crawler could not read. */
 async function walk(urls, sitemapXml = "") {
   let done = 0;
@@ -504,8 +595,14 @@ async function main() {
   if (urls.length === 0) {
     fail("the sitemap lists no URLs — nothing below was actually checked");
   } else {
-    console.log(`sitemap: ${urls.length} URLs`);
-    const { done: checked, measured, thin, byLocale, mismatched } = await walk(urls, sm.body);
+    const sample = sampleUrls(urls, sm.body);
+    console.log(
+      `sitemap: ${urls.length} URLs` +
+        (sample.length === urls.length
+          ? " (walking all of them - CRAWL_FULL_WALK)"
+          : `, sampling ${sample.length} - one of every kind in every language, then a daily rotation`),
+    );
+    const { done: checked, measured, thin, byLocale, mismatched } = await walk(sample, sm.body);
     console.log(`walked:  ${checked} URLs as Googlebot`);
 
     // --- the content floor ---------------------------------------------------
@@ -655,6 +752,63 @@ async function main() {
     ["robots blocking everything", () => robotsBlocksEverything("User-agent: *\nDisallow: /")],
     ["robots allowing everything", () => !robotsBlocksEverything("User-agent: *\nAllow: /")],
     ["a named-bot block is not an outage", () => !robotsBlocksEverything("User-agent: BadBot\nDisallow: /")],
+
+    // --- the sample is crawl-shaped, and it is not a permanent blind spot ---
+    //
+    // A sampler is a POPULATION decision, and this repo's blind spots have
+    // twice been populations rather than logic: the empty `/` that no content
+    // gate could see, and the 429 keyed on a bot nobody walked as. So what is
+    // asserted is coverage, not the count.
+    ...(() => {
+      const sitemap = ["home", "game", "category", "world", "boards"]
+        .flatMap((kind) =>
+          ["-", "he", "es", "fr"].map((loc) => {
+            const p =
+              kind === "home"
+                ? "/"
+                : kind === "game"
+                  ? "/games/snake/"
+                  : kind === "category"
+                    ? "/games/kids/"
+                    : `/${kind}/`;
+            const url = `https://ellaz.fun${loc === "-" ? "" : `/${loc}`}${p}`;
+            return `<url><loc>${url}</loc>${kind === "game" ? "<image:image/>" : ""}</url>`;
+          }),
+        )
+        .join("");
+      const urls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+      const kindLoc = (u) => {
+        const path = u.replace(/^https?:\/\/[^/]+/, "");
+        const first = path.split("/")[1] ?? "";
+        const loc = /^[a-z]{2}$/.test(first) ? first : "-";
+        return `${path.replace(/^\/[a-z]{2}\//, "/")}|${loc}`;
+      };
+      const picked = sampleUrls(urls, sitemap, "2026-08-26");
+      const covered = new Set(picked.map(kindLoc));
+      return [
+        [
+          "the sample reaches every kind in every language",
+          () => covered.size === new Set(urls.map(kindLoc)).size,
+        ],
+        // The control for the control: a sampler that returned EVERYTHING would
+        // pass the line above and buy nothing, so the cap has to bite too.
+        ["the sample is smaller than a 200-URL sitemap", () => sampleUrls(
+          Array.from({ length: 200 }, (_, i) => `https://ellaz.fun/games/g${i}/`),
+          "",
+        ).length < 200],
+        // ...and the rotation really rotates, or "sampled" is just a fixed
+        // subset with a rotating one's costs.
+        [
+          "the rotation moves between days",
+          () => {
+            const many = Array.from({ length: 200 }, (_, i) => `https://ellaz.fun/games/g${i}/`);
+            const a = sampleUrls(many, "", "2026-08-26").join(",");
+            const b = sampleUrls(many, "", "2026-08-27").join(",");
+            return a !== b;
+          },
+        ],
+      ];
+    })(),
 
     // --- the language a URL claims vs the language it serves -----------------
     //
@@ -884,7 +1038,15 @@ async function main() {
     );
     process.exit(1);
   }
-  console.log("\nOK  the live site is crawlable: every sitemap URL served a real page.");
+  // Says SAMPLED when it sampled. "every sitemap URL" was true when the walk
+  // was every URL and became a slightly larger claim than the run supports the
+  // day it started sampling - which is the smallest possible version of the
+  // defect this whole file is about.
+  console.log(
+    process.env.CRAWL_FULL_WALK === "1"
+      ? "\nOK  the live site is crawlable: every sitemap URL served a real page."
+      : "\nOK  the live site is crawlable: every URL in today's sample served a real page.",
+  );
 }
 
 // Importable for tests without firing the walk.
