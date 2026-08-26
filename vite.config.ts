@@ -360,6 +360,32 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
+      // PREACT, NOT REACT, IN THE SHIPPED BUNDLE.
+      //
+      // `vendor-react` measured 45,374 B gz - 49.5% of a first visit that was
+      // 281 bytes from its ceiling, and not one of those bytes is a game.
+      // `preact/compat` is the same API surface at roughly a fifth of it.
+      //
+      // TWO ENTRIES COVER FIVE SPECIFIERS. An alias key matches the bare
+      // specifier and anything under it, so `react` rewrites `react/jsx-runtime`
+      // to `preact/compat/jsx-runtime` and `react-dom` rewrites
+      // `react-dom/client` to `preact/compat/client` - both real files in the
+      // package. `react` does NOT match `react-dom`, because the match is on a
+      // path segment rather than a prefix.
+      //
+      // THE TYPES STAY REACT'S. `tsc` reads `@types/react`; this alias is a
+      // build-time module resolution and never reaches the type layer. That is
+      // deliberate: preact's own compat types disagree with React 18's in ways
+      // that have nothing to do with what the bundle does.
+      //
+      // AND `vitest.config.ts` DOES NOT CARRY IT. Vitest resolves from its own
+      // config, its environment is `node`, and its `include` is `*.test.ts` -
+      // so nothing in the suite renders a component either way. Which means NO
+      // TEST HERE CAN SEE THIS BREAK. The two things that can are
+      // `scripts/repro/repro-preact-swap.mjs`, which drives all 38 games in a
+      // real browser, and a pair of eyes on the screenshots.
+      react: "preact/compat",
+      "react-dom": "preact/compat",
       "@sdk": fileURLToPath(new URL("./src/sdk", import.meta.url)),
       "@ui": fileURLToPath(new URL("./src/ui", import.meta.url)),
       "@juice": fileURLToPath(new URL("./src/juice", import.meta.url)),
@@ -380,9 +406,23 @@ export default defineConfig({
 
           if (path.includes("/node_modules/")) {
             if (/\/node_modules\/phaser\//.test(path)) return "vendor-phaser";
-            // scheduler is react-dom's own dep — keep it in the same chunk so the
-            // React vendor bundle stays self-contained.
-            if (/\/node_modules\/(react|react-dom|scheduler)\//.test(path))
+            // The reconciler. `react`/`react-dom` are ALIASED to `preact/compat`
+            // in `resolve.alias` above, so on this tree the branch that fires is
+            // the preact one - the react names are kept because the alias is one
+            // line and an unmatched vendor chunk is how 10 KB quietly lands in
+            // the shell. `scheduler` is react-dom's own dep and stays beside it
+            // for the day the alias comes off.
+            //
+            // NAMED rather than left to fold into `shell`, and it is a returning
+            // visitor who is paid: `shell-*.js` gets a new hash on every deploy
+            // and this does not, so a player who has been here before re-fetches
+            // 37.7 KB instead of 45.3. Measured on the artifact, two arms one
+            // tree: naming it costs a FIRST visit 328 B gz (52,628 -> 52,956),
+            // which is the compressor losing the overlap between the two halves.
+            // The chunk itself is 7,936 B gz - which is also the honest answer
+            // to "how big is preact here", and the reason `vendor-react` went
+            // from 45,374 to that.
+            if (/\/node_modules\/(preact|react|react-dom|scheduler)\//.test(path))
               return "vendor-react";
             // PostHog is dynamically imported after first paint (see
             // sdk/analytics.ts). NAMING it is half of what makes that work: an

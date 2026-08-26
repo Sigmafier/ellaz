@@ -315,7 +315,29 @@ function ciNodeMajor() {
 // a reason that has nothing to do with it, on a repo that has two other lanes
 // working today. 91,600 puts the room back to ~580 B, which is about where this
 // file has been operating, and keeps the pressure the comment above wants kept.
-const CEILING = 91_600;
+//
+// 91,600 -> 56,000 on 2026-08-26, and this is the only entry here that is a CUT.
+// `react` and `react-dom` are aliased onto `preact/compat`, so the reconciler
+// went 45,374 -> 7,936 B gz and a first visit went 90,519 -> 52,956. That is
+// 38 KB that was never a game: half of what a child downloaded before choosing
+// anything was a rendering library.
+//
+// WHY 56,000 AND NOT 60,000. 60,000 was the target the plan carried, and at a
+// measured 52,956 it would leave 7 KB - room for ~215 games at the current
+// 32.5 B slope, which is not a ceiling, it is a shrug. 56,000 leaves ~3 KB,
+// which is still ~93 games of room and still reds INSTANTLY on the regression
+// this number exists for: React coming back is +37 KB.
+//
+// WHY IT IS NOT LOWER. The toolchain spread this file spends fifteen lines
+// warning about is tens of bytes, three lanes work this repo at once, and a
+// ceiling with no room red-lines a correct commit for reasons that have nothing
+// to do with it. 3 KB is where the pressure stays real without being a tripwire.
+//
+// THE SWAP IS ONE `git revert` AWAY, and the evidence for it is not this number:
+// `scripts/repro/repro-preact-swap.mjs` drives all 38 games in a real browser
+// with both lazy-arrival controls, and the home, the room and the boards render
+// BYTE-IDENTICAL to the React arm at 390x844. Read that before reading this.
+const CEILING = 56_000;
 
 function gzBytes(path) {
   return gzipSync(readFileSync(path)).length;
