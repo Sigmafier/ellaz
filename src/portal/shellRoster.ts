@@ -90,6 +90,10 @@ export const ROSTER_IDS: ReadonlyArray<string> = [
   "arrowtap",
   "fruit",
   "parking",
+  "nonogram",
+  "onestroke",
+  "wordsearch",
+  "untangle",
 ];
 
 /**
@@ -143,6 +147,10 @@ export const ROSTER_CATEGORY: Readonly<Record<string, Category>> = {
   arrowtap: "think",
   fruit: "kids",
   parking: "classics",
+  nonogram: "think",
+  onestroke: "think",
+  wordsearch: "learn",
+  untangle: "think",
 };
 
 /** Full metadata for the games above the fold. The rest are in `gamesRest.ts`. */

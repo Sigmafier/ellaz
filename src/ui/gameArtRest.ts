@@ -471,4 +471,84 @@ export const REST: Record<string, Scene> = {
     <g fill="${PAL.paper}"><circle cx="100" cy="65" r="5"/><circle cx="134" cy="65" r="5"/></g>
     <g stroke="${PAL.paper}" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round">
       <path d="M162 65h16m-6-6 6 6-6 6" stroke="${I}"/></g>` },
+
+  /* Picture Logic. The card has to say "the numbers make the picture" without
+     a word, so the clue bars run down the left and across the top and the
+     filled cells inside them spell a shape - a heart, because it reads at
+     thumbnail size where a house or a cat does not. */
+  nonogram: { a: "#4F5BD5", b: "#8B94E8", d: "band", s: `
+    <rect x="52" y="30" width="112" height="98" rx="8" fill="${PAL.paper}" stroke="${I}" stroke-width="3.5"/>
+    <g stroke="${PAL.inkSoft}" stroke-width="1.4" opacity=".28">
+      <path d="M74 30v98M96 30v98M118 30v98M140 30v98M52 50h112M52 70h112M52 90h112M52 110h112"/></g>
+    <g fill="${PAL.raspberry}">
+      <rect x="74" y="50" width="22" height="20"/><rect x="118" y="50" width="22" height="20"/>
+      <rect x="52" y="70" width="112" height="20"/>
+      <rect x="74" y="90" width="68" height="20"/>
+      <rect x="96" y="110" width="24" height="18"/></g>
+    <rect x="52" y="30" width="112" height="98" rx="8" fill="none" stroke="${I}" stroke-width="3.5"/>
+    <g fill="${I}" opacity=".8">
+      <rect x="30" y="56" width="16" height="5" rx="2.5"/><rect x="36" y="76" width="10" height="5" rx="2.5"/>
+      <rect x="26" y="96" width="20" height="5" rx="2.5"/><rect x="36" y="116" width="10" height="5" rx="2.5"/>
+      <rect x="59" y="18" width="9" height="5" rx="2.5"/><rect x="81" y="14" width="9" height="5" rx="2.5"/>
+      <rect x="81" y="22" width="9" height="5" rx="2.5"/><rect x="103" y="18" width="9" height="5" rx="2.5"/>
+      <rect x="125" y="14" width="9" height="5" rx="2.5"/><rect x="125" y="22" width="9" height="5" rx="2.5"/>
+      <rect x="147" y="18" width="9" height="5" rx="2.5"/></g>` },
+
+  /* One Stroke. One line, no lift, every square visited - so the card is a
+     single unbroken path with a fat round cap at the end that is still being
+     drawn. The two blocked squares are what makes it a puzzle rather than a
+     zigzag, and they are the only things on the card that are not the line. */
+  onestroke: { a: "#17B98A", b: "#63D9B6", d: "arc", s: `
+    <rect x="30" y="22" width="140" height="112" rx="9" fill="${PAL.paper}" stroke="${I}" stroke-width="3.5"/>
+    <g stroke="${PAL.inkSoft}" stroke-width="1.4" opacity=".22">
+      <path d="M58 22v112M86 22v112M114 22v112M142 22v112M30 50h140M30 78h140M30 106h140"/></g>
+    <g fill="${PAL.inkSoft}" opacity=".9">
+      <rect x="86" y="50" width="28" height="28" rx="5"/><rect x="142" y="78" width="28" height="28" rx="5"/></g>
+    <path d="M44 36h28v28h-28v28h28v28h28V92h28V64h28V36h-28"
+      stroke="${PAL.jade}" stroke-width="11" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="44" cy="36" r="9" fill="${PAL.clay}" stroke="${PAL.paper}" stroke-width="3"/>
+    <circle cx="156" cy="36" r="8.5" fill="${PAL.paper}" stroke="${PAL.jade}" stroke-width="5"/>` },
+
+  /* Word Search. A found word is a stroke laid THROUGH the letters rather than
+     a box around them, because that is what the finger does. It runs on the
+     diagonal so the card cannot be mistaken for the crossword one, and the
+     letters under it are drawn as bars: real glyphs at this size are mush, and
+     a card is not the place to promise a language. */
+  wordsearch: { a: "#E4572E", b: "#F2916F", d: "hill", s: `
+    <rect x="26" y="20" width="148" height="112" rx="9" fill="${PAL.paper}" stroke="${I}" stroke-width="3.5"/>
+    <path d="M40 34l104 84" stroke="${PAL.sunflower}" stroke-width="20" stroke-linecap="round" opacity=".85"/>
+    <g fill="${I}" opacity=".62">
+      <rect x="36" y="30" width="12" height="9" rx="2"/><rect x="64" y="30" width="10" height="9" rx="2"/>
+      <rect x="92" y="30" width="12" height="9" rx="2"/><rect x="120" y="30" width="9" height="9" rx="2"/>
+      <rect x="146" y="30" width="12" height="9" rx="2"/>
+      <rect x="36" y="52" width="10" height="9" rx="2"/><rect x="64" y="52" width="12" height="9" rx="2"/>
+      <rect x="92" y="52" width="9" height="9" rx="2"/><rect x="120" y="52" width="12" height="9" rx="2"/>
+      <rect x="146" y="52" width="10" height="9" rx="2"/>
+      <rect x="36" y="74" width="12" height="9" rx="2"/><rect x="64" y="74" width="9" height="9" rx="2"/>
+      <rect x="92" y="74" width="12" height="9" rx="2"/><rect x="120" y="74" width="10" height="9" rx="2"/>
+      <rect x="146" y="74" width="12" height="9" rx="2"/>
+      <rect x="36" y="96" width="9" height="9" rx="2"/><rect x="64" y="96" width="12" height="9" rx="2"/>
+      <rect x="92" y="96" width="10" height="9" rx="2"/><rect x="120" y="96" width="12" height="9" rx="2"/>
+      <rect x="146" y="96" width="9" height="9" rx="2"/>
+      <rect x="36" y="116" width="12" height="9" rx="2"/><rect x="64" y="116" width="10" height="9" rx="2"/>
+      <rect x="92" y="116" width="12" height="9" rx="2"/><rect x="120" y="116" width="9" height="9" rx="2"/>
+      <rect x="146" y="116" width="12" height="9" rx="2"/></g>
+    <circle cx="40" cy="34" r="7" fill="${PAL.clay}"/>
+    <circle cx="144" cy="118" r="7" fill="${PAL.clay}"/>` },
+
+  /* Untangle. The card shows the moment BEFORE, not after - two lines crossing
+     in the middle with the crossing marked, because a picture of the solved
+     board is a picture of a shape rather than of a puzzle. The dot under the
+     finger is the bigger one. */
+  untangle: { a: "#A855C9", b: "#CB92E0", d: "circle", s: `
+    <g stroke="${PAL.paper}" stroke-width="7" fill="none" stroke-linecap="round" opacity=".55">
+      <path d="M46 40L150 112M150 40L46 112M46 40L46 112M150 40L150 112M98 22L46 40M98 22L150 40M98 130L46 112M98 130L150 112"/></g>
+    <g stroke="${I}" stroke-width="4" fill="none" stroke-linecap="round">
+      <path d="M46 40L150 112M150 40L46 112M46 40L46 112M150 40L150 112M98 22L46 40M98 22L150 40M98 130L46 112M98 130L150 112"/></g>
+    <circle cx="98" cy="76" r="11" fill="none" stroke="${PAL.clay}" stroke-width="4"/>
+    <g fill="${PAL.sunflower}" stroke="${I}" stroke-width="3.5">
+      <circle cx="46" cy="40" r="10"/><circle cx="150" cy="40" r="10"/>
+      <circle cx="46" cy="112" r="10"/><circle cx="150" cy="112" r="10"/>
+      <circle cx="98" cy="22" r="10"/></g>
+    <circle cx="98" cy="130" r="14" fill="${PAL.lagoon}" stroke="${I}" stroke-width="3.5"/>` },
 };

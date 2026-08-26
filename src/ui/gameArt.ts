@@ -356,6 +356,10 @@ const LAZY_GROUNDS: Record<string, string> = {
   arrowtap: "#0F7FD4",
   fruit: "#D63031",
   parking: "#E8930C",
+  nonogram: "#4F5BD5",
+  onestroke: "#17B98A",
+  wordsearch: "#E4572E",
+  untangle: "#A855C9",
 };
 
 /* ---------------------------------------------------------------------------

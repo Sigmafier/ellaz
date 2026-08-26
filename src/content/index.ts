@@ -37,6 +37,10 @@ import { flow } from "./games/flow";
 import { arrowtap } from "./games/arrowtap";
 import { fruit } from "./games/fruit";
 import { parking } from "./games/parking";
+import { nonogram } from "./games/nonogram";
+import { onestroke } from "./games/onestroke";
+import { wordsearch } from "./games/wordsearch";
+import { untangle } from "./games/untangle";
 
 export type { GameContent, GameCopy, FaqItem, Titled, Provenance, Locale, PageLocale } from "./types";
 
@@ -94,6 +98,10 @@ export const CONTENT: Record<string, GameContent> = {
   [arrowtap.id]: arrowtap,
   [fruit.id]: fruit,
   [parking.id]: parking,
+  [nonogram.id]: nonogram,
+  [onestroke.id]: onestroke,
+  [wordsearch.id]: wordsearch,
+  [untangle.id]: untangle,
 };
 
 /** The ids that have prose today. */

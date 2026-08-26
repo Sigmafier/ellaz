@@ -37,6 +37,10 @@ import { meta as flow } from "../games/flow/meta";
 import { meta as arrowtap } from "../games/arrowtap/meta";
 import { meta as fruit } from "../games/fruit/meta";
 import { meta as parking } from "../games/parking/meta";
+import { meta as nonogram } from "../games/nonogram/meta";
+import { meta as onestroke } from "../games/onestroke/meta";
+import { meta as wordsearch } from "../games/wordsearch/meta";
+import { meta as untangle } from "../games/untangle/meta";
 
 /** The games below the fold. Fetched on idle; never part of a first visit. */
 export const REST: ReadonlyArray<GameMeta> = [
@@ -144,6 +148,23 @@ export const REST: ReadonlyArray<GameMeta> = [
   arrowtap,
   fruit,
   parking,
+
+  // Wave 11. Four puzzles, and the thing they share is that none of them can
+  // deal a board nobody could finish: `nonogram` proves its clues force exactly
+  // one picture by LINE-SOLVING them (a puzzle needing a guess is thrown away
+  // and re-dealt), `onestroke` folds a walk that already visits every square,
+  // `wordsearch` plants every listed word before a single filler letter, and
+  // `untangle` joins its dots without a crossing and only then scatters them.
+  // Built backwards from a solved state, four more times, for the reason
+  // written at the top of `flow`: a budgeted SEARCH cannot tell "impossible"
+  // from "merely deep", and it reports both as "no solution found".
+  //
+  // Appended like every wave before, so all four land in the lazy half of the
+  // metadata and of the card art by construction.
+  nonogram,
+  onestroke,
+  wordsearch,
+  untangle,
 ];
 
 /**
@@ -182,4 +203,8 @@ export const REST_LOADERS: Record<string, () => Promise<{ default: GameModule }>
   arrowtap: () => import("../games/arrowtap/index"),
   fruit: () => import("../games/fruit/index"),
   parking: () => import("../games/parking/index"),
+  nonogram: () => import("../games/nonogram/index"),
+  onestroke: () => import("../games/onestroke/index"),
+  wordsearch: () => import("../games/wordsearch/index"),
+  untangle: () => import("../games/untangle/index"),
 };
