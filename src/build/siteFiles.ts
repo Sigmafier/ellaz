@@ -176,7 +176,29 @@ export function sitemapXml(lastmods?: ReadonlyMap<string, string>): string {
     ].join("\n");
   });
 
-  return [
+  // THE PROTOCOL'S OWN CEILINGS, and this is a tripwire rather than a feature.
+  //
+  // A single sitemap may carry at most 50,000 URLs and 50 MB uncompressed; past
+  // either, Google reads the file up to the limit and IGNORES the rest - no
+  // error, no warning, and a page count that quietly stops growing. Which is
+  // exactly the shape this repo keeps meeting: correct everywhere you look,
+  // wrong for a population you are not in.
+  //
+  // At 4 page locales and 4 rows per game the cliff is around 12,490 games, so
+  // nothing here is close. It is written down now because the fix is a sitemap
+  // INDEX - several files plus one that lists them - and that is a change worth
+  // making deliberately, not the morning somebody notices the index has been
+  // flat for a month. When this throws, that is what it is asking for.
+  const MAX_URLS = 50_000;
+  const MAX_BYTES = 50 * 1024 * 1024;
+  if (rows.length > MAX_URLS) {
+    throw new Error(
+      `sitemap: ${rows.length} URLs, over the ${MAX_URLS} protocol limit. Google reads the ` +
+        "first 50,000 and silently ignores the rest - split into a sitemap index.",
+    );
+  }
+
+  const xmlOut = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" ' +
       'xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">',
@@ -184,6 +206,14 @@ export function sitemapXml(lastmods?: ReadonlyMap<string, string>): string {
     "</urlset>",
     "",
   ].join("\n");
+
+  const bytes = Buffer.byteLength(xmlOut, "utf8");
+  if (bytes > MAX_BYTES) {
+    throw new Error(
+      `sitemap: ${bytes} B, over the ${MAX_BYTES} B protocol limit - split into a sitemap index.`,
+    );
+  }
+  return xmlOut;
 }
 
 /**

@@ -26,7 +26,9 @@ import {
   OG_WIDTH,
   ogCardTree,
   ogCardText,
+  ogCardKey,
   ogImageFile,
+  registerOgHash,
 } from "./ogCard";
 import { OG_ROUTES, type Route } from "./routes";
 
@@ -200,17 +202,50 @@ export async function renderOgPng(route: Route, meta?: GameMeta): Promise<Uint8A
 /**
  * Every card the route table implies, one per emitted page.
  *
- * Serial rather than `Promise.all`: 48 rasterisations at once buys nothing on
- * a build machine and makes a failure report which card died much harder to
- * read. The whole set takes a couple of seconds.
+ * Serial rather than `Promise.all`: rasterising the whole set at once buys
+ * nothing on a build machine and makes a failure report which card died much
+ * harder to read.
+ *
+ * IT MUST RUN BEFORE ANY PAGE IS BUILT. The name a card is written under
+ * carries the hash of its own bytes, so the bytes have to exist before the head
+ * emitter, the JSON-LD and the sitemap can reference it. `registerOgHash` is
+ * what publishes each one to `ogImageFile`, and `pages.ts` awaits this call
+ * ahead of `allEmittedFiles` for exactly that reason. Get the order wrong and
+ * every page references `-unhashed`, which `assert-pages.mjs` refuses by name.
  */
+/**
+ * One card, rendered and registered at most once per build.
+ *
+ * PER-ROUTE rather than all-or-nothing, because the two callers want different
+ * amounts. `generateBundle` needs every hash before it writes 184 pages;
+ * `transformIndexHtml` needs exactly ONE - the app shell advertises the home
+ * card and nothing else - and it runs first. Making that hook wait for all 184
+ * would put the whole rasteriser inside a unit test that only wants to read a
+ * `<title>`.
+ */
+const cards = new Map<string, Promise<Uint8Array>>();
+
+export function ensureOgCard(route: Route): Promise<Uint8Array> {
+  const key = ogCardKey(route);
+  let png = cards.get(key);
+  if (!png) {
+    png = renderOgPng(route, route.id ? metaFor(route.id) : undefined).then((bytes) => {
+      // Register FIRST; `ogImageFile` reads the registry to build the name.
+      registerOgHash(route, bytes);
+      return bytes;
+    });
+    cards.set(key, png);
+  }
+  return png;
+}
+
 export async function renderOgImages(): Promise<Array<{ fileName: string; png: Uint8Array }>> {
   const out: Array<{ fileName: string; png: Uint8Array }> = [];
+  // Serial, deliberately: rasterising the whole set at once buys nothing on a
+  // build machine and makes a failure report which card died much harder to read.
   for (const route of OG_ROUTES) {
-    out.push({
-      fileName: ogImageFile(route),
-      png: await renderOgPng(route, route.id ? metaFor(route.id) : undefined),
-    });
+    const png = await ensureOgCard(route);
+    out.push({ fileName: ogImageFile(route), png });
   }
   return out;
 }

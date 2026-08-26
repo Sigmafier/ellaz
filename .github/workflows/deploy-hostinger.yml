@@ -199,17 +199,29 @@ jobs:
             echo 'rm -f .ftp-deploy-sync-state.json'
             echo 'set cmd:fail-exit true'
 
-            # Remote directories first, so a `put` never lands nowhere.
-            (cd dist && find . -type f -not -path './assets/*' -printf '%h\n') |
+            # Remote directories first, so a `put` never lands nowhere. The
+            # mirrored trees are left out: mirror creates its own target.
+            (cd dist && find . -type f -not -path './assets/*' -not -path './og/*' \
+                 -not -path './art/*' -printf '%h\n') |
               sort -u | while read -r d; do
                 [ "$d" = "." ] || echo "mkdir -pf \"${d#./}\""
               done
 
-            # PASS 1 - the hashed assets, by mirror. Mirror is EXACT here and
-            # only here: every name under assets/ contains a content hash, so a
-            # changed file is a NEW file and "does the remote have this name"
-            # is the whole question.
-            echo 'mirror -R --parallel=4 --no-perms --verbose=1 dist/assets assets'
+            # PASS 1 - the CONTENT-HASHED trees, by mirror. Mirror is EXACT on
+            # these and nowhere else: every name in them contains a hash of its
+            # own bytes, so a changed file is a NEW file and "does the remote
+            # have this name" is the whole question. Nothing here can be wrong
+            # about what is already there, which is the actual invariant - "no
+            # ledgers" was only ever a consequence of it.
+            #
+            # `og/` (184 share cards) and `art/` (38 game pictures) JOINED THIS
+            # PASS on 2026-08-26, when their names gained a hash. They were 222
+            # forced transfers on every single deploy at ~0.68 s each, for files
+            # that change when a game or its copy changes and not otherwise:
+            # measured on the artifact, the forced set went 417 -> 195.
+            for tree in assets og art; do
+              echo "mirror -R --parallel=4 --no-perms --verbose=1 dist/$tree $tree"
+            done
 
             # PASS 2 - everything else that is REFERENCED, forced.
             # PASS 3 - the files that NAME the hashes, forced, last.
@@ -229,8 +241,8 @@ jobs:
             # what keeps stale HTML working if a run dies between the passes.
             for pass in other html; do
               if [ "$pass" = other ]; then
-                find dist -type f -not -path 'dist/assets/*' \
-                     -not -name '*.html' -not -name 'sw.js' | sort
+                find dist -type f -not -path 'dist/assets/*' -not -path 'dist/og/*' \
+                     -not -path 'dist/art/*' -not -name '*.html' -not -name 'sw.js' | sort
               else
                 find dist -type f \( -name '*.html' -o -name 'sw.js' \) | sort
               fi |
@@ -243,11 +255,26 @@ jobs:
           } > "$SCRIPT"
 
           # A generator that silently produces nothing would upload nothing and
-          # still exit 0. Assert the shape before handing it to lftp: 49 pages
-          # plus sw.js is the floor, and it is checked here rather than trusted.
+          # still exit 0. Assert the shape before handing it to lftp.
+          #
+          # THE FLOOR IS DERIVED, NOT TYPED. It was `-ge 50`, written when the
+          # site had 49 pages - a constant against a list that grows, so at 200
+          # pages a walk that dropped three quarters of them would still pass.
+          # The route table now says how many documents there are, and it is
+          # written by the EMITTER rather than by this shell walk, so the two
+          # cannot be wrong together: a broken `find` here reds against a number
+          # that came from somewhere else entirely.
+          PAGES=$(node -e 'const m=require("./dist/pages.json");
+            process.stdout.write(String(m.pages.filter(p=>p.file.endsWith(".html")).length))')
+          case "$PAGES" in ''|*[!0-9]*)
+            echo "::error::could not read the page count out of dist/pages.json"; exit 1;;
+          esac
           PUTS=$(grep -c '^put ' "$SCRIPT")
-          echo "lftp script: $PUTS forced transfers + 1 mirror"
-          [ "$PUTS" -ge 50 ] || { echo "::error::only $PUTS put commands - the file walk is broken"; exit 1; }
+          echo "lftp script: $PUTS forced transfers + 3 mirrors ($PAGES documents expected)"
+          [ "$PUTS" -ge "$PAGES" ] || {
+            echo "::error::only $PUTS put commands for $PAGES documents - the file walk is broken"
+            exit 1
+          }
 
           # RETRY THE WHOLE UPLOAD. Hostinger's FTP is intermittently slow to
           # answer - it is what tripped the old 30s default, and on 2026-08-08 a

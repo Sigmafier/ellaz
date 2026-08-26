@@ -37,7 +37,7 @@ import { homeGraph } from "./schema";
 import { jsonLd, toHtml } from "./html";
 import { lastmodByPath } from "./lastmod";
 import { OG_HEIGHT, OG_WIDTH, ogImagePath } from "./ogCard";
-import { renderOgImages } from "./ogImages";
+import { ensureOgCard, renderOgImages } from "./ogImages";
 import { indexNowKeyFile, INDEXNOW_KEY, llmsTxt, robotsTxt, sitemapXml } from "./siteFiles";
 import {
   DEV_HEAD_ASSETS,
@@ -365,7 +365,7 @@ export function pagesPlugin(base: string): Plugin {
     enforce: "post",
     apply: () => true,
 
-    transformIndexHtml(html, ctx) {
+    async transformIndexHtml(html, ctx) {
       // ONLY the app's own index.html. In dev the 78 emitted pages are handed
       // to this very pipeline on purpose - they need `@vitejs/plugin-react`'s
       // refresh preamble or nothing boots (see `configureServer` below, and
@@ -392,6 +392,24 @@ export function pagesPlugin(base: string): Plugin {
       //
       // Rewritten rather than asserted, so there is one owner instead of two
       // that agree. The throw covers the only way this can silently no-op.
+      // THIS PAGE'S SHARE CARD FIRST, and ONLY this page's.
+      //
+      // `indexHeadTags` below writes the shell's own `og:image`, and a card's
+      // name carries the hash of its own bytes - so the bytes have to exist
+      // before the tag can name them. This hook runs before `generateBundle`,
+      // so it is the earlier of the two that must ask.
+      //
+      // ONE card rather than all 184: `ensureOgCard` is memoized per route, so
+      // `generateBundle` reuses this one and pays for the rest. The whole set
+      // here would put the rasteriser inside every unit test that reads a
+      // `<title>` off this hook.
+      //
+      // Without this line `/` shipped an `og:image` pointing at `-unhashed`, a
+      // name no card is written under - on the site's canonical entry and its
+      // `x-default` target, which is exactly where this repo's blind spots keep
+      // landing. `assert-pages.mjs` refuses it, which is how it was caught.
+      await ensureOgCard(HOME_CANONICAL);
+
       const withLang = replaceHtmlLangDir(html, CANONICAL_LOCALE);
       // The title is REPLACED, not appended - see `replaceTitle`. It rides here
       // beside the lang/dir stamp because they are the same defect class: the
@@ -449,6 +467,23 @@ export function pagesPlugin(base: string): Plugin {
         ...extractHeadAssets(String(index.source)),
         lazy: resolveLazyChunks(Object.keys(bundle), GAMES.map((m) => m.id)),
       };
+      // THE SHARE CARDS ARE RENDERED FIRST, AND THAT ORDER IS LOAD-BEARING.
+      //
+      // Each card is written under a name carrying the hash of its own bytes,
+      // so the bytes must exist before any page can reference one. `renderOgImages`
+      // publishes every hash to `ogImageFile`; `allEmittedFiles` below then reads
+      // them while building the head tags, the JSON-LD and the sitemap.
+      //
+      // Swap these two lines and every page references `-unhashed`, which is a
+      // name no card is written under - so the build does not silently ship 184
+      // broken previews, `assert-pages.mjs` reds naming the page. That refusal
+      // is the whole reason the fallback is a marker rather than the bare name.
+      //
+      // They are still emitted separately from `allEmittedFiles`, because they
+      // are BINARY and ASYNC and that function is pure, synchronous and
+      // string-only so the gate's tests can read it without a rasteriser.
+      const cards = await renderOgImages();
+
       // Git is consulted once per build, here, rather than inside the pure
       // `allEmittedFiles` - which the gate's tests call, and which must stay
       // free of side effects and of a dependency on repository history.
@@ -468,11 +503,7 @@ export function pagesPlugin(base: string): Plugin {
         this.emitFile({ type: "asset", fileName: f.fileName, source: f.source });
       }
 
-      // The share cards. Emitted here rather than from `allEmittedFiles`
-      // because they are BINARY and ASYNC, and that function is neither - it
-      // is pure, synchronous and string-only so the gate's tests can read it
-      // without a rasteriser. Splitting them keeps that property.
-      for (const { fileName, png } of await renderOgImages()) {
+      for (const { fileName, png } of cards) {
         this.emitFile({ type: "asset", fileName, source: png });
       }
     },

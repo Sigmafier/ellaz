@@ -472,7 +472,57 @@ function checkCardsAreDistinct() {
   if (names.length < 100) {
     fail(`dist/og holds only ${names.length} cards - the emitter wrote a partial set`);
   }
-  console.log(`   ${names.length} share cards, ${byHash.size} distinct pictures`);
+
+  // TWO PAGES POINTING AT ONE CARD.
+  //
+  // Since 2026-08-26 a card's filename carries the hash of its own bytes, so
+  // two identical pictures now collapse into ONE FILE and the content-hash
+  // check above can no longer see them - it would report every file distinct,
+  // truthfully, over a defect that is still live. The duplicate shows up one
+  // layer out instead: two different pages advertising the same name. That is
+  // also the more direct statement of the defect, which was always "four
+  // category pages in five previewing the wrong group".
+  const byCard = new Map();
+  for (const page of readManifest().pages) {
+    const file = page.file;
+    if (!file || !file.endsWith(".html") || !existsSync(join(DIST, file))) continue;
+    const html = readFileSync(join(DIST, file), "utf8");
+    const m = /<meta property="og:image" content="[^"]*\/(og\/[^"]+)"/.exec(html);
+    if (!m) continue;
+    byCard.set(m[1], [...(byCard.get(m[1]) ?? []), file]);
+  }
+  if (byCard.size === 0) {
+    fail("no emitted page names an og:image - the matcher found nothing, so this check is blind");
+  }
+  for (const [card, pages] of byCard) {
+    if (pages.length > 1) {
+      fail(`${pages.length} pages share the card ${card}: ${pages.join(", ")}`);
+    }
+  }
+
+  // `-unhashed` IS A REAL NAME AND NO CARD IS EVER WRITTEN UNDER IT.
+  //
+  // `ogImageFile` falls back to it when the hash registry is empty, which is the
+  // state `build.test.ts` reads `allEmittedFiles` in - pure and synchronous,
+  // never having rasterised anything. In a REAL build the cards are rendered
+  // first and every hash is registered, so a page carrying this marker means the
+  // ordering in `pages.ts` broke and 184 previews are pointing at nothing.
+  //
+  // It is refused here rather than made impossible upstream on purpose: the
+  // alternative fallback is the bare, un-suffixed name, which looks perfectly
+  // plausible in every page and 404s on every card. Fail-closed beats fail-open,
+  // and this is the line that makes it so. It caught itself on the first build:
+  // `transformIndexHtml` runs before `generateBundle`, so `/` shipped one.
+  for (const [card, pages] of byCard) {
+    if (card.includes("-unhashed.")) {
+      fail(`${pages.join(", ")} reference ${card} - no card is written under that name`);
+    }
+  }
+
+  console.log(
+    `   ${names.length} share cards, ${byHash.size} distinct pictures, ` +
+      `${byCard.size} referenced by ${[...byCard.values()].flat().length} pages`,
+  );
 }
 
 function checkPageImage(html, where, kind, base) {

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { artSvgSized } from "./ogCard";
 import { GAMES } from "../portal/games";
 
@@ -32,9 +33,47 @@ import { GAMES } from "../portal/games";
 export const ART_WIDTH = 1200;
 export const ART_HEIGHT = 900;
 
-/** `art/snake.svg`. Flat and base-free, exactly like `ogImageFile`. */
+/**
+ * The SVG for one game, computed once per build.
+ *
+ * `artFile` and `artFiles` both need it - the first to hash it, the second to
+ * emit it - and `artSvgSized` walks the whole scene, so asking twice per game
+ * per base is work nobody sees and everybody waits for.
+ */
+const svgCache = new Map<string, string>();
+function artSvg(id: string): string {
+  let svg = svgCache.get(id);
+  if (svg === undefined) {
+    svg = artSvgSized(id, ART_WIDTH, ART_HEIGHT);
+    svgCache.set(id, svg);
+  }
+  return svg;
+}
+
+/**
+ * `art/snake-3f9a1c2e.svg`. Flat, base-free, and CONTENT-HASHED.
+ *
+ * WHY THE HASH. The deploy uploads `assets/` with lftp's `mirror`, which sends
+ * only what the server does not already have - and that is EXACT there, and
+ * only there, because every name under `assets/` carries a content hash, so a
+ * changed file is a NEW file and "does the remote have this name" is the whole
+ * question. Every other file is FORCED, because mirror otherwise decides by
+ * comparing SIZE and TIME, and an HTML file differing only in a hash is
+ * byte-identical in length. That defect skipped all 49 pages once.
+ *
+ * A stable `art/snake.svg` therefore had to be forced on every deploy, 38 files
+ * at ~0.68 s each. Hashed, it joins the mirror pass and is sent once, ever.
+ * The invariant is not "no ledgers" - it is that THE THING DECIDING WHAT TO
+ * SEND MUST NOT BE ABLE TO BE WRONG ABOUT WHAT IS ALREADY THERE, and a content
+ * hash is the only comparison here that cannot.
+ *
+ * Old hashes accumulate on the server and are never deleted, deliberately -
+ * that is what keeps a stale page working if a run dies between passes.
+ *
+ * See `.claude/rules/a-deploy-ledger-that-can-disagree-with-the-disk.md`.
+ */
 export function artFile(id: string): string {
-  return `art/${id}.svg`;
+  return `art/${id}-${createHash("sha256").update(artSvg(id)).digest("hex").slice(0, 8)}.svg`;
 }
 
 /** For an `<img src>`, which is served by a HOST and therefore carries its base. */
@@ -61,7 +100,7 @@ export function artPath(id: string): string {
 export function artFiles(): Array<{ fileName: string; source: string }> {
   const files = GAMES.map((meta) => ({
     fileName: artFile(meta.id),
-    source: artSvgSized(meta.id, ART_WIDTH, ART_HEIGHT),
+    source: artSvg(meta.id),
   }));
   // A file walk that silently produces nothing emits nothing and exits 0 - the
   // shape every gate in this repo exists to catch.

@@ -31,6 +31,7 @@
    `ogImages.ts` owns the async, native, font-loading half. That split is what
    lets the layout be unit-tested without a rasteriser. */
 
+import { createHash } from "node:crypto";
 import bidiFactory from "bidi-js";
 import { gameName } from "./gameName";
 import type { GameMeta } from "@sdk/index";
@@ -81,7 +82,7 @@ export const OG_HEIGHT = 630;
 export const OG_MAX_BYTES = 600 * 1024;
 
 /**
- * `og/game-snake-he.png`. Flat, because a nested tree buys nothing here.
+ * `game-snake-he`. What the card IS, with nothing about what it looks like.
  *
  * The discriminator is `id` OR `category`, and both are needed. With `id`
  * alone all five category pages in a language resolved to `og/category-en.png`
@@ -89,10 +90,57 @@ export const OG_MAX_BYTES = 600 * 1024;
  * share and every preview. Caught by the distinctness assertion in
  * `ogCard.test.ts`, which is the only thing in the build that could have.
  */
-export function ogImageFile(route: Route): string {
+export function ogCardKey(route: Route): string {
   const what = route.id ?? route.category;
-  const parts = what ? [route.kind, what, route.locale] : [route.kind, route.locale];
-  return `og/${parts.join("-")}.png`;
+  return (what ? [route.kind, what, route.locale] : [route.kind, route.locale]).join("-");
+}
+
+/**
+ * Every card's content hash, filled in by `renderOgImages()` at build time.
+ *
+ * WHY A REGISTRY AND NOT A PURE FUNCTION. A card's bytes come out of a
+ * rasteriser, which is async - and `ogImageFile` is called from the head
+ * emitter, the JSON-LD and the sitemap, all of which are synchronous and pure
+ * by design so the gate's tests can read them without a rasteriser. So the
+ * cards are rendered FIRST, their hashes registered here, and the pages built
+ * afterwards. `pages.ts` does that in `generateBundle`, in that order, and the
+ * comment there says why the order is load-bearing.
+ *
+ * WHY THE HASH AT ALL: the same reason `artFile` carries one. See the long note
+ * there - the deploy's `mirror` pass can only be trusted on names that change
+ * when their bytes do, and 184 stable card names were 184 forced uploads at
+ * ~0.68 s each on every single deploy.
+ */
+const ogHashes = new Map<string, string>();
+
+/** Called once per card, by the renderer, before any page is built. */
+export function registerOgHash(route: Route, png: Uint8Array): void {
+  ogHashes.set(ogCardKey(route), createHash("sha256").update(png).digest("hex").slice(0, 8));
+}
+
+/** Tests only: forget every registered hash, so one suite cannot leak into the next. */
+export function resetOgHashes(): void {
+  ogHashes.clear();
+}
+
+/**
+ * `og/game-snake-he-3f9a1c2e.png`.
+ *
+ * THE FALLBACK IS DELIBERATE AND IT IS FAIL-CLOSED. `allEmittedFiles` is pure
+ * and synchronous on purpose, and `build.test.ts` calls it without ever
+ * rendering a card - so with no hash registered this has to answer something.
+ * It answers `-unhashed`, which is a name no card is ever written under, and
+ * `assert-pages.mjs` REFUSES any emitted page that references one. So a test
+ * keeps working and a real build that got the ordering wrong reds by name
+ * rather than shipping 184 references to files that are not there.
+ *
+ * Returning the un-suffixed name instead would be the fail-OPEN version: every
+ * page would look plausible and every card would 404, which is the shape this
+ * repo has already shipped twice.
+ */
+export function ogImageFile(route: Route): string {
+  const key = ogCardKey(route);
+  return `og/${key}-${ogHashes.get(key) ?? "unhashed"}.png`;
 }
 
 /** Base-free, like every other path here. The base belongs to a host, not an identity. */

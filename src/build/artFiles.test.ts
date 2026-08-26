@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, it, expect } from "vitest";
 import { GAMES } from "../portal/games";
 import { ART_HEIGHT, ART_WIDTH, artFile, artFiles, artHref, artPath } from "./artFiles";
@@ -51,8 +52,39 @@ describe("the per-game art files", () => {
     // The two callers want opposite things and the distinction is not
     // cosmetic: a src without the base 404s on the GitHub Pages mirror, and a
     // canonical WITH it names a host we have told crawlers to ignore.
-    expect(artHref("/ellaz/", "snake")).toBe("/ellaz/art/snake.svg");
-    expect(artHref("/", "snake")).toBe("/art/snake.svg");
-    expect(artPath("snake")).toBe("/art/snake.svg");
+    //
+    // Written against `artFile` rather than a literal, because the name gained
+    // a content hash on 2026-08-26 and a literal here would have to be
+    // re-typed every time a scene is redrawn - which is the same hand-kept
+    // mirror this repo keeps writing rules about. What is asserted is the
+    // RELATIONSHIP: one carries the base, the other never does, and the file
+    // part of both is the same string.
+    const file = artFile("snake");
+    expect(artHref("/ellaz/", "snake")).toBe(`/ellaz/${file}`);
+    expect(artHref("/", "snake")).toBe(`/${file}`);
+    expect(artPath("snake")).toBe(`/${file}`);
+    // ...and the base is genuinely the only difference, so a bug that dropped
+    // it from both would not pass the three lines above.
+    expect(artHref("/ellaz/", "snake")).not.toBe(artPath("snake"));
+  });
+
+  it("names the file after its own BYTES, so the deploy can skip an unchanged one", () => {
+    // The hash is what lets `og/` and `art/` ride lftp's `mirror` pass instead
+    // of being force-uploaded on every deploy - 222 files at ~0.68 s each. It
+    // only works if the name really tracks the content, so: the same art twice
+    // is the same name, and two different games are two different names.
+    expect(artFile("snake")).toBe(artFile("snake"));
+    expect(artFile("snake")).not.toBe(artFile("sudoku"));
+    expect(artFile("snake")).toMatch(/^art\/snake-[0-9a-f]{8}\.svg$/);
+    // The emitted set really is what the names claim - a hash computed off
+    // something OTHER than the bytes on disk would pass every line above.
+    const bySource = new Map(files.map((f) => [f.fileName, f.source]));
+    for (const meta of GAMES) {
+      const name = artFile(meta.id);
+      expect(bySource.has(name), `${name} was named but never emitted`).toBe(true);
+      expect(createHash("sha256").update(bySource.get(name)!).digest("hex")).toContain(
+        name.slice(name.lastIndexOf("-") + 1, -4),
+      );
+    }
   });
 });

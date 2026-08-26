@@ -922,7 +922,11 @@ describe("the bare-URL home is a document, not an empty shell", () => {
 
   // The plugin declares `transformIndexHtml` as a plain function; Vite's type
   // also allows the object form, which is why this narrows before calling.
-  const runTransform = (base: string, html: string, path = "/index.html"): string => {
+  // ASYNC since 2026-08-26. The shell's own `og:image` names a card whose file
+  // carries the hash of its own bytes, so the hook rasterises exactly that ONE
+  // card before it can write the tag. `ensureOgCard` is memoized per route, so
+  // the whole file pays for it once and the other seven tests read the result.
+  const runTransform = async (base: string, html: string, path = "/index.html"): Promise<string> => {
     const hook = pagesPlugin(base).transformIndexHtml;
     const fn =
       typeof hook === "function"
@@ -931,25 +935,25 @@ describe("the bare-URL home is a document, not an empty shell", () => {
           ? hook.handler
           : hook?.transform;
     if (typeof fn !== "function") throw new Error("transformIndexHtml is not a function");
-    return String(fn.call(null as never, html, { path, filename: path.slice(1) }));
+    return String(await fn.call(null as never, html, { path, filename: path.slice(1) }));
   };
 
-  const transform = (base: string): string => runTransform(base, SHELL);
+  const transform = (base: string): Promise<string> => runTransform(base, SHELL);
 
-  it("stamps the shell's lang and dir from CANONICAL_LOCALE", () => {
+  it("stamps the shell's lang and dir from CANONICAL_LOCALE", async () => {
     // index.html cannot import anything, so its `lang`/`dir` were a literal
     // only a person could keep in step with the root's language - and a stale
     // one is a document whose prose is English, whose `lang` says Hebrew, and
     // whose layout is mirrored. It renders perfectly and is wrong in three
     // ways at once, which is why this is rewritten rather than reviewed.
-    const out = transform("/");
+    const out = await transform("/");
     expect(out).toContain(`<html lang="${CANONICAL_LOCALE}" dir="${dirOf(CANONICAL_LOCALE)}">`);
     // The fixture went in as he/rtl, so this proves a REWRITE rather than a
     // fixture that already agreed.
     expect(out).not.toContain('lang="he" dir="rtl"');
   });
 
-  it("refuses a shell with no <html> tag rather than emitting the old language", () => {
+  it("refuses a shell with no <html> tag rather than emitting the old language", async () => {
     // The only way the rewrite can silently no-op is if it stops matching, and
     // a no-op leaves a valid document carrying the previous language - exactly
     // the defect. So it throws, and this is the control proving it does.
@@ -958,7 +962,7 @@ describe("the bare-URL home is a document, not an empty shell", () => {
     );
   });
 
-  it("stamps the opening tag only, never a later mention of <html", () => {
+  it("stamps the opening tag only, never a later mention of <html", async () => {
     // `[^>]*` cannot cross a `>`, so the match is bounded to one tag. Without
     // that the replacement could run away across the document - a corruption
     // that would still parse, and so would still look fine.
@@ -970,15 +974,15 @@ describe("the bare-URL home is a document, not an empty shell", () => {
     expect(out).toContain(`<!-- <html lang="zz"> -->`);
   });
 
-  it("carries an h1 and every game as a real link", () => {
-    const out = transform("/");
+  it("carries an h1 and every game as a real link", async () => {
+    const out = await transform("/");
     expect(out.match(/<h1/g) ?? []).toHaveLength(1);
     const linked = new Set([...out.matchAll(/href="(\/games\/[^"]+)"/g)].map((m) => m[1]));
     expect(linked.size).toBe(GAMES.length);
   });
 
-  it("says something - a link list alone is not a page", () => {
-    const text = transform("/")
+  it("says something - a link list alone is not a page", async () => {
+    const text = (await transform("/"))
       .replace(/<script[\s\S]*?<\/script>/g, " ")
       .replace(/<[^>]+>/g, " ")
       .replace(/\s+/g, " ")
@@ -986,11 +990,11 @@ describe("the bare-URL home is a document, not an empty shell", () => {
     expect(text.split(" ").length).toBeGreaterThan(120);
   });
 
-  it("puts the document BEFORE #root and never inside it", () => {
+  it("puts the document BEFORE #root and never inside it", async () => {
     // The invariant that matters. A node React does not know about, inside the
     // container it reconciles, is the nested-root teardown crash in a different
     // costume - `#game-poster` sits beside `#game-frame` for exactly this reason.
-    const out = transform("/");
+    const out = await transform("/");
     // Present FIRST. Without this line `indexOf` returns -1 when the document is
     // missing entirely, -1 is less than any real index, and the assertion below
     // reports green over the exact absence this block exists to catch. Caught by
@@ -1002,15 +1006,15 @@ describe("the bare-URL home is a document, not an empty shell", () => {
     expect(out).toContain('<div id="root"></div>');
   });
 
-  it("links to the base it was built for, on both hosts", () => {
+  it("links to the base it was built for, on both hosts", async () => {
     // Half the failures in this repo are base-dependent and each workflow only
     // ever sees one arm, so both are asserted here rather than in one CI job.
-    expect(transform("/")).toContain('href="/games/snake/"');
-    expect(transform("/ellaz/")).toContain('href="/ellaz/games/snake/"');
-    expect(transform("/ellaz/")).not.toContain('href="/games/snake/"');
+    expect(await transform("/")).toContain('href="/games/snake/"');
+    expect(await transform("/ellaz/")).toContain('href="/ellaz/games/snake/"');
+    expect(await transform("/ellaz/")).not.toContain('href="/games/snake/"');
   });
 
-  it("leaves an emitted page alone - dev sends those through this same hook", () => {
+  it("leaves an emitted page alone - dev sends those through this same hook", async () => {
     // 2026-08-12: it did not, and every content page in dev was a 500. The dev
     // middleware must run the emitted pages through Vite's html pipeline (the
     // react-refresh preamble), so this hook is handed 78 documents that have no
@@ -1021,7 +1025,7 @@ describe("the bare-URL home is a document, not an empty shell", () => {
       "/",
       DEV_HEAD_ASSETS,
     );
-    const out = runTransform("/", page, "/es/games/snake/");
+    const out = await runTransform("/", page, "/es/games/snake/");
     expect(out).toBe(page);
     expect(out).not.toContain('id="home-doc"');
     // And specifically its TITLE, which is the newest way this can go wrong.
@@ -1037,22 +1041,22 @@ describe("the bare-URL home is a document, not an empty shell", () => {
     expect(titleOf(out)).not.toBe(indexTitle());
   });
 
-  it("refuses to emit silently if the mount point moves", () => {
+  it("refuses to emit silently if the mount point moves", async () => {
     // Without this the marker could stop matching and the home document would
     // vanish from `/` with a green build - which is the exact failure this whole
     // block exists to prevent, arriving by a different door.
-    expect(() =>
+    await expect(
       runTransform("/", `<html><head><title>x</title></head><body><div id="app"></div></body></html>`),
-    ).toThrow(/mount point/i);
+    ).rejects.toThrow(/mount point/i);
   });
 
-  it("gives `/` the canonical locale's own title, and replaces rather than appends", () => {
+  it("gives `/` the canonical locale's own title, and replaces rather than appends", async () => {
     // The bug this whole pair of helpers exists for. `/` shipped
     // `Ellaz — Games / משחקים` - a bilingual literal nothing owned - as the
     // title of the site's canonical entry and x-default target, beside an
     // English og:title, an English description and lang="en". No gate here read
     // a title, so it survived the 2026-08-14 flip that changed everything else.
-    const out = transform("/");
+    const out = await transform("/");
     expect(out).toContain(`<title>${indexTitle()}</title>`);
     // The fixture's title went in bilingual, so this proves a REWRITE.
     expect(out).not.toContain("Ellaz — Games / משחקים");
@@ -1065,7 +1069,7 @@ describe("the bare-URL home is a document, not an empty shell", () => {
     expect(out).toContain(`<meta property="og:title" content="${indexTitle()}" />`);
   });
 
-  it("refuses a shell with no <title> rather than leaving an unowned one", () => {
+  it("refuses a shell with no <title> rather than leaving an unowned one", async () => {
     // The control for the throw. A no-op here leaves a perfectly valid document
     // carrying whatever literal was in the file - which is precisely the defect,
     // so silence is the one thing this must not do.
@@ -1074,7 +1078,7 @@ describe("the bare-URL home is a document, not an empty shell", () => {
     );
   });
 
-  it("escapes text in the title rather than emitting markup", () => {
+  it("escapes text in the title rather than emitting markup", async () => {
     // `<title>` is #PCDATA: no child elements, so `&` and `<` are the surface.
     expect(replaceTitle("<head><title>x</title></head>", "A & B <c>")).toContain(
       "<title>A &amp; B &lt;c&gt;</title>",
