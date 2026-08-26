@@ -10,6 +10,14 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      // PRODUCTION RUNS PREACT. `vite.config.ts` aliases `react`/`react-dom`
+      // onto `preact/compat`, and vitest resolves aliases from ITS OWN config -
+      // so without these two lines a test that renders anything would exercise
+      // React 18 (still installed, still a dependency) and pass, while the site
+      // a child loads is drawn by preact. The suite would be green about a
+      // runtime nobody ships. 125 files in src/ import `from "react"`.
+      react: "preact/compat",
+      "react-dom": "preact/compat",
       "@sdk": fileURLToPath(new URL("./src/sdk", import.meta.url)),
       "@ui": fileURLToPath(new URL("./src/ui", import.meta.url)),
       "@juice": fileURLToPath(new URL("./src/juice", import.meta.url)),
