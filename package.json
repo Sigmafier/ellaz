@@ -31,11 +31,14 @@
     "reach:backlinks": "node scripts/reach/backlinks.mjs",
     "reach:backlinks:control": "node scripts/reach/backlinks.mjs --control",
     "reach:site": "node scripts/reach/build-reach-site.mjs",
-    "reach:site:control": "node scripts/reach/build-reach-site.mjs --control && node scripts/assert-reach-live.mjs --control"
+    "reach:site:control": "node scripts/reach/build-reach-site.mjs --control && node scripts/assert-reach-live.mjs --control",
+    "games:check": "node scripts/games-pipeline.mjs",
+    "games:write": "node scripts/games-pipeline.mjs --write"
   },
   "dependencies": {
     "phaser": "^4.2.1",
     "posthog-js": "^1.160.0",
+    "preact": "10.29.7",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

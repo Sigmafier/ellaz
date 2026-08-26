@@ -76,7 +76,7 @@ const ALLOWED = [
   { re: /^(icon|favicon)\.svg$/, why: "app icons" },
   { re: /^assets\/shell-[A-Za-z0-9_-]+\.(js|css)$/, why: "shared app code + styles" },
   { re: /^assets\/index-[A-Za-z0-9_-]+\.js$/, why: "entry chunk" },
-  { re: /^assets\/vendor-react-[A-Za-z0-9_-]+\.js$/, why: "React runtime" },
+  { re: /^assets\/vendor-react-[A-Za-z0-9_-]+\.js$/, why: "the reconciler (preact/compat)" },
   { re: /^assets\/workbox-window\.prod\.es5-[A-Za-z0-9_-]+\.js$/, why: "SW registration" },
   // The one THIRD-PARTY entry, and it is here because it was refused first.
   //
