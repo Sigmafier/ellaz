@@ -421,6 +421,20 @@ paragraph carried one for about three hours and it went stale twice in that
 window, once because another lane shipped two games and once because another
 raised the ceiling. Run `npm run assert:payload` on the tree in front of you.
 
+**Restart must clear what the game's INPUT is gated on, not just deal a new
+board.** Seventeen games refuse a tap while the run is over (`if (won) return`,
+`if (solved) return`, `if (lockRef.current) return`). `onestroke` shipped a
+restart that rubbed the drawn line out and never cleared `won`, so after a win
+it handed back a board reading `1/23` with the WINNING clock still frozen on it,
+answering no finger at all - and every cheaper check passed, because the markup
+really did change. `restart-clears-the-input-gate.test.ts` asks the question of
+every game; `scripts/repro/repro-onestroke-restart-after-win.mjs` solves a board
+for real and presses the button. The ref case is the subtle half: `if (x.current)
+return` is either a gate restart must clear or a run-once latch it must not, and
+the NAME cannot tell them apart - a game that sets the ref back to false
+somewhere has a gate, one that never does has a latch.
+[`a-restart-must-clear-what-the-input-is-gated-on.md`](.claude/rules/a-restart-must-clear-what-the-input-is-gated-on.md).
+
 **Pausing is a chrome control and only TWO games have one** — blocks and snake,
 since 2026-08-19. `GameChrome` takes an optional `paused` / `onPaused` PAIR: it
 draws a fourth nav button and, more importantly, an **opaque cover over the play

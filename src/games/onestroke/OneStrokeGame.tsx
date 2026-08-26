@@ -7,7 +7,6 @@ import { useGameSession, useGameTimer, useRememberedLevel, winMoment } from "@sh
 import {
   LEVELS,
   LEVEL_IDS,
-  clear,
   colOf,
   covered,
   isBlocked,
@@ -496,7 +495,13 @@ export function OneStrokeGame({ ctx }: { ctx: GameContext }) {
       levels={LEVEL_OPTIONS}
       level={level}
       onLevel={(lv) => reset(lv)}
-      onRestart={() => apply(clear(live.current))}
+      // `reset`, NOT `clear`. Rubbing the line out leaves `won` true - and all
+      // three pointer handlers, the undo and the timer are gated on it - so
+      // after a win restart handed back a board that looked fresh, answered
+      // nothing, and showed the winning clock. Every other puzzle here routes
+      // restart through its own `reset`, including `flow`, which shipped in the
+      // same commit. See scripts/repro/repro-onestroke-restart-after-win.mjs.
+      onRestart={() => reset()}
       footer={
         <div
           style={{
