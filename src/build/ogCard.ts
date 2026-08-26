@@ -118,11 +118,6 @@ export function registerOgHash(route: Route, png: Uint8Array): void {
   ogHashes.set(ogCardKey(route), createHash("sha256").update(png).digest("hex").slice(0, 8));
 }
 
-/** Tests only: forget every registered hash, so one suite cannot leak into the next. */
-export function resetOgHashes(): void {
-  ogHashes.clear();
-}
-
 /**
  * `og/game-snake-he-3f9a1c2e.png`.
  *

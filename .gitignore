@@ -1,6 +1,18 @@
 node_modules
 dist
 dist-ssr
+# EVERY build arm, not a list of the ones somebody remembered.
+#
+# Almost nothing in this repo is measured with one build: the payload gate wants
+# two arms of one tree, the slope gate builds two more, and half the failures
+# here are base-dependent so both bases get their own. Each of those is a
+# `dist-<something>` nobody will ever commit - and naming them one at a time
+# left 25 of them sitting in `git status`, which is exactly the noise that makes
+# a `git add -A` dangerous in a repo three lanes work at once.
+#
+# `dist-ellaz` and `dist-standalone*` below are subsumed and kept anyway: they
+# are the two with a REASON, and the reason is worth more than the line.
+dist-*
 # second-base build arm, produced by scripts/check-both-bases.sh
 dist-ellaz
 dist-standalone
