@@ -32,7 +32,7 @@ one lane where the reading is not optional.
 ## r/incremental_games is the wrong sub and is dropped
 
 The original plan named it. It is for idle and incremental games - the genre where a
-number goes up while you are not playing. **None of the 33 games is one.** 2048 gets
+number goes up while you are not playing. **None of the 42 games is one.** 2048 gets
 posted there occasionally and is tolerated rather than welcome.
 
 Replaced below with r/InternetIsBeautiful, which fits a free ad-free site far better and
@@ -51,7 +51,7 @@ Their audience is people who want a link to click right now. Short, no story.
 **Title**:
 
 ```
-Ellaz - 33 free browser games, no ads, no account, works offline
+Ellaz - 42 free browser games, no ads, no account, works offline
 ```
 
 **Body**:
@@ -59,7 +59,7 @@ Ellaz - 33 free browser games, no ads, no account, works offline
 ```
 https://ellaz.fun
 
-I built this for my own kids and then kept going. 33 games, sudoku and minesweeper and
+I built this for my own kids and then kept going. 42 games, sudoku and minesweeper and
 2048 and snake at one end, colouring and shape-matching for four-year-olds at the other.
 
 No ads, no account, no download. Nothing to type anywhere - you get given a name from a
@@ -88,7 +88,7 @@ Historically this sub also expects you to give feedback on other posts, so do th
 **Title**:
 
 ```
-[Feedback wanted] 33 browser games for kids and adults, Hebrew-first, no backend at all
+[Feedback wanted] 42 browser games for kids and adults, Hebrew-first, no backend at all
 ```
 
 **Body**:
@@ -101,7 +101,7 @@ saves there.
 
 What I would like eyes on, in order:
 
-1. The home screen on a phone. Does 33 games in a grid read as "plenty" or as "too many
+1. The home screen on a phone. Does 42 games in a grid read as "plenty" or as "too many
    to choose from"? That is my open question and I do not know the answer.
 2. Whether it is obvious that the coins the games pay out are spent in the room screen. I
    suspect it is not.
@@ -140,7 +140,7 @@ A free games site with no ads, no accounts and no server - everything saves on y
 ```
 https://ellaz.fun
 
-33 games. Nothing to sign up for, nothing to install, no advertisement anywhere, and no
+42 games. Nothing to sign up for, nothing to install, no advertisement anywhere, and no
 back end at all - your progress lives in your own browser rather than on someone's
 database.
 
@@ -173,8 +173,8 @@ backup code to move between them.
 
 | Claim in the copy | Where it comes from |
 |---|---|
-| 33 games | `src/portal/catalog.ts`, counted 2026-08-18 |
-| about 90 KB first visit | `scripts/assert-payload.mjs` ceiling 91,000 B gz; measured 90,022 on 2026-08-18 |
+| 42 games | `src/portal/catalog.ts`, counted 2026-08-18 |
+| about 90 KB first visit | `scripts/assert-payload.mjs` ceiling 56,000 B gz; measured 90,022 on 2026-08-18 |
 | 11 interface languages, ~1.5 KB each | `APP_LOCALES` in `src/i18n/locales.ts`; the per-locale chunk sizes measured on the artifact |
 | nothing to type anywhere | `src/sdk/names.ts` - a name is two word ids from a fixed pool |
 | works offline | the PWA precaches the shell (`vite.config.ts` workbox) |

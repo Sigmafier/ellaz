@@ -21,7 +21,7 @@ leaves the repository is the same defect with no digits in it.
 
 | Claim | Where it comes from |
 |---|---|
-| 33 games, 24 of them for young children | `src/games/*/meta.ts`, counting `ageBand: "kids"`, 2026-08-18 |
+| 42 games, 25 of them for young children | `src/games/*/meta.ts`, counting `ageBand: "kids"`, 2026-08-18 |
 | no ads, no account, no download | there is no backend and no ad SDK in the tree |
 | nothing to type, anywhere | `src/sdk/names.ts` - a name is two word ids from a fixed pool, so there is no text field to moderate |
 | works offline after the first visit | the PWA precaches the shell (`vite.config.ts` workbox) |
@@ -51,7 +51,7 @@ dash. One honest limitation per post, stated before anyone discovers it themselv
 > האפליקציה". בקשה להירשם. פעם אחת היא לחצה על משהו שנראה כמו חלק מהמשחק, והגיעה לחנות
 > אפליקציות.
 >
-> אז עשיתי אתר משלנו. יש בו 33 משחקים, 24 מהם לגיל הרך. הכל בעברית, מימין לשמאל, ועובד
+> אז עשיתי אתר משלנו. יש בו 42 משחקים, 25 מהם לגיל הרך. הכל בעברית, מימין לשמאל, ועובד
 > בטלפון, בטאבלט ובמחשב.
 >
 > מה שאין בו:
@@ -88,7 +88,7 @@ age-appropriateness reasoning shown rather than claimed.
 > שלום. בניתי אתר משחקים לילדים ואני חושב שהוא יכול להתאים לפינת המחשב בגן, אז אני משתף
 > כאן.
 >
-> 24 מהמשחקים מיועדים לגיל הרך, בהם: זיכרון, מיון צבעים, מה נעלם, צל ותמונה, מה בא אחר כך, מצא
+> 25 מהמשחקים מיועדים לגיל הרך, בהם: זיכרון, מיון צבעים, מה נעלם, צל ותמונה, מה בא אחר כך, מצא
 > הבדלים, חשבון וצביעה.
 >
 > שלושה דברים שחשבנו עליהם בגלל הגיל:
@@ -123,7 +123,7 @@ age-appropriateness reasoning shown rather than claimed.
 **Where**: teacher groups, grades 1 to 3. **Tone**: practical, and it leads with the
 limitation because this audience will ask about tracking within the first two replies.
 
-> מורים לכיתות א-ג: 33 משחקים בעברית, בלי פרסומות ובלי חשבונות
+> מורים לכיתות א-ג: 42 משחקים בעברית, בלי פרסומות ובלי חשבונות
 >
 > שלום. אני משתף אתר משחקים שבניתי, כי הוא פותר בעיה שהכרתי מהכיתה של הבת שלי: כל אתר
 > משחקים חינמי דורש בסוף חשבון, או מציג פרסומת שאי אפשר לשלוט בה.

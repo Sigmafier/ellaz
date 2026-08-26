@@ -1,9 +1,14 @@
 # Scaling the First Visit — Measure the Slope, Not the Ceiling
 
 **Status**: steps 1 and 2 SHIPPED 2026-08-13; step 3 LANDED 2026-08-21 and is
-NOT what this document called it - see below. The O(1) target is still unmet and
-the arithmetic for why is written down rather than left to be re-derived.
-**Measured on**: the working tree at 25 games, two build arms from one source.
+NOT what this document called it; steps 4 and 5 SHIPPED 2026-08-26, and step 5
+is the thing the last section of this file used to call a rewrite. **The O(1)
+target is MET** - 29.0 B per game at 42 games, against the 40 asked for here -
+and the ceiling is 56,000 rather than 91,600 because half the first visit was a
+rendering library. What is left is written down at the bottom rather than left
+to be re-derived.
+**Measured on**: the working tree at 25 games for steps 1-3, at 38 and then 42
+for steps 4-5; two build arms from one source every time.
 
 ## What shipped, and the number that came back different
 
@@ -244,6 +249,54 @@ run and enforces 140, per
 **A budget was deliberately NOT lowered to 70.** A budget set at today's reading
 leaves no room for the next honest cut, and 70.1 is not 40.
 
+### Step 4 — the LOADERS, which this file had called free. SHIPPED 2026-08-26.
+
+The paragraph above is right about the remaining terms and wrong about one of
+them being small. `catalog.ts` held a lazy loader for every game **in the shell**,
+and `loaderFor`'s own comment said so and then said it was not free — 431 B gz
+in chunk names alone and 649 in the expressions around them, measured, with the
+comment ending "do not restore a claim about this without a number".
+
+They split at the same fold the metadata already splits at: 15 stay, the other
+23 live in `gamesRest.ts` beside their metas and arrive in the same `meta-rest`
+chunk. Nothing needs them earlier — `findEntry` and `dailyRotation` read
+`ROSTER_IDS`, and `entryFor`, the only path that MOUNTS a game, already awaited
+`ensureFullCatalog()`. So it costs no extra request.
+
+**Slope 69.9 → 32.5 B per game; first visit 91,319 → 90,519 B gz.** Two arms,
+one tree, one variable, 38 games, local Node 24.
+
+**That is under the 40 this document has been asking for since it was written,**
+so `PER_GAME_BUDGET` came down 140 → 45 in the same commit. 45 and not 40
+because the slope is a gzip subtraction over 8 games and the ~54 B spread this
+repo has measured between CI's Node 22 and a local Node 24 is ~6.8 B per game if
+it lands on one arm alone. Both regressions still red: the loaders back is 69.9,
+the card art back in the shell is 894.3.
+
+At 42 games the same gate reads **29.0 B per game**.
+
+### Step 5 — the thing this file said was a rewrite. SHIPPED 2026-08-26.
+
+See "What this does not fix" below, which was true when written and is not any
+more. `react` and `react-dom` are aliased onto `preact/compat` in
+`resolve.alias`, the reconciler went **45,374 → 7,936 B gz**, and a first visit
+went **90,519 → 52,956**. `CEILING` came down 91,600 → 56,000 — the only entry
+in that comment block that is a cut rather than a raise.
+
+It was a two-line config change and a browser probe, not a rewrite, because
+`preact/compat` carries the whole API surface this app uses. What it needed was
+EVIDENCE rather than engineering: nothing in the 3,944-test suite renders a
+component (`vitest.config.ts` has its own resolve block, its environment is
+`node`, its include is `*.test.ts`), and the two ways it breaks do not throw.
+`scripts/repro/repro-preact-swap.mjs` is what answers: 42 of 42 games mount in a
+real browser, both lazy-arrival controls fire, and the home, the room and the
+boards render byte-identical to the React arm at 390x844.
+
+**And the probe was wrong twice before it was right.** Its first card-art
+counter read 1 of 39 and its node floor called three canvas games broken.
+Running it against the REACT build reported the identical three failures — which
+is the only reason the probe was corrected instead of Preact being blamed.
+
 ### A different budget entirely — the content pages (2026-08-22)
 
 `DOCUMENT_CSS` is emitted into the 164 documents and **never enters the shell**,
@@ -258,6 +311,26 @@ opened a game page and zero for a child choosing one.
 
 ## What this does not fix
 
-Half the first visit is React (45,374 B gz), which no amount of catalogue work
+~~Half the first visit is React (45,374 B gz), which no amount of catalogue work
 touches. If the first visit ever needs to be dramatically smaller, that is the
-conversation — and it is a rewrite, not an optimisation.
+conversation — and it is a rewrite, not an optimisation.~~
+
+**Struck 2026-08-26, and left visible rather than deleted.** It was true of the
+tree it was written on and it was wrong about the price: the fix was two alias
+lines and an afternoon of measurement, not a rewrite. See step 5 above. The
+transferable half is that "that is a rewrite" was an estimate wearing a
+finding's clothes, in a document whose whole subject is not doing that.
+
+What genuinely remains:
+
+- **The shell still carries a record per game** — `ROSTER_IDS` plus
+  `ROSTER_CATEGORY`, about 7 B, and the emitted document's `<li><a>` at 29.5.
+  Removing the first means virtualising the grid, which is a visible UX change.
+  The second has a switch already: `MAX_FLAT_HOME_LINKS` in `sitePages.ts` makes
+  the emitted `/` link CATEGORY pages instead of every game once the roster
+  passes 60, and links every game whose category has no page of its own so
+  nothing becomes unreachable. It is deliberately set above today's roster.
+- **`build:check` builds three times**, because `assert-slope` needs two more
+  arms and each renders the full share-card set.
+- **The share cards rasterise serially**, and the comment justifying that was
+  written at 48 cards. There are 200.

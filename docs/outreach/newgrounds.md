@@ -6,7 +6,7 @@
 
 **Newgrounds is not a parenting audience and the copy here does not pretend otherwise.**
 Its community is long-standing, mostly adult, and built around animation and indie games
-with an edge. A page selling "33 free games for kids, made by a parent" reads there the
+with an edge. A page selling "42 free games for kids, made by a parent" reads there the
 way a nursery advertisement reads in a bar: not offensive, just addressed to nobody in
 the room.
 
@@ -61,7 +61,7 @@ long run ends because the board became the enemy, not because a clock ran out. I
 your longest run.
 
 Built as a plain web page. No account, no download, no tracking of you, and it works
-offline once it has loaded. It is one game lifted out of a free site of 33 of them, and
+offline once it has loaded. It is one game lifted out of a free site of 42 of them, and
 that whole site is about 90 KB before you pick anything.
 
 The rest: https://ellaz.fun
@@ -88,7 +88,7 @@ Slide, merge, reach 2048. What is missing is the point: no advertisement between
 attempts, no account, no popup asking you to rate it. Close the tab mid-run and the board
 is still there when you come back.
 
-Built as a plain web page, 204 KB, works offline. One game out of a free site of 33.
+Built as a plain web page, 204 KB, works offline. One game out of a free site of 42.
 
 The rest: https://ellaz.fun
 
@@ -105,8 +105,8 @@ frame on somebody else's domain. At ellaz.fun it is saved.
 
 | Claim in the copy | Where it comes from |
 |---|---|
-| 33 games | `src/portal/catalog.ts`, counted 2026-08-18 |
-| about 90 KB first load | `scripts/assert-payload.mjs` ceiling is 91,000 B gz; measured 90,022 on 2026-08-18 |
+| 42 games | `src/portal/catalog.ts`, counted 2026-08-18 |
+| about 90 KB first load | `scripts/assert-payload.mjs` ceiling is 56,000 B gz; measured 90,022 on 2026-08-18 |
 | 204 KB for 2048 | `dist-standalone/2048` summed on the built artifact, re-measured 2026-08-22 |
 | works offline | the PWA precaches the shell (`vite.config.ts` workbox) |
 | no tracking | analytics is anonymous-events-only and has never had a key set in production (`CLAUDE.md` § Firebase) |

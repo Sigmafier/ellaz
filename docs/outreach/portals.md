@@ -16,7 +16,7 @@ Every line of this platform's public promise is the opposite of that:
 
 | The promise | Where it is written down |
 |---|---|
-| no ads, anywhere | the home page, all 164 emitted pages, both outreach drafts |
+| no ads, anywhere | the home page, all 200 emitted pages, both outreach drafts |
 | anonymous and kid-safe, no behavioural advertising | `CLAUDE.md` § Analytics; COPPA internal-operations framing |
 | no external network requests from games | a non-negotiable convention, and Poki's own rule |
 
@@ -87,7 +87,7 @@ time, and expect no reply from at least one of them - these inboxes receive a gr
 **Subject**:
 
 ```
-33 web games, HTML5, no engine dependency - looking at distribution options
+42 web games, HTML5, no engine dependency - looking at distribution options
 ```
 
 **Body**:
@@ -95,7 +95,7 @@ time, and expect no reply from at least one of them - these inboxes receive a gr
 ```
 Hello,
 
-I run ellaz.fun - a free browser games site, 33 games, playable on phone, tablet and
+I run ellaz.fun - a free browser games site, 42 games, playable on phone, tablet and
 desktop. It is Hebrew-first with an English version, which may be an unusual audience
 angle for you.
 
@@ -143,11 +143,11 @@ dodges both is itself an answer.
 
 | Claim in the email | Where it comes from |
 |---|---|
-| 33 games | `src/portal/catalog.ts`, counted 2026-08-18 |
-| about 90 KB gz first visit | `scripts/assert-payload.mjs` ceiling 91,000; measured 90,022 on 2026-08-18 |
+| 42 games | `src/portal/catalog.ts`, counted 2026-08-18 |
+| about 90 KB gz first visit | `scripts/assert-payload.mjs` ceiling 56,000; measured 90,022 on 2026-08-18 |
 | ~200 KB largest plain game, 1.9 MB Phaser game | `du -sh dist-standalone/*` on the built artifacts |
 | one game uses Phaser | `grep -rln 'from "phaser"' src/` returns one file |
-| logic separated from rendering | the pure-`logic.ts` convention, enforced across all 33 games |
+| logic separated from rendering | the pure-`logic.ts` convention, enforced across all 42 games |
 | games boot into a supplied container | `GameContext.mount`; `src/standalone.tsx` is a working proof |
 | lifecycle built to the Poki + CrazyGames union | `CLAUDE.md` § Non-negotiable conventions |
 | games make no network requests | asserted by `scripts/assert-standalone.mjs`, which fails on any external origin |

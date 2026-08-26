@@ -87,7 +87,7 @@ browser. Lead with the last of those - it is the only part nobody else has writt
 
 **Every number in the letter is derived**: 90,022 bytes gzipped is the first visit
 measured on the built artifact by `scripts/assert-payload.mjs`, which fails the build
-above 91,000. 33 games and 164 pages come from the roster and the emitted sitemap.
+above 56,000. 42 games and 200 pages come from the roster and the emitted sitemap.
 
 <!-- outreach-facts:off -->
 **That figure has moved twice since this letter was first written, and the letter was
@@ -106,9 +106,9 @@ number written down last week.** `npm run assert:outreach` is that re-measuremen
 >
 > בניתי אתר משחקים לילדים בעברית, ואני חושב שהחלק המעניין בו הוא דווקא ההנדסי.
 >
-> 33 משחקים, 164 עמודים, ואפס שרת. אין בסיס נתונים, אין הרשמה, אין איסוף מידע. הכל נשמר
+> 42 משחקים, 200 עמודים, ואפס שרת. אין בסיס נתונים, אין הרשמה, אין איסוף מידע. הכל נשמר
 > על המכשיר עצמו. הטעינה הראשונה שוקלת 90,022 בתים דחוסים, פחות מתמונה בודדת בכתבה
-> ממוצעת, ויש בדיקה אוטומטית שמפילה את הבילד אם המספר עובר 91,000.
+> ממוצעת, ויש בדיקה אוטומטית שמפילה את הבילד אם המספר עובר 56,000.
 >
 > אבל מה שהייתי כותב עליו הוא זה: תוך שבועיים האתר נשבר שלוש פעמים בשלוש דרכים שאף אחת
 > מהן לא נראית מהדפדפן.
@@ -153,7 +153,7 @@ paragraph.
 >
 > קראתי את [הכתבה הספציפית] ואני פונה בעקבותיה.
 >
-> בניתי אתר משחקים לילדים בעברית: 33 משחקים, 24 מהם לגיל הרך. אין פרסומות, אין הרשמה,
+> בניתי אתר משחקים לילדים בעברית: 42 משחקים, 25 מהם לגיל הרך. אין פרסומות, אין הרשמה,
 > אין הורדה, ואין שום מקום להקליד בו טקסט - הילד מקבל שם מתוך רשימה, אז אין צ'אט ואין מה
 > לפקח עליו. הכל נשמר על המכשיר ואין שרת.
 >

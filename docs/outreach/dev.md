@@ -78,7 +78,7 @@ One line, `README.md`, inserted after `Cybercar` (line 168) and before `Falling 
 
 ```diff
   * [Cybercar](https://cybercar.pages.dev): Free neon arcade survival game with power-ups, unlockable themes, boss battles, and global leaderboard.
-+ * [Ellaz](https://ellaz.fun/): 33 free browser games for kids and adults in Hebrew, English, Spanish and French, works offline, no account and no ads.
++ * [Ellaz](https://ellaz.fun/): 42 free browser games for kids and adults in Hebrew, English, Spanish and French, works offline, no account and no ads.
   * [Falling Nikochan](https://nikochan.utcode.net): Simple and cute rhythm game, where anyone can create and share charts.
 ```
 
@@ -97,7 +97,7 @@ Nothing else changes. The table of contents lists sections, not entries, so it n
 ```
 Adds Ellaz to Games and Entertainment.
 
-https://ellaz.fun/ - 33 browser games, in Hebrew, English, Spanish and French,
+https://ellaz.fun/ - 42 browser games, in Hebrew, English, Spanish and French,
 installable, works
 offline. No account, no ads, no analytics identity. Open source, MIT.
 
@@ -122,7 +122,7 @@ also earns nothing.
 
 **The fit is thin and we should say so rather than dress it up.** `Open Source Games` holds
 exactly one entry, a single game whose link points at its GitHub repository. Ellaz is a
-platform of 33 games of which **one** - snake - is built with Phaser
+platform of 42 games of which **one** - snake - is built with Phaser
 (`grep -rln 'from "phaser"' src/` returns one file). An entry implying otherwise would be
 inaccurate, and an accurate one is honest about being a small part of a larger project.
 
@@ -155,7 +155,7 @@ and the merge history says it is not.
 Not to both as originals - two copies of one article competing is the duplicate problem
 this project already documented once.
 
-**Title**: `33 browser games in 90 KB: what a no-backend PWA actually costs`
+**Title**: `42 browser games in 90 KB: what a no-backend PWA actually costs`
 
 Every number below was measured on clean `HEAD` **1e219fe** on 2026-08-18 and each one
 names the file that produces it. Nothing is rounded up and nothing is estimated.
@@ -165,10 +165,10 @@ names the file that produces it. Nothing is rounded up and nothing is estimated.
 ### Draft
 
 I build a games site for kids. Hebrew first, English second, no accounts, no ads, no
-backend. Thirty-three games. The whole thing is a static site.
+backend. Forty-two games. The whole thing is a static site.
 
 The number I care about most is the first visit: **90,022 bytes gzipped**, of a ceiling of
-91,000 that fails the build. 478 bytes of room left. That figure is measured on the built
+56,000 that fails the build. 478 bytes of room left. That figure is measured on the built
 artifact by a script in the repo, not counted by hand, and it is the reason for most of the
 decisions below.
 
@@ -242,7 +242,7 @@ The code is MIT: https://github.com/Sigmafier/ellaz
 
 | Claim | Where it comes from |
 |---|---|
-| 33 games | `src/portal/catalog.ts` lazy loaders and `src/portal/games.ts` roster, both 33, counted on the artifact 2026-08-18 |
+| 42 games | `src/portal/catalog.ts` lazy loaders and `src/portal/games.ts` roster, both 42, counted on the artifact 2026-08-18 |
 | 90,022 B gz first visit, 478 spare | the `Build for the root domain` step of the deploy for `1b8f2b9`, 2026-08-22. **Read off CI, not off a workstation**: the same commit measures ~50 B differently on Node 24, and CI is the toolchain that builds the live site |
 | Phaser 379,855 B gz | `gzip -c dist/assets/vendor-phaser-*.js \| wc -c` on that build. Unchanged since 2026-08-12 |
 | one game imports Phaser | `grep -rln 'from "phaser"' src/` returns `src/games/snake/SnakeScene.ts` only |

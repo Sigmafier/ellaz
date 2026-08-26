@@ -133,7 +133,7 @@ phone, a tablet or a computer, and it works offline once it has loaded.
 One honest thing: the expert board frustrates most adults, and that is on purpose. Start
 at the animals with a young child and move up when they ask to.
 
-This page is one game out of 33. The rest live at https://ellaz.fun - in Hebrew,
+This page is one game out of 42. The rest live at https://ellaz.fun - in Hebrew,
 English, Spanish and French, with a room you decorate using coins the games pay out.
 
 Your coins and your room live at ellaz.fun. This page is a copy of one game, so progress
@@ -178,7 +178,7 @@ the board is still there.
 One honest thing: this mechanic is thirty seconds to learn and roughly forever to put
 down. It is not a game to hand a child ten minutes before bedtime.
 
-This page is one game out of 33. The rest live at https://ellaz.fun - in Hebrew,
+This page is one game out of 42. The rest live at https://ellaz.fun - in Hebrew,
 English, Spanish and French, with a room you decorate using coins the games pay out.
 
 Your coins and your room live at ellaz.fun. This page is a copy of one game, so progress
@@ -218,7 +218,7 @@ One honest thing: this is the largest of our games to load, because it is the on
 that runs on a game engine rather than plain web pages. On a slow connection give it a
 few seconds the first time.
 
-This page is one game out of 33. The rest live at https://ellaz.fun - in Hebrew,
+This page is one game out of 42. The rest live at https://ellaz.fun - in Hebrew,
 English, Spanish and French, with a room you decorate using coins the games pay out.
 
 Your coins and your room live at ellaz.fun. This page is a copy of one game, so progress
@@ -248,7 +248,7 @@ English; the site is Hebrew-first. A picture of the board avoids choosing.
 
 | Claim in the copy | Where it comes from |
 |---|---|
-| 33 games | `src/portal/catalog.ts`, counted 2026-08-18 |
+| 42 games | `src/portal/catalog.ts`, counted 2026-08-18 |
 | bundle sizes 225 KB / 204 KB / 1.9 MB | `dist-standalone/{sudoku,2048,snake}` summed on the built artifacts, re-measured 2026-08-22 |
 | snake is the only Phaser game | `grep -rln 'from "phaser"' src/` returns one file |
 | six sudoku levels: 4x4 and 6x6 animals, then four 9x9 tiers | `LEVEL_OPTIONS` in `src/games/sudoku/Sudoku.tsx` and `LEVELS` in its `logic.ts`. **The first draft of this file said "four sizes" and it was wrong** - six levels across three board sizes. Caught by reading the source, which is the whole reason this column exists |

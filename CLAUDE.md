@@ -64,7 +64,7 @@ src/
 │            (mount/unmount bridge), WalletChip, games (the ordered roster),
 │            catalog (roster + lazy loaders), paths/pageContext/legacyHash,
 │            world/ (the room + shop)
-├─ build/    BUILD-TIME ONLY - the 164 emitted pages. Pure strings, no DOM, no
+├─ build/    BUILD-TIME ONLY - the 200 emitted pages. Pure strings, no DOM, no
 │            React. Nothing in the app may import it (it reads src/content)
 └─ games/<id>/
    ├─ meta.ts         DOM-free GameMeta - catalog.ts imports it statically
@@ -73,11 +73,12 @@ src/
    └─ <Renderer>      React component (DOM) or Phaser scene (canvas)
 ```
 
-**Games (38)** — 25 `ageBand: "kids"` (balloons, bees, bubbles, coloring, echo,
+**Games (42)** — 25 `ageBand: "kids"` (balloons, bees, bubbles, coloring, echo,
 evolve, finddiff, frog, fruit, hidden, jigsaw, letters, match3, math, maze,
 memory, merge, music, pet, reaction, sequence, shadows, sort, spell, vanish) and
-13 `"all"` (2048, arrowtap, blocks, bubbleshooter, fit, flow, lettercross,
-minesweeper, parking, snake, sudoku, tictactoe, wordguess). Both lists were
+17 `"all"` (2048, arrowtap, blocks, bubbleshooter, fit, flow, lettercross,
+minesweeper, nonogram, onestroke, parking, snake, sudoku, tictactoe, untangle,
+wordguess, wordsearch). Both lists were
 re-derived from the metas on 2026-08-26 and both were wrong before that: the
 `kids` half named `sortsize`, which has never existed, and omitted `letters`;
 the `all` half said `n2048`, which is the DIRECTORY and not the id.
@@ -163,6 +164,43 @@ the extension reported Fruit Drop frozen in mid-air and every tap ignored,
 because the window was minimised and `requestAnimationFrame` is paused in a
 hidden tab. The harness asserts a bare rAF loop ticks BEFORE it opens a game,
 for exactly that reason.
+
+**Four MORE landed the same day, and they are four more applications of the same
+discipline.** `nonogram` derives its clues from a picture and then PROVES by
+line-solving that those clues force exactly one picture with no guess anywhere -
+a deal that fails the proof is thrown away, and its control is a planted 5x5
+whose clues admit two pictures, plus a second test proving both pictures really
+do satisfy those clues so the refusal is correct rather than timid. `onestroke`
+folds a walk that already visits every square and then takes the walls off the
+two ENDS of it. `wordsearch` plants every listed word before a single filler
+letter, so the list is exactly what went in. `untangle` joins its dots without a
+crossing FIRST and only then throws them onto a ring, and carries that drawing
+as a WITNESS that nothing renders and no rule reads - its one job is to refuse a
+restored board whose lines cannot be drawn crossing-free.
+
+**`onestroke` found a real defect in plain backbite**, and only because its fold
+count is an instrumented counter and a test asserted it moved: a region whose
+two walk ends are BOTH dead ends has no legal fold, so the second stir did
+nothing on 20% of hard cuts. One hard board in five was whatever the cut
+happened to leave. Nothing threw.
+
+**`wordsearch`'s sharp edge is the filler accidentally spelling a listed word**
+somewhere the generator did not intend. It judges the letters the player
+SELECTED and never where a word was planted, so any occurrence counts - and its
+control is a real untampered board, found by sweeping 36,000 deals, whose filler
+spells TURTLE a second time.
+
+All four record `ms`, because in all four the move count is the wrong question:
+onestroke's is fixed by construction and untangle's is unbounded, so counting it
+would put a price on exploring.
+
+**`scripts/repro/repro-wave11-play.mjs` asks whether a tap does anything**, which
+`repro-preact-swap.mjs` (does it MOUNT) and `logic.test.ts` (do the RULES work,
+in node, with no pointer) between them cannot. It taps the game's own
+`<button>`s rather than a fraction of the box - the first version aimed at four
+points in the middle and called onestroke and untangle broken, when both were
+correctly refusing a tap on nothing: a path may only be extended from its head,
+and untangle's dots are 44px buttons on a ring with empty canvas between them.
 
 **`lettercross` is the one game with a dictionary, and it is the one game with a
 NOTICE.** It is BONUS (1993) rebuilt: a 9x9 board, twelve prize boxes in a ring
@@ -1063,13 +1101,13 @@ until the set is complete. Discovered 2026-08-13, building two games at once.
 ## Every game has a real web address
 
 The site used to be one document. It is now **165**: `dist/index.html` (still the
-app, head-enhanced in place and `emitted: false` in the manifest) plus the **164
-written by `src/build/**`** inside a Vite plugin — 163 pages and `404.html` — so
+app, head-enhanced in place and `emitted: false` in the manifest) plus the **200
+written by `src/build/**`** inside a Vite plugin — 199 pages and `404.html` — so
 `npm run build` cannot skip them and neither deploy workflow can forget. The
-sitemap carries 164 URLs, which is every route except the `noindex` 404. Read
+sitemap carries 200 URLs, which is every route except the `noindex` 404. Read
 those off `dist/pages.json` rather than off this line; it said 85 for days beside
-a 144 in the same sentence, and it said 144 for days after the category pages
-landed.
+a 144 in the same sentence, it said 144 for days after the category pages
+landed, and it said 164 until four more games arrived.
 
 | URL | What it is |
 |---|---|
@@ -1478,8 +1516,12 @@ is a social card** handed to a scraper with a URL and no page. **A result
 thumbnail is chosen from images the page EMBEDS.** Our art is drawn as inline
 `<svg>`, which has no URL - it is markup, so it can never be indexed or chosen.
 
-`src/build/artFiles.ts` writes the same `gameArt` scene to **`art/<id>.svg`**, one
-per game, and `gamePage.ts` embeds it after the lede. **33 files, 37 KB, and the
+`src/build/artFiles.ts` writes the same `gameArt` scene to
+**`art/<id>-<hash8>.svg`**, one per game, and `gamePage.ts` embeds it after the
+lede. **The hash is not decoration**: a stable name has to be force-uploaded on
+every deploy, because lftp's `mirror` decides by comparing SIZE and TIME and
+that heuristic once skipped all 49 pages of this site. Hashed, the art and the
+200 share cards join the pass that is safe, and the forced set went 417 -> 195. **33 files, 37 KB, and the
 first visit is unmoved at 89,979 B gz** - `src/build` ships to nobody.
 
 Four things that are load-bearing rather than incidental:
@@ -2301,27 +2343,43 @@ is the failure `assert-first-visit.mjs` exists to catch and has now caught three
 times. It passed with its negative control rejecting 9 of 9 planted entries, so
 that green is a real one rather than a vacuous one.
 
-**Latest reading: 90,108 B gz of 90,500, 392 spare** (2026-08-19, 33 games, 4
-page locales, after the board text-selection fix, on the tree that
-merges it with the pause control and match3's swipe. Its own share is
-**12 B gz** — two arms off THIS tree, which reads 90,096 with the change
-backed out. All of it is the three declarations on `.ellaz-game-stage` in the
-shell stylesheet; the comment above them costs nothing, because Vite strips CSS
-comments in production, and the JS half is pinned to the `page` chunk.
+**Latest reading: 53,132 B gz of 56,000, 2,868 spare** (2026-08-26, 42 games,
+4 page locales, local Node 24 - read the CI figure before quoting it anywhere a
+reader will act on). **The ceiling came DOWN, 91,600 -> 56,000, and it is the
+first cut in that comment block rather than another raise.** Two things did it,
+both measured as two arms of one tree:
 
-**The identical change measured 22 B, then 9 B, then 12 B, on three trees in one
-afternoon** (90,016 → 90,038, then 90,024 → 90,033, then 90,096 → 90,108, as
-match3's swipe and the pause control landed between the runs). Nothing about
-the change moved. Gzip compresses three declarations differently against a
-different neighbourhood, so
-a delta this small is a property of the change AND the tree — and the spread
-across those three readings is larger than a whole game's slope. That is the
-third lane in a row to write this down here, which is the finding: at 90,500
-with a few hundred bytes of room, **the only honest per-change figure is one
-measured on the tree in front of you, both arms, today.** Never subtract one of
-these numbers from another. See
-[`a-threshold-tuned-against-todays-tree-goes-stale.md`](.claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md).
-Supersedes the reading below.)
+- **The lazy loaders left the shell.** `catalog.ts` held an `import()` per game
+  for every game; 15 stay and the other 23 live in `gamesRest.ts` beside their
+  metas. First visit 91,319 -> 90,519, and the per-game SLOPE 69.9 -> 32.5,
+  which is under the 40 `docs/scaling-the-first-visit.md` has asked for since it
+  was written. `PER_GAME_BUDGET` came down 140 -> 45 in the same commit.
+- **`react` and `react-dom` are aliased onto `preact/compat`.** The reconciler
+  went 45,374 -> 7,936 B gz and the first visit 90,519 -> 52,956. Half of what a
+  child downloaded before choosing anything was a rendering library and none of
+  it was a game.
+
+**Nothing in the test suite can see the second one.** `vitest.config.ts` has its
+own resolve block, its environment is `node` and its include is `*.test.ts`, so
+all 4,303 tests render no component and pass either way - and the two ways it
+breaks do not throw. `useSyncExternalStore` is what re-renders the grid when the
+lazy metadata and card art land, so a subtle difference leaves every card below
+the fold blank forever with a clean console; and `reactHost.tsx` tears down a
+nested root inside the portal's tree, which is a different code path in preact.
+`scripts/repro/repro-preact-swap.mjs` is the evidence: 42 of 42 games mount in a
+real browser, both lazy-arrival controls fire (`art-rest` blocked reads 15 of 39
+cards, `meta-rest` blocked reads 15 labelled), and the home, the room and the
+boards render BYTE-IDENTICAL to the React arm at 390x844.
+
+**That probe was wrong twice before it was right, and the React arm is why I
+know.** Its first card-art counter read 1 of 39 and its node floor called snake,
+bubbleshooter and fruit broken - and running it against the React build reported
+the identical three failures. `card.querySelector("svg")` returns the STAR
+BADGE, and a canvas game draws almost no DOM. Never read a single arm.
+
+The slope at 42 games is **29.0 B gz per game**. Run `npm run assert:slope` and
+`npm run assert:payload` on the tree in front of you rather than trusting either
+number here.)
 
 (**The superseded readings live in [`docs/payload-history.md`](docs/payload-history.md)** -
 about a dozen of them, newest first, verbatim. They are kept out of this file on
