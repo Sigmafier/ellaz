@@ -34,7 +34,22 @@ export const CATEGORY_ORDER: ReadonlyArray<{
 // A game present in GAMES but missing here produces an entry whose `load` is
 // undefined — caught by `catalog.test.ts`, which asserts every entry's loader is
 // a function.
-const LOADERS: Record<string, () => Promise<{ default: GameModule }>> = {
+/**
+ * The lazy loader for each game ABOVE THE FOLD. The rest live beside their
+ * metadata in `gamesRest.ts`.
+ *
+ * WHY THIS IS SPLIT. The 38 chunk NAMES alone measured 431 B gz - 13.1 B per
+ * game - and the loader expressions around them another 649 B, which was most
+ * of the per-game slope that survived the metadata split. A loader is a string
+ * and an arrow function; it is not free, and the comment on `loaderFor` below
+ * said it was until somebody measured it.
+ *
+ * Nothing needs the below-the-fold half before `gamesRest` lands: `findEntry`
+ * and `dailyRotation` read `ROSTER_IDS`, and `entryFor` - the only path that
+ * MOUNTS a game - already awaits `ensureFullCatalog()`. So the split costs no
+ * extra request: the chunk that carries the metadata carries the loader too.
+ */
+export const SHELL_LOADERS: Record<string, () => Promise<{ default: GameModule }>> = {
   memory: () => import("../games/memory/index"),
   evolve: () => import("../games/evolve/index"),
   coloring: () => import("../games/coloring/index"),
@@ -47,32 +62,9 @@ const LOADERS: Record<string, () => Promise<{ default: GameModule }>> = {
   sudoku: () => import("../games/sudoku/index"),
   snake: () => import("../games/snake/index"),
   blocks: () => import("../games/blocks/index"),
-  lettercross: () => import("../games/lettercross/index"),
   wordguess: () => import("../games/wordguess/index"),
   sequence: () => import("../games/sequence/index"),
   vanish: () => import("../games/vanish/index"),
-  shadows: () => import("../games/shadows/index"),
-  echo: () => import("../games/echo/index"),
-  balloons: () => import("../games/balloons/index"),
-  bubbles: () => import("../games/bubbles/index"),
-  bees: () => import("../games/bees/index"),
-  frog: () => import("../games/frog/index"),
-  reaction: () => import("../games/reaction/index"),
-  sort: () => import("../games/sort/index"),
-  merge: () => import("../games/merge/index"),
-  pet: () => import("../games/pet/index"),
-  fit: () => import("../games/fit/index"),
-  music: () => import("../games/music/index"),
-  maze: () => import("../games/maze/index"),
-  letters: () => import("../games/letters/index"),
-  spell: () => import("../games/spell/index"),
-  bubbleshooter: () => import("../games/bubbleshooter/index"),
-  match3: () => import("../games/match3/index"),
-  jigsaw: () => import("../games/jigsaw/index"),
-  flow: () => import("../games/flow/index"),
-  arrowtap: () => import("../games/arrowtap/index"),
-  fruit: () => import("../games/fruit/index"),
-  parking: () => import("../games/parking/index"),
 };
 
 // Curated order — this is the order the home grid renders in.
@@ -98,7 +90,15 @@ export function catalog(): ReadonlyArray<CatalogEntry> {
 /** Every game in the roster, loaded or not. The grid reserves room for these. */
 export const ROSTER_SIZE = ROSTER_IDS.length;
 
-let entries: CatalogEntry[] = SHELL_GAMES.map((meta) => ({ meta, load: LOADERS[meta.id] }));
+/**
+ * Every loader that has ARRIVED. Starts as the shell half and is replaced -
+ * never mutated in place - when `gamesRest` lands, for the same reason
+ * `catalog()` is a function: a module-level capture of the short map would be
+ * correct on a first visit and silently wrong forever after.
+ */
+let loaders: Record<string, () => Promise<{ default: GameModule }>> = SHELL_LOADERS;
+
+let entries: CatalogEntry[] = SHELL_GAMES.map((meta) => ({ meta, load: loaders[meta.id] }));
 
 const listeners = new Set<() => void>();
 let arriving: Promise<void> | undefined;
@@ -114,12 +114,13 @@ let arriving: Promise<void> | undefined;
 export function ensureFullCatalog(): Promise<void> {
   if (entries.length === ROSTER_SIZE) return Promise.resolve();
   arriving ??= import("./gamesRest")
-    .then(({ REST }) => {
+    .then(({ REST, REST_LOADERS }) => {
+      loaders = { ...SHELL_LOADERS, ...REST_LOADERS };
       // Rebuild rather than push: `games.ts` defines the roster as the shell half
       // followed by the rest, and `roster-split.test.ts` pins that order. The grid
       // renders in roster order, so appending in any other order would silently
       // reshuffle the home screen.
-      entries = [...SHELL_GAMES, ...REST].map((meta) => ({ meta, load: LOADERS[meta.id] }));
+      entries = [...SHELL_GAMES, ...REST].map((meta) => ({ meta, load: loaders[meta.id] }));
       for (const fn of listeners) fn();
     })
     .catch(() => {
@@ -131,21 +132,16 @@ export function ensureFullCatalog(): Promise<void> {
 }
 
 /**
- * The lazy loader for `id`, whether or not its metadata is here yet.
+ * The lazy loader for `id`, if it has ARRIVED - the shell half always, the rest
+ * once `gamesRest` has landed.
  *
- * The loader map is COMPLETE in the shell and always has been. Only the metadata
- * splits. `fullCatalog.ts` uses this to pair the whole roster for the tests.
- *
- * It is NOT free, and this comment said it was until it was measured. The 33
- * chunk NAMES alone are 431 B gz - 13.1 B per game - and the loader expressions
- * around them 649 B, which is most of the per-game slope that survives the
- * metadata split. Moving the below-the-fold loaders into `gamesRest.ts` beside
- * their metas is the next honest cut; it was not done here because `entryFor`
- * already awaits that chunk, so it is a change with its own controls to write.
- * Do not restore a claim about this without a number.
+ * It used to be complete in the shell, and the comment here used to say that was
+ * free. It was not: see `SHELL_LOADERS` above. Anything that must MOUNT a game
+ * goes through `entryFor`, which awaits the rest; `src/testing/fullCatalog.ts`
+ * reads both halves statically because it never ships.
  */
 export function loaderFor(id: string): CatalogEntry["load"] | undefined {
-  return LOADERS[id];
+  return loaders[id];
 }
 
 /** Re-render when the rest of the catalogue lands. Returns an unsubscribe. */

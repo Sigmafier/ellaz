@@ -87,7 +87,14 @@ function facts() {
   // away from the change. `scripts/lib/roster.mjs` says why there is one now.
   const games = rosterIds(REPO).length;
   const titles = heTitles(REPO);
-  const loaders = [...read("src/portal/catalog.ts").matchAll(/\(\) => import\(/g)].length;
+  // BOTH loader halves - the shell's 15 and `gamesRest.ts`'s 23. They split at
+  // the fold on 2026-08-26 for the same reason the metadata did, and reading
+  // `catalog.ts` alone made this gate refuse with "roster has 38, catalog has
+  // 15" a file away from the change - the identical failure the roster split
+  // caused here once already.
+  const loaders = ["src/portal/catalog.ts", "src/portal/gamesRest.ts"]
+    .map((f) => [...read(f).matchAll(/\(\) => import\(/g)].length)
+    .reduce((a, b) => a + b, 0);
   // The two lists are deliberately separate files and `build.test.ts` already
   // pins them equal. Reading both here means a broken parse of either shows up
   // as a disagreement rather than as a confident wrong number.

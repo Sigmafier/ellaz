@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { SHELL_ART_COUNT } from "@ui/gameArt";
+import { SHELL_LOADERS } from "./catalog";
 import { GAMES } from "./games";
-import { REST } from "./gamesRest";
+import { REST, REST_LOADERS } from "./gamesRest";
 import { ROSTER_IDS, SHELL_GAMES, SHELL_META_COUNT } from "./shellRoster";
 
 /**
@@ -52,10 +53,34 @@ describe("the roster split", () => {
     expect(SHELL_GAMES.map((m) => m.id)).not.toContain(GAMES[GAMES.length - 1]!.id);
   });
 
+  it("splits the LOADERS on the same line as the metadata", () => {
+    // A loader is not free: 13.1 B gz per game in chunk names alone, measured on
+    // the served artifact. So the shell carries a loader for exactly the games
+    // whose metadata it carries - one line, not two - and a loader that drifts
+    // to the wrong side is invisible: the game still mounts, it is just paid for
+    // by every child (shell side) or fetched a beat late (rest side).
+    expect(Object.keys(SHELL_LOADERS).sort()).toEqual(SHELL_GAMES.map((m) => m.id).sort());
+    expect(Object.keys(REST_LOADERS).sort()).toEqual(REST.map((m) => m.id).sort());
+  });
+
+  it("pairs every game in the roster with exactly one loader", () => {
+    // The positive control for the pair above, and the assertion that would
+    // still hold if BOTH halves were the whole roster - which is why it is not
+    // the only one here.
+    const all = { ...SHELL_LOADERS, ...REST_LOADERS };
+    expect(Object.keys(all)).toHaveLength(GAMES.length);
+    for (const m of GAMES) expect(typeof all[m.id], `no loader for ${m.id}`).toBe("function");
+    // ...and no id appears on both sides, which a spread would silently swallow.
+    const overlap = Object.keys(SHELL_LOADERS).filter((id) => id in REST_LOADERS);
+    expect(overlap).toEqual([]);
+  });
+
   it("has a shell half small enough to be worth splitting", () => {
     // The positive control: every assertion above passes on a shell half that is
     // the WHOLE roster, which is the state this change exists to leave.
     expect(SHELL_GAMES.length).toBeLessThan(GAMES.length);
     expect(REST.length).toBeGreaterThan(0);
+    expect(Object.keys(SHELL_LOADERS).length).toBeLessThan(GAMES.length);
+    expect(Object.keys(REST_LOADERS).length).toBeGreaterThan(0);
   });
 });

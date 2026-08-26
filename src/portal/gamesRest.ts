@@ -1,4 +1,4 @@
-import type { GameMeta } from "@sdk/index";
+import type { GameMeta, GameModule } from "@sdk/index";
 
 /**
  * The metadata for the games BELOW the fold, in its own lazy chunk.
@@ -145,3 +145,41 @@ export const REST: ReadonlyArray<GameMeta> = [
   fruit,
   parking,
 ];
+
+/**
+ * The lazy loader for each game below the fold, beside its metadata.
+ *
+ * Here rather than in `catalog.ts` because a loader is not free - 13.1 B gz per
+ * game in chunk names alone, measured on the served artifact. `SHELL_LOADERS`
+ * at the top of `catalog.ts` says why, and `roster-split.test.ts` fails the
+ * build if the two halves stop being exactly the roster's own two halves.
+ *
+ * These are DYNAMIC imports, so they create no edge from this chunk into any
+ * game chunk that a first visit pays for - the same shape they had in the
+ * shell, one chunk over.
+ */
+export const REST_LOADERS: Record<string, () => Promise<{ default: GameModule }>> = {
+  lettercross: () => import("../games/lettercross/index"),
+  shadows: () => import("../games/shadows/index"),
+  echo: () => import("../games/echo/index"),
+  balloons: () => import("../games/balloons/index"),
+  bubbles: () => import("../games/bubbles/index"),
+  bees: () => import("../games/bees/index"),
+  frog: () => import("../games/frog/index"),
+  reaction: () => import("../games/reaction/index"),
+  sort: () => import("../games/sort/index"),
+  merge: () => import("../games/merge/index"),
+  pet: () => import("../games/pet/index"),
+  fit: () => import("../games/fit/index"),
+  music: () => import("../games/music/index"),
+  maze: () => import("../games/maze/index"),
+  letters: () => import("../games/letters/index"),
+  spell: () => import("../games/spell/index"),
+  bubbleshooter: () => import("../games/bubbleshooter/index"),
+  match3: () => import("../games/match3/index"),
+  jigsaw: () => import("../games/jigsaw/index"),
+  flow: () => import("../games/flow/index"),
+  arrowtap: () => import("../games/arrowtap/index"),
+  fruit: () => import("../games/fruit/index"),
+  parking: () => import("../games/parking/index"),
+};

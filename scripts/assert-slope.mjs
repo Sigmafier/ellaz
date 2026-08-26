@@ -102,19 +102,31 @@ const O1_TARGET = 40;
  * - and the metadata is architectural: nothing in Step 1 can move it, and Step 3
  * of that document (art and metadata as data, a virtualised grid) is what would.
  *
- * WHY 140 IS ENFORCED AND 40 IS ONLY REPORTED. A gate that reds on day one for
- * something nobody can fix that day teaches its reader to ignore it - the same
- * argument `assert-crawlable.mjs` makes for keeping its content floor advisory.
- * 140 is the line the architecture can actually hold, and it is not a rubber
- * stamp: putting the card art back in the shell lands at 294.6, more than
- * double. 140 and not 125: the delta is a gzip subtraction over 8 games, so a
- * few bytes of compressor noise divide down onto the per-game figure, and a
- * budget five bytes above the reading would red on a correct commit. 140 and not
- * 200: at 200 half the art map could come back before anything complained.
+ * IT WAS 140, AND 140 WAS ENFORCED WHILE 40 WAS ONLY REPORTED - because a gate
+ * that reds on day one for something nobody can fix that day teaches its reader
+ * to ignore it, the same argument `assert-crawlable.mjs` makes for its content
+ * floor. That reason expired on 2026-08-26: the LOADERS split at the fold, the
+ * shell stopped carrying an `import()` per game, and the slope measured
+ * **69.9 -> 32.5 B gz per game** - under the 40 the target had been asking for.
+ * Two arms, one tree, one variable, on a 38-game roster.
  *
- * When the metadata term goes, this drops to O1_TARGET in the same commit.
+ * SO IT COMES DOWN, and the ratchet is the point: at 140 the loaders could come
+ * straight back with nothing complaining. It is not a rubber stamp either -
+ * putting the card art back in the shell lands at 294.6, and putting the loaders
+ * back lands at 69.9, so both regressions red.
+ *
+ * 45 AND NOT 40. The slope is a gzip subtraction over 8 games, so compressor
+ * noise divides down onto it, and the ~54 B gz spread this repo has measured
+ * between CI's Node 22 and a local Node 24 is ~6.8 B per game if it lands on one
+ * arm alone. A budget 7.5 B above the reading would red on a correct commit from
+ * the other toolchain. 12.5 B of slack absorbs that and still catches every
+ * regression above.
+ *
+ * The remaining term is the metadata the shell roster carries plus the 29.5 B
+ * document row. When THAT goes - Step 3 of `docs/scaling-the-first-visit.md`,
+ * art and metadata as data behind a virtualised grid - this drops again.
  */
-const PER_GAME_BUDGET = 140;
+const PER_GAME_BUDGET = 45;
 
 /** Padding size for the negative control, in rects per planted scene. */
 const CONTROL_RECTS = 60;
@@ -321,14 +333,24 @@ function removeTailGames(root, n) {
   // `meta.ts` is pinned to the shell chunk by manualChunks, and the loader keeps
   // it reachable. Leave this behind and arm B still carries every removed game's
   // metadata, which is most of what the gate is trying to see.
-  const catalogPath = join(root, "src/portal/catalog.ts");
-  const catalogSrc = readFileSync(catalogPath, "utf8");
+  //
+  // TWO FILES, not one. The loaders split at the fold on 2026-08-26: the shell
+  // keeps 15 in `catalog.ts` and `gamesRest.ts` carries the other 23. This gate
+  // removes the LAST n games, which are all in the lazy half today - but a
+  // future fold move could put one either side, so both are swept and the TOTAL
+  // is what must equal n. Sweeping only `catalog.ts` would drop nothing at all
+  // and throw here rather than under-reporting, which is the safe direction.
   const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const loaderLine = (id) => new RegExp(`^\\s*"?${esc(id)}"?:\\s*\\(\\) => import\\(`);
-  const keptLines = catalogSrc.split("\n").filter((l) => !ids.some((id) => loaderLine(id).test(l)));
-  const dropped = catalogSrc.split("\n").length - keptLines.length;
-  if (dropped !== n) throw new Error(`catalog.ts: dropped ${dropped} loaders, wanted ${n}`);
-  writeFileSync(catalogPath, keptLines.join("\n"));
+  let dropped = 0;
+  for (const rel of ["src/portal/catalog.ts", "src/portal/gamesRest.ts"]) {
+    const path = join(root, rel);
+    const src = readFileSync(path, "utf8");
+    const kept = src.split("\n").filter((l) => !ids.some((id) => loaderLine(id).test(l)));
+    dropped += src.split("\n").length - kept.length;
+    writeFileSync(path, kept.join("\n"));
+  }
+  if (dropped !== n) throw new Error(`loaders: dropped ${dropped}, wanted ${n}`);
 
   // --- art ----------------------------------------------------------------
   const scenes = [
@@ -466,7 +488,9 @@ function main() {
   // keeps it from quietly becoming 140 forever.
   console.log(
     slope <= O1_TARGET
-      ? `  O(1) TARGET met (${O1_TARGET} B gz per game) - PER_GAME_BUDGET can come down to it.`
+      ? PER_GAME_BUDGET > O1_TARGET * 1.25
+        ? `  O(1) TARGET met (${O1_TARGET} B gz per game) - PER_GAME_BUDGET can come down to it.`
+        : `  O(1) TARGET met (${O1_TARGET} B gz per game), and the budget is down beside it.`
       : `  O(1) target is ${O1_TARGET} B gz per game, not met. The part of the gap that is ` +
         `NOT card art is\n  the roster's static meta.ts - docs/scaling-the-first-visit.md step 3 ` +
         `is what removes it.`,

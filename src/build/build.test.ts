@@ -7,7 +7,17 @@ import { GAMES } from "../portal/games";
 import { FULL_CATALOG } from "../testing/fullCatalog";
 import { escapeHtml, html, jsonLd, raw, toHtml } from "./html";
 import { CANONICAL_LOCALE, DEFAULT_LOCALE, ENGLISH_NAME, dirOf } from "../i18n/locales";
-import { LOCALES, ROUTES, canonicalUrl, gamePath, homePath, href } from "./routes";
+import {
+  LOCALES,
+  PAGED_CATEGORIES,
+  ROUTES,
+  canonicalUrl,
+  categoryPath,
+  gamePath,
+  homePath,
+  href,
+} from "./routes";
+import { MAX_FLAT_HOME_LINKS, homeShellBody } from "./sitePages";
 import {
   allEmittedFiles,
   indexHeadTags,
@@ -260,6 +270,66 @@ describe("every page renders", () => {
     }
   });
 
+  it("lists every game one by one while the roster is small, and links GROUPS once it is not", () => {
+    // The emitted `/` costs 29.5 B gz per game it links, measured - the largest
+    // per-game term left on a first visit. That is worth paying at 38 games and
+    // absurd at 200, so the switch ships now and fires itself later.
+    //
+    // BOTH SIDES, and both bases - half the failures here are base-dependent.
+    const games = [...GAMES];
+    expect(games.length).toBeLessThanOrEqual(MAX_FLAT_HOME_LINKS);
+
+    for (const base of ["/", "/ellaz/"]) {
+      // --- under the threshold: today's page, unchanged -------------------
+      const flat = homeShellBody("en", games, base);
+      for (const m of games) {
+        expect(flat, `${base} ${m.id}`).toContain(`href="${href(gamePath(m.id, "en"), base)}"`);
+      }
+
+      // --- over it: one link per group, plus anything a group cannot hold --
+      const many = [...games, ...games].slice(0, MAX_FLAT_HOME_LINKS + 1);
+      const grouped = homeShellBody("en", many, base);
+      for (const c of PAGED_CATEGORIES) {
+        expect(grouped, `${base} ${c}`).toContain(
+          `href="${href(categoryPath(c, "en"), base)}"`,
+        );
+      }
+      // It really is shorter - the assertion that fails if the branch is a
+      // no-op that happens to still emit every game.
+      const count = (s: string) => (s.match(/<li>/g) ?? []).length;
+      expect(count(grouped)).toBeLessThan(count(flat));
+
+      // NOTHING BECOMES UNREACHABLE. `PAGED_CATEGORIES` only holds groups with
+      // MIN_GAMES_FOR_A_PAGE games or more, so a game in a smaller group has no
+      // category page to be found on and must still be linked directly. This is
+      // the assertion, not the comment above it.
+      for (const m of many) {
+        const direct = grouped.includes(`href="${href(gamePath(m.id, "en"), base)}"`);
+        const viaGroup = PAGED_CATEGORIES.includes(m.category);
+        expect(direct || viaGroup, `${base} ${m.id} is reachable from the home document`).toBe(
+          true,
+        );
+      }
+    }
+  });
+
+  it("keeps the group-link branch honest about which games it can drop", () => {
+    // The positive control for the reachability assertion above: a game whose
+    // category has NO page must survive the switch as a direct link. Build a
+    // roster over the threshold in which exactly one game sits in an unpaged
+    // group, and require that game by name.
+    const orphanCategory = (["kids", "learn", "think", "speed", "create", "classics"] as const).find(
+      (c) => !PAGED_CATEGORIES.includes(c),
+    );
+    if (!orphanCategory) return; // every group is paged today - nothing to control
+    const orphan = GAMES.find((m) => m.category === orphanCategory);
+    if (!orphan) return;
+    const many = [...GAMES, ...GAMES].slice(0, MAX_FLAT_HOME_LINKS + 1);
+    expect(many.map((m) => m.id)).toContain(orphan.id);
+    const grouped = homeShellBody("en", many, "/");
+    expect(grouped).toContain(`href="${href(gamePath(orphan.id, "en"), "/")}"`);
+  });
+
   it("stamps the game id and the language on the body, for the runtime to read", () => {
     const route = ROUTES.find((r) => r.kind === "game" && r.id === "2048" && r.locale === "en")!;
     const page = renderRoute(route, "/ellaz/");
@@ -465,7 +535,14 @@ describe("the lazy chunks a page preloads", () => {
    * so this is the one place the two vocabularies meet - and a future game whose
    * directory differs from its id would otherwise lose its preload in silence.
    */
-  const CATALOG_SOURCE = readFileSync(new URL("../portal/catalog.ts", import.meta.url), "utf8");
+  // BOTH halves. The loaders split at the fold on 2026-08-26 - the shell keeps
+  // 15 and `gamesRest.ts` carries the other 23 beside their metadata - so
+  // reading `catalog.ts` alone silently drops 23 games out of this map, and
+  // every preload assertion below would then pass over the ones it cannot see.
+  const CATALOG_SOURCE = [
+    readFileSync(new URL("../portal/catalog.ts", import.meta.url), "utf8"),
+    readFileSync(new URL("../portal/gamesRest.ts", import.meta.url), "utf8"),
+  ].join("\n");
   const LOADER_DIRS = new Map<string, string>(
     [
       ...CATALOG_SOURCE.matchAll(

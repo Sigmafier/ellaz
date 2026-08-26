@@ -1,4 +1,5 @@
-import { loaderFor } from "../portal/catalog";
+import { SHELL_LOADERS } from "../portal/catalog";
+import { REST_LOADERS } from "../portal/gamesRest";
 import { GAMES } from "../portal/games";
 
 /**
@@ -21,5 +22,13 @@ import { GAMES } from "../portal/games";
  * `src/build/langOffer.ts`, reached from the other direction: there an aliased
  * import was written into src/build, here an ordinary app import was made
  * reachable FROM it. Nothing in `src/build/**` may import this file.
+ *
+ * IT READS BOTH LOADER HALVES STATICALLY, and that is the point rather than a
+ * shortcut. `loaderFor` answers only for what has ARRIVED, so a module-level
+ * `FULL_CATALOG` built on it would pair 23 of 38 games with `undefined` and
+ * every "every game has a loader" assertion would pass over the 15 it could
+ * see. This file never ships, so the static import costs nobody anything.
  */
-export const FULL_CATALOG = GAMES.map((meta) => ({ meta, load: loaderFor(meta.id) }));
+const ALL_LOADERS = { ...SHELL_LOADERS, ...REST_LOADERS };
+
+export const FULL_CATALOG = GAMES.map((meta) => ({ meta, load: ALL_LOADERS[meta.id] }));

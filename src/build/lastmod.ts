@@ -27,10 +27,31 @@ import { basename } from "node:path";
 import { GAMES } from "../portal/games";
 import { ROUTES, type Route } from "./routes";
 
+/**
+ * One answer per distinct path set, for the life of a build.
+ *
+ * The four locales of one game ask git the IDENTICAL question four times, and
+ * every non-game route resolves to the same three paths - so 164 routes spawn
+ * 164 `git log` processes to ask ~42 distinct questions. On a `/mnt/c`
+ * OneDrive checkout each spawn measures ~2.6 s, which is ~8 minutes of a local
+ * build spent re-asking. Keyed on the RESOLVED path list rather than the
+ * route, because that is what the answer actually depends on.
+ */
+const gitCache = new Map<string, string | null>();
+
 /** Ask git when a set of paths last changed. `null` on any doubt at all. */
 function lastCommitISO(paths: string[]): string | null {
   const present = paths.filter((p) => existsSync(p));
   if (present.length === 0) return null;
+  const key = present.join("\u0000");
+  const hit = gitCache.get(key);
+  if (hit !== undefined) return hit;
+  const answer = askGit(present);
+  gitCache.set(key, answer);
+  return answer;
+}
+
+function askGit(present: string[]): string | null {
   try {
     const out = execFileSync("git", ["log", "-1", "--format=%cI", "--", ...present], {
       encoding: "utf8",

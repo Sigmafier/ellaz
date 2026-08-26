@@ -146,12 +146,7 @@ export function homeShellBody(
         ${site.facts.map((f) => html`<li>${f}</li>`)}
       </ul>
       <ul>
-        ${games.map(
-          (m) =>
-            html`<li>
-              <a href="${href(gamePath(m.id, locale), base)}">${gameName(m.id, locale)}</a>
-            </li>`,
-        )}
+        ${homeGameLinks(games, locale, base)}
       </ul>
       ${copy.body.map((p) => html`<p>${p}</p>`)}
       <p><a href="${href(worldPath(locale), base)}">${site.worldPage.h1}</a></p>
@@ -159,6 +154,58 @@ export function homeShellBody(
       ${otherHomeLinks(locale, base)}
     </div>
   `);
+}
+
+/**
+ * How many games the emitted `/` will list ONE BY ONE before it starts linking
+ * GROUPS instead.
+ *
+ * Every link here is 29.5 B gz on the first visit - measured, and the single
+ * largest per-game term left after the metadata and the loaders both split off.
+ * At 38 games that is ~1.1 KB and it is worth every byte: a flat list is the
+ * strongest thing this page can do for a crawler at this size, and the category
+ * pages are one hop further away.
+ *
+ * At 200 games it is 5.9 KB of a ~90 KB budget for a list no reader scrolls,
+ * and the same crawl is served by six group links plus the pages behind them.
+ * So the switch exists now and FIRES ITSELF later.
+ *
+ * 60 AND NOT 38. It must not fire today: the flat list is the better page at
+ * this size, and a threshold set at the current roster is a threshold that
+ * changes behaviour in the same commit that adds it, with nothing to compare
+ * against. 60 leaves 22 games of room and still trips long before the byte cost
+ * matters.
+ */
+export const MAX_FLAT_HOME_LINKS = 60;
+
+/**
+ * The game links on the emitted home document.
+ *
+ * Under the threshold: every game, in roster order, exactly as before.
+ *
+ * Over it: one link per CATEGORY page, plus every game whose category has no
+ * page of its own. That second half is not a nicety - `PAGED_CATEGORIES` only
+ * holds groups with `MIN_GAMES_FOR_A_PAGE` games or more, so a game in a
+ * one-game category (`create` held exactly that for weeks) would otherwise be
+ * reachable from NO emitted page at all. Every game stays at most two hops from
+ * `/`, and `build.test.ts` asserts that rather than trusting this comment.
+ */
+function homeGameLinks(
+  games: ReadonlyArray<GameMeta>,
+  locale: Locale,
+  base: string,
+): RawHtml {
+  const link = (path: string, label: string) =>
+    html`<li><a href="${href(path, base)}">${label}</a></li>`;
+
+  if (games.length <= MAX_FLAT_HOME_LINKS) {
+    return html`${games.map((m) => link(gamePath(m.id, locale), gameName(m.id, locale)))}`;
+  }
+
+  const orphans = games.filter((m) => !PAGED_CATEGORIES.includes(m.category));
+  return html`${PAGED_CATEGORIES.map((c) =>
+    link(categoryPath(c, locale), categoryCopy(locale, c, 0).h1),
+  )}${orphans.map((m) => link(gamePath(m.id, locale), gameName(m.id, locale)))}`;
 }
 
 /**
