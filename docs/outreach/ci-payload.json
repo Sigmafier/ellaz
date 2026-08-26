@@ -1,10 +1,10 @@
 {
-  "firstVisitB": 90022,
-  "ceiling": 90500,
-  "spareB": 478,
-  "slopeB": 70.1,
-  "commit": "44e0571",
-  "runId": 32582238683,
-  "measuredAt": "2026-08-22",
+  "firstVisitB": 53121,
+  "ceiling": 56000,
+  "spareB": 2879,
+  "slopeB": 30.5,
+  "commit": "63655b6",
+  "runId": 32970532728,
+  "measuredAt": "2026-08-26",
   "note": "Read off the deploy's own log. CI is the toolchain that builds the live site; this machine is not."
 }

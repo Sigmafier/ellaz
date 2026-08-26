@@ -64,7 +64,7 @@ I built this for my own kids and then kept going. 42 games, sudoku and minesweep
 
 No ads, no account, no download. Nothing to type anywhere - you get given a name from a
 fixed list, so there is no text field for anybody to put anything in. It works offline
-after the first load, and the whole site is about 90 KB before you pick a game.
+after the first load, and the whole site is about 53 KB before you pick a game.
 
 The interface is in 11 languages. Hebrew is the default because that is where I am, but
 it opens in English for you.
@@ -108,7 +108,7 @@ What I would like eyes on, in order:
 3. Anything that feels slow. Every game is either plain web pages or, in one case, a game
    engine, and the difference should not be visible to a player.
 
-Some numbers, since this crowd asks: about 90 KB gzipped on a first visit before you pick
+Some numbers, since this crowd asks: about 53 KB gzipped on a first visit before you pick
 a game; each game loads on demand. 11 interface languages, each its own lazy chunk of
 about 1.5 KB. Real URLs per game rather than a hash router, so every game is linkable.
 
@@ -148,7 +148,7 @@ That last part is the whole design. There is no account because there is nothing
 in to, and there is nothing to type anywhere, so a child cannot enter a name that an adult
 would then have to moderate. You get a name from a fixed list of words.
 
-It works offline once it has loaded, and it is about 90 KB on a first visit.
+It works offline once it has loaded, and it is about 53 KB on a first visit.
 
 The trade-off, stated plainly: because it is all on your device, clearing your browser
 data erases the progress, and a phone and a tablet are two separate players. There is a
@@ -174,7 +174,7 @@ backup code to move between them.
 | Claim in the copy | Where it comes from |
 |---|---|
 | 42 games | `src/portal/catalog.ts`, counted 2026-08-18 |
-| about 90 KB first visit | `scripts/assert-payload.mjs` ceiling 56,000 B gz; measured 90,022 on 2026-08-18 |
+| about 53 KB first visit | `scripts/assert-payload.mjs` ceiling 56,000 B gz; measured 53,121 on 2026-08-18 |
 | 11 interface languages, ~1.5 KB each | `APP_LOCALES` in `src/i18n/locales.ts`; the per-locale chunk sizes measured on the artifact |
 | nothing to type anywhere | `src/sdk/names.ts` - a name is two word ids from a fixed pool |
 | works offline | the PWA precaches the shell (`vite.config.ts` workbox) |

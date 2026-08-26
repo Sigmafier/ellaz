@@ -359,6 +359,30 @@ const PREDICATES = [
     holds: (f) => f.firstVisitB !== null && f.firstVisitB < 90_000,
     say: (f) => `the first visit is ${f.firstVisitB?.toLocaleString()} B gz`,
   },
+  {
+    // ANY KILOBYTE CLAIM ABOUT THE FIRST VISIT, whatever adverb is in front of
+    // it. `under-90kb` above caught one spelling, and on 2026-08-26 the site
+    // went from ~90 KB to ~53 KB and NINE sentences reading "about 90 KB"
+    // survived - because an earlier `--fix` had rewritten "under" to "about" to
+    // answer the last flip, and the new wording matched nothing.
+    //
+    // So this is the predicate that generalises: the number NEAR the words
+    // "KB" and a first-visit noun has to be within 25% of the measurement,
+    // whichever adverb, whichever spelling. A band rather than equality because
+    // "about 53 KB" is honest prose and "53,121" is not something a Show HN
+    // post should carry.
+    id: "kb-size-claim",
+    re: /\b(?:about|around|roughly|under|just over|~)?\s*(\d{2,3})\s*KB\b(?=[^.\n]{0,80}(?:first (?:visit|load)|whole site|shell|before you pick))|(?:first (?:visit|load)|whole site|shell)[^.\n]{0,80}?\b(?:about|around|roughly|under|just over|~)?\s*(\d{2,3})\s*KB\b/gi,
+    holds: (f, matches) => {
+      if (f.firstVisitB === null) return true; // unmeasured says nothing
+      const real = f.firstVisitB / 1000;
+      return matches.every((m) => {
+        const n = Number(m[1] ?? m[2]);
+        return Number.isFinite(n) && Math.abs(n - real) / real <= 0.25;
+      });
+    },
+    say: (f) => `the first visit is ${Math.round((f.firstVisitB ?? 0) / 1000)} KB`,
+  },
 ];
 
 /* ------------------------------------------------------------------- main */
@@ -532,10 +556,13 @@ function run(dir, f, fix = FIX) {
   const broken = [];
   for (const p of PREDICATES) {
     let hits = 0;
+    const matches = [];
     for (const file of files) {
       const source = edited.get(file.name) ?? file.text;
       const scan = edited.has(file.name) ? blankHistory(source).blanked : file.scan;
-      hits += [...scan.matchAll(p.re)].length;
+      const found = [...scan.matchAll(p.re)];
+      hits += found.length;
+      matches.push(...found);
     }
     // No minimum-occurrence control here, unlike the numeric claims: rewriting
     // the copy is the correct way to answer a FALSE predicate, so zero hits is a
@@ -544,7 +571,7 @@ function run(dir, f, fix = FIX) {
     // when the drafts are edited.
     if (hits === 0) {
       // nothing to judge
-    } else if (!p.holds(f)) {
+    } else if (!p.holds(f, matches)) {
       broken.push({ id: p.id, hits, say: p.say(f) });
     }
   }
@@ -804,6 +831,25 @@ function control(f) {
     const under = run(fixtureDir, { ...f, firstVisitB: 89_000 });
     check("'under 90 KB' is FALSE at 90,027 B gz", over.broken.length, 1);
     check("'under 90 KB' holds at 89,000 B gz", under.broken.length, 0);
+
+    // The GENERALISED size claim, and the reason it exists is in this control.
+    // `under 90 KB` above caught exactly one spelling. On 2026-08-26 the site
+    // went from ~90 KB to ~53 KB and nine sentences reading "about 90 KB"
+    // survived untouched, because an earlier `--fix` had rewritten "under" to
+    // "about" to answer the LAST flip and the new wording matched nothing. So
+    // the adverb must not matter, and the fixture says three of them.
+    writeFileSync(
+      join(fixtureDir, "fixture.md"),
+      "The whole site is about 90 KB on a first visit.\n" +
+        "Around 90 KB before you pick a game.\n" +
+        "The shell is roughly 90 KB gzipped.\n",
+    );
+    const bigClaim = run(fixtureDir, { ...f, firstVisitB: 53_121 });
+    const rightClaim = run(fixtureDir, { ...f, firstVisitB: 88_000 });
+    check("'about/around/roughly 90 KB' is FALSE at 53 KB", bigClaim.broken.length, 1);
+    check("...and it counts every spelling, not the first", 
+      bigClaim.broken[0]?.hits ?? 0, 3);
+    check("the same prose HOLDS at 88 KB", rightClaim.broken.length, 0);
 
     // ---- the CI payload record ------------------------------------------
     //
