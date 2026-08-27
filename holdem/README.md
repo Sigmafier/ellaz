@@ -48,7 +48,7 @@ node scripts/cli-client.mjs create "yossi"   # interactive terminal player
 Four local players: one normal window, one incognito, one other browser
 profile, one CLI client (identity is per-profile localStorage).
 
-**5175, not 5173** — 5173 is OGAS's legacy Sigma app on this machine, and two
+**5175, not 5173** — 5173 is ProjectA's legacy Sigma app on this machine, and two
 apps on one localhost origin share its `localStorage`, including this client's
 device token.
 

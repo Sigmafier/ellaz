@@ -109,7 +109,7 @@ export default defineConfig({
     },
   },
   server: {
-    // NOT 5173 — that port belongs to OGAS's legacy Sigma app on this machine,
+    // NOT 5173 — that port belongs to ProjectA's legacy Sigma app on this machine,
     // and two apps sharing a localhost origin share localStorage with it. Kept
     // in step with ALLOWED_ORIGINS in server/wrangler.toml.
     port: 5175,
