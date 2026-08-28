@@ -19,6 +19,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { AppLocale } from "@i18n/locales";
 import type { SfxName } from "@sdk/types";
 import { audioPort } from "@sdk/index";
+// The win phrase's tempo, the SAME object `winMoment` schedules against.
+// This demo used to carry its own copy - `450` and `620`, typed twice, in two
+// files - which is the shape that let the real sequence drift out from under
+// the screen whose entire job is to say what a game will play.
+import { WIN_PHRASE } from "@sdk/voice";
 import {
   clearVoicePicks,
   loadVoicePicks,
@@ -85,11 +90,19 @@ const T = {
     he: "נבחר על פני מנצח סבב עיוור",
     en: "picked over a blind winner",
   },
+  // A third route, and the badge says so rather than letting it read as a
+  // strip pick: `win` was asked for in words on 2026-08-27 with nothing
+  // compared. The arms are all still here, which is the point of saying it.
+  directed: { he: "התבקש, בלי השוואה", en: "asked for, nothing compared" },
   sounds: { he: "צלילים", en: "Sounds" },
   moment: { he: "רגע הניצחון", en: "The win moment" },
+  // No numbers in the copy: they are derived from the win voice now, so a
+  // sentence quoting them would be one re-voice away from being a lie on the
+  // one screen whose job is to say what the app plays. The strip prints the
+  // live values instead.
   momentLede: {
-    he: "הרצף המלא: אקורד, קונפטי, מטבעות שעפים, כוכב ב-450 מ״ש ומטבע ב-620.",
-    en: "The whole sequence: the chord, confetti, the coin flight, a star at 450 ms and a coin at 620.",
+    he: "הרצף המלא: תרועה וקונפטי, ואז המטבעות נוחתים ומצלצלים, ואז הכוכב.",
+    en: "The whole sequence: the fanfare and confetti, then the coins land and chime, then the star.",
   },
   effects: { he: "אפקטים", en: "Effects" },
   reduced: {
@@ -142,9 +155,11 @@ function SoundCard({
   const badge =
     verdict === "never"
       ? "never"
-      : OVERRODE_BLIND.includes(name)
-        ? "pickedOver"
-        : "pickedOnly";
+      : verdict === "directed"
+        ? "directed"
+        : OVERRODE_BLIND.includes(name)
+          ? "pickedOver"
+          : "pickedOnly";
 
   return (
     <section
@@ -356,7 +371,10 @@ export function Lab({ locale }: { locale: AppLocale }) {
 
   /** The win moment, driven directly rather than through `winMoment()` - this
    *  must never grant a coin or touch a score just because somebody opened the
-   *  lab. Same order and the same two delays the real one uses. */
+   *  lab. Same order, and the delays are READ from `WIN_PHRASE` rather than
+   *  retyped, so this cannot go on demonstrating a sequence the app stopped
+   *  playing. `flyTo` gets the same flight time for the same reason: the coins
+   *  must arrive when the chime fires, not near it. */
   const playWin = useCallback((coins: number, confetti: boolean) => {
     audioPort.unlock();
     audioPort.play("win");
@@ -375,10 +393,12 @@ export function Lab({ locale }: { locale: AppLocale }) {
           el.style.color = "var(--orange-ink)";
           return el;
         },
+        ms: WIN_PHRASE.coin,
       });
     }
-    window.setTimeout(() => audioPort.play("star"), 450);
-    if (coins > 0) window.setTimeout(() => audioPort.play("coin"), 620);
+    if (coins > 0)
+      window.setTimeout(() => audioPort.play("coin"), WIN_PHRASE.coin);
+    window.setTimeout(() => audioPort.play("star"), WIN_PHRASE.star);
   }, []);
 
   const reduced = prefersReducedMotion();
@@ -531,6 +551,13 @@ export function Lab({ locale }: { locale: AppLocale }) {
           {say("moment", lang)}
         </h2>
         <section
+          // A stable handle for `repro-win-phrase-has-air.mjs`, which measures
+          // the real audio graph here. It used to find this strip by button
+          // TEXT, matched "buzz: win" in the haptics row two sections down, and
+          // measured the wrong thing - a probe bound to prose fails for the
+          // wrong reason the day the prose changes, which is the one failure a
+          // reproducer must not have.
+          data-lab="win-moment"
           style={{
             background: "var(--surface)",
             border: "1px solid var(--line)",

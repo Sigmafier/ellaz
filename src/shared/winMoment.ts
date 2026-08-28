@@ -9,7 +9,13 @@
 // Order is load-bearing: the coins are GRANTED AND PERSISTED first, and only
 // then does anything cosmetic run. A thrown animation can never cost a kid a coin.
 import type { GameContext, RewardGrant, RewardResult, ScoreReport, ScoreResult } from "@sdk/index";
-import { celebrate, flyTo, haptic } from "@juice/index";
+import { celebrate, flyDurationMs, flyTo, haptic } from "@juice/index";
+// The phrase's tempo, derived there from the win voice's own length. Read here,
+// never redefined - the lab's win-moment demo reads the same object, and the
+// two hardcoded pairs that preceded it are the defect this fixes.
+// `voice.ts` is pure data and already in the shell chunk (`audio.ts` reaches
+// it), so this is a page->shell edge and costs a first visit nothing.
+import { WIN_PHRASE } from "@sdk/voice";
 // Relative on purpose: portal has no alias, and this is the ONLY portal
 // reference here — a module-level ref lookup, not portal state.
 import { getWalletAnchor } from "../portal/WalletChip";
@@ -48,15 +54,21 @@ export interface WinMomentOptions extends RewardGrant {
 }
 
 /**
- * When the star flourish and the coin land, relative to the win chord.
+ * THE WIN IS A PHRASE, and `WIN_PHRASE` in `@sdk/voice` is its tempo - derived
+ * from the win voice's own body length, so a re-voice moves the coins and the
+ * star with it. Read that comment for the numbers and for what was wrong with
+ * the two hardcoded pairs this replaced.
  *
- * COIN_LAND_MS tracks `flyTo`'s own flight time (620ms) so the sound arrives
- * with the coins rather than near them. If that duration changes, this follows
- * it - a coin that lands silently and chimes a quarter second later reads as a
- * bug in the animation, not in the sound.
+ *     0 ms       the fanfare, the confetti, the buzz - and the coins take off
+ *     coin       the flock ARRIVES and chimes, in clear air after the fanfare
+ *     star       the star crowns it
+ *
+ * Star AFTER the coins, which is half the change. It used to fire at 450 ms on
+ * top of the win chord, competing with it for the same air - its own doc in
+ * `voice.ts` says the timbre was picked to survive that. It no longer has to.
  */
-const STAR_DELAY_MS = 450;
-const COIN_LAND_MS = 620;
+const COIN_AT_MS = WIN_PHRASE.coin;
+const STAR_AT_MS = WIN_PHRASE.star;
 
 function screenCentre(): { x: number; y: number } {
   if (typeof window === "undefined") return { x: 0, y: 0 };
@@ -121,17 +133,35 @@ export function winMoment(ctx: GameContext, o: WinMomentOptions): WinMomentResul
 
     // 4. Show WHERE the coins went. Skipped when the cap paid out nothing —
     //    flying zero coins would be a lie about what just happened.
+    //
+    //    The flock arrives on the beat above rather than at `flyTo`'s own
+    //    default, so the chime below marks a landing instead of interrupting
+    //    the fanfare. Under reduced motion `flyTo` refuses to travel at all and
+    //    the coins simply appear, in 260 ms - so the LAUNCH is held back by the
+    //    difference and the picture still meets the sound. `flyDurationMs` is
+    //    the one place that number lives; asking it is what stops this from
+    //    being right for most players and quietly wrong for the rest.
     if (result.coins > 0) {
-      flyTo(o.at ?? screenCentre(), getWalletAnchor(), {
-        count: result.coins,
-        particle: coinParticle,
-      });
+      const from = o.at ?? screenCentre();
+      const send = () =>
+        flyTo(from, getWalletAnchor(), {
+          count: result.coins,
+          particle: coinParticle,
+          ms: COIN_AT_MS,
+        });
+      const launch = COIN_AT_MS - flyDurationMs(COIN_AT_MS);
+      if (launch > 0) window.setTimeout(send, launch);
+      else send();
     }
 
     // 5. The two currencies get their own voices, staggered behind the win
-    //    chord so a level completion is a short phrase rather than three
+    //    fanfare so a level completion is a short phrase rather than three
     //    sounds in a pile. Before this both were SILENT: there was no coin
     //    voice and no star voice in the app at all.
+    //
+    //    "A short phrase" was the intent from the beginning and it was not what
+    //    shipped: 450 and 620 were fixed numbers against a win voice 961 ms
+    //    long, so all three ran at once. The numbers are derived now.
     //
     //    THE SEQUENCING IS NOT A TOURNAMENT RESULT. The palette rounds chose
     //    the two VOICES blind; the guided round that would have chosen the
@@ -141,8 +171,8 @@ export function winMoment(ctx: GameContext, o: WinMomentOptions): WinMomentResul
     //    is the conservative reading: a per-coin variant at up to 12 coins is
     //    a machine-gun nobody has judged. Changing it is a blind round, not an
     //    edit.
-    if (result.stars > 0) window.setTimeout(() => ctx.audio.play("star"), STAR_DELAY_MS);
-    if (result.coins > 0) window.setTimeout(() => ctx.audio.play("coin"), COIN_LAND_MS);
+    if (result.coins > 0) window.setTimeout(() => ctx.audio.play("coin"), COIN_AT_MS);
+    if (result.stars > 0) window.setTimeout(() => ctx.audio.play("star"), STAR_AT_MS);
   } catch (e) {
     // Cosmetics are best-effort; the grant above already stuck.
     console.error("[ellaz] win moment effects failed", e);

@@ -28,11 +28,17 @@ network. `src/sdk/audio.ts` is the only table mapping a name to a spec.
 **All nine were re-picked on 2026-08-13**, from the lab's strips, with the names
 showing. Every row below changed that day.
 
+**One has moved since, by a third route.** `win` was replaced on 2026-08-27 on
+the operator's instruction — *"change the winning sound to a faster fanfare"* —
+which is neither a blind round nor a strip pick, so its verdict reads
+`directed` rather than `picked`. It is in the strip now, so the comparison is
+available; what is not available is a claim that it was made.
+
 | Sound | What it is, in one line | Call sites | Verdict |
 |---|---|---|---|
 | **tap** | "Tick" — a 3 ms click above 5.2 kHz over a sine lifting a fourth, 34 ms | 22 (+2 conditional) in 18 files | picked **over** a blind winner |
 | **success** | "Wood run" — three rising notes on tuned wood, a major triad, 220 ms | 12 in 11 files | picked **over** a blind winner |
-| **win** | "Ladder" — six notes climbing a pentatonic scale to the octave, 420 ms | 1 (`winMoment`) | picked **over** a blind winner |
+| **win** | "Fanfare" — four announced notes on tuned wood, a major triad to the octave, 250 ms, 520 ms of body | 1 (`winMoment`) | **directed** 27 Aug; the Ladder it replaced was picked over a blind winner |
 | **fail** | "Two steps down" — two soft sines, the second a whole tone below and delayed | 8 in 8 files | picked **over** a blind winner |
 | **coin** | "Drop in" — a coin landing in a jar: strike, note, fifth, one faint partial | 1 (`winMoment`) | picked **over** a blind winner |
 | **star** | "High bar" — three notes of high tuned wood, less glassy, 1.6 s tail | 1 (`winMoment`) | picked **over** a blind winner |
@@ -174,28 +180,51 @@ animation can never cost a child a coin.
 
 ```
    0 ms   grant coins + stars, persist, record the score      (NOT cosmetic)
-   0 ms   ▶ win        the sweep-and-land chord
+   0 ms   ▶ win        the fanfare — four notes, 520 ms of body
    0 ms   ⌇ haptic.win  [20, 40, 20, 40, 60]
-   0 ms   ✦ celebrate() 60 confetti pieces, 1.6-2.8 s fall     (unless confetti:false)
-   0 ms   ✦ flyTo()     up to 12 coins arc to the wallet chip, 620 ms
- 450 ms   ▶ star       — only if the win earned a star
- 620 ms   ▶ coin       — only if it paid coins; ONE coin, not one per coin
+   0 ms   ✦ celebrate() 140 confetti pieces, 1.6-2.8 s fall    (unless confetti:false)
+   0 ms   ✦ flyTo()     up to 12 coins arc to the wallet chip, arriving at 740
+ 520 ms   · the fanfare's last note has finished
+ 740 ms   ▶ coin       — the coins LAND and chime, in clear air; ONE coin, not one per coin
+1000 ms   ▶ star       — only if the win earned a star; it crowns the phrase
 ```
 
-Two things about this that are **decisions nobody ever judged**, written down so
-they are not mistaken for tournament results:
+**Those numbers are DERIVED and none of them is typed.** `WIN_PHRASE` in
+`src/sdk/voice.ts` is `voiceBodyMs(WIN) + 220`, then `+ 260` for the star, so
+re-voicing `win` moves the whole phrase with it. `winMoment` hands the coin
+time to `flyTo` as the flight duration, so the picture and the sound are the
+same number rather than two numbers that agree today.
 
-- **The 450/620 stagger.** Chosen so a level completion reads as a short phrase
-  rather than three sounds in a pile. Never ranked.
+**It was two hardcoded numbers until 2026-08-27, and they were wrong.** The
+chime fired at 620 ms against a win voice with 961 ms of body, so the coin
+landed *inside* the fanfare — reported as *"the sound of success after winning
+and then right away the sound of coins sounds bad"*. Nothing could see it:
+every voice was a valid spec, every gain sum cleared the clipping floor, every
+duration cleared the jingle ceiling, and the defect lived in the relationship
+between two files. `src/shared/winPhrase.test.ts` is the pin — 7 mutations
+planted, 7 killed, including the one that restores Ladder — and
+`scripts/repro/repro-win-phrase-has-air.mjs` measures the real audio graph,
+which is the half no source test can reach: **win −20..519 ms, coin 729, star
+990, 209 ms of air**, against **two events instead of three** when its
+`--control` puts 450/620 back in the same build.
+
+Two things about this that are still **decisions nobody ever judged**, written
+down so they are not mistaken for tournament results:
+
+- **The 220/260 stagger, and coin-before-star.** Chosen so a level completion
+  reads as a short phrase rather than three sounds in a pile. Never ranked.
 - **One coin sound per win.** The guided round that would have chosen the
   coin-flight behaviour (silent arrival / a sound per landing coin / that plus
   the wallet chip bouncing) was **never run** — 0 of 6 guided brackets were. One
   sound is the conservative reading, because a per-coin variant at 12 coins is a
   machine-gun nobody has heard.
 
-`COIN_LAND_MS = 620` deliberately tracks `flyTo`'s own flight time. If one moves
-the other must follow, or the coins land silently and chime a quarter-second
-later.
+**`flyDurationMs` is why reduced motion is not quietly wrong.** `flyTo` refuses
+to travel under `prefers-reduced-motion` and the coins simply appear, in 260 ms
+— so `winMoment` holds the LAUNCH back by the difference and the picture still
+meets the sound. The old code hardcoded 620 and was therefore right for most
+players and off by a third of a second for the ones most likely to be relying
+on the sound.
 
 ---
 
@@ -227,7 +256,7 @@ both mean the buzz and the sound disagree about what just happened.
 | `burst(x, y)` | 14 particles, **190 px** spread, colours read off `--spark-colors` | 20 sites, counts hand-authored 5–16 |
 | `celebrate()` | **140** confetti, falls 1.6–2.8 s, colours from `--confetti-colors` | `winMoment` only |
 | `shake(el)` | 6 px, 240 ms, decaying | 18 sites — the universal "no" |
-| `flyTo(from, target)` | up to 12 coins, 620 ms arc, staggered 55 ms | `winMoment` only |
+| `flyTo(from, target)` | up to 12 coins, staggered 55 ms; the arc is 620 ms by default and `winMoment` passes `WIN_PHRASE.coin` (740) so they land on the beat | `winMoment` only |
 | `popEl(el)` | one-shot CSS class, default `ellaz-pop` | wallet chip, World scene, World plate |
 
 Plus `src/juice/shell.ts` — `attachShellJuice()`, delegated from one listener,
@@ -281,7 +310,7 @@ Not bugs. Gaps, listed so a choice about them is deliberate.
 | Starting a level / new round | silent |
 | Resuming a saved board | silent, **by design** — no dialog, no reading |
 | Refusing a purchase (can't afford / locked) | shake only, **by design** — a refusal is not an error |
-| Earning a star with no coins | star at 450 ms, nothing at 0 |
+| Earning a star with no coins | the fanfare, then the star alone at 1000 ms |
 | A streak building | silent until the milestone |
 | Backup code confirmed / restore complete | shake on failure only |
 | Leaderboard record beaten mid-run | silent until `personal_best` fires |
