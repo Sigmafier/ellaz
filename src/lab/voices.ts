@@ -24,6 +24,13 @@
 // blind result and a named preference are different strengths of evidence and
 // the earlier one is still real.
 //
+// ONE HAS MOVED SINCE, BY A THIRD ROUTE. `win` was replaced on 2026-08-27 on
+// the operator's instruction - "a faster fanfare" - which is neither a blind
+// round nor a strip pick. Recorded here rather than folded into the line above,
+// because "all nine were picked from these strips" would stop being true and
+// the whole value of this file is that it can be read literally. The Ladder it
+// replaced is still an arm, as a literal in `./previous`.
+//
 // Every superseded voice stayed in its strip, and they live in `./previous`
 // rather than here - see that file's header for why a control arm must be a
 // literal and can never be an import of the shipped constant.
@@ -53,6 +60,7 @@ import {
   PREV_SUCCESS,
   PREV_TAP,
   PREV_WIN,
+  PREV_WIN_LADDER,
 } from "./previous";
 import type { SfxName } from "@sdk/types";
 import {
@@ -580,14 +588,27 @@ const SUCCESSES: Candidate[] = [
 // ---------------------------------------------------------------------------
 
 const WINS: Candidate[] = [
+  // The shipped arm leads, and it is the CONSTANT rather than a transcription -
+  // `voices.test.ts` asserts identity, so this button and every game play the
+  // same object. `win-ladder` below is now a literal in `./previous`: it was
+  // written as `WIN` until 2026-08-27, which is correct exactly until `WIN`
+  // moves, and it moved.
   c(
-    "win-ladder",
-    "סולם",
-    "Ladder",
-    "שישה צלילים מטפסים",
-    "Six notes climbing",
+    "win-fanfare-fast",
+    "תרועה מהירה",
+    "Quick fanfare",
+    "ארבעה צלילים מוכרזים, מהר",
+    "Four announced notes, fast",
     WIN,
     true,
+  ),
+  c(
+    "win-ladder",
+    "סולם (היה)",
+    "Ladder (was)",
+    "שישה צלילים מטפסים. נבחר ב-13.8, הוחלף ב-27.8",
+    "Six notes climbing. Picked 13 Aug, replaced 27 Aug",
+    PREV_WIN_LADDER,
   ),
   c(
     "win-sweep",
@@ -621,12 +642,16 @@ const WINS: Candidate[] = [
       0.012,
     ),
   ),
+  // Labelled "slow" since 2026-08-27, when the shipped voice became a fanfare
+  // too. The ID is untouched - ids are persisted in the operator's pick, the
+  // display name is not - and the two are genuinely different: this is bells at
+  // an 85 ms gap, the shipped one is tuned wood at 44.
   c(
     "win-fanfare",
-    "תרועה",
-    "Fanfare",
-    "שלושה צלילים מוכרזים ואז אקורד",
-    "Three announced notes, then the chord",
+    "תרועה איטית",
+    "Slow fanfare",
+    "שלושה צלילים מוכרזים ואז אקורד, על פעמונים",
+    "Three announced notes then the chord, on bells",
     run(
       struck(C5, 520, BELL, {
         gain: 0.17,
@@ -1027,23 +1052,32 @@ export const GALLERY: Record<SfxName, Candidate[]> = {
 /**
  * How much of a verdict each sound carries, so the lab can say so on the card.
  *
- * Three states and not two, because "picked" and "blind" are genuinely
- * different strengths of evidence and collapsing them is how a preference gets
- * remembered as a result. As of 2026-08-13 every sound reads `picked` - each
- * was chosen from its own strip with the names showing.
+ * Four states and not two, because these are genuinely different strengths of
+ * evidence and collapsing them is how a preference gets remembered as a result.
+ *
+ *   blind     won a hidden-name tournament
+ *   picked    chosen from its own strip with the names showing
+ *   directed  asked for by the operator, in words, with nothing compared
+ *   never     no round of any kind
+ *
+ * As of 2026-08-13 every sound read `picked`. `win` moved to `directed` on
+ * 2026-08-27 - "change the winning sound to a faster fanfare" is an
+ * instruction, and a strip it was never in cannot be cited as having chosen it.
+ * It IS in that strip now, so the comparison is available; what is not
+ * available is a claim that it was made.
  *
  * `blind` and `never` are kept in the type on purpose rather than deleted. The
  * next sound added to this app starts at `never`, and the next blind round run
  * moves something to `blind`; a type that could only say "picked" would quietly
  * make the distinction unsayable, which is the whole failure this table exists
- * to prevent.
+ * to prevent - and `directed` was added the day that failure came due.
  */
-export type Verdict = "blind" | "picked" | "never";
+export type Verdict = "blind" | "picked" | "directed" | "never";
 
 export const VERDICT: Record<SfxName, Verdict> = {
   tap: "picked",
   success: "picked",
-  win: "picked",
+  win: "directed",
   fail: "picked",
   coin: "picked",
   star: "picked",
@@ -1064,6 +1098,12 @@ export const VERDICT: Record<SfxName, Verdict> = {
  *
  * `pop`, `flip` and `streak` are absent: pop replaced Cork (itself a pick, not
  * a blind winner), and the other two had never been judged at all.
+ *
+ * `win` stays on this list through TWO changes. Ladder overrode Sweep and land
+ * in 2026-08; Fanfare then replaced Ladder by instruction in 2026-08-27. The
+ * blind winner is still overridden - it did not become un-overridden by being
+ * overridden a second time - and dropping it here would make the 2026-08-02
+ * result look like it had never been contradicted.
  */
 export const OVERRODE_BLIND: readonly SfxName[] = [
   "tap",

@@ -115,17 +115,33 @@ export function jitterRatio(
 }
 
 /**
- * How long the voice occupies the audio graph, in ms - the longest layer
- * (delay + length + release) plus any reverb tail. Used to size the offline
- * render buffer that measures the voice's peak.
+ * When the NOTES stop, in ms - the longest layer (delay + length + release),
+ * with no reverb tail. This is what a listener hears as the end of the sound.
+ *
+ * It exists because `voiceDurationMs` below answers a DIFFERENT question, and
+ * the two are a second apart. "When is the last echo gone" is the right
+ * question for sizing a render buffer and the wrong one for scheduling the
+ * next SOUND: `win` carries a 1.2 s tail, so a follow-up placed after the full
+ * duration would arrive a second and a half late and the win would stop being
+ * a phrase. Reverb is the room, not the note - the next thing in a phrase
+ * lands over the tail, never after it.
  */
-export function voiceDurationMs(spec: VoiceSpec): number {
+export function voiceBodyMs(spec: VoiceSpec): number {
   let longest = 0;
   for (const l of spec.layers) {
     const end = (l.delay ?? 0) * 1000 + (l.ms ?? spec.ms) + l.env.r * 1000;
     if (end > longest) longest = end;
   }
-  return longest + (spec.tail ?? 0) * 1000;
+  return longest;
+}
+
+/**
+ * How long the voice occupies the audio graph, in ms - the body above plus any
+ * reverb tail. Used to size the offline render buffer that measures the
+ * voice's peak.
+ */
+export function voiceDurationMs(spec: VoiceSpec): number {
+  return voiceBodyMs(spec) + (spec.tail ?? 0) * 1000;
 }
 
 // ---------------------------------------------------------------------------
@@ -366,25 +382,82 @@ export const SUCCESS: VoiceSpec = run(
 );
 
 /**
- * win - "Ladder". Six notes climbing a pentatonic scale to the octave.
+ * win - "Fanfare". Four announced notes, a major triad up to the octave, fast.
  *
- * Replaced Sweep and land, the blind winner. Both are arrivals; this one is a
- * climb rather than a landing, which reads as "look how far you got" instead of
- * "that's done". It is the same shape the streak ladder uses, an octave wide
- * and played at once, so a long streak and a win are audibly relatives.
+ * REPLACED LADDER ON 2026-08-27, on the operator's instruction - *"change the
+ * winning sound to a faster fanfare"* - and not from a strip. That is written
+ * down rather than folded into the 2026-08-13 pick because the two are
+ * different routes to a voice: Ladder won a strip of six with the names
+ * showing, this one was asked for by name. It is IN that strip now (see
+ * `src/lab/voices.ts`), so the comparison stays available rather than settled
+ * by a sentence.
+ *
+ * THE SPEED IS THE POINT, and it is a sequencing fix as much as a taste one.
+ * `winMoment` plays a phrase - the win, then the coins, then the star - and it
+ * spaces them off `voiceBodyMs(WIN)`, so a long win voice pushes everything
+ * behind it. Ladder was six notes 62 ms apart over a 420 ms fundamental:
+ * **961 ms of body**, which is why the coin chime at 620 ms landed inside it
+ * and the two sounds piled up. This is four notes 44 ms apart over 250 ms:
+ * **520 ms**, so the same phrase now has real air in it.
+ *
+ * Major rather than pentatonic, which is the other half of "fanfare". Ladder
+ * shared the streak ladder's pentatonic shape deliberately, so a long streak
+ * and a win were audibly relatives; a 0-4-7-12 triad announces instead of
+ * climbing, and giving the win its own interval set is what makes it the
+ * ARRIVAL rather than the last rung. The timbre is unchanged - still tuned
+ * wood, still no strike transient, so it is the same instrument playing a
+ * different figure.
  */
 export const WIN: VoiceSpec = run(
-  struck(C5, 420, "bar", { gain: 0.19, damp: 0.85, space: 0.3, tail: 1.6 }),
-  [0, 2, 4, 7, 9, 12],
-  0.062,
+  struck(C5, 250, "bar", { gain: 0.21, damp: 0.85, space: 0.28, tail: 1.2 }),
+  [0, 4, 7, 12],
+  0.044,
 );
+
+/**
+ * WHEN THE THREE SOUNDS OF A WIN HAPPEN, in ms after the fanfare starts.
+ *
+ * It lives here, beside the voices, because it is sound DESIGN rather than
+ * game logic and because two callers need it: `@shared/winMoment` plays the
+ * real thing, and the lab's win-moment demo plays a copy that must never grant
+ * a coin. Those were two hardcoded pairs of numbers until 2026-08-27 - 450 and
+ * 620, in both files - and they were wrong in both: the win voice ran 961 ms of
+ * body, so the coin chime at 620 landed inside it. Reported as *"the sound of
+ * success after winning and then right away the sound of coins sounds bad"*.
+ *
+ * DERIVED FROM THE WIN VOICE, so a re-voice moves the phrase with it. `body`
+ * and not `duration`: the latter counts the 1.2 s reverb tail and would push
+ * the coins most of two seconds out. Reverb is the room - the next thing in a
+ * phrase lands over the tail, never after it.
+ *
+ *   0      fanfare, confetti, buzz, and the coins take off
+ *   coin   the flock ARRIVES and chimes, in clear air
+ *   star   the star crowns it
+ *
+ * `winMoment` hands `coin` to `flyTo` as the flight time, so the picture and
+ * the sound are the same number rather than two numbers that agree today.
+ */
+const WIN_BEAT_MS = 220;
+const WIN_STAR_GAP_MS = 260;
+const WIN_COIN_AT_MS = Math.round(voiceBodyMs(WIN)) + WIN_BEAT_MS;
+
+export const WIN_PHRASE: { readonly coin: number; readonly star: number } = {
+  /** The coins land, and chime. */
+  coin: WIN_COIN_AT_MS,
+  /** The star crowns the phrase. */
+  star: WIN_COIN_AT_MS + WIN_STAR_GAP_MS,
+};
 
 /**
  * star - "High bar". High tuned wood, three notes, less glassy.
  *
- * Replaced Crystal sparkle, the blind winner. A star lands 620 ms into the win
- * moment, on top of the win chord and the coin - and glass at E6 competed with
- * the chord's own top end for the same air. Wood sits under it.
+ * Replaced Crystal sparkle, the blind winner. The reason was a collision that
+ * NO LONGER HAPPENS: a star used to land 450 ms into the win moment, on top of
+ * the win chord and beside the coin, and glass at E6 competed with the chord's
+ * own top end for the same air. Since 2026-08-27 it is last in the phrase (see
+ * `WIN_PHRASE`) with nothing else sounding, so wood is now a preference rather
+ * than a workaround - kept because it is the one that was picked, and because
+ * `star` also plays outside the win moment.
  *
  * Its top partial asks for 26,634 Hz on the octave note, which no sample rate
  * can represent; `voiceEngine` drops any partial that spends its whole life
