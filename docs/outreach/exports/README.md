@@ -54,6 +54,55 @@ zero internal, the instrument is broken and its external zero carries no
 information (`reach-doctrine` RCH10). If internal is populated and external is
 zero, the zero is real.
 
+## 2026-08-29, LATER - the control FIRED. This report is BROKEN, not empty
+
+Read directly in Search Console rather than from an export, on the property that
+actually holds the data (see below). Three reports, same property, same minute:
+
+| Report | Reads |
+|---|---|
+| **Links** | External **0** &middot; Internal **0** |
+| Performance, 1-26 Aug | 25 clicks, 676 impressions, 89 queries, average position 19.2 |
+| Page indexing | **137 indexed**, 50 not indexed |
+
+**Internal links cannot be zero on a site with 137 indexed pages** - the home page
+alone carries 38. So the Links report is not reporting for this property at all,
+and its external zero carries NO information about whether anyone links to us.
+This is exactly the control this file said to run, and it failed:
+`reach-doctrine` RCH10, an absence is not believed until the probe is shown
+producing the opposite reading.
+
+**So the zero recorded above is WITHDRAWN as evidence.** It is not "nobody links
+to us"; it is "this instrument answers zero to everything". The same reading on
+2026-08-21 has to be re-read the same way - it was never a measured zero either.
+
+**Use `npm run reach:backlinks` instead.** It fetches each named destination and
+asserts our domain appears in the response BODY, and it carries a positive
+control that FIRES: the `github.com/Sigmafier/ellaz` row comes back live. An
+instrument that can still say yes is the only kind whose no means anything.
+
+## Where this property actually is
+
+`sc-domain:ellaz.fun`, on the SECOND Google account in Chrome - URL index
+`/u/1`, not `ytrofr@gmail.com`:
+
+```
+https://search.google.com/u/1/search-console/links?resource_id=sc-domain%3Aellaz.fun
+```
+
+Without the `/u/1/` Google answers *"Oops, you don't have access to this
+property"*, and typing "ellaz" into the picker on `ytrofr@gmail.com` returns
+**"No matching property"**. Worth writing down because the failure reads like a
+missing property rather than a wrong account.
+
+## An open discrepancy - do NOT quote either figure until it is settled
+
+`performance-2026-08-21/` records **8 clicks / 231 impressions** over "Last 3
+months" ending 2026-08-21. The live property shows **676 impressions in August
+alone**. Overlapping windows cannot both be right, so one of them is measuring
+something else - a different property, or a filter left on at export time.
+Re-derive before quoting either, and never average them.
+
 **Next reading: 2026-11-27.** Not before - a new page gets a freshness boost that
 then decays, so an early reading measures the boost and can reverse a strategy
 that is working (`seo-doctrine` SEO11).
