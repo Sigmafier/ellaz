@@ -1,7 +1,8 @@
 # Hebrew directories and editors - four letters, four different rooms
 
-**Status**: drafts. Nothing here has been sent. The operator sends all of these
-personally, signed as a parent who built the thing, from their own address.
+**Status**: drafts, except door 2 (`kef-lilmod.co.il`) which the operator sent
+on 2026-08-29. The operator sends all of these personally, signed as a parent
+who built the thing, from their own address.
 
 **Why this file is separate from `hebrew.md`.** That file is the TRAFFIC lane -
 Facebook groups, where every link is `nofollow` by construction, so it moves
@@ -30,7 +31,7 @@ grain a person actually works at.
 | # | Destination | The door | Mechanism | Filled | Sent | Reply |
 |---|---|---|---|---|---|---|
 | 1 | `digitalpedagogy.co` | <https://www.digitalpedagogy.online/contact> | Wix form + reCAPTCHA. Name / email / subject / message. The editor's own *ליצירת קשר* link points here | **2026-08-29, byte-verified** `b4ceaae9` | — | — |
-| 2 | `kef-lilmod.co.il` | <https://www.kef-lilmod.co.il/צור-קשר/> | Elementor form, no CAPTCHA. Name / email / message | **2026-08-29, byte-verified** `8d5bf534` | — | — |
+| 2 | `kef-lilmod.co.il` | <https://www.kef-lilmod.co.il/צור-קשר/> | Elementor form, no CAPTCHA. Name / email / message | **2026-08-29, byte-verified** `8d5bf534` | **2026-08-29 by the operator** — see the receipt note below | due 2026-11-27 |
 | 3 | `portal.macam.ac.il` | <https://portal.macam.ac.il/צרו-קשר/> | Gravity Form, no CAPTCHA. Name / email / message, plus a HONEYPOT (`input_2_4`, label *Comments*, `display:none`) that must stay EMPTY | **2026-08-29, byte-verified** `4e671884` | — | — |
 | 4 | `pop.education.gov.il` | <mailto:pop@education.gov.il> | plain email - no form exists. Needs the operator's own mailbox | text ready, `bd9d4274` | — | — |
 
@@ -41,9 +42,22 @@ same hash computed on this file. That is the whole point of the column: on
 misspelled - *ובריינפוף* for *ובריינפופ*, BrainPOP, to a curator who lists
 BrainPOP - and reading it back carefully did not catch it. A hash does.
 
-**Three doors were filled and NONE was submitted.** Reading a filled form is
-the operator's step, and pressing send is the operator's step. Both stay that
-way; see `reach-doctrine` RCH2 for why the row is written first.
+**Door 2 was sent on 2026-08-29. Doors 1, 3 and 4 have not been.** Reading a
+filled form is the operator's step and pressing send is the operator's step;
+both stay that way. See `reach-doctrine` RCH2 for why the row is written first.
+
+**No confirmation email is expected, and its absence proves nothing.** The
+operator's report was *"not sure since i didnt get confirmation email"* — but
+every form here notifies the SITE OWNER and sends the sender no receipt at all.
+There is no signal on our side to read: not a bounce, not a copy, nothing. The
+only instrument that can answer *did it land* is the link appearing on
+`kef-lilmod.co.il`, which is what the 2026-11-27 verdict date is for.
+
+**So this row is `SENT, delivery unverifiable`, and it must not be re-sent on
+the strength of the silence.** A duplicate letter to a curator who already has
+one is a worse outcome than a letter that quietly failed. If nothing appears by
+the verdict date, the next move is a short, different follow-up that says it is
+a follow-up — never the same letter again.
 
 **Two facts about door 1 that the day's re-read turned up** (RCH3), and neither
 was known when the letter was written:
