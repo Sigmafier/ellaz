@@ -53,7 +53,7 @@ something is built the way it is.
 | [`docs/poker-table.md`](docs/poker-table.md) | the Hold'em sub-project in full |
 | [`docs/deploy.md`](docs/deploy.md) | the deploy runbook, verification commands, secret rotation |
 | [`docs/payload-history.md`](docs/payload-history.md) · [`docs/scaling-the-first-visit.md`](docs/scaling-the-first-visit.md) | superseded payload readings, and the O(1) argument |
-| [`.claude/rules/`](.claude/rules/) | 42 traps, one per file, each with its measurement. Path-scoped, so each loads when you touch what it governs |
+| [`.claude/rules/`](.claude/rules/) | 43 traps, one per file, each with its measurement. Path-scoped, so each loads when you touch what it governs |
 | [`holdem/README.md`](holdem/README.md) | the poker runbook, quotas, DNS |
 
 ## Commands
@@ -208,6 +208,7 @@ exists:
 - **A green checkmark is not proof it deployed.** Both jobs SKIP with a warning when their secrets are absent. Check the upload step's own conclusion, then check the live artifact. → [`verify-the-deploy-target-not-just-the-run.md`](.claude/rules/verify-the-deploy-target-not-just-the-run.md)
 - **`scripts/assert-live.mjs` runs in the same job** and reds unless the live HTML names the same hashed assets as the `dist/` just built AND every one is fetchable, by SHA-256. Both halves are load-bearing: "all assets 200" passes on a fully stale site. → [`a-deploy-ledger-that-can-disagree-with-the-disk.md`](.claude/rules/a-deploy-ledger-that-can-disagree-with-the-disk.md)
 - **The upload holds no ledger.** The thing deciding what to send must not be able to be wrong about what is already there. `mirror` runs on `assets/` and nowhere else, where every name carries a content hash; everything else is forced, hash-naming files last.
+- **Removing a page is HALF a change — the 301 ships in the same commit.** A URL keeps its ranking for weeks after the content is gone: `sortsize` was deleted on 2026-08-14 and our own export has it at **position 8** a week later. Redirect every locale arm to the SHELF it sat on, never to a sibling game, and assert it in `assert-live.mjs` with a near-miss control — no build artifact can see a `RewriteRule` fire. → [`a-deleted-page-keeps-its-ranking-for-weeks.md`](.claude/rules/a-deleted-page-keeps-its-ranking-for-weeks.md)
 - **The Hostinger CDN is OFF, and that is load-bearing for SEO.** Its bot-challenge mode served every crawler a 403 with an HTML body where the sitemap belonged, invisible from any browser. If it is ever re-enabled, set Security Level to Essentially off in the same visit. → [`a-bot-challenge-at-the-edge-is-invisible-from-your-browser.md`](.claude/rules/a-bot-challenge-at-the-edge-is-invisible-from-your-browser.md)
 
 A red deploy here is often just the host: **one re-run, and a SECOND failure is
