@@ -149,9 +149,9 @@ async function control() {
   has("robots.txt", /Disallow: \/$/m, "Disallow: /");
   has("_headers", /X-Robots-Tag/, "X-Robots-Tag");
   cases.push([!/ellaz\.fun\/games/.test(files["index.html"]), "no ellaz.fun page links leak in", "-"]);
-  has("index.html", /do next &middot; 1 waiting on you/, "the do-next count");
+  has("index.html", /1 surface\(s\) waiting on you/, "the do-next count");
   has("index.html", /A group/, "an open surface");
-  has("index.html", />closed</, "a separate closed section");
+  has("index.html", /<summary>closed/, "a separate closed section");
   // ...and the closed surface appears ONCE. Asserting the section merely EXISTS
   // survives a do-next list that also carries every closed row - the page renders,
   // the heading is there, and the closed work is listed as work to do. (Mutation
@@ -180,7 +180,11 @@ async function control() {
 
   const withPosts = await buildPages(md, rec, { offline: true, surfaces, posts: [q] });
   const H = withPosts.files["index.html"];
-  cases.push([/line one/.test(H) && /posts ready to send/.test(H), "the page carries the post text", "-"]);
+  // Two claims, split: the TEXT must be on the page, and it must be READABLE
+  // rather than only copyable. It shipped `hidden` for one build, which is a card
+  // that asks you to paste something you have never seen. (2026-08-29.)
+  cases.push([/line one/.test(H), "the page carries the post text", "-"]);
+  cases.push([!/<pre[^>]*\bhidden\b/.test(H), "...and it is readable, not copy-only", "-"]);
   cases.push([(H.match(/<pre /g) ?? []).length === (H.match(/<button/g) ?? []).length,
     "every post block has its own copy button", `${(H.match(/<pre /g) ?? []).length} pre / ${(H.match(/<button/g) ?? []).length} button`]);
   const driftPage = await buildPages(md, rec, { offline: true, surfaces, posts: [{ ...q, declared: 3 }] });
@@ -193,10 +197,11 @@ async function control() {
   cases.push([g?.go === "https://example.test/g/1", "the Go url parses", JSON.stringify(g?.go)]);
   cases.push([g?.do === "Read the rules, then post.", "the Do line parses", JSON.stringify(g?.do)]);
   const goPage = await buildPages(md, rec, { offline: true, surfaces, posts: [{ file: "g.md", declared: 1, posts: [g] }] });
-  cases.push([/<a href="https:\/\/example\.test\/g\/1">/.test(goPage.files["index.html"]), "a URL Go becomes a real link", "-"]);
+  cases.push([/<a\b[^>]*href="https:\/\/example\.test\/g\/1"/.test(goPage.files["index.html"]), "a URL Go becomes a real link", "-"]);
   const noRoom = parsePosts(GO.replace("https://example.test/g/1", "none verified yet"), "n.md").posts[0];
   const noRoomPage = await buildPages(md, rec, { offline: true, surfaces, posts: [{ file: "n.md", declared: 1, posts: [noRoom] }] });
-  cases.push([/none verified yet/.test(noRoomPage.files["index.html"]) && !/<a href="none/.test(noRoomPage.files["index.html"]),
+  cases.push([/none verified yet/.test(noRoomPage.files["index.html"])
+    && !/<a\b[^>]*href="[^"]*none verified/.test(noRoomPage.files["index.html"]),
     "a sentence Go is printed, never linked", "-"]);
   cases.push([parsePosts(GO.replace(/\*\*Do\*\*:.*\n/, ""), "x.md").posts[0]?.do === "",
     "a missing Do is empty, not inherited from a sibling", "-"]);

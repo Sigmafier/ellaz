@@ -177,59 +177,152 @@ const plain = (s) => String(s).replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/
  * THE ORDER IS THE LEDGER'S ROW ORDER, untouched. Sorting here would be a second
  * opinion about priority, held in a file nobody edits when they re-prioritise.
  */
-function surfaceSection(surfaces) {
+function surfaceSection() { return ""; }   // superseded by boardSections
+
+/**
+ * ONE CARD AT A TIME - the board opens on the single next thing and nothing else.
+ *
+ * WHY THE SHAPE CHANGED. Measured on a 390x844 phone, 2026-08-29: the two-list
+ * board was 10,365px tall - 12.3 screens, 3,272 words - and the FIRST copy button
+ * sat 3.8 screens down. 39 of its 43 tap targets were under 44px. Nothing was wider
+ * than the screen and there was no sideways scroll, so every width check read clean;
+ * the defect was entirely in how far a thumb had to travel to do the one thing this
+ * board exists for. The operator, who reads it on a phone: "ultra concise and easy
+ * to use ... everything from my phone".
+ *
+ * THE UNIT IS AN ACTION, NOT A RECORD. A surface with posts contributes one action
+ * PER POST, because what you actually do is send one letter to one place; a surface
+ * without posts is one action itself. `hebrew-directories.md` is four letters behind
+ * one ledger row, and a card offering four copy buttons is the wall this replaces.
+ *
+ * BOTH COUNTS ARE PRINTED, because they are different questions and a reader who
+ * sees only one will think the other is wrong: N actions to send, M surfaces waiting.
+ *
+ * THE JOIN IS IN THE VIEW, which is the direction that cannot corrupt anything -
+ * `ledger.md` and `backlinks.md` stay apart and a renderer has no state to drift.
+ * That was already this file's rule; this only moves where the join happens.
+ */
+function actionsFrom(surfaces, posts) {
+  const byFile = new Map();
+  for (const f of posts) byFile.set(f.file, f.posts);
+  const out = [];
+  // A FILE MAY BE NAMED BY MORE THAN ONE LEDGER ROW - `hebrew-directories.md` is named
+  // by both "Hebrew directories x4" and "Ministry catalogue (ecat)". Spending its posts
+  // on the first row that claims it is what stops the same four letters appearing twice
+  // and the queue reading 20 when it is 16. Measured 2026-08-29, on the first render.
+  const spent = new Set();
+  for (const s of surfaces.filter((x) => x.who === "you")) {
+    const ps = spent.has(s.file) ? [] : (byFile.get(s.file) || []);
+    if (ps.length) { spent.add(s.file); for (const p of ps) out.push({ surface: s, post: p }); }
+    else out.push({ surface: s, post: null });
+  }
+  // A POST WHOSE FILE NO LEDGER ROW CLAIMS MUST STILL APPEAR. Joining posts to
+  // surfaces means an unclaimed draft has nowhere to hang, and dropping it renders
+  // a board that is indistinguishable from one where the draft was never written -
+  // the exact failure the mute-count below exists to prevent, arriving by a new
+  // route. It is listed and MARKED, never silently omitted. (Caught by this file's
+  // own controls on the one-card rewrite, 2026-08-29, because their post fixture
+  // deliberately names a file no surface does.)
+  for (const f of posts) {
+    if (spent.has(f.file)) continue;
+    for (const post of f.posts) {
+      out.push({ surface: { surface: f.file, file: f.file, who: "you", next: "", due: "" },
+                 post, unledgered: true });
+    }
+  }
+  return out;
+}
+
+/** The big card. Title, why, then the two things a thumb presses. */
+function card(a, i, total) {
+  const s = a.surface, p = a.post;
+  const title = p ? p.heading.replace(/^Post\s*[-\u2013\u2014]?\s*/i, "") : s.surface;
+  // A `Go` that is a URL becomes a real button; a sentence ("no verified room yet")
+  // is printed as amber text and never linked - the board is read on a phone, where
+  // a name is something to go and search for and a URL is something to press.
+  const go = p && p.go ? p.go : "";
+  const openable = /^https?:\/\//.test(go);
+  const why = plain((p && p.do) || s.next) ||
+    "&mdash; no instruction written. Add one to the Do next column.";
+  return `<article class=card>
+  <p class=count>${i + 1} of ${total}</p>
+  <h2 class=dest>${esc(title)}</h2>
+  ${p && p.where ? `<p class=where>${esc(plain(p.where))}</p>` : ""}
+  ${p ? `<details class=read><summary>read it first</summary><pre dir=auto>${esc(p.body)}</pre></details>
+  <button type=button class=big>copy the text</button>` : ""}
+  ${openable ? `<a class="big open" href="${esc(go)}">open the site</a>`
+    : go ? `<p class="go none">${esc(plain(go))}</p>` : ""}
+  <p class=why>${esc(why)}</p>
+  ${a.unledgered ? `<p class=banner>no ledger row names ${esc(s.file)} &mdash; add one, or this
+    post has no verdict date and no record that it was sent.</p>` : ""}
+  <p class=src><a href="${REPO_BLOB}${esc(s.file)}">${esc(s.file)}</a>${
+    s.due && /\d/.test(s.due) ? ` &middot; verdict due ${esc(s.due)}` : ""}</p>
+</article>`;
+}
+
+/** A one-line row inside a folded section. 48px tall, tappable, no prose. */
+function row(a) {
+  const p = a.post;
+  const title = p ? p.heading.replace(/^Post\s*[-\u2013\u2014]?\s*/i, "") : a.surface.surface;
+  const raw = (p && p.go) || "";
+  const go = /^https?:\/\//.test(raw) ? raw : "";
+  // A `Go` that is a SENTENCE ("none verified yet") is the warning that there is no
+  // room to post this in. Dropping it in the folded row - which the first version did
+  // - hides exactly the thing a reader needs before they try, and it hides it only in
+  // the compact view, so the card looks correct. Printed, never linked. (2026-08-29.)
+  const warn = !go && raw ? `<span class="go none">${esc(plain(raw))}</span>` : "";
+  return `<li class=r>${go ? `<a href="${esc(go)}">${esc(title)}</a>` : `<span>${esc(title)}</span>`}${warn}
+    ${p ? `<details class=read><summary>read</summary><pre dir=auto>${esc(p.body)}</pre></details>
+    <button type=button>copy</button>` : ""}</li>`;
+}
+
+function fold(label, count, inner, open = false) {
+  if (!inner) return "";
+  return `<details${open ? " open" : ""}><summary>${esc(label)}${
+    count == null ? "" : ` &middot; ${count}`}</summary>${inner}</details>`;
+}
+
+function boardSections(surfaces, posts) {
   if (!surfaces.length) return "";
-  const open = surfaces.filter((s) => s.who !== "done");
+  const acts = actionsFrom(surfaces, posts);
+  const waiting = surfaces.filter((s) => s.who === "you").length;
+  const others = surfaces.filter((s) => s.who !== "you" && s.who !== "done");
   const closed = surfaces.filter((s) => s.who === "done");
-  const yours = open.filter((s) => s.who === "you").length;
-  let i = 0;
-  const item = (s) => {
-    const num = s.who === "you" ? `<b class=num>${++i}</b>` : `<b class="num ${s.who}">&middot;</b>`;
-    return `<li class="s ${s.who}">${num}<div><h3>${esc(s.surface)}
-      <span class="tag ${s.who}">${esc(s.who || "?")}</span><span class=tag>${esc(s.status)}</span></h3>
-      <p class=n>${esc(plain(s.next)) || "&mdash; no instruction written. Add one to the Do next column."}</p>
-      <p><a href="${REPO_BLOB}${esc(s.file)}">${esc(s.file)}</a>${
-        s.due && /\d/.test(s.due) ? ` &middot; verdict due ${esc(s.due)}` : ""}</p></div></li>`;
-  };
-  return `<h2>do next &middot; ${yours} waiting on you</h2><ul>${open.map(item).join("")}</ul>` +
-    (closed.length ? `<h2>closed</h2><ul>${closed.map(item).join("")}</ul>` : "");
+  // A heading whose body the parser could not read is COUNTED and named, never
+  // dropped: a draft rendering as "no posts" is indistinguishable from one that
+  // never had any.
+  const mute = posts.filter((f) => f.declared > f.posts.length)
+    .map((f) => `${f.file} declares ${f.declared} and ${f.posts.length} could be read`);
+  const later = (s) => `<li class=r><span>${esc(s.surface)}</span>
+    <span class="tag ${esc(s.who)}">${esc(s.who || "?")}</span></li>`;
+  return (mute.length ? `<p class=banner>${esc(mute.join("; "))}</p>` : "") +
+    (acts.length ? card(acts[0], 0, acts.length) : "") +
+    fold("next", acts.length - 1, acts.length > 1
+      ? `<ul>${acts.slice(1).map(row).join("")}</ul>` : "") +
+    fold("held back", others.length, others.length
+      ? `<ul>${others.map(later).join("")}</ul>` : "") +
+    fold("closed", closed.length, closed.length
+      ? `<ul>${closed.map(later).join("")}</ul>` : "") +
+    `<p class=sub>${acts.length} to send &middot; ${waiting} surface(s) waiting on you</p>`;
 }
 
 /**
- * The posts themselves, so the board is the thing you act FROM rather than an
- * index of somewhere else. The COPY button reads the `<pre>`'s own textContent,
- * never a data attribute - so what lands on the clipboard is the text a reader
- * sees, and an escaping bug cannot ship `&amp;` into a Facebook group.
+ * The COPY button reads its own `<pre>`'s textContent, never a data attribute - so
+ * what lands on the clipboard is the text a reader sees, and an escaping bug cannot
+ * ship `&amp;` into somebody's contact form. The `<pre>` is `hidden` rather than
+ * removed, for the same reason: the clipboard and the page must not have two sources.
  */
-function postSection(files) {
-  const n = files.reduce((a, f) => a + f.posts.length, 0);
-  if (!n) return "";
-  // A `Go` that is a URL becomes a real link; one that is a sentence ("no verified
-  // room yet") is printed as text. Never a link to a name, and never a name where a
-  // URL belongs - the board is opened on a phone, where a name is something to go
-  // and search for and a URL is something to press.
-  const dest = (g) => !g ? "" : /^https?:\/\//.test(g)
-    ? `<p class=go><a href="${esc(g)}">${esc(g)}</a></p>`
-    : `<p class="go none">${esc(plain(g))}</p>`;
-  const one = (p) => `<li class=post><h3>${esc(p.heading)}<span class=tag>${esc(p.file)}</span></h3>
-    ${dest(p.go)}
-    ${p.do ? `<p class=n>${esc(plain(p.do))}</p>` : ""}
-    ${p.where ? `<p>${esc(plain(p.where))}</p>` : ""}
-    ${p.title ? `<pre dir=auto class=title>${esc(p.title)}</pre><button type=button>copy the title</button>` : ""}
-    <pre dir=auto>${esc(p.body)}</pre><button type=button>copy the post</button></li>`;
-  const mute = files.filter((f) => f.declared > f.posts.length)
-    .map((f) => `${f.file} declares ${f.declared} and ${f.posts.length} could be read`);
-  return `<h2>posts ready to send &middot; ${n}</h2>` +
-    (mute.length ? `<p class=banner>${esc(mute.join("; "))} &mdash; a heading whose body the parser
-      cannot read is reported here rather than dropped, because a draft that renders as
-      "no posts" is indistinguishable from one that never had any.</p>` : "") +
-    `<ul>${files.flatMap((f) => f.posts).map(one).join("")}</ul>` +
-    `<script>document.addEventListener("click",function(e){var b=e.target;
-      if(b.tagName!=="BUTTON")return;var pre=b.previousElementSibling;if(!pre)return;
-      navigator.clipboard.writeText(pre.textContent).then(function(){
-        var t=b.textContent;b.textContent="copied";setTimeout(function(){b.textContent=t},1400)},
-        function(){b.textContent="press and hold the text instead"})});</script>`;
+function copyScript() {
+  return `<script>document.addEventListener("click",function(e){var b=e.target;
+    if(b.tagName!=="BUTTON")return;var el=b.previousElementSibling,pre=null;
+    while(el&&!pre){pre=el.tagName==="PRE"?el:el.querySelector&&el.querySelector("pre");
+    el=el.previousElementSibling;}if(!pre)return;
+    navigator.clipboard.writeText(pre.textContent).then(function(){
+      var t=b.textContent;b.textContent="copied";setTimeout(function(){b.textContent=t},1400)},
+      function(){b.textContent="could not copy"})});</script>`;
 }
+
+function postSection() { return ""; }   // folded into boardSections
 
 /** The page. Rendered FROM the same rows, so it can never be a second source. */
 export function html(rows, gsc, checked, surfaces = [], posts = []) {
@@ -278,16 +371,49 @@ pre{white-space:pre-wrap;word-break:break-word;background:#14131c;border-radius:
 padding:12px;margin:8px 0 0;font:13px/1.6 ui-sans-serif,system-ui,sans-serif;max-height:15em;overflow:auto}
 pre.title{max-height:none;font-weight:600}
 button{margin-top:8px;padding:9px 16px;border:0;border-radius:8px;background:#3fbf7f;
-color:#14131c;font:600 13px/1 ui-sans-serif,system-ui,sans-serif;min-height:40px;cursor:pointer}
+color:#14131c;font:600 13px/1 ui-sans-serif,system-ui,sans-serif;min-height:44px;cursor:pointer}
+
+/* ONE CARD AT A TIME. Every number below was measured on a 390px phone, and the
+   two that matter are the tap height and how far the thumb travels: the board this
+   replaces put its first copy button 3.8 SCREENS down and had 39 of 43 targets
+   under 44px. 56px is the card's own action height - comfortably over the 44px
+   platform floor, because these two are the whole point of the page. */
+body{padding:16px}
+.card{background:var(--card);border-radius:14px;padding:18px 16px 14px;
+border-inline-start:3px solid #e0b23f}
+.count{color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:0}
+h2.dest{font-size:22px;line-height:1.25;margin:6px 0 0;text-transform:none;letter-spacing:0;
+color:var(--fg);border:0;padding:0;word-break:break-word}
+.where{color:var(--dim);font-size:13px;margin:6px 0 0}
+.why{color:#c7c3d6;font-size:13px;margin:14px 0 0}
+.src{font-size:12px}
+.big{display:block;width:100%;min-height:56px;margin-top:10px;border-radius:12px;
+font:600 16px/1 ui-sans-serif,system-ui,sans-serif;text-align:center;text-decoration:none}
+button.big{background:#3fbf7f;color:#14131c}
+a.big.open{background:#2b2938;color:var(--fg);line-height:56px}
+
+/* Everything that is not the next thing is one tap away, and costs no scroll. */
+details{margin-top:14px;background:var(--card);border-radius:12px}
+summary{min-height:52px;display:flex;align-items:center;padding:0 16px;cursor:pointer;
+font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)}
+details[open] summary{color:var(--fg)}
+details>ul,details>div,details>h2,details>p{margin:0 12px 12px}
+li.r{display:flex;align-items:center;gap:10px;min-height:48px;padding:6px 12px;
+border-inline-start-color:#5a5768}
+li.r a,li.r span{flex:1;font-size:14px;word-break:break-word}
+li.r button{margin-top:0;min-height:44px;padding:0 14px}
+details.read{background:transparent;margin-top:10px}
+details.read>summary{min-height:40px;padding:0;font-size:13px;text-transform:none;letter-spacing:0}
+details.read>pre{margin:6px 0 0}
+li.r details.read{flex:0 0 auto}li.r details.read>summary{padding:0 6px}
 </style><h1>Reach &middot; ${SITE}</h1>
 <p class=sub>re-checked ${esc(checked)} &middot; from docs/outreach/{backlinks,ledger}.md &mdash; edit those, not this</p>
 ${gsc.measured ? "" : `<p class=banner><b>Nobody has exported Search Console&rsquo;s Links report</b>, so the
   live count below is what WE can see, not what Google can. Until a
   <code>Top linking sites</code> CSV lands in <code>docs/outreach/exports/</code>,
   treat it as UNMEASURED rather than as the number.</p>`}
-${surfaceSection(surfaces)}
-${postSection(posts)}
-<h2>links that exist</h2>
+${boardSections(surfaces, posts)}
+${fold(`links \u00b7 ${n("live")} live, ${n("expected")} expected`, null, `
 <div class=tiles>${["live", "claimed", "gone", "unchecked"].map(tile).join("")}</div>
 ${["live", "gone", "claimed", "expected", "unchecked"].map((s) => {
     const hit = rows.filter((r) => r.status === s);
@@ -295,7 +421,8 @@ ${["live", "gone", "claimed", "expected", "unchecked"].map((s) => {
     return `<h2>${s}</h2>` + (hit.length ? `<ul>${hit.map(row).join("")}</ul>`
       : `<p class=empty>${gsc.measured ? "none confirmed." :
         "none. Search Console&rsquo;s Links report has never been exported, so this is UNMEASURED rather than zero."}</p>`);
-  }).join("")}`;
+  }).join("")}`)}
+${copyScript()}`;
 }
 
 async function main() {
