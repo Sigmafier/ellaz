@@ -96,11 +96,43 @@ function buildStamp(): string {
  * Stubbed at RESOLUTION rather than pruned after the fact, because a chunk that
  * is never emitted cannot be forgotten later. Each stub THROWS: if this build
  * ever does reach for another game, that must be loud, not silently empty.
+ *
+ * IT MATCHES ON THE DIRECTORY, AND A DIRECTORY IS NOT AN ID. `2048` lives in
+ * `src/games/n2048/` because a module name cannot start with a digit, so the
+ * segment this regex captures is `n2048` and the id it was compared against is
+ * `2048`. They differ, so THE CHOSEN GAME STUBBED ITSELF: the build succeeded,
+ * every byte-level gate passed, and `dist-standalone/2048/` rendered "The game
+ * didn't load" in a browser. Measured 2026-08-29, one day before that zip was
+ * to be uploaded to itch. `gameDirFor()` resolves the directory from the id
+ * instead of assuming they are the same word, and `sawOwnGame` below is the
+ * control - a build that never resolved its own game's entry now refuses to
+ * finish, which is the assertion that would have caught this on day one.
  */
+function gameDirFor(id: string): string {
+  const root = fileURLToPath(new URL("./src/games", import.meta.url));
+  const wanted = new RegExp(`\\bid:\\s*"${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`);
+  const hits = readdirSync(root, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .filter((e) => {
+      const metaFile = join(root, e.name, "meta.ts");
+      return existsSync(metaFile) && wanted.test(readFileSync(metaFile, "utf8"));
+    })
+    .map((e) => e.name);
+  if (hits.length !== 1) {
+    throw new Error(
+      `expected exactly one src/games/*/meta.ts declaring id "${id}", found ${hits.length}` +
+        (hits.length ? `: ${hits.join(", ")}` : ""),
+    );
+  }
+  return hits[0];
+}
+
 function oneGameOnly(): Plugin {
   const STUB = "\0ellaz-standalone-stub";
   const other = /\/src\/games\/([^/]+)\/index\.tsx?$/;
   const cloud = /\/src\/sdk\/cloud\.ts$/;
+  const ownDir = gameDirFor(meta!.id);
+  let sawOwnGame = false;
   return {
     name: "ellaz-standalone-one-game",
     enforce: "pre",
@@ -116,7 +148,8 @@ function oneGameOnly(): Plugin {
       const id = resolved.id.replace(/\\/g, "/");
       if (cloud.test(id)) return STUB;
       const match = other.exec(id);
-      if (match && match[1] !== meta!.id) return STUB;
+      if (match && match[1] !== ownDir) return STUB;
+      if (match) sawOwnGame = true;
       return null;
     },
     load(id) {
@@ -124,6 +157,23 @@ function oneGameOnly(): Plugin {
       return `export default new Proxy({}, { get() {
         throw new Error("standalone bundle for ${meta!.id}: another game or the cloud client was reached; this build ships neither");
       }});`;
+    },
+    // THE CONTROL. Without it this plugin cannot tell "I kept the right game"
+    // from "I stubbed every game including the one I was built for" - both look
+    // like a clean build and only one of them plays.
+    //
+    // IN `generateBundle`, NOT `buildEnd`. A throw in `buildEnd` does fail the
+    // build (exit 1), but rollup then still runs `closeBundle`, whose own
+    // failure is the one printed - so the operator reads "no remote @import
+    // found" and goes looking at the CSS. Measured 2026-08-29 while proving
+    // this control fires.
+    generateBundle() {
+      if (!sawOwnGame) {
+        throw new Error(
+          `the standalone build for "${meta!.id}" never resolved src/games/${ownDir}/index - ` +
+            "its own game module was stubbed out, so this bundle would render nothing",
+        );
+      }
     },
   };
 }
@@ -168,6 +218,14 @@ function finalizeBundle(outDir: string): Plugin {
   return {
     name: "ellaz-standalone-finalize",
     closeBundle() {
+      // A FAILED BUILD STILL REACHES HERE. Rollup runs closeBundle after an
+      // upstream hook throws, so the assertions below would fire against an
+      // unwritten tree and PRINT OVER the real error - measured 2026-08-29,
+      // where the one-game control's message was replaced by "no remote
+      // @import found in 0 css file(s)" and sent the reader to the CSS.
+      // `standalone.html` exists only once the write completed.
+      if (!existsSync(join(outDir, "standalone.html"))) return;
+
       const assets = join(outDir, "assets");
       const css = existsSync(assets)
         ? readdirSync(assets)
