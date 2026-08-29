@@ -1,11 +1,10 @@
 # Hebrew directories and editors - four letters, four different rooms
 
-**Status**: draft - one of the four doors is still unsent, and this line
-describes the FILE. **Doors 1, 2 and 3 all went on 2026-08-29**, each with its
-own `fired` row in `ledger.md` and a verdict due 2026-11-27. Door 4,
-`pop.education.gov.il`, has no form at all and has not been sent. The operator
-sends all of these personally, signed as a parent who built the thing, from
-their own address.
+**Status**: fired - **all four letters were sent on 2026-08-29**, each with its
+own row in `ledger.md` and a verdict due 2026-11-27. The fifth destination in
+this file, `ecat.education.gov.il`, is a filed procurement route rather than a
+letter and stays a draft. The operator sent every one of these personally,
+signed as a parent who built the thing, from their own address.
 
 **Why this file is separate from `hebrew.md`.** That file is the TRAFFIC lane -
 Facebook groups, where every link is `nofollow` by construction, so it moves
@@ -36,7 +35,7 @@ grain a person actually works at.
 | 1 | `digitalpedagogy.co` | <https://www.digitalpedagogy.online/contact> | Wix form + reCAPTCHA. Name / email / subject / message. The editor's own *ליצירת קשר* link points here | **2026-08-29, byte-verified** `b4ceaae9` | **2026-08-29, CONFIRMED ON THE WIRE** - `POST /_api/wix-forms/v1/submit-form` → **200** | due 2026-11-27 |
 | 2 | `kef-lilmod.co.il` | <https://www.kef-lilmod.co.il/צור-קשר/> | Elementor form, no CAPTCHA. Name / email / message | **2026-08-29, byte-verified** `8d5bf534` | **2026-08-29 by the operator** — see the receipt note below | due 2026-11-27 |
 | 3 | `portal.macam.ac.il` | <https://portal.macam.ac.il/צרו-קשר/> | Gravity Form, no CAPTCHA. Name / email / message, plus a HONEYPOT (`input_2_4`, label *Comments*, `display:none`) that must stay EMPTY | **2026-08-29, byte-verified** `4e671884` | **2026-08-29, CONFIRMED BY THE SERVER** - `תודה על הודעתך.` and the form gone | due 2026-11-27 |
-| 4 | `pop.education.gov.il` | <mailto:pop@education.gov.il> | plain email - no form exists. Needs the operator's own mailbox | text ready, `bd9d4274` | — | — |
+| 4 | `pop.education.gov.il` | <mailto:pop@education.gov.il> | plain email - no form exists. Needs the operator's own mailbox | **2026-08-29, byte-verified** `bd9d4274` | **2026-08-29 by the operator**, from a pre-filled Gmail compose link | due 2026-11-27 |
 
 **`Filled` carries a checksum, not a tick.** Each is the first eight hex of the
 SHA-256 of the letter body read back OUT of the live field, compared against the
@@ -45,7 +44,8 @@ same hash computed on this file. That is the whole point of the column: on
 misspelled - *ובריינפוף* for *ובריינפופ*, BrainPOP, to a curator who lists
 BrainPOP - and reading it back carefully did not catch it. A hash does.
 
-**Doors 1, 2 and 3 all went on 2026-08-29. Only door 4 is unsent.** Reading a filled form is the operator's step and pressing send is the
+**All four went on 2026-08-29.** The lane is live and the next thing that
+happens is a reading in late November. Reading a filled form is the operator's step and pressing send is the
 operator's step; both stay that way. See `reach-doctrine` RCH2 for why the row
 is written first.
 
@@ -59,6 +59,7 @@ directions, and only reading the pages back showed it:
 |---|---|---|
 | 3 `portal.macam` | sent | **agreed, and better**: `תודה על הודעתך.` rendered by Gravity Forms, the form element gone from the DOM. A SERVER confirmation - the strongest evidence available anywhere in this lane |
 | 2 `kef-lilmod` | sent, no confirmation email | **nothing to read** - the tab was closed before it could be checked, and no receipt exists in any case. Unverifiable, permanently |
+| 4 `pop.education.gov.il` | sent | **not checked YET, but checkable** - it is an email, so a copy is sitting in the operator's Sent folder. The Gmail connector was expired all afternoon and only activates on a Claude Code restart, so confirming it is a next-session job rather than an impossible one |
 | 1 `digitalpedagogy` | sent | **contradicted it, on the first attempt.** All 1003 characters still in the textarea, the name still in its field, zero success markers. It went on the SECOND attempt once the reCAPTCHA was solved by hand |
 
 Door 1's cause was two lines away: `#g-recaptcha-response` was **empty**, and
@@ -94,6 +95,13 @@ page. A confirmation the server rendered, or a form that has cleared, is
 evidence; a memory of clicking is not, and here it was wrong once out of the two
 times it could be checked. The cost of not asking would have been a door
 recorded as spent, never followed up, and silently never sent at all.
+
+**Four doors produced four different grades of evidence, and the grade is worth
+recording beside the date.** `UNVERIFIABLE` and `NOT YET CHECKED` look identical
+in a tick-box and are completely different facts: one is closed forever, the
+other is a task. Door 2 can never be confirmed by anything except a link
+appearing on the page; door 4 can be confirmed in thirty seconds by a session
+whose Gmail connector is awake. Only the send log says which is which.
 
 **No confirmation email is expected, and its absence proves nothing.** The
 operator's report was *"not sure since i didnt get confirmation email"* — but
