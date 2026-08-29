@@ -10,12 +10,25 @@
     <meta name="ellaz:commit" content="__ELLAZ_COMMIT__" />
     <title>__ELLAZ_TITLE__</title>
     <style>
+      /* THE DEFAULT THEME'S PALETTE, NOT NIGHT'S, and the two literals are
+         mirrored from `src/ui/tokens.css` - `--bg` and `--text` in the block
+         selected by bare `:root`, which is `market`, which is DEFAULT_THEME.
+         `standalone-page-matches-the-default-theme.test.ts` compares them, the
+         way `beta-is-declared.test.ts` compares layout.ts's badge literals.
+
+         They said `#10121a` / `#f4f4f8` - night's - until 2026-08-29, and the
+         config comment above claimed this page "has one theme, set statically".
+         It did not: nothing set `data-theme`, so the app booted `market` and
+         painted cream cards while every unstyled string inherited near-white
+         from here. Measured in a 390px viewport: the Score value read
+         `#F4F4F8` on a `#FFFDF8` card, 1.05:1, invisible. Nothing rendered
+         wrong, nothing errored, and the numbers were simply not there. */
       html,
       body {
         margin: 0;
         height: 100%;
-        background: #10121a;
-        color: #f4f4f8;
+        background: #fff6e9;
+        color: #241c17;
         font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       }
       #root {
@@ -38,7 +51,15 @@
   </head>
   <!-- data-game, read by src/standalone.tsx off the DOCUMENT and never off the
        URL. On itch the URL is a CDN path we have never seen. -->
-  <body data-game="__ELLAZ_GAME__">
+  <!-- `app-shell` is what makes the app tokens reach this page at all:
+       `src/ui/global.css` hangs `color: var(--text)` and
+       `background: var(--page-bg)` off `body.app-shell`, and index.html is the
+       only other page that carries it. The 200 emitted content pages must NOT
+       have it - unscoped `overflow: hidden` on a document makes every word
+       below the fold unreachable by scroll - but this page is an application
+       with one screen, exactly like index.html. Measured after adding it:
+       `scrollHeight === clientHeight`, so nothing is cut off. -->
+  <body class="app-shell" data-game="__ELLAZ_GAME__">
     <div id="root"></div>
 
     <!-- A sibling of #root, not a child: a node React does not know about
