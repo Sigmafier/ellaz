@@ -1,3 +1,7 @@
+---
+paths: "**/i18n/**,**/content/**,**/build/**,**/scripts/**"
+---
+
 # A Locale Page Whose Body Is Not Translated Is a Duplicate, Not a Partial Page
 
 **Scope**: `src/i18n/locales.ts`, the route table, and every emitted document.

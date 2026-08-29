@@ -1,3 +1,7 @@
+---
+paths: "**/sdk/**,**/portal/**"
+---
+
 # A Destructive Action Must Show What Is LOST, Not Only What Is Gained — And Be Undoable
 
 **Scope**: Any action in Ellaz that replaces, overwrites, or clears a child's saved progress.

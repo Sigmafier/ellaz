@@ -1,3 +1,7 @@
+---
+paths: "**/build/**,**/ui/**"
+---
+
 # `space-between` Distributes Whatever Survives the Media Query, Not What You Wrote
 
 **Scope**: Every flex row in this app that hides one of its own children responsively - the screen header today, any toolbar built like it later.

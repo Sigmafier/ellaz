@@ -1,3 +1,7 @@
+---
+paths: "vite.config.ts,vitest.config.ts,**/main.tsx,**/reactHost.tsx,**/scripts/**"
+---
+
 # A Runtime Swapped by a Build Alias Is Invisible to a Test Suite That Resolves Its Own Aliases
 
 **Scope**: The `react` / `react-dom` -> `preact/compat` alias in `vite.config.ts`, and any future swap of a runtime performed by build configuration rather than by an import.

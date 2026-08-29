@@ -1,3 +1,7 @@
+---
+paths: "**/sdk/**,**/games/**,**/portal/**"
+---
+
 # Scores - Games Report a Value and a Unit, `score.ts` Decides How It Ranks
 
 **Scope**: Every game under `src/games/<id>/` that has a record worth keeping.

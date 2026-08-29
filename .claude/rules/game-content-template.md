@@ -1,3 +1,7 @@
+---
+paths: "**/content/**,**/build/**"
+---
+
 # Game Pages - Authors Write Prose, Code Supplies Facts, Every Number Names Its Script
 
 **Scope**: Every file under `src/content/`, and any new game page.

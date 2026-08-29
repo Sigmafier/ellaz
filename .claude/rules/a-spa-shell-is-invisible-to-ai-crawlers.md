@@ -1,3 +1,7 @@
+---
+paths: "**/build/**,**/main.tsx,index.html,**/scripts/**"
+---
+
 # A Client-Rendered Page Is a Blank Page to Every AI Crawler
 
 **Scope**: Any route in this app that boots React rather than being an emitted document.

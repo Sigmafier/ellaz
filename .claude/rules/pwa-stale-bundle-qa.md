@@ -1,3 +1,7 @@
+---
+paths: "vite.config.ts,deploy/**,**/scripts/**"
+---
+
 # PWA Service Worker Can Serve a Stale Bundle During QA
 
 **Scope**: All QA/eyeballing of production builds of this app.

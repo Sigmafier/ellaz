@@ -1,3 +1,7 @@
+---
+paths: "vite.config.ts,**/scripts/**,**/analytics.ts,**/portal/**"
+---
+
 # A New Chunk Is Precached By Default — Lazy-Loading Without `globIgnores` Changes Nothing
 
 **Scope**: Any change to `vite.config.ts` that adds, renames, or splits a build chunk in this repo.

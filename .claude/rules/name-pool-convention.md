@@ -1,3 +1,7 @@
+---
+paths: "**/sdk/**,**/portal/**,holdem/**"
+---
+
 # Names — Picked From a List, Stored as Ids, and Hebrew Has Genders
 
 **Scope**: `src/sdk/names.ts` and anything that shows or stores a player's name.

@@ -1,3 +1,7 @@
+---
+paths: "**/games/**,**/ui/**,**/juice/**,**/shared/**"
+---
+
 # Game Convention - Difficulty Selector + Juice, Side-Effects in Handlers
 
 **Scope**: Every game under `src/games/<id>/`.

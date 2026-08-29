@@ -1,3 +1,7 @@
+---
+paths: "**/scripts/**,.github/workflows/**"
+---
+
 # A Gate Must Tell "Not Yet" From "Wrong" — and a Cascade Points Away From Its Cause
 
 **Scope**: Every gate in this repo that reads the network — `assert-live.mjs`, `assert-crawlable.mjs`, `assert-holdem-live.mjs`, and anything added beside them.

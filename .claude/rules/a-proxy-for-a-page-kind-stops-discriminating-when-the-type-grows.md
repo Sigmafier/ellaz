@@ -1,3 +1,7 @@
+---
+paths: "**/build/**,**/portal/**,**/scripts/**"
+---
+
 # A Proxy for "Which Page Is This" Stops Discriminating the Moment the Type Grows
 
 **Scope**: `src/build/routes.ts`'s `PageKind` and `Route`, and every place that answers "which page is this" without reading the route table.

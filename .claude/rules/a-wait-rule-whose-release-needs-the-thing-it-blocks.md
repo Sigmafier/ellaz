@@ -1,3 +1,7 @@
+---
+paths: "holdem/**"
+---
+
 # A "Wait Your Turn" Rule Deadlocks When Everybody Is Waiting
 
 **Scope**: Any rule in this repo that makes a participant WAIT for an event, where that event can only be produced by participants who are not waiting.

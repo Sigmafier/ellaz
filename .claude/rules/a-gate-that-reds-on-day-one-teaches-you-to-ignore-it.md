@@ -1,3 +1,7 @@
+---
+paths: "**/scripts/**,.github/workflows/**"
+---
+
 # A Gate That Reds on Day One for Something Nobody Can Fix That Day Teaches Its Reader to Ignore It
 
 **Scope**: Any new gate in this repo shipped while a known offender is still live — a content floor, a payload slope, a crawl check, a lint rule.

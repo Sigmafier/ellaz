@@ -1,3 +1,7 @@
+---
+paths: "**/ui/**,**/portal/**,**/games/**"
+---
+
 # A Row Whose Length Grows With the Catalog Must Wrap or Scroll
 
 **Scope**: Any horizontal flex row in this app whose item count is not fixed at author time.

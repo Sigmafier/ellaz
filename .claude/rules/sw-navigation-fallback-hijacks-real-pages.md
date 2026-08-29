@@ -1,3 +1,7 @@
+---
+paths: "vite.config.ts,**/scripts/**"
+---
+
 # A PWA Navigation Fallback Answers Every URL, Including the Ones You Just Built
 
 **Scope**: Any change to `workbox` config, routing, or the set of real documents this site emits.

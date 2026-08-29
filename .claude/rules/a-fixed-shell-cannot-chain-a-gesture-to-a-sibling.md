@@ -1,3 +1,7 @@
+---
+paths: "**/lab/**,**/ui/**,**/portal/**"
+---
+
 # A Fixed Shell Cannot Chain a Gesture to a Sibling Scroller
 
 **Scope**: Any screen in this repo laid out as a fixed `100dvh` shell whose page deliberately cannot scroll — the design bench today, anything built like it later.

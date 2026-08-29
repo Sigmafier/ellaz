@@ -1,3 +1,7 @@
+---
+paths: "**/sdk/**,**/games/**,**/shared/**"
+---
+
 # Saved Positions — A Game Reports Where It Is, `session.ts` Decides If That Is Still Usable
 
 **Scope**: Every game under `src/games/<id>/` that stores a position, and anything that adds one.

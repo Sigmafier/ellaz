@@ -1,3 +1,7 @@
+---
+paths: "**/ui/**,**/build/**,**/games/**"
+---
+
 # A Control Belongs to the GAME or to the PLATFORM, and the Two Never Share a Bar
 
 **Scope**: Every screen in this app with chrome of its own — the emitted header

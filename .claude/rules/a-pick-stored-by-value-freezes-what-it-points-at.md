@@ -1,3 +1,7 @@
+---
+paths: "holdem/**,**/lab/**,**/sdk/**"
+---
+
 # A Choice Stored BY VALUE Freezes Every Option It Could Have Pointed At
 
 **Scope**: `holdem/client/src/lab/**` (the sound strips) and any future picker in this repo that persists what was chosen rather than which one was chosen.

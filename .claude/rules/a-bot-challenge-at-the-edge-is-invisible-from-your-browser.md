@@ -1,3 +1,7 @@
+---
+paths: "**/scripts/**,.github/workflows/**,deploy/**,**/build/**"
+---
+
 # A Bot Challenge at the Edge Answers You 200 and Answers Google 403
 
 **Scope**: Anything served through Hostinger's CDN, and any future edge, WAF or proxy in front of ellaz.fun.

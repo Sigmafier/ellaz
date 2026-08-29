@@ -1,3 +1,7 @@
+---
+paths: "**/analytics.ts,**/build/**,**/sdk/**"
+---
+
 # A Tag That Fires Is Not a Tag That Counts, and the Prose Beside It Is Not the Code
 
 **Scope**: Any analytics, telemetry or measurement tag this repo emits — the GA4 tag in `src/build/analytics.ts`, the PostHog port in `src/sdk/analytics.ts`, and anything added beside them.

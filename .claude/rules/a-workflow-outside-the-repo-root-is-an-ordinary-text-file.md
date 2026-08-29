@@ -1,3 +1,7 @@
+---
+paths: ".github/workflows/**,holdem/**"
+---
+
 # A Workflow Outside `.github/workflows/` at the REPO ROOT Is an Ordinary Text File
 
 **Scope**: Any sub-project inside this repo that wants its own CI or deploy — `holdem/` today, anything else tomorrow.

@@ -1,3 +1,7 @@
+---
+paths: "**/scripts/**"
+---
+
 # A Script Whose Top Level Runs on Import Prints Its Verdict Into Its Importer's Output
 
 **Scope**: Every `.mjs` under `scripts/`, and anything that imports one for a helper.

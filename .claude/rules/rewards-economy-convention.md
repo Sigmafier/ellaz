@@ -1,3 +1,7 @@
+---
+paths: "**/sdk/**,**/games/**,**/shared/**,**/world/**"
+---
+
 # Rewards - Games Report Reasons, `economy.ts` Decides Amounts
 
 **Scope**: Every game under `src/games/<id>/`, and anything that grants coins or stars.

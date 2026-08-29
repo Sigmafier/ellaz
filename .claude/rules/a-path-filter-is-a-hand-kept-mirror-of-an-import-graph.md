@@ -1,3 +1,7 @@
+---
+paths: ".github/workflows/**,**/scripts/**"
+---
+
 # A Workflow's `paths:` Filter Is a Hand-Kept Mirror of an Import Graph, and It Goes Stale Once Per Input
 
 **Scope**: Every `paths:` / `paths-ignore:` list in `.github/workflows/`, and any future build whose trigger is a file list rather than a dependency.

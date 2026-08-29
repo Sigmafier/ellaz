@@ -1,3 +1,7 @@
+---
+paths: "vite.config.ts,**/build/**"
+---
+
 # An Emitted Page Served Straight Out of the Renderer Boots Nothing in Dev
 
 **Scope**: `src/build/pages.ts` `configureServer`, and any future dev middleware that answers a URL with HTML.

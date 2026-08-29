@@ -1,3 +1,7 @@
+---
+paths: "**/scripts/**,.github/workflows/**,vite.config.ts"
+---
+
 # A Number Measured on a Toolchain That Never Builds the Artifact Is Not That Artifact's Number
 
 **Scope**: Every measured figure in this repo that a gate compares against - the payload ceiling, the per-game slope, the content floor, any byte count written into prose.

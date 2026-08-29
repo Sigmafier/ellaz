@@ -1,3 +1,7 @@
+---
+paths: "**/games/**,**/ui/**,**/portal/**,**/build/**"
+---
+
 # Spatial Game Grids Must Be `dir="ltr"`
 
 **Scope**: Any game with a spatial grid or directional input in this RTL-default (Hebrew) app.

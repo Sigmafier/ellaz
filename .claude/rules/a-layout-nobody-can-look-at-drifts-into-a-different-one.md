@@ -1,3 +1,7 @@
+---
+paths: "**/lab/**,**/ui/**,**/build/**"
+---
+
 # A Layout Approved as a Picture Drifts, Because Nothing Holds the Numbers
 
 **Scope**: Every chrome decision in this app - the emitted header, the utility row, `GameChrome`, and any control kit added later.

@@ -1,3 +1,7 @@
+---
+paths: "docs/outreach/**,**/scripts/**,README.md"
+---
+
 # A Hand-Authored Number That Leaves the Repository Needs a Gate, Because Editing the File Does Not Fix It
 
 **Scope**: `docs/outreach/**` today, and anything else this repo writes for a reader who is not in it — a submission, a press letter, a listing, a store description, a conference abstract.

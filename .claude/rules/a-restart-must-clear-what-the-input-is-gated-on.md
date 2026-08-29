@@ -1,3 +1,7 @@
+---
+paths: "**/games/**,**/ui/**"
+---
+
 # A Restart That Does Not Clear the Input Gate Hands Back a Board That Answers Nothing
 
 **Scope**: Every game's `onRestart`, and any control offered as "start again".

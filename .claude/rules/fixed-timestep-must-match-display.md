@@ -1,3 +1,7 @@
+---
+paths: "**/games/**,**/juice/**"
+---
+
 # A Fixed-Timestep Game Loop Must Match the Display, Not Assume 60 Hz
 
 **Scope**: Any Ellaz game with continuous motion driven by a fixed simulation step.

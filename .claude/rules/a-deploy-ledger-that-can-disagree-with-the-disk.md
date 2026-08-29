@@ -1,3 +1,7 @@
+---
+paths: ".github/workflows/**,deploy/**,**/scripts/**"
+---
+
 # A Deploy Ledger That Can Disagree With the Disk Never Self-Heals
 
 **Scope**: The upload step of any deploy in this repo, and any future incremental sync.

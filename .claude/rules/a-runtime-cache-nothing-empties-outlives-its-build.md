@@ -1,3 +1,7 @@
+---
+paths: "vite.config.ts,**/main.tsx,**/scripts/**,deploy/**"
+---
+
 # A Runtime Cache Nothing Empties Outlives the Build It Belongs To
 
 **Scope**: `workbox.runtimeCaching` in `vite.config.ts`, and any future cache this app writes.

@@ -1,3 +1,7 @@
+---
+paths: ".github/workflows/**,deploy/**,**/scripts/**"
+---
+
 # A Green Deploy Is Not a Changed Website — Probe the Target Before Arming It
 
 **Scope**: Any change to a deploy pipeline, host, credential, or upload path in this repo.

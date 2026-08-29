@@ -1,3 +1,7 @@
+---
+paths: "**/reactHost.tsx,**/portal/**,**/games/**"
+---
+
 # Nested React Root — Defer Teardown
 
 **Scope**: Any code mounting a nested React `createRoot()` inside the portal's React tree (currently `src/games/reactHost.tsx`).

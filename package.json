@@ -12,6 +12,7 @@
     "assert:payload": "node scripts/assert-payload.mjs",
     "assert:slope": "node scripts/assert-slope.mjs",
     "assert:pages": "node scripts/assert-pages.mjs",
+    "assert:context": "node scripts/assert-context-complete.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

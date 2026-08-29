@@ -1,3 +1,7 @@
+---
+paths: "**/scripts/**,vite.standalone.config.ts,**/standalone.tsx,holdem/**"
+---
+
 # A Second Published Artifact Needs Its Own Gate, Written Before It Exists
 
 **Scope**: Any artifact this repo publishes that is not `dist/` on our own two hosts - the standalone single-game bundles today, and anything uploaded to a third party tomorrow.
