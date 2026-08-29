@@ -2,7 +2,8 @@
 
 <!-- Extracted VERBATIM from CLAUDE.md on 2026-08-29, when CLAUDE.md was 164,867 chars
      and over Claude Code's 150,000-char per-file limit. Nothing was reworded; the text
-     below is byte-identical to what CLAUDE.md held at commit bb8c47b, and
+     below is byte-identical to what CLAUDE.md held at commit 2218aa0 (only relative
+     link targets gained a ../, because this file sits one directory down), and
      `npm run assert:context` proves it. CLAUDE.md now points here instead of
      carrying this on every single turn of every session. -->
 
@@ -40,9 +41,70 @@ ENTRY chunk, shipped to every child with no `lab-` name for anything to match.
 
 **All nine sounds were re-picked on 2026-08-13, and six of them overrode a
 blind-tournament winner.** tap is **Tick**, pop is **Pock**, correct is **Wood
-run**, wrong is **Two steps down**, win is **Ladder**, coin is **Drop in**, star
-is **High bar**, flip is **Whoosh**, streak is **Glass**. Every one was chosen
-from its own strip of 5–8 arms with the names showing.
+run**, wrong is **Two steps down**, coin is **Drop in**, star is **High bar**,
+flip is **Whoosh**, streak is **Glass**. Every one was chosen from its own strip
+of 5–8 arms with the names showing.
+
+**win is the exception and it moved by a THIRD route.** It is **Fanfare** since
+2026-08-27 — four announced notes on tuned wood, a major triad to the octave —
+replacing Ladder on the operator's instruction, *"a faster fanfare"*, with
+nothing compared. Its verdict reads **`directed`** rather than `picked`, which
+is a fourth state added to `Verdict` that day for exactly this: an instruction
+is weaker evidence than a strip, not stronger, and the type's own doc says a
+distinction it cannot spell is a distinction that disappears. Ladder is still an
+arm, as a literal in `src/lab/previous.ts`.
+
+**The speed was a sequencing fix, not only a taste one.** `winMoment` plays a
+phrase — fanfare, then the coins, then the star — and it spaces them off
+`voiceBodyMs(WIN)`, so a long win voice pushes everything behind it. Ladder was
+six notes 62 ms apart over a 420 ms fundamental: **961 ms of body**, against a
+coin chime hardcoded at 620, so the coin fired *inside* the win. Reported as
+*"the sound of success after winning and then right away the sound of coins
+sounds bad"*, and it had been true of every win in every game since both voices
+were wired. **`WIN_PHRASE` in `src/sdk/voice.ts` is derived now** — body + 220
+for the coin, + 260 more for the star — and `winMoment` hands the coin time to
+`flyTo` as its FLIGHT time, so the picture and the sound are the same number
+rather than two numbers that agree today. Measured: body 961 → 520, coin 620 →
+740, star 450 → 1000 and now last rather than on top of the chord.
+
+Nothing could have caught it. Every voice was a valid spec, every gain sum
+cleared the clipping floor, every duration cleared the jingle ceiling, and the
+defect lived in the RELATIONSHIP between two constants in two files — the shape
+that has no line number. `src/shared/winPhrase.test.ts` asks the only question
+that matters (has the win voice STOPPED before the next sound starts), derived
+on both sides so a re-voice moves the answer instead of invalidating it; 7
+mutations planted, 7 killed, one of them restoring Ladder.
+
+**`scripts/repro/repro-win-phrase-has-air.mjs` is the half no source test can
+reach**, because `voiceEngine` schedules every partial itself, drops any that
+lives above Nyquist, level-matches in an offline render and adds reverb — a
+phrase correct on paper can still come out smeared. It hooks every scheduled
+source in a real browser and reads where they cluster: **win −20..519 ms, coin
+729, star 990, 209 ms of air**. Its `--control` puts 450/620 back in the same
+build and the run reports **two events instead of three** — the coin and the
+star merging at 430 ms while the fanfare rings to 510, which is the complaint
+measured rather than described.
+
+**Its instrument was wrong twice first, and both readings looked like answers.**
+Clustering ONSETS reported 498 ms of air with the defect forced on, because the
+fanfare's four notes start within 132 ms and then ring for another 390 — so it
+hooks `stop()` as well and the audible end is measured, not inferred. And the
+CONTROL's own star was still ringing when the measurement began, adding eight
+partials to the win event and reading 45 ms of air on a correct build. Both were
+caught by the positive control rather than by reading the probe:
+[`a-diagnostic-that-truncates-what-it-compares.md`](../.claude/rules/a-diagnostic-that-truncates-what-it-compares.md).
+
+**The lab held a SECOND copy of the tempo** — `450` and `620`, typed again in
+`Lab.tsx`'s win-moment demo — on the one screen whose whole job is to say what a
+game will play. Both read `WIN_PHRASE` now, and the pin scans both sources for a
+`setTimeout` scheduled off a bare number, with a control that reds if the
+matcher stops finding timers at all.
+
+**`flyDurationMs` is why reduced motion is not quietly wrong.** `flyTo` refuses
+to travel under `prefers-reduced-motion` and the coins simply appear, in 260 ms,
+so `winMoment` holds the LAUNCH back by the difference and the picture still
+meets the sound. The old hardcoded 620 was right for most players and off by a
+third of a second for the ones most likely to be leaning on the sound.
 
 **"Shutter won the tournament" and "tap is Tick" are both true**, and somebody
 will eventually cite the first. A blind round (2026-08-02) asked which sounds
@@ -145,11 +207,12 @@ never the word "control".
 
 **coin and star had no wiring at all** before this — no `SfxName` member, a
 silent coin flight, nothing on a star. Both now fire from `winMoment` staggered
-behind the win chord (450 ms / 620 ms) so a level completion is a short phrase
-rather than three sounds in a pile. **That sequencing is not a tournament
-result**: the guided round that would have chosen the coin-flight behaviour was
-never ranked, so one coin plays per win — the conservative reading of a question
-nobody answered.
+behind the win fanfare — read the numbers off `WIN_PHRASE`, not off this line,
+which carried 450/620 for as long as those were hardcoded — so a level
+completion is a short phrase rather than three sounds in a pile. **That
+sequencing is not a tournament result**: the guided round that would have chosen
+the coin-flight behaviour was never ranked, so one coin plays per win — the
+conservative reading of a question nobody answered.
 
 **Level-matching ships with the engine.** Each voice is rendered offline once and
 trimmed to a common peak, because the operator judged all six AT matched

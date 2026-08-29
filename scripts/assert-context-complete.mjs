@@ -26,7 +26,13 @@ import { existsSync } from "node:fs";
 
 // The commit whose CLAUDE.md is the thing being preserved. Do NOT move this forward
 // casually: it is the baseline the word "lossless" is measured against.
-const BASE_SHA = process.env.BASE_SHA || "bb8c47b";
+//
+// Moved bb8c47b -> 2218aa0 on 2026-08-29 for a REASON, not for tidiness: origin/main
+// gained 70 new lines of CLAUDE.md (the win-fanfare work, a0c8a67) while this split was
+// in flight. Pointed at the older baseline the gate was green and blind to them. Pointed
+// here it demands they exist too, so absorbing a concurrent edit is proven rather than
+// hoped. Bump it again the same way: only ever to a commit whose CLAUDE.md is a SUPERSET.
+const BASE_SHA = process.env.BASE_SHA || "2218aa0";
 const HAYSTACK_ROOTS = ["CLAUDE.md", "docs", ".claude/rules", ".claude/skills", "holdem/README.md"];
 const LINK_ROOTS = ["CLAUDE.md", "docs", ".claude/skills"];
 

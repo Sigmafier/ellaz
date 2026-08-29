@@ -86,7 +86,7 @@ one says nothing about what another would find.
 | `npm run assert:live` | **the live site** after a deploy | HTML naming assets that never landed, or bytes that arrived truncated |
 | `npm run assert:standalone` | `dist-standalone/` or an extracted zip | anything that phones home, an absolute path, a stale stamp |
 | `npm run assert:outreach` | `docs/outreach/` | a published number that has gone stale |
-| `npm run assert:context` | `CLAUDE.md` + `docs/` vs commit `bb8c47b` | prose lost when this file was split |
+| `npm run assert:context` | `CLAUDE.md` + `docs/` vs the pre-split commit | prose lost when this file was split, and any dead pointer in `docs/` |
 | `npm test` | `src/**` | **not one poker test — see the poker table below** |
 
 Run `assert:pages` under **both** bases before believing it:
