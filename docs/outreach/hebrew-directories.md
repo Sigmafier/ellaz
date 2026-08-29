@@ -10,10 +10,53 @@ destinations whose real outbound anchors were measured and carry no `nofollow`.
 The two lanes are deliberately not run at once, so a change in position at the
 ninety-day mark has one candidate cause rather than two.
 
-**The signature is a placeholder on purpose.** Every letter ends with
-`יתיר` and `yatiroffer@gmail.com`. They are not filled in here because
-guessing at a name, or putting an address into outbound mail unasked, is not
-this file's call to make.
+**Signed and addressed 2026-08-29**, both confirmed by the operator: every
+letter ends with `יתיר` and `yatiroffer@gmail.com`. There are no placeholders
+left in this file, and the send log below is what says whether a letter has
+actually left.
+
+## The send log - one row per door, written BEFORE it is sent
+
+**This table is the record of what was FILLED and what was SENT, and they are
+two different columns on purpose.** A filled form is a browser tab; a sent one
+is a thing a stranger has read. Nothing here may be marked `SENT` by anyone
+who did not press the button, because the button is the only event that
+matters and it is the operator's to press.
+
+The ledger row in `ledger.md` stays `draft` until all four are sent - it is
+per-SURFACE and this lane is one surface. This table is per-DOOR, which is the
+grain a person actually works at.
+
+| # | Destination | The door | Mechanism | Filled | Sent | Reply |
+|---|---|---|---|---|---|---|
+| 1 | `digitalpedagogy.co` | <https://www.digitalpedagogy.online/contact> | Wix form + reCAPTCHA. Name / email / subject / message. The editor's own *ליצירת קשר* link points here | **2026-08-29, byte-verified** `b4ceaae9` | — | — |
+| 2 | `kef-lilmod.co.il` | <https://www.kef-lilmod.co.il/צור-קשר/> | Elementor form, no CAPTCHA. Name / email / message | **2026-08-29, byte-verified** `8d5bf534` | — | — |
+| 3 | `portal.macam.ac.il` | <https://portal.macam.ac.il/צרו-קשר/> | Gravity Form, no CAPTCHA. Name / email / message, plus a HONEYPOT (`input_2_4`, label *Comments*, `display:none`) that must stay EMPTY | **2026-08-29, byte-verified** `4e671884` | — | — |
+| 4 | `pop.education.gov.il` | <mailto:pop@education.gov.il> | plain email - no form exists. Needs the operator's own mailbox | text ready, `bd9d4274` | — | — |
+
+**`Filled` carries a checksum, not a tick.** Each is the first eight hex of the
+SHA-256 of the letter body read back OUT of the live field, compared against the
+same hash computed on this file. That is the whole point of the column: on
+2026-08-28 a letter was typed into a form by hand and one word came out
+misspelled - *ובריינפוף* for *ובריינפופ*, BrainPOP, to a curator who lists
+BrainPOP - and reading it back carefully did not catch it. A hash does.
+
+**Three doors were filled and NONE was submitted.** Reading a filled form is
+the operator's step, and pressing send is the operator's step. Both stay that
+way; see `reach-doctrine` RCH2 for why the row is written first.
+
+**Two facts about door 1 that the day's re-read turned up** (RCH3), and neither
+was known when the letter was written:
+
+- The form belongs to `digitalpedagogy.online`, the courses campus, not to
+  `digitalpedagogy.co`, the encyclopedia. It is still the right door - the
+  editor's own contact link on `.co` points at it.
+- It carries a notice: *"שימו לב: טופס זה אינו מיועד לשאלות והתייעצויות בנוגע
+  לכלים דיגיטליים. הודעות מסוג זה לא יענו."* - this form is not for questions
+  or consultations about digital tools, and such messages will not be answered.
+  Our letter is a submission for the encyclopedia rather than a request for
+  help, so the subject line was written to say exactly that. It is a real risk
+  and it is the operator's to weigh before pressing send.
 
 ## What was measured, and when
 
