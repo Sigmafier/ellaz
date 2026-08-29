@@ -88,7 +88,7 @@ Slide, merge, reach 2048. What is missing is the point: no advertisement between
 attempts, no account, no popup asking you to rate it. Close the tab mid-run and the board
 is still there when you come back.
 
-Built as a plain web page, 204 KB, works offline. One game out of a free site of 42.
+Built as a plain web page, about 208 KB, works offline. One game out of a free site of 42.
 
 The rest: https://ellaz.fun
 
@@ -107,7 +107,7 @@ frame on somebody else's domain. At ellaz.fun it is saved.
 |---|---|
 | 42 games | `src/portal/catalog.ts`, counted 2026-08-18 |
 | about 53 KB first load | `scripts/assert-payload.mjs` ceiling is 56,000 B gz; measured 53,121 on 2026-08-18 |
-| 204 KB for 2048 | `dist-standalone/2048` summed on the built artifact, re-measured 2026-08-22 |
+| about 208 KB for 2048 | `dist-standalone/2048` summed on the built artifact, **re-measured 2026-08-29: 212,884 B = 207.9 KB**. It said 204 KB from 2026-08-22 until then. **NOTHING GATES THIS NUMBER** - `assert:outreach` checks the payload ceiling and the CI payload record, not standalone bundle sizes - so it drifts silently with every build and must be re-measured on the day a listing goes up |
 | works offline | the PWA precaches the shell (`vite.config.ts` workbox) |
 | no tracking | analytics is anonymous-events-only and has never had a key set in production (`CLAUDE.md` § Firebase) |
 | snake keeps the longest run | `src/sdk/score.ts`; snake reports a personal best at game over |

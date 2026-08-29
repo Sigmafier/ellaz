@@ -104,7 +104,7 @@ Some specifics that are probably the ones that matter:
 - Pure HTML5. Most of the games are plain web pages; one uses Phaser. Nothing needs a
   plugin, a download or an account.
 - The whole site is about 53 KB gzipped on a first visit, and each game loads on demand.
-  The largest single game is about 200 KB, and the Phaser one about 1.9 MB.
+  The largest plain game is about 230 KB, and the Phaser one about 1.9 MB.
 - Game logic is separated from rendering already, and each game boots into a container we
   hand it, so wrapping one in a portal SDK is integration rather than a rewrite.
 - The lifecycle and ad-break points were built against the published Poki and CrazyGames
@@ -116,7 +116,7 @@ requests at all.]
 
 [FOR CRAZYGAMES: I have read that you have a time-to-gameplay expectation. I have not
 measured our games against your specific definition of it, so rather than quote a number
-at you: the shell is about 53 KB gzipped and a plain game adds around 200 KB, with no
+at you: the shell is about 53 KB gzipped and a plain game adds around 210 KB, with no
 loading screen between them.]
 
 Two things I would want to understand before going further, and I would rather ask than

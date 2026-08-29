@@ -32,8 +32,8 @@ BUNDLE_ROOT=/path/to/extracted node scripts/assert-standalone.mjs
 
 | Game | id | Bundle | Why this one |
 |---|---|---|---|
-| Sudoku | `sudoku` | 225 KB | DOM only, six difficulty levels, the clearest single-screen game we have |
-| 2048 | `2048` | 204 KB | the most recognisable mechanic on the site |
+| Sudoku | `sudoku` | 229 KB | DOM only, six difficulty levels, the clearest single-screen game we have |
+| 2048 | `2048` | 208 KB | the most recognisable mechanic on the site |
 | Snake | `snake` | 1.9 MB | the only game that loads Phaser, and the only canvas game of the three |
 
 **`STANDALONE_GAME` takes the game's `meta.id`, never its directory name**, and this
@@ -249,7 +249,7 @@ English; the site is Hebrew-first. A picture of the board avoids choosing.
 | Claim in the copy | Where it comes from |
 |---|---|
 | 42 games | `src/portal/catalog.ts`, counted 2026-08-18 |
-| bundle sizes 225 KB / 204 KB / 1.9 MB | `dist-standalone/{sudoku,2048,snake}` summed on the built artifacts, re-measured 2026-08-22 |
+| bundle sizes 229 KB / 208 KB / 1.9 MB | `dist-standalone/{sudoku,2048,snake}` summed on the built artifacts, **re-measured 2026-08-29** at 234,374 / 212,884 / 1,921,856 B. They read 225 / 204 on 2026-08-22. **No gate checks these** - they drift with every build, so re-measure on the day a listing goes up |
 | snake is the only Phaser game | `grep -rln 'from "phaser"' src/` returns one file |
 | six sudoku levels: 4x4 and 6x6 animals, then four 9x9 tiers | `LEVEL_OPTIONS` in `src/games/sudoku/Sudoku.tsx` and `LEVELS` in its `logic.ts`. **The first draft of this file said "four sizes" and it was wrong** - six levels across three board sizes. Caught by reading the source, which is the whole reason this column exists |
 | best time kept per board | `src/sdk/score.ts` plus the per-board scoping in `score-contract-convention.md` |
