@@ -95,13 +95,39 @@ property"*, and typing "ellaz" into the picker on `ytrofr@gmail.com` returns
 **"No matching property"**. Worth writing down because the failure reads like a
 missing property rather than a wrong account.
 
-## An open discrepancy - do NOT quote either figure until it is settled
+## The "discrepancy" was not one - RESOLVED the same day, and the answer is growth
 
-`performance-2026-08-21/` records **8 clicks / 231 impressions** over "Last 3
-months" ending 2026-08-21. The live property shows **676 impressions in August
-alone**. Overlapping windows cannot both be right, so one of them is measuring
-something else - a different property, or a filter left on at export time.
-Re-derive before quoting either, and never average them.
+Flagged here for an hour as a contradiction: the export says **8 clicks / 231
+impressions** over "Last 3 months", the live property says **676 impressions in
+August alone**, and overlapping windows cannot both be right.
+
+They do not overlap. Summing the export's OWN daily rows:
+
+```
+Chart.csv spans          2026-08-01 -> 2026-08-18
+first day with any data  2026-08-04
+sums to                  8 clicks, 231 impressions   <- matches the headline exactly
+```
+
+**The label said three months and the file holds eighteen days**, because the
+property has no data before 2026-08-01 - `num_of_days=90` returns the identical
+totals to `num_of_days=28`. So the export is Aug 1-18 and the live figure is
+Aug 1-26, and the whole gap is the eight days between them:
+
+| window | clicks | impressions | impressions/day |
+|---|---|---|---|
+| Aug 1-18 (the export) | 8 | 231 | ~15, and ~25 over its last week |
+| Aug 19-26 (the gap) | **17** | **445** | **~56**, peaking at 90 |
+| Aug 1-26 (live) | 25 | 676 | |
+
+Clicks tripled and impressions more than doubled in eight days. Average position
+19.2 today against 21.7 on 2026-08-20.
+
+**The lesson is about the LABEL, not the data.** A Search Console export names the
+window you asked for, not the window it contains; on a young property those are
+different, and the file will happily say "Last 3 months" over eighteen days of
+rows. Sum `Chart.csv` before comparing any two exports - the daily rows are the
+only honest statement of what an export covers.
 
 **Next reading: 2026-11-27.** Not before - a new page gets a freshness boost that
 then decays, so an early reading measures the boost and can reverse a strategy
