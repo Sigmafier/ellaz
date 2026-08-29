@@ -71,6 +71,32 @@ ErrorDocument 404 /404.html
   RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
   RewriteRule ^(.*)$ https://%1/$1 [R=301,L]
 
+  # --- One removed game, five addresses Google still holds ------------------
+  # `sortsize` (the big/small game) shipped 2026-08-02, was indexed in every
+  # locale, and was removed deliberately on 2026-08-14 in `0207a33`. Search
+  # Console first saw the 404s on 2026-08-18 and still lists three of them.
+  #
+  # These are not worthless URLs. The 2026-08-21 Pages export records
+  # /en/games/sortsize/ at POSITION 8 with 2 impressions and /games/sortsize/ at
+  # 23.33 with 3 - so Google was serving them to real searchers after the game
+  # was already gone. A 404 throws that away; nothing else on the site earns
+  # position 8.
+  #
+  # The target is the kids SHELF, not another game. Redirecting a removed game
+  # to a different game (`sort` is Color Sort, an unrelated mechanic) is a
+  # bait-and-switch that Google reads as a soft 404; the category page is the
+  # honest answer to "the specific thing is gone" - here are the 25 games it
+  # sat among, in the reader's own language.
+  #
+  # FIRST, above the /en/ rule, so /en/games/sortsize/ resolves in ONE hop
+  # rather than chaining 301 -> 301. `(?:en/)?` is non-capturing because the
+  # English pages live at the bare path; the second rule keeps he/es/fr in
+  # their own locale rather than dumping a Hebrew reader onto English.
+  # Both are anchored at both ends and the trailing slash is optional, so
+  # /games/sortsizes/ or /games/sortsize/anything cannot be swept in.
+  RewriteRule ^(?:en/)?games/sortsize/?$ /games/kids/ [R=301,L]
+  RewriteRule ^(he|es|fr)/games/sortsize/?$ /$1/games/kids/ [R=301,L]
+
   # Anchored at the start and requiring the boundary slash, so it matches the
   # /en/ DIRECTORY and nothing that merely begins with those letters. Without
   # the `/` a future /english-rules/ page would be swept into it silently.

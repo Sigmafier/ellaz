@@ -254,6 +254,22 @@ async function runChecks() {
       ["/en/", "/"],
       ["/en/games/snake/", "/games/snake/"],
       ["/en", "/"], // the slashless form - DirectorySlash no longer covers it
+
+      /* The removed game. `sortsize` shipped 2026-08-02, was indexed in every
+         locale, and was deleted deliberately on 2026-08-14 (0207a33). It is
+         asserted here for the same reason the /en/ rules above are: the whole
+         behaviour lives in a RewriteRule, `dist/` has never contained the
+         directory, and the sitemap has never listed it - so every other gate in
+         this repo is green whether these fire or not.
+
+         Worth the lines because the URLs were not worthless: the 2026-08-21
+         Pages export has /en/games/sortsize/ at POSITION 8. Each locale keeps
+         its own shelf; a Hebrew reader must not land on English. */
+      ["/games/sortsize/", "/games/kids/"],
+      ["/en/games/sortsize/", "/games/kids/"],
+      ["/he/games/sortsize/", "/he/games/kids/"],
+      ["/es/games/sortsize/", "/es/games/kids/"],
+      ["/fr/games/sortsize/", "/fr/games/kids/"],
     ];
     for (const [from, to] of redirects) {
       const res = await raw(`${SITE}${from}`);
@@ -283,6 +299,31 @@ async function runChecks() {
       );
     } else {
       notes.push(`/en/ 301s to the bare URLs, and /games/snake/ still answers 200`);
+    }
+
+    /* The NEAR-MISS control for the sortsize rules, and the only thing that
+       proves they are anchored. `/games/sort/` is a real, live game whose path
+       is a strict prefix of the dead one; a rule written without the `$` - or
+       with the letters unanchored - would swallow it and 301 a working page to
+       a category listing, which no assertion above can see because they all
+       expect a redirect. So assert the OPPOSITE reading on the closest URL the
+       pattern must not touch.
+
+       The second arm is the tail: a pattern ending in the letters rather than
+       the boundary would catch anything that merely starts with them. */
+    for (const [path, want] of [
+      ["/games/sort/", 200], // the live neighbour the pattern must miss
+      ["/games/sortsizes/", 404], // one letter past the anchor
+    ]) {
+      const r = await raw(`${SITE}${path}`);
+      if (r.status !== want) {
+        failures.push(
+          `${path}  HTTP ${r.status || "transport"}, expected ${want}` +
+            (r.status === 301
+              ? ` - the sortsize rule is not anchored and is eating ${path} -> ${r.location}`
+              : ""),
+        );
+      }
     }
 
     /* The www mirror, added 2026-08-20. Search Console showed five of the
