@@ -1,8 +1,11 @@
 # Hebrew directories and editors - four letters, four different rooms
 
-**Status**: drafts, except door 2 (`kef-lilmod.co.il`) which the operator sent
-on 2026-08-29. The operator sends all of these personally, signed as a parent
-who built the thing, from their own address.
+**Status**: draft - two of the four doors are still unsent, and this line
+describes the FILE. Doors 2 and 3 went on 2026-08-29 and each has its own
+`fired` row in `ledger.md`. Door 1 is filled and was REFUSED: its reCAPTCHA is
+unsolved and only a person can solve one. Door 4 has not been sent. The operator
+sends all of these personally, signed as a parent who built the thing, from
+their own address.
 
 **Why this file is separate from `hebrew.md`.** That file is the TRAFFIC lane -
 Facebook groups, where every link is `nofollow` by construction, so it moves
@@ -30,9 +33,9 @@ grain a person actually works at.
 
 | # | Destination | The door | Mechanism | Filled | Sent | Reply |
 |---|---|---|---|---|---|---|
-| 1 | `digitalpedagogy.co` | <https://www.digitalpedagogy.online/contact> | Wix form + reCAPTCHA. Name / email / subject / message. The editor's own *ליצירת קשר* link points here | **2026-08-29, byte-verified** `b4ceaae9` | — | — |
+| 1 | `digitalpedagogy.co` | <https://www.digitalpedagogy.online/contact> | Wix form + reCAPTCHA. Name / email / subject / message. The editor's own *ליצירת קשר* link points here | **2026-08-29, byte-verified** `b4ceaae9` | **NO - refused, see below** | — |
 | 2 | `kef-lilmod.co.il` | <https://www.kef-lilmod.co.il/צור-קשר/> | Elementor form, no CAPTCHA. Name / email / message | **2026-08-29, byte-verified** `8d5bf534` | **2026-08-29 by the operator** — see the receipt note below | due 2026-11-27 |
-| 3 | `portal.macam.ac.il` | <https://portal.macam.ac.il/צרו-קשר/> | Gravity Form, no CAPTCHA. Name / email / message, plus a HONEYPOT (`input_2_4`, label *Comments*, `display:none`) that must stay EMPTY | **2026-08-29, byte-verified** `4e671884` | — | — |
+| 3 | `portal.macam.ac.il` | <https://portal.macam.ac.il/צרו-קשר/> | Gravity Form, no CAPTCHA. Name / email / message, plus a HONEYPOT (`input_2_4`, label *Comments*, `display:none`) that must stay EMPTY | **2026-08-29, byte-verified** `4e671884` | **2026-08-29, CONFIRMED BY THE SERVER** - `תודה על הודעתך.` and the form gone | due 2026-11-27 |
 | 4 | `pop.education.gov.il` | <mailto:pop@education.gov.il> | plain email - no form exists. Needs the operator's own mailbox | text ready, `bd9d4274` | — | — |
 
 **`Filled` carries a checksum, not a tick.** Each is the first eight hex of the
@@ -42,9 +45,34 @@ same hash computed on this file. That is the whole point of the column: on
 misspelled - *ובריינפוף* for *ובריינפופ*, BrainPOP, to a curator who lists
 BrainPOP - and reading it back carefully did not catch it. A hash does.
 
-**Door 2 was sent on 2026-08-29. Doors 1, 3 and 4 have not been.** Reading a
-filled form is the operator's step and pressing send is the operator's step;
-both stay that way. See `reach-doctrine` RCH2 for why the row is written first.
+**Doors 2 and 3 went on 2026-08-29. Door 1 did NOT, and door 4 has not been
+sent.** Reading a filled form is the operator's step and pressing send is the
+operator's step; both stay that way. See `reach-doctrine` RCH2 for why the row
+is written first.
+
+## Three doors, three completely different kinds of evidence
+
+**This is the finding worth keeping from 2026-08-29.** The operator reported
+sending all three. The artifacts disagreed with that in two different
+directions, and only reading the pages back showed it:
+
+| Door | What the operator said | What the PAGE said |
+|---|---|---|
+| 3 `portal.macam` | sent | **agreed, and better**: `תודה על הודעתך.` rendered by Gravity Forms, the form element gone from the DOM. A SERVER confirmation - the strongest evidence available anywhere in this lane |
+| 2 `kef-lilmod` | sent, no confirmation email | **nothing to read** - the tab was closed before it could be checked, and no receipt exists in any case. Unverifiable, permanently |
+| 1 `digitalpedagogy` | sent | **contradicted it.** All 1003 characters still in the textarea, the name still in its field, zero success markers. A submitted Wix form clears; this one had not moved |
+
+Door 1's cause was two lines away: `#g-recaptcha-response` was **empty**, and
+the form carries an `input[type=checkbox][required]` that was unchecked. The
+reCAPTCHA had never been solved, so the submit was refused - silently, with no
+error text rendered anywhere on the page. **Solving a CAPTCHA is not something
+this agent may do, so this door needs a human hand and always did.**
+
+**The transferable rule: a send is not an event you can be told about.** Ask the
+page. A confirmation the server rendered, or a form that has cleared, is
+evidence; a memory of clicking is not, and here it was wrong once out of the two
+times it could be checked. The cost of not asking would have been a door
+recorded as spent, never followed up, and silently never sent at all.
 
 **No confirmation email is expected, and its absence proves nothing.** The
 operator's report was *"not sure since i didnt get confirmation email"* — but
