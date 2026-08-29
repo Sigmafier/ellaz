@@ -1,9 +1,9 @@
 # Hebrew directories and editors - four letters, four different rooms
 
-**Status**: draft - two of the four doors are still unsent, and this line
-describes the FILE. Doors 2 and 3 went on 2026-08-29 and each has its own
-`fired` row in `ledger.md`. Door 1 is filled and was REFUSED: its reCAPTCHA is
-unsolved and only a person can solve one. Door 4 has not been sent. The operator
+**Status**: draft - one of the four doors is still unsent, and this line
+describes the FILE. **Doors 1, 2 and 3 all went on 2026-08-29**, each with its
+own `fired` row in `ledger.md` and a verdict due 2026-11-27. Door 4,
+`pop.education.gov.il`, has no form at all and has not been sent. The operator
 sends all of these personally, signed as a parent who built the thing, from
 their own address.
 
@@ -33,7 +33,7 @@ grain a person actually works at.
 
 | # | Destination | The door | Mechanism | Filled | Sent | Reply |
 |---|---|---|---|---|---|---|
-| 1 | `digitalpedagogy.co` | <https://www.digitalpedagogy.online/contact> | Wix form + reCAPTCHA. Name / email / subject / message. The editor's own *ליצירת קשר* link points here | **2026-08-29, byte-verified** `b4ceaae9` | **NO - refused, see below** | — |
+| 1 | `digitalpedagogy.co` | <https://www.digitalpedagogy.online/contact> | Wix form + reCAPTCHA. Name / email / subject / message. The editor's own *ליצירת קשר* link points here | **2026-08-29, byte-verified** `b4ceaae9` | **2026-08-29, CONFIRMED ON THE WIRE** - `POST /_api/wix-forms/v1/submit-form` → **200** | due 2026-11-27 |
 | 2 | `kef-lilmod.co.il` | <https://www.kef-lilmod.co.il/צור-קשר/> | Elementor form, no CAPTCHA. Name / email / message | **2026-08-29, byte-verified** `8d5bf534` | **2026-08-29 by the operator** — see the receipt note below | due 2026-11-27 |
 | 3 | `portal.macam.ac.il` | <https://portal.macam.ac.il/צרו-קשר/> | Gravity Form, no CAPTCHA. Name / email / message, plus a HONEYPOT (`input_2_4`, label *Comments*, `display:none`) that must stay EMPTY | **2026-08-29, byte-verified** `4e671884` | **2026-08-29, CONFIRMED BY THE SERVER** - `תודה על הודעתך.` and the form gone | due 2026-11-27 |
 | 4 | `pop.education.gov.il` | <mailto:pop@education.gov.il> | plain email - no form exists. Needs the operator's own mailbox | text ready, `bd9d4274` | — | — |
@@ -45,8 +45,7 @@ same hash computed on this file. That is the whole point of the column: on
 misspelled - *ובריינפוף* for *ובריינפופ*, BrainPOP, to a curator who lists
 BrainPOP - and reading it back carefully did not catch it. A hash does.
 
-**Doors 2 and 3 went on 2026-08-29. Door 1 did NOT, and door 4 has not been
-sent.** Reading a filled form is the operator's step and pressing send is the
+**Doors 1, 2 and 3 all went on 2026-08-29. Only door 4 is unsent.** Reading a filled form is the operator's step and pressing send is the
 operator's step; both stay that way. See `reach-doctrine` RCH2 for why the row
 is written first.
 
@@ -60,13 +59,35 @@ directions, and only reading the pages back showed it:
 |---|---|---|
 | 3 `portal.macam` | sent | **agreed, and better**: `תודה על הודעתך.` rendered by Gravity Forms, the form element gone from the DOM. A SERVER confirmation - the strongest evidence available anywhere in this lane |
 | 2 `kef-lilmod` | sent, no confirmation email | **nothing to read** - the tab was closed before it could be checked, and no receipt exists in any case. Unverifiable, permanently |
-| 1 `digitalpedagogy` | sent | **contradicted it.** All 1003 characters still in the textarea, the name still in its field, zero success markers. A submitted Wix form clears; this one had not moved |
+| 1 `digitalpedagogy` | sent | **contradicted it, on the first attempt.** All 1003 characters still in the textarea, the name still in its field, zero success markers. It went on the SECOND attempt once the reCAPTCHA was solved by hand |
 
 Door 1's cause was two lines away: `#g-recaptcha-response` was **empty**, and
 the form carries an `input[type=checkbox][required]` that was unchecked. The
 reCAPTCHA had never been solved, so the submit was refused - silently, with no
 error text rendered anywhere on the page. **Solving a CAPTCHA is not something
-this agent may do, so this door needs a human hand and always did.**
+this agent may do, so this door needed a human hand and always did.** The
+operator solved it and it went the same afternoon.
+
+### Door 1 second attempt: an empty form is NOT evidence, and the network log is
+
+When the letter went, the check had to answer a question the page cannot:
+**a cleared form and a reloaded page look identical.** Both show an empty
+textarea and no success text. Wix renders no confirmation string at all here,
+so the rendered DOM was never going to settle it.
+
+Three readings did, in increasing order of strength:
+
+| Reading | Says |
+|---|---|
+| the textarea went 1003 → 0 | consistent with a submit AND with a reload |
+| `performance.timeOrigin` = 10:51:24, **1455 s before the check** | the document NEVER reloaded. So the same DOM that held the letter cleared itself in place - that is a submit handler, nothing else |
+| `POST /_api/wix-forms/v1/submit-form` → **200** | the server ACCEPTED it. Preceded by `recaptcha/enterprise/userverify` → 200, followed by a `generate_lead` analytics event carrying `Form Name: Contact` |
+
+**The transferable rule: when a UI gives no confirmation, read the wire.** A
+network log distinguishes the two states the DOM collapses into one, and a
+document's own age is the cheap control that rules out a reload. Neither costs
+anything, and here the DOM alone would have returned *"probably sent"* for a
+door worth more than the other three.
 
 **The transferable rule: a send is not an event you can be told about.** Ask the
 page. A confirmation the server rendered, or a form that has cleared, is
