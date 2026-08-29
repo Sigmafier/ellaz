@@ -33,8 +33,15 @@ on:
       # ...and the drafts themselves, now that the board carries the post TEXT.
       # Editing a post that never reaches the board is the same stale filter as
       # above, one input further in, and it reads as the board ignoring the edit.
-      - "docs/outreach/hebrew.md"
-      - "docs/outreach/reddit.md"
+      #
+      # A GLOB, not a list of names - this went stale a FOURTH time on 2026-08-29.
+      # The board renders the post text of every draft `ledger.md` marks YOU, so
+      # the dependency is "any draft in docs/outreach", never three named ones.
+      # `hebrew-directories.md` was added with four Hebrew letters, the ledger
+      # pointed at it, the board built 4/4 locally - and this filter would have
+      # published none of it, in silence, because the name was not on the list.
+      # See .claude/rules/a-path-filter-is-a-hand-kept-mirror-of-an-import-graph.md
+      - "docs/outreach/*.md"
       - "scripts/reach/backlinks.mjs"
       - "scripts/reach/build-reach-site.mjs"
       - "scripts/assert-reach-live.mjs"

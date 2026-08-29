@@ -1,0 +1,265 @@
+# Hebrew directories and editors - four letters, four different rooms
+
+**Status**: drafts. Nothing here has been sent. The operator sends all of these
+personally, signed as a parent who built the thing, from their own address.
+
+**Why this file is separate from `hebrew.md`.** That file is the TRAFFIC lane -
+Facebook groups, where every link is `nofollow` by construction, so it moves
+visits and cannot move ranking. This file is the AUTHORITY lane: four Hebrew
+destinations whose real outbound anchors were measured and carry no `nofollow`.
+The two lanes are deliberately not run at once, so a change in position at the
+ninety-day mark has one candidate cause rather than two.
+
+**The signature is a placeholder on purpose.** Every letter ends with
+`יתיר` and `yatiroffer@gmail.com`. They are not filled in here because
+guessing at a name, or putting an address into outbound mail unasked, is not
+this file's call to make.
+
+## What was measured, and when
+
+**2026-08-29.** Every destination was fetched with a browser user-agent and its
+outbound anchors counted for `rel="nofollow"`. `dofollow` below means the
+attribute was counted on that site's own outbound links, not assumed.
+
+**This reading expires.** `reach-doctrine` RCH3 requires the destination's rules
+be re-read on the day of sending, never from notes. Re-run the counts before
+sending; a site can add `nofollow` site-wide in one afternoon.
+
+| # | Destination | What it is | Measured 2026-08-29 |
+|---|---|---|---|
+| 1 | `digitalpedagogy.co` | *כלים קטנים גדולים* - the Hebrew encyclopedia of digital tools for education, one post per tool, edited by one named person | outbound links on a real tool post **DOFOLLOW**; latest post 2026-08-06; page states 14,289,837 visits |
+| 2 | `kef-lilmod.co.il/אתרי-העשרה/` | a curated shelf of enrichment sites for parents and children | **43 external anchors, ZERO nofollow**; already lists Starfall, BrainPOP, Davidson, Eureka |
+| 3 | `portal.macam.ac.il` | *פורטל מס"ע* - the Israeli teacher-colleges portal, `.ac.il` | **21 dofollow** outbound to Duolingo, Khan Academy, BrainPOP, Kahoot, Quizlet |
+| 4 | `pop.education.gov.il` | *המרחב הפדגוגי*, the Ministry's portal for teaching staff, `.gov.il` | **33 dofollow, 19 distinct hosts** incl. Nearpod, BrainPOP, Padlet - **and it links to `digitalpedagogy.co`** |
+| 5 | `ecat.education.gov.il` | *הקטלוג החינוכי* - the Ministry's catalogue of approved tools and games, `.gov.il` | `/applyvendor` **verified to exist**; has a `ללא עלות` filter and a `כלי בינלאומי` type. Formal procurement - forms, criteria, tenders. **No letter here; it is a process, not a pitch** |
+
+**Destination 4 is downstream of destination 1.** The Ministry's pedagogical
+portal already cites `digitalpedagogy.co`. That is the order to work in, and it
+is a measured relationship rather than a guess about how influence flows.
+
+## What was ruled OUT, and why
+
+Recorded so the next quarter does not re-derive it.
+
+| Destination | Verdict | Evidence |
+|---|---|---|
+| **FXP.co.il** (1.7M users, ~600 forums) | **FORBIDDEN** | Terms of use §3.1.5 bans *"any advertising, including by posting websites, ads, services or products, both in the forums and in private messages"*. Not a grey area. A 2009 news item about FXP banning "game links" is a red herring - that was pirated games |
+| **Tapuz parenting forums** | **DEAD** | The site posts daily, so it reads alive. Its relevant sections do not: `להיות-הורים` and `מערכת-החינוך-ואנחנו` last posted **2020-06-04**; `הורים-לילדים-ביסודי` **2025-02-26**; `גני-ילדים` **2025-04-25**. The best relevant forum, `משחקי-לוח`, sat at **2026-01-13** |
+| **Hebrew Wikipedia** | **DO NOT SELF-ADD** | Its external-links guideline refuses links whose purpose is to *"promote a commercial interest"*, and adding one's own site is a conflict of interest. Every Wikipedia external link is `nofollow`, so it buys no authority - only risk. A third party adding us is welcome; it is not an action we take |
+| **lainyan.co.il** (kids index, 191 outbound, dofollow, updated 2026-08-24) | **FORBIDDEN** | Its own `AD.htm` reads *"פרסום וקידום - לפרסום מאמרים/קישורים מקדמים"* - it sells article and promotional-link placement. `reach-doctrine` RCH7 is IRON: no purchased links |
+| **davidson.weizmann.ac.il**, **cet.ac.il** / `sodmaya` | not a fit | Publishers, not shelves. Davidson's 160 outbound anchors reach 8 hosts, all its own properties, vendors and social; CET's pages carry no third-party outbound links at all |
+| **baba-mail.co.il** | not a fit | Real curated list (17 dofollow, good company), but an ad-driven content site and the article is old. Low probability, and the route is `פרסם אצלנו` |
+
+**The transferable finding is the Tapuz one: a forum's site-wide activity is not
+its section's activity.** The front page showed posts from that morning. The
+sections we would have posted in had been silent for up to six years. A
+candidate check that stops at the homepage reports the opposite of the truth.
+
+## The facts every letter may use
+
+Derived, never estimated. `npm run assert:outreach` re-checks each one against
+the tree and fails on a stale figure.
+
+| Claim | Where it comes from |
+|---|---|
+| 42 games, 25 of them for young children | `src/games/*/meta.ts`, counting `ageBand: "kids"` |
+| free, no ads, no account, no download | there is no backend and no ad SDK in the tree |
+| nothing to type, anywhere | `src/sdk/names.ts` - a name is two word ids from a fixed pool, so there is no text field |
+| works offline after the first visit | the PWA precaches the shell (`vite.config.ts` workbox) |
+| the interface speaks 11 languages; four have written pages | `APP_LOCALES` and `PAGE_LOCALES` in `src/i18n/locales.ts` |
+| Arabic is one of the eleven interface languages | `APP_LOCALES` includes `ar`. **There are no Arabic articles** - do not imply otherwise |
+| a phone and a tablet are two separate players | everything is in `localStorage`; the backup code in the room screen is the only transfer |
+
+**What no letter may say**, because nothing measures it: a download count, a
+rating, a number of players, or any claim that a child learned something. The
+analytics key has never been set, so there is no such number and inventing one
+is the one thing that would end every relationship in this file at once.
+
+---
+
+## Post - digitalpedagogy.co
+
+**Where**: כלים קטנים גדולים, the Hebrew encyclopedia of digital tools for education. One named editor (אפרת מעטוף), one post per tool.
+**Go**: https://digitalpedagogy.co/
+**Do**: Send this FIRST, whatever else goes out this week - pop.education.gov.il already cites her, so a yes here warms the Ministry letter. Find her contact on the site; do not paste this into a comment.
+
+<!-- outreach-games: spell, letters, math, nonogram -->
+
+Opens on the one property her catalogue cares about and nobody else lists:
+a tool that needs no account, so it can be handed to a class in thirty seconds.
+
+> שלום רב,
+>
+> אני קורא את "כלים קטנים גדולים" כבר תקופה, בעיקר בגלל שאת בודקת כלים לפי מה
+> שהם עושים בכיתה ולא לפי מה שהם מבטיחים.
+>
+> בניתי אתר משחקים לילדים בשם Ellaz, בהתחלה בשביל הילדים שלי, והוא הגיע למקום
+> שבו נראה לי שהוא שייך למאגר שלך. הכתובת: https://ellaz.fun/he/
+>
+> מה שרלוונטי למורה: **אין הרשמה ואין מה להקליד, בשום מקום.** לא שם משתמש, לא
+> סיסמה, לא אימייל. פותחים קישור ומשחקים. אחרי הביקור הראשון זה עובד גם בלי
+> אינטרנט. אין פרסומות ואין תשלום, וגם לא יהיו - אין באתר שום קוד של רשת
+> פרסום.
+>
+> יש 42 משחקים, 25 מהם לגיל הרך. הקרובים ביותר לתחומי הדעת:
+> **אות פותחת**, **מרכיבים מילה**, **חשבון** ו**ציור לפי מספרים**.
+> הממשק מדבר 11 שפות, כולל ערבית.
+>
+> **המגבלה, כדי שלא תגלי אותה לבד**: אין שום פאנל למורה. אין כיתות, אין מעקב,
+> אין דוחות התקדמות, ואין דרך לדעת מי שיחק במה. זה נבנה בלי חשבונות מתוך
+> החלטה, והמחיר של ההחלטה הזאת הוא בדיוק זה. לכן זה כלי לתחנה, לחמש דקות
+> בסוף שיעור או לילד שסיים לפני כולם - לא כלי לניהול למידה.
+>
+> אם זה מתאים למאגר, אשמח. אם לא, גם זה בסדר גמור, ותודה על מה שאת כותבת.
+>
+> יתיר
+> yatiroffer@gmail.com
+
+---
+
+## Post - kef-lilmod.co.il
+
+**Where**: אתרי לימוד והעשרה - a curated shelf of enrichment sites for parents and children. 43 external anchors, zero nofollow.
+**Go**: https://www.kef-lilmod.co.il/%D7%90%D7%AA%D7%A8%D7%99-%D7%94%D7%A2%D7%A9%D7%A8%D7%94/
+**Do**: Use the contact form at https://www.kef-lilmod.co.il/צור-קשר/ - this is the one destination of the four that has a form rather than a person.
+
+<!-- outreach-games: memory, sudoku, flow -->
+
+A different opening entirely: this one is addressed to a person who curates
+*for parents*, so it leads on the thing a parent notices in the first minute.
+
+> היי,
+>
+> הגעתי לעמוד "אתרי לימוד והעשרה" שלכם דרך חיפוש על משהו אחר לגמרי, ונשארתי
+> בו עשרים דקות. הרשימה הזאת באמת נבחרה ולא נאספה.
+>
+> אני אבא שבנה אתר משחקים לילדים - https://ellaz.fun/he/ - ואני חושב שהוא
+> יושב טוב לצד סטארפול ובריינפופ שכבר יש שם.
+>
+> הדבר שהורה מרגיש מיד: אין רגע שבו המשחק עוצר ומבקש כסף, ואין פרסומת בין
+> שלב לשלב. אין הרשמה, אין הורדה, ואין שום שדה טקסט - הילד אפילו לא בוחר שם,
+> כי השמות נשלפים מרשימה סגורה. אחרי הכניסה הראשונה זה עובד גם במטוס.
+>
+> 42 משחקים, 25 לגיל הרך, מ**זיכרון** לקטנים ועד **סודוקו** ו**צינורות**
+> לגדולים ולמבוגרים שנשארו לשחק אחרי שהילד הלך לישון.
+>
+> **מה שהוא לא**: זו לא תוכנית לימודים ולא שיטה ללימוד קריאה. אין רצף, אין
+> שלב א' ואחריו שלב ב', ואף אחד לא יסיים אותו וידע לקרוא. זה מדף של משחקים
+> טובים שבמקרה גם מלמדים משהו.
+>
+> אם הוא מתאים לרשימה - נהדר. תודה בכל מקרה על העמוד.
+>
+> יתיר
+> yatiroffer@gmail.com
+
+---
+
+## Post - portal.macam.ac.il
+
+**Where**: פורטל מס"ע, the Israeli teacher-colleges portal. `.ac.il`, 21 dofollow outbound to Duolingo, Khan Academy, BrainPOP, Kahoot.
+**Go**: https://portal.macam.ac.il/article/educational-applications-hebrew/
+**Do**: This is an editorial desk, not a submission box - the ask is inclusion in a round-up. Do NOT strip the paragraph admitting there is no efficacy research; it is the reason the letter is credible in an academic room.
+
+<!-- outreach-games: math -->
+
+Academic room, so this one leads on a design decision that can be defended
+rather than on features, and states plainly what has not been studied.
+
+> לכבוד מערכת פורטל מס"ע,
+>
+> ראיתי שהפורטל מרכז סקירות של כלים וסביבות דיגיטליות לעולם החינוך. אני פונה
+> בעניין אתר שבניתי, ואני מקדים ואומר שאני לא חוקר ולא מוסד - אני הורה
+> שכתב את זה בשביל הילדים שלו, וההצעה היא לשיקולכם.
+>
+> Ellaz - https://ellaz.fun/he/ - 42 משחקים בדפדפן, בחינם, בלי חשבון ובלי
+> פרסומות.
+>
+> שלוש החלטות שנראות לי ראויות לדיון בפורטל שקוראים בו אנשי חינוך:
+>
+> **אין עונש על טעות.** בשום משחק אין חיים שנגמרים, אין ניקוד שיורד ואין מסך
+> "הפסדת". תשובה שגויה מחזירה את המצב לקדמותו ותו לא. ב**חשבון**, למשל,
+> טעות פשוט לא מתקדמת.
+>
+> **אין הקלדה ואין שם חופשי.** לכל שחקן נשלף שם מתוך רשימה סגורה. זה נראה
+> כמו פרט קטן, והוא מוציא את כל נושא הפיקוח על תוכן שמשתמשים כותבים מחוץ
+> למערכת - אין מה לסנן, כי אין מה להקליד.
+>
+> **הכול נשאר במכשיר.** אין שרת, אין חשבון ואין איסוף מידע על ילדים. המחיר:
+> טלפון וטאבלט הם שני שחקנים שונים.
+>
+> **מה שאין**: אין מחקר, אין מדידת אפקטיביות ואין טענה שמישהו למד משהו. אין
+> לי נתונים כאלה ואני לא מתכוון להציג כאלה. אם הפורטל בוחן כלים לפי ראיות,
+> זו נקודת החולשה של הפנייה הזאת ונכון שתדעו אותה מראש.
+>
+> בברכה,
+> יתיר
+> yatiroffer@gmail.com
+
+---
+
+## Post - pop.education.gov.il
+
+**Where**: המרחב הפדגוגי, the Ministry's portal for teaching staff. `.gov.il`, 33 dofollow over 19 hosts.
+**Go**: https://pop.education.gov.il/teaching-tools/teaching-practices/search-teaching-practices/digital-tools-building-knowledge-distance-learning/
+**Do**: Keep the sentence saying Arabic is interface-only and there are no Arabic articles. Overstating language coverage to this reader is the one error they will check.
+
+<!-- outreach-games: letters, spell -->
+
+Last and most specific. Leads on reach and equity, because that is what the
+Ministry's own space is organised around, and it is genuinely where this
+architecture is unusual.
+
+> שלום,
+>
+> אני פונה בעניין כלי חינמי שעשוי להתאים למרחב הפדגוגי, ובמיוחד לסעיף הכלים
+> הדיגיטליים.
+>
+> Ellaz - https://ellaz.fun/he/ - 42 משחקים לילדים בדפדפן.
+>
+> הסיבה שאני חושב שהוא שייך דווקא כאן היא מה שהוא דורש מהילד, שזה כמעט כלום:
+>
+> - **בלי חשבון ובלי הקלדה.** אין הרשמה, אין סיסמה, אין אימייל. ילד שלא יודע
+>   לקרוא עדיין יכול להיכנס לבד.
+> - **עובד בלי אינטרנט** אחרי הכניסה הראשונה. זה נכתב מראש לילדים שהחיבור
+>   בבית שלהם לא יציב.
+> - **רץ על מכשיר ישן.** הביקור הראשון שוקל 53,121 בתים דחוסים. זה נמדד, לא
+>   מוערך, וזה בערך גודל של תמונה אחת.
+> - **הממשק מדבר 11 שפות, ובהן ערבית ורוסית.** חשוב לדייק: זה הממשק בלבד -
+>   כתבות והסברים קיימים בארבע שפות, וערבית איננה אחת מהן.
+>
+> משחקי השפה הקרובים ביותר לתוכנית: **אות פותחת** ו**מרכיבים מילה**.
+> ב**מרכיבים מילה** אות שגויה פשוט לא נדבקת - הילד לא מקבל מסך של טעות, הוא
+> פשוט מנסה שוב.
+>
+> **מה שאין**: אין אישור נגישות פורמלי, אין פאנל למורה ואין דוחות. זה כלי
+> יחיד, לא סביבת למידה.
+>
+> תודה,
+> יתיר
+> yatiroffer@gmail.com
+
+---
+
+## ecat.education.gov.il - not a letter, and deliberately not a `## Post`
+
+The Ministry's catalogue takes suppliers through `/applyvendor`: an application,
+dedicated forms, published criteria, and eligibility for tenders. It wants a
+supplier entity, and it is measured in months.
+
+It is filed rather than dropped because the catalogue genuinely has a
+`ללא עלות` filter and a `כלי בינלאומי` type, so a free tool is not out of place
+in it. **Do not wait on it, and do not let it hold up the four letters above.**
+
+## Before any of these is sent
+
+1. **Re-run the `rel` count** on that destination. This file's reading is dated
+   2026-08-29 and RCH3 wants the rules read on the day.
+2. **Re-read the destination's own terms** for an advertising clause. FXP cost
+   nothing to check and would have cost a day to discover afterwards.
+3. **Confirm the ledger row exists** for that surface, with its verdict date at
+   +90 days (RCH2). The row goes in before the letter goes out.
+4. **Run `npm run assert:outreach`**, so no letter leaves carrying a stale number.
+5. **Fill `יתיר` and `yatiroffer@gmail.com`.**
+
+**No verdict before roughly 2026-11-27** (`seo-doctrine` SEO11). An earlier
+reading measures the freshness boost and can reverse a strategy that is working.
