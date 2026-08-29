@@ -129,6 +129,31 @@ different, and the file will happily say "Last 3 months" over eighteen days of
 rows. Sum `Chart.csv` before comparing any two exports - the daily rows are the
 only honest statement of what an export covers.
 
+## Bing, claimed 2026-08-29 - a WORKING instrument with nothing in it yet
+
+Claimed the same day and read immediately. The distinction it draws against
+Google is the useful part, and it took a positive control to see it:
+
+| | Google Search Console | Bing Webmaster Tools |
+|---|---|---|
+| our backlinks | External 0, **Internal 0** | `-` (no data) |
+| does it hold data about US? | **YES** - 137 indexed, 676 impressions | **NO** - Search Performance says *"No pages found"* |
+| does the REPORT work at all? | **NO** - 0 internal against 137 indexed pages is impossible | **YES** - see below |
+| so the zero means | **the instrument is broken** | **not crawled yet** |
+
+**The positive control, run in *Backlinks To Any Site*:** `https://github.com/`
+returns **2.0M referring domains and 14.0M anchor texts** in the same view where
+`ellaz.fun` returns `-`. The report can plainly say a large number when there is
+one, so its `-` for us is an honest empty rather than a broken one. (First
+attempt used `kef-lilmod.co.il` as the control and it also returned nothing -
+too small to discriminate. **A positive control has to be chosen so that a
+working instrument CANNOT return the same answer as a broken one**; a quiet site
+fails that test and reads exactly like a failure.)
+
+**So Bing is the better instrument from here, and it is worth nothing today.**
+It has not crawled the site. Submitting the sitemap would start that, and is the
+operator's call - it changes settings on their account.
+
 **Next reading: 2026-11-27.** Not before - a new page gets a freshness boost that
 then decays, so an early reading measures the boost and can reverse a strategy
 that is working (`seo-doctrine` SEO11).
