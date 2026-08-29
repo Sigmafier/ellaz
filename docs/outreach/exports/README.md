@@ -129,30 +129,75 @@ different, and the file will happily say "Last 3 months" over eighteen days of
 rows. Sum `Chart.csv` before comparing any two exports - the daily rows are the
 only honest statement of what an export covers.
 
-## Bing, claimed 2026-08-29 - a WORKING instrument with nothing in it yet
+## Bing, claimed 2026-08-29 - crawled, indexed, ranked first, and its dashboard says none of that
 
-Claimed the same day and read immediately. The distinction it draws against
-Google is the useful part, and it took a positive control to see it:
+**Read the correction before the table.** The first version of this section said
+*"Bing has not crawled the site."* That was WRONG, and it was wrong because I
+believed two empty dashboard panels and never asked the index itself. It was
+committed and pushed as `91f5286`; this is the amendment, in the file, because
+the wrong sentence is what a later session would have read.
+
+**What Bing actually holds, measured 2026-08-29 in the operator's own Chrome:**
+
+| instrument | says | true? |
+|---|---|---|
+| **URL Inspection**, `https://ellaz.fun/` | **Indexed successfully - URL can appear on Bing.** Discovered **18 Aug 2026**; last crawl **18 Aug 2026 03:29**; crawl allowed YES; page fetch **Successful**; indexing allowed YES | **this is the ground truth** |
+| **bing.com/search?q=ellaz.fun** | **result #1**, correct title and description, plus `/games/minesweeper` at #2 | corroborates |
+| **Sitemaps** | 1 known sitemap, submitted 8/29, crawled 8/29, **Success, 200 URLs discovered** | corroborates - 200 is the exact `<loc>` count `curl` gets |
+| Search Performance | 0 clicks, 0 impressions, May 29 - Aug 28 | **honest.** Nobody has clicked us from Bing. That is a real zero |
+| Site Explorer | no indexed URLs | **contradicts URL Inspection.** Dashboard lag on a property verified today |
+| Backlinks | `-`, no data | honest - there are no inbound links yet |
+
+**Two dashboard panels being empty is not the index being empty.** Search
+Performance and Site Explorer are populated from data accrued after the property
+is verified, and the property was verified today; the crawler visited eleven days
+before anyone claimed the site. Those are independent facts and I collapsed them
+into one.
+
+**The tell it was stale rather than absent:** Bing's own snippet reads *"30 free
+games"*. The live page has said **42** for weeks. So Bing holds a real copy, taken
+at an older crawl - which is exactly what an index with one visit and no return
+looks like, and is the opposite of never having been there.
+
+### `site:ellaz.fun` on Bing is not an instrument - it answers with garbage
+
+Typed into Bing it returns **"About 1,180 results"** of German-English dictionary
+pages for *"selection panel"*. Nothing to do with us, and a count that means
+nothing.
+
+**The control:** `site:github.com ellaz` in the same session returns the
+`ytrofr/ellaz` repository as result #1, 51 results. So the `site:` operator works
+here; it simply falls back to unrelated results on a small domain instead of
+returning an empty set. **A count from `site:` on this domain may not be quoted,
+in either direction** - it cannot express "none", so it cannot report it.
+
+### The positive control that DID work, and why the first one did not
+
+Run in *Backlinks To Any Site*: `https://github.com/` returns **2.0M referring
+domains and 14.0M anchor texts** in the same view where `ellaz.fun` returns `-`.
+The report can plainly say a large number when there is one, so its `-` for us is
+an honest empty. The first attempt used `kef-lilmod.co.il` and it also returned
+nothing - too small to discriminate. **A positive control has to be chosen so a
+working instrument CANNOT return the same answer as a broken one**; a quiet site
+fails that test and reads exactly like a failure.
+
+### Where that leaves the two search engines
 
 | | Google Search Console | Bing Webmaster Tools |
 |---|---|---|
-| our backlinks | External 0, **Internal 0** | `-` (no data) |
-| does it hold data about US? | **YES** - 137 indexed, 676 impressions | **NO** - Search Performance says *"No pages found"* |
-| does the REPORT work at all? | **NO** - 0 internal against 137 indexed pages is impossible | **YES** - see below |
-| so the zero means | **the instrument is broken** | **not crawled yet** |
+| backlinks report | External 0, **Internal 0** | `-` (no data) |
+| holds data about us? | YES - 137 indexed, 676 impressions | YES - indexed since 18 Aug, ranked #1 for our name |
+| does the BACKLINK report work? | **NO** - 0 internal against 137 indexed pages is impossible | **YES** - control fires at 2.0M |
+| so its zero means | **the instrument is broken** | **an honest zero. There are no links yet** |
 
-**The positive control, run in *Backlinks To Any Site*:** `https://github.com/`
-returns **2.0M referring domains and 14.0M anchor texts** in the same view where
-`ellaz.fun` returns `-`. The report can plainly say a large number when there is
-one, so its `-` for us is an honest empty rather than a broken one. (First
-attempt used `kef-lilmod.co.il` as the control and it also returned nothing -
-too small to discriminate. **A positive control has to be chosen so that a
-working instrument CANNOT return the same answer as a broken one**; a quiet site
-fails that test and reads exactly like a failure.)
+Bing is the trustworthy backlink instrument and Google's is not. Bing's zero is
+today's baseline for the Hebrew lane.
 
-**So Bing is the better instrument from here, and it is worth nothing today.**
-It has not crawled the site. Submitting the sitemap would start that, and is the
-operator's call - it changes settings on their account.
+**And a host check, since "not crawled" was on the table.** `curl` from this
+machine, 2026-08-29: bingbot UA gets **200** on `/`, `/robots.txt`, `/sitemap.xml`
+and `/he/`, byte-identical to a browser UA. The positive control matters here too
+- the same host returns **429** to a GPTBot UA, so it demonstrably does refuse
+crawlers by name and is choosing not to refuse this one.
 
 **Next reading: 2026-11-27.** Not before - a new page gets a freshness boost that
 then decays, so an early reading measures the boost and can reverse a strategy
