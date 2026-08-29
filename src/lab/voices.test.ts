@@ -44,17 +44,30 @@ describe("the gallery", () => {
   });
 
   it("records a verdict for every sound, and none of them is a blind result", () => {
-    // The distinction is the whole point of the table. Every sound was chosen
-    // from a strip with the NAMES SHOWING, which is a preference; six of them
+    // The distinction is the whole point of the table. Eight sounds were chosen
+    // from a strip with the NAMES SHOWING, which is a preference; six of those
     // additionally beat a blind-round winner, which is a result being
     // overridden. Collapsing the two is how a preference gets remembered as
     // evidence - the exact mistake docs/juice-lab.md records.
+    //
+    // `win` is the ninth and it reads `directed`: asked for in words on
+    // 2026-08-27, with nothing compared. That is WEAKER evidence than a strip
+    // pick, not stronger, and it is spelled differently for exactly that
+    // reason. What the assertion holds either way is the load-bearing half -
+    // no sound may claim `blind` for a voice that never went through a blind
+    // round, which is the claim somebody will eventually cite.
     for (const n of NAMES) {
       expect(VERDICT[n], `${n} has no verdict`).toBeDefined();
       expect(
         VERDICT[n],
-        `${n} was never blind-judged in its current voice`,
-      ).toBe("picked");
+        `${n} claims a blind round it never had`,
+      ).not.toBe("blind");
+    }
+    expect(VERDICT.win, "win was asked for, not picked from a strip").toBe(
+      "directed",
+    );
+    for (const n of NAMES.filter((x) => x !== "win")) {
+      expect(VERDICT[n], `${n} was picked from its own strip`).toBe("picked");
     }
   });
 

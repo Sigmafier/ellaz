@@ -116,6 +116,23 @@ export const PREV_WIN: VoiceSpec = {
   ],
 };
 
+/**
+ * win, from 2026-08-13 until 2026-08-27. "Ladder" - six pentatonic notes
+ * climbing to the octave. Picked from a strip with the names showing, and
+ * replaced by instruction rather than by a strip, which is why it is here
+ * rather than deleted: the arm it lost to was asked for, not compared.
+ *
+ * A LITERAL, like everything else in this file. It was `WIN` in `@sdk/voice`
+ * on 2026-08-26 and it is transcribed here byte for byte; pointing this at the
+ * constant would make it a second copy of the Fanfare the day the constant
+ * moved, which is the exact failure this file's header is about.
+ */
+export const PREV_WIN_LADDER: VoiceSpec = run(
+  struck(C5, 420, "bar", { gain: 0.19, damp: 0.85, space: 0.3, tail: 1.6 }),
+  [0, 2, 4, 7, 9, 12],
+  0.062,
+);
+
 /** fail, until 2026-08-13. A soft thud falling a tone and a half. Blind winner. */
 export const PREV_FAIL: VoiceSpec = {
   freq: 196,

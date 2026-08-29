@@ -179,7 +179,7 @@ describe("the voices are the ones the operator actually chose", () => {
     // COUNT is what separates correct from its predecessor.
     const bar = struck(523.25, 220, "bar").layers.length;
     expect(SUCCESS.layers).toHaveLength(bar * 3); // was five, on tine
-    expect(WIN.layers).toHaveLength(bar * 6); // was a sweep plus a glass triad
+    expect(WIN.layers).toHaveLength(bar * 4); // was six on Ladder, a sweep before that
     expect(WIN.layers.some((l) => l.wave === "noise")).toBe(false);
     expect(STAR.layers).toHaveLength(bar * 3); // was glass, with a mallet
     expect(STAR.layers.some((l) => l.wave === "noise")).toBe(false);

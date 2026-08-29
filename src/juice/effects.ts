@@ -185,13 +185,31 @@ export function prefersReducedMotion(): boolean {
  * host) it degrades to burst() at the origin rather than doing nothing — the win
  * must always feel like something happened.
  */
+/** Default flight time, and what `prefersReducedMotion` shortens it to. */
+export const FLY_MS = 620;
+export const FLY_REDUCED_MS = 260;
+
+/**
+ * How long a flight ACTUALLY lasts, honouring reduced motion.
+ *
+ * Exported so a caller can line a SOUND up with the arrival instead of
+ * guessing at it. `winMoment` chimes when the coins land, and the two numbers
+ * have to be the same number: before this it hardcoded 620 and was therefore
+ * silently wrong for every player with reduced motion on, whose coins appear
+ * at 260 ms - a chime a third of a second after the picture, in the one
+ * setting chosen by people most likely to be relying on the sound.
+ */
+export function flyDurationMs(ms: number = FLY_MS): number {
+  return prefersReducedMotion() ? FLY_REDUCED_MS : ms;
+}
+
 export function flyTo(
   from: { x: number; y: number },
   target: HTMLElement | null,
   opts: FlyToOptions,
 ): void {
   const count = Math.max(1, Math.min(12, Math.round(opts.count ?? 5)));
-  const ms = opts.ms ?? 620;
+  const ms = opts.ms ?? FLY_MS;
 
   // A detached or zero-box target would send the flock to (0,0), which reads as
   // a bug. Treat "no usable box" exactly like "no target".
@@ -205,7 +223,7 @@ export function flyTo(
 
   const reduced = prefersReducedMotion();
   const stagger = reduced ? 0 : 55;
-  const dur = reduced ? 260 : ms;
+  const dur = flyDurationMs(ms);
 
   const layer = document.createElement("div");
   layer.style.cssText = "position:fixed;left:0;top:0;pointer-events:none;z-index:10001";
