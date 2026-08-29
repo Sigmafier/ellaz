@@ -107,6 +107,34 @@ describe("the row is three fixed tracks, so it cannot wrap", () => {
     expect(SRC.match(/minWidth: 0,/g)?.length).toBeGreaterThanOrEqual(3);
   });
 
+  it("keeps the nav buttons OUT of the grid, so a track is never spent on an icon", () => {
+    // The defect, measured on the built 2048 bundle at 390px: the restart icon
+    // is 56px and was sitting in the 1.25fr track at 142.9px - 87px of the
+    // widest track spent on an icon - while the difficulty was pushed into the
+    // 1fr track and rendered "Cla...". Snake in play carries TWO navs.
+    //
+    // Pinned as ORDER in the source, because that is the whole mechanism: the
+    // navBtn calls have to close before the element that declares the grid
+    // opens. A render test cannot see it - both arrangements lay out, and the
+    // only symptom is three lost letters inside a card that never overflows.
+    const navs = SRC.indexOf('navBtn("redo"');
+    const grid = SRC.indexOf('className="gc-row"');
+    expect(navs, "the restart nav button is gone").toBeGreaterThan(-1);
+    expect(grid, "the .gc-row grid is gone").toBeGreaterThan(-1);
+    expect(navs, "a nav button is inside .gc-row again - it will eat a track").toBeLessThan(grid);
+  });
+
+  it("gives the difficulty the widest track, since it is the only cell with a word", () => {
+    // Not the exact number - that is a measurement and it will move again. What
+    // must hold is the ORDER: widest first. The ratio was 1.25/1/0.85 while a
+    // nav sat in track one, so the widest track was never the difficulty's.
+    const m = /const COLS = "var\(--gc-cols, ([^"]*)\)";/.exec(SRC)!;
+    const fr = [...m[1].matchAll(/minmax\(0,([\d.]+)fr\)/g)].map((x) => Number(x[1]));
+    expect(fr).toHaveLength(3);
+    expect(fr[0]).toBeGreaterThan(fr[1]);
+    expect(fr[1]).toBeGreaterThan(fr[2]);
+  });
+
   it("draws the dash slot rather than hiding it", () => {
     // `none` here is the pre-2026-08-21 default and renders a row that
     // collapses to whatever a game happens to have - which is the thing the

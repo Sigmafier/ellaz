@@ -154,10 +154,40 @@ const LEVEL_SIZE = "var(--gc-level-value, 16px)";
  * gone and every cell is `minWidth: 0`. The row cannot wrap now because there
  * is nothing to wrap: three tracks, always, whatever is in them.
  *
- * The ratio is 1.25 / 1 / 0.85 because the difficulty is the only cell
- * carrying a WORD and the third is usually a short counter.
+ * The ratio is 1.8 / 1 / 0.9 because the difficulty is the only cell carrying
+ * a WORD and the third is usually a short counter.
+ *
+ * IT WAS 1.25 / 1 / 0.85, AND 1.25 WAS NEVER REACHING THE DIFFICULTY. The nav
+ * buttons were the row's first children, so each one took a whole track - see
+ * the note by the flex wrapper below. Once they moved out, track one is the
+ * difficulty's for the first time and the ratio could be argued from what the
+ * cell actually needs.
+ *
+ * MEASURED 2026-08-30, on the built artifacts at 390px, all 42 games plus the
+ * three standalone bundles:
+ *
+ *   snake, standalone, one nav   "Normal"   needs 128px  <- the binding case
+ *     1.25 -> 111  CLIPPED "Nor..."     1.6 -> 126  CLIPPED
+ *     1.5  -> 124  CLIPPED             1.8 -> 134  clear, by 6px
+ *   2048,  standalone, one nav   "Classic"  needs 121px
+ *     1.25 -> 117  CLIPPED "Cla..."     1.8 -> 141  clear
+ *   all 42 in the APP            rowW 355, no navs in the row at all
+ *     1.25 -> nothing clipped anywhere   1.8 -> nothing clipped anywhere
+ *
+ * SIX PIXELS IS THIN, and the bound is narrower than it looks: the standalone
+ * is hardcoded `lang="en"`, so only English labels are ever measured against
+ * it, and the app - where Hebrew labels live - has 355px and no navs, which is
+ * slack of a different order. Re-measure before adding a level label longer
+ * than "Normal" to a game that ships standalone.
+ *
+ * WHAT THIS STILL DOES NOT FIX, and no ratio can: snake WHILE PLAYING carries
+ * a second nav, leaving the grid 228px. "Normal" alone wants 128 of it, and
+ * two numbers want the rest. Measured at 1.8, 2.2 and 2.6 - every one clips.
+ * That row has to WRAP, which is a different change to shared chrome for 42
+ * games, and it is not this one.
+ * See .claude/rules/a-row-that-grows-with-the-catalog-must-wrap.md
  */
-const COLS = "var(--gc-cols, minmax(0,1.25fr) minmax(0,1fr) minmax(0,0.85fr))";
+const COLS = "var(--gc-cols, minmax(0,1.8fr) minmax(0,1fr) minmax(0,0.9fr))";
 /** The dash slots are DRAWN now - the operator's call, 2026-08-21. */
 const EMPTY_DISPLAY = "var(--gc-empty-display, flex)";
 /**
@@ -377,21 +407,43 @@ export function GameChrome<T extends string>({
             flexWrap because the cell count is fixed per game but the WIDTH is
             not, and this container clips rather than scrolls. See
             a-row-that-grows-with-the-catalog-must-wrap. */}
-        <div
-          className="gc-row"
-          style={{
-            display: "grid",
-            gridTemplateColumns: COLS,
-            alignItems: "center",
-            gap: GAP,
-          }}
-        >
+        {/* THE NAVS SIT BESIDE THE GRID, NOT IN IT, and that is a fix rather
+            than a tidy-up. They used to be the row's first children, so each
+            one CONSUMED a flexible track: measured on the built 2048 bundle at
+            390px, the restart icon is 56px wide and was sitting in the 1.25fr
+            track at 142.9px, wasting 87 of them, while the difficulty was
+            pushed into the 1fr track at 114.3px and rendered "Cla...". The
+            value needed 52px and had 45.
+
+            The ratio above says in its own words that 1.25 exists "because the
+            difficulty is the only cell carrying a WORD" - which was true when
+            it was written and stopped being true the moment a nav button
+            joined the row. Snake in play carries TWO navs and lost two tracks.
+
+            An `auto` track per nav does not work: the count varies from 0 to 2,
+            and the cells wrap, so row two would start in a nav-sized track.
+            A flex wrapper leaves the grid exactly three tracks whatever the
+            navs do. `.gc-row` stays the grid, so `panelRead.ts`, the design
+            bench's `.ellaz-game-panel .gc-row` selector and every `--gc-*`
+            token still land on the same element. */}
+        <div style={{ display: "flex", alignItems: "center", gap: GAP }}>
           {ownRestart &&
             onPaused &&
             navBtn(paused ? "play" : "pause", paused ? t("resume") : t("pause"), () =>
               onPaused(!paused),
             )}
           {ownRestart && navBtn("redo", t("restart"), onRestart)}
+        <div
+          className="gc-row"
+          style={{
+            flex: "1 1 0",
+            minWidth: 0,
+            display: "grid",
+            gridTemplateColumns: COLS,
+            alignItems: "center",
+            gap: GAP,
+          }}
+        >
           {levels && current && onLevel && (
             <button
               type="button"
@@ -571,6 +623,7 @@ export function GameChrome<T extends string>({
             </div>
             ),
           )}
+        </div>
         </div>
       </div>
 
