@@ -363,3 +363,71 @@ and the whole init is removed by the minifier. Even when a key is set it runs in
 anonymous-events mode with no `identify()`, no session replay and no autocapture. Do not
 soften this to "minimal tracking"; do not strengthen it to "we will never measure
 anything", which is not true.
+
+---
+
+## The support letter - drafted 2026-08-30, composed and NOT sent
+
+**Where it goes**: `support@newgrounds.com`, named on `newgrounds.com/wiki/contact-us` as
+their recommended method. **Replies come from `tomfulp@ngmail.newgrounds.com` - allowlist
+that address before sending**, or the answer to this letter lands in spam and we conclude
+they ignored us. Copy is at `Desktop\ellaz-doors\newgrounds\letter-support.txt`.
+
+**Not the CrazyGames letter.** That one went to `submissions@crazygames.com` at 17:39 the
+same day and asks a completely different question of a different company. Two letters, two
+recipients, and the only thing they share is the date.
+
+**Both project ids were read off the dashboard rather than recalled** - 2048 is `8060521`,
+Snake is `8060462`. The first draft had Snake's from memory, taken from the uploaded FILE
+name `8060462_alternate_375983_r1.zip`, which happens to carry the same digits; that is a
+coincidence to verify, not a shortcut to rely on.
+
+**Subject**:
+
+```
+Two submissions un-published with no notification - which was it?
+```
+
+**Body**:
+
+```
+Hello,
+
+Two of my game submissions were un-published a few hours after going live, and I
+cannot find out why, so I am asking rather than guessing.
+
+  2048   project 8060521   was portal/view/1049504
+  Snake  project 8060462   was portal/view/1049495
+
+Both project pages say "This project has been un-published from the game
+section" and nothing further. There is nothing in my notification feed, nothing
+in my private messages, and nothing at my email address, so I have no way to
+tell whether this was a moderator, an automated action, or something I did
+wrong.
+
+I have not pressed Publish again, because if it was automatic I assume doing
+that repeatedly is the wrong move.
+
+For context, in case any of it is the cause: my account is new, I uploaded both
+submissions on the same day, and both are HTML5 games whose descriptions link
+back to my own site, ellaz.fun, where they also live. They are original
+implementations of public-domain mechanics - a 2048-style sliding puzzle and a
+snake game - with artwork drawn in code, no borrowed assets and no licensed
+audio. Both are free, carry no advertising, and make no external network
+requests of any kind. If any of that broke a rule I would rather be told plainly
+than work it out by trial.
+
+What I would like to know is simply which it was, and whether these submissions
+can be restored or should be left alone.
+
+Thank you,
+Yatir
+ytrofr on Newgrounds
+https://ellaz.fun
+```
+
+**What this letter deliberately does not do.** It does not argue, does not assert we broke
+no rule, and does not ask them to restore anything. It asks which of three things happened
+and what we should do. A small team answers a short honest question far more often than a
+complaint - and we genuinely do not know the answer, so any other tone would be a claim we
+cannot support.
