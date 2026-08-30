@@ -81,10 +81,42 @@ That is the whole argument for spending an hour here.
 enter an earned count however dofollow it is, and it must not be booked against the
 2026-11-27 backlink verdict. What changes is the practical value, not the bookkeeping.
 
+### The shaping step is placed where it cannot survive - 2048, 2026-08-30
+
+**2048 went live at Newgrounds' default 640 x 480 with the board clipped, which is the
+same fault, on the same day, that the itch listing had already taught us.** It is fixed -
+800 x 900, touchscreen ticked, republished, and the live iframe measures 800 x 900 - but
+the interesting part is why the rule that was supposed to prevent it did not.
+
+```
+D14 says          fill  ->  upload  ->  SHAPE  ->  publish LAST
+what happened     fill  ->  upload  ->  publish
+                            ^^^^^^      ^^^^^^^
+                            the only step that needs the operator's own hands,
+                            and the button is right there when they finish
+```
+
+The instruction was written, correct, and read. It still failed, because **a handover
+sits between the two steps** - the upload needs a person (a native file picker cannot be
+driven), and the publish button is the next thing that person sees. Telling them to wait
+is asking someone to stop one click short of the thing they came to do.
+
+**A stronger instruction is the wrong fix.** The right one is to make the default
+correct, and there is a specific candidate: `option[filewidth_2]` and
+`option[fileheight_2]` are **present in the creation form's DOM before any file exists**,
+merely hidden. If they accept 800 / 900 pre-upload and persist, the trap disappears
+entirely, because the listing is then already shaped when the person arrives.
+
+**UNVERIFIED - and deliberately not asserted.** Nobody has tested whether a pre-upload
+value survives, and the only way to test it is a throwaway project on the operator's own
+account. Test it on the next listing, before the handover; do not write it down as
+working until a reload says so.
+
 ### What we actually got - measured on our own live page, 2026-08-30
 
 ```
-ours    portal/view/1049495   1 anchor  ->  rel="nofollow"
+ours    portal/view/1049495   1 anchor  ->  rel="nofollow"      (Snake)
+ours    portal/view/1049504   1 anchor  ->  rel="nofollow"      (2048, same account)
 theirs  16 other submissions  36 anchors -> rel="noreferrer noopener", 0 nofollow
 ```
 
