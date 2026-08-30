@@ -53,10 +53,32 @@ usual result of a rule with no mechanism.
   diff - `python3 -c "import yaml; ..."` on the parsed `on.push.paths`. A list this
   shape is one indentation away from being somewhere else entirely.
 
+## The same shape with no YAML in it: a ledger and its watcher (2026-08-30)
+
+`docs/outreach/ledger.md` records what we sent; `docs/outreach/backlinks.md` records
+what we watch. That is a second hand-kept mirror of the same set, and nothing checked
+it either: **11 fired surfaces, 4 watched.** Seven had a verdict date and no
+instrument, including three letters sent that afternoon - so on their verdict day the
+only thing that could read them would never have looked at the destination.
+
+Two differences from the YAML case, both of which make it worse rather than better.
+There is no import graph to diff against, so the mirror cannot be derived at all; and
+the miss is silent in the only direction that matters, because a surface nobody
+watches simply never appears in a report.
+
+The fix is the one this rule already asks for, made mandatory: `WATCHED` in
+`scripts/reach/backlinks.mjs` maps every fired ledger surface to the page a link would
+appear on, or to `null` with the reason there can never be one. Both directions red -
+an unmapped fired surface, and a mapped URL with no row - **and it runs in the daily
+board build, not only when a person types the command.** That last part is the whole
+lesson: the gap opens between sessions, so a gate whose trigger is somebody
+remembering is a gate aimed away from its own failure mode.
+
 ## The tell
 
 You are adding an `import` to a script that a workflow triggers on, and the workflow
-file is not open.
+file is not open. Or: you are adding a row to one file that a second file is supposed
+to mirror, and nothing reads both.
 
 ## Related
 

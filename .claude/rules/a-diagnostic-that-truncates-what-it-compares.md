@@ -41,7 +41,19 @@ report**. Ask of any probe: *could this even express the failure I am looking fo
 | 2026-08-30 prospect `freshness` | the FIRST structured date in the document | the `article:modified_time` three tags later. `weareteachers.com` - 208 dofollow anchors, one of the largest US teacher publications - was ruled **dormant** on a 2023 published date while the page had been modified **2026-07-28** |
 | 2026-08-30 prospect `door` | `/about\|/contact` matched on ANY host | whose page it was. weareteachers' door came back as a page on **`nature.org`**: a real URL, a real 200, a real About page, and a letter about our children's games addressed to a conservation charity |
 | 2026-08-30 prospect `get()` | `res.ok`, which is true for **202** | the page. Three library sites answered `HTTP 202` with a ~2 KB AWS WAF challenge - well-formed, `</html>` present, empty `<title>`, zero anchors - and all three were reported `blind`, a word this repo's own docs define as *"says nothing about the page"* and which prints in the same column as a real reading |
+| 2026-08-30 backlinks `resolve1` | an `expected` row returned unchanged, whatever the fetch said | **every positive reading.** The instrument built to read the 2026-11-27 verdict could report a failure and not a success - fed a page carrying our link, an `expected` row still resolved to `expected`. Eighty-nine days early, and it would have read `expected` on the day whether or not a single editor had published us |
 | 2026-08-30 prospect control's FAIL path | `c.bad.map(([k, v]) => ...)` on an array of OBJECTS | the entire message. It threw `object is not iterable`, losing the field name, losing the "believe nothing" sentence, and exiting **1** (*no candidates*) instead of **2** (*believe nothing*). The one path that exists to explain a broken instrument had never once been run |
+
+**The frozen `resolve1` is the family's limit case, and worth separating from the
+rest.** Every other row is an instrument that gave a wrong answer. This one was
+incapable of giving the right one: not a matcher that missed, a branch that
+returned the input. So there is no input that could have exposed it and no run
+that would have looked wrong - it was only ever going to be found by asking, of
+an instrument nobody had watched succeed, **what a success would look like**.
+
+Ask it of anything you are about to depend on months from now: *what does this
+print on the day it works?* If you cannot answer from the code, you do not have
+an instrument, you have a thing that says no.
 
 **The 2026-08-30 four share a shape the earlier ones do not: every one of them
 produced a NON-VERDICT.** `dormant`, `blind`, `unchecked`, a crash - none of which
