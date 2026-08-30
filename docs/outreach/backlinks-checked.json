@@ -1,15 +1,40 @@
 {
-  "checked": "2026-08-23",
+  "checked": "2026-08-30",
   "seen": {
     "https://github.com/hemanth/awesome-pwa/pull/465": {
       "status": "claimed",
       "lastLive": null,
-      "checked": "2026-08-23"
+      "checked": "2026-08-30"
     },
     "https://github.com/Sigmafier/ellaz": {
       "status": "live",
-      "lastLive": "2026-08-23",
-      "checked": "2026-08-23"
+      "lastLive": "2026-08-30",
+      "checked": "2026-08-30"
+    },
+    "https://digitalpedagogy.co/": {
+      "status": "expected",
+      "lastLive": null,
+      "checked": "2026-08-30"
+    },
+    "https://www.kef-lilmod.co.il/%D7%90%D7%AA%D7%A8%D7%99-%D7%94%D7%A2%D7%A9%D7%A8%D7%94/": {
+      "status": "expected",
+      "lastLive": null,
+      "checked": "2026-08-30"
+    },
+    "https://portal.macam.ac.il/article/educational-applications-hebrew/": {
+      "status": "expected",
+      "lastLive": null,
+      "checked": "2026-08-30"
+    },
+    "https://pop.education.gov.il/teaching-tools/teaching-practices/search-teaching-practices/digital-tools-building-knowledge-distance-learning/": {
+      "status": "expected",
+      "lastLive": null,
+      "checked": "2026-08-30"
+    },
+    "https://ytrofr.itch.io/sudoku": {
+      "status": "live",
+      "lastLive": "2026-08-30",
+      "checked": "2026-08-30"
     }
   }
 }
