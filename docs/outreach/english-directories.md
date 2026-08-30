@@ -8,8 +8,9 @@ was sent 2026-08-29 and its verdict is due 2026-11-27, so these are deliberately
 sending them now would give that reading two candidate causes and settle neither.
 
 **The one thing to confirm before any of these goes out.** The Hebrew letters are signed
-`יתיר`. These are signed **Yatir**, which is a transliteration I chose rather than one
-the operator gave me. Change it if it is wrong; it appears three times.
+`יתיר`. These are signed **Yatir**, a transliteration I chose - and the operator
+**approved it on 2026-08-30**, so it stands. It appears three times here and once in
+`crazygames.md`.
 
 ---
 

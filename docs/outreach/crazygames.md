@@ -29,7 +29,34 @@ favour, one that is merely a correction, and one that decides the whole question
 listing needs no SDK at all, so a hosted copy makes the same zero external network requests
 that `assert:standalone` already proves. The convention holds with nothing waived.
 
-## The sentence that decides it
+## AMENDED 2026-08-30, by the operator, and they were right
+
+The first version of this file said *"Ellaz is a children's games platform. That is not a
+detail of the copy, it is the premise"*, and built the whole letter around apologising for
+it. The operator's correction, verbatim: **"we dont have to target just for kids, our
+games are for everyone."**
+
+Counted rather than argued - `grep -o 'category: "[a-z]*"' src/games/*/meta.ts`:
+
+```
+think      13
+kids       10      <- ten of forty-two
+classics    9
+learn       6
+speed       3
+create      1
+```
+
+**Thirty-two of the forty-two games are not on the kids shelf**, and `CLAUDE.md`'s own
+first line says *"one website where kids and adults play our games"*. So the site is a
+casual games site for all ages that has a shelf for younger children, which is a plainly
+different thing from a children's platform, and the letter below was rewritten on that
+basis.
+
+This is the defect the two rules written the same day are about: a claim about a SET,
+stated with no population, that nobody could check by reading it. One `grep` settles it.
+
+## The sentence that still matters, and it matters less than I first wrote
 
 CrazyGames publishes the reasons a submission fails its initial QA check. The list is
 short, and this is the fifth item, verbatim:
@@ -45,16 +72,21 @@ Content is targeted for kids            <- this one
 ```
 
 **"Content is targeted for kids" is a documented rejection reason, and PEGI-12 adherence
-is a requirement.** Ellaz is a children's games platform. That is not a detail of the
-copy, it is the premise: tap-completable for a five-year-old, no fail-punishment, kid-safe
-analytics, a room you decorate with coins.
+is a requirement.** Read against the actual catalogue rather than against my first
+description of it, that is a constraint on **the kids shelf - ten games** - and not on the
+site.
 
-So the honest position is that **most of this catalogue is out of scope for CrazyGames by
-their own published criteria**, and no amount of letter-writing changes that. What is left
-is a narrower and still real question: the three games that already ship as standalone
-bundles - sudoku, 2048 and snake - are classic-mechanic casual games with no child-specific
-framing, no characters, no reading age. Whether *those* count as "targeted for kids"
-because of where they come from is a question only they can answer.
+The three that already ship as standalone bundles are sudoku, 2048 and snake: classic
+mechanics, no characters, no reading age, nothing aimed at an age at all. They are
+general-audience games from a general-audience site, and PEGI-12 is met without argument -
+there is no violence, no theme, no chat, no purchase and no login anywhere in them.
+
+**So the letter does not ask permission about this.** An earlier draft did, and that was
+the wrong instinct twice over: it was built on a description of the site that was false,
+and volunteering a rejection reason that does not apply invites the reviewer to apply it.
+What the letter does instead is describe the site accurately in one line - a free games
+site for all ages, with a section for younger children - and let the three games be judged
+as what they are.
 
 **And "unoriginal content (e.g. clones)" is the second thing to be honest about.** These
 three are original implementations of public-domain mechanics with original art and
@@ -95,7 +127,7 @@ account, if it comes to that, is the operator's own act.
 **Subject**:
 
 ```
-Pre-submission question: three classic-mechanic games from a site that also makes games for children
+Pre-submission question about Basic Launch, from a 42-game HTML5 site
 ```
 
 **Body**:
@@ -106,9 +138,9 @@ Hello,
 I would rather ask one question before submitting anything than submit and find out, so
 this is a short enquiry rather than a pitch.
 
-I run ellaz.fun, a free browser games site. Three of its games already ship as
-self-contained HTML5 bundles and are the only ones I would put forward: sudoku, 2048 and
-a snake game. They are original implementations of public-domain mechanics, with artwork
+I run ellaz.fun, a free browser games site - 42 games for all ages, playable on phone,
+tablet and desktop. Three of them already ship as self-contained HTML5 bundles and are the
+ones I would put forward: sudoku, 2048 and a snake game. They are original implementations of public-domain mechanics, with artwork
 drawn in code and names of our own - no borrowed sprites, no licensed audio, no reskins.
 They carry no advertising, no accounts, no logins and no external network requests of any
 kind, which I mention because I read that Basic Launch needs no SDK and that external ads
@@ -119,29 +151,25 @@ about 230 KB for the largest plain game and about 1.9 MB for the snake one, whic
 only game here that carries a game engine. Eight to ten files each. Every game boots into
 a container it is handed, so hosting adjustments are integration rather than a rewrite.
 
-My question is the one your QA page raises for me. Among the reasons a submission can be
-turned down, you list "content is targeted for kids". The site these three games come from
-does include games made for younger children - that is genuinely what ellaz.fun is - but
-these three specific titles have no child-specific framing at all: no characters, no
-reading requirement, nothing aimed at an age. Would they be considered on their own, or
-does the origin of the catalogue rule them out? A clear no is a useful answer and I will
-not press it.
-
-One thing I would also want to understand, because it touches a promise we make in
-writing: our own pages say the games carry no advertising. If a game finishes Basic Launch
-without meeting the Full Launch KPIs, what happens to it - does it stay listed as it is,
-does it come down, or does it move on regardless? I could not find this documented, and I
-would rather know before a listing exists than after.
+My question touches a promise we make in writing, which is why I would rather ask it
+first. Our own pages say the games carry no advertising, and Basic Launch is described as
+a test period rather than a resting state. If a game finishes Basic Launch without meeting
+the Full Launch KPIs, what happens to it - does it stay listed as it is, does it come
+down, or does it move on regardless? I could not find this documented anywhere, and the
+answer changes whether a listing is something I can honestly describe on my own site.
 
 Thank you for reading,
 Yatir
 https://ellaz.fun
 ```
 
-**Why the letter asks two questions and no more.** The old draft in `portals.md` asked
-whether a non-exclusive listing was possible; their FAQ answers that in public, so asking
-it now would only show that the documentation went unread. What is left is the question
-their own criteria raise, and the one their documentation does not cover.
+**Why the letter asks one question and no more.** The draft in `portals.md` asked whether
+a non-exclusive listing was possible; their FAQ answers that in public, so asking it would
+only show the documentation went unread. My own first draft then asked whether a kids-site
+origin disqualified the three games - a question built on a false description of the site,
+and one that hands a reviewer a rejection reason they had not reached for. What is left is
+the single thing their documentation does not cover, and it is the one that decides
+whether a listing is compatible with what our pages promise.
 
 ---
 
@@ -151,6 +179,7 @@ their own criteria raise, and the one their documentation does not cover.
 |---|---|
 | no SDK needed at Basic Launch, no external ads | `docs.crazygames.com/requirements/intro` and `/resources/basic-launch-metrics/`, read in a browser 2026-08-30 |
 | "content is targeted for kids" is a rejection reason | `docs.crazygames.com/faq/`, § Step A, read in a browser 2026-08-30 |
+| 42 games, all ages, one shelf for younger children | `grep -o 'category: "[a-z]*"' src/games/*/meta.ts` on 2026-08-30: think 13, kids 10, classics 9, learn 6, speed 3, create 1 |
 | Basic Launch is 7-21 days, 500 plays | same page, verbatim |
 | three games ship as self-contained bundles | `dist-standalone-zips/`, gated by `scripts/assert-standalone.mjs` |
 | games make no external network requests | asserted by `assert:standalone`, which fails on any external origin; negative control 14/14 |
@@ -164,6 +193,6 @@ every sentence in it can be checked.
 
 ## The signature
 
-`Yatir` is a transliteration of `יתיר` that I chose and the operator has not approved. It
-appears once, at the bottom of the letter. It is the same open question as in
-`english-directories.md`; fix both together or neither.
+**Approved by the operator 2026-08-30**: `Yatir`, the transliteration of `יתיר`, stands.
+It appears once at the bottom of this letter and three times in `english-directories.md`.
+That open question is closed.
