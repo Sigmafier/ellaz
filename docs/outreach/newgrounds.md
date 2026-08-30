@@ -49,6 +49,16 @@ behind `https://www.newgrounds.com/projects/games/new`, which exists and redirec
 
 ## What a listing here actually buys - and unlike itch, it IS a link
 
+> **AMENDED 2026-08-30, AFTER PUBLISHING. The measurement below is reproducible and it
+> did not predict our own page.** Snake went live at
+> `https://www.newgrounds.com/portal/view/1049495` and its one `ellaz.fun` anchor reads
+> **`rel="nofollow"`**. Everything under "What we actually got" is the corrected reading;
+> the survey below it stands as written, because re-run the same hour it still returns
+> the same answer on everybody else's pages. **A survey of other people's artifacts is
+> not a prediction about yours** - which is RCH14's own point, arriving from the
+> direction nobody was watching: the door was verified by what it SERVES and the link
+> was believed from a form we had not yet filled.
+
 **Newgrounds does NOT nofollow the external links in an author's description.** Measured
 2026-08-30 across six live game pages:
 
@@ -70,6 +80,33 @@ That is the whole argument for spending an hour here.
 **It is still DISCOVERY, not authority** (`RCH13`): a link we place ourselves does not
 enter an earned count however dofollow it is, and it must not be booked against the
 2026-11-27 backlink verdict. What changes is the practical value, not the bookkeeping.
+
+### What we actually got - measured on our own live page, 2026-08-30
+
+```
+ours    portal/view/1049495   1 anchor  ->  rel="nofollow"
+theirs  16 other submissions  36 anchors -> rel="noreferrer noopener", 0 nofollow
+```
+
+**Three causes ruled out in the same pass, each with the population that ruled it out:**
+
+| candidate cause | ruled out by |
+|---|---|
+| it is Under Judgment | 8 anchors on **6 other under-judgment submissions**, all dofollow |
+| the domain is unknown to them | controls link to `grottosoft.com`, `morushroom.net`, `idleangler.com` - all dofollow |
+| the anchor text is a bare URL | 9 of the 36 controls are bare URLs - all dofollow |
+
+What is left is the **account**, which was created the same day. That is a hypothesis,
+not a measurement: I could not read a join date or a trust level out of the markup and
+stopped rather than keep guessing at selectors. It is cheap to settle later - **re-read
+this one anchor's `rel` in a few weeks.** If it flips to `noreferrer noopener` with no
+edit from us, new-account throttling is confirmed and the door is worth more than it
+looks today; if it does not, the link is decoration and Newgrounds is a traffic surface
+only.
+
+**Nothing about the decision changes.** The listing was never booked as an earned link
+(`RCH13`), so the ledger needs no correction - only this file did, because this file
+told the next reader something about our page that turned out to be false of it.
 
 ---
 
