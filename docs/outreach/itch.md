@@ -140,9 +140,10 @@ Your coins and your room live at ellaz.fun. This page is a copy of one game, so 
 here may not be saved between visits. Everything is free in both places.
 ```
 
-**Genre**: Puzzle. **Tags** (itch allows 10; these all exist in their vocabulary):
-`puzzle` `sudoku` `casual` `family-friendly` `kids` `html5` `mobile` `relaxing`
-`no-ads` `singleplayer`
+**Genre**: Puzzle. **Tags** (itch allows 10, and its vocabulary is a FIXED LIST of 619 -
+see the box below):
+`puzzle` `casual` `family-friendly` `relaxing` `singleplayer` `brain-training`
+`educational` `touch-friendly` `cute` `minimalist`
 
 **Languages**: English. (`standalone.html` is hardcoded `lang="en"`, so the uploaded
 bundle resolves one shipped locale and it is English. The SITE has four written
@@ -185,8 +186,8 @@ Your coins and your room live at ellaz.fun. This page is a copy of one game, so 
 here may not be saved between visits. Everything is free in both places.
 ```
 
-**Genre**: Puzzle. **Tags**: `2048` `puzzle` `numbers` `casual` `html5` `mobile`
-`singleplayer` `no-ads` `minimalist` `family-friendly`
+**Genre**: Puzzle. **Tags**: `puzzle` `casual` `singleplayer` `minimalist`
+`family-friendly` `2d` `difficult` `score-attack` `endless` `touch-friendly`
 
 **Note on the URL**: `n2048` is the DIRECTORY in the source; the game's id is `2048`,
 and that is what it publishes as everywhere a person sees it. The itch project URL
@@ -225,8 +226,33 @@ Your coins and your room live at ellaz.fun. This page is a copy of one game, so 
 here may not be saved between visits. Everything is free in both places.
 ```
 
-**Genre**: Action. **Tags**: `snake` `arcade` `retro` `casual` `html5` `mobile`
-`singleplayer` `no-ads` `high-score` `family-friendly`
+**Genre**: Action. **Tags**: `snake` `arcade` `retro` `casual` `singleplayer`
+`high-score` `family-friendly` `touch-friendly` `score-attack` `endless`
+
+---
+
+## The tag field is a FIXED VOCABULARY, and half our tags were not in it
+
+**Measured 2026-08-30, in the live form**: `game[tags]` is a Selectize field preloaded
+with **619 tags** and no server lookup. A tag that is not one of them is silently
+DROPPED - `addItem` returns, the field shows nine chips instead of ten, and nothing
+errors. This page previously said the tag lists "all exist in their vocabulary". They did
+not, and the check that would have caught it is one line in the form's own console.
+
+| draft list | rejected | why it reads plausible |
+|---|---|---|
+| sudoku | `sudoku` `kids` `html5` `mobile` `no-ads` | every one is a real word people use on itch pages - in the DESCRIPTION, not the tag field |
+| 2048 | `2048` `numbers` `html5` `mobile` `no-ads` | `snake` IS a tag and `2048` is not, which is exactly the kind of asymmetry you cannot reason to |
+| snake | `html5` `mobile` `no-ads` | itch sets platform from the project fields, so it has no platform TAGS at all |
+
+Replacements, all confirmed present in the same list: `brain-training` `educational`
+`touch-friendly` `cute` `minimalist` `2d` `difficult` `score-attack` `endless`.
+
+**Check before pasting, not after**, on the open form:
+
+```js
+Object.keys(document.forms[2].querySelector('[name="game[tags]"]').selectize.options)
+```
 
 ---
 
