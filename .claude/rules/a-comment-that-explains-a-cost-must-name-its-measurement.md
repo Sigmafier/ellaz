@@ -82,6 +82,45 @@ member list.
 scope, then make the test's population match the scope the sentence claims. All three,
 or the guard answers a narrower question than the reader is asking.
 
+## A fifth instance: the count was right and the FIELD was wrong (2026-08-30)
+
+The scope-word fix has a failure mode of its own. A letter to CrazyGames described
+ellaz as a children's platform; the operator corrected it, and the correction was
+argued from `category: "kids"` - **10 of 42** - producing the sentence *"42 games for
+all ages"*. Both counts are real and neither is the answer:
+
+```
+category: "kids"   10 of 42   which SHELF a game sits on in our own menu
+ageBand:  "kids"   25 of 42   who the game is FOR
+```
+
+CrazyGames' published rejection reason is *"content is targeted for kids"*, which is
+about the AUDIENCE. So `ageBand` governs, a majority of the catalogue is aimed at
+children, and the corrected sentence was an overclaim in the opposite direction from
+the one it fixed. Three versions of one sentence in one day: wrong about the site,
+then right about a field that does not govern, then naming which field it uses.
+
+**Two things generalise.**
+
+**When a set claim is contested, re-counting is only half the fix.** Establish WHICH
+ATTRIBUTE the reader's own rule keys on before choosing what to count. A correct count
+of the wrong field is more convincing than the original error and just as false.
+
+**It was caught by an unrelated gate printing a different denominator.** `assert:outreach`
+prints `42 games (25 kids)` for its own reasons, and that number disagreeing with the
+ten just counted is the entire tell. A tool that reports a population you did not ask
+for is worth reading - it is the only cheap source of a second opinion on a denominator.
+
+**And the same shape reached the paragraph describing a GUARD.** `docs/outreach/ledger.md`
+said *"every row's status must match the `**Status**:` line in its draft ... A
+disagreement fails the gate"*, and that was quoted as proof a status flip had been
+verified. Planted both directions: a file claiming `fired` with no fired row **reds**;
+a file claiming `draft` beside a fired row **passes silently**. The check is
+one-directional and set-based by design, because one file holds several letters at
+different stages. So the gate was right and only its description overclaimed - which is
+this rule's own subject, one level up from the code.
+
+
 ## The tell
 
 You are typing *because*, *which is cheaper*, *for free*, *costs nothing*, *a fraction
