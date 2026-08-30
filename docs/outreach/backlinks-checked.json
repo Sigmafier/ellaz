@@ -45,6 +45,21 @@
       "status": "live",
       "lastLive": "2026-08-30",
       "checked": "2026-08-30"
+    },
+    "https://www.weareteachers.com/free-teacher-resources/": {
+      "status": "expected",
+      "lastLive": null,
+      "checked": "2026-08-30"
+    },
+    "https://libraries.oc.gov/kids/play/games": {
+      "status": "expected",
+      "lastLive": null,
+      "checked": "2026-08-30"
+    },
+    "https://greenburghlibrary.org/childrens/games": {
+      "status": "expected",
+      "lastLive": null,
+      "checked": "2026-08-30"
     }
   }
 }

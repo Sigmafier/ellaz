@@ -33,6 +33,8 @@
     "reach:prospects": "node scripts/reach/prospects.mjs",
     "reach:prospects:control": "node scripts/reach/prospects.mjs --control",
     "reach:backlinks:control": "node scripts/reach/backlinks.mjs --control",
+    "reach:bing": "node scripts/reach/bing-links.mjs",
+    "reach:bing:control": "node scripts/reach/bing-links.mjs --control",
     "reach:site": "node scripts/reach/build-reach-site.mjs",
     "reach:site:control": "node scripts/reach/build-reach-site.mjs --control && node scripts/assert-reach-live.mjs --control",
     "games:check": "node scripts/games-pipeline.mjs",

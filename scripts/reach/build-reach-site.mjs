@@ -42,7 +42,7 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { gscExported, html, loadRecord, parseRows, pointsAtUs, resolve1 } from "./backlinks.mjs";
+import { coverage, gscExported, html, loadRecord, parseRows, pointsAtUs, resolve1, WATCHED } from "./backlinks.mjs";
 import { rows as ledgerRows } from "../outreach-ledger.mjs";
 import { loadPosts, parsePosts } from "./posts.mjs";
 
@@ -64,6 +64,23 @@ export async function buildPages(md, rec, { offline = false, fetchImpl = fetch, 
   // board FOR. A ledger that parses to nothing renders a page saying "0 waiting on
   // you" - not an empty section, a confident all-clear over a table it never read.
   if (!surfaces.length) throw new Error("build-reach-site: ZERO surfaces read from ledger.md - refusing to publish a board that would say there is nothing to do.");
+  // AND THE THIRD REFUSAL: a fired surface nothing watches.
+  //
+  // The coverage gate lives in `backlinks.mjs` and, until this line, only ever ran when
+  // a person typed `npm run reach:backlinks` - which is the one condition it cannot
+  // rely on, because the gap it catches opens BETWEEN sessions. This is the job that
+  // runs daily and on every `docs/outreach/*.md` push, so this is where it belongs.
+  //
+  // It REFUSES rather than warning, for the same reason the two above do: a banner on
+  // a page is exactly the mechanism that let seven fired surfaces sit unwatched for a
+  // day. The previous board stays published while this is red, so the cost is a stale
+  // board and a daily failing run - which is the alarm, and the fix is one line.
+  const cov = coverage(surfaces, rows);
+  if (cov.length)
+    throw new Error(`build-reach-site: ${cov.length} fired surface(s) have a verdict date and no instrument.\n  ` +
+      cov.join("\n  ") +
+      "\nAdd a row to docs/outreach/backlinks.md, or an exempt entry naming why no page\n" +
+      "could ever carry the link, in WATCHED in scripts/reach/backlinks.mjs.");
   const out = [];
   for (const r of rows) {
     const probe = offline ? { ok: null, why: "offline" } : await pointsAtUs(r.url, fetchImpl);
@@ -95,6 +112,8 @@ async function main() {
   console.log(`links:      ${n("live")} live · ${n("claimed")} claimed · ${n("gone")} gone · ${n("unchecked")} unchecked`);
   const w = (x) => surfaces.filter((s) => s.who === x).length;
   console.log(`surfaces:   ${surfaces.length} from ledger.md · ${w("you")} waiting on you · ${w("wait")} on a clock · ${w("last")} held back · ${w("done")} closed`);
+  console.log(`watched:    ${WATCHED.size} fired surface(s) mapped · ` +
+    `${[...WATCHED.values()].filter((v) => v === null).length} exempt with a reason`);
   const np = posts.reduce((a, f) => a + f.posts.length, 0);
   console.log(`posts:      ${np} readable from ${posts.length} draft(s) · ` +
     posts.map((f) => `${f.file} ${f.posts.length}/${f.declared}`).join(" · "));
@@ -119,7 +138,12 @@ async function control() {
   const rec = { checked: "2026-01-01", seen: {} };
   const surfaces = [
     { surface: "A group", file: "hebrew.md", status: "draft", fired: "-", due: "-", notes: "", who: "you", next: "Post it." },
-    { surface: "A list PR", file: "dev.md", status: "fired", fired: "2026-08-12", due: "2026-11-10", notes: "", who: "wait", next: "Nothing to do." },
+    // NAMED AFTER A REAL WATCHED SURFACE, because the coverage refusal is live in
+    // `buildPages` and a fixture surface no `WATCHED` key matches reds every cell
+    // below - which is the gate working, and useless as a fixture. Its own control is
+    // the `coverageFires` cell at the end, which asserts an UNWATCHED fired surface
+    // does refuse. Both directions, or this line silently disarms the third refusal.
+    { surface: "awesome-pwa (list PR)", file: "dev.md", status: "fired", fired: "2026-08-12", due: "2026-11-10", notes: "", who: "wait", next: "Nothing to do." },
     { surface: "A dead list", file: "dev.md", status: "dropped", fired: "-", due: "-", notes: "", who: "done", next: "Closed." },
   ];
   const cases = [];
@@ -141,6 +165,17 @@ async function control() {
   // renders "0 waiting on you", which is an all-clear rather than an empty section.
   await ok("zero surfaces refuses", () =>
     buildPages(md, rec, { offline: true, surfaces: [] }), "ZERO surfaces");
+  // THE THIRD REFUSAL, both directions. The happy-path cell above is the negative:
+  // a fixture whose fired surface IS in `WATCHED` builds. This is the positive, and
+  // without it renaming that fixture to a watched name silently disarms the gate.
+  await ok("a fired surface nothing watches refuses", () =>
+    buildPages(md, rec, { offline: true, surfaces: [...surfaces,
+      { surface: "A door nobody mapped", file: "dev.md", status: "fired", fired: "2026-08-30", due: "2026-11-28", notes: "", who: "wait", next: "-" }] }),
+    "no instrument");
+  // And a ledger that parses to fired-nothing is BLIND, not covered - the shape that
+  // reports a clean sweep over a table it never read.
+  await ok("a ledger with no fired surface at all is BLIND", () =>
+    buildPages(md, rec, { offline: true, surfaces: [surfaces[0]] }), "BLIND");
 
   // And the artifact itself, because "it built" says nothing about what is in it.
   const { files } = await buildPages(md, rec, { offline: true, surfaces });
@@ -160,7 +195,11 @@ async function control() {
     "a closed surface is listed once, not in both", `${(files["index.html"].match(/A dead list/g) ?? []).length}x`]);
   // A surface with no instruction must SAY so. Dropping it silently is how a board
   // reports a clean sweep over work nobody wrote down.
-  const mute = await buildPages(md, rec, { offline: true, surfaces: [{ ...surfaces[0], next: "" }] });
+  // The fired surface rides along because the coverage refusal's BLIND arm fires on a
+  // ledger with no fired row at all - correct against the real ledger, and a fixture
+  // artefact here. Dropping the BLIND arm to make this cell pass would remove the one
+  // check that stops a broken ledger parse reading as full coverage.
+  const mute = await buildPages(md, rec, { offline: true, surfaces: [{ ...surfaces[0], next: "" }, surfaces[1]] });
   cases.push([/no instruction written/.test(mute.files["index.html"]), "a surface with no instruction says so", "-"]);
   // Positive control for that one: with an instruction, the placeholder is absent.
   cases.push([!/no instruction written/.test(files["index.html"]), "...and does not say so when there is one", "-"]);

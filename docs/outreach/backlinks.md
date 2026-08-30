@@ -168,6 +168,69 @@ is the same lesson, and it has cost this repo a wrong conclusion twice.
 | `expected` | a surface was fired and no link has appeared yet. Not a link. |
 | `unchecked` | the fetch failed for our reasons, not theirs. Says nothing either way. |
 
+**Only `expected` is promoted by a fetch, and only on an ANCHOR.** A `live` row was
+confirmed by a person once, so re-checking it asks the cheap question - is our domain
+still on that page at all. A promotion is the machine making a claim nobody has
+checked, so it takes the stronger evidence: our domain inside an `href`, never merely
+somewhere in the prose. `claimed` is frozen and stays frozen, because its one row is a
+pull request whose page renders our URL inside its own diff - a fetch cannot tell that
+apart from a real listing, which is exactly why a human decides when it moves.
+
+**`NAMED, NOT LINKED` is derived and has no status of its own.** It means a
+destination wrote our domain and no anchor points at it - the single most actionable
+state here, because it is a sentence to send rather than a wait to continue. It is
+printed at the top of the board on every run. It is deliberately not one of the five
+statuses above: those are hand-writable in the table below, and a person typing this
+one would be recording a belief in the column reserved for measurements.
+
+**Until 2026-08-30 an `expected` row could never become anything else.** Measured that
+day, five days after the four Hebrew rows were written and eighty-nine before their
+verdict is due: an `expected` row fed a page carrying our link still resolved to
+`expected`. Every one of those rows would have read `expected` on 2026-11-27 whether
+or not a single editor had published us - and this is the instrument that reads that
+verdict, now that Search Console's Links panel is known to have no link graph. The
+fallback could not report a success. It could only report the absence of one.
+
+## Every fired surface is watched, or exempt with a reason
+
+`ledger.md` records what we sent; this file records what we watch. Nothing connected
+the two, so a surface could be fired with a verdict date and have no row here - and on
+its verdict day the only instrument that could read it would never have looked at the
+destination. **Measured 2026-08-30: 11 fired surfaces, 4 watched.** Seven had a date
+and no watcher.
+
+`WATCHED` in `scripts/reach/backlinks.mjs` maps every fired ledger surface either to
+the URL a link would appear on, or to `null` with the reason no page could ever carry
+one. Both directions red: an unmapped fired surface, and a mapped URL with no row in
+the table below. It is hand-kept on purpose - the next send has to say which page to
+watch, or say why there will never be one, and both are one line.
+
+Two are exempt today. **Newgrounds** - both listings were un-published by the platform,
+so the pages 404 and there is nothing to fetch. **CrazyGames** - the enquiry went to
+`submissions@` by email, and a reply is not a page.
+
+## Bing is the cross-check, and it is not the primary
+
+`npm run reach:bing` reads a Bing Webmaster Tools backlinks export with the same three
+states this repo's Search Console reader learned the hard way - `UNMEASURED` when
+nobody looked, `READ, EMPTY` when the panel was opened and reported nothing beside a
+control, and a count when an export parses. Bing has crawled this site since
+2026-08-18 and ranks it first for its own name, so it is a live index with a real
+reading of this domain, which is the property the Google panel currently lacks.
+
+It answers the wider question - who linked to us that we never asked - which no fetch
+of ours can reach, because we do not know where to look. It does not answer the
+verdict question, which is what `reach:backlinks` above does directly and without
+anybody's dashboard.
+
+**The two exports share one folder and neither reader may read the other's.** Bing's
+files carry a `bing-` prefix and both consumers were narrowed to exclude it in the same
+change that added the producer: `gsc-links.mjs` picked "the newest .csv", and this
+board's banner asked "is any filename like `/link/i`" - so `bing-links-2026-11-27.csv`
+would have been reported as a Search Console reading, which is the right number
+attributed to the wrong engine and worse than no number because nobody would question
+it.
+
 **GSC rows are DERIVED and marked `[gsc]`** — read from Search Console's own
 export, never typed here. That report is the authority on whether a link exists
 (RCH8); this table is what we believe *between* exports, and the two are shown
@@ -189,6 +252,9 @@ apart so a belief can never be mistaken for a measurement.
 | https://www.kef-lilmod.co.il/%D7%90%D7%AA%D7%A8%D7%99-%D7%94%D7%A2%D7%A9%D7%A8%D7%94/ | אתרי לימוד והעשרה - curated enrichment shelf for parents | expected | — | 2026-11-27 | **Pitched 2026-08-29.** Measured: 43 external anchors on that page, ZERO nofollow; already lists Starfall, BrainPOP, Davidson, Eureka. The only one of the four reached by a form rather than a person. |
 | https://portal.macam.ac.il/article/educational-applications-hebrew/ | פורטל מס"ע - Israeli teacher-colleges portal (.ac.il) | expected | — | 2026-11-27 | **Pitched 2026-08-29.** Measured: 21 dofollow outbound to Duolingo, Khan Academy, BrainPOP, Kahoot, Quizlet. Editorial desk, so the ask is inclusion in a round-up rather than a submission. Highest realistically-pitchable authority of the four. |
 | https://pop.education.gov.il/teaching-tools/teaching-practices/search-teaching-practices/digital-tools-building-knowledge-distance-learning/ | המרחב הפדגוגי - Ministry portal for teaching staff (.gov.il) | expected | — | 2026-11-27 | **Pitched 2026-08-29.** Measured: 33 dofollow over 19 distinct hosts (Nearpod, BrainPOP, Padlet) - **and it already cites digitalpedagogy.co**, which is why that one is sent first. Slowest to answer. |
+| https://www.weareteachers.com/free-teacher-resources/ | WeAreTeachers - *50+ Amazing Sources for Free Teacher Resources* | expected | — | 2026-11-28 | **Pitched 2026-08-30** (letter 4, `english-directories.md`). Measured that day by `reach:prospects`: **208 external anchors, zero nofollow**, page modified 2026-07-28 - the largest audience in the English lane by a wide margin. This URL is the ROUNDUP the letter asked to be added to, not their homepage and not the contact form we submitted through: a link would appear here or nowhere. The submit was confirmed by the server string *"Thanks for contacting us"* with their Gravity Forms honeypot read empty immediately before the click, which is the middle of the evidence ladder - weaker than a receipt, stronger than a wire 200. |
+| https://libraries.oc.gov/kids/play/games | OC Public Libraries - the kids' online-games shelf | expected | — | 2026-11-28 | **Pitched 2026-08-30** (letter 5). **Its number is the one that was corrected**: 167 dofollow anchors across 28 hosts sounds like reach and is one organisation - `ocpl.*`, `catalog.ocpl.org`, a dozen *Friends of* nonprofits, all delegations of `oc.gov`. **Four genuinely third-party sites**: funbrain, nick, nickjr, pbskids. So the ceiling here is low and it was sent anyway as the library lane's single test. Evidence: a stored-record token - `/form/inquiries/confirmation?token=...` plus *"New submission added to Inquiries."* The image CAPTCHA was left empty for the operator; nothing here solves one. |
+| https://greenburghlibrary.org/childrens/games | Greenburgh Public Library - the children's games page | expected | — | 2026-11-28 | **Pitched 2026-08-30** (letter 6), and the best-evidenced send in the English lane: LibAnswers emailed *"Your submission to LibAnswers was received."* from `ask@greenburghlibrary.libanswers.com` at 7:57 PM, 1,806 chars, quoting our question verbatim and carrying `ellaz.fun` - **a copy a third party holds**, the top of the ladder. Chosen because its shelf is genuinely external where OC's was not: 25 outside children's game sites, each with its own description, one of them Spanish. **The receipt was absent on the first check four minutes earlier** - a true not-yet, and a not-yet read as a never is how a door gets knocked twice. |
 <!-- /backlinks:rows -->
 
 ## Three things answer TRUE and are none of them a backlink

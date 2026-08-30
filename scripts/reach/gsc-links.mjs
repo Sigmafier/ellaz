@@ -79,10 +79,20 @@ export function parseLinks(csv) {
   return { rows, header: header.join(","), reason: countCol === -1 ? "no column parsed as a link count" : "" };
 }
 
-/** The newest .csv in the exports folder, or null. */
+/**
+ * The newest Search Console .csv in the exports folder, or null.
+ *
+ * `bing-*` IS EXCLUDED, and that exclusion is the whole point of the prefix. This used
+ * to be "the newest .csv", written when Search Console was the only producer; the
+ * moment `bing-links.mjs` landed, a Bing backlinks export dropped in this folder would
+ * have been the newest .csv and would have been reported here as a Search Console
+ * reading - the right number attributed to the wrong engine, which is worse than no
+ * number because nobody would question it. Selector and producer landed together.
+ */
+const BING = /^bing-/i;
 function newestExport() {
   if (!existsSync(DIR)) return null;
-  const files = readdirSync(DIR).filter((f) => f.toLowerCase().endsWith(".csv"))
+  const files = readdirSync(DIR).filter((f) => f.toLowerCase().endsWith(".csv") && !BING.test(f))
     .map((f) => ({ f, path: join(DIR, f), mtime: statSync(join(DIR, f)).mtimeMs }))
     .sort((a, b) => b.mtime - a.mtime);
   return files[0] ?? null;

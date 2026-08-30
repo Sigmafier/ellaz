@@ -84,7 +84,12 @@ export function parseRows(md) {
 export function gscExported(repo, readdir = readdirSync) {
   const dir = join(repo, "docs/outreach/exports");
   if (!existsSync(dir)) return { measured: false };
-  const hit = readdir(dir).filter((f) => /link/i.test(f));
+  // `bing-*` is excluded. The matcher is /link/i, and `bing-links-2026-11-27.csv`
+  // matches it - so once Bing became a second producer into this one folder, a Bing
+  // export would have suppressed this board's "nobody exported Search Console's Links
+  // report" banner on the strength of a different engine. The banner is about whether
+  // GOOGLE has been read, and no Bing file can answer that.
+  const hit = readdir(dir).filter((f) => /link/i.test(f) && !/^bing-/i.test(f));
   return { measured: hit.length > 0, files: hit };
 }
 
@@ -95,10 +100,37 @@ export function loadRecord() {
 }
 
 /**
- * Is our domain in the body of that page?
+ * NAMED and LINKED are two different facts, and only one of them is a backlink.
  *
- * Three outcomes, deliberately not two. `false` means we fetched it and our link
- * is not there; `null` means we could not fetch it, which says nothing at all.
+ * A page that writes "we like ellaz.fun" in its prose contains our domain and
+ * points nobody at us. `body.includes()` cannot tell those apart, and for a row a
+ * human already confirmed that is fine - the question there is only whether the
+ * page still mentions us at all. For a row being PROMOTED it is not fine, because
+ * nobody has looked at that page and the machine's reading is the whole evidence.
+ *
+ * WRITE THE MATCHER AGAINST THE ARTIFACT, NOT AGAINST AN EXPECTATION. Served HTML
+ * quotes an href with `"`, with `'`, or with nothing at all, and minifiers emit all
+ * three; the attribute may sit behind any number of other attributes and any amount
+ * of whitespace including newlines. The control below feeds it all four shapes plus
+ * a prose-only page, because a matcher that cannot report the negative reports every
+ * page as linking to us and one that cannot report the positive reports none.
+ *
+ * It CANNOT see an anchor a script builds after load, and there is no fix for that
+ * from here. That case reads `named` at best and `absent` at worst - which is why
+ * `named` is printed loudly rather than folded into "no".
+ */
+export function linkShape(body, site = SITE) {
+  const hrefs = [...body.matchAll(/<a\b[^>]*?\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi)]
+    .map((m) => m[1] ?? m[2] ?? m[3] ?? "");
+  return { linked: hrefs.some((h) => h.includes(site)), named: body.includes(site), anchors: hrefs.length };
+}
+
+/**
+ * Is our domain in the body of that page, and is it in an ANCHOR?
+ *
+ * Three outcomes for `ok`, deliberately not two. `false` means we fetched it and
+ * our domain is not there; `null` means we could not fetch it, which says nothing
+ * at all. `linked` is the stronger fact and is what a promotion is allowed to use.
  */
 export async function pointsAtUs(url, fetchImpl = fetch) {
   try {
@@ -109,7 +141,9 @@ export async function pointsAtUs(url, fetchImpl = fetch) {
     });
     if (!res.ok) return { ok: null, why: `HTTP ${res.status}` };
     const body = await res.text();
-    return { ok: body.includes(SITE), why: `${body.length} B` };
+    const shape = linkShape(body);
+    const how = shape.linked ? "linked" : shape.named ? "NAMED, NOT LINKED" : "absent";
+    return { ok: shape.named, linked: shape.linked, named: shape.named, why: `${body.length} B, ${how}` };
   } catch (e) {
     return { ok: null, why: String(e.message || e).slice(0, 60) };
   }
@@ -118,16 +152,40 @@ export async function pointsAtUs(url, fetchImpl = fetch) {
 /**
  * Resolve one row against what we just fetched and what we remember.
  *
- * `claimed` and `expected` are NEVER promoted by a fetch here - a PR page mentions
- * ellaz.fun in its own diff, so "the string is on the page" is true of a link that
- * does not exist yet. Only a row already asserting a real link is re-checked.
+ * `claimed` IS FROZEN AND MUST STAY FROZEN. Its one row is a pull request whose page
+ * renders our URL inside its own diff, so both `named` and `linked` are true of a
+ * link that does not exist. No fetch can tell that page apart from a real listing,
+ * which is exactly why a human decides when a `claimed` row moves.
+ *
+ * `expected` WAS FROZEN TOO, AND THAT WAS THE DEFECT. Measured 2026-08-30, five days
+ * after the four Hebrew rows were written and eighty-nine before their verdict is due:
+ * an `expected` row fed a page carrying our link still resolved to `expected`. Every
+ * one of those rows would have read `expected` on 2026-11-27 whether or not a single
+ * editor had published us, and `reach:backlinks` is the instrument that reads that
+ * verdict now that Search Console's Links panel is known to have no link graph. The
+ * fallback could not report a success. It could only report the absence of one, which
+ * is the shape this repository keeps finding: a non-verdict nobody argues with.
+ *
+ * SO IT PROMOTES, AND ON THE STRONGER EVIDENCE. A `live` row was confirmed by a
+ * person once, so re-checking it asks the cheap question - is our domain still on
+ * that page at all. A promotion is the machine making a claim nobody has checked, so
+ * it takes an ANCHOR: `linked`, never `named`. The difference is not theoretical
+ * here, because two of the four destinations are pages that could plausibly write
+ * our name in prose while linking somewhere else entirely.
+ *
+ * A `named` page that is not `linked` stays `expected` and is PRINTED - see `board`.
+ * Folding it into "no" would hide the single most actionable state in the file: they
+ * wrote about us and the link did not survive their editor.
  */
 export function resolve1(row, probe, seen) {
   const was = seen[row.url];
-  if (row.status === "claimed" || row.status === "expected") return { ...row, probe, lastLive: was?.lastLive ?? null };
-  if (probe.ok === null) return { ...row, status: "unchecked", probe, lastLive: was?.lastLive ?? null };
+  const lastLive = was?.lastLive ?? null;
+  if (row.status === "claimed") return { ...row, probe, lastLive };
+  if (probe.ok === null) return { ...row, status: "unchecked", probe, lastLive };
+  if (row.status === "expected")
+    return probe.linked ? { ...row, status: "live", probe, lastLive: today() } : { ...row, probe, lastLive };
   if (probe.ok) return { ...row, status: "live", probe, lastLive: today() };
-  return { ...row, status: was?.lastLive ? "gone" : row.status, probe, lastLive: was?.lastLive ?? null };
+  return { ...row, status: was?.lastLive ? "gone" : row.status, probe, lastLive };
 }
 
 function board(rows, gsc, checked) {
@@ -137,6 +195,19 @@ function board(rows, gsc, checked) {
   L.push("─".repeat(54));
   L.push(`  ${MARK.live} ${n("live")} live    ${MARK.claimed} ${n("claimed")} claimed` +
          `    ${MARK.gone} ${n("gone")} gone    ${MARK.unchecked} ${n("unchecked")} unchecked`);
+  // NAMED AND NOT LINKED IS THE MOST ACTIONABLE STATE IN THE FILE, so it is printed
+  // above everything else rather than folded into `expected`. It means a destination
+  // wrote about us and the link did not survive their editor - which is a sentence to
+  // send, not a wait to continue. It has no status of its own on purpose: the five
+  // statuses are hand-writable in `backlinks.md` and this one is DERIVED from a fetch,
+  // so a person typing it would be recording a belief in the column reserved for
+  // measurements.
+  const named = rows.filter((r) => r.probe?.named && !r.probe?.linked);
+  if (named.length) {
+    L.push("");
+    L.push("!  NAMED, NOT LINKED - they wrote our domain and no anchor points at it");
+    for (const r of named) L.push(`    ${r.url}`);
+  }
   for (const s of ["live", "gone", "claimed", "expected", "unchecked"]) {
     const hit = rows.filter((r) => r.status === s);
     if (!hit.length && s !== "live") continue;
@@ -155,6 +226,61 @@ function board(rows, gsc, checked) {
     }
   }
   return L.join("\n");
+}
+
+/**
+ * WHICH FIRED SURFACES IS ANYTHING WATCHING? The gate that stops this file going stale.
+ *
+ * `ledger.md` records what we sent. This file records what we watch. Nothing connected
+ * the two, so a surface could be fired with a verdict date and have NO row here - and
+ * then on its verdict day the only instrument that could read it has never looked at
+ * the destination. Measured 2026-08-30: 11 fired surfaces, 4 watched. Seven had a date
+ * and no watcher.
+ *
+ * THE MAP IS HAND-KEPT AND THAT IS THE POINT - a fired surface with no entry REDS, so
+ * the next send has to say which page a link would appear on, or say why there is
+ * never going to be one. Both are one line. Neither can be skipped.
+ * (`.claude/rules/a-path-filter-is-a-hand-kept-mirror-of-an-import-graph.md` is the
+ * same hand-kept-mirror shape; there nothing checked the mirror, which is why this one
+ * is checked in both directions.)
+ *
+ * BOTH DIRECTIONS FIRE. An unmapped fired surface reds; so does a mapped URL that is
+ * not in the table, because a map pointing at a row nobody wrote watches nothing while
+ * reading as covered.
+ */
+export const WATCHED = new Map([
+  ["Hebrew directory - digitalpedagogy.co", "https://digitalpedagogy.co/"],
+  ["Hebrew directory - kef-lilmod.co.il", "https://www.kef-lilmod.co.il/%D7%90%D7%AA%D7%A8%D7%99-%D7%94%D7%A2%D7%A9%D7%A8%D7%94/"],
+  ["Hebrew directory - portal.macam.ac.il", "https://portal.macam.ac.il/article/educational-applications-hebrew/"],
+  ["Ministry portal - pop.education.gov.il", "https://pop.education.gov.il/teaching-tools/teaching-practices/search-teaching-practices/digital-tools-building-knowledge-distance-learning/"],
+  ["WeAreTeachers (letter 4)", "https://www.weareteachers.com/free-teacher-resources/"],
+  ["OC Public Libraries (letter 5)", "https://libraries.oc.gov/kids/play/games"],
+  ["Greenburgh Public Library (letter 6)", "https://greenburghlibrary.org/childrens/games"],
+  ["itch.io", "https://ytrofr.itch.io/sudoku"],
+  ["awesome-pwa (list PR)", "https://github.com/hemanth/awesome-pwa/pull/465"],
+  // EXEMPT, each with the reason, because "no page to watch" is a finding and not an
+  // oversight. A `null` here is a claim that no URL could ever carry the link.
+  ["Newgrounds", null],   // both listings UN-PUBLISHED by the platform; the pages 404
+  ["CrazyGames enquiry", null],   // an email to submissions@; a reply is not a page
+]);
+
+/** Returns the problems, empty when every fired surface is watched or exempt. */
+export function coverage(ledger, rows) {
+  const urls = new Set(rows.map((r) => r.url));
+  const problems = [];
+  const fired = ledger.filter((r) => r.status === "fired" || r.status === "spent");
+  if (!fired.length) problems.push("BLIND: no fired surface found in ledger.md - the matcher read nothing");
+  for (const r of fired) {
+    // The ledger's Surface cell carries markdown emphasis and parenthetical banners, so
+    // match on a PREFIX of the plain text rather than on the whole cell - which would go
+    // stale the first time somebody bolds a word.
+    const key = [...WATCHED.keys()].find((k) => r.surface.replace(/[*`]/g, "").startsWith(k));
+    if (key === undefined)
+      problems.push(`UNWATCHED: "${r.surface.replace(/[*`]/g, "").slice(0, 60)}" is ${r.status} with a verdict due ${r.due}, and nothing in backlinks.md watches it`);
+    else if (WATCHED.get(key) && !urls.has(WATCHED.get(key)))
+      problems.push(`DANGLING: ${key} is mapped to ${WATCHED.get(key)}, which has no row in backlinks.md`);
+  }
+  return problems;
 }
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -452,6 +578,20 @@ async function main() {
     writeFileSync(PAGE, html(out, gsc, checked, ledgerRows(REPO)) + "\n");
     console.log(`page:       file://${PAGE}`);
   }
+  // The coverage gate runs on every invocation, offline included, because it reads two
+  // files and no network - and the one run where it matters is the one nobody thought
+  // to make special.
+  const cov = coverage(ledgerRows(REPO), rows);
+  console.log(`coverage:   ${WATCHED.size} of the ledger's fired surfaces mapped, ` +
+    `${[...WATCHED.values()].filter((v) => v === null).length} exempt with a reason`);
+  if (cov.length) {
+    console.error("");
+    for (const c of cov) console.error(c);
+    console.error("\nA fired surface nothing watches has a verdict date and no instrument.");
+    console.error("Add its row to docs/outreach/backlinks.md, or an exempt entry naming why");
+    console.error("no page could ever carry the link, in WATCHED above.");
+    process.exit(1);
+  }
   const gone = out.filter((r) => r.status === "gone");
   if (gone.length) { console.error(`\nGONE: ${gone.map((r) => r.url).join(", ")}`); process.exit(1); }
   console.log(`OK  ${out.filter((r) => r.status === "live").length} live, nothing lost.\n`);
@@ -480,7 +620,65 @@ function control() {
   check("absent + was live -> gone", resolve1(base, { ok: false }, seen).status, "gone");
   check("absent + never live -> unchanged", resolve1(base, { ok: false }, {}).status, "live");
   check("fetch failed -> unchecked, NOT gone", resolve1(base, { ok: null }, seen).status, "unchecked");
-  check("claimed is never promoted", resolve1({ ...base, status: "claimed" }, { ok: true }, seen).status, "claimed");
+  check("claimed is never promoted", resolve1({ ...base, status: "claimed" }, { ok: true, linked: true }, seen).status, "claimed");
+
+  // THE PROMOTION, BOTH DIRECTIONS. The second is the load-bearing one: a rule that
+  // promotes on `named` passes the first check and turns every page that merely writes
+  // our domain into a backlink.
+  const exp = { ...base, status: "expected" };
+  check("expected + an ANCHOR -> live", resolve1(exp, { ok: true, named: true, linked: true }, {}).status, "live");
+  check("expected + a MENTION only -> stays expected", resolve1(exp, { ok: true, named: true, linked: false }, {}).status, "expected");
+  check("expected + absent -> stays expected", resolve1(exp, { ok: false, named: false, linked: false }, {}).status, "expected");
+  check("expected + fetch failed -> unchecked", resolve1(exp, { ok: null }, {}).status, "unchecked");
+
+  // THE MATCHER, AGAINST THE SHAPES A SERVER ACTUALLY EMITS. Written from `global.css`
+  // once before and it missed the minified form, which is why all four quoting shapes
+  // are here rather than the one anybody writes by hand.
+  const A = `<a href="https://ellaz.fun/">x</a>`;
+  check("href double-quoted", linkShape(A).linked, true);
+  check("href single-quoted", linkShape(`<a href='https://ellaz.fun/'>x</a>`).linked, true);
+  check("href unquoted (minified)", linkShape(`<a href=https://ellaz.fun/ class=y>x</a>`).linked, true);
+  check("href behind other attributes and a newline",
+    linkShape(`<a\n  class="c" data-x="1"\n  href="https://ellaz.fun/games/">x</a>`).linked, true);
+  check("prose mention is NAMED, not LINKED", linkShape("<p>we like ellaz.fun a lot</p>").linked, false);
+  check("  and it IS named", linkShape("<p>we like ellaz.fun a lot</p>").named, true);
+  check("an anchor elsewhere does not count", linkShape(`<a href="https://other.test/">ellaz.fun</a>`).linked, false);
+  check("a page with no anchors at all", linkShape("<p>nothing</p>"), { linked: false, named: false, anchors: 0 });
+  // The positive control on the matcher itself: it must SEE anchors, or every `linked`
+  // reading above is false for the same reason and the negatives pass vacuously.
+  check("the matcher finds anchors at all", linkShape(A).anchors, 1);
+
+  // COVERAGE, both directions plus its own blind case.
+  const led = (surface, status = "fired") => ({ surface, status, due: "2026-11-27" });
+  const bl = (url) => ({ url });
+  check("a fired surface with no map entry REDS",
+    coverage([led("Some New Door (letter 9)")], []).length, 1);
+  check("a mapped surface whose URL has no row REDS",
+    coverage([led("itch.io")], []).length, 1);
+  check("a mapped surface with its row is clean",
+    coverage([led("itch.io")], [bl("https://ytrofr.itch.io/sudoku")]).length, 0);
+  check("an EXEMPT surface needs no row",
+    coverage([led("Newgrounds")], []).length, 0);
+  check("a draft surface is not yet watched",
+    coverage([led("Some New Door (letter 9)", "draft")], []).length, 1);   // BLIND, not UNWATCHED
+  check("  and the reason is BLIND",
+    coverage([led("Some New Door (letter 9)", "draft")], [])[0].startsWith("BLIND"), true);
+  check("markdown emphasis in the Surface cell still matches",
+    coverage([led("Newgrounds **(BOTH UN-PUBLISHED)**")], []).length, 0);
+
+  // THE FOLDER HAS TWO PRODUCERS NOW. Both directions, because a matcher that answers
+  // `false` to everything passes the exclusion check and reports the GSC panel
+  // unmeasured forever.
+  // REPO is passed rather than a made-up path: `gscExported` short-circuits on
+  // `existsSync`, so a nonexistent repo returns `measured:false` before the injected
+  // readdir is ever called - and every assertion below would pass without the matcher
+  // running once.
+  const listing = (names) => gscExported(REPO, () => names);
+  check("a GSC reading note counts as read", listing(["links-panel-read-2026-08-30.md"]).measured, true);
+  check("a Bing export does NOT", listing(["bing-links-2026-11-27.csv"]).measured, false);
+  check("a Bing export beside a GSC note still reads the note",
+    listing(["bing-links-2026-11-27.csv", "links-panel-read-2026-08-30.md"]).measured, true);
+  check("an unrelated file is not a reading", listing(["README.md"]).measured, false);
 
   return Promise.all([
     pointsAtUs("https://a.test/", fake(`<a href="https://${SITE}/">x</a>`)).then((r) => check("body has us", r.ok, true)),
