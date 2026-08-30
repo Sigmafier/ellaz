@@ -366,7 +366,20 @@ anything", which is not true.
 
 ---
 
-## The support letter - drafted 2026-08-30, composed and NOT sent
+## The support letter - SENT 2026-08-30 17:56, confirmed in Sent
+
+**Sent and confirmed from Gmail's own Sent folder**, not from the compose window: to
+`support@newgrounds.com`, 17:56, subject and body as below. The CrazyGames letter sits
+directly beneath it at 17:39 - two letters, two companies, seventeen minutes apart, and
+the Sent list is the thing that keeps them straight.
+
+**The allowlist was done FIRST, and it is a real step rather than a note.** A Gmail filter
+now reads `from:(tomfulp@ngmail.newgrounds.com)` -> `Never send it to Spam`, verified by
+re-reading the settings list rather than by trusting the confirmation toast, with the
+account's three pre-existing filters untouched. Newgrounds' own contact wiki says every
+one of their emails comes from that address. Without the filter, a reply landing in spam
+is indistinguishable from being ignored - and "they never answered" is exactly the wrong
+conclusion to reach about a platform we may want to go back to.
 
 **Where it goes**: `support@newgrounds.com`, named on `newgrounds.com/wiki/contact-us` as
 their recommended method. **Replies come from `tomfulp@ngmail.newgrounds.com` - allowlist
