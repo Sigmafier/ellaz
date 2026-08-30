@@ -98,3 +98,28 @@ Full audit: [`docs/outreach/audit.md`](../docs/outreach/audit.md). Rule:
 [`a-hand-authored-number-that-leaves-the-repo.md`](../.claude/rules/a-hand-authored-number-that-leaves-the-repo.md).
 The law lives in `/reach-doctrine` and `/reach-playbook`, with `/reach` as the
 map over them.
+
+## Publishing one: four traps, none of which any gate here can see
+
+Three bundles went from a gated zip to a public listing on 2026-08-30, and every
+one of these cost real time. Full narrative:
+[`docs/outreach/itch.md`](outreach/itch.md).
+
+- **Saving is not publishing.** Visibility is its own control and Save does not
+  move it. Sudoku sat at 404 for everyone for fifteen minutes while every field
+  read back correct.
+- **The fields that shape a listing may not exist until the artifact does.**
+  itch's embed block appears on the edit page only after a playable file is
+  attached, so a project published straight from the creation form goes live in
+  the host's default frame. 2048 went out at 640x360 with its board clipped.
+- **A file is identified by its content, not by its name.** Two `ellaz-doors`
+  folders existed and the one being rebuilt was not the one being opened, so
+  Snake's first upload was the previous night's build. Hand over a byte count
+  and the entry chunk name beside the path.
+- **Verify the listing by what it SERVES.** Vite derives
+  `standalone-<hash>.js` from the bytes, so the served `index.html` naming a
+  chunk is the build, and a form that is wrong cannot agree with it. Snake took
+  four attempts and the form was green on all four.
+
+The last two are proposed as reach-doctrine `RCH14`; the second is
+`seo-playbook` step D14.

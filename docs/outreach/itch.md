@@ -297,6 +297,42 @@ radio (`Draft` / `Restricted` / `Public`) and `Save` does not move it. Sudoku sa
 iframe').width` tells you what a visitor gets, and the presence or absence of the
 `Run game` button is how you know autostart really took.
 
+## The listing said the right thing four times while serving the wrong build
+
+**Snake took four uploads to serve the build we meant, and the form was green on every
+one of them.** The page rendered, the game played, the fields read back correct. What
+was on screen was the previous bundle.
+
+Two independent causes, neither of which the form can show you:
+
+- **Two handover folders with the same name.** The package was being rebuilt at
+  `C:\Users\ytr_o\ellaz-doors\` while the operator was opening
+  `C:\Users\ytr_o\OneDrive\Desktop\ellaz-doors\`, whose `ellaz-snake.zip` was from the
+  previous night. Same filename, same size to the eye, twelve hours apart. The upload
+  was never at fault.
+- **A scripted click does not reach itch's uploader.** Ticking "played in the browser"
+  with `el.click()` flips the checkbox in the DOM and the component keeps its own state,
+  so Save writes back what it still believes. A real mouse click reaches it, and itch's
+  own reaction - the platform checkboxes disappearing - is the proof the handler ran.
+  When a control needs a trusted event, the tell is that the page does not react beyond
+  the pixel you changed.
+
+**The instrument that settled it, in seconds, every time**: the entry chunk's name.
+Vite derives `standalone-<hash>.js` from the bytes, so the served `index.html` naming a
+chunk IS the build, and no click landing in the wrong place can make it agree.
+
+```
+served by the listing        standalone-SFusrQJJ.js   <- the old upload
+the zip we handed over       standalone-tBBZWxFJ.js   <- the fix
+```
+
+And the control that makes it evidence rather than a coincidence: the superseded upload,
+fetched by its own id, still reported `SFusrQJJ`. The probe could say either.
+
+**So: hand the file over by CHECKSUM, and verify the listing by CONTENT.** Print the
+byte count and the entry chunk beside the path in the checklist, and after publishing,
+read the hashed name off the public page with no session. Proposed as `RCH14`.
+
 ## What a listing here actually buys, measured - and it is not a link
 
 **itch nofollows every external URL a user supplies, everywhere on the platform.**
