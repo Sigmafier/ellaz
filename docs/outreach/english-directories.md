@@ -1,7 +1,8 @@
 # English ed-tech editors - three letters, prepared and NOT sent
 
 **Status**: draft, and that word now covers three letters rather than four.
-**Letters 4 (weareteachers.com) and 5 (libraries.oc.gov) were both SENT 2026-08-30**;
+**Letters 4 (weareteachers.com), 5 (libraries.oc.gov) and 6 (greenburghlibrary.org)
+were all SENT 2026-08-30**;
 letters 1 to 3 are still held and nothing about them has changed. The header stays `draft` because that is what the ledger
 gate reads it as - a file holding several surfaces at different stages is `draft` while
 any of them is, and the per-surface truth lives in the rows. Do not read this line as
@@ -304,7 +305,7 @@ The angle is the one no other letter here uses, because it only matters to a lib
 
 ---
 
-## Letter 6 - greenburghlibrary.org  **(the second library, and a genuinely external shelf)**
+## Letter 6 - greenburghlibrary.org  **(SENT 2026-08-30)**
 
 **Why this one and not another library.** OC's page counted 167 dofollow anchors and
 turned out to point mostly at its own county ecosystem. Greenburgh's does not: read on
@@ -328,6 +329,16 @@ Question (required), More Detail, Email (required), Name (required), library car
 site**, and Ask a Librarian is built for patrons asking reference questions, which we are
 not. That mismatch goes in the letter rather than being papered over; a librarian will
 spot it in one line and the alternative is pretending not to have noticed.
+
+**Sent 2026-08-30.** LibAnswers answered *"Thank you! We will contact you when the
+question is answered."* and cleared the form. Body hash-verified before the click:
+1,378 chars, sha256 `9d292820f7d5108b`. The Question field took the one-line ask
+because `pquestion` is a single-line input, and the letter went in More Detail. All six
+hidden fields were plumbing carrying values, so unlike the WeAreTeachers form there was
+no honeypot to leave alone. **The confirmation box was ticked deliberately** - that
+receipt would be a copy somebody else holds, which is a better grade than a string on a
+page - and it had not arrived when checked minutes later, with `newer_than:1d`
+returning 20 messages as the control. A not-yet, not a never.
 
 > Subject: One entry for the games list, and it covers the Spanish gap too
 >
