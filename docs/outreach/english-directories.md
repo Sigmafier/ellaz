@@ -239,6 +239,62 @@ grade is final.
 
 ---
 
+## Letter 5 - libraries.oc.gov  **(the library lane's single test)**
+
+**And the honest revision of why it is here.** It was picked on 2026-08-30 for "167
+external anchors, every one dofollow", which is a true number and a misleading one.
+Reading the hosts behind it: `ocpl.org`, `catalog.ocpl.org`, `ocpl.libcal.com`,
+`ocpl.overdrive.com`, `ocpl.kanopy.com`, `ocpl.beanstack.org` and a dozen *Friends of
+the X Library* nonprofits, all external only because they are different registrable
+domains from `oc.gov`. **The genuinely third-party sites that page sends a reader to
+are four**: funbrain, nick, nickjr, pbskids.
+
+So the case is not reach. It is that this is a `.gov` children's shelf with four names
+on it, we would be the fifth, and the fit is better than one or two of the four. That
+is a smaller claim and it is the true one.
+
+**The door**: `libraries.oc.gov/contact/inquiries`, topic **General Inquiry** - the
+dropdown has no resource-suggestion category, and the page explicitly routes book
+marketing and purchase suggestions elsewhere, so General Inquiry is the honest pick
+rather than a stretch. **The form carries a CAPTCHA**, so it cannot be submitted by
+anyone but a person: fill, then hand over.
+
+The angle is the one no other letter here uses, because it only matters to a library.
+
+> Subject: A free games site for the kids page, no account and nothing recorded
+>
+> Hello,
+>
+> Your children's games page lists four outside sites. I would like to suggest a fifth,
+> and I will keep it short because you have presumably been asked this before.
+>
+> ellaz.fun is a set of browser games for children. What I think makes it fit a library
+> page rather than a general list is that it asks a child for nothing. There is no
+> account and no way to make one, no email, no name, no age, no sign-in of any kind.
+> Nothing about who played is recorded or sent anywhere, because there is no server to
+> send it to. It is not a privacy policy promising restraint, it is that the capability
+> does not exist.
+>
+> Practically, that means it opens on a public terminal in one click, needs no
+> installation and no plugin, and behaves the same on a phone a parent hands over in the
+> reading room.
+>
+> The limitation is real and it is sharper in a library than anywhere else. Because
+> there are no accounts, whatever a child collects is stored in that browser on that
+> machine. On a shared public computer that means progress does not follow them home,
+> and the next child may find someone else's. For a twenty-minute visit it does not
+> matter. For anything a family wants to keep, it is the wrong tool and I would rather
+> say that than have a parent discover it.
+>
+> If it is worth a look, ellaz.fun/games/kids/ is the page that matches yours.
+>
+> There is nothing being sold and no company here, so this needs no reply.
+>
+> Yatir
+> yatiroffer@gmail.com
+
+---
+
 ## Provenance
 
 | Claim | Where it comes from |
@@ -255,6 +311,8 @@ grade is final.
 | there is no paid tier and nothing is sold | there is no payment path in the repo: no checkout, no plan, no billing. The site has no backend at all |
 | nothing is collected in exchange for anything | no account exists; `CLAUDE.md` § What may leave the machine - anonymous events only, never `identify()` |
 | weareteachers 208 anchors, 0 nofollow, modified 2026-07-28 | `npm run reach:prospects`, 2026-08-30, recorded in `prospects-checked.json` |
+| the OC page links to four third-party sites | read off the served page 2026-08-30: funbrain, nick, nickjr, pbskids. The other 24 hosts are `ocpl.*` and *Friends of* nonprofits |
+| the OC form has a CAPTCHA and no suggestion topic | fetched 2026-08-30; the topic list is Collection / Discover and Go / Programs / OC Stories / OC READ / Technical Support / Administration / General Inquiry / Genealogy |
 | the LinkedIn field is a honeypot | read off the served form 2026-08-30; the same shape as the macam Gravity Form on 2026-08-29 |
 
 **66% of impressions on bare/English URLs**: `docs/outreach/exports/performance-2026-08-21/`.

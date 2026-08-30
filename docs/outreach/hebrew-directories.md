@@ -59,7 +59,7 @@ directions, and only reading the pages back showed it:
 |---|---|---|
 | 3 `portal.macam` | sent | **agreed, and better**: `תודה על הודעתך.` rendered by Gravity Forms, the form element gone from the DOM. A SERVER confirmation - the strongest evidence available anywhere in this lane |
 | 2 `kef-lilmod` | sent, no confirmation email | **nothing to read** - the tab was closed before it could be checked, and no receipt exists in any case. Unverifiable, permanently |
-| 4 `pop.education.gov.il` | sent | **not checked YET, but checkable** - it is an email, so a copy is sitting in the operator's Sent folder. The Gmail connector was expired all afternoon and only activates on a Claude Code restart, so confirming it is a next-session job rather than an impossible one |
+| 4 `pop.education.gov.il` | sent | **CHECKED 2026-08-30, and it is the strongest grade here** - a copy held by a third party. To `pop@education.gov.il`, Aug 29 2026 2:42 PM, 905 chars, naming `ellaz.fun` and the reply address. **But From is `ytrofr@gmail.com` (`/u/0`), not `yatiroffer@gmail.com` (`/u/1`)** - the letter's own text gives the other address, and a Reply goes to the From, so this door's answer arrives in a mailbox nobody is watching for this lane. Watch both. It also came within one search of being recorded as never sent: `/u/1` returned zero, and the positive control fired, which proved the instrument and said nothing about the population |
 | 1 `digitalpedagogy` | sent | **contradicted it, on the first attempt.** All 1003 characters still in the textarea, the name still in its field, zero success markers. It went on the SECOND attempt once the reCAPTCHA was solved by hand |
 
 Door 1's cause was two lines away: `#g-recaptcha-response` was **empty**, and

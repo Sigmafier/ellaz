@@ -223,14 +223,35 @@ async function get(url) {
  * against each other, and these are not comparable - a `.gov.il` that nofollows is
  * worth more attention than a blog that does not.
  */
+/**
+ * ANCHORS ARE NOT DESTINATIONS, AND THE DIFFERENCE DECIDED A LETTER.
+ *
+ * `libraries.oc.gov/kids/play/games` measured **167 external dofollow anchors** on
+ * 2026-08-30 and was ranked second in the whole file on that number. Reading the
+ * hosts behind them: `ocpl.org`, `catalog.ocpl.org`, `ocpl.libcal.com`,
+ * `ocpl.overdrive.com`, `ocpl.kanopy.com`, `ocpl.beanstack.org`, plus a dozen
+ * "Friends of the X Library" nonprofits - the county's own ecosystem, external only
+ * because `ocpl.org` is a different registrable domain from `oc.gov`. The genuinely
+ * third-party sites it links to are **four**: funbrain, nick, nickjr, pbskids.
+ *
+ * A host check cannot see an ORGANISATION, and no list of noise domains will ever
+ * contain somebody else's sibling domain. So the threshold moves onto the thing that
+ * is not inflatable by repetition: how many DISTINCT hosts this page is willing to
+ * send a reader to. 167 anchors across 27 hosts and 167 anchors to one host are the
+ * same number and opposite facts.
+ */
 export function verdict(m, fresh) {
   if (m.external === 0) return { v: "blind", why: "no external anchors found - the matcher read nothing" };
   const year = Number(fresh.on?.slice(0, 4));
   const cold = Number.isFinite(year) && year < new Date().getFullYear() - 1;
   if (cold) return { v: "dormant", why: `newest date on the page is ${fresh.on}` };
   if (m.dofollow === 0) return { v: "nofollow", why: `all ${m.external} external anchors are nofollow - readers only, never authority` };
-  if (m.dofollow >= 5) return { v: "TAKE", why: `${m.dofollow} of ${m.external} external anchors are dofollow` };
-  return { v: "thin", why: `only ${m.dofollow} dofollow of ${m.external}` };
+  const n = m.hosts.length;
+  if (m.dofollow >= 5 && n >= 5)
+    return { v: "TAKE", why: `${m.dofollow} of ${m.external} external anchors are dofollow, across ${n} distinct hosts` };
+  if (m.dofollow >= 5)
+    return { v: "thin", why: `${m.dofollow} dofollow anchors but only ${n} distinct host(s) - repetition, not reach` };
+  return { v: "thin", why: `only ${m.dofollow} dofollow of ${m.external}, across ${n} host(s)` };
 }
 
 /* ----------------------------------------------------------------- control */
@@ -286,6 +307,17 @@ export function control2() {
   // with is the reading nobody checks.
   if (readsAsDocument(WAF) !== false) bad.push({ field: "readsAsDocument(challenge)", got: true, want: false });
   if (readsAsDocument(FIXTURE2) !== true) bad.push({ field: "readsAsDocument(page)", got: false, want: true });
+  // Distinct hosts, counted. On THIS fixture the two numbers coincide - 5 anchors
+  // on 5 hosts - so this line pins the count and cannot, on its own, tell an
+  // anchor count from a host count. Written down rather than left implied,
+  // because an assertion that cannot discriminate is the thing this file is about.
+  // The line below is the one that does the discriminating.
+  const mh = measure(FIXTURE, "host.test");
+  if (mh.hosts.length !== 5) bad.push({ field: "distinct hosts", got: mh.hosts.length, want: 5 });
+  // And a page repeating ONE destination must never read as reach.
+  const rep = measure(Array(9).fill('<a href="https://one.example/x">x</a>').join("\n"), "host.test");
+  const vr = verdict(rep, { on: String(new Date().getFullYear()), how: "test" });
+  if (vr.v !== "thin") bad.push({ field: "9 anchors to 1 host", got: vr.v, want: "thin" });
   return { pass: bad.length === 0, fresh: f, door: d, bad };
 }
 
@@ -390,13 +422,14 @@ async function main(argv) {
     out[row.url] = {
       verdict: v.v, why: v.why, checked: today(),
       external: m.external, dofollow: m.dofollow, nofollow: m.nofollow,
+      hosts: m.hosts.length, topHosts: m.hosts.slice(0, 12),
       fresh: fresh.on, freshHow: fresh.how, door: d, linksToUs: m.linksToUs,
       note: row.note || prior[row.url]?.note || "",
     };
     const mark = { TAKE: "+", thin: "~", nofollow: "-", dormant: "x", blind: "?" }[v.v] ?? "?";
     console.log(
       `  ${mark}  ${host.padEnd(34)} ${v.v.padEnd(9)} ext=${String(m.external).padEnd(4)}` +
-        `df=${String(m.dofollow).padEnd(4)}nf=${String(m.nofollow).padEnd(4)}` +
+        `df=${String(m.dofollow).padEnd(4)}nf=${String(m.nofollow).padEnd(4)}hosts=${String(m.hosts.length).padEnd(4)}` +
         `fresh=${fresh.on ?? "unknown"}`,
     );
     console.log(`     ${v.why}`);
