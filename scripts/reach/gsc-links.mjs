@@ -166,6 +166,29 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
 }
 const target = named ?? newestExport()?.path;
 if (!target) {
+  // THREE STATES, NOT TWO. "No CSV" used to print "Nobody has looked", and on
+  // 2026-08-30 that became false: the panel WAS opened, it was empty in both
+  // halves, and no CSV exists precisely because there was nothing to export.
+  // Printing "nobody looked" then sends the next session to do the one thing
+  // already done, and worse, hides the finding - internal links read 0 while a
+  // control property on the same account read 55,663, so the panel is working
+  // and this property has no link graph yet.
+  //
+  // A reading note is a first-class result. It is markdown rather than CSV so
+  // the export scanner cannot mistake it for data.
+  const notes = existsSync(DIR)
+    ? readdirSync(DIR).filter((f) => /^links-panel-read-.*\.md$/.test(f)).sort()
+    : [];
+  if (notes.length) {
+    const newest = notes[notes.length - 1];
+    console.log(`READ, EMPTY  the panel was opened on ${newest.replace(/^links-panel-read-|\.md$/g, "")} and reported nothing.`);
+    console.log("");
+    console.log(`Not the same state as "nobody looked", and not a zero either. ${DIR.replace(`${REPO}/`, "")}/${newest}`);
+    console.log("carries the reading, the control that proves the report works, and what to use instead.");
+    console.log("");
+    console.log("This is NOT a report of zero linking sites. It is a property with no link graph.");
+    process.exit(2);
+  }
   console.log("UNMEASURED  no export in docs/outreach/exports/.");
   console.log("");
   console.log("Nothing here can see an inbound link, and a site: query is not a measurement.");

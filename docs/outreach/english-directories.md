@@ -304,6 +304,64 @@ The angle is the one no other letter here uses, because it only matters to a lib
 
 ---
 
+## Letter 6 - greenburghlibrary.org  **(the second library, and a genuinely external shelf)**
+
+**Why this one and not another library.** OC's page counted 167 dofollow anchors and
+turned out to point mostly at its own county ecosystem. Greenburgh's does not: read on
+2026-08-30 it lists **twenty-five outside children's game sites**, each with a written
+description - ABCYa, PBS Kids, National Geographic Kids, NASA Space Place, Starfall,
+Sheppard Software, Poptropica, Sesame Street, Toy Theater, Cool Math, Chess Kid, and so
+on. Somebody maintains that page and writes a sentence about each entry. `prospects.mjs`
+reads it as 34 external anchors across 30 hosts.
+
+**And one of the twenty-five is `Arbol ABC`**, described in Spanish, *"Juegos gratis para
+niños de 3 a 10 años"*. That is the hook, and it is theirs rather than ours: whoever
+keeps this list has already decided a non-English entry belongs on it.
+
+So the argument is about the SHELF, not about classrooms - one entry that covers four
+languages rather than four entries. Letter 3 makes a language argument to a blogger about
+teaching; this one makes a collection argument to whoever maintains a list.
+
+**The door**: `greenburghlibrary.libanswers.com` - Ask a Librarian. Fields are Your
+Question (required), More Detail, Email (required), Name (required), library card
+(optional), plus a confirmation checkbox. **No resource-suggestion form exists on that
+site**, and Ask a Librarian is built for patrons asking reference questions, which we are
+not. That mismatch goes in the letter rather than being papered over; a librarian will
+spot it in one line and the alternative is pretending not to have noticed.
+
+> Subject: One entry for the games list, and it covers the Spanish gap too
+>
+> Hello,
+>
+> This is not a reference question and I am not a patron, so please pass it to whoever
+> keeps the children's games page and ignore it if that is not a thing you take this way.
+>
+> That page lists twenty-five outside sites, each with a line of description, and one of
+> them is Arbol ABC in Spanish. I am writing about a site that would sit next to it, and
+> the reason I think it is worth one line rather than none is that it is the same site in
+> four languages.
+>
+> ellaz.fun runs in English, Hebrew, Spanish and French. Not four sites and not a
+> translation layer over an English one: the whole interface, every menu and every
+> instruction, exists in all four, and a child switches with one tap and keeps playing.
+> For a list like yours that means one entry doing what four would otherwise have to.
+>
+> It is free with nothing to buy, it asks for no account and no email, and it holds
+> nothing about a child anywhere. The games are counting, letters, matching, mazes,
+> sudoku, and some faster ones for older children.
+>
+> What it is not: there is no reading curriculum and no levelling, so it does not belong
+> beside Starfall as an instruction tool. It belongs where Toy Theater and Cool Math are,
+> which is why I am suggesting the games page rather than anything else.
+>
+> ellaz.fun, and ellaz.fun/es/ if you want to check the Spanish claim rather than take it
+> from me.
+>
+> Yatir
+> yatiroffer@gmail.com
+
+---
+
 ## Provenance
 
 | Claim | Where it comes from |
@@ -320,6 +378,8 @@ The angle is the one no other letter here uses, because it only matters to a lib
 | there is no paid tier and nothing is sold | there is no payment path in the repo: no checkout, no plan, no billing. The site has no backend at all |
 | nothing is collected in exchange for anything | no account exists; `CLAUDE.md` § What may leave the machine - anonymous events only, never `identify()` |
 | weareteachers 208 anchors, 0 nofollow, modified 2026-07-28 | `npm run reach:prospects`, 2026-08-30, recorded in `prospects-checked.json` |
+| greenburgh lists 25 outside game sites, one Spanish | read off the served page 2026-08-30, each with its own description; `Arbol ABC` is the Spanish one. `prospects.mjs` reads the same page as 34 anchors / 30 hosts - the two count different things and both are recorded |
+| ellaz.fun/es/ exists and is Spanish | `PAGE_LOCALES` in `src/i18n/locales.ts`, and `assert:pages` emits and checks the `es` arm of all 200 documents |
 | the OC page links to four third-party sites | read off the served page 2026-08-30: funbrain, nick, nickjr, pbskids. The other 24 hosts are `ocpl.*` and *Friends of* nonprofits |
 | the OC form has a CAPTCHA and no suggestion topic | fetched 2026-08-30; the topic list is Collection / Discover and Go / Programs / OC Stories / OC READ / Technical Support / Administration / General Inquiry / Genealogy |
 | the LinkedIn field is a honeypot | read off the served form 2026-08-30; the same shape as the macam Gravity Form on 2026-08-29 |
