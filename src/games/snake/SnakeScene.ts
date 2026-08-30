@@ -140,6 +140,34 @@ export class SnakeScene extends Phaser.Scene {
   }
 
   /**
+   * The footer strip, tapped while it is telling the player to tap.
+   *
+   * The strip says "Tap to start" on the ready screen and "tap to play again"
+   * after a game over, and until 2026-08-30 it did neither: it is a card with
+   * a bold imperative directly under the board, and only the CANVAS answered.
+   * Measured on the published itch bundle - two taps on the strip, nothing;
+   * one tap on the board, away it went.
+   *
+   * Deliberately the same path as a canvas tap rather than a second one, so
+   * the two cannot drift: unlock, restart when the run is over, otherwise
+   * start. Kept in the scene because the canvas is this game's single owner
+   * of input (see `steer`); the chrome asks, it does not decide.
+   *
+   * A no-op while playing, on purpose - mid-run the strip is a hint, not an
+   * instruction, and the chrome does not offer it as a button then.
+   */
+  startFromChrome() {
+    if (this.paused) return;
+    this.ctx.audio.unlock();
+    this.ctx.speech.unlock();
+    if (this.phase === "over") {
+      this.restart();
+      return;
+    }
+    this.startPlaying();
+  }
+
+  /**
    * An on-screen D-pad press. Same path as an arrow key: unlock audio, restart
    * from the game-over screen, otherwise start play on the first press and turn.
    * Kept here (not in the chrome) so the canvas stays the single owner of input.

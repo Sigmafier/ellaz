@@ -134,11 +134,25 @@ describe("snake", () => {
   });
 
   it("refuses every input while paused", () => {
-    // Four surfaces: the D-pad, the keyboard, and both halves of the swipe.
-    // The pad is in the footer, OUTSIDE the cover, so this is not belt and
-    // braces - it is the only thing stopping a paused snake being steered.
+    // FIVE surfaces: the D-pad, the keyboard, both halves of the swipe, and
+    // since 2026-08-30 the footer strip that says "Tap to start".
+    //
+    // Three of those five are in the FOOTER, outside the cover the chrome
+    // draws, so this is not belt and braces - it is the only thing stopping a
+    // paused snake being steered, or restarted from behind a lid.
+    //
+    // The count is deliberately hand-kept and deliberately annoying. Adding an
+    // input surface reds this test by name, which is the point: you cannot add
+    // one without saying out loud that you thought about the pause. Bumping
+    // the number is the correct response ONLY after checking the new surface
+    // actually carries the guard.
     const guards = scene.match(/if \(this\.paused\) return;/g) ?? [];
-    expect(guards.length, "an input surface stopped checking the pause").toBe(4);
+    expect(
+      guards.length,
+      guards.length < 5
+        ? "an input surface stopped checking the pause"
+        : "a new input surface appeared - confirm it guards the pause, then raise this number",
+    ).toBe(5);
   });
 
   it("publishes the pause instead of keeping a second copy in React", () => {

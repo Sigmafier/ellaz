@@ -61,6 +61,7 @@ export function SnakeGame({ ctx }: { ctx: GameContext }) {
     setSpeed: (k: SpeedKey) => void;
     setPaused: (p: boolean) => void;
     restartFromChrome: () => void;
+    startFromChrome: () => void;
     steer: (dir: Dir) => void;
   } | null>(null);
   // Snake is the one game whose level lives inside the engine rather than in
@@ -201,28 +202,64 @@ export function SnakeGame({ ctx }: { ctx: GameContext }) {
       }
       footer={
         <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
-          <div
-            style={{
-              background: "var(--surface)",
-              borderRadius: "var(--radius-2)",
-              boxShadow: "var(--shadow-1)",
-              padding: "10px 12px",
-              minHeight: 44,
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              textAlign: "center",
-            }}
-          >
-            <b style={{ fontSize: 17, fontFamily: "Fredoka, inherit" }}>
-              {status.phase === "over"
-                ? T.over
-                : status.phase === "ready"
-                  ? T.ready
-                  : T.hint}
-            </b>
-          </div>
+          {/* The strip says three different things and only two of them are
+              INSTRUCTIONS. "Tap to start" and "tap to play again" tell the
+              player to do something; "Buttons, swipe or arrow keys" describes
+              what is available. Until 2026-08-30 all three rendered as the
+              same white card with bold centred text, and none of them was
+              tappable - measured on the published itch bundle: two taps on
+              the strip did nothing, one tap on the board started the game.
+              A card carrying an imperative, directly under the board, is the
+              most button-looking thing on a phone screen.
+
+              So the strip now IS the button while it is asking, and stops
+              looking like one while it is merely telling. Same handler as a
+              canvas tap (`startFromChrome`), never a second copy of the
+              logic. Not `disabled` while playing - it is simply not a button
+              then, which is the honest shape and keeps the platform's rule
+              that `disabled` is reserved for the genuinely impossible. */}
+          {status.phase === "playing" ? (
+            <div
+              style={{
+                padding: "10px 12px",
+                minHeight: 44,
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center",
+                color: "var(--muted)",
+              }}
+            >
+              <span style={{ fontSize: 15, fontFamily: "Fredoka, inherit" }}>{T.hint}</span>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => sceneRef.current?.startFromChrome()}
+              style={{
+                background: "var(--surface)",
+                borderRadius: "var(--radius-2)",
+                boxShadow: "var(--shadow-1)",
+                border: "none",
+                cursor: "pointer",
+                font: "inherit",
+                color: "inherit",
+                padding: "10px 12px",
+                minHeight: 44,
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center",
+                touchAction: "manipulation",
+              }}
+            >
+              <b style={{ fontSize: 17, fontFamily: "Fredoka, inherit" }}>
+                {status.phase === "over" ? T.over : T.ready}
+              </b>
+            </button>
+          )}
 
           {/* On-screen controls — the old-school pad for a player with no
               keyboard who would rather tap than swipe, plus the stick in the
