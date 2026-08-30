@@ -21,6 +21,35 @@
 > one of them is safe for the account.
 >
 > Everything below this banner was true when written and describes two live listings.
+>
+> **THE CAUSE WAS CHASED AND IS NOT KNOWABLE FROM HERE. Measured 2026-08-30:**
+>
+> | instrument | what it said |
+> |---|---|
+> | the account's notification feed | *"There are no more events in this feed."* |
+> | the account's private messages | *"You don't have any messages right now."* |
+> | the project page | a banner naming no actor; **no** judgment score, blam count or vote anywhere in the page text |
+> | the publish control | `Publish Changes` is **visible and enabled**, linking to `/publish`; `Un-Publish Project` is hidden, which is what an already-un-published project looks like |
+> | the community record | **three** forum threads carry this exact string, and none was ever publicly answered |
+>
+> The 2022 thread, `bbs/topic/1510406`, lists our situation point for point: removed
+> everywhere but the project section, no PM, no email, nothing in the logs, no rule they
+> could find. It got no reply. So the silence is the platform's normal behaviour here, not
+> something peculiar to us, and **the absence of a notification is evidence AGAINST a
+> moderator** - Newgrounds notifies for those.
+>
+> **Leading hypothesis, and it is only that**: an account created that same day published
+> two submissions within two hours, each carrying an outbound link to the same domain. That
+> is the shape automated anti-spam acts on, and it is the SAME new-account hypothesis
+> already standing on this page for why both our anchors read `rel="nofollow"` while 36
+> anchors on 16 other submissions read dofollow. One account, one day, two silent
+> penalties. It is testable only by asking.
+>
+> **So ask, do not re-press Publish.** If the cause is automated, republishing is the
+> behaviour that escalates it, and the route is theirs and public: **`support@newgrounds.com`**,
+> named on `newgrounds.com/wiki/contact-us` as the recommended method, with replies coming
+> from `tomfulp@ngmail.newgrounds.com` - worth allowlisting before writing.
+>
 
 
 
