@@ -92,10 +92,23 @@ const kinds = (r) => r.problems.map((p) => p.kind);
 }
 
 // 6. A status word outside the vocabulary must be reported, never coerced.
+//
+//    The mutation is DERIVED, not typed. It used to plant `| itch.io | \`itch.md\` |
+//    draft |` as a literal, and the day the itch row legitimately became `fired`
+//    that string stopped existing - so the mutation stopped landing and the whole
+//    harness threw, on a control whose subject had not changed at all. A control
+//    bound to a value that is SUPPOSED to move is a control with an expiry date
+//    nobody wrote down. (Found 2026-08-30. The `mutation did not land` guard is the
+//    only reason it surfaced as a refusal rather than as a seventh PASS.)
 {
   const t = sandbox();
-  mutate(t, "docs/outreach/ledger.md", (s) =>
-    s.replace("| itch.io | `itch.md` | draft |", "| itch.io | `itch.md` | maybe |"));
+  mutate(t, "docs/outreach/ledger.md", (s) => {
+    const lines = s.split("\n");
+    const i = lines.findIndex((l) => /^\|[^|]*\|[^|]*\|\s*draft\s*\|/.test(l));
+    if (i < 0) throw new Error("control: the ledger holds no `draft` row to corrupt");
+    lines[i] = lines[i].replace(/(\|[^|]*\|[^|]*\|)\s*draft\s*\|/, "$1 maybe |");
+    return lines.join("\n");
+  });
   say("an unrecognised status is caught", kinds(check(t)).includes("UNREADABLE"));
   rmSync(t, { recursive: true, force: true });
 }

@@ -15,6 +15,59 @@
     "linksToUs": false,
     "note": "Common Sense Education. Enormous authority in exactly our category and it links out — measured 2026-08-30: 35 external, 34 dofollow, 1 nofollow, and that 1 is the control proving the count is real. Editorial, so the ask is inclusion in a list, never a submission."
   },
+  "https://www.weareteachers.com/free-teacher-resources/": {
+    "verdict": "TAKE",
+    "why": "208 of 208 external anchors are dofollow",
+    "checked": "2026-08-30",
+    "external": 208,
+    "dofollow": 208,
+    "nofollow": 0,
+    "fresh": "2026-07-28",
+    "freshHow": "newest of 3 structured dates (oldest 2023-07-03)",
+    "door": {
+      "kind": "page",
+      "at": "https://www.weareteachers.com/contact-weareteachers/"
+    },
+    "linksToUs": false,
+    "note": "**The one to write first.** One of the largest US teacher publications, and its \"50+ sources for free teacher resources\" roundup carries **208 external anchors, every one dofollow**. Measured 2026-08-30. It is also the row that caught a defect in this very script: read on its `article:published_time` it looked `dormant` since 2023-07-03, and its `article:modified_time`, three tags later in the same document, says **2026-07-28**. Door: their own contact page."
+  },
+  "https://ditchthattextbook.com/10-sites-for-students-with-free-time-on-their-hands/": {
+    "verdict": "TAKE",
+    "why": "113 of 120 external anchors are dofollow",
+    "checked": "2026-08-30",
+    "external": 120,
+    "dofollow": 113,
+    "nofollow": 7,
+    "fresh": "2026-05-16",
+    "freshHow": "newest of 2 structured dates (oldest 2026-05-16)",
+    "door": {
+      "kind": "page",
+      "at": "https://ditchthattextbook.com/contact"
+    },
+    "linksToUs": false,
+    "note": "Matt Miller, a named author with a real audience, and the post says in its own words: *\"Please add to the list! If you have a favorite, please include it in a comment at the end of the post.\"* Measured 2026-08-30: 120 external, 113 dofollow. **The invitation is to comment, and a comment is a link we placed ourselves — `RCH13`, discovery and never authority.** The ask is inclusion in the post; the comment is at best a way to be seen."
+  },
+  "https://teachersfirst.org/spectopics/gamebasedlearning.cfm": {
+    "verdict": "TAKE",
+    "why": "56 of 56 external anchors are dofollow",
+    "checked": "2026-08-30",
+    "external": 56,
+    "dofollow": 56,
+    "nofollow": 0,
+    "fresh": "2026",
+    "freshHow": "a year in the text",
+    "door": {
+      "kind": "page",
+      "at": "https://teachersfirst.org/about/index.cfm"
+    },
+    "linksToUs": false,
+    "note": "An editor-reviewed directory of game-based learning tools, each with written commentary. 56 external anchors, all dofollow, measured 2026-08-30. **The route is UNCONFIRMED**: the contact form has no submission category and the site publishes no \"suggest a resource\" wording, so a letter here is a cold letter to an editorial desk."
+  },
+  "https://www.kidsaitools.com/en/articles/best-free-educational-games-kids-no-ads-2026": {
+    "verdict": "unchecked",
+    "why": "HTTP 429",
+    "checked": "2026-08-30"
+  },
   "https://www.learninggame.org/free-learning-games-for-children/": {
     "verdict": "TAKE",
     "why": "121 of 124 external anchors are dofollow",
@@ -22,8 +75,8 @@
     "external": 124,
     "dofollow": 121,
     "nofollow": 3,
-    "fresh": "2025-12-26",
-    "freshHow": "structured",
+    "fresh": "2026-08-26",
+    "freshHow": "newest of 18 structured dates (oldest 2015-07-10)",
     "door": {
       "kind": "page",
       "at": "https://www.learninggame.org/about/"
@@ -31,14 +84,107 @@
     "linksToUs": false,
     "note": "A live roundup of free learning games, already linking to code.org and ed.stanford.edu. Measured 2026-08-30: 125 external, 122 dofollow, 3 nofollow."
   },
-  "https://www.kidsaitools.com/en/articles/best-free-educational-games-kids-no-ads-2026": {
+  "https://libraries.oc.gov/kids/play/games": {
+    "verdict": "TAKE",
+    "why": "167 of 167 external anchors are dofollow",
+    "checked": "2026-08-30",
+    "external": 167,
+    "dofollow": 167,
+    "nofollow": 0,
+    "fresh": "2026",
+    "freshHow": "a year in the text",
+    "door": {
+      "kind": "page",
+      "at": "https://libraries.oc.gov/about-ocpl"
+    },
+    "linksToUs": false,
+    "note": "**The library lane, and this is the one to test it with.** A `.gov` children's games page listing free external game sites; 167 external anchors, all dofollow, measured 2026-08-30. Door: their own About page."
+  },
+  "https://greenburghlibrary.org/childrens/games": {
+    "verdict": "TAKE",
+    "why": "34 of 34 external anchors are dofollow",
+    "checked": "2026-08-30",
+    "external": 34,
+    "dofollow": 34,
+    "nofollow": 0,
+    "fresh": "2026",
+    "freshHow": "a year in the text",
+    "door": null,
+    "linksToUs": false,
+    "note": "A curated shelf of exactly our neighbours — ABCYa, PBS Kids, NatGeo Kids, NASA Space Place. 34 external anchors, all dofollow. **No door on their own host**: their contact routes live on `libanswers.com` and `libwizard.com`, which a host-scoped probe cannot claim as theirs, so the door here has to be found by hand."
+  },
+  "https://mcpl.info/childrens/reading-games-web": {
+    "verdict": "TAKE",
+    "why": "18 of 18 external anchors are dofollow",
+    "checked": "2026-08-30",
+    "external": 18,
+    "dofollow": 18,
+    "nofollow": 0,
+    "fresh": "2026",
+    "freshHow": "a year in the text",
+    "door": {
+      "kind": "page",
+      "at": "https://mcpl.info/about/about-library"
+    },
+    "linksToUs": false,
+    "note": "Monroe County (Indiana). 18 external anchors, all dofollow, measured 2026-08-30."
+  },
+  "https://www.sclibrary.org/kids-teens/kids/online-games-for-kids": {
+    "verdict": "TAKE",
+    "why": "17 of 17 external anchors are dofollow",
+    "checked": "2026-08-30",
+    "external": 17,
+    "dofollow": 17,
+    "nofollow": 0,
+    "fresh": "2026",
+    "freshHow": "a year in the text",
+    "door": {
+      "kind": "page",
+      "at": "https://sclibrary.org/about-us"
+    },
+    "linksToUs": false,
+    "note": "Santa Clara City Library. 17 external anchors, all dofollow, measured 2026-08-30."
+  },
+  "https://www.spl.org/programs-and-services/fun-and-games/digital-games-for-kids": {
+    "verdict": "TAKE",
+    "why": "13 of 13 external anchors are dofollow",
+    "checked": "2026-08-30",
+    "external": 13,
+    "dofollow": 13,
+    "nofollow": 0,
+    "fresh": "2026",
+    "freshHow": "a year in the text",
+    "door": {
+      "kind": "page",
+      "at": "https://spl.org/books-and-media/suggest-a-title"
+    },
+    "linksToUs": false,
+    "note": "Seattle Public Library. 13 external anchors, all dofollow. **The door the probe found is \"suggest a title\", which is for BOOKS** — a real form for a different purpose. A destination whose only visible door is the wrong door is not ready for a letter."
+  },
+  "https://www.trpld.org/kids-games-2530": {
+    "verdict": "TAKE",
+    "why": "21 of 21 external anchors are dofollow",
+    "checked": "2026-08-30",
+    "external": 21,
+    "dofollow": 21,
+    "nofollow": 0,
+    "fresh": "2026",
+    "freshHow": "a year in the text",
+    "door": {
+      "kind": "page",
+      "at": "https://trpld.org/contact-us-2178"
+    },
+    "linksToUs": false,
+    "note": "Three Rivers (Illinois). 21 external anchors, all dofollow, measured 2026-08-30."
+  },
+  "https://www.sjpl.org/kids-games/": {
     "verdict": "unchecked",
-    "why": "HTTP 429",
+    "why": "HTTP 202 carrying no anchors (1994 B) - a bot challenge, not the page",
     "checked": "2026-08-30"
   },
   "https://www.freetech4teachers.com/": {
-    "verdict": "blind",
-    "why": "no external anchors found - the matcher read nothing",
+    "verdict": "unchecked",
+    "why": "HTTP 200 carrying no anchors (9756 B) - not the document",
     "checked": "2026-08-30",
     "external": 0,
     "dofollow": 0,
@@ -48,6 +194,22 @@
     "door": null,
     "linksToUs": false,
     "note": "**CONTROL, NOT A PROSPECT.** Already ruled out on 2026-08-29: 200, current design, huge archive, last post 2023-08-23. It is here so a run that reports every destination healthy is visibly wrong."
+  },
+  "https://elementarylibrarian.com/free-library-games-and-resources/": {
+    "verdict": "dormant",
+    "why": "newest date on the page is 2022-01-28",
+    "checked": "2026-08-30",
+    "external": 7,
+    "dofollow": 7,
+    "nofollow": 0,
+    "fresh": "2022-01-28",
+    "freshHow": "structured",
+    "door": {
+      "kind": "page",
+      "at": "https://elementarylibrarian.com/about/"
+    },
+    "linksToUs": false,
+    "note": "**CONTROL, NOT A PROSPECT — and the dormant one, because the row above turned out never to have been.** A real page, really fetched, really parsed: 7 external anchors, all dofollow, newest date on it **2022-01-28**. It must come back `dormant`. A destination reading `dormant` is the only proof this script can still tell a graveyard from a live page."
   },
   "https://ytrofr.itch.io/sudoku": {
     "verdict": "thin",

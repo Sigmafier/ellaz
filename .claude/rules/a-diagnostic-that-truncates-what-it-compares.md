@@ -38,6 +38,27 @@ report**. Ask of any probe: *could this even express the failure I am looking fo
 | 2026-08-23 reach board copy probe | a mutation from `textContent` to `innerHTML` | **nothing - and that was the finding.** Not one of the seven real posts contains `&`, `<` or `>`; only `"`, which a text node serialises back UNESCAPED. So the escaping bug and the correct code copied identical bytes and the probe reported green. It plants a control post carrying `Tom & Jerry <b>bold</b>` now, and the same mutation reds on two assertions |
 | 2026-08-21 doctrine step re-file | a listing printed with `[:1800]` | the last two steps of the routine. I re-filed against that listing, minted an explicit id it said was free, and **overwrote a step that already held it**. Restored from git. A stale read is bad; a read your own instrument truncated is worse, because nothing about it looks partial |
 | 2026-08-23 build:check verdict | `npm run build:check 2>&1 \| tail -14` | **the exit code.** A pipeline's status is its LAST stage, so the harness recorded `tail` succeeding and printed `[exited with code 0]` directly beneath a line reading `FAIL  no locale-*.js chunks`. A gate that says FAIL beside exit 0 reads as a broken gate, and I nearly filed one - the gate was right, the pipe was lying. (The FAIL itself was a second measurement error: that build read `src/build/layout.ts` while I was still editing it.) `set -o pipefail`, or do not pipe a gate |
+| 2026-08-30 prospect `freshness` | the FIRST structured date in the document | the `article:modified_time` three tags later. `weareteachers.com` - 208 dofollow anchors, one of the largest US teacher publications - was ruled **dormant** on a 2023 published date while the page had been modified **2026-07-28** |
+| 2026-08-30 prospect `door` | `/about\|/contact` matched on ANY host | whose page it was. weareteachers' door came back as a page on **`nature.org`**: a real URL, a real 200, a real About page, and a letter about our children's games addressed to a conservation charity |
+| 2026-08-30 prospect `get()` | `res.ok`, which is true for **202** | the page. Three library sites answered `HTTP 202` with a ~2 KB AWS WAF challenge - well-formed, `</html>` present, empty `<title>`, zero anchors - and all three were reported `blind`, a word this repo's own docs define as *"says nothing about the page"* and which prints in the same column as a real reading |
+| 2026-08-30 prospect control's FAIL path | `c.bad.map(([k, v]) => ...)` on an array of OBJECTS | the entire message. It threw `object is not iterable`, losing the field name, losing the "believe nothing" sentence, and exiting **1** (*no candidates*) instead of **2** (*believe nothing*). The one path that exists to explain a broken instrument had never once been run |
+
+**The 2026-08-30 four share a shape the earlier ones do not: every one of them
+produced a NON-VERDICT.** `dormant`, `blind`, `unchecked`, a crash - none of which
+anybody argues with, because none of them claims anything. That is exactly why they
+are dangerous: a wrong `TAKE` gets a letter written to it and is discovered, while a
+wrong `dormant` retires a destination in silence and the run still reads healthy. So
+the states that mean "nothing here" need controls at least as much as the states that
+mean something, and a control on a null result has to pin a REAL destination that must
+keep returning it.
+
+**And a control's description is not the control.** `freetech4teachers.com` was written
+up in `prospects.md` as the dormancy control - *"ruled out 2026-08-29, last post
+2023-08-23"* - while the recorded output of the previous run says the script reported
+`blind` on it, `ext=0`, `fresh=None`. It had never tested dormancy. Nobody noticed
+because a control that is passing is a control nobody opens, and the only reason it
+surfaced is that a fix changed its state. Read what a control PRINTED, not what the
+file says it does.
 
 The fourth is the third one wearing a harness instead of a script, and it fired the
 very next day: **when a verdict is derived from the absence of a signal, a run that
