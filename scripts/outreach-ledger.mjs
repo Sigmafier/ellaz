@@ -25,6 +25,8 @@ import { join } from "node:path";
 
 const LEDGER = "docs/outreach/ledger.md";
 const STATUSES = ["draft", "fired", "spent", "dropped"];
+/** Who acts next. A row whose Who is outside this list has shifted a column. */
+const OWNERS = ["you", "wait", "last", "done"];
 
 // The folder holds two KINDS of file and only one of them is a proposal. A RECORD
 // describes what already happened - the ledger itself, the audit of these drafts, the
@@ -126,6 +128,21 @@ export function check(repo) {
       problems.push({ kind: "DISAGREE", text: `${r.file} says "${claimed}" but no surface of its own is fired in the ledger` });
     if ((r.status === "fired" || r.status === "spent") && (!/\d/.test(r.fired ?? "") || !/\d/.test(r.due ?? "")))
       problems.push({ kind: "UNDATED", text: `${r.surface} is "${r.status}" with no fired date and verdict date - a verdict that is not scheduled is not taken` });
+    // A row that cannot say who owns it, or what happens next, on the board the
+    // operator acts FROM. `who`/`next` were tolerated as optional so the table would
+    // survive rows written before those columns existed; every row has carried them
+    // for weeks, and the tolerance turned into a blind spot. On 2026-08-30 the itch
+    // row was found with ONE PIPE MISSING before its `YOU`, so the parser read the
+    // do-next text as the owner and the owner as nothing - it rendered on the board
+    // with no owner and no next step, and the gate was green over it the whole time.
+    // AND THE TEST IS THE VOCABULARY, NOT EMPTINESS. The first version of this check
+    // asked whether `who` was blank, planted the missing pipe, and stayed GREEN: the
+    // parser had read the entire 2,000-character notes cell as the owner, stripped to
+    // letters, which is about as non-empty as a value gets. A shifted column does not
+    // look empty - it looks full, of the wrong thing - so only a check that knows what
+    // the value may BE can see it. Same shape as the status check twenty lines up.
+    if (!OWNERS.includes(r.who))
+      problems.push({ kind: "UNOWNED", text: `${r.surface}: Who is "${r.who.slice(0, 24)}", not one of ${OWNERS.join("/")} - a shifted column, or a row nobody owns` });
   }
   return { problems, population: { drafts: ds.length, rows: rs.length } };
 }
