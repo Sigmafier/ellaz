@@ -151,6 +151,11 @@ The rest: https://ellaz.fun
 
 Your progress on this page may not be saved between visits, because it runs inside a
 frame on somebody else's domain. At ellaz.fun it is saved.
+
+Built with an AI coding assistant, the way you would use an IDE: I directed the design,
+the rules and the art, and reviewed every line. The game logic, the artwork and the
+sounds are original and are covered by tests in a public repository. Nothing here was
+generated from a prompt.
 ```
 
 **Rating**: Everyone.
@@ -182,6 +187,11 @@ The rest: https://ellaz.fun
 
 Your progress on this page may not be saved between visits, because it runs inside a
 frame on somebody else's domain. At ellaz.fun it is saved.
+
+Built with an AI coding assistant, the way you would use an IDE: I directed the design,
+the rules and the art, and reviewed every line. The game logic, the artwork and the
+sounds are original and are covered by tests in a public repository. Nothing here was
+generated from a prompt.
 ```
 
 **Rating**: Everyone.
@@ -191,11 +201,11 @@ Other` (`SEO13`). **Not** `Puzzle - Other`, which is not the real string.
 
 ---
 
-## The AI disclosure sentence - a DRAFT for the operator to rule on
+## The AI disclosure - RULED 2026-08-30, and it is part of the description now
 
-Newgrounds requires this in the author commentary and it must be true. This is offered
-as a starting point only; the operator's own words are better than ours, and they are
-the only person who can make this declaration:
+The operator approved this wording, so it is the last paragraph of both descriptions
+above rather than a separate field to remember. Paste a description whole and the
+disclosure travels with it.
 
 ```
 Built with an AI coding assistant, the way you would use an IDE: I directed the design,
@@ -204,11 +214,10 @@ sounds are original and are covered by tests in a public repository. Nothing her
 generated from a prompt.
 ```
 
-Every clause of that has to be something the operator is willing to stand behind. If any
-of it is not, cut it rather than soften it - a hedged disclosure is worse than a short
-one.
-
----
+It is a declaration about their own work and was theirs to make; this file offered a
+draft and they took it as written. If any clause of it ever stops being true, cut that
+clause rather than softening it - a hedged disclosure is worse than a short one, and
+Newgrounds enforces this one subjectively.
 
 ## Provenance
 
