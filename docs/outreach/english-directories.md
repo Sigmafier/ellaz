@@ -1,6 +1,12 @@
 # English ed-tech editors - three letters, prepared and NOT sent
 
-**Status**: draft. Nothing has been sent. The operator decides when, and whether.
+**Status**: draft, and that word now covers three letters rather than four.
+**Letter 4 (weareteachers.com) was SENT 2026-08-30**; letters 1 to 3 are still held and
+nothing about them has changed. The header stays `draft` because that is what the ledger
+gate reads it as - a file holding several surfaces at different stages is `draft` while
+any of them is, and the per-surface truth lives in the rows. Do not read this line as
+"nothing has been sent": it said exactly that until 2026-08-30, which is how a header
+outlives the fact it was describing.
 
 **Why this lane exists.** 66% of our impressions land on the bare/English URLs while
 every letter we have ever sent went to a Hebrew destination. The Hebrew authority lane
@@ -165,7 +171,7 @@ classroom might care.
 
 ---
 
-## Letter 4 - weareteachers.com  **(THE ONE BEING SENT)**
+## Letter 4 - weareteachers.com  **(SENT 2026-08-30)**
 
 Measured 2026-08-30, after the three above and by a different instrument: their standing
 roundup *50+ Amazing Sources for Free Teacher Resources* carries **208 external anchors
@@ -185,6 +191,18 @@ link beside it - `RCH7` is iron, nothing here is bought.
 **The form carries a hidden LinkedIn field. Leave it empty.** It is a honeypot, the same
 shape that would have binned the macam letter behind a success screen on 2026-08-29. A
 filled honeypot does not produce an error; it produces a thank-you page and silence.
+
+**Sent 2026-08-30. What was observed, and what it is worth.** The form element was gone
+from the DOM and Gravity Forms' own confirmation stood in its place, *"Thanks for
+contacting us! We will get in touch with you shortly."*, with zero `.gfield_error` nodes.
+**That confirmation is not by itself evidence of delivery** - a honeypot trip returns the
+identical screen, since returning the success screen is the entire mechanism. What
+upgrades it is the reading taken twice immediately beforehand: `input_7` empty at fill,
+and `input_7` still empty after the cookie banner was answered. The body was verified by
+hash rather than by eye - 1,602 chars, sha256 `40393007cedf54a9`, byte-equal to this
+letter as committed in `e79f451`. Network capture was not running at submit time, so no
+wire record exists, and **re-submitting to obtain one would send a duplicate**, so this
+grade is final.
 
 > Subject: A free games site for kids with no free tier, because there is no paid one
 >
