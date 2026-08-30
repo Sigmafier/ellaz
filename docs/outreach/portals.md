@@ -1,5 +1,17 @@
 # Poki and CrazyGames - the enquiry, and the decision it forces first
 
+> **SPLIT 2026-08-30. The CrazyGames half of this file has moved to
+> [`crazygames.md`](crazygames.md) and four of its claims here are wrong.** Re-read in a
+> real browser rather than through a fetcher, the site says the SDK is *optional* at Basic
+> Launch and not merely that monetization is off; it answers the non-exclusivity question
+> in public, so the letter below asks something already documented; the door is the
+> developer portal, not an email; and its QA page lists **"content is targeted for kids"**
+> as a rejection reason, which is a bigger fact about this platform than anything in the
+> advertising discussion below. **Poki is unchanged and stays closed** - its SDK is
+> mandatory, and an SDK is an external network request from a game. Everything below about
+> Poki still stands; everything about CrazyGames is superseded.
+
+
 **Status**: draft. Nothing is sent. **This one is not a paste-and-go**, and the reason is
 in the first section rather than at the bottom.
 

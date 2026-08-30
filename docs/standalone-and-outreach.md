@@ -123,3 +123,42 @@ one of these cost real time. Full narrative:
 
 The last two are proposed as reach-doctrine `RCH14`; the second is
 `seo-playbook` step D14.
+
+## The same day, on the second platform, with all four written down
+
+Two Newgrounds listings went out on 2026-08-30 - Snake at
+`portal/view/1049495` and 2048 at `portal/view/1049504`. Both are Under
+Judgment, which is the normal state for a new submission there and means
+votes can remove one. RCH14 was read on both from the served `index.html`
+rather than the form: `standalone-tBBZWxFJ.js` and
+`standalone-oRz9Jrap.js`, the two chunks handed over.
+
+**And 2048 still went live in the host's default 640x480 with the board
+clipped** - trap two above, on the second platform, hours after it was
+written. It is fixed: 800x900, touchscreen ticked, republished, verified
+on the live iframe at 800x900 with the bundle reporting zero overflow at
+that exact size.
+
+The reason it repeated is worth more than the fix. The shaping step sits
+between a handover and a publish button, because the upload cannot be
+automated - a native file picker cannot be driven - and the button is the
+next thing that person sees. A step in that position is skipped whatever
+it says, so the answer is to move it or to make the default right:
+`option[filewidth_2]` is in the creation form's DOM before any file
+exists, and if a pre-upload value persists the trap disappears. Untested,
+and written down as a test rather than a fact.
+→ [`a-step-between-a-handover-and-the-button-is-skipped.md`](../.claude/rules/a-step-between-a-handover-and-the-button-is-skipped.md)
+
+**A fifth trap, and it decided which platform to use.** Newgrounds was
+picked over the alternatives partly because an author's description links
+are dofollow - measured across six live pages with a control that fired.
+Both of our own listings publish `rel="nofollow"`. Re-measured the same
+hour: 36 external author-comment anchors across 16 other submissions,
+zero nofollow, including 8 on submissions also under judgment. Judgment,
+domain and anchor shape were each ruled out by their own population; the
+account, created that day, is what is left, and that is a hypothesis with
+a cheap future test rather than a finding.
+→ [`a-survey-of-their-artifacts-is-not-a-prediction-about-yours.md`](../.claude/rules/a-survey-of-their-artifacts-is-not-a-prediction-about-yours.md)
+
+Neither changes the bookkeeping: a link we place ourselves is DISCOVERY
+under `RCH13` and never entered the backlink verdict.

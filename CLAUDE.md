@@ -53,7 +53,7 @@ something is built the way it is.
 | [`docs/poker-table.md`](docs/poker-table.md) | the Hold'em sub-project in full |
 | [`docs/deploy.md`](docs/deploy.md) | the deploy runbook, verification commands, secret rotation |
 | [`docs/payload-history.md`](docs/payload-history.md) · [`docs/scaling-the-first-visit.md`](docs/scaling-the-first-visit.md) | superseded payload readings, and the O(1) argument |
-| [`.claude/rules/`](.claude/rules/) | 45 traps, one per file, each with its measurement. Path-scoped, so each loads when you touch what it governs |
+| [`.claude/rules/`](.claude/rules/) | 47 traps, one per file, each with its measurement. Path-scoped, so each loads when you touch what it governs |
 | [`holdem/README.md`](holdem/README.md) | the poker runbook, quotas, DNS |
 
 ## Commands
@@ -180,6 +180,8 @@ conventions; the named rule file carries the evidence.
 - **Adding a chunk is THREE changes, not one**: the dynamic `import()`, a NAMED `manualChunks` branch, and a matching `globIgnores` entry. The precache glob sweeps `**/*.js`, so skipping the third leaves the payload unmoved behind a green build. → [`precache-glob-sweeps-new-chunks.md`](.claude/rules/precache-glob-sweeps-new-chunks.md)
 - **Never quote a payload figure from prose — run `npm run assert:payload` on the tree in front of you.** Every number written in this file has gone stale, twice. And a figure measured on this machine is not the CI figure: → [`a-number-belongs-to-the-toolchain-that-ships-it.md`](.claude/rules/a-number-belongs-to-the-toolchain-that-ships-it.md)
 - **A delta is only a per-game cost if the game is the only variable.** Build two arms from one tree; do not diff across a working session.
+- **A survey of other people's pages does not predict what a platform will do to ours.** Newgrounds was chosen partly because author links are dofollow - measured properly, with a control, and still true of everyone else. Both of our own listings publish `rel="nofollow"`. → [`a-survey-of-their-artifacts-is-not-a-prediction-about-yours.md`](.claude/rules/a-survey-of-their-artifacts-is-not-a-prediction-about-yours.md)
+- **A checklist step between a handover and the publish button will be skipped**, however clearly it is written. Move it before the handover or make the default correct; a louder instruction is not a fix. → [`a-step-between-a-handover-and-the-button-is-skipped.md`](.claude/rules/a-step-between-a-handover-and-the-button-is-skipped.md)
 - **A gate that reads the bytes cannot tell you the artifact RUNS.** Load a standalone bundle in a browser before it leaves the repo: `2048` shipped a green-gated zip whose own game module had been stubbed out, and every static assertion passed. → [`a-build-gate-that-never-runs-the-artifact.md`](.claude/rules/a-build-gate-that-never-runs-the-artifact.md)
 
 ## Add a new game
