@@ -1,7 +1,18 @@
 # itch.io - three project pages, ready to paste
 
-**Status**: drafts. Nothing is uploaded. The operator creates the account, uploads the
-zips and pastes the copy below; no part of this is automated and no part of it should be.
+**Status**: draft - and the word is literal on both counts. **Sudoku is UPLOADED and sits
+as an itch DRAFT** at
+<https://itch.io/game/edit/4953564>, public URL <https://ytrofr.itch.io/sudoku> (which
+404s to anyone logged out, which is what a draft looks like from outside and is not a
+fault). Verified 2026-08-30 in the live form: title, url, `kind=html`, Released, No
+payments, 1,138-char description, Puzzle + Educational, ten tags all accepted, embed
+800x900 with mobile / autostart / fullscreen on, comments on, cover set, two
+screenshots, AI disclosure answered by the operator. **And it was PLAYED in itch's own
+player** - board rendered, timer running, number pad live, whole game inside the frame
+with no inner scroll. That last check is the only one that could have caught the 2048
+bundle which built, type-checked and gated 14/14 and did not run. 2048 and Snake are
+still drafts here. The operator creates the account, uploads the zips and pastes the
+copy below; no part of this is automated and no part of it should be.
 
 **What gets uploaded.** `npm run build:standalone` with `STANDALONE_GAME=<id>`, then zip
 the contents of `dist-standalone/<id>/` with `index.html` at the **root of the zip**, not
@@ -255,6 +266,37 @@ Object.keys(document.forms[2].querySelector('[name="game[tags]"]').selectize.opt
 ```
 
 ---
+
+## What a listing here actually buys, measured - and it is not a link
+
+**itch nofollows every external URL a user supplies, everywhere on the platform.**
+Measured 2026-08-30 on our own live project page and on two unrelated public profiles:
+
+| where | the anchor | `rel` |
+|---|---|---|
+| our project page, in the description | `https://ellaz.fun` | `nofollow noopener` |
+| `itch.io/profile/increpare`, website field | `increpare.com` | `nofollow me` |
+| `itch.io/profile/terrycavanagh`, website field | `distractionware.com` | `nofollow me` |
+| the same two profiles, social links | twitter / bsky | `me` |
+| the same two pages, itch's own footer | itch's twitter / facebook | *(none)* |
+
+The last two rows are the control, and they are the reason this reading is worth
+anything: the same matcher on the same pages **did** report anchors without `nofollow`,
+so it can express the answer we were hoping for and simply never returns it for a URL a
+user typed.
+
+So a listing here is a **playable copy where the audience already browses**, and the
+players who find it. It is not authority, on two independent grounds: `RCH13` already
+classes a link we placed ourselves as DISCOVERY however dofollow it is, and this one is
+not dofollow either. Run the lane - it is worth running - but do not book it against the
+2026-11-27 backlink verdict, and do not let it share a window with an authority lane
+whose verdict has to stay attributable.
+
+The check that would have said this before any of the work is the one
+`reach-playbook` C8 already demands of a curated list: count `rel` on the destination's
+real outbound anchors first. A platform got exempted from it for no better reason than
+that it takes an upload instead of a letter. Filed as a note on `seo-playbook` D11,
+whose own detail calls a platform door "usually the shortest path to a real link".
 
 ## Cover image and screenshots
 
