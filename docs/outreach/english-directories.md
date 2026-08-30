@@ -1,8 +1,8 @@
 # English ed-tech editors - three letters, prepared and NOT sent
 
 **Status**: draft, and that word now covers three letters rather than four.
-**Letter 4 (weareteachers.com) was SENT 2026-08-30**; letters 1 to 3 are still held and
-nothing about them has changed. The header stays `draft` because that is what the ledger
+**Letters 4 (weareteachers.com) and 5 (libraries.oc.gov) were both SENT 2026-08-30**;
+letters 1 to 3 are still held and nothing about them has changed. The header stays `draft` because that is what the ledger
 gate reads it as - a file holding several surfaces at different stages is `draft` while
 any of them is, and the per-surface truth lives in the rows. Do not read this line as
 "nothing has been sent": it said exactly that until 2026-08-30, which is how a header
@@ -239,7 +239,7 @@ grade is final.
 
 ---
 
-## Letter 5 - libraries.oc.gov  **(the library lane's single test)**
+## Letter 5 - libraries.oc.gov  **(SENT 2026-08-30)**
 
 **And the honest revision of why it is here.** It was picked on 2026-08-30 for "167
 external anchors, every one dofollow", which is a true number and a misleading one.
@@ -258,6 +258,15 @@ dropdown has no resource-suggestion category, and the page explicitly routes boo
 marketing and purchase suggestions elsewhere, so General Inquiry is the honest pick
 rather than a stretch. **The form carries a CAPTCHA**, so it cannot be submitted by
 anyone but a person: fill, then hand over.
+
+**Sent 2026-08-30, and it produced the best evidence any form in this lane has given.**
+The submit redirected to `/form/inquiries/confirmation?token=b8BJjgiP…` and the page
+reads **"New submission added to Inquiries."** That is a different kind of fact from a
+thank-you string: a thank-you is what a honeypot returns, while this is Drupal Webform
+reporting that a RECORD WAS STORED, with a server-issued identifier for it. The
+redirect also proves the CAPTCHA validated, since a failed one re-renders the form with
+an error instead of issuing a token. Body hash-verified before the click: 1,495 chars,
+sha256 `6c60136e39307bc4`, byte-equal to this letter as committed in `80d1bae`.
 
 The angle is the one no other letter here uses, because it only matters to a library.
 
