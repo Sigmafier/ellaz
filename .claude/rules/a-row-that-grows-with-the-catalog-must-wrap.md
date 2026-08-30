@@ -35,6 +35,30 @@ narrow viewports, which is where most children actually play.
 | 2026-08-04 | Nine games' stat rows, non-wrapping flex under `alignItems: "center"` | 439px of row on a 390px phone |
 | 2026-08-07 | The boards' game picker, one `DifficultySelector` per game | **1,410px on a 390px phone - 15 of 20 games unreachable** |
 | 2026-08-07 | The boards' difficulty row, `DifficultySelector` handed `game.boards` | six sudoku levels: **`Expert` rendered as `Exper`**, both `Animals N×N` cut - and the row reported no overflow at all |
+| 2026-08-30 | The game chrome row, snake standalone **while playing** | two navs leave the grid **227px of a 355px wrapper**; `Normal` rendered `N...` - identically at column ratios 1.8, 2.2 and 2.6 |
+
+**The fourth is the one that says the count need not grow at all.** The chrome row has
+carried exactly three cells since it became a grid, and it still overflowed - because the
+*siblings* grew. A nav button is not in the row, it sits beside it, and each one takes width
+the three cells never see: zero navs in the app (the page owns restart), one on a standalone
+game, two while a game that can pause is playing. So the thing that grew was the row's
+CONTAINER minus its neighbours, which no amount of looking at the row itself reveals.
+
+**And a column ratio cannot fix it**, which is the second half of the lesson. Three attempts
+at re-weighting the tracks - 1.8, 2.2, 2.6 - all clipped identically, because dividing 227px
+differently does not make 227px into 270px. Measured on the built artifact at 390px, sweeping
+the frame width until the ellipsis stopped: clear at rowW 277, short by 11px at 257. The fix
+is `flexWrap: "wrap"` on the sibling wrapper plus a measured `flex-basis` on the row, so it
+takes its own line rather than losing letters. Both halves are load-bearing and the test
+plants both mutations: wrap without a basis never fires (a zero-basis item always fits), and
+a basis without wrap overflows instead of moving.
+
+Only the standalone bundles reach it - the app puts restart in the page header - and only
+snake, the one game that both pauses and ships standalone. Verified on all three built
+bundles at 390px afterwards: 2048 and sudoku unchanged at one line, snake's ready state
+unchanged at one line, snake playing now two lines with nothing clipped and zero page
+overflow. At the 800x900 embed the live listings use, the row is 637px and does not wrap at
+all, so nothing published moved.
 
 The third arrived hours after the second, in the fix for the second, using the same component.
 That is what "fix the class, not the instance" means here: `DifficultySelector` now wraps, so

@@ -89,6 +89,12 @@ const NOT_A_KNOB = new Set([
   "--gc-cols",
   // Not a number either: the glyph is on or off, and a style flips it.
   "--gc-icon-display",
+  // A number, and deliberately NOT a knob. Its shipped value is the output of
+  // a measurement - the 390px sweep recorded in GameChrome.tsx, which put the
+  // clipping threshold between rowW 257 and 277 - so a slider here would be a
+  // slider for un-measuring it, and the next person to drag it would have no
+  // way to know what the number meant.
+  "--gc-row-min",
 ]);
 
 describe("the panel bench knows what ships", () => {

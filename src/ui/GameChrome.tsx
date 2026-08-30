@@ -180,11 +180,13 @@ const LEVEL_SIZE = "var(--gc-level-value, 16px)";
  * slack of a different order. Re-measure before adding a level label longer
  * than "Normal" to a game that ships standalone.
  *
- * WHAT THIS STILL DOES NOT FIX, and no ratio can: snake WHILE PLAYING carries
- * a second nav, leaving the grid 228px. "Normal" alone wants 128 of it, and
- * two numbers want the rest. Measured at 1.8, 2.2 and 2.6 - every one clips.
- * That row has to WRAP, which is a different change to shared chrome for 42
- * games, and it is not this one.
+ * WHAT NO RATIO CAN FIX, and what does: snake WHILE PLAYING carries a second
+ * nav, leaving the grid 227px. "Normal" alone wants 128 of it, and two numbers
+ * want the rest. Measured at 1.8, 2.2 and 2.6 - every one clips. FIXED
+ * 2026-08-30 by wrapping instead of shrinking: the flex wrapper below wraps
+ * and `.gc-row` carries a measured basis, so the row takes its own line rather
+ * than losing letters. The ratio here is unchanged and still does the work
+ * whenever the row does fit on one line.
  * See .claude/rules/a-row-that-grows-with-the-catalog-must-wrap.md
  */
 const COLS = "var(--gc-cols, minmax(0,1.8fr) minmax(0,1fr) minmax(0,0.9fr))";
@@ -426,7 +428,22 @@ export function GameChrome<T extends string>({
             navs do. `.gc-row` stays the grid, so `panelRead.ts`, the design
             bench's `.ellaz-game-panel .gc-row` selector and every `--gc-*`
             token still land on the same element. */}
-        <div style={{ display: "flex", alignItems: "center", gap: GAP }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: GAP,
+            // WRAP, and this is the half no column ratio could do.
+            //
+            // The navs are siblings of the grid, so every nav takes width the
+            // three cells never see. Snake in play carries two of them and
+            // leaves the grid 227px of a 355px wrapper - measured on the built
+            // standalone at 390px, where "Normal" rendered "N..." at 1.8, at
+            // 2.2 and at 2.6 alike. Shrinking is the wrong response to not
+            // fitting; the row takes its own line instead.
+            flexWrap: "wrap",
+          }}
+        >
           {ownRestart &&
             onPaused &&
             navBtn(paused ? "play" : "pause", paused ? t("resume") : t("pause"), () =>
@@ -436,7 +453,27 @@ export function GameChrome<T extends string>({
         <div
           className="gc-row"
           style={{
-            flex: "1 1 0",
+            // The BASIS is the wrap trigger, and it is measured rather than
+            // chosen. Swept on the built snake standalone at 390px, playing,
+            // two navs, widening the frame until the ellipsis stopped:
+            //
+            //   rowW 257 -> "Normal" short by 11px
+            //   rowW 277 -> clear
+            //
+            // So the row needs about 270 and the floor is 280, which clears
+            // the binding case with margin and still sits under the 291 that
+            // the one-nav ready state gets - so a game only takes a second
+            // line when a second nav actually appears.
+            //
+            // WHICH WAY TO ERR: a floor that wraps too eagerly costs a line of
+            // height; one that wraps too late eats letters, and a clipped word
+            // looks like a bug while a wrapped row looks like a layout. If the
+            // window between the two states ever closes, wrap.
+            //
+            // The APP never reaches this: it puts restart in the page header,
+            // so `ownRestart` is false, the row has no navs and gets the whole
+            // 355. Only the standalone bundles wrap, and only while playing.
+            flex: "1 1 var(--gc-row-min, 280px)",
             minWidth: 0,
             display: "grid",
             gridTemplateColumns: COLS,

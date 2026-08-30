@@ -124,6 +124,29 @@ describe("the row is three fixed tracks, so it cannot wrap", () => {
     expect(navs, "a nav button is inside .gc-row again - it will eat a track").toBeLessThan(grid);
   });
 
+  it("lets the row WRAP rather than shrink, because a nav takes width the cells never see", () => {
+    // The defect no ratio could reach, measured on the built snake standalone
+    // at 390px while playing: two navs leave the grid 227px of a 355px
+    // wrapper and "Normal" renders "N...". It clipped identically at 1.8, 2.2
+    // and 2.6, which is what proves the column ratio is the wrong lever.
+    //
+    // Two halves, and BOTH are load-bearing. `flexWrap: "wrap"` with a zero
+    // basis wraps nothing, because a zero-basis item always fits; a basis
+    // without the wrap makes the row overflow instead of moving. Pinning one
+    // of them would let the other be deleted with the suite green.
+    expect(SRC, "the wrapper stopped wrapping - the row will shrink and clip again")
+      .toMatch(/flexWrap: "wrap"/);
+    const m = /flex: "1 1 var\(--gc-row-min, (\d+)px\)"/.exec(SRC);
+    expect(m, "the .gc-row basis is gone or is no longer a --gc-row-min read").toBeTruthy();
+    // The floor is a MEASUREMENT, not a taste: the sweep put the clipping
+    // threshold between rowW 257 (short 11px) and 277 (clear). Below ~270 the
+    // binding case loses letters again, so the number may move upward with a
+    // fresh sweep and must not drift down without one.
+    expect(Number(m![1]),
+      "the basis dropped under the measured need - re-run the 390px sweep before lowering it")
+      .toBeGreaterThanOrEqual(270);
+  });
+
   it("gives the difficulty the widest track, since it is the only cell with a word", () => {
     // Not the exact number - that is a measurement and it will move again. What
     // must hold is the ORDER: widest first. The ratio was 1.25/1/0.85 while a

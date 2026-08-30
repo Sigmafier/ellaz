@@ -121,6 +121,11 @@ const BENCH_TOKENS = new Set([
   "--gc-record", "--gc-stat-icon", "--gc-level-value", "--gc-head-gap", "--gc-head-pad",
   // The same-slots switch - a style sets these three, never a knob.
   "--gc-empty-display", "--gc-cols", "--gc-icon-display",
+  // The wrap trigger, same shape as `--gc-cols`: a layout override a style can
+  // set, never a number the bench should offer as a slider. Its shipped value
+  // is a MEASUREMENT (the 390px sweep in GameChrome.tsx), so a knob that let
+  // someone drag it would be a knob for un-measuring it.
+  "--gc-row-min",
 ]);
 
 export const COLOUR_LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\([0-9 ,.%/]+\)|["'](white|black)["']/;
