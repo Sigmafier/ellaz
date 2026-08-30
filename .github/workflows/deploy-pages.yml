@@ -18,6 +18,7 @@ on:
       - "docs/outreach/**"
       - "scripts/reach/**"
       - "scripts/outreach-ledger.mjs"
+      - "scripts/control/outreach-*"
       # A GLOB rather than a third name. This list has gone stale three times in
       # two days, once per input the board gained, because it is a hand-kept
       # mirror of an import graph - and every miss ships ellaz.fun over FTP for
@@ -27,6 +28,24 @@ on:
       - "scripts/repro/repro-reach-*.mjs"
       - "scripts/assert-reach-live.mjs"
       - ".github/workflows/deploy-reach.yml"
+      # And the documentation, which the argument above always covered and the
+      # list never did. On 2026-08-30 commit a3fc75b changed two markdown files
+      # and one control script; it rebuilt ellaz.fun, shipped it over FTP, and
+      # the upload FAILED - leaving the live site on an older build while every
+      # asset it named still returned 200, so nothing looked wrong from a
+      # browser. That is no longer a cost argument about wasted uploads. A
+      # commit that touched no code put the live site behind.
+      #
+      # PROVEN, not assumed, on the same day: nothing under these roots is read
+      # by anything in the deploy path. Grepped for readFileSync/existsSync/
+      # import against `src/`, `vite.config.ts` and every script `build:check`
+      # runs, plus `assert-live.mjs` and `indexnow.mjs`. Every hit was a doc
+      # path inside a COMMENT. `deploy-triggers.test.ts` re-proves it on every
+      # run and reds the moment the build starts reading a document, which is
+      # the only thing that can make these three lines wrong.
+      - "docs/**"
+      - ".claude/**"
+      - "CLAUDE.md"
   workflow_dispatch:
 
 # Allow the workflow to publish to Pages.
