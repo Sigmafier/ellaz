@@ -53,7 +53,7 @@ something is built the way it is.
 | [`docs/poker-table.md`](docs/poker-table.md) | the Hold'em sub-project in full |
 | [`docs/deploy.md`](docs/deploy.md) | the deploy runbook, verification commands, secret rotation |
 | [`docs/payload-history.md`](docs/payload-history.md) · [`docs/scaling-the-first-visit.md`](docs/scaling-the-first-visit.md) | superseded payload readings, and the O(1) argument |
-| [`.claude/rules/`](.claude/rules/) | 44 traps, one per file, each with its measurement. Path-scoped, so each loads when you touch what it governs |
+| [`.claude/rules/`](.claude/rules/) | 45 traps, one per file, each with its measurement. Path-scoped, so each loads when you touch what it governs |
 | [`holdem/README.md`](holdem/README.md) | the poker runbook, quotas, DNS |
 
 ## Commands
@@ -158,6 +158,7 @@ conventions; the named rule file carries the evidence.
 
 - **Kids games are tap-completable; drag is optional, never required.** A five-year-old on a phone, and anyone on assistive input, cannot hold a sustained pointer gesture. Plus targets ≥2x2cm, icon+audio navigation, instant restart, **no fail-punishment**.
 - **No disabled buttons for "you have not earned this yet."** A locked item stays pressable and answers with a gentle wiggle. `disabled` is reserved for the genuinely impossible.
+- **A thing that tells the player to tap it must answer a tap.** If the words are an instruction the element is a control; if they are only a description it must stop looking like one. Never `disabled` in between - a hint is not a disabled button, it is not a button. → [`a-control-that-carries-an-imperative-must-be-a-control.md`](.claude/rules/a-control-that-carries-an-imperative-must-be-a-control.md)
 - **Speech is supplementary, never the question.** A voice can be selected, fire `onend` on time, and emit no sound, and that is undetectable from JavaScript. If removing speech would make a game unplayable, the design is wrong.
 - **A control is either GAME or PLATFORM, and they never share a bar.** The test: would this still make sense on the World screen or the Boards? → [`game-controls-and-platform-chrome-never-share-a-bar.md`](.claude/rules/game-controls-and-platform-chrome-never-share-a-bar.md)
 - **Steering is one component** — `DirectionPad` from `@ui/DirectionPad`, imported by its own path (it lives in the `page` chunk, so a barrel re-export would make the shell import from it). Never ship the joystick alone.
