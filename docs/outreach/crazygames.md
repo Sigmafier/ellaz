@@ -1,7 +1,19 @@
 # CrazyGames - the enquiry, and the sentence that changes the answer
 
-**Status**: draft. Nothing is sent, and there is a reason to read the next section
-before deciding whether it ever should be.
+**Status**: fired 2026-08-30. Sent 17:39 by the operator from `yatiroffer@gmail.com` to
+`submissions@crazygames.com`, and **confirmed against the server's own copy rather than
+against the compose window I filled**: Gmail's Sent folder holds it with the right subject
+and a body of **1,840 chars, sha256 `e91a3df1e5c5af57`** - byte-identical to the letter
+below and to `Desktop\ellaz-doors\crazygames\letter.txt`. Nothing was mangled in transit
+and no signature was appended.
+
+That is a stronger evidence class than anything the Hebrew lane produced. Those four gave a
+server STRING, a wire 200, a not-yet-checked Sent copy, and one that can never be confirmed
+at all; this is the exact bytes, held by a third party, readable again at any time.
+
+**No verdict is due for months and the ledger's 2026-11-28 is a convention, not a
+measurement.** This is an enquiry awaiting a human reply, so if nothing arrives by
+mid-September that silence is itself the answer.
 
 This file exists because `portals.md` treats Poki and CrazyGames as one destination with
 one letter and a bracketed swap. They are not one destination, and `RCH3` forbids the
@@ -22,7 +34,7 @@ favour, one that is merely a correction, and one that decides the whole question
 |---|---|
 | Basic Launch means *"monetization is disabled"* | it means more than that: **"The CrazyGames SDK is optional and monetization is not available"**, and separately *"No SDK is needed for Basic Launch"* |
 | we should ask whether a non-exclusive listing is possible | already answered in public: *"You can publish on CrazyGames even if your game is already live or has been previously published... CrazyGames works as a complementary channel, not a conflicting one"* |
-| the door is an enquiry email | the door is the **developer portal** (`developer.crazygames.com/games`), and the ungated enquiry channel is the **public support page** (`developer.crazygames.com/support`), which asks you to pick a topic and sends mail |
+| the door is an enquiry email | it is - and `portals.md` was right where this file was wrong. The **support page is not a form**: picking a topic reveals an ADDRESS and nothing else. Measured 2026-08-30 in a browser: `Other` and `My game listing` both give **`submissions@crazygames.com`**, `Payments` gives `finance@crazygames.com` - so the lookup genuinely routes, and that difference is the control proving the reading is real |
 | listing is a strategy decision about advertising | it is first a question of whether they will take these games at all - see below |
 
 **The SDK correction is the good news and it is bigger than it looks.** A Basic Launch
@@ -55,6 +67,33 @@ basis.
 
 This is the defect the two rules written the same day are about: a claim about a SET,
 stated with no population, that nobody could check by reading it. One `grep` settles it.
+
+## AMENDED AGAIN, an hour later, and this time our own gate caught it
+
+The correction above is right and the sentence it produced was still wrong, because it
+was argued from the wrong field. `npm run assert:outreach` prints `42 games (25 kids)`,
+which did not match the ten I had just counted. Two fields, two questions:
+
+| field | value | what it answers |
+|---|---|---|
+| `category: "kids"` | **10 of 42** | which SHELF a game sits on in our own menu |
+| `ageBand: "kids"` | **25 of 42** | who the game is FOR |
+
+**CrazyGames' rejection reason is about the audience, so `ageBand` is the field that
+governs and by it a MAJORITY of the catalogue is aimed at children.** "42 games for all
+ages" was therefore an overclaim in the opposite direction from the one the operator
+corrected, produced by fixing a set claim with a different set.
+
+The letter now states the split rather than choosing a side of it: a little over half
+made for younger children, the rest for any age, and the three being put forward from the
+second group. All three are `ageBand: "all"` and `category: "classics"` - measured, not
+asserted. That is checkable in one command and visible on the site in five seconds, which
+is exactly why saying it is better than not.
+
+**Three versions of one sentence in one day, each fixing the last.** The first was wrong
+about the site, the second was right about a field that does not govern here, and only the
+third names which field it is using. A set claim needs its POPULATION and its FIELD, and
+the gate found the second gap because it happened to count a different one.
 
 ## The sentence that still matters, and it matters less than I first wrote
 
@@ -119,10 +158,18 @@ strategy, and it must not be written down as though it were a guarantee.
 
 ## The letter
 
-**Where it goes**: `https://developer.crazygames.com/support`, which is public and needs
-no account. Pick the topic that best fits a pre-submission question - the list only renders
-in the browser and is not reproduced here rather than guessed at. Creating the developer
-account, if it comes to that, is the operator's own act.
+**Where it goes**: **`submissions@crazygames.com`**, by email. `developer.crazygames.com/support`
+is public and needs no account, but it is a topic-to-address lookup rather than a form -
+selecting a topic reveals the address to write to. The seven topics, read in a browser
+2026-08-30: Earning Revenue · Payments · General questions about the SDK · Licensing ·
+Technical issues (e.g. with SDK integration) · My game listing · Other. Both `Other` and
+`My game listing` resolve to `submissions@`; `Payments` resolves to `finance@`, which is
+the control showing the page really does route rather than printing one address always.
+
+**So this is an email send, not a form fill**, the same shape as the `pop.education.gov.il`
+letter: it goes from the operator's own mailbox, and a copy therefore lands in Sent, which
+makes it CONFIRMABLE afterwards - unlike `kef-lilmod`, which can never be confirmed at all.
+Creating a developer account, if it ever comes to that, is the operator's own act.
 
 **Subject**:
 
@@ -135,28 +182,34 @@ Pre-submission question about Basic Launch, from a 42-game HTML5 site
 ```
 Hello,
 
-I would rather ask one question before submitting anything than submit and find out, so
-this is a short enquiry rather than a pitch.
+I would rather ask one question before submitting anything than submit and find
+out, so this is a short enquiry rather than a pitch.
 
-I run ellaz.fun, a free browser games site - 42 games for all ages, playable on phone,
-tablet and desktop. Three of them already ship as self-contained HTML5 bundles and are the
-ones I would put forward: sudoku, 2048 and a snake game. They are original implementations of public-domain mechanics, with artwork
-drawn in code and names of our own - no borrowed sprites, no licensed audio, no reskins.
-They carry no advertising, no accounts, no logins and no external network requests of any
-kind, which I mention because I read that Basic Launch needs no SDK and that external ads
-are not permitted at that stage. That is already how these are built.
+I run ellaz.fun, a free browser games site - 42 games, playable on phone,
+tablet and desktop. The catalogue is split: a little over half are made for
+younger children, and the rest are for any age. The three I would put forward
+are all from the second group, and all three already ship as self-contained
+HTML5 bundles: sudoku, 2048 and a snake game. They are original
+implementations of public-domain mechanics, with artwork drawn in code and
+names of our own - no borrowed sprites, no licensed audio, no reskins. They
+carry no advertising, no accounts, no logins and no external network requests
+of any kind, which I mention because I read that Basic Launch needs no SDK and
+that external ads are not permitted at that stage. That is already how these
+are built.
 
-The technical shape, in case it saves you a click: pure HTML5, no plugin and no download,
-about 230 KB for the largest plain game and about 1.9 MB for the snake one, which is the
-only game here that carries a game engine. Eight to ten files each. Every game boots into
-a container it is handed, so hosting adjustments are integration rather than a rewrite.
+The technical shape, in case it saves you a click: pure HTML5, no plugin and no
+download, about 235 KB each for the two plain games and about 1.9 MB for the
+snake one, which is the only game here that carries a game engine. Eight to ten
+files each. Every game boots into a container it is handed, so hosting
+adjustments are integration rather than a rewrite.
 
-My question touches a promise we make in writing, which is why I would rather ask it
-first. Our own pages say the games carry no advertising, and Basic Launch is described as
-a test period rather than a resting state. If a game finishes Basic Launch without meeting
-the Full Launch KPIs, what happens to it - does it stay listed as it is, does it come
-down, or does it move on regardless? I could not find this documented anywhere, and the
-answer changes whether a listing is something I can honestly describe on my own site.
+My question touches a promise we make in writing, which is why I would rather
+ask it first. Our own pages say the games carry no advertising, and Basic Launch
+is described as a test period rather than a resting state. If a game finishes
+Basic Launch without meeting the Full Launch KPIs, what happens to it - does it
+stay listed as it is, does it come down, or does it move on regardless? I could
+not find this documented anywhere, and the answer changes whether a listing is
+something I can honestly describe on my own site.
 
 Thank you for reading,
 Yatir
@@ -179,12 +232,12 @@ whether a listing is compatible with what our pages promise.
 |---|---|
 | no SDK needed at Basic Launch, no external ads | `docs.crazygames.com/requirements/intro` and `/resources/basic-launch-metrics/`, read in a browser 2026-08-30 |
 | "content is targeted for kids" is a rejection reason | `docs.crazygames.com/faq/`, § Step A, read in a browser 2026-08-30 |
-| 42 games, all ages, one shelf for younger children | `grep -o 'category: "[a-z]*"' src/games/*/meta.ts` on 2026-08-30: think 13, kids 10, classics 9, learn 6, speed 3, create 1 |
+| 42 games, split between children and all ages | **`ageBand`, not `category` - see the correction below.** One per `meta.ts`, 2026-08-30: **kids 25, all 17**. All three candidates are `ageBand: "all"`, `category: "classics"`. The shelf field says think 13, kids 10, classics 9, learn 6, speed 3, create 1, and it answers a different question |
 | Basic Launch is 7-21 days, 500 plays | same page, verbatim |
 | three games ship as self-contained bundles | `dist-standalone-zips/`, gated by `scripts/assert-standalone.mjs` |
 | games make no external network requests | asserted by `assert:standalone`, which fails on any external origin; negative control 14/14 |
-| about 230 KB largest plain game, about 1.9 MB snake | measured on the built artifacts 2026-08-30 at HEAD `48a6e1f`: 2048 234,762 B, snake 1,924,037 B. **NOTHING IN THE REPO GATES THESE** - re-measure before sending if days have passed |
-| 8 to 10 files each | `find dist-standalone/<id> -type f`, same tree: 8, 8 and 10 |
+| about 235 KB each for the two plain games, about 1.9 MB snake | **RE-MEASURED 2026-08-30 at HEAD `0e88860`**, after the chrome-row fix landed in all three bundles: sudoku 236,042 B, 2048 234,801 B, snake 1,924,076 B unpacked. The previous reading (`48a6e1f`: 2048 234,762 B, snake 1,924,037 B) named 2048 as the largest plain game and it is not - sudoku is, by 1,241 B. **NOTHING IN THE REPO GATES THESE** - re-measure before sending if days have passed |
+| 8 to 10 files each | `find dist-standalone/<id> -type f`, same tree at `0e88860`: 8, 8 and 10 |
 | original mechanics, original art and names | the originality convention in `CLAUDE.md`, and `src/ui/gameArt.ts` - every tile is drawn in code |
 
 **Do not quote a revenue share, a review turnaround, an SDK version or a play-count

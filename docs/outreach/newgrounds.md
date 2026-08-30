@@ -1,5 +1,29 @@
 # Newgrounds - two listings, and the four things that were wrong in this file
 
+> **BOTH LISTINGS WERE UN-PUBLISHED BY NEWGROUNDS, 2026-08-30, HOURS AFTER GOING LIVE.**
+> `portal/view/1049495` (Snake) and `portal/view/1049504` (2048) both return Newgrounds'
+> 404 page to their own AUTHOR while logged in, and `ytrofr.newgrounds.com/games` reads
+> *"Nothing matches your filters / search terms."* The projects still exist: the dashboard
+> at `/projects/games` lists both as **Un-Published**, and each edit page carries a red
+> banner reading *"This project has been un-published from the game section."*
+>
+> **The edits SURVIVED - it is only the publication that did not.** 2048's edit page still
+> shows Embed Width 800, Embed Height 900 and Touchscreen friendly ticked, which is the
+> frame fix made an hour earlier. So the shaping held and the listing did not.
+>
+> **This is not diagnosed and must not be guessed at.** The banner is passive and names no
+> actor. It does not say "blammed", which is the word Newgrounds uses when a submission is
+> voted off under judgment - but that is an argument from wording, not evidence. The
+> candidates are a moderator action, an automated action, and a judgment outcome, and the
+> instrument that separates them is the account's own notifications, which are the
+> operator's to read. **Do not press Publish again until it is known which** - republishing
+> over a moderation decision is a different act from republishing after a glitch, and only
+> one of them is safe for the account.
+>
+> Everything below this banner was true when written and describes two live listings.
+
+
+
 **Status**: drafts. Nothing is uploaded. The account is the operator's to create.
 
 ## Read this before doing the work
