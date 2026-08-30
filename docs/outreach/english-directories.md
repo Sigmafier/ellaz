@@ -337,8 +337,12 @@ because `pquestion` is a single-line input, and the letter went in More Detail. 
 hidden fields were plumbing carrying values, so unlike the WeAreTeachers form there was
 no honeypot to leave alone. **The confirmation box was ticked deliberately** - that
 receipt would be a copy somebody else holds, which is a better grade than a string on a
-page - and it had not arrived when checked minutes later, with `newer_than:1d`
-returning 20 messages as the control. A not-yet, not a never.
+page - it was absent on the first check, with `newer_than:1d` returning 20 messages as the
+control, and it **arrived on the next one**: *"Your submission to LibAnswers was
+received."* from `ask@greenburghlibrary.libanswers.com`, 7:57 PM, quoting the question
+back verbatim and carrying `ellaz.fun`. So this row holds a copy somebody else keeps -
+the strongest grade here. The sequence is worth more than the answer: the first reading
+was a true not-yet, and a not-yet read as a never is how a door gets knocked twice.
 
 > Subject: One entry for the games list, and it covers the Spanish gap too
 >
