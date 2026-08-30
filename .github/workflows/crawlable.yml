@@ -73,22 +73,19 @@ jobs:
           CRAWL_CONTENT_FLOOR: "1"
         run: node scripts/assert-crawlable.mjs
 
-      # The About box, which is the other thing about this project that lives
-      # outside the repository and is read by strangers. It said "in Hebrew and
-      # English" for weeks while the site served four written languages, and
-      # every check of the LINK passed the whole time - homepage, topics and
-      # licence were all correct. It rides this workflow rather than the build
-      # because it is the same class as everything else here: a claim about the
-      # outside world that no gate reading dist/ can reach.
+      # THE ABOUT BOX CHECK MOVED OUT, 2026-08-30, and the reason is worth keeping.
       #
-      # `continue-on-error` because a stale sentence is not an outage, and a
-      # crawl block is. Reding this run for it would blunt the alarm that
-      # matters. It prints the drift into the summary either way.
-      - name: The GitHub About box still matches the roster
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: node scripts/reach/repo-about.mjs --check
+      # It rode here with `continue-on-error: true`, on the sound reasoning that a
+      # stale sentence is not an outage and reding this run for one would blunt the
+      # alarm that matters. The consequence was not sound: a step that cannot red
+      # sits inside a run that always reports success, and a run that reports
+      # success is a run nobody opens. The "What to do about it" step below is
+      # `if: failure()`, so it never fired for that either.
+      #
+      # Measured: the About box said "34 games" against a roster of 42, daily,
+      # green, for as long as it took somebody to notice by eye. It is now
+      # `about-box.yml` with its own schedule and its own email, which protects
+      # what the demotion was protecting without silencing the check.
 
       # A red run is the alarm: GitHub emails the repo owner on a failed
       # scheduled workflow, which is the whole notification mechanism and costs

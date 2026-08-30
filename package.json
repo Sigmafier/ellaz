@@ -30,6 +30,8 @@
     "reach:about": "node scripts/reach/repo-about.mjs --check",
     "reach:ci-payload": "node scripts/reach/ci-payload.mjs",
     "reach:backlinks": "node scripts/reach/backlinks.mjs",
+    "reach:prospects": "node scripts/reach/prospects.mjs",
+    "reach:prospects:control": "node scripts/reach/prospects.mjs --control",
     "reach:backlinks:control": "node scripts/reach/backlinks.mjs --control",
     "reach:site": "node scripts/reach/build-reach-site.mjs",
     "reach:site:control": "node scripts/reach/build-reach-site.mjs --control && node scripts/assert-reach-live.mjs --control",

@@ -32,7 +32,18 @@ const STATUSES = ["draft", "fired", "spent", "dropped"];
 // them here rather than inferring from "does it have a **Status**: line" is deliberate:
 // the missing-status check is what catches a real draft whose header was lost, and an
 // inference would turn that check off for exactly the file it exists to catch.
-export const RECORDS = new Set(["ledger.md", "audit.md", "measured.md", "backlinks.md"]);
+// `prospects.md` joined them 2026-08-30. It is the same kind as `backlinks.md` and
+// for the same reason: a destination measured is not a surface fired, so it has no
+// status to carry and no row to match. Adding it here was NOT a way to quiet the
+// gate - the gate was right to refuse it, and the fix is naming the kind rather
+// than giving a record a fake `**Status**: draft` to satisfy a check.
+export const RECORDS = new Set([
+  "ledger.md",
+  "audit.md",
+  "measured.md",
+  "backlinks.md",
+  "prospects.md",
+]);
 
 /** Every draft in the folder, and the status its own header claims. */
 export function drafts(repo) {

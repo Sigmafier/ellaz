@@ -1,0 +1,91 @@
+name: Does the About box still match the roster?
+
+# This check RODE `crawlable.yml` with `continue-on-error: true`, and that is why
+# nobody saw it fire.
+#
+# The reasoning for the demotion was sound and is written out in that file: a
+# stale sentence is not an outage, a crawl block is, and reding the crawl run for
+# a wrong word would blunt the alarm that matters. All true. The consequence was
+# not: a step that cannot red is a step inside a run that always reports success,
+# and a run that reports success is a run nobody opens. `crawlable.yml`'s "What to
+# do about it" step is `if: failure()`, so it never fired for this either.
+#
+# Measured 2026-08-30. The About box said "34 games" while the roster held 42, on
+# the single most-read public surface this project owns and the first sentence any
+# list maintainer reads. The gate was correct, ran daily, and reported green for
+# as long as it took somebody to notice by eye.
+#
+# So it gets its own workflow. It can red on its own schedule, send its own email,
+# and never touch the crawl alarm - which is what the demotion was protecting and
+# what this preserves properly.
+#
+# See .claude/rules/a-hand-authored-number-that-leaves-the-repo.md - the About box
+# is the half of that rule no gate in this repo could reach, and this is the gate.
+
+on:
+  schedule:
+    # Daily, 07:10 UTC. Half an hour after the crawl check, so the two are not
+    # competing for the same runner minute, and off the hour for the same reason
+    # that one is.
+    #
+    # Daily rather than on push, because the field lives in a vendor panel: it can
+    # go stale with no commit, either because the roster grew here or because
+    # somebody edited the sentence there. Neither has a diff to hang a trigger off.
+    - cron: "10 7 * * *"
+
+  # And on push, but ONLY for the two things that can change the DERIVED sentence:
+  # the roster, and the list of languages with prose. A glob rather than a list of
+  # filenames, so game number 43 is covered by a filter nobody has to remember.
+  # See .claude/rules/a-path-filter-is-a-hand-kept-mirror-of-an-import-graph.md
+  push:
+    branches: [main]
+    paths:
+      - "src/games/*/meta.ts"
+      - "src/portal/catalog.ts"
+      - "src/i18n/locales.ts"
+      - "scripts/reach/repo-about.mjs"
+      - ".github/workflows/about-box.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  about:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # No `npm ci`. The script reads the roster off disk and shells out to `gh`,
+      # which the runner already has - a check that must install 400 packages
+      # before it can tell you a sentence is wrong fails for its own reasons.
+      - name: The About box still matches the roster
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/reach/repo-about.mjs --check
+
+      - name: What to do about it
+        if: failure()
+        run: |
+          {
+            echo "## The GitHub About box disagrees with the roster"
+            echo
+            echo "It is the one sentence a list maintainer reads before deciding, and it lives"
+            echo "in a vendor panel no gate reading \`dist/\` can reach."
+            echo
+            echo "Fix it with the tool, never by hand:"
+            echo
+            echo '```'
+            echo "node scripts/reach/repo-about.mjs --apply"
+            echo '```'
+            echo
+            echo "\`--apply\` derives the sentence from the roster and reads it back from the"
+            echo "API afterwards. Typing it by hand is how it got a hard-coded count in the"
+            echo "first place, and a hand-typed number re-breaks on the next game, silently,"
+            echo "in public."
+          } >> "$GITHUB_STEP_SUMMARY"

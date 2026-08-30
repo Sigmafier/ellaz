@@ -1,0 +1,65 @@
+{
+  "https://www.commonsense.org/education/top-picks": {
+    "verdict": "TAKE",
+    "why": "32 of 32 external anchors are dofollow",
+    "checked": "2026-08-30",
+    "external": 32,
+    "dofollow": 32,
+    "nofollow": 0,
+    "fresh": "2026",
+    "freshHow": "a year in the text",
+    "door": {
+      "kind": "page",
+      "at": "https://commonsense.org/education/digital-literacy/about"
+    },
+    "linksToUs": false,
+    "note": "Common Sense Education. Enormous authority in exactly our category and it links out — measured 2026-08-30: 35 external, 34 dofollow, 1 nofollow, and that 1 is the control proving the count is real. Editorial, so the ask is inclusion in a list, never a submission."
+  },
+  "https://www.learninggame.org/free-learning-games-for-children/": {
+    "verdict": "TAKE",
+    "why": "121 of 124 external anchors are dofollow",
+    "checked": "2026-08-30",
+    "external": 124,
+    "dofollow": 121,
+    "nofollow": 3,
+    "fresh": "2025-12-26",
+    "freshHow": "structured",
+    "door": {
+      "kind": "page",
+      "at": "https://www.learninggame.org/about/"
+    },
+    "linksToUs": false,
+    "note": "A live roundup of free learning games, already linking to code.org and ed.stanford.edu. Measured 2026-08-30: 125 external, 122 dofollow, 3 nofollow."
+  },
+  "https://www.kidsaitools.com/en/articles/best-free-educational-games-kids-no-ads-2026": {
+    "verdict": "unchecked",
+    "why": "HTTP 429",
+    "checked": "2026-08-30"
+  },
+  "https://www.freetech4teachers.com/": {
+    "verdict": "blind",
+    "why": "no external anchors found - the matcher read nothing",
+    "checked": "2026-08-30",
+    "external": 0,
+    "dofollow": 0,
+    "nofollow": 0,
+    "fresh": null,
+    "freshHow": "none found",
+    "door": null,
+    "linksToUs": false,
+    "note": "**CONTROL, NOT A PROSPECT.** Already ruled out on 2026-08-29: 200, current design, huge archive, last post 2023-08-23. It is here so a run that reports every destination healthy is visibly wrong."
+  },
+  "https://ytrofr.itch.io/sudoku": {
+    "verdict": "thin",
+    "why": "only 2 dofollow of 3",
+    "checked": "2026-08-30",
+    "external": 3,
+    "dofollow": 2,
+    "nofollow": 1,
+    "fresh": "2026",
+    "freshHow": "a year in the text",
+    "door": null,
+    "linksToUs": true,
+    "note": "**CONTROL, NOT A PROSPECT.** Our own itch listing. It is the only row whose `linksToUs` must come back true, which is what proves that flag fires on a real page and not only on the fixture."
+  }
+}
