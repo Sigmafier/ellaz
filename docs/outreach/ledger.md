@@ -5,8 +5,29 @@ its surface as still available, because that is how a draft is written — so th
 only thing that can answer *have we already used this* is a row here.
 
 `npm run assert:outreach` reads this file. Every draft in this folder must have a
-row, every row's status must match the `**Status**:` line in its draft, and a row
-that is `fired` or `spent` must carry both dates. A disagreement fails the gate.
+row, and a row that is `fired` or `spent` must carry both dates.
+
+**The status check is ONE-DIRECTIONAL and it is a SET claim, which this paragraph
+used to describe wrongly.** It said *"every row's status must match the `**Status**:`
+line in its draft ... A disagreement fails the gate"*, and that is not what the gate
+does. Measured 2026-08-30 by planting both directions:
+
+| planted | gate |
+|---|---|
+| a file says `fired` while **none** of its own surfaces is fired here | **exit 1, `DISAGREE`** |
+| a file says `draft` while one of its surfaces **is** fired here | **exit 0, silent** |
+
+The silence is deliberate, not a hole: one file holds several letters at different
+stages - `hebrew-directories.md` covers four doors and `english-directories.md`
+three - so a file reading "drafts" beside one fired surface is a legitimate state,
+and a row-by-row match would red on it. What the gate really catches is a draft
+CLAIMING to have been sent when nothing here records a send.
+
+**So flipping a file's `**Status**:` down to `draft` is not caught, and a green run
+is not evidence that the two sides agree.** The sentence that overclaimed this was
+quoted as proof of exactly that, minutes before the control disproved it - the same
+defect as a set claim with no population, one layer out, in the paragraph describing
+the guard rather than in the guard.
 
 **Write the row before the post goes out, not after.** Written afterwards it is a
 memory; written before, it is the thing that stops the same submission going out
