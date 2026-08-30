@@ -267,6 +267,36 @@ Object.keys(document.forms[2].querySelector('[name="game[tags]"]').selectize.opt
 
 ---
 
+## The order matters, because PUBLISHING SKIPS THE EMBED BLOCK
+
+**Measured 2026-08-30, and it cost 2048 a broken-looking first hour.** The embed
+settings - viewport size, autostart, fullscreen button - do NOT exist on
+`itch.io/game/new`. They appear on the EDIT page, and only once a playable file has
+been uploaded. So a project taken straight from the creation form to Public goes live
+in itch's default **640 x 360**, whatever the game needs. 2048 needs 900px of height:
+it published with a grey "Run game" box, no fullscreen button, and the board clipped
+behind an inner scrollbar. Every field on the form was correct.
+
+Sudoku escaped this only because it was saved as a draft first, edited, and published
+after - which is now the order:
+
+```
+create -> upload the zip -> tick "played in the browser"
+       -> SET THE EMBED  800 x 900 - autostart ON - fullscreen ON - mobile ON
+       -> cover -> screenshots -> AI disclosure
+       -> Save as DRAFT -> play it in itch's own player -> only then Public
+```
+
+**And a second trap in the same area: saving is not publishing.** Visibility is its own
+radio (`Draft` / `Restricted` / `Public`) and `Save` does not move it. Sudoku sat at
+**404 for everyone** for fifteen minutes while every field read back correct, because
+"I saved it" and "it is published" are two different facts.
+
+**Verify the fix on the live IFRAME, never on the form that set it.** Reading
+`embed[width]` back tells you what you typed. `document.querySelector('.game_frame
+iframe').width` tells you what a visitor gets, and the presence or absence of the
+`Run game` button is how you know autostart really took.
+
 ## What a listing here actually buys, measured - and it is not a link
 
 **itch nofollows every external URL a user supplies, everywhere on the platform.**
