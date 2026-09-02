@@ -24,9 +24,15 @@ function env(over: Partial<ReportEnv> = {}): ReportEnv {
     // The things a report is allowed to read.
     "ellaz:snake:session": JSON.stringify({ v: 2, at: 1_700_000_000_000, s: { score: 40 } }),
     "ellaz:snake:level": JSON.stringify("hard"),
-    "ellaz:theme": JSON.stringify("daylight"),
-    "ellaz:muted": JSON.stringify(false),
-    "ellaz:locale": JSON.stringify("en"),
+    // EXACTLY the bytes the app writes, which is the whole point: `App.tsx`
+    // does `setItem(key, "en")`, `themes.ts` writes a bare theme id, and
+    // `audio.ts` writes "1"/"0". The first version of this fixture used
+    // JSON.stringify for all three, so the fixture agreed with the reader and
+    // both disagreed with the app - and every real report shipped
+    // `App | ? - ? -` (issue #20) while these tests were green.
+    "ellaz:theme": "market",
+    "ellaz:muted": "0",
+    "ellaz:locale": "en",
     // The things it must never read. All three are real shapes.
     "ellaz:cloud:v1": JSON.stringify({ uid: UID, refreshToken: "AMf-vBxSECRET", code: CODE }),
     "ellaz:profile:v1": JSON.stringify({ v: 1, coins: 412, stars: 30, name: { adj: "swift", noun: "tiger" } }),
@@ -57,6 +63,31 @@ describe("captureContext", () => {
     expect(ctx.game?.sessionAgeMs).toBe(60_000);
     expect(ctx.view).toEqual({ w: 390, h: 844, dpr: 3, orientation: "portrait" });
     expect(ctx.app.buildStamp).toBe("13840666dff557ae");
+    // The three that silently arrived as undefined on every real report until
+    // 2026-09-02, because they are stored as PLAIN strings and were read with
+    // JSON.parse. Asserting the values - not just "defined" - is what pins it:
+    // an undefined here reads as "the player never set it", which is a legal
+    // state, so a looser assertion would have passed on the bug too.
+    expect(ctx.app.locale).toBe("en");
+    expect(ctx.app.theme).toBe("market");
+    expect(ctx.app.muted).toBe(false);
+  });
+
+  it("reads muted as a boolean either way, and drops a value that is not ours", () => {
+    // "1"/"0" is audio.ts's encoding. `false` must survive as false rather than
+    // collapsing into undefined - "the player un-muted" and "the player never
+    // touched it" are different facts and the issue prints both.
+    const withMute = (v: string | null) => {
+      const e = env();
+      e.storage = { read: (k) => (k === "ellaz:muted" ? v : null), keys: () => [] };
+      return captureContext(undefined, e).app.muted;
+    };
+    expect(withMute("0")).toBe(false);
+    expect(withMute("1")).toBe(true);
+    // "true" is not our encoding, and JSON.parse would have accepted it - so
+    // this cell also fails if anyone reaches for readJson here again.
+    expect(withMute("true")).toBeUndefined();
+    expect(withMute(null)).toBeUndefined();
   });
 
   it("NEVER carries the backup code, the uid, or the refresh token", () => {

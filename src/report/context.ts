@@ -134,18 +134,32 @@ function capture(env: ReportEnv, gameId: string): ReportGame {
  * the room or the boards - and the `game` block is simply absent.
  */
 export function captureContext(gameId: string | undefined, env: ReportEnv): ReportContext {
-  const locale = readJson(env, "ellaz:locale");
-  const theme = readJson(env, "ellaz:theme");
-  const muted = readJson(env, "ellaz:muted");
+  // PLAIN STRINGS, not JSON. `App.tsx` writes `setItem(key, "en")`, `themes.ts`
+  // writes the bare theme id, and `audio.ts` writes "1"/"0" - so `JSON.parse`
+  // THROWS on the first two and returns a number for the third, and all three
+  // arrived as undefined. Issue #20 rendered `App | ? - ? - build ...` on a
+  // report sent from a perfectly normal English session.
+  //
+  // It was invisible from the sheet, and that is the part worth remembering:
+  // step 3 shows the locale from the component's own `locale` PROP, while the
+  // payload reads storage. Two sources for one fact, so the preview agreed with
+  // the player and disagreed with what was sent. A preview must read the thing
+  // it is previewing - `context.test.ts` now asserts these three round-trip
+  // from storage written the way the app really writes it.
+  const locale = readRaw(env, "ellaz:locale");
+  const theme = readRaw(env, "ellaz:theme");
+  const mutedRaw = readRaw(env, "ellaz:muted");
 
   return {
     at: env.now,
     game: gameId ? capture(env, gameId) : undefined,
     view: env.view,
     app: {
-      locale: typeof locale === "string" ? locale : undefined,
-      theme: typeof theme === "string" ? theme : undefined,
-      muted: typeof muted === "boolean" ? muted : undefined,
+      locale,
+      theme,
+      // "1"/"0" is what audio.ts writes; anything else is not ours, and an
+      // absent key means the player never touched the control.
+      muted: mutedRaw === "1" ? true : mutedRaw === "0" ? false : undefined,
       base: env.base,
       buildStamp: env.buildStamp,
     },
