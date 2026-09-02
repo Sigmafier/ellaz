@@ -132,6 +132,18 @@
 
   /* Text that sits ON --brand (a filter chip's label, a primary button). */
   --on-brand: #ffffff;
+
+  /* THE FILL UNDER A LABEL, which is not the same token as the fill under a
+     shape. `--brand-fill` is a GRADIENT here, and a gradient has no contrast
+     ratio - it has a worst stop. Measured on rendered pixels 2026-09-02:
+     --on-brand reads 4.86 on this block's dark stop and 2.43 on its light one,
+     and --text reads 2.53 at the top of a real 52px button. So NO ink clears
+     4.5 across that gradient, and text must never sit on it.
+
+     --brand-strong is flat for exactly that reason, and it is the darker of
+     night's two brand stops so --on-brand clears 4.86:1 on it. */
+  --brand-strong: var(--brand);
+
   /* The earned-star pill on a game card, and the shadow that keeps the
      UNEARNED outline star legible where it sits directly on the art. */
   --badge-fill: rgba(6, 8, 20, 0.72);
@@ -217,6 +229,15 @@
   --page-bg: var(--bg);
 
   --on-brand: #ffffff;
+
+  /* Deliberately NOT --brand. #ff4d8d is a fine fill under a shape and a bad
+     one under a label: measured on rendered pixels 2026-09-02, --on-brand
+     reads 3.14 on it and --text reads 5.34, so the only ink that clears 4.5
+     on the bright pink is a near-black one - which is why a Send button drawn
+     that way reads as a highlighter swipe rather than a button.
+     Same hue, darkened until the white label clears: 5.87:1. */
+  --brand-strong: #c2185b;
+
   --badge-fill: rgba(36, 28, 23, 0.78);
   /* Lighter on cream: a hard black halo would read as grime on a pale card. */
   --badge-glow: 0 1px 2px rgba(36, 28, 23, 0.45);

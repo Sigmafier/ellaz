@@ -328,7 +328,15 @@ function styles(rtl: boolean) {
       font: "600 .9rem var(--font)",
       cursor: "pointer",
     },
-    chipOn: { background: "var(--brand-fill)", borderColor: "var(--brand)", color: "var(--text)", fontWeight: 700 },
+    // A LABEL, so it takes the flat fill and the white ink, not --brand-fill.
+    // Measured 2026-09-02: --text on --brand-fill reads 5.34 in market and
+    // 2.53 in night, and it looks like a highlighter in both. See tokens.css.
+    chipOn: {
+      background: "var(--brand-strong)",
+      borderColor: "var(--brand-strong)",
+      color: "var(--on-brand)",
+      fontWeight: 700,
+    },
     box: {
       width: "100%",
       minHeight: 70,
@@ -371,9 +379,14 @@ function styles(rtl: boolean) {
       borderRadius: "var(--radius-2)",
       cursor: "pointer",
       font: "600 1.02rem var(--font-display)",
-      background: "var(--brand-fill)",
-      color: "var(--text)",
-      boxShadow: "0 4px 0 var(--line)",
+      background: "var(--brand-strong)",
+      color: "var(--on-brand)",
+      // The 4px lip is what makes this read as a button rather than a swatch,
+      // and it has to be DARKER than the fill in both themes - which --line
+      // (pale cream in market) is not. Derived from the fill so it cannot
+      // drift from it; an engine without color-mix drops this one declaration
+      // and keeps a flat button, which is the right way to fail.
+      boxShadow: "0 4px 0 color-mix(in srgb, var(--brand-strong) 72%, #000)",
     },
     ghost: {
       flex: "0 0 96px",

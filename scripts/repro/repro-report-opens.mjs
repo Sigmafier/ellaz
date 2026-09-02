@@ -18,6 +18,12 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 
 const BASE = process.env.PREVIEW_URL ?? "http://localhost:5180";
+// The harness page has to be written into the tree the server is SERVING, so
+// this follows PREVIEW_URL rather than being pinned to `dist`. Pointing one at
+// a fresh build and the other at a stale one produces "the probe never ran",
+// which reads exactly like a dead server - the failure shape
+// `.claude/rules/a-diagnostic-that-truncates-what-it-compares.md` collects.
+const DIST_DIR = process.env.DIST_DIR ?? "dist";
 const PAGE = `${BASE}/games/snake/`;
 const OUT = "screenshots";
 const TMP = "/tmp/ellaz-report-probe";
@@ -90,7 +96,7 @@ const harness = `<!doctype html><meta charset="utf-8"><title>probe-pending</titl
 })();
 </script>`;
 
-const harnessPath = "dist/__report-probe.html";
+const harnessPath = `${DIST_DIR}/__report-probe.html`;
 writeFileSync(harnessPath, harness);
 
 function chrome(args) {

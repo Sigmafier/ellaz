@@ -125,3 +125,71 @@ describe("theme text tokens are readable on their own surfaces", () => {
     }
   }
 });
+
+/**
+ * LABEL PAIRINGS - the pairs a component actually declares, at the 4.5 floor.
+ *
+ * This block exists because the assertion above it was green over a real
+ * defect for months, and it was green for two separate reasons worth naming.
+ *
+ * 1. IT USED THE WRONG FLOOR. "on-brand label on the brand fill" asserts >= 3.
+ *    3:1 is the floor for a UI COMPONENT or a graphic - the chip's fill
+ *    against the card behind it. The label ON that fill is text, and text is
+ *    4.5. --on-brand on market's --brand measures 3.14, so the one assertion
+ *    covering the brand button passed a pairing that fails for its own label.
+ *
+ * 2. IT ASSERTED A PAIR NOTHING RENDERED. The pair in the test is
+ *    (--on-brand, --brand). The pair `Button`, `ReportSheet` and `Lab` all
+ *    shipped is (--text, --brand-fill), which the test never names. A
+ *    contrast suite built from a hand-kept list of token pairs measures the
+ *    list, not the app - the same shape as
+ *    `.claude/rules/a-path-filter-is-a-hand-kept-mirror-of-an-import-graph.md`.
+ *
+ * Measured on RENDERED PIXELS 2026-09-02, not on the CSS, because a gradient
+ * only has a ratio once something paints it:
+ *
+ *     pairing                            market   night
+ *     --text      on --brand-fill         5.34     2.53
+ *     --on-brand  on --brand              3.14     4.86
+ *     --on-brand  on --brand-strong       5.87     4.86   <- the only one that
+ *                                                            clears in both
+ */
+describe("a label's fill clears the TEXT floor, in both themes", () => {
+  for (const theme of ["night", "market"] as const) {
+    it(`${theme}: --on-brand on --brand-strong`, () => {
+      expect(
+        contrastRatio(tokenValue(theme, "--on-brand"), tokenValue(theme, "--brand-strong")),
+      ).toBeGreaterThanOrEqual(FLOOR);
+    });
+  }
+
+  /**
+   * A gradient has no contrast ratio - it has a worst stop, and the worst stop
+   * governs. Night's --brand-fill runs --brand-2 -> --brand, and NO ink clears
+   * 4.5 across it: white reads 2.43 on the light stop, --text reads 2.25.
+   *
+   * So this is not "pick a better ink"; it is "text never sits on this token".
+   * The assertion is the reason --brand-strong exists, and it fails the day
+   * somebody flattens the gradient - at which point delete it, do not widen it.
+   */
+  it("night's --brand-fill cannot carry a label at all, which is why it never does", () => {
+    const stops = [tokenValue("night", "--brand-2"), tokenValue("night", "--brand")];
+    for (const ink of [tokenValue("night", "--on-brand"), tokenValue("night", "--text")]) {
+      const worst = Math.min(...stops.map((s) => contrastRatio(ink, s)));
+      expect(worst).toBeLessThan(FLOOR);
+    }
+  });
+
+  /**
+   * The defect this block was written from, pinned so it cannot be quietly
+   * re-introduced or quietly fixed. --on-brand on market's --brand is 3.14,
+   * and it ships today in `ShareSheet`'s primary button and two `Boards`
+   * labels. Fixing those to --brand-strong REDS this test, which is the point:
+   * the fix should delete this assertion, not edit it.
+   */
+  it("market's --brand still cannot carry a white label (known, 2 call sites)", () => {
+    const r = contrastRatio(tokenValue("market", "--on-brand"), tokenValue("market", "--brand"));
+    expect(r).toBeLessThan(FLOOR);
+    expect(r).toBeGreaterThanOrEqual(3);
+  });
+});
