@@ -338,6 +338,13 @@ export default defineConfig({
           // The `.svg` in that pattern is why this is the first emitted asset
           // in a long while that needed the entry at all.
           "art/**",
+          // The 47 embed pages. Each one is a whole document that boots the app for
+          // ONE game, and they exist to be loaded from somebody ELSE's site - so a
+          // child who has never opened an embed would otherwise precache all 47 of
+          // them on their first visit here. `assert-first-visit.mjs` is an allowlist
+          // and it refused the build that proved this, which is the third of the
+          // three changes a new emitted thing needs (.claude/rules/precache-glob-sweeps-new-chunks.md).
+          "embed/**",
           "games/**",
           "world/**",
           "boards/**",

@@ -7,6 +7,45 @@ import { entryFor } from "./catalog";
 import { attachSelectionDismissal, dismissSelection } from "./selectionDismiss";
 import { WalletChip } from "./WalletChip";
 
+/**
+ * Which platform controls the host's own bar draws, per variant.
+ *
+ * A DECISION, exported so `embed-context.test.ts` can ask it without a DOM.
+ *
+ * - `page`: nothing - the emitted header draws every platform control.
+ * - `app`: the standalone single-game bundle. No emitted header at all, so
+ *   this bar is the ONLY platform chrome and draws back, the wallet and mute.
+ * - `embed`: the same bundle inside a STRANGER's iframe. Back goes, because
+ *   inside an iframe there is nowhere for it to go: the visitor did not
+ *   navigate here, so back either does nothing or walks the host's own
+ *   history, and the frame already carries one deliberate way out with
+ *   `target="_top"`. The wallet goes because it is a PLAYER's - coins earned
+ *   on ellaz.fun, drawn on somebody else's site for somebody who has not
+ *   earned them. Mute stays: sound is the one control a framed visitor
+ *   genuinely needs, and nothing on the host's page offers it.
+ *
+ *   Verified on the built bundle in a real iframe (2026-09-02): the frame
+ *   renders 0 back buttons, 1 mute button and no wallet text.
+ *
+ * `app` is unchanged by the embed case, on purpose: the standalone bundles on
+ * itch and Newgrounds draw exactly what they drew before.
+ */
+export type HostVariant = "app" | "page" | "embed";
+
+export interface HostChrome {
+  /** Whether the bar exists at all. */
+  bar: boolean;
+  back: boolean;
+  wallet: boolean;
+  mute: boolean;
+}
+
+export function hostChrome(variant: HostVariant): HostChrome {
+  if (variant === "page") return { bar: false, back: false, wallet: false, mute: false };
+  if (variant === "embed") return { bar: true, back: false, wallet: false, mute: true };
+  return { bar: true, back: true, wallet: true, mute: true };
+}
+
 // Loads a game module, builds its GameContext, mounts it into a neutral element,
 // and wires portal chrome (back button, mute). Handles pause on tab-hide and
 // resize; tears the game down fully on exit (mount/unmount leak safety).
@@ -25,8 +64,9 @@ export function GameHost({
    * back and the wallet chip is already in the page header - so it renders
    * neither, and two of each in one viewport reads as a bug rather than as
    * emphasis. Mute stays, because nothing else on the page offers it.
+   * "embed" is the app inside a stranger's iframe: mute only - see `hostChrome`.
    */
-  variant?: "app" | "page";
+  variant?: HostVariant;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
@@ -130,6 +170,7 @@ export function GameHost({
   }, [gameId, locale, onExit]);
 
   const onPage = variant === "page";
+  const chrome = hostChrome(variant);
   // WHO DRAWS BACK AND MUTE depends on the variant, and it no longer depends on
   // whether the game owns its chrome.
   //
@@ -146,7 +187,7 @@ export function GameHost({
 
   return (
     <div style={{ position: "relative", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-      {!onPage && (
+      {chrome.bar && (
       <div
         style={{
           display: "flex",
@@ -156,13 +197,13 @@ export function GameHost({
           flexShrink: 0,
         }}
       >
-        {!onPage && (
+        {chrome.back && (
           <IconButton ariaLabel="back" onClick={onExit}>
             {backArrow(locale)}
           </IconButton>
         )}
         <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
-          {!onPage && <WalletChip />}
+          {chrome.wallet && <WalletChip />}
         </div>
         {/* `active` marks MUTED, not sound-on. Two reasons, and both were wrong
             the other way round. Visually, sound-on is the default state, and
@@ -174,9 +215,11 @@ export function GameHost({
             muting is engaged; it announced the exact opposite. The glyph already
             carries the state either way, so the emphasis is free to go to the
             unusual case. */}
-        <IconButton ariaLabel="mute" active={muted} onClick={() => audioPort.toggleMute()}>
-          {muted ? "🔇" : "🔊"}
-        </IconButton>
+        {chrome.mute && (
+          <IconButton ariaLabel="mute" active={muted} onClick={() => audioPort.toggleMute()}>
+            {muted ? "🔇" : "🔊"}
+          </IconButton>
+        )}
       </div>
       )}
 

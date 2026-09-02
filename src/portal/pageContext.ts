@@ -15,7 +15,7 @@ import { isPageLocale } from "@i18n/locales";
  * hitting. The document cannot be wrong about what the document is.
  */
 
-export type PageKind = "app" | "game" | "world" | "boards";
+export type PageKind = "app" | "game" | "world" | "boards" | "embed";
 
 export interface PageContext {
   kind: PageKind;
@@ -73,5 +73,8 @@ export function readPageContext(doc: Document = document): PageContext {
 
   if (page === "world") return { kind: "world", locale, frame, walletSlot };
   if (page === "boards") return { kind: "boards", locale, frame, walletSlot };
+  // The game alone, inside somebody else's page. No wallet slot: the frame
+  // has no header, and `GameHost`'s app variant draws its own chip.
+  if (page === "embed") return { kind: "embed", gameId: doc.body.dataset.game, locale, frame };
   return { kind: "game", gameId: doc.body.dataset.game, locale, frame, walletSlot };
 }

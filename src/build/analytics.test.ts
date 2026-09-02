@@ -11,15 +11,37 @@ import { renderRoute } from "./pages";
  * document carrying the script are two different claims - the same distinction
  * that made the GA install itself worth verifying twice.
  */
+/**
+ * The kinds that carry NO tag, each for its own reason, each asserted below:
+ * the 404 (a document fetches nothing eagerly) and the embed pages (they run
+ * on somebody else's domain). A kind added here without its own assertion is
+ * an exemption nobody checked, which is how the exclusion becomes a hole.
+ */
+const UNTAGGED = new Set(["notFound", "embed"]);
+
 describe("the analytics tag", () => {
-  it("is on every route the primary host emits, except the 404", () => {
+  it("is on every route the primary host emits, except the 404 and the embeds", () => {
     const missing = ROUTES.filter(
-      (r) => r.kind !== "notFound" && !renderRoute(r, "/").includes(GA_MEASUREMENT_ID),
+      (r) => !UNTAGGED.has(r.kind) && !renderRoute(r, "/").includes(GA_MEASUREMENT_ID),
     );
     expect(missing.map((r) => r.path)).toEqual([]);
     // The positive control. An empty ROUTES table, or a renderRoute that threw
     // and was caught somewhere, would satisfy the assertion above by vacuum.
     expect(ROUTES.length).toBeGreaterThan(100);
+  });
+
+  it("is NOT on an embed page, because it runs inside somebody else's site", () => {
+    // The 404's reason is that a document fetches nothing eagerly. An embed
+    // page's reason is different and stronger: it is loaded from a stranger's
+    // domain, and a third-party beacon fired from their page is exactly what
+    // "no external network requests" exists to prevent - the rule that lets
+    // this SDK be listed on a portal at all. Two kinds, two reasons, and both
+    // are asserted rather than skipped.
+    const embeds = ROUTES.filter((r) => r.kind === "embed");
+    expect(embeds.length, "no embed routes - the exclusion cannot be checked").toBeGreaterThan(10);
+    for (const r of embeds.slice(0, 5)) {
+      expect(renderRoute(r, "/"), r.path).not.toContain(GA_MEASUREMENT_ID);
+    }
   });
 
   it("is NOT on the 404, because a document fetches nothing eagerly", () => {
@@ -47,7 +69,7 @@ describe("the analytics tag", () => {
     const kinds = [...new Set(ROUTES.map((r) => r.kind))];
     expect(kinds.length).toBeGreaterThan(3);
     for (const kind of kinds) {
-      if (kind === "notFound") continue; // its own test, above
+      if (UNTAGGED.has(kind)) continue; // each has its own test, above
       const one = ROUTES.find((r) => r.kind === kind)!;
       expect(renderRoute(one, "/"), `${kind} (${one.path})`).toContain(GA_MEASUREMENT_ID);
     }

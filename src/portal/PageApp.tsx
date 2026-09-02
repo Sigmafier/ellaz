@@ -1,6 +1,9 @@
 import { createRoot, type Root } from "react-dom/client";
-import type { PageLocale } from "@i18n/locales";
-import { DEFAULT_LOCALE, loadDict } from "@i18n/index";
+import type { AppLocale, PageLocale } from "@i18n/locales";
+import { DEFAULT_LOCALE, DIR, loadDict, pageLocaleFor } from "@i18n/index";
+// `locales.ts` is a leaf that imports nothing, so reaching past the barrel for
+// the two names it does not re-export costs the chunk nothing extra.
+import { CANONICAL_LOCALE, isAppLocale } from "@i18n/locales";
 import { analytics, startCloudSync } from "@sdk/index";
 import { Boards } from "./Boards";
 import { fitStage } from "./fitStage";
@@ -20,7 +23,8 @@ import {
 } from "@ui/gameTools";
 import { homeHref } from "./paths";
 import type { ShareSheetProps } from "./ShareSheet";
-import type { PageContext } from "./pageContext";
+import type { PageContext, PageKind } from "./pageContext";
+import { armCrashReporting, openReport, watchErrors } from "./openReport";
 
 /**
  * Booting the app on a CONTENT page.
@@ -338,6 +342,157 @@ function wireShare(ctx: PageContext, locale: PageLocale): () => void {
   return close;
 }
 
+/**
+ * Reveal and wire the utility row's reporter.
+ *
+ * Emitted `hidden` like the sound and full-screen buttons and for the same
+ * reason: a document with no JavaScript running must not offer a button that
+ * does nothing. The sheet itself is opened by `openReport`, which is the one
+ * implementation Home and the crash card also call.
+ */
+function wireReport(ctx: PageContext, locale: PageLocale): void {
+  const button = document.querySelector<HTMLButtonElement>("[data-report]");
+  if (!button) return;
+  button.hidden = false;
+  button.addEventListener("click", () => {
+    void openReport({ locale, gameId: ctx.gameId, frame: ctx.frame });
+  });
+}
+
+/**
+ * Whether a page may open the two connections that leave the machine on their
+ * own - analytics and cloud sync.
+ *
+ * Every page of ours may. The EMBED page may not: it runs inside a third
+ * party's page, and a frame that phones home from somebody else's site is the
+ * one thing that makes a game un-listable on a portal. `src/standalone.tsx`
+ * exists for exactly this reason and names all three calls in its header.
+ *
+ * HERE AND NOT IN `pageContext.ts`, and the difference is 89 B gz on every
+ * child's first visit: `main.tsx` imports `pageContext` STATICALLY, so
+ * anything added there lands in the shell, while this module is the lazy
+ * `page-*` chunk that only a content page fetches. Measured both ways on one
+ * tree - 55,067 B gz with the two helpers in `pageContext`, 54,978 B here,
+ * against a 56,000 ceiling. A decision, not a placement.
+ *
+ * A named function rather than `ctx.kind !== "embed"` inline, so a test can
+ * ask it without a DOM and so the answer has one owner.
+ */
+export function mayReachOut(kind: PageKind): boolean {
+  return kind !== "embed";
+}
+
+/**
+ * The language an embed was asked for: `?lang=xx`, validated against the
+ * languages the app actually speaks, falling back to the canonical locale.
+ *
+ * Validated, never trusted. The value is typed by a stranger into a snippet
+ * on their own site, so `?lang=<script>` and `?lang=klingon` both arrive here
+ * and both mean English. `CANONICAL_LOCALE` rather than a literal, for the
+ * same reason `bootContentPage` falls back to `DEFAULT_LOCALE`: the answer to
+ * "we could not tell" has to be the same everywhere and it has moved once.
+ */
+export function requestedLocale(search: string): AppLocale {
+  const value = new URLSearchParams(search).get("lang");
+  return isAppLocale(value) ? value : CANONICAL_LOCALE;
+}
+
+/**
+ * Reveal and wire the game page's "copy the code" button.
+ *
+ * It copies `textContent` of the `<pre>` the emitter wrote - the RAW snippet,
+ * decoded by the browser from the escaped bytes in the document - and never
+ * `innerHTML`, which would hand a stranger `&lt;iframe`. The reach board's copy
+ * control got exactly that wrong once, and the difference is invisible in
+ * every test that reads the page rather than the clipboard.
+ *
+ * With no clipboard - an older browser, an insecure context, a denied
+ * permission - it selects the code instead and SAYS so on the button, so the
+ * next thing to do is obvious. Emitted `hidden` like every other control the
+ * runtime owns, for the same reason: without a script the button would do
+ * nothing, and the code is already selectable by hand.
+ */
+function wireEmbedCopy(): void {
+  const button = document.querySelector<HTMLButtonElement>("[data-embed-copy]");
+  const code = document.querySelector<HTMLElement>("[data-embed-code]");
+  if (!button || !code) return;
+
+  const idle = button.textContent ?? "";
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const say = (label: string | undefined) => {
+    if (!label) return;
+    button.textContent = label;
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      button.textContent = idle;
+    }, 2500);
+  };
+  const select = () => {
+    const range = document.createRange();
+    range.selectNodeContents(code);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    say(button.dataset.labelSelect);
+  };
+
+  button.hidden = false;
+  button.addEventListener("click", () => {
+    const text = code.textContent ?? "";
+    const clipboard = navigator.clipboard;
+    if (!clipboard || typeof clipboard.writeText !== "function") {
+      select();
+      return;
+    }
+    clipboard.writeText(text).then(
+      () => say(button.dataset.labelCopied),
+      // A refused write is the same situation as no clipboard at all.
+      select,
+    );
+  });
+}
+
+/**
+ * The embed page's one link, in the language the frame was asked for.
+ *
+ * The emitter wrote the anchor in the canonical locale with every page
+ * locale's label and target on `data-say-*` / `data-to-*`; this picks the
+ * pair for `pageLocaleFor(locale)` - the app may be speaking one of eleven
+ * languages and the page it points at exists in four. Returns the href the
+ * game's own back control should use, so the two ways out agree.
+ */
+function wireEmbedHome(locale: AppLocale): string | undefined {
+  const link = document.getElementById("embed-home") as HTMLAnchorElement | null;
+  if (!link) return undefined;
+  const page = pageLocaleFor(locale);
+  const key = `${page[0].toUpperCase()}${page.slice(1)}`;
+  const say = link.dataset[`say${key}`];
+  const to = link.dataset[`to${key}`];
+  if (say) link.textContent = say;
+  if (to) link.setAttribute("href", to);
+  return link.href;
+}
+
+/**
+ * Where the framed game's own back control goes: OUT of the frame.
+ *
+ * `window.top.location` rather than `window.location`: inside an iframe the
+ * latter navigates the FRAME, which leaves the visitor on the host page
+ * staring at our game page squeezed into 600px with no way back. A sandboxed
+ * frame may refuse top navigation, in which case a new tab is the honest
+ * fallback - never a navigation of the frame itself.
+ */
+function exitFrame(url: string | undefined): () => void {
+  return () => {
+    const target = url ?? location.href;
+    try {
+      (window.top ?? window).location.assign(target);
+    } catch {
+      window.open(target, "_blank", "noopener");
+    }
+  };
+}
+
 export function bootContentPage(ctx: PageContext): void {
   // Every emitted page stamps its own language, so this fallback is only ever
   // reached by a hand-edited or half-deployed document. DEFAULT_LOCALE rather
@@ -347,19 +502,49 @@ export function bootContentPage(ctx: PageContext): void {
   const frame = ctx.frame;
   if (!frame) return;
 
-  analytics.init();
-  analytics.track("session_start", { locale });
-  startCloudSync();
+  const embed = ctx.kind === "embed";
+  // The language the game and its chrome speak. On our own pages that is the
+  // page's language; inside a stranger's frame it is whatever `?lang=` asked
+  // for, validated, because the embed document is emitted in one language and
+  // answers in eleven.
+  const appLocale: AppLocale = embed ? requestedLocale(location.search) : locale;
+  if (embed) {
+    document.documentElement.lang = appLocale;
+    document.documentElement.dir = DIR[appLocale];
+  }
+
+  // The three calls that leave the machine on their own. NOT on an embed: it
+  // runs inside a third party's page, and a frame that phones home from
+  // somebody else's site is the one thing that makes a game un-listable on a
+  // portal. `src/standalone.tsx` exists for exactly this reason and names all
+  // three in its header; this is the same decision for the framed document,
+  // decided by `mayReachOut` so a test can ask it without a DOM.
+  if (mayReachOut(ctx.kind)) {
+    analytics.init();
+    analytics.track("session_start", { locale });
+    startCloudSync();
+  }
   // Always bare: every screen that has a wallet slot draws the pill around it
   // in the header (`.wallet-wrap`), so a chip carrying its own would be a
   // lozenge inside a lozenge. The room used to float its own chip over the
   // scene instead, which is exactly the per-screen difference this removed.
   mountWallet(ctx.walletSlot);
+  watchErrors();
+  armCrashReporting(locale);
   wireFullScreen();
   wireSound();
-  wireRestart();
-  wirePause();
-  wireShare(ctx, locale);
+  wireReport(ctx, locale);
+  // NOT on an embed. `wireRestart` CLAIMS the restart slot whether or not it
+  // finds a button, and the embed page has no utility row - so claiming it
+  // would take restart away from `GameChrome` and offer none in its place.
+  // The app variant of `GameHost` draws its own chrome; this page adds none.
+  if (!embed) {
+    wireRestart();
+    wirePause();
+    wireShare(ctx, locale);
+    wireEmbedCopy();
+  }
+  const exitHref = embed ? wireEmbedHome(appLocale) : undefined;
 
   mountDesignBench(frame);
 
@@ -380,7 +565,7 @@ export function bootContentPage(ctx: PageContext): void {
    * and we mount anyway — English chrome beats no game.
    */
   const start = async () => {
-    await loadDict(locale);
+    await loadDict(appLocale);
     poster?.setAttribute("hidden", "");
 
     // The game and the room get the whole first screen, which means a fixed
@@ -397,6 +582,18 @@ export function bootContentPage(ctx: PageContext): void {
         <World locale={locale} />
       ) : ctx.kind === "boards" ? (
         <Boards locale={locale} />
+      ) : embed ? (
+        // The embed variant: this frame has no emitted header, so the host's
+        // own bar is the only chrome there is - and it draws MUTE alone. No
+        // back arrow (inside an iframe it would navigate the host's page and
+        // trap the visitor), no wallet (it belongs to a player this visitor is
+        // not). `onExit` still leaves the FRAME for a game that asks to exit.
+        <GameHost
+          gameId={ctx.gameId ?? ""}
+          locale={appLocale}
+          onExit={exitFrame(exitHref)}
+          variant="embed"
+        />
       ) : (
         <GameHost
           gameId={ctx.gameId ?? ""}

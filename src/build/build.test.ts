@@ -209,7 +209,7 @@ describe("every page renders", () => {
       const kind = KIND_OF.get(f.fileName);
       expect(kind, `${f.fileName} is not in the route table`).toBeDefined();
       const boots =
-        shell || kind === "game" || kind === "world" || kind === "boards";
+        shell || kind === "game" || kind === "world" || kind === "boards" || kind === "embed";
       expect(f.source.includes("/assets/index-abc.js"), f.fileName).toBe(boots);
       if (!boots) continue;
       if (shell) {
@@ -226,7 +226,12 @@ describe("every page renders", () => {
       // not know about, inside a tree it reconciles.
       expect(f.source, f.fileName).toContain('<div id="game-frame"></div>');
       expect(f.source, f.fileName).toContain('id="game-poster"');
-      expect(f.source, f.fileName).toMatch(/<body[^>]+data-page="(game|world|boards)"/);
+      // `embed` joined the list when the embed pages landed: the runtime keys
+      // off `data-page` and a document that boots without one is a page the
+      // runtime cannot identify. Written as a union of the BOOTING kinds rather
+      // than a literal list, so a new booting kind fails here loudly instead of
+      // shipping with a body the runtime silently treats as an app shell.
+      expect(f.source, f.fileName).toMatch(/<body[^>]+data-page="(game|world|boards|embed)"/);
     }
   });
 
@@ -344,10 +349,22 @@ describe("every page renders", () => {
     const onPages = allEmittedFiles("/ellaz/").filter((f) => f.fileName.endsWith(".html"));
     for (const f of onPages) expect(f.source, f.fileName).toContain('content="noindex');
 
+    // The 404 and the embed pages are noindex on the PRIMARY host too, and for
+    // opposite reasons: a 404 body that ranks is a soft 404, while an embed page
+    // is a chrome-free copy of a game page that would compete with it. Named
+    // from the route table rather than by filename - a path predicate has
+    // answered confidently about an unfamiliar kind three times in this file.
+    const NOINDEX_ON_PRIMARY = new Set(
+      ROUTES.filter((r) => r.kind === "notFound" || r.kind === "embed").map((r) => r.file),
+    );
+    expect(NOINDEX_ON_PRIMARY.size, "no noindex kinds - the exemption is vacuous").toBeGreaterThan(10);
     const onPrimary = allEmittedFiles("/").filter(
-      (f) => f.fileName.endsWith(".html") && f.fileName !== "404.html",
+      (f) => f.fileName.endsWith(".html") && !NOINDEX_ON_PRIMARY.has(f.fileName),
     );
     for (const f of onPrimary) expect(f.source, f.fileName).not.toContain('content="noindex');
+    // ...and the exemption is ASSERTED, never merely skipped.
+    for (const f of allEmittedFiles("/").filter((x) => NOINDEX_ON_PRIMARY.has(x.fileName)))
+      expect(f.source, f.fileName).toContain('content="noindex');
   });
 
   it("emits a sitemap only from the host whose URLs it advertises", () => {
@@ -380,7 +397,14 @@ describe("every page renders", () => {
   it("every emitted document offers the other languages, pointing at itself", () => {
     const others = LOCALES.length - 1;
     const offenders: string[] = [];
-    for (const f of allEmittedFiles("/").filter((x) => x.fileName.endsWith(".html"))) {
+    // An embed page has no per-language twin - one page per GAME, the language
+    // chosen by ?lang= at runtime - so it carries no language block at all, the
+    // same shape as its empty hreflang cluster. Asserted below rather than
+    // skipped here.
+    const EMBED_FILES = new Set(ROUTES.filter((r) => r.kind === "embed").map((r) => r.file));
+    for (const f of allEmittedFiles("/").filter(
+      (x) => x.fileName.endsWith(".html") && !EMBED_FILES.has(x.fileName),
+    )) {
       // The footer on a document; `#home-doc` on an app shell, which has no
       // emitted footer because the app draws its own. Same links, same rule -
       // they just belong to the page's content rather than to its chrome.
@@ -413,6 +437,14 @@ describe("every page renders", () => {
       }
     }
     expect(offenders).toEqual([]);
+
+    // The embed pages' half of the same claim: no language links, and no
+    // hreflang alternates either. An exemption that is checked stays a
+    // decision; an exemption that is skipped becomes a hole.
+    expect(EMBED_FILES.size, "no embed routes - the exemption is vacuous").toBeGreaterThan(10);
+    for (const f of allEmittedFiles("/").filter((x) => EMBED_FILES.has(x.fileName))) {
+      expect(f.source, f.fileName).not.toMatch(/hreflang="/);
+    }
   });
 
   // The positive control for the `gameHeading` exemption in content.test.ts.
@@ -1092,8 +1124,15 @@ describe("the structured data parses", () => {
     (_file, route) => {
       const page = renderRoute(route, "/");
       const blocks = [...page.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
-      // The 404 deliberately carries none; every other page must.
-      if (route.kind !== "notFound") expect(blocks.length).toBeGreaterThan(0);
+      // The 404 and the embed pages deliberately carry none - the embed because
+      // it is noindex and a chrome-free copy of a page that already publishes
+      // the game's structured data, so a second copy would compete with it.
+      // Every other page must, and the two exemptions are asserted rather than
+      // waved through: a kind that stops emitting JSON-LD by accident would
+      // otherwise be indistinguishable from one that never did.
+      const NONE = route.kind === "notFound" || route.kind === "embed";
+      if (NONE) expect(blocks.length, route.file).toBe(0);
+      else expect(blocks.length).toBeGreaterThan(0);
       for (const b of blocks) expect(() => JSON.parse(b[1])).not.toThrow();
     },
   );

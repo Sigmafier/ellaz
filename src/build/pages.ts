@@ -22,9 +22,11 @@ import {
   gamePath,
   gamesIn,
   homePath,
+  localesOf,
   type Route,
 } from "./routes";
 import { gamePage } from "./gamePage";
+import { embedPage } from "./embedPage";
 import {
   boardsPage,
   categoryPage,
@@ -101,6 +103,10 @@ export function renderRoute(route: Route, base: string, headAssets?: HeadAssets)
 
   const meta = metaFor(route.id!);
   if (!meta) throw new Error(`page emitter: no game named "${route.id}" in portal/games.ts`);
+  // The game alone, for a stranger's iframe. Emitted in the canonical locale
+  // and no other - see `embedPath` - so it never reaches the content lookup
+  // below, which is per page locale.
+  if (route.kind === "embed") return embedPage({ meta, base, headAssets });
   const copy = CONTENT[meta.id]?.copy[route.locale];
   if (!copy) {
     throw new Error(
@@ -346,7 +352,19 @@ export function allEmittedFiles(
             // which is the honest value and the one a gate must key off.
             id: r.id,
             emitted: r.emit,
-            canonical: canonicalUrl(r.path),
+            // Resolved, so the gate holds the document to what the route
+            // table decided rather than re-deriving it: the embed page's
+            // canonical is its GAME page, and `r.path` would say otherwise.
+            canonical: canonicalUrl(r.canonicalPath ?? r.path),
+            // The route's OWN locale set, always present. `[]` on the 404 and
+            // on every embed page; the full page list everywhere else. Gate 5
+            // in `assert-pages.mjs` demands exactly this set of a page's
+            // hreflang cluster, so a page with no twins is a declared shape
+            // and not a `kind !==` somebody has to keep in a script.
+            locales: localesOf(r),
+            // Published so the sitemap bijection reads the same flag the
+            // sitemap was built from, not a kind list of its own.
+            indexable: r.indexable,
           })),
         },
         null,

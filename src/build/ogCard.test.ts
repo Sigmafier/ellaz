@@ -91,9 +91,17 @@ describe("card files", () => {
     expect(new Set(names).size).toBe(names.length);
   });
 
-  it("covers every route except the 404", () => {
-    expect(OG_ROUTES.length).toBe(ROUTES.length - ROUTES.filter((r) => r.kind === "notFound").length);
-    expect(OG_ROUTES.some((r) => r.kind === "notFound")).toBe(false);
+  it("covers every route except the 404 and the embeds", () => {
+    // Two kinds carry no share card, for two different reasons. The 404 is not
+    // a page anyone shares. An embed page is noindex and lives inside somebody
+    // else's article, so the card that belongs to it is the GAME page's - a
+    // second card on the same game would compete with it in every preview.
+    const CARDLESS = ROUTES.filter((r) => r.kind === "notFound" || r.kind === "embed");
+    expect(CARDLESS.length, "no cardless kinds - the assertion is vacuous").toBeGreaterThan(10);
+    expect(OG_ROUTES.length).toBe(ROUTES.length - CARDLESS.length);
+    for (const kind of ["notFound", "embed"]) {
+      expect(OG_ROUTES.some((r) => r.kind === kind), kind).toBe(false);
+    }
   });
 
   it("includes the bare-URL home page even though it does not emit a document", () => {

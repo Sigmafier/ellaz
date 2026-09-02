@@ -2,10 +2,18 @@ import { ART_HEIGHT, ART_WIDTH, artHref } from "./artFiles";
 import type { GameMeta } from "../sdk/types";
 import { gameName } from "./gameName";
 import type { GameCopy, Locale, Titled } from "../content/types";
-import { SITE, type SiteCopy } from "../content/site";
-import { html, type RawHtml } from "./html";
+import { ORIGIN, SITE, type SiteCopy } from "../content/site";
+import { html, raw, type RawHtml } from "./html";
 import { betaBadge, icon, renderDocument, utilityRow } from "./layout";
-import { LOCALES, PAGED_CATEGORIES, categoryPath, gamePath, homePath, href } from "./routes";
+import {
+  LOCALES,
+  PAGED_CATEGORIES,
+  categoryPath,
+  embedPath,
+  gamePath,
+  homePath,
+  href,
+} from "./routes";
 import { gameGraph } from "./schema";
 import { lazyPreloadTags, type HeadAssets } from "./assets";
 // Build-time only, and the same module the share cards read. `src/build` may
@@ -162,6 +170,147 @@ export function stage(emoji: string, site: SiteCopy, variant?: StageVariant): Ra
   </div>`;
 }
 
+/**
+ * HTML the STRANGER pastes - text and attribute positions in a document we do
+ * not control. `&`, `<`, `>` and `"` are the whole surface; `'` is left alone
+ * because `&#39;` in a game's name reads as a defect to the person copying
+ * it, and inside a double-quoted attribute an apostrophe is a plain character.
+ */
+export function snippetText(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+export function snippetAttr(value: string): string {
+  return snippetText(value).replace(/"/g, "&quot;");
+}
+
+/**
+ * The frame's height, and the one number in the snippet a stranger will edit.
+ *
+ * 940 RATHER THAN THE MOCK'S 600, and the difference is a game a child cannot
+ * finish. Measured 2026-09-02 on the built bundle, loaded fresh at each size in
+ * a real iframe on a real host page (`maze`, the tallest of the roster's DOM
+ * games):
+ *
+ *     720 x 600   box 554, game 873  ->  319 px CUT, and NOTHING scrolls
+ *     720 x 940   box 894, game 881  ->  nothing cut, link row ends at 928
+ *
+ * The 600 row is the dangerous one: `.stage .box` clips, so neither the
+ * document nor the stage reports a scrollbar. A third of the board is simply
+ * not there, and the page looks perfectly composed - which is why this number
+ * had to be measured rather than chosen.
+ *
+ * KNOWN RESIDUE, stated rather than discovered later: at 360 px wide - a phone,
+ * or a narrow column on somebody's site - maze re-lays out to 942 px and 48 px
+ * is still cut at this height. Raising the default to ~1000 fixes that and
+ * gives every desktop host 60 px of empty ground; nobody has ruled on the
+ * trade, so the measured shortfall is written here instead of being smoothed
+ * over. `fitStage` does not rescue it - it does not scale inside the frame
+ * (transform stays `none` at every size measured).
+ *
+ * The preview on our own page uses this same figure, so what a stranger sees
+ * here is what they get.
+ */
+export const EMBED_HEIGHT = 940;
+
+/**
+ * The credit line under the frame: the game's name and the site's name, each
+ * a real link, in this language's word order.
+ *
+ * THIS IS THE WHOLE POINT OF THE LANE. A link inside the frame is on our own
+ * domain and earns nothing; only the anchor a stranger pastes into THEIR page
+ * is theirs. So the `<p>` is not optional decoration under the iframe - it is
+ * the artifact, and the iframe is the reason they paste it.
+ *
+ * Absolute URLs, always ellaz.fun, on both hosts: this text is going into a
+ * document whose base we will never know.
+ */
+export function embedCredit(meta: GameMeta, locale: Locale): string {
+  const [before, between, after] = SITE[locale].embed.credit;
+  const name = gameName(meta.id, locale);
+  return (
+    `<p>${snippetText(before)}<a href="${ORIGIN}${gamePath(meta.id, locale)}">${snippetText(name)}</a>` +
+    `${snippetText(between)}<a href="${ORIGIN}/">ellaz.fun</a>${snippetText(after)}</p>`
+  );
+}
+
+/**
+ * The exact bytes a stranger copies. Pure, so `embed.test.ts` can pin them.
+ *
+ * `?lang=` carries the PAGE's language: somebody who read the Hebrew page gets
+ * a frame that plays in Hebrew and a credit line written in Hebrew. The
+ * runtime validates the value (`requestedLocale`), so a hand-edited `?lang=`
+ * falls back rather than breaking. `allow="fullscreen"` is what lets the
+ * frame's own full-screen button work at all - a frame without it gets a
+ * refusal the player cannot see.
+ */
+export function embedSnippet(meta: GameMeta, locale: Locale): string {
+  const name = gameName(meta.id, locale);
+  const src = `${ORIGIN}${embedPath(meta.id)}?lang=${locale}`;
+  return (
+    `<iframe src="${src}" width="100%" height="${EMBED_HEIGHT}" ` +
+    `style="border:0;border-radius:12px" allow="fullscreen" ` +
+    `title="${snippetAttr(`${name} - ellaz.fun`)}"></iframe>\n` +
+    embedCredit(meta, locale)
+  );
+}
+
+/**
+ * The section at the end of a game page that hands the snippet over.
+ *
+ * A live preview - the embed page itself, in an iframe, LAZY so the page's
+ * ~900 words and its own game are not competing with a second copy of the app
+ * before anyone has scrolled to it - then the credit line exactly as their
+ * page will render it, then the code in a `<pre>`, then the copy button.
+ *
+ * The `<pre>` holds the snippet as TEXT: the tagged template escapes it, the
+ * browser decodes it, and `textContent` hands the runtime the raw bytes back.
+ * That is the copy path (`wireEmbedCopy` in `PageApp.tsx`) - `textContent`,
+ * never `innerHTML`, which would copy the escaped display and hand a stranger
+ * `&lt;iframe`. `embed.test.ts` decodes the emitted `<pre>` and requires it to
+ * equal `embedSnippet` byte for byte.
+ *
+ * The button is emitted `hidden` like every other control the runtime owns:
+ * without a script it does nothing, and a button that does nothing is worse
+ * than none. The `<pre>` stays selectable by hand either way.
+ *
+ * The preview's src carries the BASE, the snippet's does not: the preview is
+ * our own page loading our own document on whichever host we are on; the
+ * snippet is going somewhere we will never know.
+ */
+function embedSection(meta: GameMeta, locale: Locale, base: string): RawHtml {
+  const e = SITE[locale].embed;
+  const name = gameName(meta.id, locale);
+  return html`<section class="embed" id="embed">
+    <h2>${e.heading}</h2>
+    <p>${e.lede}</p>
+    <iframe
+      src="${href(embedPath(meta.id), base)}?lang=${locale}"
+      width="100%"
+      height="${String(EMBED_HEIGHT)}"
+      style="border:0;border-radius:12px;background:var(--doc-stage)"
+      allow="fullscreen"
+      loading="lazy"
+      title="${`${name} - ellaz.fun`}"
+    ></iframe>
+    <p class="embed-credit">${raw(embedCredit(meta, locale))}</p>
+    <pre
+      class="embed-code"
+      data-embed-code
+      dir="ltr"
+      style="white-space:pre-wrap;word-break:break-all;padding:14px;border-radius:12px;background:var(--doc-card);border:1px solid var(--doc-line);font-size:.85rem"
+    >${embedSnippet(meta, locale)}</pre>
+    <button
+      type="button"
+      class="play"
+      data-embed-copy
+      data-label-copied="${e.copied}"
+      data-label-select="${e.select}"
+      hidden
+    >${e.copy}</button>
+  </section>`;
+}
+
 export interface GamePageOptions {
   meta: GameMeta;
   copy: GameCopy;
@@ -261,6 +410,7 @@ export function gamePage(opts: GamePageOptions): string {
         // whatever is in `tools`, so the order is decided in one place
         // rather than by whichever screen happened to pass what.
         fullLabel: site.chrome.fullScreen,
+        reportLabel: site.chrome.report,
         // BESIDE THE GAME'S NAME, on the one screen where the player has
         // already committed. It is derived from `meta.beta`, the same field
         // the home card reads, so the badge on the card and the badge here
@@ -330,6 +480,8 @@ export function gamePage(opts: GamePageOptions): string {
 
     <h2>${h.related}</h2>
     ${gameCards(related, locale, base)}
+
+    ${embedSection(meta, locale, base)}
   `;
 
   return renderDocument({

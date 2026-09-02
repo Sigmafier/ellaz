@@ -20,7 +20,7 @@ import { GAMES } from "../portal/games";
  * translated. See `.claude/rules/a-locale-page-without-a-translated-body-is-a-duplicate.md`.
  */
 
-export type PageKind = "home" | "game" | "category" | "world" | "boards" | "notFound";
+export type PageKind = "home" | "game" | "category" | "world" | "boards" | "embed" | "notFound";
 
 export interface Route {
   kind: PageKind;
@@ -44,6 +44,29 @@ export interface Route {
   emit: boolean;
   /** In the sitemap, and allowed to be indexed by the primary host. */
   indexable: boolean;
+  /**
+   * The languages THIS page exists in - its hreflang cluster, and the set
+   * `assert-pages.mjs` demands of it, read off `pages.json`.
+   *
+   * ABSENT means every page locale: the ordinary case, one document per
+   * language. An EMPTY list means "this page has no per-language twin at
+   * all" - the 404, which is one document for the whole site, and the embed
+   * page, which is one document per GAME that takes its language from
+   * `?lang=` at runtime. The gate reads this field rather than assuming
+   * PAGE_LOCALES, so a page kind with no twins is a declared shape rather
+   * than an exemption somebody has to remember to keep in a script.
+   */
+  locales?: Locale[];
+  /**
+   * Where `<link rel="canonical">` points when it is NOT this page.
+   *
+   * Set on the embed page alone: it is the game, framed, so its canonical is
+   * the game page in the canonical locale - the URL that should earn whatever
+   * a crawler makes of the frame. Absent means "this page is its own
+   * canonical", which is every other route. `pages.json` publishes the
+   * resolved value so the gate can hold the document to it.
+   */
+  canonicalPath?: string;
 }
 
 /**
@@ -121,6 +144,18 @@ export function boardsPath(locale: Locale): string {
   return `${localePrefix(locale)}/boards/`;
 }
 
+/**
+ * `/embed/<id>/` - the game alone, for a stranger's iframe.
+ *
+ * NO locale prefix, on purpose. There is one embed document per game and it
+ * takes its language from `?lang=xx` at runtime, so a per-locale twin would
+ * be forty more documents saying the same thing. The slug follows `slugFor`:
+ * the game whose directory is `n2048` embeds at `/embed/2048/`.
+ */
+export function embedPath(gameId: string): string {
+  return `/embed/${slugFor(gameId)}/`;
+}
+
 /** `dist/`-relative file for a directory-style path. `/games/x/` -> `games/x/index.html`. */
 function fileFor(path: string): string {
   return `${path.slice(1)}index.html`;
@@ -189,6 +224,23 @@ export const ROUTES: Route[] = [
       indexable: true,
     }),
   ),
+  // ONE PER GAME, NOT ONE PER LOCALE - see `embedPath`. Emitted in the
+  // canonical locale; the runtime reads `?lang=`. `noindex` and out of the
+  // sitemap: the frame is not a destination, the game page is, and that is
+  // where `canonicalPath` sends every crawler that finds one.
+  ...GAMES.map(
+    (meta): Route => ({
+      kind: "embed",
+      locale: CANONICAL_LOCALE,
+      id: meta.id,
+      path: embedPath(meta.id),
+      file: fileFor(embedPath(meta.id)),
+      emit: true,
+      indexable: false,
+      locales: [],
+      canonicalPath: gamePath(meta.id, CANONICAL_LOCALE),
+    }),
+  ),
   {
     kind: "notFound",
     locale: CANONICAL_LOCALE,
@@ -198,8 +250,16 @@ export const ROUTES: Route[] = [
     // A 404 body that can be indexed is a soft 404, which is worse for search
     // than the missing page it replaces.
     indexable: false,
+    // One document for the whole site, so no per-language twin. Declared
+    // here rather than known by the gate.
+    locales: [],
   },
 ];
+
+/** The languages a route exists in: its own declared set, or every page locale. */
+export function localesOf(route: Route): Locale[] {
+  return route.locales ?? LOCALES;
+}
 
 /**
  * The absolute canonical URL. Deliberately ignores the base.
@@ -228,5 +288,10 @@ export function href(path: string, base: string): string {
  * a card for it would be a picture promising content that does not exist. The
  * Hebrew home page IS included even though it does not `emit` - it is the app
  * shell, and it is the single most-shared URL on the site.
+ *
+ * Minus the embed pages too. An embed page's canonical IS its game page, so
+ * `renderDocument` finds that page's card by path and the frame shares it - a
+ * link to `/embed/snake/` previews as Snake. A card of its own would be the
+ * same picture under a second name, which the distinctness gate refuses.
  */
-export const OG_ROUTES: Route[] = ROUTES.filter((r) => r.kind !== "notFound");
+export const OG_ROUTES: Route[] = ROUTES.filter((r) => r.kind !== "notFound" && r.kind !== "embed");

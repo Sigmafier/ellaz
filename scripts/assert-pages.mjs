@@ -283,7 +283,65 @@ export function eagerAssets(html) {
  * most worth proving can still fire.
  */
 export function documentEagerFaults(eager, kind) {
-  return kind !== "notFound" ? eager.filter((a) => a !== GA_SRC) : eager;
+  return carriesTag(kind) ? eager.filter((a) => a !== GA_SRC) : eager;
+}
+
+/**
+ * Which page kinds carry the measurement tag. ONE predicate for the gate that
+ * DEMANDS it (coverage) and the gate that PERMITS it (the document arm), so the
+ * two populations cannot drift apart and fail a build in both directions.
+ *
+ * The 404 fetches nothing eagerly. The EMBED page runs inside a third party's
+ * page, where a tag is a frame phoning home from somebody else's site - the one
+ * thing that makes a game un-listable on a portal. Both are asserted absent,
+ * never skipped: an exemption that is checked stays a decision.
+ */
+export function carriesTag(kind) {
+  return kind !== "notFound" && kind !== "embed";
+}
+
+/**
+ * The hreflang faults of one page, given the locale set it DECLARED.
+ *
+ * `want` comes off `pages.json` - the route's own `locales` row - rather than
+ * from a `kind !==` in this script. An empty set means "no per-language twin"
+ * (the 404, every embed page) and demands ZERO alternates and zero x-default; a
+ * non-empty set demands exactly that set, an x-default iff the set holds the
+ * x-default locale, and a self-alternate at the page's own canonical.
+ *
+ * Pure, so the controls at the bottom plant a declared `[]` beside a stray
+ * alternate, a declared set beside a short cluster, and both correct shapes.
+ */
+export function hreflangFaults(alts, want, page, xDefaultLocale) {
+  const out = [];
+  const langAlts = alts.filter((a) => a.hreflang !== "x-default");
+  const xDefault = alts.filter((a) => a.hreflang === "x-default");
+  if (want.length === 0) {
+    if (alts.length > 0) {
+      out.push(`advertises ${alts.length} alternate(s), but declares no per-language twin`);
+    }
+    return out;
+  }
+  const got = langAlts.map((a) => a.hreflang).sort();
+  const wanted = [...want].sort();
+  if (got.join(",") !== wanted.join(",")) {
+    out.push(`lists hreflang [${got}], expected exactly [${wanted}]`);
+  }
+  const wantXDefault = want.includes(xDefaultLocale) ? 1 : 0;
+  if (xDefault.length !== wantXDefault) {
+    out.push(`has ${xDefault.length} x-default links, expected exactly ${wantXDefault}`);
+  }
+  const self = langAlts.find((a) => a.hreflang === page.locale);
+  if (!self) {
+    out.push("does not list ITSELF as an alternate - the cluster has no anchor");
+  } else if (self.href !== page.canonical) {
+    out.push(`self-alternate is ${self.href}, expected its own canonical ${page.canonical}`);
+  }
+  const wantX = langAlts.find((a) => a.hreflang === xDefaultLocale);
+  if (xDefault.length === 1 && wantX && xDefault[0].href !== wantX.href) {
+    out.push(`x-default is ${xDefault[0].href}, expected the ${xDefaultLocale} twin ${wantX.href}`);
+  }
+  return out;
 }
 
 /** Local stylesheet links, base-relative. The Google Fonts one is skipped. */
@@ -483,13 +541,36 @@ function checkCardsAreDistinct() {
   // also the more direct statement of the defect, which was always "four
   // category pages in five previewing the wrong group".
   const byCard = new Map();
-  for (const page of readManifest().pages) {
+  const manifestPages = readManifest().pages;
+  const canonicalLocale = readManifest().locales.canonical;
+  /** embed page file -> the card it advertises; compared to its game page's, below. */
+  const embedCards = new Map();
+  for (const page of manifestPages) {
     const file = page.file;
     if (!file || !file.endsWith(".html") || !existsSync(join(DIST, file))) continue;
     const html = readFileSync(join(DIST, file), "utf8");
     const m = /<meta property="og:image" content="[^"]*\/(og\/[^"]+)"/.exec(html);
     if (!m) continue;
+    // An EMBED page shares its game page's card BY DESIGN: its canonical is
+    // that page, so a link to the frame previews as the game. It is kept out
+    // of the one-card-per-page relation and held to the sharing instead.
+    if (page.kind === "embed") {
+      embedCards.set(page, m[1]);
+      continue;
+    }
     byCard.set(m[1], [...(byCard.get(m[1]) ?? []), file]);
+  }
+  for (const [page, card] of embedCards) {
+    const game = manifestPages.find(
+      (p) => p.kind === "game" && p.id === page.id && p.locale === canonicalLocale,
+    );
+    const gameFile = game && join(DIST, game.file);
+    const gameHtml = gameFile && existsSync(gameFile) ? readFileSync(gameFile, "utf8") : "";
+    const gameCard = /<meta property="og:image" content="[^"]*\/(og\/[^"]+)"/.exec(gameHtml)?.[1];
+    if (!gameCard) fail(`${page.file} embeds "${page.id}" but its game page advertises no card`);
+    else if (gameCard !== card) {
+      fail(`${page.file} advertises ${card}, its game page advertises ${gameCard} - a frame previews as its game`);
+    }
   }
   if (byCard.size === 0) {
     fail("no emitted page names an og:image - the matcher found nothing, so this check is blind");
@@ -574,6 +655,8 @@ function main() {
   const known = new Set(manifest.pages.map((p) => p.path));
   /** game page -> the game chunk it preloads. Two games must never share one. */
   const preloadedGame = new Map();
+  /** embed page's game id -> the chunk IT preloads; must equal what the game's pages preload. */
+  const embedChunk = new Map();
 
   // The locale lists, read off the artifact rather than duplicated here. A gate
   // holding its own copy of "which languages have pages" is a second list that
@@ -658,7 +741,13 @@ function main() {
     seeTitle(where, html, page.locale);
 
     // --- the page is a real document -------------------------------------
-    if (!/<h1[\s>]/i.test(html)) fail(`${where} has no <h1>`);
+    //
+    // The EMBED page is a frame, not a document: no prose, no heading, one
+    // game and one link. Asserted rather than skipped, so a heading creeping
+    // into the frame is a red gate and not a quiet drift.
+    if (page.kind === "embed") {
+      if (/<h1[\s>]/i.test(html)) fail(`${where} is an embed frame and carries an <h1>`);
+    } else if (!/<h1[\s>]/i.test(html)) fail(`${where} has no <h1>`);
     const n = proseWords(html);
     if (page.kind === "game" && n < MIN_WORDS) {
       fail(`${where} has ${n} words of prose, floor is ${MIN_WORDS}`);
@@ -709,40 +798,28 @@ function main() {
       }
     }
 
-    // --- GATE 5: the hreflang cluster is complete and self-referencing -----
+    // --- GATE 5: the hreflang cluster is exactly what the route declared ---
     //
-    // The 404 is the ONE page with no per-language twin, so it carries no
-    // cluster. Asserted rather than skipped: an exemption that is checked stays
-    // a decision, and an exemption that is skipped becomes a hole the day some
-    // other page kind quietly stops emitting its alternates too.
+    // The set is read off the manifest's own `locales` row, never assumed to
+    // be PAGE_LOCALES. A page declaring `[]` - the 404, every embed page - has
+    // no per-language twin and must carry NO cluster at all; a page declaring
+    // a set must carry exactly it. Asserted in both shapes rather than skipped
+    // for a kind: an exemption that is checked stays a decision, and one that
+    // is skipped becomes a hole the day some other page kind quietly stops
+    // emitting its alternates too.
     const alts = alternatesOf(html);
     const langAlts = alts.filter((a) => a.hreflang !== "x-default");
-    const xDefault = alts.filter((a) => a.hreflang === "x-default");
-    if (page.kind === "notFound") {
-      if (alts.length > 0) {
-        fail(`${where} advertises ${alts.length} alternate(s); a 404 has no per-language twin`);
-      }
+    if (!Array.isArray(page.locales)) {
+      fail(`${where} has no \`locales\` row in pages.json - the emitter is broken, not the gate`);
     } else {
-      const got = langAlts.map((a) => a.hreflang).sort();
-      const want = [...L.page].sort();
-      if (got.join(",") !== want.join(",")) {
-        fail(`${where} lists hreflang [${got}], expected exactly [${want}]`);
+      // The two kinds with no twin, named: a 404 is one document for the
+      // whole site, an embed page is one document per GAME that takes its
+      // language from `?lang=` at runtime. A per-locale embed would be a
+      // second copy of the frame, which the route table forbids.
+      if ((page.kind === "notFound" || page.kind === "embed") && page.locales.length !== 0) {
+        fail(`${where} is a ${page.kind} page and declares twins [${page.locales}] - it has none`);
       }
-      if (xDefault.length !== 1) {
-        fail(`${where} has ${xDefault.length} x-default links, expected exactly 1`);
-      }
-      const self = langAlts.find((a) => a.hreflang === page.locale);
-      if (!self) {
-        fail(`${where} does not list ITSELF as an alternate - the cluster has no anchor`);
-      } else if (self.href !== page.canonical) {
-        fail(`${where} self-alternate is ${self.href}, expected its own canonical ${page.canonical}`);
-      }
-      const wantX = langAlts.find((a) => a.hreflang === L.xDefault);
-      if (xDefault.length === 1 && wantX && xDefault[0].href !== wantX.href) {
-        fail(
-          `${where} x-default is ${xDefault[0].href}, expected the ${L.xDefault} twin ${wantX.href}`,
-        );
-      }
+      for (const f of hreflangFaults(alts, page.locales, page, L.xDefault)) fail(`${where} ${f}`);
       for (const a of alts) {
         if (!a.href.startsWith("https://ellaz.fun/")) {
           fail(`${where} hreflang=${a.hreflang} is ${a.href} - alternates are absolute, like the canonical`);
@@ -750,13 +827,28 @@ function main() {
           fail(`${where} hreflang=${a.hreflang} carries the base: ${a.href}`);
         }
       }
-      cluster.set(page.canonical, new Set(langAlts.map((a) => a.href)));
+      if (page.locales.length > 0) {
+        cluster.set(page.canonical, new Set(langAlts.map((a) => a.href)));
+      }
     }
 
     // --- canonical --------------------------------------------------------
     const canonical = canonicalOf(html);
     if (canonical !== page.canonical) {
       fail(`${where} canonical is ${canonical}, expected ${page.canonical}`);
+    }
+    // The embed page's canonical is its GAME page in the canonical locale -
+    // checked against ANOTHER row of the manifest, not only against its own,
+    // so a route table that resolved `canonicalPath` to the wrong place would
+    // fail here rather than agree with itself.
+    if (page.kind === "embed") {
+      const game = manifest.pages.find(
+        (p) => p.kind === "game" && p.id === page.id && p.locale === L.canonical,
+      );
+      if (!game) fail(`${where} embeds game "${page.id}", which has no ${L.canonical} game page`);
+      else if (canonical !== game.canonical) {
+        fail(`${where} canonical is ${canonical}, expected its game page ${game.canonical}`);
+      }
     }
     if (!primary && canonical && canonical.includes(base)) {
       fail(`${where} canonical carries the base: ${canonical} — that URL exists on neither host`);
@@ -775,11 +867,20 @@ function main() {
     // --- indexability -----------------------------------------------------
     const noindex = /<meta name="robots" content="noindex/i.test(html);
     if (!primary && !noindex) fail(`${where} must be noindex on the Pages duplicate`);
-    if (primary && page.kind !== "notFound" && noindex) {
+    if (primary && page.indexable && noindex) {
       fail(`${where} is noindex on the primary host`);
     }
     if (page.kind === "notFound" && !noindex) {
       fail(`${where} must be noindex — an indexable 404 body is a soft 404`);
+    }
+    // The frame is not a destination; the game page is. An indexable embed is
+    // a second URL for every game, competing with the one that carries the
+    // prose. `noindex, follow` so the one link in it still counts.
+    if (page.kind === "embed" && !noindex) {
+      fail(`${where} must be noindex - the game page is the destination, the frame is not`);
+    }
+    if (page.kind === "embed" && page.indexable) {
+      fail(`${where} is an embed page the route table marks indexable`);
     }
 
     // --- the runtime, and the two elements it is allowed to own -----------
@@ -799,7 +900,9 @@ function main() {
     // furniture. Held to the content-page rules it would fail on four checks
     // that have nothing to do with what a home page is.
     const shell = page.kind === "home";
-    const boots = shell || page.kind === "game" || page.kind === "world" || page.kind === "boards";
+    const embed = page.kind === "embed";
+    const boots =
+      shell || embed || page.kind === "game" || page.kind === "world" || page.kind === "boards";
     const eager = eagerAssets(html).map(norm).sort();
     if (boots) {
       // A booting page must load everything index.html loads - the names carry a
@@ -807,7 +910,16 @@ function main() {
       // It may additionally name the lazy chunks it is about to fetch anyway:
       // the content-page runtime, and on a game page that ONE game. Without
       // those two preloads the page loads in three serial round trips.
-      const missing = rootEager.filter((a) => !eager.includes(a));
+      //
+      // EXCEPT the measurement tag, on an embed. `index.html` carries it on the
+      // primary host and the frame must not, so the yardstick for the embed is
+      // the shell's set minus the tag - and the tag's absence is asserted
+      // below by name rather than falling out of the subtraction.
+      const mustLoad = embed ? rootEager.filter((a) => a !== GA_SRC) : rootEager;
+      if (embed && eager.includes(GA_SRC)) {
+        fail(`${where} is an embed frame and fetches the measurement tag from inside a third party's page`);
+      }
+      const missing = mustLoad.filter((a) => !eager.includes(a));
       if (missing.length > 0) {
         fail(
           `${where} does not load what index.html loads.\n` +
@@ -829,7 +941,7 @@ function main() {
           `${where} preloads ${pageChunks.length} page runtime chunks, expected ${wantPage}`,
         );
       }
-      const wantGames = page.kind === "game" ? 1 : 0;
+      const wantGames = page.kind === "game" || embed ? 1 : 0;
       if (gameChunks.length !== wantGames) {
         fail(
           `${where} preloads ${gameChunks.length} game chunk(s), expected ${wantGames}` +
@@ -838,6 +950,7 @@ function main() {
       }
       if (other.length > 0) fail(`${where} eagerly fetches ${other.join(", ")}`);
       if (page.kind === "game") preloadedGame.set(page.file, gameChunks[0]);
+      if (embed) embedChunk.set(page.id, gameChunks[0]);
       if (localStylesheets(html).length === 0) {
         fail(`${where} boots the app with no app stylesheet — the game renders unstyled`);
       }
@@ -888,6 +1001,28 @@ function main() {
         }
         if (page.kind === "game" && !/id="wallet-slot"/.test(html)) {
           fail(`${where} has no #wallet-slot`);
+        }
+        if (embed) {
+          // The frame's whole contract: one game, one way OUT of the frame,
+          // nothing of the document around it. `target="_top"` is what stops
+          // the link navigating the iframe itself and trapping the visitor on
+          // the host page; the href must be this game's own page.
+          const home = /<a\b[^>]*\bid="embed-home"[^>]*>/.exec(html)?.[0] ?? "";
+          if (!home) fail(`${where} has no #embed-home link - the frame offers no way out`);
+          else {
+            if (!/\btarget="_top"/.test(home)) {
+              fail(`${where} #embed-home lacks target="_top" - it would navigate the frame, not the tab`);
+            }
+            const to = /\bhref="([^"]+)"/.exec(home)?.[1] ?? "";
+            const wantTo = `${base}${`games/${page.id}/`}`;
+            if (to !== wantTo) fail(`${where} #embed-home points at ${to}, expected ${wantTo}`);
+          }
+          if (/<header\b/.test(html)) fail(`${where} is an embed frame and carries a <header>`);
+          if (/<footer\b/.test(html)) fail(`${where} is an embed frame and carries a <footer>`);
+          if (/<nav\b/.test(html)) fail(`${where} is an embed frame and carries a breadcrumb`);
+          if (!/<body[^>]*class="app-shell"/.test(html)) {
+            fail(`${where} is an embed frame without class="app-shell" - the app cannot own the viewport`);
+          }
         }
       }
       if (!/<body[^>]+data-page="/.test(html)) {
@@ -1136,6 +1271,28 @@ function main() {
     );
   }
 
+  // --- the embed pages: one per game, preloading THAT game -----------------
+  //
+  // The route table is the population and the game pages are the control: an
+  // embed page preloading a chunk no game page of that id preloads is a frame
+  // that plays a different game from the one it is named after, and the
+  // per-page checks above cannot see a relation between two pages.
+  const gameIds = new Set(manifest.pages.filter((p) => p.kind === "game").map((p) => p.id));
+  const embeds = manifest.pages.filter((p) => p.kind === "embed");
+  if (gameIds.size > 0 && embeds.length !== gameIds.size) {
+    fail(`${embeds.length} embed pages for ${gameIds.size} games - one per game, no more, no fewer`);
+  }
+  for (const e of embeds) {
+    if (!gameIds.has(e.id)) fail(`${e.path} embeds "${e.id}", which is not a game this build knows`);
+    if (e.locale !== L.canonical) fail(`${e.path} is emitted in ${e.locale}, not the canonical ${L.canonical}`);
+    if (!e.path.startsWith("/embed/")) fail(`${e.path} is an embed route outside /embed/`);
+  }
+  const chunkOfGame = new Map([...byChunk].map(([chunk, id]) => [id, chunk]));
+  for (const [id, chunk] of embedChunk) {
+    const want = chunkOfGame.get(id);
+    if (want && chunk !== want) fail(`embed/${id}/ preloads ${chunk}, its game pages preload ${want}`);
+  }
+
   // --- index.html: the app shell, head-enhanced in place --------------------
   const index = indexHtml;
   if (canonicalOf(index) !== `https://ellaz.fun/`) {
@@ -1256,12 +1413,27 @@ function main() {
     if (imageLocs.length !== gamePages.length) {
       fail(`sitemap carries ${imageLocs.length} image rows for ${gamePages.length} game pages`);
     }
-    const indexable = manifest.pages.filter((p) => p.kind !== "notFound");
+    // The manifest's OWN flag - the same one the sitemap was built from - not
+    // a `kind !==` list here that has to learn every non-indexable kind by
+    // hand. A row without the flag is an older emitter, and that fails loudly
+    // rather than reading as "nothing is indexable".
+    const unflagged = manifest.pages.filter((p) => typeof p.indexable !== "boolean");
+    if (unflagged.length > 0) {
+      fail(`${unflagged.length} manifest rows carry no \`indexable\` flag - the emitter is broken, not the gate`);
+    }
+    const indexable = manifest.pages.filter((p) => p.indexable === true);
+    if (indexable.length === 0) fail("the manifest marks NO page indexable - the sitemap would be empty");
     for (const p of indexable) {
       if (!locs.includes(p.canonical)) fail(`sitemap is missing ${p.canonical}`);
     }
     for (const loc of locs) {
       if (!indexable.some((p) => p.canonical === loc)) fail(`sitemap advertises ${loc}, which this build does not emit`);
+    }
+    // By PATH, not by canonical: an embed page's canonical IS its game page,
+    // which is rightly in the sitemap. The frame's own address must not be.
+    for (const p of manifest.pages.filter((x) => x.kind === "embed")) {
+      const own = `https://ellaz.fun${p.path}`;
+      if (locs.includes(own)) fail(`sitemap advertises the embed frame ${own} - only the game page belongs there`);
     }
 
     // --- the sitemap's cluster must equal the page's own ------------------
@@ -1361,7 +1533,7 @@ function main() {
   // WITH it pollutes the only measurement this project has. A single-arm check
   // would pass on a build that tagged everything everywhere.
   const reads = emitted.map((p) => ({ p, html: readFileSync(join(DIST, p.file), "utf8") }));
-  const wants = reads.filter((r) => r.p.kind !== "notFound");
+  const wants = reads.filter((r) => carriesTag(r.p.kind));
   const tagged = reads.filter((r) => r.html.includes(GA_ID));
   const shellTagged = indexHtml.includes(GA_ID);
 
@@ -1389,6 +1561,14 @@ function main() {
     if (!four04) fail("no 404 in the manifest - the analytics exclusion cannot be checked");
     else if (four04.html.includes(GA_ID))
       fail("404.html carries the analytics tag; a document fetches nothing eagerly");
+    // The other exemption, asserted the same way: every embed page, by name.
+    // A frame inside a stranger's page that reports to our property is the
+    // one request this whole lane promises never to make.
+    const framed = reads.filter((r) => r.p.kind === "embed");
+    if (framed.length === 0) fail("no embed page in the manifest - the analytics exclusion cannot be checked");
+    for (const r of framed) {
+      if (r.html.includes(GA_ID)) fail(`${r.p.path} is an embed frame and carries the analytics tag`);
+    }
     // The inconsistent state, named explicitly. The shell and the emitted pages
     // are wired at two different call sites in two different files, so exactly
     // one of them landing is the realistic half-finished shape - and without
@@ -1671,6 +1851,59 @@ function runControls() {
     [
       "and the exception is real: the tag alone passes on an indexable document",
       () => documentEagerFaults([GA_SRC], "category").length === 0,
+    ],
+    // The tag predicate is ONE function for both gates that read it, so its
+    // three answers are proven here once: refused on the 404, refused on the
+    // embed frame, demanded on an ordinary document.
+    ["the embed frame is refused the measurement tag", () => carriesTag("embed") === false],
+    ["the 404 is refused it too, through the same predicate", () => carriesTag("notFound") === false],
+    ["and an ordinary document is DEMANDED it", () => carriesTag("category") === true],
+    // GATE 5 reads the declared locale set. All four shapes, because a checker
+    // that only ever sees the full set would pass a page declaring `[]` and
+    // carrying a stray twin, and one that only sees `[]` would pass a short
+    // cluster on a real page.
+    [
+      "a page declaring NO twins is refused a stray alternate",
+      () =>
+        hreflangFaults(
+          [{ hreflang: "he", href: "https://ellaz.fun/he/embed/snake/" }],
+          [],
+          { locale: "en", canonical: "https://ellaz.fun/games/snake/" },
+          "en",
+        ).length === 1,
+    ],
+    [
+      "a page declaring NO twins and carrying none is clean",
+      () =>
+        hreflangFaults([], [], { locale: "en", canonical: "https://ellaz.fun/games/snake/" }, "en")
+          .length === 0,
+    ],
+    [
+      "a page declaring twins is refused a cluster short of one",
+      () =>
+        hreflangFaults(
+          [
+            { hreflang: "en", href: "https://ellaz.fun/games/snake/" },
+            { hreflang: "x-default", href: "https://ellaz.fun/games/snake/" },
+          ],
+          ["en", "he"],
+          { locale: "en", canonical: "https://ellaz.fun/games/snake/" },
+          "en",
+        ).some((f) => f.includes("expected exactly [en,he]")),
+    ],
+    [
+      "and a complete, self-referencing cluster with its x-default is clean",
+      () =>
+        hreflangFaults(
+          [
+            { hreflang: "en", href: "https://ellaz.fun/games/snake/" },
+            { hreflang: "he", href: "https://ellaz.fun/he/games/snake/" },
+            { hreflang: "x-default", href: "https://ellaz.fun/games/snake/" },
+          ],
+          ["en", "he"],
+          { locale: "en", canonical: "https://ellaz.fun/games/snake/" },
+          "en",
+        ).length === 0,
     ],
     // The sitemap-vs-page comparison, both directions. A parser that returned
     // an empty map would pass every "they agree" assertion vacuously, so the
