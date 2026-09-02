@@ -1,0 +1,12 @@
+{
+  "exported": "2026-09-02",
+  "firstDay": "2026-08-03",
+  "lastDay": "2026-08-30",
+  "days": 28,
+  "clicks": 33,
+  "impressions": 959,
+  "position": 21.1,
+  "ai": { "impressions": 67, "clicks": null },
+  "source": "manual",
+  "note": "read live in Search Console, not exported"
+}

@@ -263,3 +263,16 @@ count, sample external hrefs, browser UA.
 
 **The next weekly export lands as `performance-2026-09-09/`** with both the Performance
 CSVs and the Generative AI features CSV, and `npm run reach:perf` reads it.
+
+## The weekly series (from 2026-09-02)
+
+Export every Tuesday into `performance-YYYY-MM-DD/` with the Performance CSVs AND
+the Generative AI features CSV (Search Console -> Performance -> Generative AI
+features -> Export), then run `npm run reach:perf:series`. A missing AI csv reads
+UNMEASURED, never a silent zero - the same law every reader in this folder
+follows. `series.json` is the record; nothing else here holds the trend, and the
+reach board (`npm run reach:site`) renders it under "Search, weekly".
+
+A week with no export at all is not "flat" - it is a gap in the record, and
+`series.json` simply has no row for it rather than a row of zeros standing in
+for a week nobody read.

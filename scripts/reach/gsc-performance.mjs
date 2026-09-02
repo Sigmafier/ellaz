@@ -34,7 +34,10 @@
  *   node scripts/reach/gsc-performance.mjs <folder>         # one folder
  *   node scripts/reach/gsc-performance.mjs --control        # prove it answers both ways
  */
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import {
+  existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { splitCsvLine } from "./gsc-links.mjs";
@@ -42,6 +45,12 @@ import { splitCsvLine } from "./gsc-links.mjs";
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const DIR = join(REPO, "docs/outreach/exports");
 const ORIGIN = "ellaz.fun";
+// GSC's own report is titled "Generative AI features" (beta); this repo's export
+// convention (see the README) keeps that exact name, but the reader matches
+// loosely by SHAPE - Search Console has renamed dimension headers before
+// (`parseDimension` above makes the same bet) and a future rename to something
+// like "AI Overviews" must not silently read as UNMEASURED.
+const AI_NAME_RE = /generative[ _-]?ai/i;
 
 /** Rows of a GSC dimension CSV, keyed by header, with numbers coerced. */
 export function parseDimension(csv) {
@@ -132,6 +141,120 @@ function newestFolder() {
   return dirs[0] ?? null;
 }
 
+/**
+ * One row of the weekly series - a `performance-YYYY-MM-DD/` folder read down to
+ * the handful of numbers a trend line needs.
+ *
+ * WHY Chart.csv AND NOT Queries.csv OR Pages.csv FOR THE TOTALS. Those two are
+ * each truncated to GSC's own top-N (see the file header) and do not sum to the
+ * true total - Chart.csv is the one dimension that is a complete daily series, so
+ * it is the only one a sum is honest about.
+ *
+ * POSITION IS THE ONE EXCEPTION, on purpose: Chart.csv's own Position column is an
+ * unweighted daily average across days of wildly different impression volume, so a
+ * quiet day and a busy day count equally. Queries.csv is truncated too, but each
+ * row carries the (query, impressions, position) triple a weighted mean needs -
+ * imperfect coverage beats a number that is complete and mis-weighted.
+ *
+ * A FOLDER WITH NO CSVs AT ALL is not "no data" - it is a HAND-ENTERED reading
+ * (`manual.json`, same row shape, `source: "manual"`), for the days GSC was read
+ * live rather than exported. Returns null when a folder produces neither.
+ */
+export function seriesRow(folder, name) {
+  const m = /^performance-(\d{4}-\d{2}-\d{2})$/.exec(name);
+  const exported = m ? m[1] : name;
+  if (!existsSync(folder)) return null;
+  const files = readdirSync(folder);
+  const csvs = files.filter((f) => f.toLowerCase().endsWith(".csv"));
+
+  if (!csvs.length) {
+    const manualPath = join(folder, "manual.json");
+    if (!existsSync(manualPath)) return null;
+    try {
+      const row = JSON.parse(readFileSync(manualPath, "utf8"));
+      return { ...row, exported: row.exported ?? exported };
+    } catch {
+      return null;
+    }
+  }
+
+  const chartPath = join(folder, "Chart.csv");
+  if (!existsSync(chartPath)) return null;
+  const chart = parseDimension(readFileSync(chartPath, "utf8"));
+  const live = chart.filter((r) => num(r, "impressions") > 0);
+  const clicks = chart.reduce((a, r) => a + num(r, "clicks"), 0);
+  const impressions = chart.reduce((a, r) => a + num(r, "impressions"), 0);
+  const firstDay = live.length ? live[0]._key : null;
+  const lastDay = live.length ? live[live.length - 1]._key : null;
+  const days = live.length;
+
+  let position = null;
+  const queriesPath = join(folder, "Queries.csv");
+  if (existsSync(queriesPath)) {
+    const queries = parseDimension(readFileSync(queriesPath, "utf8"));
+    let sumWI = 0, sumI = 0;
+    for (const q of queries) {
+      const i = num(q, "impressions");
+      sumWI += i * num(q, "position");
+      sumI += i;
+    }
+    if (sumI) position = Number((sumWI / sumI).toFixed(1));
+  }
+
+  const aiFile = csvs.find((f) => AI_NAME_RE.test(f));
+  let ai = null;
+  if (aiFile) {
+    const aiRows = parseDimension(readFileSync(join(folder, aiFile), "utf8"));
+    ai = {
+      impressions: aiRows.reduce((a, r) => a + num(r, "impressions"), 0),
+      clicks: aiRows.reduce((a, r) => a + num(r, "clicks"), 0),
+    };
+  }
+
+  return { exported, firstDay, lastDay, days, clicks, impressions, position, ai };
+}
+
+const fmtDay = (v) => v ?? "UNMEASURED";
+const fmtAi = (ai, key) => (ai && ai[key] !== null && ai[key] !== undefined ? String(ai[key]) : "UNMEASURED");
+
+function series() {
+  if (!existsSync(DIR)) {
+    console.log("");
+    console.log("UNMEASURED - no docs/outreach/exports directory to read.");
+    process.exit(2);
+  }
+  const folders = readdirSync(DIR)
+    .filter((f) => /^performance-\d{4}-\d{2}-\d{2}$/.test(f) && statSync(join(DIR, f)).isDirectory())
+    .sort(); // the date IS the folder name, so a lexicographic sort is chronological
+  const rows = folders.map((f) => seriesRow(join(DIR, f), f)).filter(Boolean);
+
+  if (!rows.length) {
+    console.log("");
+    console.log("UNMEASURED - no performance-YYYY-MM-DD export folder produced a row.");
+    console.log("Export weekly into docs/outreach/exports/performance-YYYY-MM-DD/ and re-run.");
+    process.exit(2);
+  }
+
+  const outPath = join(DIR, "series.json");
+  writeFileSync(outPath, JSON.stringify(rows, null, 2) + "\n");
+
+  console.log("");
+  console.log("GSC PERFORMANCE - WEEKLY SERIES");
+  console.log("  exported      window                     days  clicks  impr  position     AI impr  AI clicks  source");
+  for (const r of rows) {
+    const win = `${fmtDay(r.firstDay)}..${fmtDay(r.lastDay)}`;
+    console.log(
+      `  ${String(r.exported).padEnd(13)} ${win.padEnd(26)} ${String(r.days ?? "UNMEASURED").padStart(4)}  ` +
+      `${String(r.clicks ?? "UNMEASURED").padStart(6)}  ${String(r.impressions ?? "UNMEASURED").padStart(4)}  ` +
+      `${String(r.position ?? "UNMEASURED").padStart(8)}     ${fmtAi(r.ai, "impressions").padStart(8)}  ` +
+      `${fmtAi(r.ai, "clicks").padStart(9)}  ${r.source ?? "csv"}`,
+    );
+  }
+  console.log("");
+  console.log(`population: ${rows.length} export folder(s)`);
+  console.log(`wrote:      ${outPath.replace(REPO + "/", "")}`);
+}
+
 function control() {
   const ok = [];
   const t = (name, pass) => ok.push([name, pass]);
@@ -168,6 +291,90 @@ function control() {
   const empty = demandVsSupply([], []);
   t("an empty export yields no gap rows rather than a clean bill", empty.gaps.length === 0 && empty.dTot === 0);
 
+  // --- the weekly series -----------------------------------------------------
+  //
+  // A real fixture folder, not a fixture object: `seriesRow` reads files off
+  // disk, and a control that never touches disk cannot prove the reader parses
+  // real CSV bytes (`.claude/rules/a-diagnostic-that-truncates-what-it-compares.md`).
+  const tmp = mkdtempSync(join(tmpdir(), "gsc-series-"));
+  try {
+    const CHART =
+      "Date,Clicks,Impressions,CTR,Position\n" +
+      "2026-01-01,1,10,10%,5\n" +
+      "2026-01-02,0,0,,\n" +
+      "2026-01-03,2,20,10%,3\n";
+    const QUERIES =
+      "Top queries,Clicks,Impressions,CTR,Position\n" +
+      "a,1,10,10%,4\n" +
+      "b,2,20,10%,6\n";
+    const AI =
+      "Date,Clicks,Impressions,CTR,Position\n" +
+      "2026-01-01,0,5,0%,\n" +
+      "2026-01-03,1,10,10%,\n";
+
+    // With the AI csv present: every number, exactly.
+    const withAi = join(tmp, "performance-2026-01-01");
+    mkdirSync(withAi);
+    writeFileSync(join(withAi, "Chart.csv"), CHART);
+    writeFileSync(join(withAi, "Queries.csv"), QUERIES);
+    writeFileSync(join(withAi, "Generative AI features.csv"), AI);
+    const r1 = seriesRow(withAi, "performance-2026-01-01");
+    t("series: exported reads from the folder name", r1?.exported === "2026-01-01");
+    t("series: firstDay/lastDay are the impression days, not the export range",
+      r1?.firstDay === "2026-01-01" && r1?.lastDay === "2026-01-03");
+    t("series: days counts only days with an impression", r1?.days === 2);
+    t("series: clicks is the Chart.csv sum", r1?.clicks === 3);
+    t("series: impressions is the Chart.csv sum", r1?.impressions === 30);
+    t("series: position is the impressions-weighted Queries.csv mean, 1 decimal", r1?.position === 5.3);
+    t("series: the AI csv is read by shape, not the exact filename",
+      r1?.ai?.impressions === 15 && r1?.ai?.clicks === 1);
+
+    // Without it: UNMEASURED, never a silent zero.
+    const noAi = join(tmp, "performance-2026-01-08");
+    mkdirSync(noAi);
+    writeFileSync(join(noAi, "Chart.csv"), CHART);
+    writeFileSync(join(noAi, "Queries.csv"), QUERIES);
+    const r2 = seriesRow(noAi, "performance-2026-01-08");
+    t("series: no AI csv in the folder means ai is null, not zero", r2?.ai === null);
+    t("series: a null ai prints UNMEASURED", fmtAi(r2?.ai, "impressions") === "UNMEASURED");
+    // Positive control for the row above it: a REAL ai reading must NOT print
+    // UNMEASURED, or a formatter that always prints the placeholder would pass
+    // the cell above vacuously.
+    t("series: a real ai reading does not print UNMEASURED", fmtAi(r1?.ai, "impressions") !== "UNMEASURED");
+
+    // The hand-entered fallback: a folder with no CSVs at all reads its manual.json.
+    const manual = join(tmp, "performance-2026-01-15");
+    mkdirSync(manual);
+    writeFileSync(join(manual, "manual.json"), JSON.stringify({
+      exported: "2026-01-15", firstDay: "2026-01-01", lastDay: "2026-01-14", days: 10,
+      clicks: 5, impressions: 50, position: 12.3, ai: { impressions: 4, clicks: null },
+      source: "manual", note: "test fixture",
+    }));
+    const r3 = seriesRow(manual, "performance-2026-01-15");
+    t("series: a CSV-less folder falls back to manual.json", r3?.source === "manual" && r3?.clicks === 5);
+
+    // A folder with neither CSVs nor manual.json produces no row, rather than a
+    // row of zeros standing in for "nobody exported this week".
+    const empty2 = join(tmp, "performance-2026-01-22");
+    mkdirSync(empty2);
+    t("series: an empty folder yields no row rather than a row of zeros", seriesRow(empty2, "performance-2026-01-22") === null);
+
+    // POSITIVE CONTROL: the reader must actually be SUMMING the file, not
+    // returning a value that happens to match by coincidence. A mutated Chart.csv
+    // must produce a DIFFERENT total, or this whole battery could be checking a
+    // hard-coded return.
+    const mutated = join(tmp, "performance-2026-01-29");
+    mkdirSync(mutated);
+    writeFileSync(join(mutated, "Chart.csv"), CHART.replace("2026-01-03,2,20,10%,3", "2026-01-03,2,99,10%,3"));
+    writeFileSync(join(mutated, "Queries.csv"), QUERIES);
+    const r4 = seriesRow(mutated, "performance-2026-01-29");
+    const wrongSumCaught = r4?.impressions !== r1?.impressions; // 109 !== 30
+    t("series: a planted wrong Chart.csv FAILS to match the original total", wrongSumCaught);
+    if (wrongSumCaught) console.log("positive control: FIRED");
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+
   let bad_ = 0;
   for (const [name, pass] of ok) {
     console.log(`${pass ? "PASS" : "FAIL"}  ${name}`);
@@ -180,6 +387,7 @@ function control() {
 function main() {
   const arg = process.argv[2];
   if (arg === "--control") return control();
+  if (arg === "--series") return series();
   const folder = arg ? resolve(arg) : newestFolder();
   if (!folder || !existsSync(join(folder, "Queries.csv"))) {
     console.log("");

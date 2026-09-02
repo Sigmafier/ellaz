@@ -26,6 +26,7 @@
     "reach:links": "node scripts/reach/gsc-links.mjs",
     "reach:perf": "node scripts/reach/gsc-performance.mjs",
     "reach:perf:control": "node scripts/reach/gsc-performance.mjs --control",
+    "reach:perf:series": "node scripts/reach/gsc-performance.mjs --series",
     "reach:links:control": "node scripts/reach/gsc-links.mjs --control",
     "reach:about": "node scripts/reach/repo-about.mjs --check",
     "reach:ci-payload": "node scripts/reach/ci-payload.mjs",

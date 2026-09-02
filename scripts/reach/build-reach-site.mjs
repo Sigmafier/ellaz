@@ -39,7 +39,7 @@
  *   node scripts/reach/build-reach-site.mjs --offline   # build from the record
  *   node scripts/reach/build-reach-site.mjs --control   # prove it can refuse
  */
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { coverage, gscExported, html, loadRecord, parseRows, pointsAtUs, resolve1, WATCHED } from "./backlinks.mjs";
@@ -49,6 +49,58 @@ import { loadPosts, parsePosts } from "./posts.mjs";
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const SRC = join(REPO, "docs/outreach/backlinks.md");
 const OUT = join(REPO, "dist-reach");
+const SERIES = join(REPO, "docs/outreach/exports/series.json");
+
+/**
+ * `backlinks.mjs::esc` is not exported, so this is a second copy of the exact
+ * same textContent-style escape rather than a raw-HTML shortcut - the board
+ * must never trust a byte read from series.json (a hand-edited file) any more
+ * than it trusts a URL read from backlinks.md.
+ */
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+/** UNMEASURED, never a silent 0 - the same law `gsc-performance.mjs` prints by. */
+const cell = (v) => (v === null || v === undefined ? "UNMEASURED" : esc(String(v)));
+
+/**
+ * `docs/outreach/exports/series.json`, written by `gsc-performance.mjs --series`.
+ * Read defensively: a hand-edited or half-written file must not take the whole
+ * board down with it, so a parse failure reads exactly like a missing file.
+ */
+export function loadSeries(repo = REPO) {
+  if (!existsSync(SERIES)) return null;
+  try {
+    const rows = JSON.parse(readFileSync(SERIES, "utf8"));
+    return Array.isArray(rows) && rows.length ? rows : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * "Search, weekly" - the trend the board exists to eventually show, one row per
+ * `performance-YYYY-MM-DD/` export. Missing entirely is not an error: the series
+ * starts empty and grows one Tuesday at a time (see the README's own section).
+ */
+export function weeklySearchSection(rows) {
+  if (!rows || !rows.length)
+    return `<h2>Search, weekly</h2><p class=empty>no export yet. Run
+    <code>npm run reach:perf:series</code> after adding a
+    docs/outreach/exports/performance-YYYY-MM-DD/ folder.</p>`;
+  const win = (r) => (r.firstDay || r.lastDay) ? `${cell(r.firstDay)} .. ${cell(r.lastDay)}` : "UNMEASURED";
+  const tr = (r) => `<tr><td>${cell(r.exported)}</td><td>${win(r)}</td>
+    <td>${cell(r.clicks)}</td><td>${cell(r.impressions)}</td><td>${cell(r.position)}</td>
+    <td>${r.ai ? cell(r.ai.impressions) : "UNMEASURED"}</td></tr>`;
+  return `<h2>Search, weekly</h2>
+<table class=series>
+<thead><tr><th>exported</th><th>window</th><th>clicks</th><th>impressions</th>
+<th>position</th><th>AI impressions</th></tr></thead>
+<tbody>${rows.map(tr).join("")}</tbody></table>
+<style>table.series{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+table.series th,table.series td{padding:6px 8px;text-align:start;border-bottom:1px solid #2b2938}
+table.series th{color:var(--dim);text-transform:uppercase;letter-spacing:.06em;font-size:11px}
+table.series td{color:var(--fg)}</style>`;
+}
 
 /** `Disallow: /` is honest here in a way it is not on ellaz.fun: this hostname
  *  advertises no path anybody wanted kept quiet, so the file publishes nothing. */
@@ -87,7 +139,7 @@ export async function buildPages(md, rec, { offline = false, fetchImpl = fetch, 
     out.push(resolve1(r, probe, rec.seen));
   }
   const checked = offline ? (rec.checked ?? "never") : new Date().toISOString().slice(0, 10);
-  const page = html(out, gscExported(REPO), checked, surfaces, posts);
+  const page = html(out, gscExported(REPO), checked, surfaces, posts) + weeklySearchSection(loadSeries(REPO));
   if (!/noindex/.test(page)) throw new Error("build-reach-site: the page carries no noindex - refusing to publish it.");
   return { rows: out, files: { "index.html": page + "\n", "robots.txt": ROBOTS, "_headers": HEADERS } };
 }
@@ -245,6 +297,35 @@ async function control() {
   cases.push([parsePosts(GO.replace(/\*\*Do\*\*:.*\n/, ""), "x.md").posts[0]?.do === "",
     "a missing Do is empty, not inherited from a sibling", "-"]);
   cases.push([!/could be read/.test(H), "...and is not reported when every body parsed", "-"]);
+
+  // --- the weekly search section --------------------------------------------
+  //
+  // Unit-tested against `weeklySearchSection` directly rather than the real
+  // series.json, so this control does not depend on - or corrupt - whatever the
+  // repo's own export history happens to hold on the day it runs.
+  const noSeries = weeklySearchSection(null);
+  cases.push([/no export yet/.test(noSeries), "an absent series.json says 'no export yet'", "-"]);
+  cases.push([/reach:perf:series/.test(noSeries), "...and names the command that creates one", "-"]);
+  const seriesRows = [
+    { exported: "2026-08-21", firstDay: "2026-08-04", lastDay: "2026-08-18", days: 13,
+      clicks: 8, impressions: 231, position: 33.7, ai: null },
+    // a raw < in a field would corrupt the page if this were ever raw HTML - the
+    // POSITIVE CONTROL for the escaping half, same shape as `has()` above.
+    { exported: "<script>2026-09-02", firstDay: "2026-08-03", lastDay: "2026-08-30", days: 28,
+      clicks: 33, impressions: 959, position: 21.1, ai: { impressions: 67, clicks: null } },
+  ];
+  const seriesHtml = weeklySearchSection(seriesRows);
+  cases.push([/Search, weekly/.test(seriesHtml), "a real series renders its heading", "-"]);
+  cases.push([/231/.test(seriesHtml) && /959/.test(seriesHtml), "...and both rows' numbers", "-"]);
+  cases.push([(seriesHtml.match(/UNMEASURED/g) ?? []).length === 1,
+    "a null ai prints UNMEASURED, not 0 or blank",
+    `${(seriesHtml.match(/UNMEASURED/g) ?? []).length}x`]);
+  cases.push([!/<script>2026-09-02/.test(seriesHtml) && /&lt;script&gt;2026-09-02/.test(seriesHtml),
+    "a hostile value from series.json is escaped, never raw HTML", "-"]);
+  // And the section is actually IN the built page, not merely a function nobody calls.
+  const withSeries = await buildPages(md, rec, { offline: true, surfaces });
+  cases.push([/no export yet|Search, weekly/.test(withSeries.files["index.html"]),
+    "the built page carries the weekly-search section either way", "-"]);
 
   for (const [pass, name, got] of cases) console.log(`${pass ? "  ok  " : "FAIL  "}${name}${pass ? "" : `  <- ${got}`}`);
   const bad = cases.filter(([p]) => !p).length;
