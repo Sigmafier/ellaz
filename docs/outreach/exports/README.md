@@ -202,3 +202,57 @@ crawlers by name and is choosing not to refuse this one.
 **Next reading: 2026-11-27.** Not before - a new page gets a freshness boost that
 then decays, so an early reading measures the boost and can reverse a strategy
 that is working (`seo-doctrine` SEO11).
+
+## 2026-09-02 - the Arc 4 baseline: what the plateau is made of, and the first GEO reading
+
+Read live in the operator's Chrome (`/u/1`, `sc-domain:ellaz.fun`), 12:20 UTC, not
+from an export. Nothing below is recalled from an earlier visit.
+
+| instrument | window | reads |
+|---|---|---|
+| Performance, Web | 2026-08-03 -> 08-30 (28 d) | **33 clicks · 959 impressions · CTR 3.4% · position 21.1**, 115 queries, 137 pages |
+| Performance, daily | last 10 days | 55-90 impressions/day, peak 90 on 08-25. The operator's "50-70 a day" is TRUE |
+| **Generative AI features** (beta) | same 28 d | **67 impressions** = 7% of all impressions. First reading ever taken |
+| Links | same visit | still External 0 · Internal 0 - still BROKEN by its own control (above). Not evidence |
+| Bing Backlinks | not re-read today | last honest reading `-` on 2026-08-29; it stays the backlink instrument |
+
+**The shape of the plateau, from the 137-page table.** Almost every page earns 1-3
+impressions; the site ranks 5-10 for many French and Spanish long-tail queries on tiny
+volume and 14-25 for the Hebrew queries that carry it (`he/games/finddiff/` 48
+impressions at 14.0; `he/games/kids/` 42 at 10.0). One query shows what the no-ads
+promise is worth: **"משחקים לילדים בלי פרסומות" at position 3.2, CTR 16.7%.** Every
+on-page instrument is green, so this is an authority ceiling on a five-week-old domain
+with zero earned links. On-page cannot move the number further; links and people can.
+
+**The timeline, so nobody attributes the rise to the letters.** ~13 impressions/day
+(08-01..18) -> ~56/day (08-19..26) -> 55-90/day now. The step coincides with INDEXING
+(200 pages, the `/he/` move on 08-14). The eleven letters went out 08-29/30, after the
+plateau began, and their verdict dates are 2026-11-10..28. At +4 days they have
+**0 of 11 replies**, which is the baseline outcome for cold editorial mail and is
+recorded as a number, not a feeling. One door (digitalpedagogy) carries its own
+notice that tool questions go unanswered; one (kef-lilmod) issued no receipt at all.
+
+**GEO: no build work is warranted, the instrument is.** Google's own guidance (fetched
+2026-09-02, page last updated 2025-12-10) says no new machine-readable files, AI text
+files or markup are needed to appear in AI Overviews / AI Mode. The 67 above is the
+GEO number; it goes in every weekly export beside impressions.
+
+### The doors probed the same day - which ones need no letter
+
+`scripts/repro/probe-doors.sh` re-runs every row: status, bytes, anchors, `nofollow`
+count, sample external hrefs, browser UA.
+
+| door | measured | verdict |
+|---|---|---|
+| **osgameclones.com** | 200 · 9,871 anchors · **0 nofollow** · last merge 2026-09-01 · 8 of our games match their `originals/` | **TAKE** - lane E3 |
+| GitHub awesome lists (awesome-pwa #465) | user-content links `nofollow` (5/5 on our own repo page, 2026-08-23) | on merge: DISCOVERY, not an earned link |
+| Microsoft Store (PWABuilder) | detail page serves **0 anchors** (client-rendered); paid account | PARK - not a link, and spend |
+| Google Play (TWA) | paid account; client-rendered store page | PARK |
+| Wikidata | 82 of 410 anchors `nofollow`; notability needs third-party references | PARK until someone else writes about us |
+| refseek educational-games | 45 of 81 anchors `nofollow` | drop |
+| sldirectory, RCLS LibGuide | dofollow, librarian-by-email | out of scope (no more letters) |
+| alternativeto, indiedb, softonic, progressiveapp.store, findpwa, appsco.pe | 403 / 412 / dead / 503 / empty | drop |
+| Google Suggest, Hebrew printables | `סודוקו להדפסה לילדים` · `מבוך להדפסה לכיתה א` · `תפזורת להדפסה לכיתה ג` · `דפי צביעה להדפסה חינם` all autocomplete | demand EXISTS (existence, not volume) - lane E2 |
+
+**The next weekly export lands as `performance-2026-09-09/`** with both the Performance
+CSVs and the Generative AI features CSV, and `npm run reach:perf` reads it.
