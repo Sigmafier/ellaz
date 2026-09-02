@@ -1,6 +1,6 @@
 # osgameclones - eight games listed on the open-source clones site
 
-**Status**: draft. Nothing has been opened. The operator ACKs the PR text below (D9), then the PR is opened from the operator's own GitHub account (`gh` is logged in as `ytrofr`) and the row in `ledger.md` flips to `fired`.
+**Status**: fired 2026-09-03. **PR <https://github.com/opengaming/osgameclones/pull/5052> is OPEN and mergeable.** Nothing below is a proposal any more; it is the record of what was sent. The operator ACKs the PR text below (D9), then the PR is opened from the operator's own GitHub account (`gh` is logged in as `ytrofr`) and the row in `ledger.md` flips to `fired`.
 
 ## Why this door, measured 2026-09-02
 
