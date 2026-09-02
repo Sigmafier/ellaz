@@ -108,6 +108,72 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Bug and idea reports, one document per report, at
+    // `reports/<uid>/items/<minute>`.
+    //
+    // WRITE-ONLY, FROM THE OUTSIDE. `read` is false for everybody: a report can
+    // carry a sentence a person typed, and this is the one collection here
+    // whose contents are not, by construction, free of anything personal. We
+    // read them with an owner credential, which bypasses these rules; nothing
+    // that ships in a browser can. That also means a report cannot be used to
+    // read back what another player wrote, which a `read: if request.auth`
+    // rule - correct for scores and for backup - would have allowed.
+    //
+    // THE DOC ID IS THE THROTTLE, AND THE SERVER PICKS THE WINDOW. The id is
+    // the minute the report was written, and the rule below compares it to
+    // `request.time` rather than trusting it. Without that comparison a caller
+    // simply invents ids and the "one per minute" limit is a comment: the
+    // create rule only ever fires for a document that does not exist, so the
+    // ONLY thing bounding how many documents a caller can make is how many ids
+    // it is allowed to name. A window of plus or minus two minutes is slack for
+    // a device with a wrong clock, and it is why the honest description of this
+    // is "a few per minute" rather than "exactly one".
+    //
+    // `update` and `delete` are denied, so a sent report cannot be edited into
+    // something else after we have read it, and cannot be withdrawn - which is
+    // the right direction for a record we act on.
+    match /reports/{uid}/items/{minute} {
+      allow read: if false;
+      allow update, delete: if false;
+
+      allow create: if request.auth != null
+                    && request.auth.uid == uid
+                    // The id is a server-checked minute stamp. A non-numeric id
+                    // makes int() error, and an erroring rule denies - which is
+                    // the direction this should fail in.
+                    && int(minute) >= math.floor(request.time.toMillis() / 60000) - 2
+                    && int(minute) <= math.floor(request.time.toMillis() / 60000) + 2
+
+                    && request.resource.data.keys().hasOnly(
+                         ['at', 'kind', 'reason', 'message', 'ctx', 'shot'])
+                    && request.resource.data.keys().hasAll(['at', 'kind', 'ctx'])
+
+                    && request.resource.data.at is int
+                    && request.resource.data.kind in ['bug', 'idea']
+
+                    // Bounded strings, for the same reason the scores block
+                    // bounds its own: one unbounded value is how a single row
+                    // makes a collection unreadable, and an unbounded write is
+                    // free storage for anybody who finds the endpoint.
+                    //
+                    // `ctx` is a JSON STRING rather than a map, exactly as a
+                    // profile is in `players`. Rules cannot measure a map's
+                    // size, so a map here would be uncapped - and the context
+                    // carries a game's own session snapshot, which is the part
+                    // most worth bounding.
+                    && request.resource.data.ctx is string
+                    && request.resource.data.ctx.size() <= 100000
+                    && (!request.resource.data.keys().hasAny(['message'])
+                        || (request.resource.data.message is string
+                            && request.resource.data.message.size() <= 300))
+                    && (!request.resource.data.keys().hasAny(['reason'])
+                        || (request.resource.data.reason is string
+                            && request.resource.data.reason.size() <= 24))
+                    && (!request.resource.data.keys().hasAny(['shot'])
+                        || (request.resource.data.shot is string
+                            && request.resource.data.shot.size() <= 220000));
+    }
+
     // Deny by default, so a future collection cannot fall into a hole.
     match /{document=**} {
       allow read, write: if false;

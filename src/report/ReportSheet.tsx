@@ -1,0 +1,386 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { AppLocale } from "@i18n/locales";
+import { DIR, makeT } from "@i18n/index";
+import { captureContext, type ReportEnv } from "./context";
+import { captureShot } from "./shot";
+import { createReporter, type SendOutcome } from "./send";
+
+/* The sheet. Three steps, and the third one is the point.
+   ===========================================================================
+
+   THE STANDARD THIS SCREEN IS HELD TO
+   `.claude/rules/destructive-actions-show-both-sides.md`. Sending is not
+   destructive, but it carries the same trap: the thing that decides whether it
+   worked is outside this app, and the tempting UI is one button that says
+   "Thanks!" the moment it is tapped. So nothing here claims a send until the
+   write has come back, and the four outcomes render as four different things -
+   a throttle is not a failure and must not offer a retry that cannot work.
+
+   STEP 3 IS NOT DECORATION. A child may be holding this device. Everything that
+   will leave is listed in words before the button, because "we collect
+   diagnostic information" is not consent anybody can act on. The picture has
+   its own switch, because it is the one item somebody might reasonably not want
+   to send.
+
+   NO TYPING IS EVER REQUIRED. The reasons are taps. A five-year-old cannot
+   describe a bug and should not have to, and the free-text box is the part that
+   can carry something personal - so it is optional, bounded, and last. */
+
+/** What a report is about. Ids are persisted in the inbox and read by the
+ *  triage script, so they are never renamed - same law as shop item ids. */
+const REASONS = [
+  { id: "broke", emoji: "\u{1F41E}", key: "reportBroke", kind: "bug" },
+  { id: "hard", emoji: "\u{1F615}", key: "reportHard", kind: "bug" },
+  { id: "picture", emoji: "\u{1F3A8}", key: "reportPicture", kind: "bug" },
+  { id: "sound", emoji: "\u{1F507}", key: "reportSound", kind: "bug" },
+  { id: "idea", emoji: "\u{1F4A1}", key: "reportIdea", kind: "idea" },
+] as const;
+
+export const MAX_MESSAGE = 300;
+
+export interface ReportSheetProps {
+  locale: AppLocale;
+  /** Absent on home, the room and the boards. */
+  gameId?: string;
+  /** The play surface, so a canvas game can hand us its pixels. */
+  frame?: ParentNode | null;
+  /** A crash that armed this sheet, if the crash card opened it. */
+  errors?: { message: string; stack?: string }[];
+  onClose: () => void;
+}
+
+function readEnv(): ReportEnv {
+  return {
+    storage: {
+      read: (k) => {
+        try {
+          return localStorage.getItem(k);
+        } catch {
+          return null;
+        }
+      },
+      keys: () => [],
+    },
+    view: {
+      w: window.innerWidth,
+      h: window.innerHeight,
+      dpr: window.devicePixelRatio || 1,
+      orientation: window.innerHeight >= window.innerWidth ? "portrait" : "landscape",
+    },
+    client: {
+      userAgent: navigator.userAgent,
+      language: navigator.language,
+      online: navigator.onLine,
+    },
+    now: Date.now(),
+    base: import.meta.env.BASE_URL,
+    buildStamp: __BUILD_STAMP__,
+  };
+}
+
+export function ReportSheet({ locale, gameId, frame, errors, onClose }: ReportSheetProps) {
+  const t = makeT(locale);
+  const rtl = DIR[locale] === "rtl";
+
+  const [reason, setReason] = useState<(typeof REASONS)[number]["id"]>("broke");
+  const [message, setMessage] = useState("");
+  const [withShot, setWithShot] = useState(true);
+  const [phase, setPhase] = useState<"compose" | "sending" | "sent">("compose");
+  const [outcome, setOutcome] = useState<SendOutcome | null>(null);
+  const box = useRef<HTMLTextAreaElement>(null);
+
+  // Captured ON OPEN, not on send: by the time somebody has typed a sentence
+  // the board has moved on, and the board they were looking at is the evidence.
+  const snapshot = useMemo(() => readEnv(), []);
+  const shot = useMemo(() => captureShot(frame ?? null), [frame]);
+  const ctx = useMemo(() => {
+    const base = captureContext(gameId, snapshot);
+    return errors?.length
+      ? { ...base, errors: errors.slice(0, 3).map((e) => ({ message: e.message.slice(0, 300), stack: e.stack?.slice(0, 2000) })) }
+      : base;
+  }, [gameId, snapshot, errors]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const picked = REASONS.find((r) => r.id === reason)!;
+
+  async function send() {
+    setPhase("sending");
+    const reporter = createReporter();
+    const result = await reporter.send({
+      kind: picked.kind,
+      reason: picked.id,
+      message: message.trim().slice(0, MAX_MESSAGE) || undefined,
+      ctx: { ...ctx, shot: undefined, shotWhy: shot.ok ? "captured" : shot.why },
+      shot: withShot && shot.ok ? shot.dataUrl : undefined,
+    });
+    setOutcome(result);
+    setPhase("sent");
+  }
+
+  const S = styles(rtl);
+
+  return (
+    <div style={S.scrim} onClick={onClose}>
+      {/* `data-report-sheet` is a STABLE hook for the live probe. Binding a
+          probe to a caption ties it to prose that ships in eleven languages and
+          gets rewritten; the probe then fails on the rename and reads exactly
+          like a broken feature. The consent bar is a `role="dialog"` too, and
+          it is the one a role selector finds first on a first visit - which is
+          precisely how this hook came to exist. */}
+      <div
+        style={S.card}
+        role="dialog"
+        aria-modal="true"
+        data-report-sheet
+        aria-label={t("reportTitle")}
+        dir={rtl ? "rtl" : "ltr"}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {phase === "sent" ? (
+          <Result outcome={outcome} t={t} onClose={onClose} onRetry={() => setPhase("compose")} />
+        ) : (
+          <>
+            <h2 style={S.h2}>{t("reportTitle")}</h2>
+            <p style={S.sub}>{t("reportSub")}</p>
+
+            <p style={S.step}>1 &middot; {t("reportWhat")}</p>
+            <div style={S.chips}>
+              {REASONS.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  aria-pressed={r.id === reason}
+                  onClick={() => setReason(r.id)}
+                  style={{ ...S.chip, ...(r.id === reason ? S.chipOn : null) }}
+                >
+                  <span aria-hidden="true">{r.emoji}</span>
+                  {t(r.key)}
+                </button>
+              ))}
+            </div>
+
+            <p style={S.step}>
+              2 &middot; {t("reportMore")} <span style={S.hint}>({t("reportSkip")})</span>
+            </p>
+            <textarea
+              ref={box}
+              style={S.box}
+              maxLength={MAX_MESSAGE}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              aria-label={t("reportMore")}
+            />
+            <p style={S.count}>
+              {message.length} / {MAX_MESSAGE}
+            </p>
+
+            <p style={S.step}>3 &middot; {t("reportSends")}</p>
+            <ul style={S.list}>
+              {ctx.game ? (
+                <Row k={t("reportGame")} v={[ctx.game.id, ctx.game.level].filter(Boolean).join(" · ")} rtl={rtl} />
+              ) : null}
+              {ctx.game && !ctx.game.sessionDropped ? (
+                <Row k={t("reportBoard")} v={t("reportBoardNow")} rtl={rtl} />
+              ) : null}
+              <Row k={t("reportScreen")} v={`${ctx.view.w} × ${ctx.view.h}`} rtl={rtl} />
+              <Row k={t("reportApp")} v={`${ctx.app.locale ?? locale} · ${ctx.app.buildStamp.slice(0, 8)}`} rtl={rtl} />
+            </ul>
+
+            {shot.ok ? (
+              <label style={S.shotRow}>
+                <img src={shot.dataUrl} alt="" style={S.thumb} />
+                <span style={S.shotLabel}>{t("reportShot")}</span>
+                <input
+                  type="checkbox"
+                  checked={withShot}
+                  onChange={(e) => setWithShot(e.target.checked)}
+                  style={S.check}
+                />
+              </label>
+            ) : null}
+
+            <p style={S.priv}>{t("reportPrivacy")}</p>
+
+            <div style={S.row}>
+              <button type="button" style={{ ...S.btn, ...S.ghost }} onClick={onClose}>
+                {t("reportCancel")}
+              </button>
+              <button type="button" style={S.btn} onClick={() => void send()} disabled={phase === "sending"}>
+                {phase === "sending" ? t("reportSending") : t("reportSend")}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** One line of "what we'll send". Description, NOT a control - it carries no
+ *  imperative and must not look tappable. */
+function Row({ k, v, rtl }: { k: string; v: string; rtl: boolean }) {
+  return (
+    <li style={{ display: "flex", gap: 9, alignItems: "flex-start", textAlign: rtl ? "right" : "left" }}>
+      <span style={{ color: "var(--text-dim)", flex: "0 0 92px" }}>{k}</span>
+      <span>{v}</span>
+    </li>
+  );
+}
+
+/** The four outcomes, as four different screens. A throttle offers no retry,
+ *  because retrying cannot work for another minute and a button that cannot
+ *  work is a lie. */
+function Result({
+  outcome,
+  t,
+  onClose,
+  onRetry,
+}: {
+  outcome: SendOutcome | null;
+  t: (k: string) => string;
+  onClose: () => void;
+  onRetry: () => void;
+}) {
+  const S = styles(false);
+  const good = outcome?.ok === true;
+  const throttled = outcome?.ok === false && outcome.why === "throttled";
+  const text = good ? t("reportThanks") : throttled ? t("reportSoon") : t("reportFailed");
+
+  return (
+    <div style={{ textAlign: "center", padding: "18px 4px 4px" }}>
+      <div style={{ fontSize: 48 }} aria-hidden="true">
+        {good ? "\u{1F389}" : throttled ? "⏳" : "\u{1F614}"}
+      </div>
+      <p role="status" style={{ ...S.sub, fontSize: "1rem", margin: "10px 0 20px" }}>
+        {text}
+      </p>
+      <div style={S.row}>
+        {good || throttled ? null : (
+          <button type="button" style={{ ...S.btn, ...S.ghost }} onClick={onRetry}>
+            {t("reportRetry")}
+          </button>
+        )}
+        <button type="button" style={S.btn} onClick={onClose}>
+          {t("reportCancel")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Tokens only - `token-hygiene.test.ts` refuses a colour literal here. */
+function styles(rtl: boolean) {
+  return {
+    scrim: {
+      position: "fixed",
+      inset: 0,
+      // ABOVE the consent bar, which is `z-index: 60` and pinned to the bottom
+      // of the viewport. At 50 it sat on top of this sheet and covered the Send
+      // button on a first visit - found by the live probe, invisible to every
+      // other gate here, and only ever true for somebody who has not yet
+      // answered the cookie question. Which is every new player.
+      zIndex: 70,
+      background: "var(--badge-fill)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 12,
+    },
+    card: {
+      width: "min(100%, 420px)",
+      maxHeight: "94vh",
+      overflowY: "auto",
+      borderRadius: "var(--radius-3)",
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-1)",
+      padding: "20px 18px 18px",
+      textAlign: rtl ? "right" : "left",
+    },
+    h2: { fontFamily: "var(--font-display)", fontSize: "1.35rem", margin: "0 0 4px" },
+    sub: { margin: "0 0 16px", color: "var(--text-dim)", fontSize: ".88rem" },
+    step: {
+      fontSize: ".72rem",
+      fontWeight: 700,
+      letterSpacing: ".08em",
+      textTransform: "uppercase",
+      color: "var(--text-dim)",
+      margin: "0 0 8px",
+    },
+    hint: { textTransform: "none", letterSpacing: 0, fontWeight: 600 },
+    chips: { display: "flex", flexWrap: "wrap", gap: 8, margin: "0 0 18px" },
+    chip: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      minHeight: "var(--tap)",
+      padding: "0 14px",
+      borderRadius: "var(--radius-pill)",
+      border: "1.5px solid var(--line)",
+      background: "var(--surface-2)",
+      color: "var(--text)",
+      font: "600 .9rem var(--font)",
+      cursor: "pointer",
+    },
+    chipOn: { background: "var(--brand-fill)", borderColor: "var(--brand)", color: "var(--text)", fontWeight: 700 },
+    box: {
+      width: "100%",
+      minHeight: 70,
+      borderRadius: "var(--radius-2)",
+      padding: "11px 12px",
+      border: "1.5px solid var(--line)",
+      background: "var(--surface-2)",
+      color: "var(--text)",
+      font: "400 .95rem var(--font)",
+      resize: "none",
+    },
+    count: { textAlign: "end", color: "var(--text-dim)", fontSize: ".74rem", margin: "4px 0 18px" },
+    list: {
+      margin: "0 0 6px",
+      padding: "12px 14px",
+      borderRadius: "var(--radius-2)",
+      background: "var(--surface-2)",
+      border: "1px solid var(--line)",
+      listStyle: "none",
+      fontSize: ".87rem",
+      lineHeight: 1.8,
+    },
+    shotRow: { display: "flex", alignItems: "center", gap: 11, margin: "10px 0 4px", cursor: "pointer" },
+    thumb: {
+      width: 64,
+      height: 46,
+      objectFit: "cover",
+      borderRadius: 8,
+      border: "1px solid var(--line)",
+      background: "var(--surface)",
+    },
+    shotLabel: { fontSize: ".87rem" },
+    check: { marginInlineStart: "auto", width: 22, height: 22, accentColor: "var(--brand)" },
+    priv: { color: "var(--text-dim)", fontSize: ".78rem", margin: "12px 0 14px", textAlign: "center" },
+    row: { display: "flex", gap: 10 },
+    btn: {
+      flex: 1,
+      minHeight: 52,
+      border: 0,
+      borderRadius: "var(--radius-2)",
+      cursor: "pointer",
+      font: "600 1.02rem var(--font-display)",
+      background: "var(--brand-fill)",
+      color: "var(--text)",
+      boxShadow: "0 4px 0 var(--line)",
+    },
+    ghost: {
+      flex: "0 0 96px",
+      background: "transparent",
+      color: "var(--text-dim)",
+      boxShadow: "none",
+      border: "1.5px solid var(--line)",
+    },
+  } as const satisfies Record<string, React.CSSProperties>;
+}

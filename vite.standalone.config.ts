@@ -131,6 +131,12 @@ function oneGameOnly(): Plugin {
   const STUB = "\0ellaz-standalone-stub";
   const other = /\/src\/games\/([^/]+)\/index\.tsx?$/;
   const cloud = /\/src\/sdk\/cloud\.ts$/;
+  // The bug reporter, for exactly the reason the cloud client is stubbed: a
+  // game bundle runs on somebody else's domain, and a game may fetch nothing
+  // off-site. That rule is why this SDK is listable on a portal at all. The
+  // whole directory rather than `send.ts` alone - the sheet is useless
+  // without a transport, and a stub that throws is louder than a dead button.
+  const report = /\/src\/report\//;
   const ownDir = gameDirFor(meta!.id);
   let sawOwnGame = false;
   return {
@@ -146,7 +152,7 @@ function oneGameOnly(): Plugin {
       const resolved = await this.resolve(source, importer, { ...options, skipSelf: true });
       if (!resolved) return null;
       const id = resolved.id.replace(/\\/g, "/");
-      if (cloud.test(id)) return STUB;
+      if (cloud.test(id) || report.test(id)) return STUB;
       const match = other.exec(id);
       if (match && match[1] !== ownDir) return STUB;
       if (match) sawOwnGame = true;

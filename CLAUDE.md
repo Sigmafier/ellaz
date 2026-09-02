@@ -52,6 +52,7 @@ something is built the way it is.
 | [`docs/firebase-and-cloud.md`](docs/firebase-and-cloud.md) | the Firebase project, cloud backup over plain HTTP, and the quota design |
 | [`docs/poker-table.md`](docs/poker-table.md) | the Hold'em sub-project in full |
 | [`docs/deploy.md`](docs/deploy.md) | the deploy runbook, verification commands, secret rotation |
+| [`docs/reports.md`](docs/reports.md) | player bug and idea reports: what a report carries, what it never carries, the throttle, and how the inbox becomes GitHub issues |
 | [`docs/payload-history.md`](docs/payload-history.md) · [`docs/scaling-the-first-visit.md`](docs/scaling-the-first-visit.md) | superseded payload readings, and the O(1) argument |
 | [`.claude/rules/`](.claude/rules/) | 47 traps, one per file, each with its measurement. Path-scoped, so each loads when you touch what it governs |
 | [`holdem/README.md`](holdem/README.md) | the poker runbook, quotas, DNS |

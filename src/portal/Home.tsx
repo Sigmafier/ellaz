@@ -20,6 +20,7 @@ import {
   type ProfileV1,
 } from "@sdk/index";
 import { boardsHref, gameHref, worldHref } from "./paths";
+import { openReport } from "./openReport";
 import { inkFor } from "@ui/ink";
 import { Icon } from "@ui/icons";
 import { GameArt, showsArt } from "@ui/gameArtView";
@@ -425,6 +426,36 @@ export function Home({
           }}
         >
           📲 {t("installHint")}
+        </p>
+        {/* The reporter's home-screen door.
+            IN THE TRAILING SHELF, not the header. It is platform chrome and it
+            is on every screen, but this screen's header belongs to a child -
+            coins, trophies, language, theme - and a fifth pill there is one
+            more thing to tap for somebody who cannot read yet. The person who
+            reports a bug is an adult, and adults read the bottom of a page.
+            The three emitted screens carry the same door on their utility row,
+            which is where their adult chrome already lives.
+
+            A real <button>, because it asks: see
+            .claude/rules/a-control-that-carries-an-imperative-must-be-a-control.md */}
+        <p style={{ textAlign: "center", marginTop: 4 }}>
+          <button
+            type="button"
+            onClick={() => void openReport({ locale })}
+            style={{
+              background: "none",
+              border: 0,
+              padding: "0 8px",
+              minHeight: "var(--tap)",
+              color: "var(--text-dim)",
+              font: "600 13px var(--font)",
+              textDecoration: "underline",
+              textUnderlineOffset: 3,
+              cursor: "pointer",
+            }}
+          >
+            {t("reportHome")}
+          </button>
         </p>
       </div>
     </div>

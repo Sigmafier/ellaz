@@ -1,5 +1,6 @@
 import { defineConfig, type PluginOption } from "vite";
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
@@ -165,7 +166,33 @@ function swPurgePlugin(): PluginOption {
   };
 }
 
+/**
+ * Which build is this, for a bug report to name.
+ *
+ * A report that cannot say which build it came from is a report you cannot act
+ * on after the next deploy - the same reason `vite.standalone.config.ts` stamps
+ * its bundles, and this is deliberately the SAME shape, `-dirty` included. A
+ * bundle built from an uncommitted tree is not described by its HEAD sha.
+ *
+ * Fails soft to "unknown": a build from a tarball with no git is a real case
+ * (a fork, a CI checkout without history), and it must not fail the build.
+ */
+function buildStamp(): string {
+  try {
+    const sha = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+    const dirty = execFileSync("git", ["status", "--porcelain"], { encoding: "utf8" }).trim() !== "";
+    return dirty ? `${sha}-dirty` : sha;
+  } catch {
+    return "unknown";
+  }
+}
+
 export default defineConfig({
+  define: {
+    // Read by `src/report/context.ts`. A literal, so it costs the shell the
+    // length of one sha and nothing else.
+    __BUILD_STAMP__: JSON.stringify(buildStamp()),
+  },
   base,
   plugins: [
     // First, so its head-prepend lands above everything else in <head>.
@@ -261,6 +288,10 @@ export default defineConfig({
           "**/vendor-phaser-*.js",
           "**/vendor-analytics-*.js",
           "**/cloud-*.js",
+          // The bug reporter. Fetched only when somebody taps the flag, which
+          // most visits never do - and the sheet plus its capture is not
+          // something a child downloads before choosing a game.
+          "**/report-*.js",
           "**/page-*.js",
           // The room's SECOND SHELF - 52 more shop items, their drawings and
           // their catalogue rows, in one chunk. `art.tsx` and `items.ts` ship
@@ -434,6 +465,18 @@ export default defineConfig({
             // Everything else (canvas-confetti…) follows its importer.
             return undefined;
           }
+
+          // The reporter, reached only from a `[data-report]` tap and from the
+          // crash card. NAMED for the same reason `vendor-analytics` is: an
+          // unnamed chunk is emitted as `module-<hash>.js`, which no
+          // globIgnores entry can match, so it lands straight back in the
+          // precache and the lazy import buys nothing.
+          //
+          // The whole directory, not just the sheet: `context.ts`, `send.ts`
+          // and `shot.ts` are reached only through it, and splitting them out
+          // would put three more requests in front of somebody who has already
+          // decided to tell us something.
+          if (/\/src\/report\//.test(path)) return "report";
 
           // `meta.ts` is imported STATICALLY by the portal catalog so the home grid
           // can render without any game code. It must never land in a lazy game

@@ -788,7 +788,7 @@ function groundStyle(chrome: HeaderChrome | undefined): string {
  * app is redrawn here with no second edit.
  */
 export function icon(
-  name: "back" | "expand" | "globe" | "home" | "pause" | "play" | "redo" | "share" | "sound",
+  name: "back" | "expand" | "flag" | "globe" | "home" | "pause" | "play" | "redo" | "share" | "sound",
   cls = "",
 ): RawHtml {
   // Every subpath its own <path>: `home` is three of them concatenated, and a
@@ -837,16 +837,34 @@ export function icon(
  */
 export function utilityRow(
   crumb: RawHtml,
-  opts: { tools?: RawHtml; fullLabel?: string; badge?: RawHtml } = {},
+  opts: { tools?: RawHtml; fullLabel?: string; reportLabel?: string; badge?: RawHtml } = {},
 ): RawHtml {
   const full = opts.fullLabel
     ? html`<button type="button" class="ubtn" data-fullscreen aria-label="${opts.fullLabel}" hidden>
         ${icon("expand")}
       </button>`
     : raw("");
+  // PLATFORM, so it is on every screen that has this row - a game, the room and
+  // the boards - and it means the same thing on all three. That is the test in
+  // `game-controls-and-platform-chrome-never-share-a-bar.md`, and the reason it
+  // rides here beside full screen rather than in the game panel: a control that
+  // appears on one screen only is a game control wearing a badge.
+  //
+  // LAST, after full screen, so the destructive-ish end of the row stays where
+  // it was and nothing a player already reaches for moves under their thumb.
+  //
+  // Emitted `hidden` and revealed by `wireReport()` for the same reason the
+  // others are: a document with no JavaScript running would otherwise offer a
+  // button that does nothing.
+  const report = opts.reportLabel
+    ? html`<button type="button" class="ubtn" data-report aria-label="${opts.reportLabel}" hidden>
+        ${icon("flag")}
+      </button>`
+    : raw("");
   const tools = opts.tools ?? raw("");
+  const anyTool = opts.tools || opts.fullLabel || opts.reportLabel;
   return html`<div class="urow">
-    ${crumb}${opts.badge ?? raw("")}${opts.tools || opts.fullLabel ? html`<div class="tools">${tools}${full}</div>` : raw("")}
+    ${crumb}${opts.badge ?? raw("")}${anyTool ? html`<div class="tools">${tools}${full}${report}</div>` : raw("")}
   </div>`;
 }
 

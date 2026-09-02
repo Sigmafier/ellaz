@@ -4,6 +4,7 @@ import { APP_LOCALES, CANONICAL_LOCALE } from "@i18n/locales";
 import { DEFAULT_LOCALE, DIR, isLoaded, loadDict, makeT } from "@i18n/index";
 import { analytics, startCloudSync } from "@sdk/index";
 import { Home } from "./Home";
+import { armCrashReporting, watchErrors } from "./openReport";
 
 const LOCALE_KEY = "ellaz:locale";
 
@@ -182,6 +183,15 @@ export function App({ initialLocale }: { initialLocale?: AppLocale } = {}) {
   useEffect(() => {
     document.documentElement.lang = locale;
     document.documentElement.dir = DIR[locale];
+  }, [locale]);
+
+  // The reporter's two listeners, re-armed when the language changes so a crash
+  // card and its sheet speak whatever the player is reading. `watchErrors` is
+  // idempotent-ish per mount and `armCrashReporting` returns an unsubscribe, so
+  // switching language replaces the handler rather than stacking one.
+  useEffect(() => {
+    watchErrors();
+    return armCrashReporting(locale);
   }, [locale]);
 
   // The tab title follows the language the player is actually reading.

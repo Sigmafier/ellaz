@@ -56,6 +56,8 @@ export interface SiteCopy {
   chrome: {
     back: string;
     fullScreen: string;
+    /** The reporter, on every playable screen. See src/report/. */
+    report: string;
     sound: string;
     restart: string;
     pause: string;
@@ -110,6 +112,37 @@ export interface SiteCopy {
   worldPage: { title: string; description: string; h1: string; lede: string; body: string[] };
   boardsPage: { title: string; description: string; h1: string; lede: string; body: string[] };
   notFound: { title: string; h1: string; body: string; back: string };
+  /**
+   * The embed lane: the section on a game page that hands a stranger the
+   * iframe snippet, and the one line inside the frame itself.
+   *
+   * `credit` and the two `doc*` pairs are PARTS around a value, never a
+   * `{token}`: the game's name is spliced in as a LINK, and a string with a
+   * token in it would need a filler `content.test.ts` has to be told about.
+   * Three parts for the credit line - before the game's name, between it and
+   * the site's name, after the site's name - because word order is the one
+   * thing a translation may not keep.
+   */
+  embed: {
+    /** Section heading on a game page. */
+    heading: string;
+    /** What to do, and in one sentence why the pasted line is the part that counts. */
+    lede: string;
+    /** The copy button, at rest. */
+    copy: string;
+    /** The copy button, once the clipboard took it. */
+    copied: string;
+    /** The copy button when there is no clipboard: the code has been selected instead. */
+    select: string;
+    /** `[before the game's name, between it and the site's name, after the site's name]`. */
+    credit: [string, string, string];
+    /** The one link inside the frame, pointing back at the game page. */
+    playMore: string;
+    /** The embed document's `<title>`, around the game's name. */
+    docTitle: [string, string];
+    /** Its meta description, around the game's name. */
+    docDescription: [string, string];
+  };
   footer: string;
 }
 
@@ -125,7 +158,7 @@ const he: SiteCopy = {
   loading: "המשחק נטען מעצמו. אין מה ללחוץ.",
   dataSaver: "חיסכון בנתונים פעיל, אז אנחנו מחכים לאישור ולא מורידים לבד.",
   chrome: {
-    back: "כל המשחקים", fullScreen: "מסך מלא", sound: "צליל", restart: "מהתחלה",
+    back: "כל המשחקים", fullScreen: "מסך מלא", report: "ספרו לנו", sound: "צליל", restart: "מהתחלה",
     pause: "השהיה", resume: "המשך",
     beta: "בטא", betaNote: "המשחק הזה עדיין בבנייה",
     language: "שפה",
@@ -193,6 +226,18 @@ const he: SiteCopy = {
     body: "הכתובת הזאת לא קיימת. אולי המשחק עבר, ואולי נפלה טעות בהעתקה.",
     back: "חזרה לכל המשחקים",
   },
+  embed: {
+    heading: "לשים את המשחק באתר שלכם",
+    lede:
+      "מעתיקים את הקוד ומדביקים אותו בעמוד שלכם. השורה שמתחת למסגרת היא החשובה: קישור בתוך המסגרת נשאר ב-ellaz.fun, ורק הקישור שהדבקתם הוא שלכם.",
+    copy: "להעתיק את הקוד",
+    copied: "הועתק",
+    select: "סמנו את הקוד והעתיקו אותו",
+    credit: ["לשחק ב", " ועוד משחקים חינם ב", ""],
+    playMore: "עוד משחקים ב-ellaz.fun",
+    docTitle: ["", " במסגרת באתר שלכם - Ellaz"],
+    docDescription: ["", " מ-ellaz.fun, בתוך אתר אחר. המשחק המלא, וכל שאר המשחקים החינמיים, ב-ellaz.fun."],
+  },
   footer: "Ellaz - משחקים חינם בעברית, אנגלית, ספרדית וצרפתית. אין פרסומות, אין הרשמה, ואין איסוף מידע על ילדים.",
 };
 
@@ -208,7 +253,7 @@ const en: SiteCopy = {
   loading: "The game loads by itself. Nothing to tap.",
   dataSaver: "Data saver is on, so we wait for your tap instead of downloading on our own.",
   chrome: {
-    back: "All games", fullScreen: "Full screen", sound: "Sound", restart: "Restart",
+    back: "All games", fullScreen: "Full screen", report: "Tell us", sound: "Sound", restart: "Restart",
     pause: "Pause", resume: "Resume",
     beta: "Beta", betaNote: "This game is still being built",
     language: "Language",
@@ -276,6 +321,18 @@ const en: SiteCopy = {
     body: "That address does not exist. The game may have moved, or a character may have gone missing from the link.",
     back: "Back to all the games",
   },
+  embed: {
+    heading: "Put this game on your site",
+    lede:
+      "Copy the code and paste it into your page. The line under the frame is the part that counts: a link inside the frame stays on ellaz.fun, and only the one you paste is yours.",
+    copy: "Copy the code",
+    copied: "Copied",
+    select: "The code is selected - copy it",
+    credit: ["Play ", " and more free games at ", ""],
+    playMore: "Play more at ellaz.fun",
+    docTitle: ["", " in a frame on your site - Ellaz"],
+    docDescription: ["", " from ellaz.fun, playable inside another site. The full game, and every other free game, is at ellaz.fun."],
+  },
   footer:
     "Ellaz - free games in Hebrew, English, Spanish and French. No ads, no accounts, and nothing collected about a child.",
 };
@@ -303,7 +360,7 @@ const es: SiteCopy = {
   loading: "El juego se carga solo. No hay que tocar nada.",
   dataSaver: "Tienes el ahorro de datos activado, así que esperamos a que toques tú.",
   chrome: {
-    back: "Todos los juegos", fullScreen: "Pantalla completa", sound: "Sonido",
+    back: "Todos los juegos", fullScreen: "Pantalla completa", report: "Cuéntanos", sound: "Sonido",
     restart: "Reiniciar", pause: "Pausa", resume: "Continuar",
     beta: "Beta", betaNote: "Este juego todavía se está construyendo",
     language: "Idioma",
@@ -378,6 +435,18 @@ const es: SiteCopy = {
     body: "Esta dirección no existe. A lo mejor el juego se ha movido, o se ha perdido una letra al copiar el enlace.",
     back: "Volver a todos los juegos",
   },
+  embed: {
+    heading: "Pon este juego en tu web",
+    lede:
+      "Copia el código y pégalo en tu página. La línea bajo el marco es la que cuenta: un enlace dentro del marco se queda en ellaz.fun, y solo el que pegas es tuyo.",
+    copy: "Copiar el código",
+    copied: "Copiado",
+    select: "El código está seleccionado: cópialo",
+    credit: ["Juega a ", " y a más juegos gratis en ", ""],
+    playMore: "Más juegos en ellaz.fun",
+    docTitle: ["", " en un marco en tu web - Ellaz"],
+    docDescription: ["", " de ellaz.fun, dentro de otra web. El juego completo, y todos los demás juegos gratis, están en ellaz.fun."],
+  },
   footer:
     "Ellaz - juegos gratis en hebreo, inglés, español y francés. Sin anuncios, sin cuentas y sin recoger nada sobre ningún niño.",
 };
@@ -394,7 +463,7 @@ const fr: SiteCopy = {
   loading: "Le jeu se charge tout seul. Il n'y a rien à toucher.",
   dataSaver: "L'économiseur de données est actif, alors nous attendons que vous appuyiez.",
   chrome: {
-    back: "Tous les jeux", fullScreen: "Plein écran", sound: "Son",
+    back: "Tous les jeux", fullScreen: "Plein écran", report: "Dites-nous", sound: "Son",
     restart: "Recommencer", pause: "Pause", resume: "Reprendre",
     beta: "Bêta", betaNote: "Ce jeu est encore en construction",
     language: "Langue",
@@ -468,6 +537,18 @@ const fr: SiteCopy = {
     h1: "Il n'y a rien ici",
     body: "Cette adresse n'existe pas. Le jeu a peut-être changé de place, ou une lettre s'est perdue en copiant le lien.",
     back: "Retour à tous les jeux",
+  },
+  embed: {
+    heading: "Mettez ce jeu sur votre site",
+    lede:
+      "Copiez le code et collez-le dans votre page. La ligne sous le cadre est celle qui compte : un lien dans le cadre reste sur ellaz.fun, et seul celui que vous collez est le vôtre.",
+    copy: "Copier le code",
+    copied: "Copié",
+    select: "Le code est sélectionné : copiez-le",
+    credit: ["Jouez à ", " et à d'autres jeux gratuits sur ", ""],
+    playMore: "Plus de jeux sur ellaz.fun",
+    docTitle: ["", " dans un cadre sur votre site - Ellaz"],
+    docDescription: ["", " de ellaz.fun, dans un autre site. Le jeu complet, et tous les autres jeux gratuits, sont sur ellaz.fun."],
   },
   footer:
     "Ellaz - des jeux gratuits en hébreu, en anglais, en espagnol et en français. Sans publicité, sans compte, et sans rien collecter au sujet d'un enfant.",

@@ -1,6 +1,7 @@
 import { createRoot, type Root } from "react-dom/client";
 import type { ReactElement } from "react";
 import type { GameContext, GameModule, GameMeta } from "@sdk/index";
+import { GameBoundary } from "./GameBoundary";
 
 // Bridges a React component into the framework-neutral GameModule interface.
 // Each DOM game calls reactGame(meta, ctx => <Component ctx={ctx} />).
@@ -21,7 +22,15 @@ export function reactGame(
       container.style.cssText = "width:100%;display:flex;justify-content:center";
       ctx.mount.appendChild(container);
       root = createRoot(container);
-      root.render(render(ctx));
+      // INSIDE this root, not around GameHost. An error does not cross a
+      // React root boundary, so a boundary in the portal could never catch a
+      // DOM game's throw - it would be armed and unreachable, which reads as
+      // protection in every search. Forty of the forty-two games are DOM.
+      root.render(
+        <GameBoundary locale={ctx.locale} resetKey={meta.id} gameId={meta.id}>
+          {render(ctx)}
+        </GameBoundary>,
+      );
       ctx.lifecycle.loadingFinished();
     },
     unmount() {
