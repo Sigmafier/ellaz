@@ -48,7 +48,7 @@ import { fileURLToPath } from "node:url";
 import { firstVisit } from "./assert-payload.mjs";
 import { execFileSync } from "node:child_process";
 import { readRecord, RECORD } from "./reach/ci-payload.mjs";
-import { check as ledgerCheck, RECORDS } from "./outreach-ledger.mjs";
+import { check as ledgerCheck, RECORDS, replyRate, replyRateLine } from "./outreach-ledger.mjs";
 import { heTitles, rosterIds } from "./lib/roster.mjs";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -705,6 +705,8 @@ function report(f, r) {
   const led = ledgerCheck(REPO);
   console.log(`\nledger: ${led.population.drafts} draft(s), ${led.population.rows} row(s)`);
   for (const p of led.problems) console.log(`${p.kind}  ${p.text}`);
+  // Derived, never typed: the number the next letter lane is argued from (RCH20).
+  console.log(replyRateLine(replyRate(REPO)));
 
   if (r.skipped) console.log(`\n${r.skipped} region(s) marked outreach-facts:off and not checked.`);
   console.log(`${RECORDS.size} record(s) frozen and not rewritten: ${[...RECORDS].join(", ")}`);
@@ -760,6 +762,38 @@ function control(f) {
     // control failure.
     check("a fixed corpus has no drift left", clean.drift.length, 0);
     check("a fixed corpus blinds no matcher", clean.blind.length, 0);
+
+    {
+      // replies/letters: the stamp must move the count, and a missing declaration
+      // must read UNDECLARED rather than 0 - the three states must not collapse.
+      const ledgerPath = join(dir, "ledger.md");
+      const lBefore = readFileSync(ledgerPath, "utf8");
+      const tmpRepo = join(tmp, "repo");
+      mkdirSync(join(tmpRepo, "docs"), { recursive: true });
+      cpSync(dir, join(tmpRepo, "docs/outreach"), { recursive: true });
+      const at = (text) => { writeFileSync(join(tmpRepo, "docs/outreach/ledger.md"), text); return replyRate(tmpRepo); };
+      const declared = at(lBefore);
+      check("replies/letters reads a declaration", declared.declared, true);
+      check("no letter has a reply stamp today", declared.replies, 0);
+      const firstLetter = declared.letters[0];
+      if (!firstLetter) throw new Error("control: the ledger declares no fired letter to plant a reply on.");
+      // Planted into the NOTES cell, which is where `replyRate` reads it. The first
+      // version of this control put the stamp in the SURFACE cell, where nothing reads
+      // it, and reported FAIL - correctly, and about itself rather than about the code.
+      const stamped = lBefore
+        .split("\n")
+        .map((line) => {
+          if (!line.startsWith(`| ${firstLetter.surface} |`)) return line;
+          const cells = line.split("|");
+          cells[6] = ` REPLIED 2026-09-02 ${cells[6]}`;
+          return cells.join("|");
+        })
+        .join("\n");
+      if (stamped === lBefore) throw new Error("control: could not plant a REPLIED stamp.");
+      check("a planted REPLIED stamp moves the count", at(stamped).replies, 1);
+      const undeclared = lBefore.replace(/<!--\s*letters:[^>]*-->/, "");
+      check("a ledger with no letters list reads UNDECLARED", at(undeclared).declared, false);
+    }
 
     const victim = join(dir, "reddit.md");
     const before = readFileSync(victim, "utf8");

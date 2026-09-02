@@ -91,6 +91,66 @@ export function rows(repo) {
   return out;
 }
 
+/**
+ * replies / letters, DERIVED from the ledger and never typed.
+ *
+ * WHICH rows are letters is declared in `ledger.md` itself, in a comment the
+ * table carries above it: `<!-- letters: hebrew-directories.md=he ... -->`.
+ * A file in that list is a letter file; every `fired`/`spent` row whose draft
+ * is one of them is a letter. A listing (itch, Newgrounds, a PR) is NOT a
+ * letter, however it was sent, because nobody is expected to answer it.
+ *
+ * A reply is a `REPLIED YYYY-MM-DD` stamp in the row's notes. Nothing else
+ * counts - "they saw it" is not a reply, and neither is a bounce.
+ *
+ * Three states are kept apart on purpose: no declaration at all prints
+ * UNDECLARED (the instrument read nothing), a declaration with zero letters
+ * prints 0 letters, and letters with no stamps print 0/N. The first must
+ * never read as the third. (reach-doctrine RCH20, proposed 2026-09-02.)
+ */
+export function replyRate(repo, today = new Date()) {
+  const path = join(repo, LEDGER);
+  const md = existsSync(path) ? readFileSync(path, "utf8") : "";
+  const decl = /<!--\s*letters:\s*([^>]*?)\s*-->/.exec(md);
+  if (!decl) return { declared: false, letters: [], replies: 0, oldestDays: null, byLang: {} };
+  const langOf = new Map(
+    decl[1].split(/\s+/).filter(Boolean).map((tok) => {
+      const [file, lang] = tok.split("=");
+      return [file, lang || "?"];
+    }),
+  );
+  const letters = rows(repo)
+    .filter((r) => langOf.has(r.file) && (r.status === "fired" || r.status === "spent"))
+    .map((r) => {
+      const stamp = /REPLIED\s+(\d{4}-\d{2}-\d{2})/.exec(r.notes);
+      const fired = /(\d{4}-\d{2}-\d{2})/.exec(r.fired ?? "")?.[1] ?? null;
+      const age = fired ? Math.floor((today - new Date(fired)) / 86400000) : null;
+      return { surface: r.surface, file: r.file, lang: langOf.get(r.file), fired, age, replied: stamp ? stamp[1] : null };
+    });
+  const byLang = {};
+  for (const l of letters) {
+    const b = (byLang[l.lang] ??= { letters: 0, replies: 0 });
+    b.letters++;
+    if (l.replied) b.replies++;
+  }
+  const ages = letters.map((l) => l.age).filter((a) => a !== null);
+  return {
+    declared: true,
+    letters,
+    replies: letters.filter((l) => l.replied).length,
+    oldestDays: ages.length ? Math.max(...ages) : null,
+    byLang,
+  };
+}
+
+/** One line for the gate to print. */
+export function replyRateLine(rr) {
+  if (!rr.declared) return "replies/letters: UNDECLARED - ledger.md carries no <!-- letters: ... --> list, so nothing was counted";
+  if (rr.letters.length === 0) return "replies/letters: 0 letters declared as fired";
+  const per = Object.entries(rr.byLang).map(([l, b]) => `${l} ${b.replies}/${b.letters}`).join(" · ");
+  return `replies/letters: ${rr.replies}/${rr.letters.length} at +${rr.oldestDays} d (oldest) · ${per}`;
+}
+
 /** Returns a list of problems. Empty means clean. */
 export function check(repo) {
   const problems = [];

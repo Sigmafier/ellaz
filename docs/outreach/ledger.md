@@ -66,6 +66,15 @@ something has gone wrong. `Do next` is what a person does the moment they open
 this file, which is the only column the published board renders.
 
 
+<!-- letters: hebrew-directories.md=he english-directories.md=en crazygames.md=en -->
+
+**Which rows are LETTERS is declared in the comment above**, and `assert:outreach`
+derives `replies / letters` from it - the number the next letter lane is argued from,
+never a number anybody types (proposed as `reach-doctrine` RCH20 and `reach-playbook`
+V9, 2026-09-02). A reply is a `REPLIED YYYY-MM-DD` stamp in the row's own notes and
+nothing else; a listing is not a letter, however it was sent, because nobody is
+expected to answer it. An empty declaration reads UNDECLARED rather than zero.
+
 | Surface | Draft | Status | Fired | Verdict due | Notes | Who | Do next |
 |---|---|---|---|---|---|---|---|
 | osgameclones.com (8 entries) | `osgameclones.md` | draft | — | 2026-12-01 | **The one Arc-4 door that is dofollow, self-serve and alive** (0 nofollow of 9,871 anchors, merged 2026-09-01). Eight entries validated against the live schema with a planted control. EARNED under RCH13 if merged, because osgameclones.com renders the link itself; the same entries in a README would be nofollow. | YOU | ACK the PR text (D9), then the PR opens from `ytrofr`; on merge, read the eight slugs off the deployed site and add `expected` rows in `backlinks.md`. |
@@ -86,7 +95,7 @@ this file, which is the only column the published board renders.
 | Israeli tech press | `press.md` | draft | — | — | contacts verified 2026-08-11; re-verify before sending | YOU | Re-verify the contacts (last checked 2026-08-11), then send the Hebrew letter with the derived numbers as the story. |
 | dev.to article | `dev.md` | draft | — | — | operator's to publish or discard | YOU | Yours to publish or drop. Needs an account we do not have. |
 | Reddit ×3 | `reddit.md` | draft | — | — | destinations returned an identical generic shell to an automated fetch; not yet actually read | YOU | Read each subreddit's rules in a BROWSER first - a script gets an identical generic shell from all three - then post one per community, a week apart. |
-| awesome-pwa (list PR) | `dev.md` | fired | 2026-08-12 | 2026-11-10 | **PR [#465](https://github.com/hemanth/awesome-pwa/pull/465), open, mergeable.** Found already open on 2026-08-20 while preparing to open it — the draft said "nothing is opened" for eight days. Entry corrected the same day: it advertised 23 games in Hebrew and English. List batches merges; last batch 2026-08-10, 10 PRs queued | WAIT | Nothing to do. PR #465 is open, mergeable and correct. The list batches and has merged nothing since 2026-08-10. Next look 2026-11-10. |
+| awesome-pwa (list PR) | `dev.md` | fired | 2026-08-12 | 2026-11-10 | **RECLASSIFIED 2026-09-02: on merge this is DISCOVERY under RCH13, not an earned link** - github.com renders every user-content anchor `rel="nofollow"` (5/5 measured on our own repo page, 2026-08-23), and a README is rendered by github.com. It still sends readers; it does not enter the backlink verdict. **PR [#465](https://github.com/hemanth/awesome-pwa/pull/465), open, mergeable.** Found already open on 2026-08-20 while preparing to open it — the draft said "nothing is opened" for eight days. Entry corrected the same day: it advertised 23 games in Hebrew and English. List batches merges; last batch 2026-08-10, 10 PRs queued | WAIT | Nothing to do. PR #465 is open, mergeable and correct. The list batches and has merged nothing since 2026-08-10. Next look 2026-11-10. |
 | Show HN | `launch.md` | draft | — | — | **one shot.** Fires last, after every lane above is green | LAST | ONE SHOT. Do not fire until at least one lane above has produced a live link - a launch aimed at a site nobody has linked to spends the surface for nothing. |
 | Product Hunt | `launch.md` | draft | — | — | **one shot.** Same gate | LAST | ONE SHOT. Same gate as Show HN. |
 | awesome-phaser (list PR) | `dev.md` | dropped | — | — | dormant 16 months, every open PR unanswered. Ranked by merge recency, not stars | DONE | Closed. Dormant 16 months, every open PR unanswered. Do not re-derive this next quarter. |

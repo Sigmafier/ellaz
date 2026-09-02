@@ -228,8 +228,15 @@ with zero earned links. On-page cannot move the number further; links and people
 (08-01..18) -> ~56/day (08-19..26) -> 55-90/day now. The step coincides with INDEXING
 (200 pages, the `/he/` move on 08-14). The eleven letters went out 08-29/30, after the
 plateau began, and their verdict dates are 2026-11-10..28. At +4 days they have
-**0 of 11 replies**, which is the baseline outcome for cold editorial mail and is
-recorded as a number, not a feeling. One door (digitalpedagogy) carries its own
+**0 replies of 8 letters** - `he 0/4 · en 0/4`, derived by `assert:outreach` from the
+ledger rather than typed, which is what the number is for.
+
+**Eight, not eleven, and the correction is the point.** Eleven is the count of FIRED
+SURFACES; three of them (itch, Newgrounds, the awesome-pwa PR) are listings nobody is
+expected to answer, so counting them as unanswered letters is a count of the wrong
+field - the same defect this repo already recorded when a letter argued its audience
+from `category` instead of `ageBand`. A letter is a message to a named person; the
+letters list is declared in `ledger.md` itself and the gate reads it there. One door (digitalpedagogy) carries its own
 notice that tool questions go unanswered; one (kef-lilmod) issued no receipt at all.
 
 **GEO: no build work is warranted, the instrument is.** Google's own guidance (fetched
