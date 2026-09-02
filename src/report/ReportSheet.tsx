@@ -3,7 +3,7 @@ import type { AppLocale } from "@i18n/locales";
 import { DIR, makeT } from "@i18n/index";
 import { captureContext, type ReportEnv } from "./context";
 import { captureShot } from "./shot";
-import { createReporter, type SendOutcome } from "./send";
+import { createReporter, MAX_SHOT, type SendOutcome } from "./send";
 
 /* The sheet. Three steps, and the third one is the point.
    ===========================================================================
@@ -112,13 +112,15 @@ export function ReportSheet({ locale, gameId, frame, errors, onClose }: ReportSh
 
   async function send() {
     setPhase("sending");
+    const shotTooBig = shot.ok && shot.dataUrl.length > MAX_SHOT;
     const reporter = createReporter();
     const result = await reporter.send({
       kind: picked.kind,
       reason: picked.id,
       message: message.trim().slice(0, MAX_MESSAGE) || undefined,
-      ctx: { ...ctx, shot: undefined, shotWhy: shot.ok ? "captured" : shot.why },
-      shot: withShot && shot.ok ? shot.dataUrl : undefined,
+      ctx: { ...ctx, shot: undefined, shotWhy: shotTooBig ? "too-big" : shot.ok ? "captured" : shot.why },
+      // Never the picture at the cost of the report - see MAX_SHOT.
+      shot: withShot && shot.ok && !shotTooBig ? shot.dataUrl : undefined,
     });
     setOutcome(result);
     setPhase("sent");

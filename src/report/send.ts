@@ -40,6 +40,19 @@ const TIMEOUT_MS = 8000;
 
 export type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
 
+/**
+ * The rules block's own cap on `shot`, mirrored here so an oversized picture
+ * costs the PICTURE rather than the whole report.
+ *
+ * Without this, one field the player did not have to send takes the words they
+ * chose to type down with it: `shot` and `message` are the same document, so a
+ * 403 on the picture loses everything. Measured 2026-09-02 at 640px q0.6 -
+ * flat UI 12.5k, a bubbleshooter-shaped board 76.6k, pure noise 243k - so no
+ * real frame reaches it today and nothing pinned that, which is exactly how a
+ * margin disappears (`a-threshold-tuned-against-todays-tree-goes-stale`).
+ */
+export const MAX_SHOT = 220_000;
+
 export interface ReportStore {
   read(key: string): string | null;
   write(key: string, value: string): boolean;
@@ -107,6 +120,39 @@ function localStore(): ReportStore {
 }
 
 /** One request, bounded. Resolves to the Response or null - never throws. */
+/**
+ * The SERVER's clock, off the `Date` header every Google API reply carries.
+ *
+ * This is not a nicety. The throttle id is a minute stamp and `firestore.rules`
+ * compares it to `request.time` with a +/-2 minute window, so a device whose
+ * clock is 3 minutes out is refused on EVERY report, forever - and the sheet
+ * answers a 403 with "That did not send. Try again?", which resends a
+ * byte-identical id. Measured 2026-09-02: 0/1/2 min skew send, 3 and 4 are
+ * refused, and three taps of Try again produced one id and three 403s.
+ *
+ * The clock a guard compares against is the only clock worth stamping with.
+ *
+ * THIS DEPENDS ON A CORS EXPOSURE, so it is measured rather than assumed.
+ * `Date` is NOT a CORS-safelisted response header, so a cross-origin reply can
+ * carry it and the browser can still refuse to let us read it - in which case
+ * this returns undefined, the local clock is used, and the bug is back with
+ * every test still green. Measured 2026-09-02 through a real browser's own CORS
+ * filter, from an http origin, against both hosts we call:
+ *
+ *   identitytoolkit accounts:signUp  visible=[content-encoding,content-length,
+ *                                    content-type,date,server,vary]
+ *   firestore.googleapis.com         same, plus x-debug-tracking-id
+ *
+ * If Google ever stops exposing it this degrades silently, which is why the
+ * fallback below is a fallback and not an error.
+ */
+function serverClock(res: Response | null): number | undefined {
+  const raw = res?.headers?.get?.("date");
+  if (!raw) return undefined;
+  const ms = Date.parse(raw);
+  return Number.isFinite(ms) ? ms : undefined;
+}
+
 async function ask(fetchImpl: FetchLike, url: string, init: RequestInit): Promise<Response | null> {
   const abort = new AbortController();
   const timer = setTimeout(() => abort.abort(), TIMEOUT_MS);
@@ -145,7 +191,7 @@ export function createReporter(options: ReporterOptions = {}): Reporter {
   }
 
   /** An id token to write with, minting the identity on the very first report. */
-  async function authorise(): Promise<{ uid: string; token: string } | null> {
+  async function authorise(): Promise<{ uid: string; token: string; serverNow?: number } | null> {
     const stored = readStored();
 
     if (stored) {
@@ -157,7 +203,7 @@ export function createReporter(options: ReporterOptions = {}): Reporter {
       if (res?.ok) {
         const body: unknown = await res.json().catch(() => null);
         const token = isRecord(body) ? str(body.access_token || body.id_token) : "";
-        if (token) return { uid: stored.uid, token };
+        if (token) return { uid: stored.uid, token, serverNow: serverClock(res) };
       }
       // A refresh that fails is not fatal: the identity is worth nothing except
       // as a throttle key, so minting a new one costs the player nothing and
@@ -179,16 +225,19 @@ export function createReporter(options: ReporterOptions = {}): Reporter {
     // A refused write here costs the throttle, not the report: the send still
     // goes, and the next one signs up again.
     if (refreshToken) store.write(REPORT_KEY, JSON.stringify({ uid, refreshToken }));
-    return { uid, token };
+    return { uid, token, serverNow: serverClock(res) };
   }
 
   async function send(draft: ReportDraft): Promise<SendOutcome> {
     const who = await authorise();
     if (!who) return { ok: false, why: "failed" };
 
-    const minute = String(Math.floor(now() / 60000));
+    // The server's clock when we have it, ours only as a fallback. See
+    // `serverClock`: the local clock is the one thing here that can be wrong.
+    const at = who.serverNow ?? now();
+    const minute = String(Math.floor(at / 60000));
     const fields: Record<string, unknown> = {
-      at: { integerValue: String(now()) },
+      at: { integerValue: String(at) },
       kind: { stringValue: draft.kind },
       // A STRING, matching the rule that bounds it. See the rules block.
       ctx: { stringValue: JSON.stringify(draft.ctx) },
