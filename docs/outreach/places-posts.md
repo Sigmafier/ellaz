@@ -37,22 +37,158 @@ profile, so no rule stands between it and posting.
 
 ## dev.to
 
-**Rule read**: `dev.to/code-of-conduct` carries no self-promotion ban, and
-`dev.to/p/editor_guide` documents a `canonical_url` front-matter field for
-cross-posted articles — sharing original work is an explicitly supported case,
-not a tolerated one.
+**Rule read 2026-09-03, and it changed the draft.** The earlier note checked
+`dev.to/code-of-conduct`, which carries no self-promotion ban - true, and the
+wrong document. The binding clause is in `dev.to/terms`, read today:
 
-> Built a free browser games platform for my kids this year - Ellaz. 42 games,
-> written in English, Hebrew, Spanish and French, no ads, no accounts, and it
-> works offline once you've loaded it once (a PWA, not a wrapped native app).
-> The interesting part for this audience: Phaser 4 for the canvas games, a pure
-> logic core for every game (no DOM in the rules, testable in Node), and RTL
-> Hebrew running alongside LTR pages on the same routes. Source is MIT:
-> github.com/Sigmafier/ellaz. Happy to answer anything about the build.
->
-> - Yatir
+> "make a good-faith effort to share content that is on-topic, of high-quality,
+> and is not designed primarily for the purposes of promotion or creating
+> backlinks. Posts must contain substantial content - they may not merely
+> reference an external link that contains the full post."
+
+The previous draft was ~100 words carrying two links, which is exactly the shape
+that sentence describes. It is replaced. `canonical_url` remains documented (23
+occurrences in the live Forem API reference today), but it may not be used to
+point at a fuller version elsewhere - the substance has to be ON dev.to.
+
+So the post below is a technical article that stands on its own. The site is
+mentioned because it is where the bug happened, not as the point.
+
+**Title:** A button that covers another button passes every test you have
 
 ---
+
+Yesterday I shipped a share button onto the win screen of a games site I
+maintain. It was correct code. It type-checked, it rendered, every assertion
+about it passed, and it covered a control that children use.
+
+Here is the whole of it:
+
+```jsx
+<div style={{
+  position: "absolute",
+  insetInlineStart: 0,
+  insetInlineEnd: 0,
+  bottom: "max(12px, env(safe-area-inset-bottom))",
+  display: "flex",
+  justifyContent: "center",
+  zIndex: 20,
+}}>
+  <Button onClick={openShareSheet}>Share my result</Button>
+</div>
+```
+
+Bottom centre of the play area, floating, above everything. That is a
+reasonable place to put a thing that appears when you win.
+
+It is also where the game puts its controls. Measured in a browser on the built
+bundle, in two games:
+
+```
+memory   chip 526-556   "Two players" button 512-549    covered
+maze     chip 443-495   direction pad DOWN   432-492    covered
+```
+
+Every game on the site that steers with a direction pad puts that pad at the
+bottom centre of the same box. A centred floating pill anchored to the bottom
+of that box is not sometimes going to collide with them. It always was.
+
+## Why nothing caught it
+
+The suite is not thin - about 4,500 tests, and several of them are specifically
+about this component. All of them passed, and none of them could have failed,
+for two separate reasons.
+
+The first is that a button covering another button is a completely valid
+program. Both elements exist. Both are in the accessibility tree. Both respond
+to a click, if you dispatch one at them directly. Every question a unit test
+knows how to ask - does it render, does it call the handler, does it carry the
+label, is it absent on a loss - has the same answer whether or not the thing is
+sitting on top of something else.
+
+The second is more specific, and it is the one worth carrying around:
+
+**jsdom has no layout engine.** `getBoundingClientRect()` returns zeros. Every
+element in a jsdom test occupies the rectangle (0, 0, 0, 0), which means no two
+elements ever overlap, which means an overlap assertion written against jsdom
+cannot fail. You can write the check. It will be green forever, on every
+codebase, for every element, including ones that are genuinely covering each
+other.
+
+That is a nastier property than "we did not write the test". A test that cannot
+fail is worse than a missing one, because it appears in coverage and it appears
+in review.
+
+## What actually found it
+
+I played the game.
+
+Won a round of the memory game, looked at the screen, and the pill was sitting
+on the "Two players" button. Total time to find: about four seconds after the
+win animation finished. Total time it had survived automated verification:
+every run, forever.
+
+I have a note in my repo, written after an earlier incident, that says a gate
+reading the bytes of an artifact cannot tell you the artifact runs. This is the
+same lesson one layer up. A gate that reads the DOM cannot tell you the DOM is
+usable, because usable is a geometric property and the DOM is not a geometry.
+
+## The fix, and the thing I pinned instead of the pixels
+
+The chip is in normal flow now. It reserves a strip at the end of the play area
+rather than being painted over one:
+
+```jsx
+<div style={{
+  flex: "0 0 auto",
+  display: "flex",
+  justifyContent: "center",
+  padding: "10px 0 max(10px, env(safe-area-inset-bottom))",
+}}>
+```
+
+Same overlap check afterwards: zero covered controls.
+
+The interesting question was what to write a test for. I cannot test the
+geometry - see above. So the test reads the source and asserts the DECISION:
+this element does not get `position: absolute`, does not get `position: fixed`,
+does not get a `zIndex`, and is not anchored to an edge.
+
+```js
+it("is in normal flow, so it reserves space instead of covering a control", () => {
+  expect(block).not.toMatch(/position:\s*["']absolute["']/);
+  expect(block).not.toMatch(/position:\s*["']fixed["']/);
+});
+```
+
+That is an unusual shape for a test and I went back and forth on it. What sold
+me is that it fails for the right reason. I planted the exact code that shipped
+and three of its five assertions went red. And it carries its own instruction:
+if somebody later wants the chip floating, they have to bring a measurement
+against a direction-pad game, and delete this test to say so. A deliberate
+deletion with a reason is a much better artifact than a silent regression.
+
+The vacuity guard matters too, because a source-reading test can pass by
+accident on the wrong slice of file:
+
+```js
+it("the block this test reads is the chip's, and not something else", () => {
+  expect(block).toMatch(/Icon name="share"/);
+  expect(block.length).toBeGreaterThan(120);
+});
+```
+
+## The general version
+
+If a defect is geometric - overlap, clipping, contrast, reachable tap target,
+something below the fold that needed to be above it - your test suite is
+probably structurally incapable of seeing it, and it will be green with total
+confidence. Open the thing and use it.
+
+For what it is worth the site is Ellaz (ellaz.fun), 42 free browser games for
+kids in four languages, no ads and no accounts, and the source is MIT at
+github.com/Sigmafier/ellaz. But the bug is the point, and I would have written
+this up the same if it had happened at work.
 
 ## Hashnode
 

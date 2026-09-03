@@ -39,7 +39,7 @@ Ellaz fits their stated criteria unusually well:
 | "something you've made that other people can play with" | 42 games, playable in one tap |
 | "easy for users to try your thing out, ideally without barriers such as signups" | no account, no email, nothing to install |
 | "must be something you've worked on personally and which you're around to discuss" | **the operator's, not this session's** - see below |
-| "The project should be non-trivial" | 42 games, 200 pages, four languages |
+| "The project should be non-trivial" | 42 games, 204 pages, four languages |
 | off topic: "blog posts, sign-up pages, newsletters, lists" | not one of those |
 
 **The one condition that is not about the project.** They require the author to be present
@@ -165,7 +165,7 @@ on an assumption nobody has checked. The operator has a browser; one search sett
 
 **And the framing may be wrong even if Poki is listed.** `docs/outreach/portals.md` already
 records the strategic question: Poki and CrazyGames are advertising businesses, and this
-site says "no ads" on all 200 of its pages. Positioning against them on a comparison site
+site says "no ads" on all 204 of its pages. Positioning against them on a comparison site
 is a public statement of that position. It is defensible and it is the operator's to make,
 not a copywriting choice.
 

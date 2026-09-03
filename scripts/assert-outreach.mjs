@@ -147,7 +147,22 @@ function facts() {
   // `dist/` so the gate works without a build, and cross-checked against the
   // sitemap below when a build is present, because two independent
   // derivations that agree are the only kind worth quoting.
-  const pages = pageLocales * (games + 3 + pagedCategories);
+  // THE PRINTABLE PACKS ARE NOT MULTIPLIED BY THE PAGE LOCALES, and that is the
+  // whole reason they get their own term. Every other kind here exists once per
+  // page language; a pack is Hebrew-only by design (`PRINT_LOCALE`), carries a
+  // one-entry hreflang cluster, and exists once. Folding it into the product
+  // above would over-count it fourfold and the sitemap cross-check below would
+  // then disagree in the other direction, which is a harder error to read.
+  //
+  // Counted off `PRINT_KINDS` in the route table rather than written as `4`, so
+  // adding a fifth pack moves this number without anybody remembering to.
+  // Measured 2026-09-03: 4 kinds, sitemap 204, derived 204.
+  const mPrint = /export const PRINT_KINDS = \[([^\]]*)\]/.exec(read("src/build/routes.ts"));
+  if (!mPrint) throw new Error("assert-outreach: cannot find PRINT_KINDS in src/build/routes.ts.");
+  const printPacks = (mPrint[1].match(/"/g) || []).length / 2;
+  if (!printPacks) throw new Error("assert-outreach: PRINT_KINDS parsed to zero packs - the matcher is wrong, not the route table.");
+
+  const pages = pageLocales * (games + 3 + pagedCategories) + printPacks;
 
   // The payload CEILING is quoted beside the measurement in four provenance
   // rows, and it moves on its own schedule - it has been raised three times.

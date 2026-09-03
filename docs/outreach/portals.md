@@ -28,7 +28,7 @@ Every line of this platform's public promise is the opposite of that:
 
 | The promise | Where it is written down |
 |---|---|
-| no ads, anywhere | the home page, all 200 emitted pages, both outreach drafts |
+| no ads, anywhere | the home page, all 204 emitted pages, both outreach drafts |
 | anonymous and kid-safe, no behavioural advertising | `CLAUDE.md` § Analytics; COPPA internal-operations framing |
 | no external network requests from games | a non-negotiable convention, and Poki's own rule |
 
