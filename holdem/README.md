@@ -32,6 +32,9 @@ an English toggle.
 - Timeout = check if free, else fold; two consecutive timeouts sit you out.
   One 30s time bank per hand. Disconnection does NOT pause the game — the
   timer protects the table, the snapshot-on-reconnect protects you.
+- **Check/fold can be armed before the turn arrives** — the box in the action
+  bar. Client-side, one hand at a time, and it unticks itself the moment it
+  fires. See below.
 - Mucked cards are never sent to anyone and stay hidden in the history replay.
 
 ## Develop
@@ -372,6 +375,40 @@ heartbeat immediately exposed the cost of not doing that: `alarm()`'s
 interHand branch started the next hand on ANY alarm, which was correct only
 while the inter-hand deadline was the sole thing that could wake an occupied
 table. It checks its deadline now.
+
+## Arming check/fold before your turn
+
+**The check/fold box is a PRE-ACTION, and it is deliberately not a mode.** A
+player who has given up on a hand can arm it while somebody else is thinking;
+when the turn lands it checks if the street is free and folds if it costs
+anything — the same move `doTimeout` makes in the engine, taken at once instead
+of after the whole shot clock, and without the timeout that would sit the
+player out after two of them.
+
+Three properties, and the second is the one that decides whether this is safe:
+
+- **Client-side.** No protocol message, no Durable Object state, no extra row
+  written — it sends the ordinary `act` a tapped button sends, so the server
+  stays the only authority on what is legal, and the free-plan write quota does
+  not move.
+- **It is armed FOR A HAND, never as a flag.** `ActionBar` stores the hand
+  number it was armed in and `stillArmed()` compares (`preAction.ts`), so the
+  inter-hand pause disarms it with no cleanup anywhere. A boolean would be a
+  latch, and the hand a latch survives into is the one somebody was dealt aces
+  in.
+- **It unticks the instant it fires**, before the send. One tick is one
+  decision: giving up on the flop is not giving up on the turn.
+
+Where it SITS is also load-bearing. It is in the action bar, not in the menu
+beside Sit out, because it is a decision about the hand in front of the player
+— and it is drawn away from where the buttons appear (top of the rail when
+wide, floated a button's height clear of the bottom edge when tall) so a tap
+that lands a frame after the turn arrives hits felt rather than FOLD.
+
+Nothing in the suite can see any of that: `preAction.ts` is pure and tested in
+node, and this workspace's vitest has no DOM, so the wiring is proven by
+`scripts/repro/pre-action.mjs`, which sits down at the practice table in a real
+browser, arms the box, and reports what the SOCKET carried.
 
 ## Six decisions that are the table, not a preference
 
