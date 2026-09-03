@@ -673,6 +673,58 @@ function gameNames(files, titles) {
   return { problems, declared, blocks };
 }
 
+/**
+ * DOES EVERY DRAFTED POST CARRY THE SITE'S ADDRESS?
+ *
+ * WHY THIS EXISTS. On 2026-09-03 the dev.to article published naming `ellaz.fun`
+ * and `github.com/Sigmafier/ellaz` as bare text - dev.to does not autolink a bare
+ * domain - so for its first hour a post about the site gave a reader no way to
+ * reach it. The instance was one missing `https://`. The CLASS was the fact list
+ * at the top of `places-posts.md`, which enumerated the REPOSITORY and never the
+ * SITE, so every draft written from it faithfully carried the source and omitted
+ * the product: six of the nine did, and a seventh still held a literal
+ * `[link to ...]` placeholder one ACK from being emailed to a named person.
+ *
+ * A PARAGRAPH CANNOT HOLD THIS. The file now says so in prose, and prose is what
+ * was already there in the form of a fact list that was simply missing a line.
+ * The population is the sections of `places-posts.md` that carry a quoted body,
+ * read from the file rather than from a hand-kept list of place names, so a place
+ * added tomorrow is in scope without anyone remembering to add it.
+ *
+ * AN EXEMPTION STATES ITS REASON, AND DANGLING EXEMPTIONS RED. "No address" is a
+ * real answer for some doors and it must be a decision on the record rather than
+ * an omission - the same shape as the `WATCHED` map in `scripts/reach/backlinks.mjs`,
+ * and checked in both directions for the same reason: an exemption naming a section
+ * that no longer exists watches nothing while reading as covered.
+ */
+const SITE_ADDRESS = "ellaz.fun";
+const ADDRESS_EXEMPT = new Map([
+  ["Y8", "a question about whether the SDK is mandatory for a non-monetized listing. A URL inside a docs question is the promotion it would be, and the answer is the point"],
+  ["dev.to", "published 2026-09-03 and LINKED on the platform itself; the quoted block in this section is their terms clause, not a draft"],
+]);
+
+export function addressCheck(md) {
+  const problems = [];
+  const sections = md.split(/\n## /).slice(1).map((s) => ({
+    title: s.split("\n")[0].trim(),
+    body: s.split("\n").filter((l) => l.startsWith("> ")).map((l) => l.slice(2)).join("\n"),
+  }));
+  const drafts = sections.filter((s) => s.body.trim().length > 0);
+  // BLIND, never clean: a parse that finds no drafts has read nothing, and every
+  // draft it did not find is a post it cannot check.
+  if (!drafts.length) problems.push({ kind: "BLIND ", text: "places-posts.md: no quoted draft body found at all - the matcher read nothing" });
+  for (const d of drafts) {
+    const exemptKey = [...ADDRESS_EXEMPT.keys()].find((k) => d.title.startsWith(k));
+    if (exemptKey) continue;
+    if (!d.body.includes(SITE_ADDRESS))
+      problems.push({ kind: "NOADDR", text: `places-posts.md "${d.title.slice(0, 42)}" is a drafted post that never names ${SITE_ADDRESS}` });
+  }
+  for (const k of ADDRESS_EXEMPT.keys())
+    if (!sections.some((s) => s.title.startsWith(k)))
+      problems.push({ kind: "DANGLE", text: `places-posts.md: "${k}" is exempt from the address check and has no section` });
+  return { problems, population: { sections: sections.length, drafts: drafts.length, exempt: ADDRESS_EXEMPT.size } };
+}
+
 function report(f, r) {
   console.log(
     `outreach facts: ${f.games} games (${f.kidsGames} kids), ${f.pages} pages, ` +
@@ -720,6 +772,10 @@ function report(f, r) {
   const led = ledgerCheck(REPO);
   console.log(`\nledger: ${led.population.drafts} draft(s), ${led.population.rows} row(s)`);
   for (const p of led.problems) console.log(`${p.kind}  ${p.text}`);
+  const addr = addressCheck(read("docs/outreach/places-posts.md"));
+  console.log(`address: ${addr.population.drafts} drafted post(s) of ${addr.population.sections} section(s), `
+    + `${addr.population.exempt} exempt with a reason`);
+  for (const p of addr.problems) console.log(`${p.kind}  ${p.text}`);
   // Derived, never typed: the number the next letter lane is argued from (RCH20).
   console.log(replyRateLine(replyRate(REPO)));
 
@@ -729,13 +785,13 @@ function report(f, r) {
 
   console.log(`game names: ${r.names.declared} declared across ${r.names.blocks} block(s)`);
   const bad = r.blind.length + r.drift.length + r.broken.length + r.langs.length +
-    r.names.problems.length + led.problems.length;
+    r.names.problems.length + led.problems.length + addr.problems.length;
   if (bad === 0) {
     console.log("OK  every quoted number matches the tree, and every surface has a row.");
     return 0;
   }
   if (FIX && r.blind.length === 0 && r.drift.length > 0 && r.broken.length === 0 &&
-      r.names.problems.length === 0 && led.problems.length === 0) {
+      r.names.problems.length === 0 && led.problems.length === 0 && addr.problems.length === 0) {
     console.log("\nfixed. Re-run without --fix to confirm.");
     return 0;
   }
@@ -777,6 +833,51 @@ function control(f) {
     // control failure.
     check("a fixed corpus has no drift left", clean.drift.length, 0);
     check("a fixed corpus blinds no matcher", clean.blind.length, 0);
+
+    {
+      // THE ADDRESS CHECK, in all three directions. Its real value is the
+      // planted one: on the day it was written every draft already carried the
+      // address, so a green run proves only that the corpus is clean - it says
+      // nothing about whether the matcher could ever have noticed.
+      const posts = readFileSync(join(dir, "places-posts.md"), "utf8");
+      const live = addressCheck(posts);
+      check("the real corpus names the site in every draft", live.problems.length, 0);
+      check("and it found drafts to check", live.population.drafts > 0, true);
+
+      // Strip the address out of ONE drafted post. Which one is chosen by
+      // reading the file, not named here, so this does not go stale when the
+      // order of the places changes.
+      const victim = posts.split(/\n## /).slice(1)
+        .find((sec) => sec.split("\n").some((l) => l.startsWith("> ") && l.includes(SITE_ADDRESS)));
+      if (!victim) throw new Error("control: no drafted post contains the address to remove.");
+      const title = victim.split("\n")[0].trim();
+      const stripped = posts.split("\n").map((l) =>
+        l.startsWith("> ") ? l.split(SITE_ADDRESS).join("the site") : l).join("\n");
+      if (stripped === posts) throw new Error("control: the strip changed nothing - it is measuring itself.");
+      const holed = addressCheck(stripped);
+      check("a draft with the address removed is CAUGHT",
+        holed.problems.some((p) => p.kind === "NOADDR"), true);
+      check("and it names the post it caught",
+        holed.problems.some((p) => p.text.includes(title.slice(0, 12))), true);
+
+      // An exemption is only worth having if a dangling one reds. THE RENAME MUST
+      // BREAK THE PREFIX: the first version of this control renamed Y8 to
+      // "Y8-was-renamed", which still startsWith("Y8"), so the exemption was never
+      // dangling and the control was measuring nothing. It printed FAIL, which is
+      // the only reason that was noticed - so the rename is asserted to actually
+      // clear the key rather than merely to change the line.
+      const renamed = posts.replace(/\n## Y8 \(forum/, "\n## Yate (forum");
+      if (renamed === posts) throw new Error("control: the Y8 heading did not match - the rename measured nothing.");
+      if (renamed.split(/\n## /).slice(1).some((sec) => sec.split("\n")[0].startsWith("Y8")))
+        throw new Error("control: the rename left a section still matching the exempt prefix.");
+      check("an exemption with no section is CAUGHT",
+        addressCheck(renamed).problems.some((p) => p.kind === "DANGLE"), true);
+
+      // An empty read must be BLIND, never clean - zero drafts is the shape that
+      // reports a sweep over a file it never parsed.
+      check("a file with no drafted post reads BLIND",
+        addressCheck("# nothing here\n\nprose only.\n").problems.some((p) => p.kind.startsWith("BLIND")), true);
+    }
 
     {
       // replies/letters: the stamp must move the count, and a missing declaration

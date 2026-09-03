@@ -12,9 +12,40 @@ operator posts, from their own account, after re-reading the destination's rules
 on the day (`reach-doctrine` RCH3 — rules are read on the day of posting, never
 from a note written earlier, this one included).
 
-Facts used, and only these: 42 games, four languages (English, Hebrew, Spanish
-and French), no ads, no accounts, plays offline as a PWA, MIT source at
-`github.com/Sigmafier/ellaz`. No other number appears anywhere below.
+**One of these has now been sent**: the dev.to article published 2026-09-03 and
+is `fired` in `ledger.md`. The rest are still drafts.
+
+Facts used, and only these: **the site is at `ellaz.fun`**, 42 games, four
+languages (English, Hebrew, Spanish and French), no ads, no accounts, plays
+offline as a PWA, MIT source at `github.com/Sigmafier/ellaz`. No other number
+appears anywhere below.
+
+## Every post names the site's ADDRESS, and this list is why they did not
+
+**Corrected 2026-09-03, across eight drafts at once, after the dev.to post
+published without a link and had to be edited an hour later.** That post named
+`ellaz.fun` and `github.com/Sigmafier/ellaz` as bare text; dev.to does not
+autolink a bare domain, so for its first hour the article named the site twice
+and gave a reader no way to reach it.
+
+The instance was one missing `https://`. The class was here, in the fact list
+directly above: **it enumerated the repository and never the site**, so every
+draft written from it faithfully carried the source and omitted the product.
+Swept the same hour — six drafts (LinkedIn, Hashnode, Bluesky, Made with Phaser,
+YouTube, Indie Hackers) named Ellaz and linked only the code, and Armor Games
+still held a literal `[link to the built standalone bundle]` placeholder one ACK
+from being emailed to a named person.
+
+Two are deliberately unchanged and that is the point of checking rather than
+sweeping: **Y8 carries no link at all**, because it is a question about whether
+the SDK is mandatory and a URL inside a docs question reads as the promotion it
+would be; **dev.to** is fixed on the platform rather than here, since the post is
+already published.
+
+The sweep's own first pass was wrong twice before it was right — a heuristic that
+read a section's prose when it found no quoted lines reported six false
+positives, and Y8 and Armor Games came back clean on a matcher that had simply
+not looked at their bodies. Each hit was opened.
 
 ---
 
@@ -27,9 +58,9 @@ profile, so no rule stands between it and posting.
 
 > I spent this year building something for my own kids: Ellaz, a free browser
 > games site with 42 games in English, Hebrew, Spanish and French. No ads, no
-> accounts, and it works offline as a PWA. The source is MIT-licensed at
-> github.com/Sigmafier/ellaz. If you're a parent, or you just like PWAs and
-> game engines, I'd genuinely like feedback.
+> accounts, and it works offline as a PWA. You can play it at ellaz.fun, and
+> the source is MIT-licensed at github.com/Sigmafier/ellaz. If you're a
+> parent, or you just like PWAs and game engines, I'd genuinely like feedback.
 >
 > - Yatir
 
@@ -201,8 +232,8 @@ project, which is the platform's stated purpose.
 > it was making one route render correctly in four languages, two of them
 > right-to-left. A locale either gets a fully translated page or none at all -
 > a half-translated page reads as a duplicate to a search engine, not a
-> smaller version of the real one. 42 games now, in English, Hebrew, Spanish and French - no ads, no accounts, works offline. Code's MIT:
-> github.com/Sigmafier/ellaz.
+> smaller version of the real one. 42 games now, in English, Hebrew, Spanish and French - no ads, no accounts, works offline. The site is ellaz.fun and
+> the code is MIT: github.com/Sigmafier/ellaz.
 >
 > - Yatir
 
@@ -215,7 +246,7 @@ advertising that TARGETS minors and commercial practices aimed at children - not
 an adult sharing their own project from their own account.
 
 > Built Ellaz for my kids: 42 free browser games, no ads, no accounts, works
-> offline. English, Hebrew, Spanish, French. MIT source:
+> offline. English, Hebrew, Spanish, French. Play: ellaz.fun - MIT source:
 > github.com/Sigmafier/ellaz
 >
 > - Yatir
@@ -231,7 +262,8 @@ and silent) - a showcase of a Phaser-built game is the page's stated purpose.
 > site for kids in English, Hebrew, Spanish and French (no ads, no accounts,
 > works offline as a PWA). Happy to talk through the RTL/Hebrew board handling
 > if it's useful to anyone else building with Phaser - it turned out to need
-> more care than I expected. Source (MIT): github.com/Sigmafier/ellaz.
+> more care than I expected. The site is ellaz.fun; source (MIT):
+> github.com/Sigmafier/ellaz.
 >
 > - Yatir
 
@@ -269,8 +301,8 @@ the same reason.
 > I built Snake as part of Ellaz, a free, ad-free games site for kids - 42
 > games total, in English, Hebrew, Spanish and French, no accounts, works
 > offline as a PWA. I saw in the forum that submissions go through you -
-> here's the game: [link to the built standalone bundle]. Happy to answer
-> anything about it.
+> here's the game, playable and self-contained: https://ytrofr.itch.io/snake
+> The site it comes from is ellaz.fun. Happy to answer anything about it.
 >
 > Thanks for your time,
 > Yatir
@@ -285,7 +317,7 @@ recorded as `channel`, nofollow, discovery only, never counted as a backlink.
 
 > Ellaz is a free browser games site for kids: 42 games, no ads, no accounts,
 > works offline. Built in English, Hebrew, Spanish and French by one parent
-> for their own kids. MIT source: github.com/Sigmafier/ellaz
+> for their own kids. Play: ellaz.fun - MIT source: github.com/Sigmafier/ellaz
 >
 > - Yatir
 
@@ -305,8 +337,8 @@ whenever that gate clears; see the ledger's Do-next.
 > for kids - 42 games, no accounts, offline-capable as a PWA, written in
 > English, Hebrew, Spanish and French. No monetization plan; I built it
 > because I wanted something I could actually hand my own kids without a
-> screen full of ads. MIT source if anyone wants to poke at the code:
-> github.com/Sigmafier/ellaz. Would love feedback from other parents or
-> makers here.
+> screen full of ads. It is at ellaz.fun, and the MIT source is at
+> github.com/Sigmafier/ellaz if anyone wants to poke at the code. Would love
+> feedback from other parents or makers here.
 >
 > - Yatir
