@@ -70,6 +70,11 @@
       "status": "live",
       "lastLive": "2026-09-03",
       "checked": "2026-09-03"
+    },
+    "https://libregamewiki.org/Ellaz": {
+      "status": "unchecked",
+      "lastLive": null,
+      "checked": "2026-09-03"
     }
   }
 }
