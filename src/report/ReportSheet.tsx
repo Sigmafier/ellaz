@@ -216,7 +216,12 @@ export function ReportSheet({ locale, gameId, frame, errors, onClose }: ReportSh
               <button type="button" style={{ ...S.btn, ...S.ghost }} onClick={onClose}>
                 {t("reportCancel")}
               </button>
-              <button type="button" style={S.btn} onClick={() => void send()} disabled={phase === "sending"}>
+              {/* A STABLE hook, like `data-report-sheet` above and for the same
+                  reason: a probe bound to the caption breaks when the caption is
+                  translated or reworded, and then it fails for the wrong reason
+                  (`.claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md`
+                  § the SELECTOR). This one lets a harness drive a real send. */}
+              <button type="button" data-report-send style={S.btn} onClick={() => void send()} disabled={phase === "sending"}>
                 {phase === "sending" ? t("reportSending") : t("reportSend")}
               </button>
             </div>
