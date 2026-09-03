@@ -77,7 +77,8 @@ describe("an oversized picture costs the picture, never the report", () => {
     const big = JSON.stringify({ v: 2, at: 1, s: { p: "x".repeat(MAX_SESSION_BYTES - 100) } });
     const env: ReportEnv = {
       storage: { read: (k) => (k === "ellaz:g:session" ? big : null), keys: () => [] },
-      view: { w: 390, h: 844, dpr: 3, orientation: "portrait" },
+      app: { locale: "en", theme: "market", muted: false },
+    view: { w: 390, h: 844, dpr: 3, orientation: "portrait" },
       client: { userAgent: "UA", language: "en", online: true },
       now: 1, base: "/", buildStamp: "x",
     };

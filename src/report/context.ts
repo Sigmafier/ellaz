@@ -41,6 +41,26 @@ export interface ReportEnv {
     /** Never called. Present so a test can prove that. */
     keys(): string[];
   };
+  /**
+   * The three the RUNTIME knows and storage does not.
+   *
+   * Read from storage until 2026-09-03, and wrong for the common player:
+   * `App.tsx` writes `ellaz:locale` only when somebody CHANGES the language,
+   * `theme.ts` only on a change, `audio.ts` only on a tap - so a player who
+   * simply plays has none of the three keys, and every report they send used to
+   * arrive with `locale`, `theme` and `muted` all absent. Captured live on the
+   * built artifact: `app: { base, buildStamp }` and nothing else.
+   *
+   * The sheet papered over it with `ctx.app.locale ?? locale`, which is the
+   * whole defect in one expression: the preview read the PROP and the payload
+   * read STORAGE, so the screen agreed with the player and disagreed with what
+   * was sent. Two sources for one fact is the bug; `??` only hides it.
+   *
+   * These are resolved values now - the locale the UI is drawing in,
+   * `themePort.current`, `audioPort.muted` - so the sheet and the payload
+   * cannot disagree, and "market" means market rather than "never touched".
+   */
+  app: { locale: string; theme: string; muted: boolean };
   view: { w: number; h: number; dpr: number; orientation: "portrait" | "landscape" };
   client: { userAgent: string; language: string; online: boolean };
   now: number;
@@ -62,7 +82,10 @@ export interface ReportContext {
   at: number;
   game?: ReportGame;
   view: ReportEnv["view"];
-  app: { locale?: string; theme?: string; muted?: boolean; base: string; buildStamp: string };
+  /** All five present, always. `locale`/`theme`/`muted` were optional while
+   *  they came from storage, and optional is what let them be silently absent
+   *  on every real report. */
+  app: { locale: string; theme: string; muted: boolean; base: string; buildStamp: string };
   client: ReportEnv["client"];
 }
 
@@ -134,32 +157,18 @@ function capture(env: ReportEnv, gameId: string): ReportGame {
  * the room or the boards - and the `game` block is simply absent.
  */
 export function captureContext(gameId: string | undefined, env: ReportEnv): ReportContext {
-  // PLAIN STRINGS, not JSON. `App.tsx` writes `setItem(key, "en")`, `themes.ts`
-  // writes the bare theme id, and `audio.ts` writes "1"/"0" - so `JSON.parse`
-  // THROWS on the first two and returns a number for the third, and all three
-  // arrived as undefined. Issue #20 rendered `App | ? - ? - build ...` on a
-  // report sent from a perfectly normal English session.
-  //
-  // It was invisible from the sheet, and that is the part worth remembering:
-  // step 3 shows the locale from the component's own `locale` PROP, while the
-  // payload reads storage. Two sources for one fact, so the preview agreed with
-  // the player and disagreed with what was sent. A preview must read the thing
-  // it is previewing - `context.test.ts` now asserts these three round-trip
-  // from storage written the way the app really writes it.
-  const locale = readRaw(env, "ellaz:locale");
-  const theme = readRaw(env, "ellaz:theme");
-  const mutedRaw = readRaw(env, "ellaz:muted");
-
   return {
     at: env.now,
     game: gameId ? capture(env, gameId) : undefined,
     view: env.view,
+    // The RESOLVED three, never storage - see `ReportEnv.app`. Read from
+    // storage this cost every ordinary report its locale, theme and mute
+    // state, because none of those keys exists until the player changes
+    // something. `context.test.ts` pins that storage is never asked.
     app: {
-      locale,
-      theme,
-      // "1"/"0" is what audio.ts writes; anything else is not ours, and an
-      // absent key means the player never touched the control.
-      muted: mutedRaw === "1" ? true : mutedRaw === "0" ? false : undefined,
+      locale: env.app.locale,
+      theme: env.app.theme,
+      muted: env.app.muted,
       base: env.base,
       buildStamp: env.buildStamp,
     },

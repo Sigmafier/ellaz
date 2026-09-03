@@ -3,6 +3,8 @@ import type { AppLocale } from "@i18n/locales";
 import { DIR, makeT } from "@i18n/index";
 import { captureContext, type ReportEnv } from "./context";
 import { captureShot } from "./shot";
+import { themePort } from "@ui/theme";
+import { audioPort } from "@sdk/audio";
 import { createReporter, MAX_SHOT, type SendOutcome } from "./send";
 import { lookFor } from "./outcome";
 
@@ -51,8 +53,22 @@ export interface ReportSheetProps {
   onClose: () => void;
 }
 
-function readEnv(): ReportEnv {
+/**
+ * `locale` is passed IN rather than read, because the component already knows
+ * it and that is the whole point: the sheet used to preview the prop and send
+ * whatever storage held, and the two disagreed on every default visit. One
+ * source. See `ReportEnv.app`.
+ */
+function readEnv(locale: AppLocale): ReportEnv {
   return {
+    app: {
+      locale,
+      // The RESOLVED theme and mute, not their storage keys - neither key
+      // exists until the player changes something, so storage answers
+      // "undefined" for the ordinary case rather than "market" and "not muted".
+      theme: themePort.current,
+      muted: audioPort.muted,
+    },
     storage: {
       read: (k) => {
         try {
@@ -93,7 +109,7 @@ export function ReportSheet({ locale, gameId, frame, errors, onClose }: ReportSh
 
   // Captured ON OPEN, not on send: by the time somebody has typed a sentence
   // the board has moved on, and the board they were looking at is the evidence.
-  const snapshot = useMemo(() => readEnv(), []);
+  const snapshot = useMemo(() => readEnv(locale), [locale]);
   const shot = useMemo(() => captureShot(frame ?? null), [frame]);
   const ctx = useMemo(() => {
     const base = captureContext(gameId, snapshot);
@@ -194,7 +210,11 @@ export function ReportSheet({ locale, gameId, frame, errors, onClose }: ReportSh
                 <Row k={t("reportBoard")} v={t("reportBoardNow")} rtl={rtl} />
               ) : null}
               <Row k={t("reportScreen")} v={`${ctx.view.w} × ${ctx.view.h}`} rtl={rtl} />
-              <Row k={t("reportApp")} v={`${ctx.app.locale ?? locale} · ${ctx.app.buildStamp.slice(0, 8)}`} rtl={rtl} />
+              {/* No `?? locale` any more. The fallback WAS the bug: it made
+                  this line right and the payload wrong, and nothing on screen
+                  could show the difference. The preview reads the thing it is
+                  previewing. */}
+              <Row k={t("reportApp")} v={`${ctx.app.locale} · ${ctx.app.buildStamp.slice(0, 8)}`} rtl={rtl} />
             </ul>
 
             {shot.ok ? (

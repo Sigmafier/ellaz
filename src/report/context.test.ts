@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import { MAX_SESSION_BYTES, MAX_UA, captureContext, type ReportEnv } from "./context";
 
 /* The capture, and the one test that matters most.
@@ -24,15 +25,22 @@ function env(over: Partial<ReportEnv> = {}): ReportEnv {
     // The things a report is allowed to read.
     "ellaz:snake:session": JSON.stringify({ v: 2, at: 1_700_000_000_000, s: { score: 40 } }),
     "ellaz:snake:level": JSON.stringify("hard"),
-    // EXACTLY the bytes the app writes, which is the whole point: `App.tsx`
-    // does `setItem(key, "en")`, `themes.ts` writes a bare theme id, and
-    // `audio.ts` writes "1"/"0". The first version of this fixture used
-    // JSON.stringify for all three, so the fixture agreed with the reader and
-    // both disagreed with the app - and every real report shipped
-    // `App | ? - ? -` (issue #20) while these tests were green.
-    "ellaz:theme": "market",
-    "ellaz:muted": "0",
-    "ellaz:locale": "en",
+    // DELIBERATE POISON. These three keys are here and they hold the WRONG
+    // answers, because nothing may read them any more: locale, theme and mute
+    // come from the runtime now. A reader that fell back to storage would
+    // report French, night and muted, and the assertions below would name it.
+    //
+    // Their history is worth keeping. They were read from storage until
+    // 2026-09-03, first with `JSON.parse` (which throws on `"en"`, so all
+    // three arrived undefined - issue #20) and then raw, which fixed the case
+    // where the key EXISTS. It never exists for an ordinary player: `App.tsx`
+    // writes the locale only on a language change, `theme.ts` only on a theme
+    // change, `audio.ts` only on a mute tap. Measured on the built artifact
+    // 2026-09-03, a real send carried `app: { base, buildStamp }` and nothing
+    // else - while the sheet showed `en` beside it, off the component's prop.
+    "ellaz:theme": "night",
+    "ellaz:muted": "1",
+    "ellaz:locale": "fr",
     // The things it must never read. All three are real shapes.
     "ellaz:cloud:v1": JSON.stringify({ uid: UID, refreshToken: "AMf-vBxSECRET", code: CODE }),
     "ellaz:profile:v1": JSON.stringify({ v: 1, coins: 412, stars: 30, name: { adj: "swift", noun: "tiger" } }),
@@ -44,6 +52,7 @@ function env(over: Partial<ReportEnv> = {}): ReportEnv {
       read: (k) => bag[k] ?? null,
       keys: () => Object.keys(bag),
     },
+    app: { locale: "en", theme: "market", muted: false },
     view: { w: 390, h: 844, dpr: 3, orientation: "portrait" },
     client: { userAgent: "Mozilla/5.0 (Linux; Android 14)", language: "en-GB", online: true },
     now: 1_700_000_060_000,
@@ -63,31 +72,67 @@ describe("captureContext", () => {
     expect(ctx.game?.sessionAgeMs).toBe(60_000);
     expect(ctx.view).toEqual({ w: 390, h: 844, dpr: 3, orientation: "portrait" });
     expect(ctx.app.buildStamp).toBe("13840666dff557ae");
-    // The three that silently arrived as undefined on every real report until
-    // 2026-09-02, because they are stored as PLAIN strings and were read with
-    // JSON.parse. Asserting the values - not just "defined" - is what pins it:
-    // an undefined here reads as "the player never set it", which is a legal
-    // state, so a looser assertion would have passed on the bug too.
+    // THE RESOLVED THREE, and the fixture's storage says the opposite of every
+    // one of them on purpose - fr / night / muted. So this cell fails loudly
+    // the moment anybody reads storage for these again, which is the failure it
+    // exists for; asserting merely "defined" would pass on both bugs.
     expect(ctx.app.locale).toBe("en");
     expect(ctx.app.theme).toBe("market");
     expect(ctx.app.muted).toBe(false);
   });
 
-  it("reads muted as a boolean either way, and drops a value that is not ours", () => {
-    // "1"/"0" is audio.ts's encoding. `false` must survive as false rather than
-    // collapsing into undefined - "the player un-muted" and "the player never
-    // touched it" are different facts and the issue prints both.
-    const withMute = (v: string | null) => {
-      const e = env();
-      e.storage = { read: (k) => (k === "ellaz:muted" ? v : null), keys: () => [] };
-      return captureContext(undefined, e).app.muted;
-    };
-    expect(withMute("0")).toBe(false);
-    expect(withMute("1")).toBe(true);
-    // "true" is not our encoding, and JSON.parse would have accepted it - so
-    // this cell also fails if anyone reaches for readJson here again.
-    expect(withMute("true")).toBeUndefined();
-    expect(withMute(null)).toBeUndefined();
+  it("asks storage for NOTHING about the locale, the theme or the mute", () => {
+    // The positive form of the cell above. A fallback - `env.app.locale ??
+    // readRaw(...)` - would still pass that one when the runtime answers, and
+    // would quietly resurrect the two-source split the moment it did not.
+    const asked: string[] = [];
+    const e = env();
+    const bag = e.storage.read;
+    e.storage = { read: (k) => { asked.push(k); return bag(k); }, keys: () => [] };
+    captureContext("snake", e);
+    expect(asked).not.toContain("ellaz:locale");
+    expect(asked).not.toContain("ellaz:theme");
+    expect(asked).not.toContain("ellaz:muted");
+    // The CONTROL: it does still read, so an empty list would be the harness
+    // failing rather than the reader behaving.
+    expect(asked).toContain("ellaz:snake:session");
+  });
+
+  it("does not NAME those keys at all, which the behaviour test cannot see", () => {
+    // Added because a mutation SURVIVED. `env.app.locale ?? readRaw(env,
+    // "ellaz:locale")` changes nothing today - `locale` is a non-optional
+    // string, so the right-hand side is unreachable and `??` short-circuits
+    // before storage is ever asked. Both behaviour cells above passed it, and
+    // both were right to: it is a semantic no-op.
+    //
+    // It is still the exact shape the two-source split grows back from, one
+    // `locale?:` away from being live. So this reads the SOURCE, where a dead
+    // branch is as visible as a live one. Comments stripped first - the file's
+    // own history section names all three keys, and a scan that reads the
+    // prose about a bug as the bug is a family this repo already collects.
+    const src = readFileSync(new URL("./context.ts", import.meta.url), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+    const body = src.slice(src.indexOf("export function captureContext"));
+    for (const key of ["ellaz:locale", "ellaz:theme", "ellaz:muted"]) {
+      expect(body, `captureContext must not name ${key}`).not.toContain(key);
+    }
+    // CONTROL: it does still name the keys it is allowed to read, so an empty
+    // or mis-sliced body cannot pass this by containing nothing at all.
+    expect(src).toContain("ellaz:${gameId}:session");
+  });
+
+  it("carries market and un-muted as VALUES, not as an absence", () => {
+    // "the player never touched it" and "the player is on the default" used to
+    // be the same reading - both undefined - and the first is not a fact about
+    // the bug while the second is. Every report says which theme drew the
+    // screen now, including the default one.
+    const ctx = captureContext(undefined, env());
+    expect(ctx.app.theme).toBe("market");
+    expect(ctx.app.muted).toBe(false);
+    expect(Object.keys(ctx.app).sort()).toEqual(
+      ["base", "buildStamp", "locale", "muted", "theme"],
+    );
   });
 
   it("NEVER carries the backup code, the uid, or the refresh token", () => {
