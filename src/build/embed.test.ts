@@ -5,7 +5,16 @@ import { GA_MEASUREMENT_ID } from "./analytics";
 import { EMBED_HEIGHT, embedCredit, embedSnippet, snippetAttr, snippetText } from "./gamePage";
 import { EMBED_CSS, EMBED_ROW_HEIGHT, embedPage } from "./embedPage";
 import { allEmittedFiles, renderRoute } from "./pages";
-import { LOCALES, OG_ROUTES, ROUTES, embedPath, gamePath, localesOf } from "./routes";
+import {
+  LOCALES,
+  OG_ROUTES,
+  PRINT_KINDS,
+  PRINT_LOCALE,
+  ROUTES,
+  embedPath,
+  gamePath,
+  localesOf,
+} from "./routes";
 import { gameName } from "./gameName";
 import { SITE } from "../content/site";
 
@@ -167,17 +176,37 @@ describe("the embed route table", () => {
     expect(embeds.some((r) => r.path.includes("n2048"))).toBe(false);
   });
 
-  it("declares the full page set on every ordinary route, and none on the 404", () => {
+  it("declares the full page set on every ordinary route, and its own set on the three that have one", () => {
+    // THREE SHAPES, not two, since the printable packs landed. `[]` means "no
+    // per-language twin at all" (the 404, every embed frame); `["he"]` means
+    // "this page exists in one language, on purpose" (the print packs); the
+    // full set is everything else. Written as a lookup rather than a chain of
+    // `||`, so a fourth shape has to be answered here rather than falling into
+    // whichever arm happens to be last.
+    const WANT: Record<string, string[]> = {
+      embed: [],
+      notFound: [],
+      print: [PRINT_LOCALE],
+    };
     for (const r of ROUTES) {
-      const want = r.kind === "embed" || r.kind === "notFound" ? [] : [...PAGE_LOCALES];
-      expect(localesOf(r), r.path).toEqual(want);
+      expect(localesOf(r), r.path).toEqual(WANT[r.kind] ?? [...PAGE_LOCALES]);
     }
+    // The population, so a route table that lost a kind cannot pass by vacuum.
+    expect(ROUTES.filter((r) => r.kind === "print")).toHaveLength(PRINT_KINDS.length);
   });
 
   it("gets no share card of its own - it shares its game page's", () => {
     expect(OG_ROUTES.some((r) => r.kind === "embed")).toBe(false);
     // The positive control: the game pages still have theirs.
-    expect(OG_ROUTES.filter((r) => r.kind === "game")).toHaveLength(GAMES.length * LOCALES.length);
+    //
+    // Plus one BORROWED entry per printable pack. Those carry the print page's
+    // PATH and the game route's identity, which is how `renderDocument` finds a
+    // card by path and hands the pack its game's picture without drawing a
+    // second one - so they count as `kind: "game"` here, deliberately.
+    expect(OG_ROUTES.filter((r) => r.kind === "game")).toHaveLength(
+      GAMES.length * LOCALES.length + PRINT_KINDS.length,
+    );
+    expect(OG_ROUTES.filter((r) => r.path.includes("/print/"))).toHaveLength(PRINT_KINDS.length);
   });
 
   it("publishes the locale set, the indexable flag and the resolved canonical in pages.json", () => {

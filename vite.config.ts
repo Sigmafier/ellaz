@@ -345,6 +345,21 @@ export default defineConfig({
           // and it refused the build that proved this, which is the third of the
           // three changes a new emitted thing needs (.claude/rules/precache-glob-sweeps-new-chunks.md).
           "embed/**",
+          // THE PRINTABLE PACKS NEED NO ENTRY OF THEIR OWN, and that is worth
+          // saying here rather than leaving somebody to re-derive it. They are
+          // emitted at `/he/print/<kind>/`, so the DERIVED locale line at the
+          // bottom of this list (`he/**`) already excludes them - and a
+          // `print/**` entry beside this one would match nothing today while
+          // reading as the thing that protects them.
+          //
+          // Measured 2026-09-03, two builds from one tree: with the locale line
+          // the precache holds 11 entries (162 KiB); with it removed the four
+          // packs land in it, the precache jumps to 165 entries (6,170 KiB) and
+          // `assert-first-visit.mjs` refuses the build naming all four by name.
+          //
+          // WHAT WOULD BREAK IT: a print pack in the CANONICAL locale. Those
+          // pages sit at the root (`/print/...`), where no locale entry reaches
+          // them - and then this list needs `print/**` for real.
           "games/**",
           "world/**",
           "boards/**",

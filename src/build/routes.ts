@@ -20,12 +20,28 @@ import { GAMES } from "../portal/games";
  * translated. See `.claude/rules/a-locale-page-without-a-translated-body-is-a-duplicate.md`.
  */
 
-export type PageKind = "home" | "game" | "category" | "world" | "boards" | "embed" | "notFound";
+export type PageKind =
+  | "home"
+  | "game"
+  | "category"
+  | "world"
+  | "boards"
+  | "embed"
+  | "print"
+  | "notFound";
 
 export interface Route {
   kind: PageKind;
   locale: Locale;
-  /** Game id, for `kind === "game"` only. */
+  /**
+   * The game this page is about.
+   *
+   * Set on a `game` route, on the `embed` frame that plays it, and on a `print`
+   * pack, which is that game on paper. Everything keyed on it is keyed on the
+   * KIND as well (the sitemap's image rows, the lastmod sources, the embed
+   * relations), because `undefined === undefined` matching every id-less route
+   * is a defect this table has already shipped once.
+   */
   id?: string;
   /** The group, for `kind === "category"` only. */
   category?: Category;
@@ -156,6 +172,64 @@ export function embedPath(gameId: string): string {
   return `/embed/${slugFor(gameId)}/`;
 }
 
+/**
+ * The printable packs: `/he/print/sudoku/` and its three siblings.
+ *
+ * HEBREW ONLY, and that is a content decision the table states rather than a
+ * gap it hides. These are the one page type here a stranger links to without
+ * playing anything, and the search that finds them is typed in Hebrew. An
+ * English arm would be four documents nobody wrote, which is exactly what
+ * `a-locale-page-without-a-translated-body-is-a-duplicate.md` forbids. So the
+ * routes declare `locales: [PRINT_LOCALE]` and carry a one-entry hreflang
+ * cluster; `assert-pages.mjs` reads that declaration rather than assuming
+ * PAGE_LOCALES.
+ */
+export const PRINT_KINDS = ["sudoku", "maze", "wordsearch", "coloring"] as const;
+
+export type PrintKind = (typeof PRINT_KINDS)[number];
+
+export const PRINT_LOCALE: Locale = "he";
+
+/**
+ * The game a pack is printed from.
+ *
+ * The kind IS the game's id for all four, which is why this is a function and
+ * not a lookup table: the identity is the contract, and `print.test.ts` asserts
+ * every kind names a game the roster actually has. A pack whose game vanished
+ * would otherwise link to a 404 and preview with no picture.
+ */
+export function printGameId(kind: PrintKind): string {
+  return kind;
+}
+
+export function printPath(kind: PrintKind): string {
+  return `${localePrefix(PRINT_LOCALE)}/print/${kind}/`;
+}
+
+/**
+ * The packs whose game is actually on the roster, measured against the LIVE
+ * list rather than assumed.
+ *
+ * DERIVED, exactly like `PAGED_CATEGORIES` above and for the same reason: a
+ * pack links to its game and borrows that game's share card, so a pack whose
+ * game is gone is a dead link and a preview with no picture. Deriving it means
+ * the page disappears with the game instead of the build throwing.
+ *
+ * It is also what lets `assert-slope.mjs` work at all. That gate builds two
+ * arms from one tree and arm B CUTS THE LAST FEW GAMES from the roster, so a
+ * hard-listed pack made a legitimate arm fail to build - measured 2026-09-03,
+ * the wordsearch pack killed arm B and the slope gate reported nothing.
+ *
+ * A game genuinely leaving the roster still has to be a conversation rather
+ * than a silent disappearance: `print.test.ts` asserts this list equals
+ * `PRINT_KINDS` on the real roster, so removing one reds by name - and a
+ * published URL that stops existing needs its 301 in the same commit
+ * (`.claude/rules/a-deleted-page-keeps-its-ranking-for-weeks.md`).
+ */
+export const PRINTABLE_KINDS: PrintKind[] = PRINT_KINDS.filter((k) =>
+  GAMES.some((g) => g.id === printGameId(k)),
+);
+
 /** `dist/`-relative file for a directory-style path. `/games/x/` -> `games/x/index.html`. */
 function fileFor(path: string): string {
   return `${path.slice(1)}index.html`;
@@ -241,6 +315,21 @@ export const ROUTES: Route[] = [
       canonicalPath: gamePath(meta.id, CANONICAL_LOCALE),
     }),
   ),
+  // FOUR, NOT FOUR TIMES FOUR - see `PRINT_KINDS`. One locale, declared here so
+  // the gate can hold the document to a one-entry cluster instead of the four
+  // it demands of everything else.
+  ...PRINTABLE_KINDS.map(
+    (kind): Route => ({
+      kind: "print",
+      locale: PRINT_LOCALE,
+      id: printGameId(kind),
+      path: printPath(kind),
+      file: fileFor(printPath(kind)),
+      emit: true,
+      indexable: true,
+      locales: [PRINT_LOCALE],
+    }),
+  ),
   {
     kind: "notFound",
     locale: CANONICAL_LOCALE,
@@ -294,4 +383,34 @@ export function href(path: string, base: string): string {
  * link to `/embed/snake/` previews as Snake. A card of its own would be the
  * same picture under a second name, which the distinctness gate refuses.
  */
-export const OG_ROUTES: Route[] = ROUTES.filter((r) => r.kind !== "notFound" && r.kind !== "embed");
+export const OG_ROUTES: Route[] = [
+  ...ROUTES.filter((r) => r.kind !== "notFound" && r.kind !== "embed" && r.kind !== "print"),
+  // A PRINT PACK PREVIEWS AS ITS GAME, which is the same decision the embed
+  // frame makes and for the same reason: it IS that game, on paper, so its
+  // game's picture describes the link truthfully.
+  //
+  // `renderDocument` finds a page's card by PATH, so the entry carries the
+  // print page's path and the GAME route's identity - which is all `ogCardKey`
+  // reads. No second picture is rendered and no second file is written; the two
+  // pages simply name one card, and `assert-pages.mjs` asserts that relation by
+  // name rather than exempting the kind. `pages.ts` de-duplicates the emitted
+  // card list by file name, because this makes `renderOgImages` yield the same
+  // name twice.
+  //
+  // A drawn-here card was the alternative and it cannot be honest: with no `id`
+  // and no `category`, `ogCardKey` collapses all four packs onto one key, and
+  // giving them the game's meta draws a picture byte-identical to the game
+  // card's - which the distinctness gate refuses, correctly.
+  ...ROUTES.filter((r): r is Route => r.kind === "print").map((r) => {
+    const game = ROUTES.find(
+      (o) => o.kind === "game" && o.id === r.id && o.locale === r.locale,
+    );
+    if (!game) {
+      throw new Error(
+        `route table: the print pack ${r.path} is printed from "${r.id}", which has no ` +
+          `${r.locale} game page to borrow a share card from.`,
+      );
+    }
+    return { ...game, path: r.path };
+  }),
+];

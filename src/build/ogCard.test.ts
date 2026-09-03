@@ -86,9 +86,18 @@ describe("the art, as a standalone document", () => {
 });
 
 describe("card files", () => {
-  it("names one card per page, all distinct", () => {
-    const names = OG_ROUTES.map(ogImageFile);
+  it("names one card per page, all distinct - except the packs that borrow one", () => {
+    // A printable pack advertises the card of the GAME it prints, so its entry
+    // in OG_ROUTES resolves to that game's name on purpose and the raw list
+    // holds one duplicate per pack. The relation is asserted rather than
+    // subtracted: each borrowed name must be a name a real game route already
+    // produces, so a pack pointing at a card nothing writes still fails here.
+    const borrowed = OG_ROUTES.filter((r) => r.path.includes("/print/"));
+    const own = OG_ROUTES.filter((r) => !r.path.includes("/print/"));
+    const names = own.map(ogImageFile);
     expect(new Set(names).size).toBe(names.length);
+    expect(borrowed.length, "no borrowed cards - this assertion is vacuous").toBeGreaterThan(0);
+    for (const r of borrowed) expect(names).toContain(ogImageFile(r));
   });
 
   it("covers every route except the 404 and the embeds", () => {

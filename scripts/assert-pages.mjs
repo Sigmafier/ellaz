@@ -84,6 +84,70 @@ export function proseWords(html) {
 }
 
 /**
+ * The two markers a printable page fences its BOARDS with, and the whole
+ * reason this pair exists.
+ *
+ * `proseWords` counts every visible word, which is right for every other page
+ * here and wrong for a print pack: a sudoku page prints 972 digits and a word
+ * search 1,432 loose Hebrew letters, so the raw count reads ~2,100 on a page
+ * whose prose is 665. That number clears the floor and means nothing, which is
+ * worse than failing it - a confident wrong number is the failure this repo
+ * keeps writing rules about.
+ *
+ * The emitter writes them (`SHEETS_OPEN`/`SHEETS_CLOSE` in `printPage.ts`).
+ * Comments rather than a container class, because this is a regex over bytes
+ * and a `<div>` cannot be matched to its own closing tag through six levels of
+ * nesting; these two cannot nest.
+ */
+export const SHEETS_OPEN = "<!--sheets-->";
+export const SHEETS_CLOSE = "<!--/sheets-->";
+
+/** Everything outside the fenced board blocks, and how many fences were found. */
+export function withoutSheets(html) {
+  let out = "";
+  let rest = html;
+  let pairs = 0;
+  for (;;) {
+    const open = rest.indexOf(SHEETS_OPEN);
+    if (open === -1) break;
+    const close = rest.indexOf(SHEETS_CLOSE, open + SHEETS_OPEN.length);
+    if (close === -1) {
+      // An unbalanced fence, reported rather than silently swallowing the tail.
+      return { text: out + rest, pairs, unbalanced: true };
+    }
+    out += rest.slice(0, open) + " ";
+    rest = rest.slice(close + SHEETS_CLOSE.length);
+    pairs += 1;
+  }
+  return { text: out + rest, pairs, unbalanced: false };
+}
+
+/**
+ * A printable page's prose, and whether the measurement can be believed.
+ *
+ * FAIL-CLOSED on a missing fence. Falling back to the whole body would keep the
+ * gate green while measuring the wrong thing, on the day somebody renames a
+ * marker - which is precisely the class of instrument failure the fences exist
+ * to avoid in the first place.
+ *
+ * Pure, so the controls at the bottom drive the SAME function the run does.
+ */
+export function printProseFaults(html, floor) {
+  const { text, pairs, unbalanced } = withoutSheets(html);
+  if (unbalanced) {
+    return [`opens a ${SHEETS_OPEN} fence it never closes - its prose cannot be measured`];
+  }
+  if (pairs === 0) {
+    return [
+      `carries no ${SHEETS_OPEN} fence, so its printed boards would be counted as prose ` +
+        "- the emitter and this gate have to agree on the marker",
+    ];
+  }
+  const n = proseWords(text);
+  return n < floor ? [`has ${n} words of prose outside its sheets, floor is ${floor}`] : [];
+}
+
+/**
  * What fraction of the letters belong to each writing system.
  *
  * URLs are stripped FIRST and that is the whole trap: a Hebrew page carrying
@@ -298,6 +362,22 @@ export function documentEagerFaults(eager, kind) {
  */
 export function carriesTag(kind) {
   return kind !== "notFound" && kind !== "embed";
+}
+
+/**
+ * Which page kinds deliberately advertise ANOTHER page's share card.
+ *
+ * Two, and both borrow the card of the GAME they are about: the embed frame,
+ * whose canonical IS that game page, and the printable pack, which is that game
+ * on paper. Neither draws a picture of its own, so both are held to "your card
+ * equals your game's card" instead of to "no two pages share a card".
+ *
+ * A PREDICATE rather than a `kind ===` at the one call site, so the relation is
+ * asserted for both kinds by name below and a third borrower cannot be added by
+ * quietly widening a condition.
+ */
+export function sharesGameCard(kind) {
+  return kind === "embed" || kind === "print";
 }
 
 /**
@@ -542,7 +622,6 @@ function checkCardsAreDistinct() {
   // category pages in five previewing the wrong group".
   const byCard = new Map();
   const manifestPages = readManifest().pages;
-  const canonicalLocale = readManifest().locales.canonical;
   /** embed page file -> the card it advertises; compared to its game page's, below. */
   const embedCards = new Map();
   for (const page of manifestPages) {
@@ -551,26 +630,37 @@ function checkCardsAreDistinct() {
     const html = readFileSync(join(DIST, file), "utf8");
     const m = /<meta property="og:image" content="[^"]*\/(og\/[^"]+)"/.exec(html);
     if (!m) continue;
-    // An EMBED page shares its game page's card BY DESIGN: its canonical is
-    // that page, so a link to the frame previews as the game. It is kept out
-    // of the one-card-per-page relation and held to the sharing instead.
-    if (page.kind === "embed") {
+    // AN EMBED FRAME AND A PRINT PACK share their game page's card BY DESIGN:
+    // the frame's canonical IS that page, and a pack of printable sudoku is
+    // that game on paper. Both are kept out of the one-card-per-page relation
+    // and held to the sharing instead, which is the stronger statement.
+    if (sharesGameCard(page.kind)) {
       embedCards.set(page, m[1]);
       continue;
     }
     byCard.set(m[1], [...(byCard.get(m[1]) ?? []), file]);
   }
   for (const [page, card] of embedCards) {
+    // THE GAME PAGE IN THIS PAGE'S OWN LOCALE. An embed frame is emitted in the
+    // canonical locale, so this is the same lookup it always did; a print pack
+    // is Hebrew, and pointing it at the English card would preview a Hebrew
+    // worksheet with an English picture.
     const game = manifestPages.find(
-      (p) => p.kind === "game" && p.id === page.id && p.locale === canonicalLocale,
+      (p) => p.kind === "game" && p.id === page.id && p.locale === page.locale,
     );
     const gameFile = game && join(DIST, game.file);
     const gameHtml = gameFile && existsSync(gameFile) ? readFileSync(gameFile, "utf8") : "";
     const gameCard = /<meta property="og:image" content="[^"]*\/(og\/[^"]+)"/.exec(gameHtml)?.[1];
-    if (!gameCard) fail(`${page.file} embeds "${page.id}" but its game page advertises no card`);
-    else if (gameCard !== card) {
-      fail(`${page.file} advertises ${card}, its game page advertises ${gameCard} - a frame previews as its game`);
+    if (!gameCard) {
+      fail(`${page.file} is about "${page.id}" but its ${page.locale} game page advertises no card`);
+    } else if (gameCard !== card) {
+      fail(`${page.file} advertises ${card}, its game page advertises ${gameCard} - it must preview as its game`);
     }
+  }
+  // The population, printed. Zero borrowers means the predicate stopped
+  // matching and every assertion in this loop passed over nothing.
+  if (embedCards.size === 0) {
+    fail("no page borrows a game's card - sharesGameCard matched nothing, so this check is blind");
   }
   if (byCard.size === 0) {
     fail("no emitted page names an og:image - the matcher found nothing, so this check is blind");
@@ -672,6 +762,8 @@ function main() {
   const families = new Map();
   let words = Infinity;
   let thinnest = "";
+  let printWords = Infinity;
+  let thinnestPrint = "";
 
   // The app's own eager asset set, as the yardstick every booting page is
   // measured against. Read once, from the artifact.
@@ -755,6 +847,23 @@ function main() {
     if (page.kind === "game" && n < words) {
       words = n;
       thinnest = where;
+    }
+    // A PRINT PACK INHERITS THE GAME FLOOR, deliberately and not by default.
+    // It is an indexable article that exists to be found by somebody searching
+    // for worksheets, so the argument for 550 words is exactly the argument the
+    // game pages make: below that it is a page of boards with a heading, which
+    // is a thin page whatever its subject. What changes is WHERE the words are
+    // counted - outside the fenced boards, or the digits pass the floor for it.
+    if (page.kind === "print") {
+      const faults = printProseFaults(html, MIN_WORDS);
+      for (const f of faults) fail(`${where} ${f}`);
+      if (faults.length === 0) {
+        const p = proseWords(withoutSheets(html).text);
+        if (p < printWords) {
+          printWords = p;
+          thinnestPrint = where;
+        }
+      }
     }
 
     // --- language ---------------------------------------------------------
@@ -1587,6 +1696,12 @@ function main() {
     `\npages: ${emitted.length} emitted, ${(bytes / 1024).toFixed(0)} KiB total, base ${base}`,
   );
   console.log(`thinnest game page: ${thinnest} at ${words} words (floor ${MIN_WORDS})`);
+  if (thinnestPrint) {
+    console.log(
+      `thinnest print page: ${thinnestPrint} at ${printWords} words outside its sheets ` +
+        `(floor ${MIN_WORDS})`,
+    );
+  }
   console.log(
     `locales: ${L.page.length} with pages (${L.page.join(", ")}), ` +
       `${L.app.length - L.page.length} app-only, x-default ${L.xDefault}`,
@@ -1930,6 +2045,113 @@ function runControls() {
         const c = sitemapClusters(xml).get("https://e.fun/games/think/");
         return c.size === 1 && c.has("https://e.fun/he/games/think/");
       },
+    ],
+
+    // --- GATE 5 on a ONE-LOCALE page (the printable packs) -----------------
+    //
+    // BOTH DIRECTIONS, because only one of them is dangerous. A gate that
+    // demanded PAGE_LOCALES of every page would red the correct Hebrew-only
+    // page - loudly, and somebody would fix it. A gate that accepted anything
+    // once the set is short would wave through a pack advertising an English
+    // twin that was never written, which is a promise to Google that nothing
+    // else here can see.
+    [
+      "a page declaring ONE locale is refused an alternate in another language",
+      () =>
+        hreflangFaults(
+          [
+            { hreflang: "he", href: "https://ellaz.fun/he/print/sudoku/" },
+            { hreflang: "en", href: "https://ellaz.fun/print/sudoku/" },
+          ],
+          ["he"],
+          { locale: "he", canonical: "https://ellaz.fun/he/print/sudoku/" },
+          "en",
+        ).some((f) => f.includes("expected exactly [he]")),
+    ],
+    [
+      "and the correct one-locale cluster - itself, and no x-default - is clean",
+      () =>
+        hreflangFaults(
+          [{ hreflang: "he", href: "https://ellaz.fun/he/print/sudoku/" }],
+          ["he"],
+          { locale: "he", canonical: "https://ellaz.fun/he/print/sudoku/" },
+          "en",
+        ).length === 0,
+    ],
+    [
+      // x-default answers "we have no page in your language". A pack that is
+      // only ever Hebrew is not that page, and claiming it would send every
+      // non-Hebrew reader on earth to a Hebrew worksheet.
+      "a one-locale page is refused an x-default it has no twin for",
+      () =>
+        hreflangFaults(
+          [
+            { hreflang: "he", href: "https://ellaz.fun/he/print/sudoku/" },
+            { hreflang: "x-default", href: "https://ellaz.fun/he/print/sudoku/" },
+          ],
+          ["he"],
+          { locale: "he", canonical: "https://ellaz.fun/he/print/sudoku/" },
+          "en",
+        ).some((f) => f.includes("x-default")),
+    ],
+    [
+      "a one-locale page that forgot to list ITSELF has no anchor and is refused",
+      () =>
+        hreflangFaults(
+          [],
+          ["he"],
+          { locale: "he", canonical: "https://ellaz.fun/he/print/sudoku/" },
+          "en",
+        ).some((f) => f.includes("does not list ITSELF")),
+    ],
+
+    // --- the printable pages' prose is measured OUTSIDE the boards ---------
+    [
+      "the boards are removed before the words are counted",
+      () => {
+        const html = `<body><p>one two three</p>${SHEETS_OPEN}<td>5</td><td>3</td>${SHEETS_CLOSE}</body>`;
+        return proseWords(html) === 5 && proseWords(withoutSheets(html).text) === 3;
+      },
+    ],
+    [
+      "a print page whose prose is thin is refused, even with a wall of digits on it",
+      () => {
+        const digits = Array.from({ length: 400 }, (_, i) => `<td>${i % 9}</td>`).join("");
+        const html = `<body><p>two words</p>${SHEETS_OPEN}${digits}${SHEETS_CLOSE}</body>`;
+        // The raw count is enormous and would sail past any floor; the fenced
+        // one is 2. This is the whole reason the fence exists.
+        return proseWords(html) > 400 && printProseFaults(html, 550).length === 1;
+      },
+    ],
+    [
+      "a print page with real prose passes",
+      () => {
+        const prose = `<p>${"מילה ".repeat(600)}</p>`;
+        const html = `<body>${prose}${SHEETS_OPEN}<td>1</td>${SHEETS_CLOSE}</body>`;
+        return printProseFaults(html, 550).length === 0;
+      },
+    ],
+    [
+      "a print page carrying NO fence is refused rather than measured wrongly",
+      () => {
+        const html = `<body><p>${"מילה ".repeat(600)}</p></body>`;
+        return printProseFaults(html, 550).some((f) => f.includes("no <!--sheets--> fence"));
+      },
+    ],
+    [
+      "an unclosed fence is refused rather than swallowing the rest of the page",
+      () =>
+        printProseFaults(`<body><p>x</p>${SHEETS_OPEN}<td>1</td></body>`, 550).some((f) =>
+          f.includes("never closes"),
+        ),
+    ],
+
+    // --- which kinds borrow a game's card ----------------------------------
+    ["an embed frame borrows its game's card", () => sharesGameCard("embed") === true],
+    ["a print pack borrows its game's card", () => sharesGameCard("print") === true],
+    [
+      "and an ordinary page does not - so the one-card-per-page rule still binds",
+      () => sharesGameCard("game") === false && sharesGameCard("category") === false,
     ],
   ];
 

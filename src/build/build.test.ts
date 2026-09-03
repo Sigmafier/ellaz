@@ -16,6 +16,7 @@ import {
   gamePath,
   homePath,
   href,
+  localesOf,
 } from "./routes";
 import { MAX_FLAT_HOME_LINKS, homeShellBody } from "./sitePages";
 import {
@@ -412,11 +413,24 @@ describe("every page renders", () => {
         ? (f.source.match(/<div id="home-doc">[\s\S]*?<\/div>\s*<div id="root"/)?.[0] ?? "")
         : (f.source.match(/<footer>[\s\S]*?<\/footer>/)?.[0] ?? "");
       const links = [...block.matchAll(/<a href="([^"]+)"[^>]*hreflang="([^"]+)"/g)];
-      if (links.length !== others) {
-        offenders.push(`${f.fileName}: ${links.length} language links, want ${others}`);
+      const route = ROUTES.find((r) => r.file === f.fileName);
+      // HOW MANY, derived from the route's OWN declared locale set rather than
+      // from LOCALES - the same expression `renderDocument` builds `siblings`
+      // from, including its fallback. Four shapes now share this footer:
+      //
+      //   an ordinary page   4 twins    ->  3 links, one per other language
+      //   a printable pack   1 twin     ->  0 links, because there are none
+      //   the 404            no twins   ->  3 links, to each language's HOME
+      //
+      // A page that carries a link to a language it was never written in is a
+      // crawlable promise of a document nobody wrote, which is the failure the
+      // whole locale-set field exists to prevent.
+      const declared = route ? localesOf(route) : [...LOCALES];
+      const want = declared.length > 0 ? declared.length - 1 : others;
+      if (links.length !== want) {
+        offenders.push(`${f.fileName}: ${links.length} language links, want ${want}`);
         continue;
       }
-      const route = ROUTES.find((r) => r.file === f.fileName);
       for (const [, target, lang] of links) {
         if (lang === route?.locale) offenders.push(`${f.fileName}: links to its own language`);
         // The 404 is the sanctioned exception: one document for the whole
@@ -437,6 +451,17 @@ describe("every page renders", () => {
       }
     }
     expect(offenders).toEqual([]);
+
+    // The printable packs' half, asserted by name so the loop above cannot pass
+    // over them by counting zero against zero: exactly ONE alternate, which is
+    // the page itself, and NO x-default - x-default answers "we have no page in
+    // your language", and a Hebrew-only worksheet is not that page.
+    const PRINT_FILES = ROUTES.filter((r) => r.kind === "print").map((r) => r.file);
+    expect(PRINT_FILES.length, "no print routes - the assertion is vacuous").toBeGreaterThan(0);
+    for (const f of allEmittedFiles("/").filter((x) => PRINT_FILES.includes(x.fileName))) {
+      const alts = [...f.source.matchAll(/rel="alternate" hreflang="([^"]+)"/g)].map((m) => m[1]);
+      expect(alts, f.fileName).toEqual(["he"]);
+    }
 
     // The embed pages' half of the same claim: no language links, and no
     // hreflang alternates either. An exemption that is checked stays a
@@ -831,8 +856,18 @@ describe("robots, sitemap and llms", () => {
 
     let checked = 0;
     let defaults = 0;
+    // What the rows SHOULD carry, accumulated per row from each route's own
+    // declared locale set. It used to be `rows.length * LOCALES.length`, which
+    // was one number for every page and became wrong the moment a page existed
+    // in one language - and it would have failed in the friendly direction,
+    // loudly, rather than passing over a short cluster.
+    let wantChecked = 0;
+    let wantDefaults = 0;
     for (const row of rows) {
       const self = byUrl.get(/<loc>([^<]+)<\/loc>/.exec(row)![1])!;
+      const declared = localesOf(self);
+      wantChecked += declared.length;
+      wantDefaults += declared.includes(DEFAULT_LOCALE) ? 1 : 0;
       for (const [, locale, href] of row.matchAll(
         /hreflang="([^"]+)" href="([^"]+)"/g,
       )) {
@@ -854,14 +889,20 @@ describe("robots, sitemap and llms", () => {
       }
     }
     // A property test over zero alternates passes vacuously, which is exactly the
-    // shape of the bug it replaces.
-    expect(checked).toBe(rows.length * LOCALES.length);
+    // shape of the bug it replaces. Two assertions, because the derived
+    // expectation could itself collapse to zero: the count must MATCH, and the
+    // population must be bigger than one row's worth.
+    expect(checked).toBe(wantChecked);
+    expect(wantChecked).toBeGreaterThan(rows.length);
     // And every row carries exactly one x-default, because the sitemap's cluster
     // and the page's own <link> tags are two statements about the same thing.
     // The sitemap had none of these until 2026-08-17 while every page head had
     // one, so the two artifacts disagreed - quietly, in the direction nobody
     // opens, which is this test's whole subject.
-    expect(defaults).toBe(rows.length);
+    expect(defaults).toBe(wantDefaults);
+    // ...and most rows still have one, so a build that lost every x-default
+    // cannot pass by making the expectation zero too.
+    expect(wantDefaults).toBeGreaterThan(rows.length - 10);
   });
 
   it("lists every game in llms.txt, in every page language", () => {

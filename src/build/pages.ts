@@ -23,10 +23,12 @@ import {
   gamesIn,
   homePath,
   localesOf,
+  type PrintKind,
   type Route,
 } from "./routes";
 import { gamePage } from "./gamePage";
 import { embedPage } from "./embedPage";
+import { printPage } from "./printPage";
 import {
   boardsPage,
   categoryPage,
@@ -99,6 +101,14 @@ export function renderRoute(route: Route, base: string, headAssets?: HeadAssets)
       base,
       indexable,
     });
+  }
+
+  // The printable packs. A DOCUMENT, like a category page: no `headAssets`, so
+  // it boots nothing and the sheets are markup all the way down. It is handled
+  // before the roster lookup below because it is not about one game's prose -
+  // it borrows a game's NAME and its share card and nothing else.
+  if (route.kind === "print") {
+    return printPage({ kind: route.id as PrintKind, base, indexable });
   }
 
   const meta = metaFor(route.id!);
@@ -521,7 +531,29 @@ export function pagesPlugin(base: string): Plugin {
         this.emitFile({ type: "asset", fileName: f.fileName, source: f.source });
       }
 
+      // DE-DUPLICATED BY NAME, and this is the print packs' doing rather than a
+      // defensive habit. A print page borrows its game's card (see `OG_ROUTES`),
+      // so `renderOgImages` yields that one file name twice - once for the game
+      // route and once for the print entry that points at it. Emitting the same
+      // fileName twice is a rollup error on a build that is otherwise correct.
+      //
+      // The bytes are asserted identical rather than assumed: two DIFFERENT
+      // pictures arriving under one name is a real defect (a hash collision, or
+      // a card keyed on too few fields), and silently keeping the first would be
+      // the fail-open version of this line.
+      const written = new Map<string, Uint8Array>();
       for (const { fileName, png } of cards) {
+        const seen = written.get(fileName);
+        if (seen) {
+          if (seen.length !== png.length) {
+            throw new Error(
+              `page emitter: two different cards want the name ${fileName} ` +
+                `(${seen.length} B and ${png.length} B). A card key is not discriminating.`,
+            );
+          }
+          continue;
+        }
+        written.set(fileName, png);
         this.emitFile({ type: "asset", fileName, source: png });
       }
     },
