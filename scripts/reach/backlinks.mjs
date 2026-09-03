@@ -261,6 +261,9 @@ export const WATCHED = new Map([
   // The clones list renders every game on ONE page, so this is the only URL that could
   // ever carry our eight entries - not eight per-game URLs, which do not exist.
   ["osgameclones.com (8 entries)", "https://osgameclones.com/"],
+  // Published 2026-09-03. The article is the only page that could carry the link, and
+  // today it carries the NAME and no anchor - which is this row's positive control.
+  ["dev.to", "https://dev.to/ytrofr/a-button-that-covers-another-button-passes-every-test-you-have-1j9b"],
   // EXEMPT, each with the reason, because "no page to watch" is a finding and not an
   // oversight. A `null` here is a claim that no URL could ever carry the link.
   ["Newgrounds", null],   // both listings UN-PUBLISHED by the platform; the pages 404
