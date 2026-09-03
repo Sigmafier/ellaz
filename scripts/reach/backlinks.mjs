@@ -258,6 +258,9 @@ export const WATCHED = new Map([
   ["Greenburgh Public Library (letter 6)", "https://greenburghlibrary.org/childrens/games"],
   ["itch.io", "https://ytrofr.itch.io/sudoku"],
   ["awesome-pwa (list PR)", "https://github.com/hemanth/awesome-pwa/pull/465"],
+  // The clones list renders every game on ONE page, so this is the only URL that could
+  // ever carry our eight entries - not eight per-game URLs, which do not exist.
+  ["osgameclones.com (8 entries)", "https://osgameclones.com/"],
   // EXEMPT, each with the reason, because "no page to watch" is a finding and not an
   // oversight. A `null` here is a claim that no URL could ever carry the link.
   ["Newgrounds", null],   // both listings UN-PUBLISHED by the platform; the pages 404
