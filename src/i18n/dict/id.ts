@@ -128,6 +128,7 @@ export const id: Record<StringKey, string> = {
   shareLinkOnly: "Perangkat ini hanya mengirim tautannya",
   shareFailed: "Berbagi tidak berhasil",
   shareResult: "Bagikan hasilku",
+  playAgain: "Main lagi",
   shareResultBest: "Rekor baru:",
   shareResultScored: "Skor:",
   dailyPuzzle: "Teka-teki hari ini",

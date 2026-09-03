@@ -60,6 +60,19 @@ export interface WinShareEvent {
   score?: ScoreReport;
   /** Whether THIS run set a new personal best. */
   isPersonalBest: boolean;
+  /**
+   * Whether the RUN IS OVER, not merely whether something was earned.
+   *
+   * `winMoment` fires on a milestone and on a personal best too, and four games
+   * (snake, spell, reaction, pet) fire those MID-RUN - so a win event is not a
+   * finished game. The chip could ignore the difference, because sharing a
+   * score mid-run is odd and harmless. An offer to PLAY AGAIN cannot: tapping
+   * it during a live snake run throws that run away, and the child who tapped
+   * it was told the game was over.
+   *
+   * `level_complete` is the only reason that means the board is finished.
+   */
+  runEnded: boolean;
 }
 
 type ShareChipHandler = (event: WinShareEvent) => void;

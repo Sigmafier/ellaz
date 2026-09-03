@@ -124,6 +124,7 @@ export const he = {
   shareLinkOnly: "המכשיר הזה שולח רק את הקישור",
   shareFailed: "השיתוף לא הצליח",
   shareResult: "שתפו את התוצאה שלי",
+  playAgain: "שחקו שוב",
   shareResultBest: "שיא חדש:",
   shareResultScored: "ניקוד:",
   dailyPuzzle: "חידת היום",

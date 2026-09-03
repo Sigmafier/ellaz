@@ -140,7 +140,14 @@ export function winMoment(ctx: GameContext, o: WinMomentOptions): WinMomentResul
   //     of eleven languages the reader speaks, so it does not build any text
   //     itself.
   try {
-    announceWinShare({ score: o.score, isPersonalBest: score?.isPersonalBest ?? false });
+    announceWinShare({
+      score: o.score,
+      isPersonalBest: score?.isPersonalBest ?? false,
+      // The REASON, not a guess from the payload. `level_complete` is the only
+      // one that means the board is finished; the other two fire mid-run in
+      // four games, where an offer to start over would destroy a live run.
+      runEnded: o.reason === "level_complete",
+    });
   } catch (e) {
     console.error("[ellaz] share chip failed", e);
   }

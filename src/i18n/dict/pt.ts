@@ -121,6 +121,7 @@ export const pt: Record<StringKey, string> = {
   shareLinkOnly: "Este aparelho só envia o link",
   shareFailed: "Não deu para compartilhar",
   shareResult: "Compartilhar meu resultado",
+  playAgain: "Jogar de novo",
   shareResultBest: "Novo recorde:",
   shareResultScored: "Pontuação:",
   dailyPuzzle: "O desafio de hoje",

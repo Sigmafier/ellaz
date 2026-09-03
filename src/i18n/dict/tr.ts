@@ -125,6 +125,7 @@ export const tr: Record<StringKey, string> = {
   shareLinkOnly: "Bu cihaz yalnızca bağlantıyı gönderir",
   shareFailed: "Paylaşma olmadı",
   shareResult: "Sonucumu paylaş",
+  playAgain: "Tekrar oyna",
   shareResultBest: "Yeni rekor:",
   shareResultScored: "Skor:",
   dailyPuzzle: "Bugünün bulmacası",

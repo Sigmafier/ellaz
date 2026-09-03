@@ -4,6 +4,7 @@ import { backArrow, makeT, pageLocaleFor, shippedLocaleFor, textFor } from "@i18
 import type { AppLocale } from "@i18n/locales";
 import { createHostControls, audioPort, wallet } from "@sdk/index";
 import { Button, IconButton } from "@ui/components";
+import { hasRestart, runRestart } from "@ui/gameTools";
 import { Icon } from "@ui/icons";
 import {
   getCurrentGame,
@@ -88,7 +89,19 @@ export function GameHost({
   // yet (or the game has since exited); `open` switches the SAME state into
   // the full sheet rather than tracking a second boolean the two could drift
   // out of sync on.
-  const [share, setShare] = useState<{ resultLine?: string; open: boolean } | null>(null);
+  const [share, setShare] = useState<{
+    resultLine?: string;
+    open: boolean;
+    /**
+     * Offer to start another game. TWO facts, and both are read at the moment
+     * the win fires rather than at render: the run actually ENDED (see
+     * `WinShareEvent.runEnded` - a milestone is not a finished board), and a
+     * game was mounted with a restart in the slot. A module registry is not
+     * reactive, so reading it in the render body would be a value nothing
+     * re-renders on; the win itself is the render, so this is the moment.
+     */
+    playAgain: boolean;
+  } | null>(null);
   const [shareSheetMod, setShareSheetMod] = useState<{
     ShareSheet: ComponentType<ShareSheetProps>;
   } | null>(null);
@@ -218,7 +231,7 @@ export function GameHost({
         best: t("shareResultBest"),
         scored: t("shareResultScored"),
       });
-      setShare({ resultLine, open: false });
+      setShare({ resultLine, open: false, playAgain: event.runEnded && hasRestart() });
     });
 
     return () => {
@@ -427,10 +440,54 @@ export function GameHost({
             flex: "0 0 auto",
             display: "flex",
             justifyContent: "center",
+            // WRAP: one button never needed it, two do. "Play again" beside
+            // "Share my result" is the widest pair in any of eleven languages,
+            // and a row that cannot wrap answers by clipping a word.
+            flexWrap: "wrap",
+            gap: 10,
             padding: "10px 0 max(10px, env(safe-area-inset-bottom))",
           }}
         >
-          <Button onClick={() => void openShareSheet()} ariaLabel={t("shareResult")}>
+          {/* PLAY AGAIN, and it is the reason this strip exists at all.
+              Operator report, filed as issue #22: "Show a win screen with
+              restart and share so users have actions to do when game is
+              finished." Photographed on the built artifact first
+              (`scripts/repro/shoot-parking-win.mjs`): the largest thing on a
+              won board was the game's own Step back button, DIMMED to 0.42
+              because a finished board has nothing to take back, and the only
+              way to play again was a 40px icon in the page header.
+
+              It restarts through the SAME slot the header button uses
+              (`@ui/gameTools`), never a second implementation - two ways to
+              start a game drift, and the one nobody plays drifts first. */}
+          {share.playAgain && (
+            <Button
+              onClick={() => runRestart()}
+              ariaLabel={t("playAgain")}
+              // --brand-strong + --on-brand, not the Button's own primary pair.
+              // `Button`'s primary is `--text` on `--brand-fill`, which is
+              // 2.53:1 in NIGHT - night's --brand-fill is a gradient, and no
+              // ink clears 4.5 across it. This pair is flat and measures
+              // 5.87 market / 4.86 night; ReportSheet's Send already ships it.
+              // See .claude/rules/a-contrast-floor-is-a-floor-not-a-target.md.
+              // The app-wide fix to `Button` is a separate, older job the
+              // operator has parked - this is one new control, not a sweep.
+              style={{ background: "var(--brand-strong)", color: "var(--on-brand)" }}
+            >
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <Icon name="redo" />
+                {t("playAgain")}
+              </span>
+            </Button>
+          )}
+          {/* Ghost only once it is standing beside a primary. Alone - which is
+              every mid-run milestone - it stays the filled button it has
+              always been. */}
+          <Button
+            variant={share.playAgain ? "ghost" : "primary"}
+            onClick={() => void openShareSheet()}
+            ariaLabel={t("shareResult")}
+          >
             <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
               <Icon name="share" />
               {t("shareResult")}

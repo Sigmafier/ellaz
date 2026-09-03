@@ -125,6 +125,7 @@ export const ar: Record<StringKey, string> = {
   shareLinkOnly: "هذا الجهاز يرسل الرابط فقط",
   shareFailed: "لم تنجح المشاركة",
   shareResult: "شارك نتيجتي",
+  playAgain: "العب مرة أخرى",
   shareResultBest: "رقم قياسي جديد:",
   shareResultScored: "النتيجة:",
   dailyPuzzle: "لغز اليوم",

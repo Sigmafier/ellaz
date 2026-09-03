@@ -123,6 +123,7 @@ export const ru: Record<StringKey, string> = {
   shareLinkOnly: "Это устройство отправит только ссылку",
   shareFailed: "Поделиться не вышло",
   shareResult: "Поделиться результатом",
+  playAgain: "Играть снова",
   shareResultBest: "Новый рекорд:",
   shareResultScored: "Результат:",
   dailyPuzzle: "Игра дня",
