@@ -108,6 +108,25 @@ export function SnakeGame({ ctx }: { ctx: GameContext }) {
         height: LOGICAL,
         backgroundColor: "#0f1226",
         scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+        // The only reason this line exists: a bug report from this game can
+        // carry a picture of the board.
+        //
+        // WebGL discards the drawing buffer after each frame is presented, so
+        // `canvas.toDataURL()` from outside Phaser reads back a single flat
+        // colour - it does not throw, it returns a well-formed black square.
+        // Measured on the built bundle, 2026-09-03
+        // (`scripts/repro/repro-report-shot.mjs`): snake's raw read-back was
+        // 1 distinct colour against bubbleshooter's 67, so `shot.ts` refused
+        // it as blank, correctly, and snake was the one canvas game whose
+        // reports could never carry a screenshot.
+        //
+        // The cost is real and it is a rendering cost, not a frame-rate one:
+        // the driver keeps the back buffer alive instead of discarding it, on
+        // one 440x440 canvas. Named here rather than assumed - if snake ever
+        // feels worse on a low-end phone, this is the line to question first,
+        // and the fps column is not the instrument for that
+        // (see .claude/rules on the engine benchmark).
+        render: { preserveDrawingBuffer: true },
         scene: SnakeScene,
       });
       game = g;

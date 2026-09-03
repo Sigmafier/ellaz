@@ -143,6 +143,24 @@ canvas after the frame is presented gives a blank image unless
 black rectangle. `isBlank` samples the pixels and refuses it, because evidence
 pointing the wrong way is worse than none.
 
+That refusal was FIRING, on the real bundle, and it took a browser to find out.
+`scripts/repro/repro-report-shot.mjs` opens each game, plays a moment, opens the
+sheet and counts the distinct colours in the thumbnail that would actually
+travel — with `sudoku`, which has no canvas, as the control that must produce
+none. Measured 2026-09-03:
+
+| game | raw canvas read-back | thumbnail |
+|---|---|---|
+| snake, before | **1 colour** | refused as blank |
+| snake, with `preserveDrawingBuffer` | 22 colours | 440x440, 154 colours |
+| bubbleshooter | 65 colours | 367x474, 551 colours |
+| sudoku (control) | no canvas | none, correctly |
+
+So snake now sets `render: { preserveDrawingBuffer: true }` in `SnakeGame.tsx`.
+The cost is a rendering one on a single 440x440 canvas — the driver keeps the
+back buffer rather than discarding it — and it is named at the line, because if
+snake ever feels worse on a low-end phone that is the first thing to question.
+
 **The reporter is stubbed out of standalone bundles** in
 `vite.standalone.config.ts`, exactly as the cloud client is. A game bundle runs
 on somebody else's domain and may fetch nothing off-site; that rule is why this
