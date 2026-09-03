@@ -410,6 +410,19 @@ node, and this workspace's vitest has no DOM, so the wiring is proven by
 `scripts/repro/pre-action.mjs`, which sits down at the practice table in a real
 browser, arms the box, and reports what the SOCKET carried.
 
+```
+PLAYWRIGHT_CHROMIUM=<chrome> MINUTES=8 node scripts/repro/pre-action.mjs
+```
+
+Measured 2026-09-03 against `npm run dev`, both arms live: hand 24
+`fold/call/raise -> fold`, hand 25 `check/raise/fold -> check`, hand 26
+`fold/call/raise -> fold`; offered 0 times on our own turn across 9 hands, and
+unticked after every fire. Its control is `preActionMove` stubbed to return
+null, which reds with *armed, and no action was ever sent* — and its own dedupe
+key was wrong before that ran: `actionSeq` restarts every hand, so a seq-only
+key printed PASS while watching one fire in seven hands
+([`a-diagnostic-that-truncates-what-it-compares.md`](../.claude/rules/a-diagnostic-that-truncates-what-it-compares.md)).
+
 ## Six decisions that are the table, not a preference
 
 Settled 2026-08-15: a **racetrack** felt, **wide** cards, a **big centre rank

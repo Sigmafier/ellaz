@@ -97,6 +97,7 @@ const obs = {
   boxSeenWaiting: 0, // offered while somebody else is to act
   boxSeenOnTurn: 0, // OFFERED ON OUR OWN TURN — must stay 0
   armedTicks: 0,
+  deadTaps: 0, // a tap the box answered with nothing, the turn not having arrived
   fired: [], // { move, legal, handNo }
   stillArmedAfterFire: 0,
   armedIntoNextHand: 0,
@@ -133,10 +134,23 @@ while (Date.now() < deadline) {
   if (shot.box && !shot.box.armed && !shot.yourTurn && armedForHand !== shot.handNo) {
     await page.click("[data-preaction]").catch(() => {});
     armedForHand = shot.handNo;
-    const after = await page.evaluate(() =>
-      document.querySelector("[data-preaction]")?.getAttribute("data-armed"),
-    );
-    if (after !== "1") console.log("  (arm did not stick — the tap was answered by nothing)");
+    // A tap that does not stick is either the defect this whole probe exists
+    // for (a control that answers nothing) or the turn arriving between the
+    // click and the read, which unmounts the box and is correct. They print
+    // differently, because one of them is a bug report and the other is noise.
+    const after = await page.evaluate(() => {
+      const el = document.querySelector("[data-preaction]");
+      const s = window.__holdem?.getState();
+      return { armed: el?.getAttribute("data-armed") ?? null, gone: !el, yourTurn: !!s?.you?.legal };
+    });
+    if (after.armed !== "1") {
+      console.log(
+        after.gone || after.yourTurn
+          ? "  (armed as the turn landed — the box is gone because it acted or the hand moved)"
+          : "  (ARM DID NOT STICK — the tap was answered by nothing)",
+      );
+      if (!after.gone && !after.yourTurn) obs.deadTaps++;
+    }
   }
 
   // Did it act? A send that lands while we were armed for THIS hand is the box.
@@ -176,6 +190,7 @@ if (obs.hands.size < 2) fails.push(`only ${obs.hands.size} hand(s) ran — nothi
 if (obs.boxSeenWaiting === 0) fails.push("the box was never offered while waiting for the turn");
 if (obs.boxSeenOnTurn > 0) fails.push(`the box was showing on our own turn ${obs.boxSeenOnTurn}x`);
 if (obs.armedTicks === 0) fails.push("the box never read as armed — the tap was answered by nothing");
+if (obs.deadTaps > 0) fails.push(`${obs.deadTaps} tap(s) answered by nothing while the box was still on screen`);
 if (obs.fired.length === 0) fails.push("armed, and no action was ever sent");
 for (const f of obs.fired) {
   if (f.move !== "check" && f.move !== "fold") fails.push(`hand ${f.handNo}: sent ${f.move}, not check or fold`);
@@ -196,6 +211,7 @@ console.log(`hands seen              ${obs.hands.size}`);
 console.log(`box offered (waiting)   ${obs.boxSeenWaiting} samples`);
 console.log(`box offered (own turn)  ${obs.boxSeenOnTurn} samples  [must be 0]`);
 console.log(`armed samples           ${obs.armedTicks}`);
+console.log(`dead taps               ${obs.deadTaps}  [must be 0]`);
 console.log(`fired                   ${obs.fired.map((f) => `${f.handNo}:${f.move}`).join(", ") || "none"}`);
 const moves = new Set(obs.fired.map((f) => f.move));
 console.log(`moves seen              ${[...moves].join(", ") || "none"}${moves.has("fold") ? "" : "   (no fold arm this run)"}`);
