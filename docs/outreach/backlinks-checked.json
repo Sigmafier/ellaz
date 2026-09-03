@@ -67,8 +67,8 @@
       "checked": "2026-09-03"
     },
     "https://dev.to/ytrofr/a-button-that-covers-another-button-passes-every-test-you-have-1j9b": {
-      "status": "expected",
-      "lastLive": null,
+      "status": "live",
+      "lastLive": "2026-09-03",
       "checked": "2026-09-03"
     }
   }
