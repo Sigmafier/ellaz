@@ -90,5 +90,20 @@ The full runbook is [`docs/deploy.md`](docs/deploy.md).
 
 ## Licence
 
-[MIT](LICENSE). The code is yours to use. The game art, names and written content are
-original work — please make your own rather than shipping ours under a new name.
+[MIT](LICENSE), and it covers the whole repository - the code, the SVG game art
+(which IS source: `src/ui/gameArt.ts`), the synthesised sound, and the written
+content. There are no separately-licensed media files in this project. The three
+font families bundled under `src/build/assets/`, used only when generating page
+images at build time, are SIL Open Font License 1.1 with their licence texts
+beside them.
+
+We would rather you made your own art than shipped ours under a new name, and
+"Ellaz" is our name for the site rather than something the licence hands over -
+but both of those are a request, not a restriction.
+
+**Do not reintroduce a sentence that separates "the code" from "the art".** The
+previous wording did, and it reads to a licence reviewer as *source is free, media
+is not*, which is an outright disqualification on
+[libregamewiki's article policy](https://libregamewiki.org/Libregamewiki:Common_game_licensing_traps)
+and on every list with the same bar. Nothing was re-licensed to fix it - `LICENSE`
+already grants MIT over the whole repository; the README had simply stopped saying so.
