@@ -150,6 +150,7 @@ export const he = {
   reportFailed: "זה לא נשלח. לנסות שוב?",
   reportSoon: "בדיוק שלחתם אחד. חכו רגע.",
   reportRefused: "לא הצלחנו לקבל את זה, וניסיון נוסף לא יעזור. מצטערים!",
+  reportClose: "סגירה",
   reportPrivacy: "בלי שם, בלי אימייל, כלום עליכם.",
   reportShot: "תמונה מהמשחק",
   reportHome: "משהו לא עובד? ספרו לנו",

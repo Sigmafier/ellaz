@@ -302,8 +302,15 @@ function Result({
             {t("reportRetry")}
           </button>
         ) : null}
+        {/* CLOSE, never Cancel. The compose screen has something to cancel -
+            a draft you are abandoning. This screen does not: the report has
+            already been sent, refused or throttled, and there is nothing left
+            to call off. Offering to cancel a thing that already happened is
+            the same class of untruth as the retry button that could not work.
+            Operator, seeing the four result screens side by side on
+            2026-09-03: "why cancel?? show different button". */}
         <button type="button" style={S.btn} onClick={onClose}>
-          {t("reportCancel")}
+          {t("reportClose")}
         </button>
       </div>
     </div>

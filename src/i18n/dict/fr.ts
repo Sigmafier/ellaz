@@ -147,6 +147,7 @@ export const fr: Record<StringKey, string> = {
   reportFailed: "L'envoi a échoué. Réessayer ?",
   reportSoon: "Vous venez d'en envoyer un. Attendez une minute.",
   reportRefused: "Nous n'avons pas pu l'accepter, et réessayer n'y changera rien. Désolé !",
+  reportClose: "Fermer",
   reportPrivacy: "Pas de nom, pas d'e-mail, rien sur vous.",
   reportShot: "Une image du jeu",
   reportHome: "Quelque chose ne marche pas ? Dites-nous",

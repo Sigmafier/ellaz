@@ -147,6 +147,7 @@ export const de: Record<StringKey, string> = {
   reportFailed: "Das ging nicht raus. Nochmal?",
   reportSoon: "Du hast gerade eins gesendet. Warte kurz.",
   reportRefused: "Das konnten wir nicht annehmen, und nochmal hilft nicht. Sorry!",
+  reportClose: "Schließen",
   reportPrivacy: "Kein Name, keine E-Mail, nichts über dich.",
   reportShot: "Ein Bild vom Spiel",
   reportHome: "Etwas geht nicht? Sag es uns",

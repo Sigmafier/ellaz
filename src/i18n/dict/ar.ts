@@ -151,6 +151,7 @@ export const ar: Record<StringKey, string> = {
   reportFailed: "لم يتم الإرسال. نحاول مرة أخرى؟",
   reportSoon: "لقد أرسلت واحدا للتو. انتظر دقيقة.",
   reportRefused: "لم نتمكن من قبول هذا، وإعادة المحاولة لن تساعد. آسفون!",
+  reportClose: "إغلاق",
   reportPrivacy: "بلا اسم، بلا بريد، لا شيء عنك.",
   reportShot: "صورة من اللعبة",
   reportHome: "شيء لا يعمل؟ أخبرنا",

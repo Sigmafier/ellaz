@@ -151,6 +151,7 @@ export const tr: Record<StringKey, string> = {
   reportFailed: "Gönderilemedi. Tekrar denensin mi?",
   reportSoon: "Az önce bir tane gönderdiniz. Bir dakika bekleyin.",
   reportRefused: "Bunu kabul edemedik ve tekrar denemek işe yaramaz. Üzgünüz!",
+  reportClose: "Kapat",
   reportPrivacy: "İsim yok, e-posta yok, sizinle ilgili hiçbir şey yok.",
   reportShot: "Oyundan bir resim",
   reportHome: "Bir şey çalışmıyor mu? Bize anlatın",

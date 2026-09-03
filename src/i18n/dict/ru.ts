@@ -149,6 +149,7 @@ export const ru: Record<StringKey, string> = {
   reportFailed: "Не отправилось. Попробовать ещё раз?",
   reportSoon: "Вы только что отправили. Подождите минуту.",
   reportRefused: "Мы не смогли это принять, и повтор не поможет. Извините!",
+  reportClose: "Закрыть",
   reportPrivacy: "Без имени, без почты, ничего о вас.",
   reportShot: "Картинка из игры",
   reportHome: "Что-то не работает? Расскажите нам",

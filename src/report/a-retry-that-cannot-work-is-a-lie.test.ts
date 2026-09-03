@@ -81,3 +81,40 @@ describe("the retry button", () => {
     }
   });
 });
+
+describe("the result screen's own button", () => {
+  // Found by the operator, looking at the four screens side by side:
+  // "why cancel?? show different button". Every result screen offered
+  // `reportCancel`, and by then there is nothing to cancel - the report has
+  // been sent, refused or throttled. The compose screen keeps Cancel, because
+  // abandoning a draft IS a cancellation.
+  //
+  // A SOURCE assertion, for the same reason as everything else in this file:
+  // vitest runs the node environment over *.test.ts, so the component cannot
+  // be rendered here. Comments stripped first - the explanation above the
+  // button names the word it forbids, which is a trap this repo has hit twice.
+  const src = readFileSync(new URL("./ReportSheet.tsx", import.meta.url), "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+    .replace(/\/\/.*$/gm, "");
+  const result = src.slice(src.indexOf("function Result("));
+
+  it("closes, and does not offer to cancel something already done", () => {
+    expect(result).toContain('t("reportClose")');
+    expect(result).not.toContain('t("reportCancel")');
+  });
+
+  it("leaves Cancel on the compose screen, where there IS a draft to abandon", () => {
+    // The control. Without it, deleting Cancel everywhere would pass the cell
+    // above, and the sheet would lose its only way out before sending.
+    const compose = src.slice(0, src.indexOf("function Result("));
+    expect(compose).toContain('t("reportCancel")');
+  });
+
+  it("gives every language a word for it", () => {
+    expect(he.reportClose?.trim()).toBeTruthy();
+    expect(en.reportClose?.trim()).toBeTruthy();
+    expect(en.reportClose).not.toBe(en.reportCancel);
+    expect(he.reportClose).not.toBe(he.reportCancel);
+  });
+});

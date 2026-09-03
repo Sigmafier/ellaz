@@ -152,6 +152,7 @@ export const en: Record<StringKey, string> = {
   reportFailed: "That did not send. Try again?",
   reportSoon: "You just sent one. Give it a minute.",
   reportRefused: "We couldn't take that one, and trying again won't help. Sorry!",
+  reportClose: "Close",
   reportPrivacy: "No name, no email, nothing about you.",
   reportShot: "A picture of the game",
   reportHome: "Something not working? Tell us",

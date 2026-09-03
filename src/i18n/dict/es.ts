@@ -150,6 +150,7 @@ export const es: Record<StringKey, string> = {
   reportFailed: "No se envió. ¿Reintentar?",
   reportSoon: "Acabas de enviar uno. Espera un minuto.",
   reportRefused: "No pudimos aceptarlo, y reintentar no ayudará. ¡Lo sentimos!",
+  reportClose: "Cerrar",
   reportPrivacy: "Sin nombre, sin correo, nada sobre ti.",
   reportShot: "Una imagen del juego",
   reportHome: "¿Algo no funciona? Cuéntanos",

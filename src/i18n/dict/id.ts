@@ -154,6 +154,7 @@ export const id: Record<StringKey, string> = {
   reportFailed: "Tidak terkirim. Coba lagi?",
   reportSoon: "Anda baru saja mengirim satu. Tunggu sebentar.",
   reportRefused: "Kami tidak bisa menerima yang itu, dan mencoba lagi tidak akan membantu. Maaf!",
+  reportClose: "Tutup",
   reportPrivacy: "Tanpa nama, tanpa email, tidak ada tentang Anda.",
   reportShot: "Gambar dari permainan",
   reportHome: "Ada yang tidak berfungsi? Beri tahu kami",
