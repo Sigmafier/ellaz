@@ -1,7 +1,10 @@
 # libregamewiki.org - the article, and the sentence in our own README that nearly sank it
 
-**Status**: draft
-**Surface**: <https://libregamewiki.org/Ellaz> (does not exist yet - HTTP 404, checked 2026-09-03)
+**Status**: fired
+**Surface**: <https://libregamewiki.org/Ellaz> - **SAVED 2026-09-03, HELD IN MODERATION.** It returns
+HTTP 404 to everyone, including its author, because that is what the Moderation extension does
+with a pending edit. See *Did the save land* below: it did, and the evidence is the server's own
+bytes rather than a screen anybody read.
 **Account**: `Ytrofr`, created by the operator 2026-09-03. It signs the edit; the wiki
 blocks anonymous page creation and every revision is publicly attributed to it.
 **Who saves it**: the operator. I fill the editor, they press Save.
@@ -178,6 +181,49 @@ including terms that certainly appear on the wiki. Category listings and direct 
 fetches work and were used instead, with a nonsense category as the negative control
 (0 members, while `Category:Free media licenses` returned 13). An empty search result
 from that wiki says nothing at all.
+
+## Did the save land? Yes, and the obvious instrument could not say so
+
+Saved 2026-09-03. Then every cheap check came back **empty**, and empty is exactly the
+state that cannot be argued with:
+
+| what was read | what it said |
+|---|---|
+| `https://libregamewiki.org/Ellaz`, anonymous | **HTTP 404**, 22,488 B of "no such page" |
+| the same page signed in as `Ytrofr` | *"There is currently no text in this page"* |
+| `Special:Contributions/Ytrofr` | *"No changes were found"* |
+| `list=users&usprop=editcount` | `editcount: 0` |
+
+**Not one of those distinguishes "queued in moderation" from "the save never happened",**
+because the Moderation extension keeps a pending edit out of the page, out of history and
+out of the edit count by design. Four readings, all correct, all non-verdicts - the shape
+this repo files under `a-diagnostic-that-truncates-what-it-compares.md`.
+
+Two of them were nonetheless run with a **positive control**, so the tools themselves are
+not in doubt: the same `usercontribs` call returns three edits for `Drummyfish`, and
+`logevents` returns the `newusers create` entry for `Ytrofr` at `2026-09-03T14:28:55Z`.
+The instruments work; they just cannot answer this question.
+
+**The reading that does answer it** is the one that asks the server for the text:
+
+```
+same-origin fetch of ?title=Ellaz&action=edit   ->  2,702 bytes, sha256 3c337d2b7481cf6e
+docs/outreach/libregamewiki.md's copy           ->  2,702 bytes, sha256 3c337d2b7481cf6e
+NEGATIVE CONTROL, a page nobody has ever edited ->  0 bytes, same code path
+```
+
+Fetched rather than read out of the open tab, deliberately: a browser can restore a
+textarea from form history, and that would have looked identical. The server is holding
+our text, byte for byte, and the method is on record returning nothing for a page that has
+none. `Special:Moderation` also exists and refuses us by name - *"limited to users in one
+of the groups: Administrators, Moderators"* - which corroborates that the queue is real.
+
+**So the send is the best-evidenced one in this repo.** The ladder here has been a server
+string, a wire 200, a mail in Sent, and once nothing at all; this is the first door where
+a third party can be shown holding the exact bytes we handed over, hashed.
+
+**What is still unknown**: whether a moderator approves it, and when. Nothing above
+predicts that. No second save, no nudge - a queued edit re-saved is a second queued edit.
 
 ## The operator's steps
 

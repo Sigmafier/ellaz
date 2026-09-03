@@ -264,6 +264,11 @@ export const WATCHED = new Map([
   // Published 2026-09-03. The article is the only page that could carry the link, and
   // today it carries the NAME and no anchor - which is this row's positive control.
   ["dev.to", "https://dev.to/ytrofr/a-button-that-covers-another-button-passes-every-test-you-have-1j9b"],
+  // Saved 2026-09-03 and HELD IN MODERATION, so this URL 404s and the row reads
+  // `unchecked` on purpose - the page is not being served to anyone yet. The save was
+  // proven separately: the server returns our 2,702 bytes for `?action=edit`, against a
+  // negative control that returns 0 for a page nobody has edited.
+  ["libregamewiki.org", "https://libregamewiki.org/Ellaz"],
   // EXEMPT, each with the reason, because "no page to watch" is a finding and not an
   // oversight. A `null` here is a claim that no URL could ever carry the link.
   ["Newgrounds", null],   // both listings UN-PUBLISHED by the platform; the pages 404
