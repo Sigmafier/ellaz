@@ -81,11 +81,23 @@ export class GameBoundary extends Component<Props, State> {
     return (
       <div
         style={{
-          position: "absolute",
-          inset: 0,
+          // NOT `position:absolute; inset:0`, which is what this shipped as and
+          // what a card centred in a stage obviously wants. Measured 2026-09-03
+          // on the built artifact, memory forced to throw: the mount node is
+          // 0px tall when the game never rendered - the GAME is what gives the
+          // stage its height - so `inset:0` resolved to a zero-height box and
+          // `place-items:center` centred the content ABOUT that line. Half the
+          // card overflowed UPWARD: the 😵 sat at y=22 behind the fixed top bar
+          // and "Something went wrong" was sliced by the breadcrumb row.
+          //
+          // A self-sizing block instead. `max(320px, 100%)` is the whole trick:
+          // a percentage min-height against an auto-height parent resolves to
+          // nothing, so the 320px floor wins exactly when the stage collapsed,
+          // and the parent's own height wins whenever there is one.
           display: "grid",
           placeItems: "center",
           alignContent: "center",
+          minHeight: "max(320px, 100%)",
           gap: 14,
           padding: 24,
           textAlign: "center",
