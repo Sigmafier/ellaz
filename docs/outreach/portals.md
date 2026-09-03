@@ -156,7 +156,7 @@ dodges both is itself an answer.
 | Claim in the email | Where it comes from |
 |---|---|
 | 42 games | `src/portal/catalog.ts`, counted 2026-08-18 |
-| about 53 KB gz first visit | `scripts/assert-payload.mjs` ceiling 56,000; measured 53,121 on 2026-08-18 |
+| about 53 KB gz first visit | `scripts/assert-payload.mjs` ceiling 56,000; measured 55,097 on 2026-08-18 |
 | ~230 KB largest plain game, 1.9 MB Phaser game | summed on the built artifacts, 2026-08-29 at HEAD 167f7d2: sudoku 234,374 B, 2048 233,133 B, snake 1,921,856 B. **Nothing gates these** |
 | one game uses Phaser | `grep -rln 'from "phaser"' src/` returns one file |
 | logic separated from rendering | the pure-`logic.ts` convention, enforced across all 42 games |

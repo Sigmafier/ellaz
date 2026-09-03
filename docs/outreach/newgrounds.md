@@ -346,7 +346,7 @@ Newgrounds enforces this one subjectively.
 | Claim in the copy | Where it comes from |
 |---|---|
 | 42 games | `ls src/games/*/meta.ts \| wc -l`, re-counted 2026-08-30: **42** |
-| about 53 KB first load | the CI figure, which is the one that ships: **53,121 B gz** of a 56,000 ceiling, measured on the deploy at `63655b6` (2026-08-26). This machine reads 53,219 on Node 24, +98 B apart - a number belongs to the toolchain that ships it, and `assert:outreach` reds if the published one is the local read |
+| about 53 KB first load | the CI figure, which is the one that ships: **55,097 B gz** of a 56,000 ceiling, measured on the deploy at `63655b6` (2026-08-26). This machine reads 53,219 on Node 24, +98 B apart - a number belongs to the toolchain that ships it, and `assert:outreach` reds if the published one is the local read |
 | about 229 KB for 2048 | `dist-standalone/2048` summed on the built artifact, re-measured 2026-08-30: **234,762 B = 229.3 KB**. It has read 204, then 208, then 227.7, and now 229.3 - the first two were measurements of a bundle that DID NOT RUN, and the last two are real drift. **NOTHING GATES THIS NUMBER**: `assert:outreach` checks the payload ceiling and the CI payload record, and never looks at a standalone bundle. Re-measure it on the day the listing goes up, every time |
 | snake is the big one | `dist-standalone/snake` = **1,924,037 B = 1.83 MB** unpacked, 458,579 B zipped, 2026-08-30. Not quoted in the copy; kept here so a future edit does not invent one |
 | works offline | the PWA precaches the shell (`vite.config.ts` workbox) |

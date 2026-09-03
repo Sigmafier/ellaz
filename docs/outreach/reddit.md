@@ -174,7 +174,7 @@ backup code to move between them.
 | Claim in the copy | Where it comes from |
 |---|---|
 | 42 games | `src/portal/catalog.ts`, counted 2026-08-18 |
-| about 53 KB first visit | `scripts/assert-payload.mjs` ceiling 56,000 B gz; measured 53,121 on 2026-08-18 |
+| about 53 KB first visit | `scripts/assert-payload.mjs` ceiling 56,000 B gz; measured 55,097 on 2026-08-18 |
 | 11 interface languages, ~1.5 KB each | `APP_LOCALES` in `src/i18n/locales.ts`; the per-locale chunk sizes measured on the artifact |
 | nothing to type anywhere | `src/sdk/names.ts` - a name is two word ids from a fixed pool |
 | works offline | the PWA precaches the shell (`vite.config.ts` workbox) |
