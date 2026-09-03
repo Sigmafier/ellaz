@@ -4,6 +4,7 @@ import { DIR, makeT } from "@i18n/index";
 import { captureContext, type ReportEnv } from "./context";
 import { captureShot } from "./shot";
 import { createReporter, MAX_SHOT, type SendOutcome } from "./send";
+import { lookFor } from "./outcome";
 
 /* The sheet. Three steps, and the third one is the point.
    ===========================================================================
@@ -14,7 +15,8 @@ import { createReporter, MAX_SHOT, type SendOutcome } from "./send";
    worked is outside this app, and the tempting UI is one button that says
    "Thanks!" the moment it is tapped. So nothing here claims a send until the
    write has come back, and the four outcomes render as four different things -
-   a throttle is not a failure and must not offer a retry that cannot work.
+   only `failed` offers a retry, because a throttle and a refusal are both
+   states a second identical tap cannot change.
 
    STEP 3 IS NOT DECORATION. A child may be holding this device. Everything that
    will leave is listed in words before the button, because "we collect
@@ -236,9 +238,15 @@ function Row({ k, v, rtl }: { k: string; v: string; rtl: boolean }) {
   );
 }
 
-/** The four outcomes, as four different screens. A throttle offers no retry,
- *  because retrying cannot work for another minute and a button that cannot
- *  work is a lie. */
+/** The four outcomes, as four different screens, and only ONE of them offers a
+ *  retry. A throttle cannot succeed for another minute; a refusal is the rules
+ *  block rejecting the SHAPE of this report - an oversized field - so the same
+ *  bytes will be refused again however many times they are sent. Only `failed`
+ *  (no network, a timeout, a 500) is worth a second attempt.
+ *
+ *  Before 2026-09-03 `refused` and `failed` shared one screen and one button:
+ *  a player whose report could never land was invited to keep trying forever,
+ *  which is the same lie the throttle screen already refused to tell. */
 function Result({
   outcome,
   t,
@@ -251,24 +259,24 @@ function Result({
   onRetry: () => void;
 }) {
   const S = styles(false);
-  const good = outcome?.ok === true;
-  const throttled = outcome?.ok === false && outcome.why === "throttled";
-  const text = good ? t("reportThanks") : throttled ? t("reportSoon") : t("reportFailed");
+  // The decision lives in `outcome.ts` because nothing here can render - see
+  // that file. This component draws the answer and does not compute it.
+  const look = lookFor(outcome);
 
   return (
     <div style={{ textAlign: "center", padding: "18px 4px 4px" }}>
       <div style={{ fontSize: 48 }} aria-hidden="true">
-        {good ? "\u{1F389}" : throttled ? "⏳" : "\u{1F614}"}
+        {look.emoji}
       </div>
       <p role="status" style={{ ...S.sub, fontSize: "1rem", margin: "10px 0 20px" }}>
-        {text}
+        {t(look.key)}
       </p>
       <div style={S.row}>
-        {good || throttled ? null : (
+        {look.retry ? (
           <button type="button" style={{ ...S.btn, ...S.ghost }} onClick={onRetry}>
             {t("reportRetry")}
           </button>
-        )}
+        ) : null}
         <button type="button" style={S.btn} onClick={onClose}>
           {t("reportCancel")}
         </button>

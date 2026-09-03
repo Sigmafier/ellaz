@@ -63,6 +63,28 @@ can never be joined to a child's profile.
 bypasses rules; nothing that ships in a browser can. That gap IS the triage
 step: a report becomes public only after a person has read it.
 
+## What the player is told, and who gets a retry button
+
+Four outcomes, four screens, and only one of them offers to try again. The
+mapping is `src/report/outcome.ts`, on its own because `vitest.config.ts` runs
+the node environment over `*.test.ts` only - nothing in this repo can render
+`ReportSheet.tsx` and read the button back, which is how `refused` and `failed`
+came to share a screen unnoticed until 2026-09-03.
+
+| outcome | what happened | sentence | retry offered |
+|---|---|---|---|
+| `ok` | the write came back | `reportThanks` | no - it is done |
+| `throttled` | a report already went in this minute | `reportSoon` | no - not for up to 60 s |
+| `refused` | the rules block rejected the shape: an oversized field | `reportRefused` | **no** - the same bytes are refused again |
+| `failed` | no identity, no network, a timeout, a 500 | `reportFailed` | yes |
+
+`retry` is derived from a POSITIVE test for `failed`, so a `why` added later
+arrives with no button. That is the safe direction: an unknown refusal is more
+likely permanent than transient, and a button that cannot work is the same lie
+the throttle screen was already careful not to tell.
+`a-retry-that-cannot-work-is-a-lie.test.ts` pins both halves, and reds on a
+distinct key whose words are a copy of the failure's.
+
 ## The throttle, and its honest limit
 
 The document id is the minute, and the rule compares it to `request.time`.
