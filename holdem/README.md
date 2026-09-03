@@ -399,11 +399,23 @@ Three properties, and the second is the one that decides whether this is safe:
 - **It unticks the instant it fires**, before the send. One tick is one
   decision: giving up on the flop is not giving up on the turn.
 
-Where it SITS is also load-bearing. It is in the action bar, not in the menu
-beside Sit out, because it is a decision about the hand in front of the player
-— and it is drawn away from where the buttons appear (top of the rail when
-wide, floated a button's height clear of the bottom edge when tall) so a tap
-that lands a frame after the turn arrives hits felt rather than FOLD.
+Where it SITS is also load-bearing, and it took three screenshots at 400x860 to
+place. It is in the action bar, not in the menu beside Sit out, because it is a
+decision about the hand in front of the player. It is drawn away from where the
+buttons appear — top of the rail when wide, floated clear of the bottom edge and
+pushed to the inline start when tall — so a tap landing a frame after the turn
+arrives hits felt rather than FOLD. That float was measured rather than chosen:
+centred at one button's height it sat squarely on the player's own seat plate,
+and at the inline start it reached the hole cards, so it is capped narrow enough
+to wrap to two lines and floated 1.9 tap heights, which is the one spot on a
+portrait phone that is empty for the whole hand.
+
+Its unarmed half wears the plain `btn` surface, not `btn ghost`. A transparent
+pill over dark felt photographs as floating text rather than a control, which is
+the defect
+[`a-control-that-carries-an-imperative-must-be-a-control.md`](../.claude/rules/a-control-that-carries-an-imperative-must-be-a-control.md)
+is about — and every one of these was found by looking at the picture, not at
+the code.
 
 Nothing in the suite can see any of that: `preAction.ts` is pure and tested in
 node, and this workspace's vitest has no DOM, so the wiring is proven by

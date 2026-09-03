@@ -205,7 +205,12 @@ export function ActionBar({ locale, scale, shape }: { locale: Locale; scale: num
    */
   const preActionBox = canArm && (
     <button
-      className={armed ? "btn primary" : "btn ghost"}
+      // `btn`, not `btn ghost`, for the unarmed half: a transparent pill over a
+      // dark felt reads as floating text rather than as a control, which is the
+      // exact defect a-control-that-carries-an-imperative-must-be-a-control.md
+      // is about (screenshot, 400x860, 2026-09-03). Off is the same neutral
+      // surface CHECK wears; on is the gold primary.
+      className={armed ? "btn primary" : "btn"}
       aria-pressed={armed}
       // A HOOK THAT IS NOT PROSE. scripts/repro/pre-action.mjs drives this
       // button, and a probe bound to a caption fails the day the caption is
@@ -215,7 +220,11 @@ export function ActionBar({ locale, scale, shape }: { locale: Locale; scale: num
       data-preaction="checkFold"
       data-armed={armed ? "1" : "0"}
       style={{
-        ...(wide ? { width: "100%" } : { flex: "0 1 auto", maxWidth: 260 }),
+        // CAPPED NARROW so the label wraps to two lines instead of reaching the
+        // player's own hole cards, which sit centred at the bottom of the felt
+        // and are the thing this corner is closest to (screenshot, 400x860,
+        // 2026-09-03: uncapped it covered the left card).
+        ...(wide ? { width: "100%" } : { flex: "0 0 auto", maxWidth: Math.max(112, u(116)) }),
         minHeight: Math.max(40, u(38)),
         fontSize: u(13),
         lineHeight: 1.15,
@@ -286,19 +295,22 @@ export function ActionBar({ locale, scale, shape }: { locale: Locale; scale: num
         position: "fixed",
         bottom: 0,
         insetInline: 0,
-        // While it is only the box, the strip floats it a button's height
-        // clear of the bottom edge: the buttons arrive BELOW where it was, so
-        // a tap a frame late lands on felt rather than on FOLD. The strip also
-        // stops swallowing taps — it spans the whole width and there is a
-        // table under it.
+        // While it is only the box, the strip floats it a button's height clear
+        // of the bottom edge and pushes it to the inline START. Both halves are
+        // measured rather than tasteful: floated, the buttons arrive BELOW where
+        // it was, so a tap a frame late lands on felt rather than on FOLD;
+        // centred at that height it sat squarely on the player's OWN seat plate,
+        // which is the one thing at the bottom of the felt that is always there
+        // (screenshot, 400x860, 2026-09-03). The corner is empty in both shapes,
+        // and it is the corner the emote tray does not use.
         padding: legal
           ? `${u(10)}px ${u(12)}px calc(${u(10)}px + env(safe-area-inset-bottom))`
-          : `${u(10)}px ${u(12)}px calc(${u(22)}px + ${tap}px + env(safe-area-inset-bottom))`,
+          : `${u(10)}px ${u(12)}px calc(${u(22)}px + ${Math.round(tap * 1.9)}px + env(safe-area-inset-bottom))`,
         background: legal ? "linear-gradient(transparent, rgba(0,0,0,.72) 30%)" : "transparent",
         pointerEvents: legal ? "auto" : "none",
         display: "flex",
         flexDirection: "column",
-        alignItems: legal ? "stretch" : "center",
+        alignItems: legal ? "stretch" : "flex-start",
         gap: u(8),
         zIndex: 30,
       }}
