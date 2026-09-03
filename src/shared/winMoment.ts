@@ -20,6 +20,10 @@ import { WIN_PHRASE } from "@sdk/voice";
 // reference here — a module-level ref lookup, not portal state.
 import { getWalletAnchor } from "../portal/WalletChip";
 import { iconNode } from "@ui/icons";
+// The win-screen "Share my result" chip. A sibling module in the same
+// directory rather than a second portal reference - see its own header for
+// why the actual chip UI lives in GameHost instead of here.
+import { announceWinShare } from "./shareResult";
 
 /**
  * What flies to the wallet. The SAME drawing the chip shows, from the same
@@ -121,6 +125,24 @@ export function winMoment(ctx: GameContext, o: WinMomentOptions): WinMomentResul
     ctx.daily?.complete();
   } catch (e) {
     console.error("[ellaz] daily complete failed", e);
+  }
+
+  // 1d. Offer to share it. Its own try/catch, separate from the cosmetics
+  //     below, for the same reason the daily port above gets one: a thrown
+  //     confetti burst or a coin that fails to fly must not be able to take
+  //     the chip down with it - the chip is a SEPARATE promise ("here is what
+  //     you did") from the animation that shows it, not a continuation of it.
+  //     AFTER the grant above, never before - the chip is strictly cosmetic
+  //     and must never be able to cost a child their win. A no-op whenever
+  //     nothing is listening (a hand-built test context, the standalone
+  //     bundle, or a win that fires before GameHost has registered - see
+  //     shareResult.ts). Raw data only: this file has no opinion about which
+  //     of eleven languages the reader speaks, so it does not build any text
+  //     itself.
+  try {
+    announceWinShare({ score: o.score, isPersonalBest: score?.isPersonalBest ?? false });
+  } catch (e) {
+    console.error("[ellaz] share chip failed", e);
   }
 
   try {

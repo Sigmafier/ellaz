@@ -160,6 +160,24 @@ export interface GameInvite {
   title: string;
   /** The game's own glyph. Sanctioned here - see the note above `SEPARATOR`. */
   emoji?: string;
+  /**
+   * ONE line about what THIS run just did - "New best: 14" - or absent for a
+   * plain "come play this game" invite.
+   *
+   * Added for the win-screen share chip (T9, 2026-09): the operator's 2026-08-25
+   * ruling above ("An invite - just the game") answered what a per-game share
+   * carries when a game merely offers itself; it did not foreclose a share fired
+   * FROM a win, which is a different moment with something real to report. This is
+   * still not a score HISTORY, a streak or a lifetime total - one field, built by
+   * `shared/shareResult.ts`'s `resultLineFor` from the run that just finished and
+   * nothing else, so the day-payload's mistake (a growing digest nobody asked
+   * for) cannot grow back through a new field.
+   *
+   * Scrubbed exactly like every other string here - it reaches this file built
+   * from a formatted number and a translated label, never from raw game state,
+   * but the mechanical guard does not get to trust that either.
+   */
+  resultLine?: string;
 }
 
 /**
@@ -197,7 +215,14 @@ export function buildGameInvite(
   const title = safeTitle(game.title);
   if (title === "") return undefined;
 
-  const headline = game.emoji ? `${game.emoji} ${title}` : title;
+  // Scrubbed exactly like the title, before it ever touches the headline -
+  // the same order-matters reasoning `safeTitle` documents above: scrub first,
+  // so the worst a crafted result line can survive as is a `•••`.
+  const resultLine = game.resultLine
+    ? scrub(game.resultLine.replace(/\s+/g, " ").trim())
+    : "";
+  const named = game.emoji ? `${game.emoji} ${title}` : title;
+  const headline = resultLine ? `${named} - ${resultLine}` : named;
   const note = scrub(labels.note.trim());
   const invite = scrub(labels.invite.trim());
   const safeUrl = scrub(url.trim());

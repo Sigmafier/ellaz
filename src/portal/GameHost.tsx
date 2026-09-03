@@ -1,10 +1,20 @@
 import { useEffect, useRef, useState } from "react";
-import { backArrow, makeT, shippedLocaleFor } from "@i18n/index";
+import type { ComponentType } from "react";
+import { backArrow, makeT, pageLocaleFor, shippedLocaleFor, textFor } from "@i18n/index";
 import type { AppLocale } from "@i18n/locales";
 import { createHostControls, audioPort, wallet } from "@sdk/index";
 import { Button, IconButton } from "@ui/components";
+import { Icon } from "@ui/icons";
+import {
+  getCurrentGame,
+  registerCurrentGame,
+  registerShareChipHandler,
+  resultLineFor,
+} from "@shared/shareResult";
 import { entryFor } from "./catalog";
+import { gameHref } from "./paths";
 import { attachSelectionDismissal, dismissSelection } from "./selectionDismiss";
+import type { ShareSheetProps } from "./ShareSheet";
 import { WalletChip } from "./WalletChip";
 
 /**
@@ -73,6 +83,15 @@ export function GameHost({
   const [muted, setMuted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const t = makeT(locale);
+
+  // The win-screen "Share my result" chip. `null` while nothing has been won
+  // yet (or the game has since exited); `open` switches the SAME state into
+  // the full sheet rather than tracking a second boolean the two could drift
+  // out of sync on.
+  const [share, setShare] = useState<{ resultLine?: string; open: boolean } | null>(null);
+  const [shareSheetMod, setShareSheetMod] = useState<{
+    ShareSheet: ComponentType<ShareSheetProps>;
+  } | null>(null);
 
   useEffect(() => {
     const el = mountRef.current;
@@ -168,6 +187,80 @@ export function GameHost({
       // own DOM in unmount(); clearing it too would double-free the same nodes.
     };
   }, [gameId, locale, onExit]);
+
+  // The chip's own plumbing - who is playing, and what to do when they win.
+  // A separate effect from the mount above: it needs only gameId/locale, and
+  // folding it into that effect would tie the chip's lifecycle to a dependency
+  // array that already has other jobs (onExit) this has no business reacting to.
+  //
+  // Skipped entirely on the "app" variant - see `registerCurrentGame`'s caller
+  // contract in shareResult.ts. That variant is the standalone single-game
+  // bundle (itch.io, Newgrounds), built by its own vite config with no real
+  // `/games/<id>/` page for `gameHref` to point at - a chip there would offer
+  // to share a URL nobody could open. "page" and "embed" both run inside THIS
+  // build, where it resolves to the real site.
+  useEffect(() => {
+    if (variant === "app") return;
+    let cancelled = false;
+
+    entryFor(gameId).then((entry) => {
+      if (cancelled || !entry) return;
+      registerCurrentGame({
+        gameId,
+        title: textFor(entry.meta.title, locale),
+        emoji: entry.meta.emoji,
+        url: `${location.origin}${gameHref(gameId, pageLocaleFor(locale))}`,
+      });
+    });
+
+    registerShareChipHandler((event) => {
+      const resultLine = resultLineFor(event.score, event.isPersonalBest, {
+        best: t("shareResultBest"),
+        scored: t("shareResultScored"),
+      });
+      setShare({ resultLine, open: false });
+    });
+
+    return () => {
+      cancelled = true;
+      registerCurrentGame(null);
+      registerShareChipHandler(null);
+      // A game that has exited must not leave its last win's chip floating
+      // over whatever the portal shows next.
+      setShare(null);
+    };
+    // `t` is rebuilt every render; it changes only with `locale`, which is
+    // already a dependency - the same reasoning ShareSheet.tsx's own memo
+    // holds itself to.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameId, locale, variant]);
+
+  /**
+   * Opens the sheet. The chip's own label already promised nothing about
+   * WHICH way it will share - `ShareSheet` decides that itself, from
+   * capability, before it shows a button. This only has to get the module
+   * loaded and the game it should describe.
+   */
+  async function openShareSheet() {
+    audioPort.play("tap");
+    let mod = shareSheetMod;
+    if (!mod) {
+      try {
+        mod = await import("./ShareSheet");
+      } catch {
+        // A failed chunk fetch - an open tab meeting a new deploy - costs the
+        // sheet and nothing else. The chip stays up, so a retry tap tries again.
+        return;
+      }
+      setShareSheetMod(mod);
+    }
+    setShare((s) => (s ? { ...s, open: true } : s));
+  }
+
+  // Read once per render, only when it will actually be used - `getCurrentGame`
+  // is a cheap module-ref read, but three separate calls scattered through the
+  // JSX below would read three different instants if a win landed mid-render.
+  const sheetGame = share?.open ? getCurrentGame() : null;
 
   const onPage = variant === "page";
   const chrome = hostChrome(variant);
@@ -306,6 +399,58 @@ export function GameHost({
             </IconButton>
           </div>
         </div>
+      )}
+
+      {/* The win-screen chip. NEVER modal, and IN FLOW rather than floating -
+          it reserves its own strip at the end of the game area instead of
+          being painted over one.
+
+          IT WAS ABSOLUTE, AND IT COVERED A CONTROL. Measured in a browser on
+          the built bundle, 2026-09-03: anchored to `bottom: max(12px, ...)` of
+          this container at zIndex 20, the pill landed on `memory`'s "Two
+          players" button (chip 526-556, button 512-549) and, on the same
+          reading of `maze`, across the direction pad's DOWN arrow (chip
+          443-495, arrow 432-492). Every DirectionPad game puts its steering at
+          the bottom centre of this box, which is exactly where a centred
+          floating pill goes. Nothing in the suite could see it: a chip that
+          covers a button renders, mounts, tests and type-checks perfectly.
+
+          So the rule here is not "pick a safer offset" - it is that this chip
+          does not get to occupy space a game is already using. In flow, the
+          same overlap check returns zero covered controls.
+
+          Appears only through winMoment(), which never fires on a loss - see
+          .claude/rules for "no fail-punishment". */}
+      {share && !share.open && (
+        <div
+          style={{
+            flex: "0 0 auto",
+            display: "flex",
+            justifyContent: "center",
+            padding: "10px 0 max(10px, env(safe-area-inset-bottom))",
+          }}
+        >
+          <Button onClick={() => void openShareSheet()} ariaLabel={t("shareResult")}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <Icon name="share" />
+              {t("shareResult")}
+            </span>
+          </Button>
+        </div>
+      )}
+
+      {share?.open && shareSheetMod && (
+        <shareSheetMod.ShareSheet
+          locale={locale}
+          game={{
+            gameId: sheetGame?.gameId ?? gameId,
+            title: sheetGame?.title ?? "",
+            emoji: sheetGame?.emoji,
+            resultLine: share.resultLine,
+          }}
+          url={sheetGame?.url ?? ""}
+          onClose={() => setShare((s) => (s ? { ...s, open: false } : s))}
+        />
       )}
     </div>
   );
