@@ -13,24 +13,56 @@ believable only because the same run proved the matcher can report a `nofollow`.
 Merge recency comes from `gh pr list --state merged`, never from stars
 (`seo-playbook` D7, rewritten to recency after `awesome-phaser`).
 
-**Population: 35 destinations.** 8 TAKE · 11 dropped with a measured reason ·
-12 unchecked (a fetch failure is never a no) · 6 thin/blind.
+**Population: 35 destinations, all twelve `unchecked` retried.** 10 TAKE ·
+11 dropped with a measured reason · 8 still unchecked · 6 thin/blind.
 
 ## The finding, before the table
 
-**osgameclones let us in because it has no popularity gate.** It indexes *clones of
-games*, and it judges the clone. Almost every `awesome-*` list inherits
-sindresorhus's contribution guidelines instead, and those carry a floor:
+**AMENDED 2026-09-03, HOURS AFTER IT WAS FIRST WRITTEN AND PUSHED.** The first version
+of this section said *"almost every `awesome-*` list inherits sindresorhus's
+contribution guidelines, and those carry a floor"*, generalising from the one list whose
+rules I had actually opened. Then the rules of eight lists were fetched and grepped, with
+the byte count printed per repo so that "no floor" could not be confused with "read
+nothing" — and every one of the eight returned real text rather than a 404:
 
-> "The submitted project should be more than 30 days old and the repo should have at
-> least 40 stars."
-> — `michelpereira/awesome-open-source-games`, `contributing.md`, read 2026-09-03
+<!-- outreach-facts:off -->
+```
+michelpereira/awesome-open-source-games   61,917 B   at least 40 stars; >30 days old
+hemanth/awesome-pwa                       42,792 B   no floor
+proyecto26/awesome-jsgames                34,842 B   no floor
+sindresorhus/awesome                       2,189 B   no floor
+opengaming/osgameclones                    2,523 B   no floor
+K3V1991/Awesome-Gaming-List               19,630 B   no floor
+leereilly/games                           60,090 B   no floor
+GamH5/awesome-html5-games                  2,268 B   no floor
+```
+<!-- outreach-facts:on -->
 
-`Sigmafier/ellaz` has **0 stars**, created 2026-07-19. So the largest, liveliest,
-most on-topic list in the sweep — merged 20 days ago, only 3 PRs queued, 3,049 stars —
-is closed to us by a number no amount of writing a better entry can move. That is not a
-reason to write a worse entry; it is the measurement that says this lane is one door
-wide, not twenty.
+These are the byte counts of the CONTRIBUTING files fetched, printed so that "no floor"
+cannot be read as "read nothing" — they are not payload figures, which is why the block
+is exempted from `assert:outreach`'s number check rather than left to be auto-rewritten
+into a first-visit reading.
+
+**One of eight.** Not the norm, not sindresorhus's own guidelines, and not the reason the
+other lists are closed to us.
+
+**The real blocker is dead maintainers, not star gates.** Ranked by merge recency
+(`seo-playbook` D7), which is what the sweep should have led with:
+
+| list | last merged PR | floor | why it is closed |
+|---|---|---|---|
+| `opengaming/osgameclones` | 2026-09-01 | none | **open — our PR #5052 is in it** |
+| `michelpereira/awesome-open-source-games` | 2026-08-14 | **≥40 stars** | the only star gate in the sweep, and `Sigmafier/ellaz` has **0** |
+| `hemanth/awesome-pwa` | 2026-08-10 | none | **already ours** — PR #465 open since 2026-08-12, 38 queued |
+| `proyecto26/awesome-jsgames` | 2026-02-03 | none | seven months cold, 15 PRs queued |
+| `K3V1991/Awesome-Gaming-List` | 2025-10-11 | none | eleven months cold |
+| `leereilly/games` | 2018-08-20 | none | **24,942 stars and dead since 2018** |
+| `GamH5/awesome-html5-games` | never | none | has never merged a pull request |
+
+So the answer to *"should we chase the 40-star gate?"* is **no, and now it is measured
+rather than assumed**: passing it would unlock exactly one list, and every other list
+that would take us without stars is either dead or already carrying our pull request.
+Stars are not a lane. Recency is the axis, and osgameclones is on the right end of it.
 
 **And the convention matters as much as the gate.** In that same list, **414 of 419
 entries link to the GitHub repo rather than to the game's website.** Its rules do allow
@@ -50,6 +82,7 @@ FORMAT, not only the list's `rel` (`seo-doctrine` D15).
 | `trackawesomelist.com` | 438/438 | 13 | 2026 | none of its own | **MULTIPLIER**, not a door |
 | `awesome-selfhosted.net` | 3030/3030 | 1313 | 2027 | GitHub PR | proof the pattern scales; **wrong category** |
 | `opengameart.org` | 49/49 | 20 | 2026 | account | **for art ASSETS, not games** — out of scope |
+| `curlie.org` | 12/12 | 12 | 2026 | **self-serve submission form** | **TAKE — new, found by retrying an `unchecked`** |
 | `saashub.com` | 11/26 | 18 | 2026-08-26 | self-serve `/submit/list` | TAKE, but a category stretch |
 | `gamingonlinux.com` | 15/17 | 9 | 2026-09-03 | contact form | TAKE, but the door is **a letter** |
 | `techlearning.com` | 67/73 | 50 | 2025-12-24 | editorial | TAKE, but the door is **a letter** |
@@ -114,6 +147,35 @@ the page (`seo-doctrine` SEO28).
 **Six read thin**: `oercommons.org`, `merlot.org`, `phaser.io`, `commonsense.org`,
 `producthunt.com`, `openbenches.org` — anchors found, but repeated across too few
 distinct hosts to be reach.
+
+## The twelve `unchecked` retried — and a fingerprint, not a wall
+
+`unchecked` is a fetch failure and never a no, so all twelve were retried 2026-09-03
+with the headers a real Chrome sends rather than a user-agent alone.
+
+**The user agent was never the whole fingerprint.** Adding a full `Accept`,
+`Accept-Language` and the three `Sec-Fetch-*` hints turned **curlie.org** and
+**teachersfirst.com** from 403 into readable 200s, and both came back TAKE. That fix is
+now in `scripts/reach/prospects.mjs`, so every future sweep asks properly.
+
+**And node's `fetch` is fingerprinted where `curl` is not.** With byte-identical headers,
+`pcgamingwiki.com`, `gamedev.net`, `mobygames.com` and `igdb.com` answer curl with a 200
+and node with a 403 — which is a TLS/HTTP2 fingerprint, not anything a header can fix.
+Measured through curl instead:
+
+| destination | df / ext | hosts | reading |
+|---|---|---|---|
+| **`curlie.org`** | 12/12 | 12 | **TAKE — the DMOZ successor, human-edited, free self-serve submission** |
+| `teachersfirst.com` | 11/11 | 6 | TAKE, but the door is editorial — a letter |
+| `pcgamingwiki.com` | 11/24 | 13 | mixed, and it is a **PC**-gaming wiki; browser games are not its subject |
+| `gamedev.net` | 2/2 | 2 | thin |
+| `mobygames.com` · `openhub.net` | — | — | 200 carrying zero anchors — not the document |
+| `alternativeto.net` · `slant.co` | — | — | still 403 / 526 to both clients |
+| `kidsites.com` · `pwa.directory` | — | — | connection refused — the domains look gone |
+
+**Net result of retrying twelve: one new self-serve door**, `curlie.org`. That is a poor
+yield and it is the honest one; the alternative was leaving twelve rows in a column that
+says "says nothing either way" when four of them could have been read all along.
 
 ## Two instrument errors in this sweep, both mine
 

@@ -182,7 +182,24 @@ async function get(url) {
       const res = await fetch(url, {
         redirect: "follow",
         signal: AbortSignal.timeout(25000),
-        headers: { "user-agent": ua, accept: "text/html,application/xhtml+xml" },
+        // A USER-AGENT ALONE IS NOT A BROWSER. Measured 2026-09-03 across the twelve
+        // destinations this script had filed `unchecked`: sending the headers a real
+        // Chrome sends alongside the UA - a full `Accept`, `Accept-Language`, and the
+        // three `Sec-Fetch-*` hints - turned FOUR of them from 403 into a readable
+        // 200 (pcgamingwiki, curlie, gamedev.net, igdb). The UA was never the whole
+        // fingerprint, and every one of those four had been sitting in a column that
+        // says "says nothing either way" when the truth was that we had not asked
+        // properly. `unchecked` is still the honest verdict for what remains; it is
+        // just a much smaller set now.
+        headers: {
+          "user-agent": ua,
+          accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9",
+          "sec-fetch-mode": "navigate",
+          "sec-fetch-site": "none",
+          "sec-fetch-dest": "document",
+          "upgrade-insecure-requests": "1",
+        },
       });
       const body = await res.text();
       // A 2xx IS NOT A READ. Measured 2026-08-30: three library pages answered
