@@ -19,7 +19,7 @@ import {
   type DailyStateV1,
   type ProfileV1,
 } from "@sdk/index";
-import { boardsHref, gameHref, worldHref } from "./paths";
+import { PRINT_KINDS, PRINT_PAGE_LOCALE, boardsHref, gameHref, printHref, worldHref } from "./paths";
 import { openReport } from "./openReport";
 import { inkFor } from "@ui/ink";
 import { Icon } from "@ui/icons";
@@ -417,6 +417,8 @@ export function Home({
           ))}
         </div>
 
+        <PrintablePacks locale={locale} onTap={tap} />
+
         <p
           style={{
             color: "var(--text-dim)",
@@ -646,6 +648,87 @@ function DailyCard({ locale, onTap }: { locale: AppLocale; onTap: () => void }) 
         {done ? t("dailyDone") : t("play")}
       </span>
     </a>
+  );
+}
+
+/**
+ * The four printable packs, in the trailing shelf, in Hebrew only.
+ *
+ * WHY IT IS HERE AT ALL. The packs shipped on 2026-09-03 as ORPHANS - measured
+ * on the live site that week, `/he/` served 47 anchors and `/he/games/kids/`
+ * served 23, and none of the 70 pointed at a print page. `sitePages.ts` now
+ * carries the crawler's half, but that block is REMOVED once React mounts, so
+ * without this row a Hebrew visitor with JavaScript still cannot reach four
+ * pages that return 200. Deleting either half re-orphans them for half the
+ * audience.
+ *
+ * WHY THE TRAILING SHELF and not a card. A worksheet is printed by an adult, and
+ * this shelf is already where the adult chrome lives - the install hint and the
+ * report door are here for the reason spelled out on the reporter below. A card
+ * in the grid would sit between a five-year-old and the games.
+ *
+ * WHY HEBREW-ONLY IS A LOCALE TEST AND NOT AN `APP_LOCALES` TEST. The packs are
+ * addressed by PAGE locale; eleven app languages funnel down to four page
+ * languages, and only one of those has these documents.
+ *
+ * WHY THE LABELS ARE LITERALS. They are not translations - there is nothing to
+ * translate, because the pages exist in one language by a content decision. And
+ * they are not catalogue lookups: only `SHELL_META_COUNT` games' metadata is in
+ * the first visit, so `findEntry("wordsearch")` is undefined until the rest
+ * arrives and this row would GROW under the reader. `printables-are-linked.test.tsx`
+ * pins every one of them to the same `gameName(kind, "he")` the pack pages use,
+ * so they cannot drift into saying something the target does not.
+ */
+const PACK_SECTION = "דפים להדפסה";
+const PACK_LABEL: Record<string, string> = {
+  sudoku: "סודוקו",
+  maze: "הדרך הביתה",
+  wordsearch: "חיפוש מילים",
+  coloring: "צביעה",
+};
+
+export function PrintablePacks({ locale, onTap }: { locale: AppLocale; onTap: () => void }) {
+  if (pageLocaleFor(locale) !== PRINT_PAGE_LOCALE) return null;
+  // The roster the SHELL knows, so a pack whose game has left is not linked -
+  // the emitter derives the same list as `PRINTABLE_KINDS` and does not write a
+  // document for the others.
+  const kinds = PRINT_KINDS.filter((k) => ROSTER_IDS.includes(k));
+  if (kinds.length === 0) return null;
+
+  return (
+    <p
+      style={{
+        color: "var(--text-dim)",
+        fontSize: 13,
+        textAlign: "center",
+        marginTop: 28,
+        display: "flex",
+        flexWrap: "wrap",
+        justifyContent: "center",
+        alignItems: "center",
+        gap: "0 4px",
+      }}
+    >
+      <span style={{ fontWeight: 700 }}>{PACK_SECTION}</span>
+      {kinds.map((kind) => (
+        <a
+          key={kind}
+          href={printHref(kind)}
+          onClick={onTap}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            minHeight: "var(--tap)",
+            padding: "0 8px",
+            color: "var(--text-dim)",
+            textDecoration: "underline",
+            textUnderlineOffset: 3,
+          }}
+        >
+          {PACK_LABEL[kind]}
+        </a>
+      ))}
+    </p>
   );
 }
 

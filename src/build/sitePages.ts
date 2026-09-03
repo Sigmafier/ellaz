@@ -13,13 +13,17 @@ import { PAL } from "../ui/gameArt";
 import {
   LOCALES,
   PAGED_CATEGORIES,
+  PRINTABLE_KINDS,
+  PRINT_LOCALE,
   boardsPath,
   categoryPath,
   gamePath,
   homePath,
   href,
+  printPath,
   worldPath,
 } from "./routes";
+import { PRINT_CHROME, PRINT_COPY } from "../content/print/copy";
 import { categoryGraph, homeGraph, worldGraph } from "./schema";
 import { CATEGORY_CHROME, categoryCopy } from "../content/categories";
 import { gameCards } from "./gamePage";
@@ -151,6 +155,7 @@ export function homeShellBody(
       ${copy.body.map((p) => html`<p>${p}</p>`)}
       <p><a href="${href(worldPath(locale), base)}">${site.worldPage.h1}</a></p>
       <p><a href="${href(boardsPath(locale), base)}">${site.boardsPage.h1}</a></p>
+      ${printPackLinks(locale, base)}
       ${otherHomeLinks(locale, base)}
     </div>
   `);
@@ -216,6 +221,51 @@ function homeGameLinks(
  * hardcoded `English` link that only ever existed on the Hebrew home, and it is
  * derived, so a fourth page language joins every home page with no edit here.
  */
+/**
+ * The four printable packs, on the Hebrew home document and nowhere else.
+ *
+ * WHY THIS EXISTS. The packs shipped on 2026-09-03 and were ORPHANS: measured
+ * on the live site the same week, `/he/` served 47 anchors and `/he/games/kids/`
+ * served 23, and not one of the 70 pointed at a print page - `printPath` was
+ * called only inside `printPage.ts` and the route table. Four documents that
+ * return 200, that a teacher would bookmark, that no path on our own site
+ * reaches. Google could find them through the sitemap; a person could not.
+ *
+ * It is the same defect the /boards/ link above is annotated for, and the same
+ * fix: this block is the only inbound link a crawler or a no-JavaScript visitor
+ * can follow, because the runtime removes `#home-doc` once React mounts. The
+ * app draws its own row (`Home.tsx`), so REMOVING EITHER HALF RE-ORPHANS THE
+ * PACKS FOR HALF THE AUDIENCE.
+ *
+ * HEBREW ONLY, and it asks the route table rather than deciding for itself -
+ * `PRINT_LOCALE` is where that content decision is written down.
+ *
+ * `PRINTABLE_KINDS` AND NOT `PRINT_KINDS`. The derived list is the one that
+ * gets documents written for it: a pack whose game has left the roster is not
+ * emitted, and linking it would be a 404 in our own markup. `assert-slope.mjs`
+ * builds an arm with the last eight games cut and the wordsearch pack has
+ * already killed that arm once, so this is a live population, not a formality.
+ *
+ * THE ANCHOR TEXT IS THE PACK'S OWN H1, not a game name. "סודוקו" says what the
+ * game is; "סודוקו להדפסה לילדים - דפי עבודה חינם" says what the page is, in the
+ * words somebody actually searches for, and anchor text is the one part of a
+ * link a crawler reads as a description of its target.
+ */
+function printPackLinks(locale: Locale, base: string): RawHtml {
+  if (locale !== PRINT_LOCALE || PRINTABLE_KINDS.length === 0) return raw("");
+  return html`
+    <p>${PRINT_CHROME.section}</p>
+    <ul>
+      ${PRINTABLE_KINDS.map(
+        (kind) =>
+          html`<li>
+            <a href="${href(printPath(kind), base)}">${PRINT_COPY[kind].h1}</a>
+          </li>`,
+      )}
+    </ul>
+  `;
+}
+
 function otherHomeLinks(locale: Locale, base: string): RawHtml {
   return html`${LOCALES.filter((l) => l !== locale).map(
     (l) =>

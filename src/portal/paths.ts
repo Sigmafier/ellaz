@@ -59,3 +59,32 @@ export function worldHref(locale: PageLocale): string {
 export function boardsHref(locale: PageLocale): string {
   return `${BASE}${prefix(locale)}boards/`;
 }
+
+/**
+ * The printable packs, at `/he/print/<kind>/`.
+ *
+ * MIRRORS `PRINT_KINDS` and `printPath` in `src/build/routes.ts`, for the reason
+ * at the top of this file, and `paths.test.ts` asserts the two lists and the two
+ * URL shapes agree - so a fifth pack cannot appear on one side only.
+ *
+ * NO LOCALE ARGUMENT, deliberately. Every other function here takes a
+ * `PageLocale` because every other page exists in four languages; these exist in
+ * one, by a content decision the route table states in full. A parameter would
+ * invite `printHref(k, "en")` to compile and emit a URL nothing writes.
+ *
+ * WHAT THIS LIST IS NOT is the list to render. A pack is only reachable if its
+ * GAME is on the roster - the emitter derives `PRINTABLE_KINDS` for exactly that
+ * reason, and `assert-slope.mjs` builds an arm with the last eight games cut, so
+ * a caller that hard-lists these four links to a page that arm never wrote.
+ * Filter against the roster you are rendering from, as `Home` does.
+ */
+export const PRINT_KINDS = ["sudoku", "maze", "wordsearch", "coloring"] as const;
+
+export type PrintKind = (typeof PRINT_KINDS)[number];
+
+/** The one language the packs are written in. `src/build/routes.ts` PRINT_LOCALE. */
+export const PRINT_PAGE_LOCALE: PageLocale = "he";
+
+export function printHref(kind: PrintKind): string {
+  return `${BASE}${prefix(PRINT_PAGE_LOCALE)}print/${kind}/`;
+}

@@ -1,10 +1,18 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from "vitest";
 import { GAMES } from "./games";
-import { boardsHref, gameHref, homeHref, worldHref } from "./paths";
+import { PRINT_KINDS, boardsHref, gameHref, homeHref, printHref, worldHref } from "./paths";
 import { readPageContext } from "./pageContext";
 import { redirectLegacyHash } from "./legacyHash";
-import { boardsPath, gamePath, homePath, worldPath } from "../build/routes";
+import {
+  PRINT_KINDS as BUILD_PRINT_KINDS,
+  PRINTABLE_KINDS,
+  boardsPath,
+  gamePath,
+  homePath,
+  printPath,
+  worldPath,
+} from "../build/routes";
 import { APP_LOCALES, CANONICAL_LOCALE, PAGE_LOCALES } from "@i18n/locales";
 
 /**
@@ -29,6 +37,25 @@ describe("the app links to the pages the emitter actually writes", () => {
       expect(worldHref(locale)).toBe(worldPath(locale));
       expect(boardsHref(locale)).toBe(boardsPath(locale));
     }
+  });
+
+  it("agrees about the printable packs, list and URL both", () => {
+    // The LIST first. If the emitter grows a fifth pack and this file does not,
+    // the URL loop below still passes on all four and the new one is simply
+    // never linked from the app - an orphan, which is the exact defect this
+    // whole change exists to close.
+    expect([...PRINT_KINDS]).toEqual([...BUILD_PRINT_KINDS]);
+    for (const kind of PRINT_KINDS) expect(printHref(kind)).toBe(printPath(kind));
+  });
+
+  it("only ever renders packs whose game is still on the roster", () => {
+    // `PRINTABLE_KINDS` is the emitter's DERIVED list, and it is what actually
+    // gets a document written for it. A caller rendering the full PRINT_KINDS
+    // would link to a page that was never emitted the moment a game leaves -
+    // which is not hypothetical: `assert-slope.mjs` builds an arm with the last
+    // eight games cut, and the wordsearch pack has already killed it once.
+    for (const kind of PRINTABLE_KINDS) expect(PRINT_KINDS).toContain(kind);
+    expect(PRINTABLE_KINDS.every((k) => GAMES.some((g) => g.id === k))).toBe(true);
   });
 
   it("uses the game id, not the directory name", () => {
