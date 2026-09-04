@@ -55,6 +55,26 @@ export interface WinMomentOptions extends RewardGrant {
    * as economy.ts decides what a hard level pays.
    */
   score?: ScoreReport;
+  /**
+   * Whether this win ENDS THE RUN, when the reason alone cannot say.
+   *
+   * By default this is `reason === "level_complete"`, which is right for every
+   * game whose levels finish. Match Three is the counter-example: it completes
+   * a real round - a real level, paying a real `level_complete` - and then
+   * carries straight on into the next one. Reported by the operator as "the
+   * play again / share should show only upon completion and not in continuous
+   * plays" (issue #27).
+   *
+   * The fix is NOT to downgrade the reason to `milestone`: reasons decide the
+   * payout (`economy.ts`), and `level_complete` on hard is 8 coins against a
+   * milestone's 1, so that would have quietly cut a child's per-round reward
+   * eightfold while fixing a button. A game says what it EARNED and, when the
+   * two differ, separately says whether it is FINISHED. It still never says
+   * what it is worth.
+   *
+   * Omit it and nothing changes for any existing caller.
+   */
+  runEnded?: boolean;
 }
 
 /**
@@ -143,10 +163,12 @@ export function winMoment(ctx: GameContext, o: WinMomentOptions): WinMomentResul
     announceWinShare({
       score: o.score,
       isPersonalBest: score?.isPersonalBest ?? false,
-      // The REASON, not a guess from the payload. `level_complete` is the only
-      // one that means the board is finished; the other two fire mid-run in
-      // four games, where an offer to start over would destroy a live run.
-      runEnded: o.reason === "level_complete",
+      // The REASON, unless the game overrode it. `level_complete` is the only
+      // reason that means the board is finished; the other two fire mid-run in
+      // four games, where an offer to start over would destroy a live run. A
+      // game that completes levels WITHOUT ending (match3) says so explicitly -
+      // see `runEnded` above - because no reason can express that.
+      runEnded: o.runEnded ?? o.reason === "level_complete",
     });
   } catch (e) {
     console.error("[ellaz] share chip failed", e);

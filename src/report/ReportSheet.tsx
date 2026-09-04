@@ -288,6 +288,35 @@ function Result({
   // that file. This component draws the answer and does not compute it.
   const look = lookFor(outcome);
 
+  // THE COUNTDOWN. The operator, reporting four things in four minutes and
+  // being told "give it a minute" each time: "Let user see a countdown or
+  // something to their second message" (issue #26).
+  //
+  // It ticks against ELAPSED time, never against a deadline computed from
+  // `Date.now()`, because `waitFor` was measured on the server's clock and
+  // this device's may be minutes out. A phone that sleeps mid-wait resumes
+  // with the correct remainder for the same reason.
+  const [left, setLeft] = useState(look.waitFor);
+  useEffect(() => {
+    if (look.waitFor === null) return;
+    const startedAt = Date.now();
+    setLeft(look.waitFor);
+    const id = window.setInterval(() => {
+      const remaining = look.waitFor! - (Date.now() - startedAt);
+      setLeft(remaining > 0 ? remaining : 0);
+      if (remaining <= 0) window.clearInterval(id);
+    }, 250);
+    return () => window.clearInterval(id);
+    // The wait is the whole identity of this effect: a NEW throttled outcome
+    // restarts the clock, and any other outcome tears it down.
+  }, [look.waitFor]);
+
+  const waiting = look.waitFor !== null && left !== null && left > 0;
+  // Retry is offered when the outcome allows it, OR once a throttle's wait has
+  // actually elapsed - at which point the same tap CAN succeed, so the button
+  // is no longer the lie this file exists to have removed.
+  const canRetry = look.retry || (look.waitFor !== null && !waiting);
+
   return (
     <div style={{ textAlign: "center", padding: "18px 4px 4px" }}>
       <div style={{ fontSize: 48 }} aria-hidden="true">
@@ -295,9 +324,21 @@ function Result({
       </div>
       <p role="status" style={{ ...S.sub, fontSize: "1rem", margin: "10px 0 20px" }}>
         {t(look.key)}
+        {waiting ? (
+          <>
+            {" "}
+            {/* A LIVE REGION, so the seconds are not read aloud on every tick -
+                the parent is role=status and would announce each one. The
+                number is decoration over the sentence above, which already
+                says what happened. */}
+            <span aria-hidden="true" style={{ fontWeight: 700, color: "var(--brand-ink)" }}>
+              {Math.ceil(left / 1000)}s
+            </span>
+          </>
+        ) : null}
       </p>
       <div style={S.row}>
-        {look.retry ? (
+        {canRetry ? (
           <button type="button" style={{ ...S.btn, ...S.ghost }} onClick={onRetry}>
             {t("reportRetry")}
           </button>

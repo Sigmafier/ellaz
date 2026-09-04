@@ -9,6 +9,7 @@ import {
   findMatches,
   goalFor,
   hasMove,
+  isOver,
   neighbourIn,
   newGame,
   scoreReport,
@@ -64,6 +65,11 @@ function stateOf(text: string, over: Partial<Match3State> = {}): Match3State {
     goal: LEVELS.easy.goal,
     score: 0,
     moves: 0,
+    // Deliberately generous, so an existing cell that says nothing about the
+    // move budget cannot accidentally run out mid-assertion and start
+    // measuring the game-over guard instead of what it was written for. A cell
+    // that IS about the budget passes its own `movesLeft` through `over`.
+    movesLeft: 999,
     ...over,
   };
 }
@@ -371,9 +377,17 @@ describe("never a dead board", () => {
 
   it("hands back a playable board after every settle", () => {
     // The property that matters, over a long run rather than one fixture.
+    //
+    // The loop stops at the game over rather than at a fixed count: since
+    // 2026-09-04 a run ends when the move budget drains (around 113 moves on
+    // easy), and a flat 120 iterations walked past that and then reported
+    // "no legal move" - the game-over guard refusing input, read as a dead
+    // board. The distinction is the whole point of this test, so it is now
+    // asserted rather than avoided.
     let s = newGame("easy", mulberry32(2026));
     const roll = mulberry32(77);
-    for (let i = 0; i < 120; i += 1) {
+    let i = 0;
+    for (; i < 120 && !isOver(s); i += 1) {
       expect(hasMove(s.grid, s.size)).toBe(true);
       // Find any legal swap and play it.
       let played = false;
@@ -393,6 +407,11 @@ describe("never a dead board", () => {
       expect(s.grid).not.toContain(0);
     }
     expect(s.round).toBeGreaterThan(1);
+    // It stopped because the BUDGET ran out, not because the loop ran out -
+    // without this the whole test would pass on a first iteration that ended
+    // the run, having proved nothing about a long run at all.
+    expect(isOver(s)).toBe(true);
+    expect(i).toBeGreaterThan(60);
   });
 });
 

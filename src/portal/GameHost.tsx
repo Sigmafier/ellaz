@@ -227,11 +227,25 @@ export function GameHost({
     });
 
     registerShareChipHandler((event) => {
+      // A WIN THAT DOES NOT END THE RUN SHOWS NOTHING.
+      //
+      // Until 2026-09-04 the chip appeared on every win and only the Play
+      // again BUTTON was gated, so a match3 round - and a milestone in snake,
+      // spell, reaction or pet - put a "share my result" chip over a game that
+      // was still being played. Reported as "the play again / share should
+      // show only upon completion and not in continuous plays... when the game
+      // continues we dont need this" (issue #27); the operator chose to have
+      // it gone in every game rather than in match3 alone, so that the
+      // platform answers this situation one way and not two.
+      //
+      // What a mid-run win still does is unchanged: the confetti, the sound
+      // and every coin. This is the chip only.
+      if (!event.runEnded) return;
       const resultLine = resultLineFor(event.score, event.isPersonalBest, {
         best: t("shareResultBest"),
         scored: t("shareResultScored"),
       });
-      setShare({ resultLine, open: false, playAgain: event.runEnded && hasRestart() });
+      setShare({ resultLine, open: false, playAgain: hasRestart() });
     });
 
     return () => {

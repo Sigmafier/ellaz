@@ -6,12 +6,16 @@ import { GameChrome } from "@ui/GameChrome";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { burst, haptic, shake } from "@juice/index";
 import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
+// Direct, because this is the one announcement in the game that is NOT a win -
+// see the game-over branch below. The barrel does not re-export it.
+import { announceWinShare } from "@shared/shareResult";
 import {
   DIFFICULTIES,
   LEVELS,
   findMatches,
   goalFor,
   hasMove,
+  isOver,
   newGame,
   scoreReport,
   swipeCell,
@@ -66,6 +70,9 @@ const WORDS: Record<
     gem: (n: number) => string;
     held: string;
     shuffled: string;
+    moves: string;
+    over: string;
+    finalScore: string;
   }
 > = {
   he: {
@@ -75,6 +82,9 @@ const WORDS: Record<
     gem: (n) => `אבן ${n}`,
     held: "נבחרה",
     shuffled: "ערבבנו את הלוח",
+    moves: "מהלכים",
+    over: "נגמרו המהלכים",
+    finalScore: "ניקוד סופי",
   },
   en: {
     hint: "Tap a gem, then one next to it, or swipe it across",
@@ -83,6 +93,9 @@ const WORDS: Record<
     gem: (n) => `gem ${n}`,
     held: "picked",
     shuffled: "board shuffled",
+    moves: "Moves",
+    over: "Out of moves",
+    finalScore: "Final score",
   },
   es: {
     hint: "Toca una gema y luego una vecina, o deslízala",
@@ -91,6 +104,9 @@ const WORDS: Record<
     gem: (n) => `gema ${n}`,
     held: "elegida",
     shuffled: "tablero mezclado",
+    moves: "Jugadas",
+    over: "Sin jugadas",
+    finalScore: "Puntuación final",
   },
 };
 
@@ -200,6 +216,19 @@ const SESSION: SessionSpec<Match3Session> = {
     }
     if (!Number.isInteger(g.round) || (g.round as number) < 1) return false;
     if (g.goal !== goalFor(g.level as Difficulty, g.round as number)) return false;
+    // A finished run is not a resumable position: restoring one would drop a
+    // child onto a board that answers nothing. `> 0` rather than `>= 0`.
+    if (!Number.isFinite(g.movesLeft) || (g.movesLeft as number) <= 0) return false;
+    // And bounded, so a hand-edited localStorage cannot mint an endless run.
+    // DELIBERATELY LOOSE. The first version of this line capped at
+    // `moves + movesPerRound` (33 on easy) on the reasoning that one swap can
+    // only ever add one bonus - which is true, and irrelevant, because the
+    // budget CLIMBS across early rounds that hand back more than they cost.
+    // `scripts/repro/match3-run-length.mts` measured a peak of 50/53/47 over
+    // 1,200 runs, so that cap would have silently refused a great many real
+    // saves and dropped children back to a fresh board. Four times the starting
+    // budget is far above anything reachable and still refuses an absurd value.
+    if ((g.movesLeft as number) > cfg.moves * 4) return false;
     return [g.cleared, g.score, g.moves].every(
       (n) => typeof n === "number" && Number.isFinite(n) && n >= 0,
     );
@@ -281,10 +310,20 @@ export function Match3Game({ ctx }: { ctx: GameContext }) {
     }
   }, [ctx, level]);
 
-  // Always live: this game has no end state a child can reach, so there is
-  // never a finished board to refuse. `state` is settled at every moment the
-  // hook could read it, which is the property that makes it safe to store.
-  useGameSession(ctx, SESSION, () => ({ state }), { live: true });
+  // Live, but NOT once the run is over.
+  //
+  // Until 2026-09-04 this game genuinely had no end state, and the comment
+  // here said so. Now that the move budget can drain, a finished board is a
+  // position a child cannot play their way out of - storing it would restore
+  // them into a dead game whose only exit is the restart button, which is the
+  // shape `session-snapshot-convention.md` refuses. Returning null CLEARS the
+  // stored position (`useGameSession.ts:82` - it calls `ctx.session.clear()`,
+  // it does not merely skip the write), which is what we want: a finished run
+  // should not be resumable at all, and the next visit deals a fresh board.
+  //
+  // `state` is otherwise settled at every moment the hook could read it, which
+  // is the property that makes it safe to store at all.
+  useGameSession(ctx, SESSION, () => (isOver(state) ? null : { state }), { live: true });
 
   /* ------------------------------------------------------------- the taps */
 
@@ -377,9 +416,32 @@ export function Match3Game({ ctx }: { ctx: GameContext }) {
           at,
           ms: Date.now() - startedAt.current,
           score: { value: report.value, unit: report.unit, board: report.board },
+          // A ROUND, not the run. The confetti, the sound and the eight coins
+          // are exactly as they were; what this drops is the Play again and
+          // Share pair, which used to appear between every round while the
+          // game carried on - issue #27. It is stated rather than inferred
+          // because no reward reason can express "a real level finished and
+          // the run continues"; see the note on `runEnded` in winMoment.ts.
+          runEnded: false,
         });
         if (won.score) setBest(won.score.best);
         startedAt.current = Date.now();
+      }
+
+      // THE END OF THE RUN. Deliberately NOT a winMoment: the rounds have
+      // already paid, and running out of moves is the one thing in this game
+      // that is not an achievement - paying coins for it would be the same
+      // untruth as a retry button that cannot work. So the score is recorded
+      // and the chip is offered, and nothing is granted.
+      if (outcome.over) {
+        const report = scoreReport(next, level);
+        const result = ctx.score?.report({ value: report.value, unit: report.unit, board: report.board });
+        if (result) setBest(result.best);
+        announceWinShare({
+          score: { value: report.value, unit: report.unit, board: report.board },
+          isPersonalBest: result?.isPersonalBest ?? false,
+          runEnded: true,
+        });
       }
     },
     [after, ctx, level, play],
@@ -502,6 +564,7 @@ export function Match3Game({ ctx }: { ctx: GameContext }) {
 
   /* ----------------------------------------------------------- the screen */
 
+  const over = isOver(state);
   const remaining = Math.max(0, state.goal - state.cleared);
   const progress = Math.min(1, state.cleared / state.goal);
   const clearingSet = useMemo(() => new Set(clearing), [clearing]);
@@ -513,12 +576,50 @@ export function Match3Game({ ctx }: { ctx: GameContext }) {
       stats={[
         { icon: "bolt", label: ctx.t("score"), value: state.score },
         { icon: "layers", label: T.round, value: state.round, record: best ?? "-", compact: true },
+        // The number that now decides when the run ends, so it earns a box of
+        // its own rather than a line in the footer nobody reads.
+        { icon: "moves", label: T.moves, value: state.movesLeft, compact: true },
       ]}
       levels={LEVEL_OPTIONS}
       level={level}
       onLevel={startLevel}
       onRestart={restart}
       footer={
+        over ? (
+          /* THE END OF THE RUN, in the footer the round progress used to fill.
+             It replaces that block rather than stacking under it: a goal bar
+             and a "to go" count are both meaningless once nothing can be
+             played, and leaving them up is the same untruth as the Play again
+             button that used to appear mid-run.
+
+             There is no Play again BUTTON here. GameChrome's own restart is
+             already on the utility row above, and the platform's Play again
+             arrives on the win chip from `announceWinShare` - two of our own
+             buttons doing one job is what
+             game-controls-and-platform-chrome-never-share-a-bar.md refuses. */
+          <div
+            style={{
+              background: "var(--surface)",
+              borderRadius: "var(--radius-2)",
+              boxShadow: "var(--shadow-1)",
+              padding: "14px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 6,
+              fontFamily: "Fredoka, inherit",
+            }}
+          >
+            {/* Announced, because a child who has just run out of moves needs
+                telling - the board simply stopping answering is not a message. */}
+            <b role="status" style={{ fontSize: 17 }}>
+              {T.over}
+            </b>
+            <span style={{ fontSize: 15, color: "var(--text-dim)" }}>
+              {T.finalScore} <span dir="ltr">{state.score}</span>
+            </span>
+          </div>
+        ) : (
         <div
           style={{
             background: "var(--surface)",
@@ -583,6 +684,7 @@ export function Match3Game({ ctx }: { ctx: GameContext }) {
             {note ?? T.hint}
           </b>
         </div>
+        )
       }
     >
       <div

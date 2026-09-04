@@ -41,12 +41,47 @@ export interface LevelSpec {
   goal: number;
   /** How much the goal grows per round. */
   goalStep: number;
+  /** Moves a run starts with. */
+  moves: number;
+  /** Moves a completed round hands back. */
+  movesPerRound: number;
 }
 
+/**
+ * WHY THE MOVE BUDGET ENDS THE GAME, AND WHY A FLAT BONUS DOES IT.
+ *
+ * Until 2026-09-04 this game had no ending at all: `moves` only counted up, and
+ * a board with no legal move was SHUFFLED rather than finished. So the offer to
+ * play again fired after every round while the run carried on - reported as
+ * "the play again / share should show only upon completion and not in
+ * continuous plays" (issue #27), which is a symptom of there being no
+ * completion to speak of.
+ *
+ * The goal GROWS every round (`goalStep`) and the bonus is FLAT, so the two
+ * curves cross and every run ends on its own without a round cap, a timer, or
+ * any number tuned to feel right. Early rounds hand back more than they cost,
+ * which is the part that feels generous; later ones cannot.
+ *
+ * The numbers below were chosen and then MEASURED, never estimated -
+ * `scripts/repro/match3-run-length.mts` plays 400 seeded runs per level through
+ * this very module, picking a legal swap at random. A real player does better,
+ * so these are FLOORS. Rounds as p10/median/p90, on this tree, 2026-09-04:
+ *
+ *   easy    goal 24 +9/rd,  25 moves +8    10/12/14 rounds   113 moves
+ *   medium  goal 32 +8/rd,  25 moves +10    9/10/11 rounds   115 moves
+ *   hard    goal 40 +10/rd, 25 moves +13    7/ 7/ 8 rounds   103 moves
+ *
+ * The FIRST set measured was 10/+8 flat across all three, and it produced 21
+ * rounds on easy against 6 on hard - the same four numbers giving a run three
+ * times longer at the level meant to be gentler, because four colours cascade
+ * far more than six. Nothing in the source hints at that; only the sim showed
+ * it. A run that never ends, and a run over in ninety seconds, are both
+ * failures - re-run that script before touching any of these numbers.
+ */
 export const LEVELS: Record<Difficulty, LevelSpec> = {
-  easy: { size: 6, colors: 4, goal: 24, goalStep: 6 },
-  medium: { size: 7, colors: 5, goal: 32, goalStep: 8 },
-  hard: { size: 8, colors: 6, goal: 40, goalStep: 10 },
+  easy: { size: 6, colors: 4, goal: 24, goalStep: 9, moves: 25, movesPerRound: 8 },
+  medium: { size: 7, colors: 5, goal: 32, goalStep: 8, moves: 25, movesPerRound: 10 },
+  hard: { size: 8, colors: 6, goal: 40, goalStep: 10, moves: 25, movesPerRound: 13 },
 };
 
 /** Points for one gem in the first clear of a cascade. */
@@ -95,7 +130,24 @@ export interface Match3State {
   score: number;
   /** Swaps that produced a match. A refused swap is not a move. */
   moves: number;
+  /**
+   * Moves left before the run ends. A completed round hands back
+   * `movesPerRound`; a refused swap costs nothing, for the same reason it does
+   * not count as a move - a child who tried something that does not match has
+   * not spent a turn, they have looked.
+   */
+  movesLeft: number;
 }
+
+/**
+ * The run is finished: no moves left to spend.
+ *
+ * DERIVED rather than stored, so a snapshot cannot restore a board that
+ * disagrees with its own counter. `goal` is stored because the renderer needs
+ * it every frame and re-deriving it there is how two answers appear; this is
+ * read at a handful of call sites and has exactly one.
+ */
+export const isOver = (state: Match3State): boolean => state.movesLeft <= 0;
 
 /** One frame of a cascade: what vanished, and the board left behind. */
 export interface CascadeStep {
@@ -139,6 +191,10 @@ export type SwapOutcome =
       roundUp: number;
       /** The board had no legal move left and was shuffled after settling. */
       shuffled: boolean;
+      /** Moves left AFTER this swap, the round bonus already added. */
+      movesLeft: number;
+      /** This swap spent the last move: the run is over. */
+      over: boolean;
     };
 
 export type Rng = () => number;
@@ -370,6 +426,7 @@ export function newGame(level: Difficulty, rng: Rng = Math.random): Match3State 
     goal: cfg.goal,
     score: 0,
     moves: 0,
+    movesLeft: cfg.moves,
   };
 }
 
@@ -400,6 +457,11 @@ export function swapAt(
     return { state, outcome: { kind: "ignored" } };
   }
 
+  // A finished run answers nothing. Without this a child could keep swapping
+  // under the game-over card and quietly climb past their own final score - the
+  // same class of hole as a board that stays live behind a modal.
+  if (isOver(state)) return { state, outcome: { kind: "ignored" } };
+
   const swapped = [...state.grid];
   [swapped[a], swapped[b]] = [swapped[b], swapped[a]];
 
@@ -425,9 +487,18 @@ export function swapAt(
     goal = goalFor(state.level, round);
   }
 
+  // The swap costs one, and a completed round hands back a flat bonus. The
+  // bonus lands in the SAME expression as the cost so a round finished on the
+  // last move is playable rather than a win the child never gets to spend.
+  const cfg = LEVELS[state.level];
+  const movesLeft = state.movesLeft - 1 + (roundUp > 0 ? cfg.movesPerRound : 0);
+  const over = movesLeft <= 0;
+
   let grid = done.grid;
   let shuffled = false;
-  if (!hasMove(grid, state.size)) {
+  // Only reshuffle a board somebody can still play. Shuffling under a finished
+  // run would redraw the gems behind the game-over card for no one.
+  if (!over && !hasMove(grid, state.size)) {
     grid = shuffleBoard(grid, state.size, state.colors, rng);
     shuffled = true;
   }
@@ -442,6 +513,7 @@ export function swapAt(
       goal,
       score: state.score + done.points,
       moves: state.moves + 1,
+      movesLeft,
     },
     outcome: {
       kind: "matched",
@@ -453,6 +525,8 @@ export function swapAt(
       gems: done.gems,
       roundUp,
       shuffled,
+      movesLeft,
+      over,
     },
   };
 }

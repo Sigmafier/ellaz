@@ -23,7 +23,7 @@ import { en } from "../i18n/dict/en";
 
 const OUTCOMES: Array<{ name: string; outcome: SendOutcome | null }> = [
   { name: "sent", outcome: { ok: true, id: "28333338" } },
-  { name: "throttled", outcome: { ok: false, why: "throttled" } },
+  { name: "throttled", outcome: { ok: false, why: "throttled", waitMs: 34_000 } },
   { name: "refused", outcome: { ok: false, why: "refused" } },
   { name: "failed", outcome: { ok: false, why: "failed" } },
   { name: "no answer at all", outcome: null },

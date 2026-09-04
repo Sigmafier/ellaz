@@ -72,10 +72,37 @@ describe("createReporter", () => {
     expect(f.calls.at(-1)!.url).toContain("/reports/OLD/items");
   });
 
-  it("calls a 409 the throttle, not a failure", async () => {
+  it("calls a 409 the throttle, not a failure, and says how long", async () => {
     const f = fakeFetch({ write: json(409, { error: { status: "ALREADY_EXISTS" } }) });
-    const r = createReporter({ fetchImpl: f.impl, store: memStore(), now: () => 1 });
-    expect(await r.send(DRAFT)).toEqual({ ok: false, why: "throttled" });
+    // At t=1ms the current minute stamp is 0, so the next one begins at
+    // 60_000 and the wait is 59_999ms. Asserted as arithmetic on the clock
+    // rather than as a magic number, so a change to either end shows up here.
+    const now = 1;
+    const r = createReporter({ fetchImpl: f.impl, store: memStore(), now: () => now });
+    expect(await r.send(DRAFT)).toEqual({
+      ok: false,
+      why: "throttled",
+      waitMs: (Math.floor(now / 60_000) + 1) * 60_000 - now,
+    });
+  });
+
+  it("measures the wait on the SERVER clock, not this device's", async () => {
+    // `fakeFetch` replies with a Date header, which `serverClock` reads. A
+    // phone whose own clock is an hour out must still be told the right number
+    // of seconds - that is the entire reason the outcome carries a duration
+    // rather than a deadline.
+    const f = fakeFetch({ write: json(409, { error: { status: "ALREADY_EXISTS" } }) });
+    const wrongByAnHour = 1_700_000_040_000 + 3_600_000;
+    const r = createReporter({ fetchImpl: f.impl, store: memStore(), now: () => wrongByAnHour });
+    const out = await r.send(DRAFT);
+    expect(out.ok).toBe(false);
+    if (out.ok === false && out.why === "throttled") {
+      // Whatever the two clocks say, a wait is always inside one minute.
+      expect(out.waitMs).toBeGreaterThan(0);
+      expect(out.waitMs).toBeLessThanOrEqual(60_000);
+    } else {
+      throw new Error(`expected a throttle, got ${JSON.stringify(out)}`);
+    }
   });
 
   it("calls a 403 refused, so the sheet does not offer a pointless retry", async () => {

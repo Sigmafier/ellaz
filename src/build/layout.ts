@@ -76,6 +76,44 @@ const BASE_CSS = `
   --doc-sun:var(--yellow,#ffc730);
   --doc-stage:var(--stage-bg,#12142b);
 }
+
+/* THE NIGHT ARM, AND WHY IT IS LITERALS AND NOT JUST THE var() ABOVE.
+
+   Every fallback in the block above is a MARKET colour, and on a page that
+   boots the app that never shows: tokens.css defines --text and the var()
+   picks it up. But a document-only page - a category listing, the 404, a
+   printable - deliberately links no shell stylesheet (see the note at the top
+   of this file), so --text is UNDEFINED there and the fallback is the only
+   value there has ever been. The boot script still sets data-theme=night on
+   it, faithfully, and nothing reads the attribute.
+
+   Measured 2026-09-04 on this tree, same browser, ellaz:theme=night:
+
+     page               data-theme   shell css   --text       body background
+     /games/think/      night        no          undefined    #fdfcff  WHITE
+     /games/match3/     night        yes         #f5f6ff      #0f1226  DARK
+
+   So a child in night theme tapped the breadcrumb under a dark game and got a
+   white page - reported as "the category breadcrumb leads to an unstyled
+   page", issue #25, and it is neither the breadcrumb nor unstyled.
+
+   The eight literals below are READ BACK from a game page rendering night
+   correctly, never hand-copied from tokens.css, so the two cannot drift apart
+   silently. document-night-arm.test.ts asserts the two blocks declare the
+   SAME token set, and that --doc-bg and --doc-ink actually DIFFER between them
+   - those two are what make a page read as light or dark. It does not assert
+   every value differs: --doc-stage is #12142b in both arms on purpose, because
+   the stage a game sits on is dark under either theme. */
+:root[data-theme="night"]{
+  --doc-ink:var(--text,#f5f6ff);
+  --doc-soft:var(--text-dim,#b3b8e0);
+  --doc-line:var(--line,#2a2f55);
+  --doc-bg:var(--bg,#0f1226);
+  --doc-card:var(--surface,#1e2240);
+  --doc-brand:var(--brand-ink,#a29bfe);
+  --doc-sun:var(--yellow,#fdcb6e);
+  --doc-stage:var(--stage-bg,#12142b);
+}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--doc-bg);color:var(--doc-ink);
   font:400 17px/1.7 Heebo,Assistant,Rubik,system-ui,-apple-system,sans-serif}

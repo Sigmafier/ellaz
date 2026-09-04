@@ -13,8 +13,15 @@
  *
  *   1. the payload - `runEnded` is true for `level_complete` and false for the
  *      other two, asserted per reason rather than on one sampled case;
- *   2. the call site - GameHost renders the button only behind that flag, and
+ *   2. the call site - GameHost DROPS THE WHOLE CHIP unless the run ended, and
  *      reaches the game's restart through the SAME slot the page header uses.
+ *
+ * (2) was narrower until 2026-09-04: only the button was gated, so the chip
+ * still appeared mid-run. Match Three made that visible by completing real
+ * rounds and carrying on - see `games/match3/a-run-must-be-able-to-end.test.ts`
+ * - and the operator chose to have the chip gone in every game rather than in
+ * that one, so the platform answers the situation one way instead of two. A
+ * mid-run win keeps its confetti, its sound and every coin; only the chip goes.
  *
  * (2) is a SOURCE assertion because nothing in this repo can render a
  * component: vitest runs in node over `src/**\/*.test.ts` with no DOM. A source
@@ -70,8 +77,24 @@ describe("the win event says whether the RUN ended, not just that something was 
 describe("GameHost only offers to play again behind that flag", () => {
   const src = code("src/portal/GameHost.tsx");
 
-  it("sets the offer from the reason AND a restart actually being in the slot", () => {
-    expect(src).toContain("playAgain: event.runEnded && hasRestart()");
+  it("shows NO CHIP AT ALL for a win that does not end the run", () => {
+    // Stronger than what this cell asserted until 2026-09-04. It used to pin
+    // `playAgain: event.runEnded && hasRestart()`, which gated the BUTTON and
+    // let the chip itself appear over a live run - a match3 round, or a
+    // milestone in snake, spell, reaction or pet. The operator asked for the
+    // whole chip to go (issue #27), so the gate moved up to the handler's
+    // first line and the button now only has to ask about the restart slot.
+    expect(src).toContain("if (!event.runEnded) return;");
+    expect(src).toContain("playAgain: hasRestart()");
+    // And the old form must not creep back beside it.
+    expect(src).not.toContain("playAgain: event.runEnded &&");
+  });
+
+  it("still refuses the button when no restart is in the slot", () => {
+    // The other half of the original assertion, kept explicit: a run that
+    // ended in a game with no restart handler offers no button either.
+    expect(src).toMatch(/playAgain: hasRestart\(\)/);
+    expect(src).toContain("hasRestart");
   });
 
   it("renders the button behind the flag, and nothing else behind it", () => {

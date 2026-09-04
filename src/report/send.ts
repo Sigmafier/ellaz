@@ -71,8 +71,15 @@ export interface ReportDraft {
 
 export type SendOutcome =
   | { ok: true; id: string }
-  /** Expected, not broken: a report already went in this minute. */
-  | { ok: false; why: "throttled" }
+  /** Expected, not broken: a report already went in this minute.
+   *
+   *  `waitMs` is a DURATION, never a timestamp, and that is deliberate. The
+   *  minute stamp is the SERVER's, and a phone whose clock is minutes out
+   *  would count down to the wrong instant if it were handed an absolute time
+   *  to subtract its own `Date.now()` from. A duration is computed entirely in
+   *  server time and then simply elapses, so the two clocks never have to
+   *  agree. */
+  | { ok: false; why: "throttled"; waitMs: number }
   /** The rules said no - an oversized field, or a clock far enough out that the
    *  minute stamp missed its window. */
   | { ok: false; why: "refused" }
@@ -257,7 +264,11 @@ export function createReporter(options: ReporterOptions = {}): Reporter {
     if (res.ok) return { ok: true, id: `${who.uid}/${minute}` };
     // 409 ALREADY_EXISTS is the throttle doing its job, and it is the one
     // failure the sheet should explain rather than offer a retry for.
-    if (res.status === 409) return { ok: false, why: "throttled" };
+    if (res.status === 409) {
+      // The next minute stamp is a different document id, so the wait is
+      // exactly the remainder of this one - both terms in server time.
+      return { ok: false, why: "throttled", waitMs: (Number(minute) + 1) * 60000 - at };
+    }
     if (res.status === 403) return { ok: false, why: "refused" };
     return { ok: false, why: "failed" };
   }
