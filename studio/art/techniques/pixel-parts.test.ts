@@ -21,7 +21,7 @@ describe("cutGrid", () => {
 describe("snapOps", () => {
   it("leaves grid-aligned rects as they are", () => {
     const ops = [R(0, 0, 10, 5, "#ff0000"), R(10, 0, 5, 5, "#00ff00", false)];
-    expect(snapOps(ops, 5)).toEqual(ops);
+    expect(snapOps(ops, 5)).toEqual(ops.map((o) => ({ ...o, own: true })));
   });
   it("a quarter turn of a rect snaps back to exact cells", () => {
     const m = multiply(translate(0, 0), rotate(Math.PI / 2));
@@ -34,7 +34,10 @@ describe("snapOps", () => {
   it("the topmost shape wins a cell, and fg is carried", () => {
     const ops = [R(0, 0, 10, 5, "#ff0000", false), P([[5, -1], [11, -1], [11, 6], [5, 6]], "#00ff00")];
     const out = snapOps(ops, 5);
-    expect(out).toEqual([R(0, 0, 5, 5, "#ff0000", false), R(5, 0, 5, 5, "#00ff00", true)]);
+    expect(out).toEqual([{ ...R(0, 0, 5, 5, "#ff0000", false), own: true }, { ...R(5, 0, 5, 5, "#00ff00", true), own: true }]);
+  });
+  it("marks every snapped cell as carrying its own edge, so a style adds no ring", () => {
+    for (const o of snapOps([R(0, 0, 10, 5, "#ff0000")], 5)) expect(o.own).toBe(true);
   });
   it("never invents a colour: a rotated multi-colour part snaps to its own palette", () => {
     const part = [R(0, -20, 4, 20, "#ff0000"), R(0, -10, 4, 5, "#00ff00")];

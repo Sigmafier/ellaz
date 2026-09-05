@@ -10,9 +10,9 @@ import { box, projectVoxels } from "./voxel-model";
 
 describe("the technique library", () => {
   it("eleven techniques, eight sampled, unique slug ids", () => {
-    expect(TECHNIQUES).toHaveLength(11);
-    expect(SAMPLED).toHaveLength(8);
-    expect(new Set(TECHNIQUE_IDS).size).toBe(11);
+    expect(TECHNIQUES).toHaveLength(12);
+    expect(SAMPLED).toHaveLength(9);
+    expect(new Set(TECHNIQUE_IDS).size).toBe(12);
     for (const id of TECHNIQUE_IDS) expect(id).toMatch(/^[a-z0-9-]+$/);
   });
   it("every card-only technique says what it is blocked on", () => {

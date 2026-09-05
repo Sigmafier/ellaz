@@ -47,8 +47,11 @@ const withVisor = (row12: string, row13: string) => G.map((r, i) => (i === 12 ? 
 const HURT_HEAD = withVisor("OpOffffffffO", "OpOffKfffKfO");
 const KO_HEAD = withVisor("OpOffffffffO", "OpOffffffffO");
 
-/** the old rig's slash, scaled from a 70-unit body to a 48-pixel one, in armR space */
-const SLASH = P(([[8, -34], [26, -40], [30, -26], [22, -14], [10, -16]] as [number, number][]).map(([x, y]) => [Math.round(x * 0.7) * U, Math.round(y * 0.7) * U]), "rgba(255,255,255,.55)");
+/** a thin crescent in front of the blade, in armR space, blade-edge white with its own dark rim */
+const arc = (r: number, a0: number, a1: number, n = 9): [number, number][] =>
+  Array.from({ length: n }, (_, i) => { const a = a0 + ((a1 - a0) * i) / (n - 1); return [Math.cos(a) * r * U, Math.sin(a) * r * U]; });
+const SLASH_RIM = P([...arc(24, -1.25, 0.15), ...arc(19, 0.15, -1.25)], PAL.O);
+const SLASH = P([...arc(23, -1.2, 0.1), ...arc(20, 0.1, -1.2)], PAL.B);
 
 export const knight48Rig: Rig = {
   id: "knight48",
@@ -79,7 +82,7 @@ export const knight48Rig: Rig = {
   // the body only: helm to boots, plate width; shield and blade stick out of it
   hitbox: [-6 * U, -48 * U, 13 * U, 48 * U],
   clips: scaleClipTranslations(standardClips({
-    attack: { slash: [SLASH] },
+    attack: { slash: [SLASH_RIM, SLASH] },
     hurt: { head: cut(REGIONS.head, NECK, HURT_HEAD) },
     ko: { head: cut(REGIONS.head, NECK, KO_HEAD) },
   }), U * 0.7),

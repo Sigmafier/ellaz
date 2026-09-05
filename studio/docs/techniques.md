@@ -19,6 +19,7 @@ row here is a technique in the code.
 | `voxel` | Voxel model pre-rendered | a list of cubes with colours | one pose per clip frame; facing directions are free | sample |
 | `sprite-stacking` | Sprite stacking | a stack of flat slices, each with a height | one stack; rotation is free, poses are new stacks | sample |
 | `procedural-mask` | Procedural mask generator | a body-plan template + a seed + a palette | zero per sprite; animation by re-seeding or template swaps | sample (robot-shaped, never the robot) |
+| `pixel-parts` | Pixel parts on the rig | one pixel grid per character, cut into parts along the bone tree | the standard clips for free; a new clip is keyframes, and every frame re-snaps to the grid | sample (the 48px knight) - the operator's pick for the whole cast, 2026-09-05 |
 | `ai-cleaned` | AI-generated, then cleaned | an image model prompt batch, palette-snapped and hand-culled | one prompt batch per pose, plus the cull | card: needs a provider and licence |
 | `kid-drawings` | Kid drawings, scanned | real crayon drawings, photographed and cut out | one drawing per frame (a child draws the walk) | card: needs photographs |
 | `runtime-shader` | Runtime style shader | one neutral sprite; the style is applied at draw time | zero - the engine restyles every frame live | card: engine-specific |

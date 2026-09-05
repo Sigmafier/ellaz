@@ -38,19 +38,24 @@ export function renderLow(ops: Op[], W: number, H: number, cellX: number, cellY 
   lx.scale(1 / cellX, 1 / cellY);
   fillOps(lx, ops, 1, isBg);
   lx.restore();
-  const [fg, fx] = mk(w, h);
-  if (shaded) {
-    const [hi, hx] = mk(W, H);
-    fillShaded(hx, ops.filter(isFg), false);
-    fx.imageSmoothingEnabled = true;
-    fx.drawImage(hi, 0, 0, w, h);
-  } else {
-    fx.save();
-    fx.scale(1 / cellX, 1 / cellY);
-    fillOps(fx, ops, 1, isFg);
-    fx.restore();
-  }
-  if (outline) outlineOnto(lx, fg);
+  const fgOf = (list: Op[]): Canvas2D => {
+    const [c, fx] = mk(w, h);
+    if (shaded) {
+      const [hi, hx] = mk(W, H);
+      fillShaded(hx, list.filter(isFg), false);
+      fx.imageSmoothingEnabled = true;
+      fx.drawImage(hi, 0, 0, w, h);
+    } else {
+      fx.save();
+      fx.scale(1 / cellX, 1 / cellY);
+      fillOps(fx, list, 1, isFg);
+      fx.restore();
+    }
+    return c;
+  };
+  const fg = fgOf(ops);
+  // a shape that brings its own edge is not ringed; only the rest of the cast is
+  if (outline) outlineOnto(lx, ops.some((o) => o.own) ? fgOf(ops.filter((o) => !o.own)) : fg);
   lx.drawImage(fg, 0, 0);
   return lo;
 }

@@ -14,6 +14,12 @@ export type Fill = string; // "#rrggbb" or any CSS colour a canvas accepts
 interface Base {
   f: Fill;
   fg: boolean;
+  /**
+   * The shape carries its OWN edge (a pixel character's drawn outline), so a
+   * style that rings the foreground must not add a second ring around it.
+   * Absent means false. Set by art/techniques/pixel-parts.ts snapOps.
+   */
+  own?: boolean;
 }
 export interface RectOp extends Base {
   k: "r";

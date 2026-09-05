@@ -58,7 +58,11 @@ export function pixelate(ops: Op[], W: number, H: number, cell: number, opts: Pi
   const [bg, bx] = mk(w, h);
   fillOps(bx, ops, 1 / cell, isBg);
   const fg = fgLayer(ops, w, h, W, H, cell, opts.shaded ?? false);
-  if (opts.outline) outlineOnto(bx, fg);
+  if (opts.outline) {
+    // a shape that brings its own edge is not ringed; only the rest of the cast is
+    const ringed = ops.some((o) => o.own) ? fgLayer(ops.filter((o) => !o.own), w, h, W, H, cell, opts.shaded ?? false) : fg;
+    outlineOnto(bx, ringed);
+  }
   bx.drawImage(fg, 0, 0);
 
   if (opts.quant || opts.fgAware) {

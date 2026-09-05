@@ -82,7 +82,7 @@ export function snapOps(ops: Op[], unit: number): Op[] {
   for (let cy = y0; cy < y1; cy++) {
     const sy = (cy + 0.5) * unit;
     let run: { x: number; n: number; f: Fill; fg: boolean } | null = null;
-    const flush = () => { if (run) out.push(R(run.x * unit, cy * unit, run.n * unit, unit, run.f, run.fg)); run = null; };
+    const flush = () => { if (run) out.push({ ...R(run.x * unit, cy * unit, run.n * unit, unit, run.f, run.fg), own: true }); run = null; };
     for (let cx = x0; cx < x1; cx++) {
       const sx = (cx + 0.5) * unit;
       let hit: Op | null = null;

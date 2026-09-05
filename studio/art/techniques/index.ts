@@ -1,4 +1,4 @@
-// The technique library: how frames are made. Eight sampled (each produces
+// The technique library: how frames are made. Nine sampled (each produces
 // the robot, or as close to it as the technique can get), three card-only.
 // docs/techniques.md is generated from this list by the test, both ways.
 
@@ -11,10 +11,11 @@ import { toolSvg } from "./tool-svg";
 import { voxelModel } from "./voxel-model";
 import { spriteStacking } from "./sprite-stacking";
 import { proceduralMask } from "./procedural-mask";
+import { pixelParts } from "./pixel-parts-card";
 import { aiCleaned, kidDrawings, runtimeShader } from "./cards";
 
 export const TECHNIQUES: Technique[] = [
-  pixelStrings, shapeDsl, partsRig, parametric, toolSvg, voxelModel, spriteStacking, proceduralMask,
+  pixelStrings, shapeDsl, partsRig, parametric, toolSvg, voxelModel, spriteStacking, proceduralMask, pixelParts,
   aiCleaned, kidDrawings, runtimeShader,
 ];
 
