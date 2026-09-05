@@ -12,6 +12,9 @@ import { SCENES } from "../art/scenes";
 import { E, R, place, validate, type Scene } from "../art/scene-ops";
 import { CHARACTERS, characterById } from "../art/characters";
 import { SAMPLED, TECHNIQUES } from "../art/techniques";
+import { PALETTES, toGpl, toHex } from "../art/palettes";
+import { buildManifest, frameGeometry, layoutAtlas, type Manifest } from "../export/pack";
+import { mk } from "../art/canvas";
 
 export interface RenderResult {
   styleId: string;
@@ -89,7 +92,46 @@ function techniqueStrip(styleId: string, scale: number): { ids: string[]; w: num
   return { ids: SAMPLED.map((t) => t.id), w, h, png: r.png };
 }
 
+export interface ExportResult {
+  character: string;
+  style: string;
+  sheetPng: string;
+  atlas: ReturnType<typeof layoutAtlas>["atlas"];
+  manifest: Manifest;
+  frames: number;
+}
+
+/**
+ * Render every frame of a character in one style at `scale` onto a grid
+ * sheet, transparent background, and return the sheet plus the atlas and
+ * manifest the packer decided. The PNG is composed here because only the
+ * browser has a canvas; the geometry is decided in export/pack.ts, tested
+ * in node.
+ */
+function exportCharacter(charId: string, styleId: string, scale: number, built: Manifest["built"]): ExportResult {
+  const ch = characterById(charId);
+  if (!ch) throw new Error(`no character "${charId}"`);
+  const style = styleById(styleId);
+  if (!style) throw new Error(`no style "${styleId}"`);
+  const clips = ch.clips();
+  const geo = frameGeometry(clips, scale);
+  const image = `${charId}--${styleId}.png`;
+  const { atlas, cells } = layoutAtlas(clips, geo, image);
+  const [sheet, sx] = mk(atlas.meta.size.w, atlas.meta.size.h);
+  const byName = new Map(clips.flatMap((c) => c.frames.map((f) => [f.name, f] as const)));
+  for (const cell of cells) {
+    const f = byName.get(cell.name)!;
+    const scene: Scene = { id: cell.name, w: geo.w, h: geo.h, ops: place(f.ops, geo.pivot.x, geo.pivot.y, scale) };
+    const c = style.render(scene, { transparent: true, seed: `${styleId}:${cell.name}` });
+    sx.drawImage(c, cell.col * geo.w, cell.row * geo.h);
+  }
+  const manifest = buildManifest(charId, styleId, scale, clips, geo, ch.rig?.hitbox ?? null, `${charId}--${styleId}.atlas.json`, built);
+  return { character: charId, style: styleId, sheetPng: sheet.toDataURL("image/png"), atlas, manifest, frames: cells.length };
+}
+
 const api = {
+  exportCharacter,
+  paletteExports: () => PALETTES.map((p) => ({ id: p.id, gpl: toGpl(p), hex: toHex(p), json: JSON.stringify(p, null, 2) + "\n" })),
   techniques: TECHNIQUES.map(({ id, name, input, costPerAnimation, summary, sample, blockedOn }) => ({ id, name, input, costPerAnimation, summary, sampled: sample !== null, blockedOn })),
   renderTechniqueStrip: techniqueStrip,
   characterIds: CHARACTERS.map((c) => c.id),

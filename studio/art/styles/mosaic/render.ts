@@ -9,12 +9,14 @@ import type { Renderer } from "../types";
 export const CELL = 12;
 export const GROUT = "#2a2320";
 
-export const render: Renderer = (scene) => {
+export const render: Renderer = (scene, opts) => {
   const { w: W, h: H } = scene;
   const { w, h, all } = lowRes(scene.ops, W, H, CELL);
   const [c, x] = mk(W, H);
-  x.fillStyle = GROUT;
-  x.fillRect(0, 0, W, H);
+  if (!opts?.transparent) {
+    x.fillStyle = GROUT;
+    x.fillRect(0, 0, W, H);
+  }
   for (let j = 0; j < h; j++) {
     for (let i = 0; i < w; i++) {
       const k = (j * w + i) * 4;

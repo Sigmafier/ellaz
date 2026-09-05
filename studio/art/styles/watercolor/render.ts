@@ -12,8 +12,10 @@ export const PAPER = "#fdf8ee";
 export const render: Renderer = (scene, opts) => {
   const rng = rngFor(opts?.seed ?? `watercolor:${scene.id}`);
   const [c, x] = mk(scene.w, scene.h);
-  x.fillStyle = PAPER;
-  x.fillRect(0, 0, scene.w, scene.h);
+  if (!opts?.transparent) {
+    x.fillStyle = PAPER;
+    x.fillRect(0, 0, scene.w, scene.h);
+  }
   for (const op of scene.ops) {
     x.save();
     x.globalAlpha = 0.32;

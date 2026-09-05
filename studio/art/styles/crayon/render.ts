@@ -16,15 +16,17 @@ export const STROKE_JITTER = 3;
 export const render: Renderer = (scene, opts) => {
   const rng = rngFor(opts?.seed ?? `crayon:${scene.id}`);
   const [c, x] = mk(scene.w, scene.h);
-  x.fillStyle = PAPER;
-  x.fillRect(0, 0, scene.w, scene.h);
-  x.strokeStyle = LINE;
-  x.lineWidth = 1;
-  for (let y = 20; y < scene.h; y += LINE_GAP) {
-    x.beginPath();
-    x.moveTo(0, y);
-    x.lineTo(scene.w, y);
-    x.stroke();
+  if (!opts?.transparent) {
+    x.fillStyle = PAPER;
+    x.fillRect(0, 0, scene.w, scene.h);
+    x.strokeStyle = LINE;
+    x.lineWidth = 1;
+    for (let y = 20; y < scene.h; y += LINE_GAP) {
+      x.beginPath();
+      x.moveTo(0, y);
+      x.lineTo(scene.w, y);
+      x.stroke();
+    }
   }
   x.lineJoin = "round";
   x.lineCap = "round";

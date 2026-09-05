@@ -11,6 +11,12 @@ export interface RenderOpts {
    * changed, never the dice.
    */
   seed?: string;
+  /**
+   * Sprite mode: a style that normally paints a page (paper, crayon,
+   * watercolor, voxel ground, mosaic grout) leaves the canvas transparent
+   * instead, so the export can sit on any background.
+   */
+  transparent?: boolean;
 }
 
 export type Renderer = (scene: Scene, opts?: RenderOpts) => Canvas2D;

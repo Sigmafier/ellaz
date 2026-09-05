@@ -26,12 +26,14 @@ function cube(x: Ctx2D, X: number, Y: number, col: string): void {
   x.fill();
 }
 
-export const render: Renderer = (scene) => {
+export const render: Renderer = (scene, opts) => {
   const { w: W, h: H } = scene;
   const { w, h, all, fgAlpha } = lowRes(scene.ops, W, H, CELL);
   const [c, x] = mk(W, H);
-  x.fillStyle = GROUND;
-  x.fillRect(0, 0, W, H);
+  if (!opts?.transparent) {
+    x.fillStyle = GROUND;
+    x.fillRect(0, 0, W, H);
+  }
   for (let j = 0; j < h; j++) {
     for (let i = 0; i < w; i++) {
       const k = (j * w + i) * 4;

@@ -39,8 +39,10 @@ function piece(x: Ctx2D, op: Op): void {
 
 export const render: Renderer = (scene, opts) => {
   const [c, x] = mk(scene.w, scene.h);
-  x.fillStyle = CARD;
-  x.fillRect(0, 0, scene.w, scene.h);
+  if (!opts?.transparent) {
+    x.fillStyle = CARD;
+    x.fillRect(0, 0, scene.w, scene.h);
+  }
   for (const op of scene.ops) if (!op.fg) piece(x, op);
   for (const op of scene.ops) if (op.fg) piece(x, op);
   grain(x, scene.w, scene.h, GRAIN, rngFor(opts?.seed ?? `paper:${scene.id}`));

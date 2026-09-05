@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ellaz.fun/studio/manifest.schema.json",
+  "title": "Ellaz studio sprite manifest",
+  "description": "The engine-neutral half of a sprite export. The atlas (TexturePacker JSON-hash) says where each frame is on the sheet; this says what the frames MEAN: which clips exist, at what fps, looping or not, where the pivot and sockets are in frame pixels, and the hitbox. Every adapter reads this and nothing else.",
+  "type": "object",
+  "required": ["character", "style", "scale", "frameSize", "pivot", "animations", "sockets", "hitbox", "atlas", "built"],
+  "additionalProperties": false,
+  "properties": {
+    "character": { "type": "string", "pattern": "^[a-z0-9]+$" },
+    "style": { "type": "string", "pattern": "^[a-z0-9]+$" },
+    "scale": { "type": "number", "exclusiveMinimum": 0 },
+    "frameSize": { "$ref": "#/$defs/size" },
+    "pivot": { "$ref": "#/$defs/point", "description": "bottom-centre of the feet, in frame pixels" },
+    "animations": {
+      "type": "object",
+      "required": ["idle", "walk", "attack", "hurt", "ko"],
+      "additionalProperties": {
+        "type": "object",
+        "required": ["fps", "loop", "frames"],
+        "additionalProperties": false,
+        "properties": {
+          "fps": { "type": "number", "exclusiveMinimum": 0 },
+          "loop": { "type": "boolean" },
+          "frames": { "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^[a-z0-9]+_[a-z]+_[0-9]{4}$" } }
+        }
+      }
+    },
+    "sockets": {
+      "type": "object",
+      "description": "socket name -> frame name -> point in frame pixels",
+      "additionalProperties": { "type": "object", "additionalProperties": { "$ref": "#/$defs/point" } }
+    },
+    "hitbox": { "$ref": "#/$defs/rect", "description": "in frame pixels" },
+    "atlas": { "type": "string", "description": "the atlas JSON file beside this manifest" },
+    "built": {
+      "type": "object",
+      "required": ["commit", "dirty", "at"],
+      "additionalProperties": false,
+      "properties": {
+        "commit": { "type": "string", "pattern": "^[0-9a-f]{7,40}$|^unknown$" },
+        "dirty": { "type": "boolean" },
+        "at": { "type": "string" }
+      }
+    }
+  },
+  "$defs": {
+    "point": { "type": "object", "required": ["x", "y"], "additionalProperties": false, "properties": { "x": { "type": "number" }, "y": { "type": "number" } } },
+    "size": { "type": "object", "required": ["w", "h"], "additionalProperties": false, "properties": { "w": { "type": "integer", "minimum": 1 }, "h": { "type": "integer", "minimum": 1 } } },
+    "rect": { "type": "object", "required": ["x", "y", "w", "h"], "additionalProperties": false, "properties": { "x": { "type": "number" }, "y": { "type": "number" }, "w": { "type": "number", "minimum": 0 }, "h": { "type": "number", "minimum": 0 } } }
+  }
+}
