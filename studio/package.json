@@ -1,0 +1,32 @@
+{
+  "name": "studio",
+  "private": true,
+  "version": "0.1.0",
+  "description": "The Ellaz studio art bible - style glossary, code-authored sprites, engine-neutral exports, and the gallery to pick from. A sibling workspace: nothing here imports src/ and nothing in src/ imports this.",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "gallery": "vite gallery",
+    "gallery:build": "vite build gallery",
+    "export": "node export/export-all.mjs",
+    "shots": "node scripts/render-gallery-shots.mjs",
+    "assert:boundary": "node scripts/assert-boundary.mjs",
+    "assert:recipes": "node scripts/assert-recipe-headings.mjs",
+    "assert:render": "node scripts/assert-render-smoke.mjs",
+    "assert:manifest": "node scripts/assert-manifest-schema.mjs",
+    "assert:atlas": "node scripts/assert-atlas-coverage.mjs",
+    "assert:grammar": "node scripts/assert-frame-grammar.mjs",
+    "assert:all": "npm run assert:boundary && npm run assert:recipes && npm run assert:render && npm run assert:manifest && npm run assert:atlas && npm run assert:grammar",
+    "assert:controls": "node scripts/assert-boundary.mjs --control && node scripts/assert-recipe-headings.mjs --control && node scripts/assert-render-smoke.mjs --control && node scripts/assert-manifest-schema.mjs --control && node scripts/assert-atlas-coverage.mjs --control && node scripts/assert-frame-grammar.mjs --control",
+    "build:check": "npm run typecheck && npm test && npm run gallery:build && npm run export && npm run assert:all && npm run assert:controls"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.4",
+    "playwright-core": "^1.62.1",
+    "typescript": "^5.6.2",
+    "vite": "^5.4.8",
+    "vitest": "^2.1.2"
+  }
+}

@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-*/
+# Everything `npm run export` writes: sheets, atlases, manifests, palettes.
+# Regenerated from art/ on every run; a checked-in copy is a second source of
+# truth that drifts the moment a renderer is tuned.
+dist-export/
+# Gallery screenshots headed for the Visual Hall.
+shots/
+*.local
