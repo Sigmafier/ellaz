@@ -9,7 +9,9 @@
 
 import { STYLES, styleById } from "../art/styles/registry";
 import { SCENES } from "../art/scenes";
-import { validate, type Scene } from "../art/scene-ops";
+import { E, R, place, validate, type Scene } from "../art/scene-ops";
+import { RIGGED, characterById } from "../art/characters";
+import { bakeAll } from "../art/rig/rig";
 
 export interface RenderResult {
   styleId: string;
@@ -47,7 +49,35 @@ function renderOne(styleId: string, scene: Scene): RenderResult {
   return { styleId, sceneId: scene.id, w: c.width, h: c.height, png: c.toDataURL("image/png"), inkSamples: sampleInk(c) };
 }
 
+export interface StripResult {
+  clip: string;
+  frames: number;
+  w: number;
+  h: number;
+  png: string;
+}
+
+/** One clip as a horizontal strip: every frame at `scale`, on a plain ground, feet on a line. */
+function clipStrip(charId: string, styleId: string, scale: number): StripResult[] {
+  const ch = characterById(charId);
+  if (!ch?.rig) throw new Error(`no rigged character "${charId}"`);
+  const cell = 90 * scale, ground = 74 * scale;
+  return bakeAll(ch.rig).map((clip) => {
+    const w = cell * clip.frames.length, h = 90 * scale;
+    const ops = [R(0, 0, w, h, "#e8eef7", false), R(0, ground, w, h - ground, "#c9d3e3", false)];
+    clip.frames.forEach((f, i) => {
+      const cx = cell * i + cell / 2;
+      ops.push(E(cx, ground + 2 * scale, 16 * scale, 3 * scale, "rgba(0,0,0,.2)", false));
+      ops.push(...place(f.ops, cx, ground, scale));
+    });
+    const r = renderOne(styleId, { id: `${charId}-${clip.id}`, w, h, ops });
+    return { clip: clip.id, frames: clip.frames.length, w, h, png: r.png };
+  });
+}
+
 const api = {
+  riggedIds: RIGGED.map((c) => c.id),
+  renderClipStrips: clipStrip,
   styles: STYLES.map(({ id, name, tier, family, tagline }) => ({ id, name, tier, family, tagline })),
   sceneIds: Object.keys(SCENES),
   render(styleId: string, sceneId: string): RenderResult {
