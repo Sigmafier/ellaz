@@ -1,0 +1,69 @@
+{
+  "id": "spectrum",
+  "name": "Spectrum fifteen",
+  "note": "Eight colours at normal brightness plus seven bright ones (bright black is black). Two per 8x8 cell, and that is the whole look.",
+  "colors": [
+    {
+      "name": "black",
+      "hex": "#000000"
+    },
+    {
+      "name": "blue",
+      "hex": "#0000D8"
+    },
+    {
+      "name": "red",
+      "hex": "#D80000"
+    },
+    {
+      "name": "magenta",
+      "hex": "#D800D8"
+    },
+    {
+      "name": "green",
+      "hex": "#00D800"
+    },
+    {
+      "name": "cyan",
+      "hex": "#00D8D8"
+    },
+    {
+      "name": "yellow",
+      "hex": "#D8D800"
+    },
+    {
+      "name": "white",
+      "hex": "#D8D8D8"
+    },
+    {
+      "name": "brightBlue",
+      "hex": "#0000FF"
+    },
+    {
+      "name": "brightRed",
+      "hex": "#FF0000",
+      "role": "warning"
+    },
+    {
+      "name": "brightMagenta",
+      "hex": "#FF00FF"
+    },
+    {
+      "name": "brightGreen",
+      "hex": "#00FF00"
+    },
+    {
+      "name": "brightCyan",
+      "hex": "#00FFFF"
+    },
+    {
+      "name": "brightYellow",
+      "hex": "#FFFF00",
+      "role": "interactable"
+    },
+    {
+      "name": "brightWhite",
+      "hex": "#FFFFFF"
+    }
+  ]
+}

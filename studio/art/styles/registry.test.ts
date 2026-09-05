@@ -6,9 +6,9 @@ import { FULL_STYLES, STYLES, STYLE_IDS, styleById } from "./registry";
 const HERE = new URL(".", import.meta.url).pathname;
 
 describe("style registry", () => {
-  it("has six styles with unique ids", () => {
-    expect(STYLES).toHaveLength(6);
-    expect(new Set(STYLE_IDS).size).toBe(6);
+  it("has nineteen styles with unique ids", () => {
+    expect(STYLES).toHaveLength(19);
+    expect(new Set(STYLE_IDS).size).toBe(19);
   });
   it("the four picked styles are the full tier, in that order", () => {
     expect(FULL_STYLES.map((s) => s.id)).toEqual(["snes16", "flat", "paper", "crayon"]);

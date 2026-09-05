@@ -1,0 +1,17 @@
+{
+  "id": "onebit",
+  "name": "1-bit ink and paper",
+  "note": "Two values. Everything else is stipple, hatching and silhouette.",
+  "colors": [
+    {
+      "name": "ink",
+      "hex": "#101010",
+      "role": "text"
+    },
+    {
+      "name": "paper",
+      "hex": "#F4F1E8",
+      "role": "ground"
+    }
+  ]
+}

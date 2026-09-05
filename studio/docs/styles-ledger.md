@@ -8,7 +8,7 @@ rendered from both and the gate refuses a hand edit. The same three lists are th
 gallery's Ledger page. Picks per game come from `art/games/*.json`; a bold game is
 the one whose default binding is that style.
 
-## In the registry (6)
+## In the registry (19)
 
 | id | name | tier | family | picked for |
 |---|---|---|---|---|
@@ -18,6 +18,19 @@ the one whose default binding is that style.
 | `crayon` | Crayon doodle | full | paint | Toybox Brawl |
 | `gameboy` | Game Boy | card | pixel | - |
 | `clay` | Clay / soft 3D | card | craft | - |
+| `onebit` | 1-bit | card | pixel | - |
+| `pico8` | Fantasy-console 16 colours | card | pixel | - |
+| `c64` | C64 multicolour | card | pixel | - |
+| `spectrum` | Attribute-clash 8x8 | card | pixel | - |
+| `ega16` | EGA 16-colour | card | pixel | - |
+| `vga256` | VGA painterly | card | pixel | - |
+| `neogeo` | Arcade hand-drawn | card | pixel | - |
+| `isopixel` | Isometric pixel | card | pixel | - |
+| `chunky32` | Chunky 32x32 | card | pixel | - |
+| `prerender` | Pre-rendered to pixel | card | pixel | - |
+| `rotoscope` | Rotoscoped pixel | card | pixel | - |
+| `hd2d` | Pixel sprites in a lit scene | card | pixel | - |
+| `brawler80` | 80px brawler | card | pixel | - |
 
 ## Removed for good (7)
 
@@ -36,30 +49,12 @@ game ever needs it back; re-adding it to the registry is a decision, not a resto
 | `hibit` | Hi-bit modern pixel | pixel | 2026-09-05 | “get rid of this style” | `aa73f4b` | `git show aa73f4b^:studio/art/styles/hibit/render.ts` |
 | `crt` | CRT arcade | pixel | 2026-09-05 | “get rid of this style” | `aa73f4b` | `git show aa73f4b^:studio/art/styles/crt/render.ts` |
 
-## Backlog (33) - researched, not built
+## Backlog (20) - researched, not built
 
 Proposed from the 2026-09-05 research pass (pixel sub-styles, teen and adult 2D
 styles, print and craft). None has a renderer. A row marked `adjacent-to-rejected`
 sits next to a style the operator removed and needs an explicit yes before anyone
 builds it. Audience is who the style suits, not who it is limited to.
-
-### pixel (13)
-
-| id | name | audience | the look | seen in | status |
-|---|---|---|---|---|---|
-| `onebit` | 1-bit | teen | two values only; form from silhouette, stipple and hatching | Return of the Obra Dinn, World of Horror, Minit | proposed |
-| `pico8` | Fantasy-console 16 colours | all | 128x128 grid, one fixed 16-colour palette, bold 1-3px clusters | Celeste Classic, Downwell | proposed |
-| `c64` | C64 multicolour | teen | double-wide pixels, 16 fixed colours, chunky dark outlines | Impossible Mission, Sam's Journey | proposed |
-| `spectrum` | Attribute-clash 8x8 | teen | two colours per 8x8 cell, deliberate clash at the borders, black outlines | Manic Miner, Jet Set Willy | proposed |
-| `ega16` | EGA 16-colour | all | 320x200 feel, 16 hard RGBI colours, crosshatch dithering, stepped curves | Commander Keen, early Monkey Island | proposed |
-| `vga256` | VGA painterly | adult | 256-colour ramps, atmospheric dither, hand-painted backdrops, selective outlines | Monkey Island VGA, Another World, Beneath a Steel Sky | proposed |
-| `neogeo` | Arcade hand-drawn | teen | large 100px+ sprites, many colours, strong outlines, dramatic highlight ramps | Metal Slug, Street Fighter III, King of Fighters | proposed |
-| `brawler80` | 80px brawler | teen | hand-drawn sprites in an 80px cell, black outlines, 3-4 tones, bright cast on muted painted backdrops, big readable attack poses | Little Fighter 2 (our own drawing, never a trace), Golden Axe, Streets of Rage | proposed |
-| `isopixel` | Isometric pixel | all | 2:1 stair-step diagonals, tile diamond ground, patterned shadows | Stardew Valley, Landstalker, Habbo | proposed |
-| `chunky32` | Chunky 32x32 | all | 16-32px sprites blown up, thick outlines, details abstracted to a few clusters | Minit, A Short Hike, Kingdom | proposed |
-| `prerender` | Pre-rendered to pixel | all | a shaded 3D form quantised to a pixel grid: plastic highlights, real perspective | Donkey Kong Country, Killer Instinct | proposed |
-| `rotoscope` | Rotoscoped pixel | adult | natural anatomy and timing traced from motion, then hard-clustered; few colours | Prince of Persia, Flashback, Another World | proposed |
-| `hd2d` | Pixel sprites in a lit scene | teen | cluster-shaded sprites over a scene with depth of field, bloom and real light | Octopath Traveler, Triangle Strategy | adjacent-to-rejected (hibit) |
 
 ### vector (3)
 

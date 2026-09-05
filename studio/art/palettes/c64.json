@@ -1,0 +1,73 @@
+{
+  "id": "c64",
+  "name": "C64 sixteen",
+  "note": "The Commodore 64's fixed palette, Pepto's measured values, drawn with double-wide pixels.",
+  "colors": [
+    {
+      "name": "black",
+      "hex": "#000000"
+    },
+    {
+      "name": "white",
+      "hex": "#FFFFFF"
+    },
+    {
+      "name": "red",
+      "hex": "#880000"
+    },
+    {
+      "name": "cyan",
+      "hex": "#AAFFEE"
+    },
+    {
+      "name": "purple",
+      "hex": "#CC44CC"
+    },
+    {
+      "name": "green",
+      "hex": "#00CC55"
+    },
+    {
+      "name": "blue",
+      "hex": "#0000AA"
+    },
+    {
+      "name": "yellow",
+      "hex": "#EEEE77",
+      "role": "interactable"
+    },
+    {
+      "name": "orange",
+      "hex": "#DD8855"
+    },
+    {
+      "name": "brown",
+      "hex": "#664400"
+    },
+    {
+      "name": "lightRed",
+      "hex": "#FF7777",
+      "role": "warning"
+    },
+    {
+      "name": "darkGrey",
+      "hex": "#333333"
+    },
+    {
+      "name": "grey",
+      "hex": "#777777"
+    },
+    {
+      "name": "lightGreen",
+      "hex": "#AAFF66"
+    },
+    {
+      "name": "lightBlue",
+      "hex": "#0088FF"
+    },
+    {
+      "name": "lightGrey",
+      "hex": "#BBBBBB"
+    }
+  ]
+}

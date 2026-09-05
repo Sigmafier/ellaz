@@ -1,0 +1,73 @@
+{
+  "id": "pico8",
+  "name": "Fantasy-console sixteen",
+  "note": "The fixed 16-colour palette of the 128x128 fantasy console; the style snaps to it and never adds one.",
+  "colors": [
+    {
+      "name": "black",
+      "hex": "#000000"
+    },
+    {
+      "name": "darkBlue",
+      "hex": "#1D2B53"
+    },
+    {
+      "name": "darkPurple",
+      "hex": "#7E2553"
+    },
+    {
+      "name": "darkGreen",
+      "hex": "#008751"
+    },
+    {
+      "name": "brown",
+      "hex": "#AB5236"
+    },
+    {
+      "name": "darkGrey",
+      "hex": "#5F574F"
+    },
+    {
+      "name": "lightGrey",
+      "hex": "#C2C3C7"
+    },
+    {
+      "name": "white",
+      "hex": "#FFF1E8"
+    },
+    {
+      "name": "red",
+      "hex": "#FF004D",
+      "role": "warning"
+    },
+    {
+      "name": "orange",
+      "hex": "#FFA300"
+    },
+    {
+      "name": "yellow",
+      "hex": "#FFEC27",
+      "role": "interactable"
+    },
+    {
+      "name": "green",
+      "hex": "#00E436"
+    },
+    {
+      "name": "blue",
+      "hex": "#29ADFF"
+    },
+    {
+      "name": "lavender",
+      "hex": "#83769C"
+    },
+    {
+      "name": "pink",
+      "hex": "#FF77A8"
+    },
+    {
+      "name": "peach",
+      "hex": "#FFCCAA"
+    }
+  ]
+}

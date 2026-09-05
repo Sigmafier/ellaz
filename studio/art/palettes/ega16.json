@@ -1,0 +1,73 @@
+{
+  "id": "ega16",
+  "name": "EGA sixteen",
+  "note": "The 16 RGBI colours of a 1980s PC display card, at their canonical values.",
+  "colors": [
+    {
+      "name": "black",
+      "hex": "#000000"
+    },
+    {
+      "name": "blue",
+      "hex": "#0000AA"
+    },
+    {
+      "name": "green",
+      "hex": "#00AA00"
+    },
+    {
+      "name": "cyan",
+      "hex": "#00AAAA"
+    },
+    {
+      "name": "red",
+      "hex": "#AA0000"
+    },
+    {
+      "name": "magenta",
+      "hex": "#AA00AA"
+    },
+    {
+      "name": "brown",
+      "hex": "#AA5500"
+    },
+    {
+      "name": "lightGrey",
+      "hex": "#AAAAAA"
+    },
+    {
+      "name": "darkGrey",
+      "hex": "#555555"
+    },
+    {
+      "name": "brightBlue",
+      "hex": "#5555FF"
+    },
+    {
+      "name": "brightGreen",
+      "hex": "#55FF55"
+    },
+    {
+      "name": "brightCyan",
+      "hex": "#55FFFF"
+    },
+    {
+      "name": "brightRed",
+      "hex": "#FF5555",
+      "role": "warning"
+    },
+    {
+      "name": "brightMagenta",
+      "hex": "#FF55FF"
+    },
+    {
+      "name": "yellow",
+      "hex": "#FFFF55",
+      "role": "interactable"
+    },
+    {
+      "name": "white",
+      "hex": "#FFFFFF"
+    }
+  ]
+}
