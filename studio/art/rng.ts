@@ -1,4 +1,4 @@
-// A seeded generator, so a style that jitters (crayon, watercolor, paper grain)
+// A seeded generator, so a style that jitters (crayon, paper grain)
 // renders the SAME bytes for the same seed. Exports and gallery shots depend
 // on that: a diff between two runs must mean the art changed, never that the
 // dice did. mulberry32 - 32-bit state, good enough distribution, six lines.

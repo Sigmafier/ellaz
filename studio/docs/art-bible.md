@@ -69,8 +69,7 @@ highlight pixel or a long shadow.
 ## Grid and pixel scale
 
 - Scenes are authored at 1x in scene units; a style chooses its cell. The
-  pixel styles are 3 (hi-bit), 5 (SNES, CRT), 7 (Game Boy), 9 (NES) scene
-  units per cell; voxel is 8.
+  pixel styles are 5 (SNES) and 7 (Game Boy) scene units per cell.
 - A sprite's pivot is the bottom centre of its feet. Every clip of a character
   keeps the same pivot, so swapping clips never makes the character hop.
 - Sockets (where a held thing attaches: hand, head) are named, not numbered.
@@ -110,6 +109,11 @@ Game Boy was picked and unpicked.
   note on the gallery (`#/styles`, the thirteenth tile): *"get rid of this style for good"*.
   Module, recipe and registry row deleted; recorded as `rejected mood` in the taste ledger
   so no session re-proposes it under another name.
+- **Rejected for good, 2026-09-05: Voxel cubes, NES 8-bit, Watercolor storybook, Sticker
+  book, Hi-bit modern pixel, CRT arcade.** Six beetle notes in one minute, one per tile,
+  each *"get rid of this style"*. Same treatment, plus the NES palette that only that
+  style used. Six styles remain: the four full ones, Game Boy and Clay. (The voxel
+  TECHNIQUE - a cube model pre-rendered - is a different thing and stays.)
 
 ## Exceptions
 

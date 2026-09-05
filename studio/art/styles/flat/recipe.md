@@ -65,7 +65,7 @@ shop items and icons.
 ## Avoid
 
 Gradients, textures, outlines, and drop shadows with blur; any of those
-turns it into a different style (clay or sticker). Avoid pure-white
+turns it into a different style (clay). Avoid pure-white
 backgrounds: the shadow is the only depth cue and it needs a ground with
 some value to land on.
 

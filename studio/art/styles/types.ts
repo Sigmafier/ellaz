@@ -12,8 +12,8 @@ export interface RenderOpts {
    */
   seed?: string;
   /**
-   * Sprite mode: a style that normally paints a page (paper, crayon,
-   * watercolor, voxel ground) leaves the canvas transparent
+   * Sprite mode: a style that normally paints a page (paper, crayon)
+   * leaves the canvas transparent
    * instead, so the export can sit on any background.
    */
   transparent?: boolean;
