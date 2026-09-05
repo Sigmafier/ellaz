@@ -85,11 +85,21 @@ export function snapOps(ops: Op[], unit: number): Op[] {
     const flush = () => { if (run) out.push({ ...R(run.x * unit, cy * unit, run.n * unit, unit, run.f, run.fg), own: true }); run = null; };
     for (let cx = x0; cx < x1; cx++) {
       const sx = (cx + 0.5) * unit;
-      let hit: Op | null = null;
-      for (let i = ops.length - 1; i >= 0; i--) {
-        const b = boxes[i];
-        if (sx < b[0] || sx >= b[2] || sy < b[1] || sy >= b[3]) continue;
-        if (contains(ops[i], sx, sy)) { hit = ops[i]; break; }
+      const topmostAt = (px: number, py: number): Op | null => {
+        for (let i = ops.length - 1; i >= 0; i--) {
+          const b = boxes[i];
+          if (px < b[0] || px >= b[2] || py < b[1] || py >= b[3]) continue;
+          if (contains(ops[i], px, py)) return ops[i];
+        }
+        return null;
+      };
+      // the centre decides; a miss re-samples a quarter cell off in four
+      // directions, so a hairline seam between two tiling polygons (a
+      // squashed body's rows) never opens a hole through the sprite
+      let hit = topmostAt(sx, sy);
+      if (!hit) {
+        const q = unit / 4;
+        for (const [ox, oy] of [[q, 0], [-q, 0], [0, q], [0, -q]] as const) { hit = topmostAt(sx + ox, sy + oy); if (hit) break; }
       }
       if (!hit) { flush(); continue; }
       if (run && run.f === hit.f && run.fg === hit.fg) run.n++;
@@ -104,17 +114,134 @@ export function snapOps(ops: Op[], unit: number): Op[] {
 export const snapClips = (clips: BakedClip[], unit: number): BakedClip[] =>
   clips.map((c) => ({ ...c, frames: c.frames.map((f) => ({ ...f, ops: snapOps(f.ops, unit) })) }));
 
-/** The standard clips are keyed in body units for a ~70-unit body; a pixel rig at `unit` units per pixel scales their translations to match. */
-export function scaleClipTranslations(clips: Clip[], k: number): Clip[] {
+/**
+ * The standard clips are keyed in body units for a ~70-unit body; a pixel rig
+ * scales their translations by `k` and, when `unit` is given, rounds each to a
+ * whole pixel and drops the head's own nod - at pixel scale a head that moves
+ * one pixel more than the neck it sits on is a head floating off its body.
+ */
+export function scaleClipTranslations(clips: Clip[], k: number, unit?: number): Clip[] {
+  const px = (v: number) => (unit ? Math.round((v * k) / unit) * unit : v * k);
   return clips.map((c) => ({
     ...c,
     keys: c.keys.map((kf) => ({
       ...kf,
-      pose: Object.fromEntries(Object.entries(kf.pose).map(([bone, d]) => [bone, {
-        ...d,
-        ...(d.dx !== undefined ? { dx: d.dx * k } : {}),
-        ...(d.dy !== undefined ? { dy: d.dy * k } : {}),
-      }])),
+      pose: Object.fromEntries(Object.entries(kf.pose).map(([bone, d]) => {
+        const { dx, dy, ...rest } = d;
+        const out = { ...rest } as typeof d;
+        if (dx !== undefined) out.dx = px(dx);
+        if (dy !== undefined && !(unit && bone === "head")) out.dy = px(dy);
+        return [bone, out];
+      })),
     })),
   }));
+}
+
+// ---------------------------------------------------------------------------
+// The rig builder: one grid, one spec, one rig. Parts claim cells in the order
+// they are listed - a cell goes to the FIRST part whose region holds it - so
+// regions may overlap and a later part takes only what is left. A test
+// re-composes the rest pose and compares it to the grid cell for cell, which
+// is what proves the cut lossless and every pivot right.
+
+import type { Rig } from "../rig/types";
+
+export interface PixelRigSpec {
+  id: string;
+  grid: string[];
+  palette: Record<string, string>;
+  /** body units per pixel; equal to the pixel style's CELL */
+  unit: number;
+  /** grid column of the pivot, and the row just below the last one */
+  origin: [col: number, row: number];
+  /** bone pivots as grid (col, row); root is implied at the origin */
+  bones: Record<string, { at: [number, number]; parent: string }>;
+  /** parts in CLAIM order; `only` limits a region to these characters */
+  parts: { id: string; bone: string; z: number; regions: Region[]; only?: string }[];
+  sockets: Record<string, { bone: string; at: [number, number] }>;
+  /** grid rect [c0, r0, c1, r1], inclusive */
+  hitbox: [number, number, number, number];
+  clips: Clip[];
+  /** the walk leaves the ground (a blob hops); the feet test allows it */
+  hops?: boolean;
+}
+
+export interface PixelRig {
+  rig: Rig;
+  /** the grid cells each part claimed, (col, row) */
+  cells: Record<string, [number, number][]>;
+  /** the same cells of one part read from another grid - a wince, closed eyes */
+  swap(partId: string, grid: string[]): Op[];
+}
+
+export function buildPixelRig(spec: PixelRigSpec): PixelRig {
+  const U = spec.unit;
+  const at = (bone: string): [number, number] => (bone === "root" ? spec.origin : spec.bones[bone].at);
+  const claimed = new Set<string>();
+  const cells: Record<string, [number, number][]> = {};
+  for (const p of spec.parts) {
+    const mine: [number, number][] = [];
+    for (const [r0, r1, c0, c1] of p.regions) {
+      for (let r = r0; r <= r1; r++) {
+        const row = spec.grid[r] ?? "";
+        for (let c = c0; c <= c1; c++) {
+          const ch = row[c];
+          if (ch === undefined || ch === "." || !spec.palette[ch]) continue;
+          if (p.only && !p.only.includes(ch)) continue;
+          const key = `${c},${r}`;
+          if (claimed.has(key)) continue;
+          claimed.add(key);
+          mine.push([c, r]);
+        }
+      }
+    }
+    cells[p.id] = mine;
+  }
+  const opsOf = (partId: string, bone: string, grid: string[]): Op[] => {
+    const [pc, pr] = at(bone);
+    const byRow = new Map<number, number[]>();
+    for (const [c, r] of cells[partId]) byRow.set(r, [...(byRow.get(r) ?? []), c]);
+    const out: Op[] = [];
+    for (const [r, cols] of [...byRow.entries()].sort((a, b) => a[0] - b[0])) {
+      cols.sort((a, b) => a - b);
+      let i = 0;
+      while (i < cols.length) {
+        const ch = grid[r]?.[cols[i]];
+        if (ch === undefined || ch === "." || !spec.palette[ch]) { i++; continue; }
+        let n = 1;
+        while (i + n < cols.length && cols[i + n] === cols[i] + n && grid[r]?.[cols[i + n]] === ch) n++;
+        out.push(R((cols[i] - pc) * U, (r - pr) * U, n * U, U, spec.palette[ch]));
+        i += n;
+      }
+    }
+    return out;
+  };
+  const partBone = Object.fromEntries(spec.parts.map((p) => [p.id, p.bone]));
+  const [oc, orow] = spec.origin;
+  const rig: Rig = {
+    id: spec.id,
+    bones: [
+      { id: "root", parent: null, x: 0, y: 0 },
+      ...Object.entries(spec.bones).map(([id, b]) => {
+        const [pc, pr] = at(b.parent);
+        return { id, parent: b.parent, x: (b.at[0] - pc) * U, y: (b.at[1] - pr) * U };
+      }),
+    ],
+    parts: spec.parts.map((p) => ({ id: p.id, bone: p.bone, z: p.z, ops: opsOf(p.id, p.bone, spec.grid) })),
+    sockets: Object.fromEntries(Object.entries(spec.sockets).map(([name, s]) => {
+      const [pc, pr] = at(s.bone);
+      return [name, { bone: s.bone, x: (s.at[0] - pc) * U, y: (s.at[1] - pr) * U }];
+    })),
+    hitbox: [(spec.hitbox[0] - oc) * U, (spec.hitbox[1] - orow) * U, (spec.hitbox[2] - spec.hitbox[0] + 1) * U, (spec.hitbox[3] - spec.hitbox[1] + 1) * U],
+    clips: spec.clips,
+  };
+  return { rig, cells, swap: (partId, grid) => opsOf(partId, partBone[partId], grid) };
+}
+
+/** A grid with some rows re-written: `edits` maps row index to a (col, text) splice. */
+export function editGrid(grid: string[], edits: Record<number, [col: number, text: string]>): string[] {
+  return grid.map((row, i) => {
+    const e = edits[i];
+    return e ? row.slice(0, e[0]) + e[1] + row.slice(e[0] + e[1].length) : row;
+  });
 }

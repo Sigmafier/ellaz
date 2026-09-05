@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { P, R } from "../scene-ops";
-import { rotate, transformOp, translate, multiply } from "../rig/transform";
+import { multiply, rotate, scale, transformOp, translate } from "../rig/transform";
 import { cutGrid, scaleClipTranslations, snapOps } from "./pixel-parts";
 import { standardClips } from "../characters/clips";
 
@@ -48,6 +48,18 @@ describe("snapOps", () => {
   });
 });
 
+describe("snapOps under a squash", () => {
+  it("leaves no hole through a body whose rows were scaled to a fraction of a cell", () => {
+    // 20 rows of 1x40 rects, squashed to 45% height: the rows become thin
+    // polygons that tile with hairline seams; every cell inside must be filled
+    const rows = Array.from({ length: 20 }, (_, i) => R(-20, -20 + i, 40, 1, i % 2 ? "#ff0000" : "#00ff00"));
+    const m = multiply(translate(0, 0), scale(1.8, 0.45));
+    const out = snapOps(rows.map((o) => transformOp(o, m)), 1);
+    const cells = new Set(out.flatMap((o) => (o.k === "r" ? Array.from({ length: o.w }, (_, k) => `${o.x + k},${o.y}`) : [])));
+    for (let y = -9; y < 0; y++) for (let x = -36; x < 36; x++) expect(cells.has(`${x},${y}`), `hole at ${x},${y}`).toBe(true);
+  });
+});
+
 describe("scaleClipTranslations", () => {
   it("scales dx and dy, leaves rotation alone, and adds no keys", () => {
     const out = scaleClipTranslations(standardClips(), 3);
@@ -55,5 +67,13 @@ describe("scaleClipTranslations", () => {
     expect(attack.keys[1].pose.armR).toEqual({ rot: -0.15, dx: 21 });
     expect(attack.keys[0].pose.torso).toEqual({ rot: -0.12 });
     expect(out.map((c) => c.id)).toEqual(standardClips().map((c) => c.id));
+  });
+  it("with a unit, rounds every translation to a whole pixel and drops the head's own nod", () => {
+    const out = scaleClipTranslations(standardClips(), 3.5, 5);
+    const idle = out.find((c) => c.id === "idle")!;
+    expect(idle.keys[1].pose.torso).toEqual({ dy: -5 });
+    expect(idle.keys[1].pose.head).toEqual({ rot: 0.03 });
+    const attack = out.find((c) => c.id === "attack")!;
+    expect(attack.keys[1].pose.armR).toEqual({ rot: -0.15, dx: 25 });
   });
 });

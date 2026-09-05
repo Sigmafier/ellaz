@@ -3,15 +3,15 @@ import { bounds, place, validate } from "../scene-ops";
 import { bakeAll, bakePose, validateRig } from "../rig/rig";
 import { CLIP_IDS } from "../rig/types";
 import { CHARACTERS, RIGGED } from "./index";
-import type { Character } from "./index";
+import { teddyRig } from "./teddy/rig";
 
 const rectsOf = (ops: ReturnType<typeof bakePose>) => ops.filter((o) => o.k !== "p").map((o) => `${o.k}:${o.f}:${[...Object.values(o)].filter((v) => typeof v === "number").map((v) => Math.round(v * 10) / 10).join(",")}`).sort();
 
 describe("the cast", () => {
   it("four characters, two of each side, unique ids", () => {
-    expect(CHARACTERS).toHaveLength(5);
-    expect(CHARACTERS.filter((c) => c.side === "hero")).toHaveLength(3);
-    expect(new Set(CHARACTERS.map((c) => c.id)).size).toBe(5);
+    expect(CHARACTERS).toHaveLength(4);
+    expect(CHARACTERS.filter((c) => c.side === "hero")).toHaveLength(2);
+    expect(new Set(CHARACTERS.map((c) => c.id)).size).toBe(4);
   });
   it("every static pose validates as a scene fragment", () => {
     for (const c of CHARACTERS) expect(validate({ id: c.id, w: 200, h: 200, ops: c.staticOps() }), c.id).toEqual([]);
@@ -113,9 +113,9 @@ for (const c of CHARACTERS) {
 
 describe("the parametric teddy", () => {
   it("is a valid rig with the conventional bones and is roughly three heads tall", () => {
-    const t = CHARACTERS.find((c) => c.id === "teddy")! as Character & { rig: NonNullable<Character["rig"]> };
-    expect(validateRig(t.rig)).toEqual([]);
-    const [, y, , h] = bounds(bakePose(t.rig, {}))!;
+    // the parametric biped stays as the technique library's sample; the cast's teddy is pixel art now
+    expect(validateRig(teddyRig)).toEqual([]);
+    const [, y, , h] = bounds(bakePose(teddyRig, {}))!;
     expect(Math.abs(y + h)).toBeLessThan(0.01);
     expect(h).toBeGreaterThan(55);
     expect(h).toBeLessThan(75);

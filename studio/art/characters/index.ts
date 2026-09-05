@@ -1,23 +1,24 @@
 // The cast. One entry per character: its rig (animated) and its static
 // reference pose (the scenes and the technique samples draw this one).
+//
+// Since 2026-09-05 every character is PIXEL ART on the rig: drawn once as a
+// grid at its role's size (hero 48, small enemy 32, boss 64), cut along the
+// standard bones, and re-snapped to the grid on every baked frame
+// (art/techniques/pixel-parts.ts). The geometric rigs and static poses stay
+// beside them as the technique library's samples.
 
 import type { Op } from "../scene-ops";
 import type { BakedClip, Rig } from "../rig/types";
-import { bakeAll } from "../rig/rig";
-import { robotOps } from "./robot/static";
-import { knightOps } from "./knight/static";
-import { teddyOps } from "./teddy/static";
-import { slimeOps } from "./slime/static";
-import { robotRig } from "./robot/rig";
-import { knightRig } from "./knight/rig";
-import { teddyRig } from "./teddy/rig";
-import { slimeClips } from "./slime/frames";
-import { knight48Rig, KNIGHT48_UNIT } from "./knight/rig48";
-import { snapClips, snapOps } from "../techniques/pixel-parts";
-import { bakePose } from "../rig/rig";
+import { bakeAll, bakePose } from "../rig/rig";
 import { transformOp, translate } from "../rig/transform";
+import { snapClips, snapOps, type PixelRig, type PixelRigSpec } from "../techniques/pixel-parts";
+import { knight48, KNIGHT48_SPEC } from "./knight/rig48";
+import { robot48, ROBOT48_SPEC } from "./robot/rig48";
+import { teddy32, TEDDY32_SPEC } from "./teddy/rig32";
+import { slime32, SLIME32_SPEC } from "./slime/rig32";
 
 export type Side = "hero" | "enemy";
+export type Role = "hero" | "enemy" | "boss";
 
 export interface Character {
   id: string;
@@ -29,22 +30,37 @@ export interface Character {
   technique: "parts-rig" | "parametric" | "shape-frames" | "pixel-parts";
   /** body units per authored pixel, when the character IS pixel art: frames are snapped to this grid and every placement aligns to it */
   pixel?: number;
-  /** the rig, when the character has one; slime is frames only */
+  /** the rig, when the character has one */
   rig: Rig | null;
   /** every clip, baked. The one thing an exporter needs. */
   clips: () => BakedClip[];
 }
 
+/** the operator's sizes by role, in pixels tall (2026-09-05) */
+export const HEIGHT_BY_ROLE: Record<Role, number> = { hero: 48, enemy: 32, boss: 64 };
+
+function pixelCharacter(id: string, name: string, side: Side, built: PixelRig, spec: PixelRigSpec): Character & { rig: Rig } {
+  const U = spec.unit;
+  const [oc, orow] = spec.origin;
+  return {
+    id, name, side, technique: "pixel-parts", pixel: U, rig: built.rig,
+    staticOps: () => snapOps(bakePose(built.rig, {}), U).map((o) => transformOp(o, translate(oc * U, orow * U))),
+    clips: () => snapClips(bakeAll(built.rig), U),
+  };
+}
+
+export const PIXEL_CAST: { id: string; built: PixelRig; spec: PixelRigSpec; role: Role }[] = [
+  { id: "robot", built: robot48, spec: ROBOT48_SPEC, role: "hero" },
+  { id: "knight", built: knight48, spec: KNIGHT48_SPEC, role: "hero" },
+  { id: "teddy", built: teddy32, spec: TEDDY32_SPEC, role: "enemy" },
+  { id: "slime", built: slime32, spec: SLIME32_SPEC, role: "enemy" },
+];
+
 export const CHARACTERS: Character[] = [
-  { id: "robot", name: "Robot", side: "hero", technique: "parts-rig", staticOps: robotOps, rig: robotRig, clips: () => bakeAll(robotRig) },
-  { id: "knight", name: "Knight", side: "hero", technique: "parts-rig", staticOps: knightOps, rig: knightRig, clips: () => bakeAll(knightRig) },
-  { id: "teddy", name: "Angry Teddy", side: "enemy", technique: "parametric", staticOps: teddyOps, rig: teddyRig, clips: () => bakeAll(teddyRig) },
-  {
-    id: "knight48", name: "Knight (48px)", side: "hero", technique: "pixel-parts", pixel: KNIGHT48_UNIT, rig: knight48Rig,
-    staticOps: () => snapOps(bakePose(knight48Rig, {}), KNIGHT48_UNIT).map((o) => transformOp(o, translate(16 * KNIGHT48_UNIT, 52 * KNIGHT48_UNIT))),
-    clips: () => snapClips(bakeAll(knight48Rig), KNIGHT48_UNIT),
-  },
-  { id: "slime", name: "Slime", side: "enemy", technique: "shape-frames", staticOps: slimeOps, rig: null, clips: slimeClips },
+  pixelCharacter("robot", "Robot", "hero", robot48, ROBOT48_SPEC),
+  pixelCharacter("knight", "Knight", "hero", knight48, KNIGHT48_SPEC),
+  pixelCharacter("teddy", "Angry Teddy", "enemy", teddy32, TEDDY32_SPEC),
+  pixelCharacter("slime", "Slime", "enemy", slime32, SLIME32_SPEC),
 ];
 
 export const CHARACTER_IDS = CHARACTERS.map((c) => c.id);
