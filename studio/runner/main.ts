@@ -10,8 +10,7 @@
 import { STYLES, styleById } from "../art/styles/registry";
 import { SCENES } from "../art/scenes";
 import { E, R, place, validate, type Scene } from "../art/scene-ops";
-import { RIGGED, characterById } from "../art/characters";
-import { bakeAll } from "../art/rig/rig";
+import { CHARACTERS, characterById } from "../art/characters";
 
 export interface RenderResult {
   styleId: string;
@@ -60,9 +59,9 @@ export interface StripResult {
 /** One clip as a horizontal strip: every frame at `scale`, on a plain ground, feet on a line. */
 function clipStrip(charId: string, styleId: string, scale: number): StripResult[] {
   const ch = characterById(charId);
-  if (!ch?.rig) throw new Error(`no rigged character "${charId}"`);
+  if (!ch) throw new Error(`no character "${charId}"`);
   const cell = 90 * scale, ground = 74 * scale;
-  return bakeAll(ch.rig).map((clip) => {
+  return ch.clips().map((clip) => {
     const w = cell * clip.frames.length, h = 90 * scale;
     const ops = [R(0, 0, w, h, "#e8eef7", false), R(0, ground, w, h - ground, "#c9d3e3", false)];
     clip.frames.forEach((f, i) => {
@@ -76,7 +75,8 @@ function clipStrip(charId: string, styleId: string, scale: number): StripResult[
 }
 
 const api = {
-  riggedIds: RIGGED.map((c) => c.id),
+  characterIds: CHARACTERS.map((c) => c.id),
+  characters: CHARACTERS.map(({ id, name, side, technique }) => ({ id, name, side, technique })),
   renderClipStrips: clipStrip,
   styles: STYLES.map(({ id, name, tier, family, tagline }) => ({ id, name, tier, family, tagline })),
   sceneIds: Object.keys(SCENES),

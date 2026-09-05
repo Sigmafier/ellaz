@@ -3,6 +3,7 @@ import { bounds, place, validate } from "../scene-ops";
 import { bakeAll, bakePose, validateRig } from "../rig/rig";
 import { CLIP_IDS } from "../rig/types";
 import { CHARACTERS, RIGGED } from "./index";
+import type { Character } from "./index";
 
 const rectsOf = (ops: ReturnType<typeof bakePose>) => ops.filter((o) => o.k !== "p").map((o) => `${o.k}:${o.f}:${[...Object.values(o)].filter((v) => typeof v === "number").map((v) => Math.round(v * 10) / 10).join(",")}`).sort();
 
@@ -17,7 +18,9 @@ describe("the cast", () => {
   });
 });
 
-for (const c of RIGGED) {
+const HAND_RIGGED = RIGGED.filter((c) => c.technique === "parts-rig");
+
+for (const c of HAND_RIGGED) {
   describe(`${c.id} rig`, () => {
     const rig = c.rig;
     it("validates", () => expect(validateRig(rig)).toEqual([]));
@@ -74,3 +77,47 @@ for (const c of RIGGED) {
     });
   });
 }
+
+for (const c of CHARACTERS) {
+  describe(`${c.id} clips (${c.technique})`, () => {
+    const clips = c.clips();
+    it("carries the five standard clips, in order, with frames", () => {
+      expect(clips.map((k) => k.id)).toEqual([...CLIP_IDS]);
+      for (const k of clips) expect(k.frames.length, k.id).toBeGreaterThan(0);
+    });
+    it("every frame is named by the grammar, pivots at the origin, and validates", () => {
+      for (const k of clips) {
+        k.frames.forEach((f, i) => {
+          expect(f.name).toBe(`${c.id}_${k.id}_${String(i).padStart(4, "0")}`);
+          expect(f.pivot).toEqual({ x: 0, y: 0 });
+          expect(validate({ id: f.name, w: 200, h: 200, ops: f.ops })).toEqual([]);
+        });
+      }
+    });
+    it("idle and walk loop, attack/hurt/ko do not, and idle keeps its feet near the line", () => {
+      const by = Object.fromEntries(clips.map((k) => [k.id, k]));
+      expect(by.idle.loop && by.walk.loop).toBe(true);
+      expect(by.attack.loop || by.hurt.loop || by.ko.loop).toBe(false);
+      for (const f of by.idle.frames) {
+        const [, y, , h] = bounds(f.ops)!;
+        expect(Math.abs(y + h), f.name).toBeLessThan(3);
+      }
+    });
+    it("ko's last frame is wider than it is tall (lying down or splatted)", () => {
+      const last = clips.find((k) => k.id === "ko")!.frames.at(-1)!;
+      const [, , w, h] = bounds(last.ops)!;
+      expect(w).toBeGreaterThan(h);
+    });
+  });
+}
+
+describe("the parametric teddy", () => {
+  it("is a valid rig with the conventional bones and is roughly three heads tall", () => {
+    const t = CHARACTERS.find((c) => c.id === "teddy")! as Character & { rig: NonNullable<Character["rig"]> };
+    expect(validateRig(t.rig)).toEqual([]);
+    const [, y, , h] = bounds(bakePose(t.rig, {}))!;
+    expect(Math.abs(y + h)).toBeLessThan(0.01);
+    expect(h).toBeGreaterThan(55);
+    expect(h).toBeLessThan(75);
+  });
+});

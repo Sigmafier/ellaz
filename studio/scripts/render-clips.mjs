@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Render every rigged character's clips as strips, one PNG per clip per
+// Render every character's clips as strips, one PNG per clip per
 // style, so an animation can be eyeballed before any export exists.
 //
 //   node scripts/render-clips.mjs [outDir] [--styles snes16,flat]   default: shots/clips/, full styles
@@ -18,7 +18,7 @@ mkdirSync(out, { recursive: true });
 const { browser, page, errors } = await openRunner();
 try {
   const styles = stylesArg ? stylesArg.split(",") : await page.evaluate(() => window.studio.styles.filter((s) => s.tier === "full").map((s) => s.id));
-  const chars = await page.evaluate(() => window.studio.riggedIds);
+  const chars = await page.evaluate(() => window.studio.characterIds);
   let n = 0;
   for (const ch of chars) {
     for (const styleId of styles) {
