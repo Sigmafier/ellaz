@@ -750,3 +750,38 @@ one line.
   workflows. See `.claude/rules/precache-glob-sweeps-new-chunks.md`.
 - **Legal:** original art and names only. No trademarked names/trade dress (no
   "Tetris"/"Wordle"/"Waldo"; change shapes/colors/names for any cloned mechanic).
+
+### Bubble Shooter — the aim guide's off switch, and squeezing through a gap
+
+Two player reports, 2026-09-04, issues #28 and #29.
+
+**The guide has a switch now.** It always drew the dashed path and the landing
+ring, unconditionally; a chip in the game's footer turns both off, on its own row
+and at the logical end rather than beside Shoot, because a settings chip next to
+Shoot is one a child taps when they meant to fire. It **defaults ON** — the
+renderer's own comment calls the ring "the single thing that makes the game
+playable with a finger on a 390px screen", so off is a challenge a player goes
+looking for. The choice is remembered under the game's own `ctx.storage`
+namespace, written from the handler and never from a `setState` updater.
+
+**A one-bubble gap can now be aimed at.** It was always legal to shoot through
+and never possible to hit: a resting bubble is 1.0 wide and so is a flying one,
+so the hole left by one missing bubble is a zero-clearance fit. Measured on the
+shipped build, controls passing
+(`scripts/repro/bubbleshooter-squeeze-window.mts`): the widest angle window that
+got past a one-cell gap was **19.04 mrad — about 2.5 px of finger travel on a
+360 px drag**. `SQUEEZE_DIST` is a second, tighter reach that applies only inside
+a corridor (an empty cell with another empty cell one bubble-width ahead), so a
+bubble with somewhere to go squashes through and a bubble facing a wall still
+sticks. The value was swept, not chosen: **87.18 mrad, 11.5 px**, picked because
+the nudge buttons step 80 mrad and a window narrower than one step is a move only
+a dragging finger can make.
+
+**Three guards written in that change were measured inert and one was deleted.**
+Over 120 real boards x 601 angles (47.6M march steps, positive control 1.8M steps
+where the reach decided the answer), a "the bubble must be one of the six forming
+the gap" test could never fire — the hex packing puts the second ring of cells
+sqrt(3) away, further than any point inside a cell can reach. It is gone, and the
+geometry is written down in its place; the two remaining ones are labelled as
+definitional rather than protective, so nobody later cites them as the thing
+keeping the game correct.

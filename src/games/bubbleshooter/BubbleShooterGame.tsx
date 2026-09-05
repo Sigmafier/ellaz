@@ -81,6 +81,7 @@ const WORDS: Record<Locale, {
   shoot: string;
   field: string;
   next: string;
+  helper: string;
 }> = {
   he: {
     hint: "מכוונים, יורים, ושלוש בועות באותו צבע מתפוצצות",
@@ -91,6 +92,7 @@ const WORDS: Record<Locale, {
     shoot: "לירות",
     field: "לוח הבועות — נגיעה מכוונת, הרפיה יורה",
     next: "הבאה בתור",
+    helper: "קו כיוון",
   },
   en: {
     hint: "Aim, shoot, and three of a colour pop",
@@ -101,6 +103,7 @@ const WORDS: Record<Locale, {
     shoot: "Shoot",
     field: "Bubble field — touch to aim, release to shoot",
     next: "Next up",
+    helper: "Aim guide",
   },
   es: {
     hint: "Apunta, dispara, y tres del mismo color revientan",
@@ -111,6 +114,7 @@ const WORDS: Record<Locale, {
     shoot: "Disparar",
     field: "Campo de burbujas — toca para apuntar, suelta para disparar",
     next: "Siguiente",
+    helper: "Guía",
   },
 };
 
@@ -150,6 +154,23 @@ const MILESTONE = 1000;
 /** Keyboard aim step, in radians. ~2.3°, so a held key sweeps at a usable rate. */
 const KEY_STEP = 0.04;
 
+/** Peak deformation while squeezing: 30% narrower across, 30% longer along. */
+const SQUASH = 0.3;
+/** How far either side of a gap's middle the squash is visible, in bubble units. */
+const SQUASH_REACH = 0.75;
+
+/**
+ * Whether the aiming guide is drawn, under the game's own `ellaz:<gameId>:`
+ * namespace - the same one `useRememberedLevel` writes the chosen level to.
+ *
+ * DEFAULT ON, and that is not a hedge. The landing ring is described a hundred
+ * lines below as "the single thing that makes the game playable with a finger
+ * on a 390px screen rather than a guess", which is a claim about a five-year-old
+ * on a phone, not about taste. Off is a challenge a player goes looking for; it
+ * is never something they are handed by an empty localStorage.
+ */
+const HELPER_KEY = "aimHelper";
+
 interface Puff {
   x: number;
   y: number;
@@ -161,6 +182,8 @@ interface Faller extends Puff {
 }
 interface Flight {
   path: Point[];
+  /** The middle of each gap this shot squeezes through - see SQUEEZE_DIST. */
+  squeezes: Point[];
   /** Cumulative distance to the end of each segment. */
   marks: number[];
   total: number;
@@ -255,6 +278,7 @@ export function BubbleShooterGame({ ctx }: { ctx: GameContext }) {
 
   const [state, setState] = useState<ShooterState>(() => resume?.state ?? newGame(level));
   const [best, setBest] = useState<number | undefined>(() => ctx.score?.best(level));
+  const [helper, setHelper] = useState<boolean>(() => ctx.storage.get<boolean>(HELPER_KEY, true));
 
   const stateRef = useRef(state);
   const angleRef = useRef(0);
@@ -266,6 +290,9 @@ export function BubbleShooterGame({ ctx }: { ctx: GameContext }) {
   const bestFiredRef = useRef(resume?.bestFired ?? false);
   /** Did the score port call anything in this run a personal best? */
   const sawBestRef = useRef(false);
+  /** The draw loop reads the ref; the chrome reads the state. Same split the
+   *  board itself uses, and for the same reason: rAF runs outside React. */
+  const helperRef = useRef(helper);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const startedRef = useRef(false);
@@ -298,6 +325,22 @@ export function BubbleShooterGame({ ctx }: { ctx: GameContext }) {
   );
 
   const restart = useCallback(() => start(stateRef.current.level), [start]);
+
+  /**
+   * Flip the guide on or off.
+   *
+   * The next value is derived from the REF and not from a `setHelper(on => !on)`
+   * updater. React may run an updater twice, and the storage write inside one
+   * would then be a coin flip - see `game-difficulty-and-juice-convention.md`.
+   * Written through immediately rather than in an effect, for the same reason
+   * `useRememberedLevel` does: a tap that unmounts the game would lose it.
+   */
+  const toggleHelper = useCallback(() => {
+    const next = !helperRef.current;
+    helperRef.current = next;
+    setHelper(next);
+    ctx.storage.set(HELPER_KEY, next);
+  }, [ctx]);
 
   // A dead run is CLEARED, not frozen: restoring a lost board shows a child a
   // game with nothing left to do and no obvious way to understand why.
@@ -447,6 +490,7 @@ export function BubbleShooterGame({ ctx }: { ctx: GameContext }) {
     const { marks, total } = measure(result.shot.path);
     flightRef.current = {
       path: result.shot.path,
+      squeezes: result.shot.squeezes,
       marks,
       total,
       color: s.current,
@@ -562,6 +606,7 @@ export function BubbleShooterGame({ ctx }: { ctx: GameContext }) {
       draw(g, el, now, {
         state: stateRef.current,
         angle: angleRef.current,
+        helper: helperRef.current,
         flight: flightRef.current,
         pops: popsRef.current,
         drops: dropsRef.current,
@@ -604,23 +649,66 @@ export function BubbleShooterGame({ ctx }: { ctx: GameContext }) {
             boxShadow: "var(--shadow-1)",
             padding: "10px 12px",
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            // The item count is fixed here and the WIDTH is not — see
-            // a-row-that-grows-with-the-catalog-must-wrap.md.
-            flexWrap: "wrap",
+            flexDirection: "column",
+            alignItems: "stretch",
             gap: 8,
           }}
         >
-          {/* Aiming without a pointer. Not a fallback: holding a steady angle on
-              a phone is exactly what a five-year-old and anyone on assistive
-              input cannot do, and these two buttons plus Shoot are a complete
-              way to play the game. */}
-          <AimButton label={WORDS[ctx.locale].aimLeft} glyph="◀" onPress={() => nudge(-KEY_STEP * 2)} />
-          <Button onClick={shoot} aria-label={WORDS[ctx.locale].shoot}>
-            {WORDS[ctx.locale].shoot}
-          </Button>
-          <AimButton label={WORDS[ctx.locale].aimRight} glyph="▶" onPress={() => nudge(KEY_STEP * 2)} />
+          {/* The guide's off switch, on its OWN row and at the logical end.
+              Not in the row below, and that is the whole placement decision: a
+              settings chip wedged beside Shoot is a chip a child taps when they
+              meant to fire. `flex-end` is logical, so it sits left in Hebrew. */}
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <button
+              type="button"
+              onClick={toggleHelper}
+              aria-pressed={helper}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                minHeight: 38,
+                padding: "6px 14px",
+                border: "none",
+                borderRadius: 999,
+                // --brand-strong is FLAT and carries --on-brand at 5.87:1 in
+                // market and 4.86:1 in night. The gradient --brand-fill cannot
+                // carry a label at all — see a-contrast-floor-is-a-floor.
+                background: helper ? "var(--brand-strong)" : "var(--surface-2)",
+                color: helper ? "var(--on-brand)" : "var(--text-dim)",
+                fontFamily: "inherit",
+                fontSize: ".82rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                touchAction: "manipulation",
+              }}
+            >
+              <span aria-hidden="true">{helper ? "◉" : "○"}</span>
+              {WORDS[ctx.locale].helper}
+            </button>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              // The item count is fixed here and the WIDTH is not — see
+              // a-row-that-grows-with-the-catalog-must-wrap.md.
+              flexWrap: "wrap",
+              gap: 8,
+            }}
+          >
+            {/* Aiming without a pointer. Not a fallback: holding a steady angle on
+                a phone is exactly what a five-year-old and anyone on assistive
+                input cannot do, and these two buttons plus Shoot are a complete
+                way to play the game. */}
+            <AimButton label={WORDS[ctx.locale].aimLeft} glyph="◀" onPress={() => nudge(-KEY_STEP * 2)} />
+            <Button onClick={shoot} aria-label={WORDS[ctx.locale].shoot}>
+              {WORDS[ctx.locale].shoot}
+            </Button>
+            <AimButton label={WORDS[ctx.locale].aimRight} glyph="▶" onPress={() => nudge(KEY_STEP * 2)} />
+          </div>
         </div>
       }
     >
@@ -734,6 +822,8 @@ function AimButton({ label, glyph, onPress }: { label: string; glyph: string; on
 interface Frame {
   state: ShooterState;
   angle: number;
+  /** Draw the aiming guide? A player's choice - see HELPER_KEY. */
+  helper: boolean;
   flight: Flight | null;
   pops: Puff[];
   drops: Faller[];
@@ -798,7 +888,7 @@ function draw(g: CanvasRenderingContext2D, el: HTMLCanvasElement, now: number, f
 
   // The guide. Drawn from the SAME `aim()` call the shot will use, so what a
   // player is shown and where the bubble goes cannot disagree.
-  if (!flying && !state.dead) {
+  if (!flying && !state.dead && f.helper) {
     const shot = aim(state, f.angle);
     g.save();
     g.strokeStyle = "rgba(255, 255, 255, 0.55)";
@@ -854,8 +944,48 @@ function draw(g: CanvasRenderingContext2D, el: HTMLCanvasElement, now: number, f
   if (flying) {
     const travelled = ((now - flying.start) / 1000) * SPEED;
     const p = along(flying, travelled);
-    bubble(g, p.x * u, p.y * u, r, flying.color, 1);
+    const squash = squashAt(flying, p);
+    if (squash <= 0) {
+      bubble(g, p.x * u, p.y * u, r, flying.color, 1);
+    } else {
+      // Squeezing through a one-bubble gap. Narrow ACROSS the direction of
+      // travel and long ALONG it, which is the shape a thing forced through a
+      // hole actually takes - and the reason the player asked for it.
+      //
+      // `rotate(h) · scale · rotate(-h)` is a directional scale: it squashes
+      // along the flight axis and leaves the bubble itself UPRIGHT, so the mark
+      // that says which colour this is stays readable. A plain `rotate` would
+      // spin the mark with the shot.
+      const ahead = along(flying, travelled + 0.01);
+      const h = Math.atan2(ahead.y - p.y, ahead.x - p.x);
+      g.save();
+      g.translate(p.x * u, p.y * u);
+      g.rotate(h);
+      g.scale(1 + squash * SQUASH, 1 - squash * SQUASH);
+      g.rotate(-h);
+      bubble(g, 0, 0, r, flying.color, 1);
+      g.restore();
+    }
   }
+}
+
+/**
+ * How squashed the bubble is at this point of its flight, 0..1.
+ *
+ * A raised cosine centred on each squeeze midpoint `aim()` reported, so the
+ * bubble narrows on the way in and rounds out on the way out rather than
+ * snapping between two shapes. Zero on the overwhelming majority of shots,
+ * which never thread anything.
+ */
+function squashAt(f: Flight, p: Point): number {
+  let best = 0;
+  for (const q of f.squeezes) {
+    const d = Math.hypot(q.x - p.x, q.y - p.y);
+    if (d >= SQUASH_REACH) continue;
+    const t = 0.5 + 0.5 * Math.cos((d / SQUASH_REACH) * Math.PI);
+    if (t > best) best = t;
+  }
+  return best;
 }
 
 function easeOut(t: number): number {

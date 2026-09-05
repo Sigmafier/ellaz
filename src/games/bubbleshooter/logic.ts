@@ -89,6 +89,51 @@ export const MAX_ANGLE = 1.36;
 
 /** Centre-to-centre distance below which a flying bubble has hit a resting one. */
 const HIT_DIST = 0.92;
+
+/**
+ * The same distance while the bubble is SQUEEZING through a gap.
+ *
+ * WHY THIS NUMBER EXISTS AT ALL. A resting bubble is 1.0 wide and so is a
+ * flying one, so the hole left by one missing bubble is a ZERO-CLEARANCE fit:
+ * geometrically a bubble can pass through it, and only if its centre crosses
+ * within a hair of dead centre. Measured on the shipped build before this
+ * changed (`scripts/repro/bubbleshooter-squeeze-window.mts`, controls passing):
+ * the widest angle window that got past a one-cell gap was **19.04 mrad, 0.70%
+ * of the aim arc, about 2.5 px of finger travel on a 360 px drag**. So the move
+ * was legal and nobody could do it on purpose, which is what a player reported
+ * (issue #29).
+ *
+ * NOT A SMALLER `HIT_DIST`. Lowering that would loosen every collision on the
+ * board at once and let bubbles tunnel into walls they should stick to. This
+ * one applies ONLY inside a corridor - an empty cell with another empty cell
+ * one bubble-width ahead along the flight - so a bubble with somewhere to go
+ * squashes through, and a bubble with a wall in front of it still sticks.
+ *
+ * THE VALUE WAS SWEPT, NOT PICKED. Same probe, same board, one value per run
+ * (2026-09-05, this tree):
+ *
+ *     0.92  19.04 mrad   2.5 px    <- identical to the shipped build, which is
+ *     0.85  36.04 mrad   4.8 px       also the proof the corridor changed
+ *     0.80  48.21 mrad   6.4 px       nothing else: at reach == HIT_DIST the
+ *     0.75  60.38 mrad   8.0 px       old numbers come back exactly
+ *     0.68  77.45 mrad  10.3 px
+ *     0.66  82.35 mrad  10.9 px
+ *     0.64  87.18 mrad  11.5 px    <- here
+ *     0.60  96.90 mrad  12.8 px
+ *
+ * The criterion is NOT "feels about right". The aim nudge buttons step
+ * `KEY_STEP * 2` = 80 mrad, and the renderer's own comment says those buttons
+ * plus Shoot are "a complete way to play the game" - so a window NARROWER than
+ * one step is a move only a dragging finger can make, and the button path
+ * silently stops being complete. 87.18 mrad is 1.09 steps: whatever angle a gap
+ * sits at, at least one reachable angle lands inside it. That is a property, and
+ * `a-gap-must-be-threadable-on-purpose.test.ts` holds it.
+ *
+ * The DRAWN squash is 30% and the reach implies more; the picture is the idea
+ * and this number is the rule, which is the ordinary arcade bargain. Said out
+ * loud here rather than left for someone to discover.
+ */
+export const SQUEEZE_DIST = 0.64;
 /** March resolution. Small enough that a bubble cannot tunnel a 1.0-wide target. */
 const STEP = 0.02;
 
@@ -249,6 +294,14 @@ export interface Shot {
   cell: Cell | null;
   /** True when the bubble reached the ceiling without meeting anything. */
   ceiling: boolean;
+  /**
+   * The middle of each gap this shot squeezed through, in flight order.
+   *
+   * One point per contiguous squeeze rather than one per march step, so a
+   * renderer can squash the bubble AROUND each of them without walking 50
+   * near-identical coordinates. Empty on the overwhelming majority of shots.
+   */
+  squeezes: Point[];
 }
 
 /** Is anything resting at this cell? */
@@ -289,6 +342,36 @@ function snapCell(state: ShooterState, pos: Point): Cell | null {
   return best;
 }
 
+/** The cell a point falls in, or null when it is off the field. */
+function cellAtPoint(state: ShooterState, x: number, y: number): Cell | null {
+  const row = Math.round((y - 0.5) / ROW_H);
+  if (row < 0 || row >= FIELD_ROWS) return null;
+  const col = Math.round(x - 0.5 - (isOffset(row, state.shift) ? 0.5 : 0));
+  if (col < 0 || col >= rowWidth(row, state.shift)) return null;
+  return { row, col };
+}
+
+/**
+ * Is there room to keep going one bubble-width ahead?
+ *
+ * Half of the corridor test. On its own it is true across most of an empty
+ * field, which is exactly why it is not the whole test - see `aim()`, where it
+ * is paired with "and the bubble in my way is one of the two forming this gap".
+ * The first version of this shipped without that pairing and reported a squeeze
+ * on a bubble flying up an empty board.
+ *
+ * The ceiling is deliberately not room - a bubble that reaches row 0 has
+ * arrived, and squeezing there would put it off the top of the board. Measured
+ * to be unreachable in practice (the ceiling check in `aim()` fires first); it
+ * stays as a statement of intent, not as protection. See `aim()`.
+ */
+function roomAhead(state: ShooterState, x: number, y: number, dx: number, dy: number): boolean {
+  const ay = y + dy;
+  if (ay <= 0.5) return false;
+  const ahead = cellAtPoint(state, x + dx, ay);
+  return ahead !== null && at(state, ahead.row, ahead.col) === null;
+}
+
 /**
  * Solve a shot at `angle` (0 = straight up, positive = clockwise/right).
  *
@@ -313,6 +396,23 @@ export function aim(state: ShooterState, angle: number): Shot {
   let bounces = 0;
   const maxSteps = Math.ceil((FIELD_H + FIELD_W) * 12 / STEP);
 
+  // Where the bubble squashed through a gap. Collected as RUNS and reduced to
+  // one midpoint each, so a renderer gets one place to squash rather than fifty.
+  const squeezes: Point[] = [];
+  let runFrom: Point | null = null;
+  let runTo: Point | null = null;
+  const closeRun = () => {
+    if (runFrom && runTo) {
+      squeezes.push({ x: (runFrom.x + runTo.x) / 2, y: (runFrom.y + runTo.y) / 2 });
+    }
+    runFrom = null;
+    runTo = null;
+  };
+  const done = (cell: Cell | null, ceiling: boolean): Shot => {
+    closeRun();
+    return { path: finish(path, cell, state), cell, ceiling, squeezes };
+  };
+
   for (let i = 0; i < maxSteps; i++) {
     x += dx * STEP;
     y += dy * STEP;
@@ -326,13 +426,35 @@ export function aim(state: ShooterState, angle: number): Shot {
 
     // The ceiling. Row 0 is the only place a bubble can rest unsupported.
     if (y <= 0.5) {
-      const cell = snapCell(state, { x, y: 0.5 });
-      return { path: finish(path, cell, state), cell, ceiling: true };
+      return done(snapCell(state, { x, y: 0.5 }), true);
     }
+
+    // Am I inside an empty cell with somewhere to go?
+    //
+    // WHICH HALF OF THIS ACTUALLY DECIDES ANYTHING, measured over 120 real
+    // boards x 601 angles = 47,621,280 march steps, with a positive control
+    // (1,824,400 steps where the reach genuinely decided the answer, so the
+    // probe was looking in the right place):
+    //
+    //   roomAhead                                    LOAD-BEARING - forcing it
+    //                                                true reds two test cells
+    //   at(here) === null                            0 steps could differ
+    //   the `ay <= 0.5` ceiling guard inside it      0 steps could differ
+    //
+    // The last two are kept because they are what "inside a gap" MEANS, not
+    // because they protect anything - the hex packing already guarantees both.
+    // Said out loud so nobody later cites them as the thing keeping this safe
+    // (`an-armed-lever-with-no-caller-reads-as-yes.md`).
+    const here = cellAtPoint(state, x, y);
+    const inGap =
+      here !== null &&
+      at(state, here.row, here.col) === null &&
+      roomAhead(state, x, y, dx, dy);
 
     // Anything resting nearby. Only the three rows around this height can be
     // within a bubble's width, so the sweep stays O(1) per step.
     const nearRow = Math.round((y - 0.5) / ROW_H);
+    let squeezing = false;
     for (let r = Math.max(0, nearRow - 1); r <= Math.min(FIELD_ROWS - 1, nearRow + 1); r++) {
       const w = rowWidth(r, state.shift);
       const c0 = Math.max(0, Math.floor(x) - 2);
@@ -340,18 +462,47 @@ export function aim(state: ShooterState, angle: number): Shot {
       for (let c = c0; c <= c1; c++) {
         if (at(state, r, c) === null) continue;
         const p = cellCenter(r, c, state.shift);
-        if ((p.x - x) ** 2 + (p.y - y) ** 2 < HIT_DIST * HIT_DIST) {
-          const cell = snapCell(state, { x, y });
-          return { path: finish(path, cell, state), cell, ceiling: false };
+        const d2 = (p.x - x) ** 2 + (p.y - y) ** 2;
+        if (d2 >= HIT_DIST * HIT_DIST) continue;
+
+        // Close enough to touch. Not in a gap with room ahead means a wall,
+        // and a wall stops the shot at full reach.
+        //
+        // This deliberately does NOT also check that the bubble is one of the
+        // six forming the gap. That check was written, and then measured to be
+        // inert: over 120 real boards x 601 angles, 72,480 bubbles came within
+        // HIT_DIST of a flight standing inside an empty cell and ZERO of them
+        // failed to touch that cell. The packing makes it impossible - the
+        // second ring of cells starts at sqrt(3) away, and no point inside a
+        // cell is far enough from its own centre to bring one inside 0.92. A
+        // guard that cannot fire reads as protection and is not
+        // (`an-armed-lever-with-no-caller-reads-as-yes.md`), so it is gone and
+        // the geometry that made it redundant is written down instead.
+        if (!inGap) {
+          return done(snapCell(state, { x, y }), false);
         }
+        if (d2 < SQUEEZE_DIST * SQUEEZE_DIST) {
+          return done(snapCell(state, { x, y }), false);
+        }
+        // Inside HIT_DIST, outside SQUEEZE_DIST, and it flanks this gap: the
+        // bubble squashes past it. Recorded so the renderer can show that.
+        squeezing = true;
       }
+    }
+
+    if (squeezing) {
+      if (!runFrom) runFrom = { x, y };
+      runTo = { x, y };
+    } else {
+      closeRun();
     }
   }
 
   // Unreachable on any real board: the ceiling is a full-width backstop, so a
   // rising bubble always meets it. Answered rather than thrown, because a shot
   // that quietly does nothing is a better failure than a crashed game.
-  return { path, cell: null, ceiling: false };
+  closeRun();
+  return { path, cell: null, ceiling: false, squeezes };
 }
 
 /** Close the polyline on the centre of the landing cell. */
