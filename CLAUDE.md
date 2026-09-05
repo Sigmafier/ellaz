@@ -28,7 +28,7 @@ repository root does not run a single one of its tests.**
 style renderers with recipes, four characters with five clips each, a technique
 library, an engine-neutral sprite export (sheet + atlas + manifest) with Phaser
 and canvas adapters, and a gallery. Same independence as the poker
-table: its own `package.json`, tests, seven gates and `studio.yml`; nothing in
+table: its own `package.json`, tests, eight gates and `studio.yml`; nothing in
 `src/` or `holdem/` imports from it and nothing in it imports from them, and
 **root `npm test` runs none of its tests** - `cd studio && npm run build:check`.
 Run the **`studio-workspace` skill** before touching it; the map is

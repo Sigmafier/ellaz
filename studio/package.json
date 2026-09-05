@@ -21,8 +21,11 @@
     "assert:manifest": "node scripts/assert-manifest-schema.mjs",
     "assert:atlas": "node scripts/assert-atlas-coverage.mjs",
     "assert:grammar": "node scripts/assert-frame-grammar.mjs",
-    "assert:all": "npm run assert:boundary && npm run assert:tokens && npm run assert:recipes && npm run assert:render && npm run assert:manifest && npm run assert:atlas && npm run assert:grammar",
-    "assert:controls": "node scripts/assert-boundary.mjs --control && node scripts/assert-tokens-parity.mjs --control && node scripts/assert-recipe-headings.mjs --control && node scripts/assert-render-smoke.mjs --control && node scripts/assert-manifest-schema.mjs --control && node scripts/assert-atlas-coverage.mjs --control && node scripts/assert-frame-grammar.mjs --control",
+    "assert:ledger": "node scripts/styles-ledger.mjs",
+    "ledger:write": "node scripts/styles-ledger.mjs --write",
+    "ledger:sync": "node scripts/styles-ledger.mjs --sync",
+    "assert:all": "npm run assert:boundary && npm run assert:tokens && npm run assert:recipes && npm run assert:render && npm run assert:manifest && npm run assert:atlas && npm run assert:grammar && npm run assert:ledger",
+    "assert:controls": "node scripts/assert-boundary.mjs --control && node scripts/assert-tokens-parity.mjs --control && node scripts/assert-recipe-headings.mjs --control && node scripts/assert-render-smoke.mjs --control && node scripts/assert-manifest-schema.mjs --control && node scripts/assert-atlas-coverage.mjs --control && node scripts/assert-frame-grammar.mjs --control && node scripts/styles-ledger.mjs --control",
     "build:check": "npm run typecheck && npm test && npm run gallery:build && npm run export && npm run assert:all && npm run assert:controls",
     "gallery:preview": "vite preview gallery --port 5188 --strictPort",
     "assert:tokens": "node scripts/assert-tokens-parity.mjs"

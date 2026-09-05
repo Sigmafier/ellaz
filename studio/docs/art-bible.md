@@ -100,8 +100,10 @@ Detail: `export/` and `adapters/`.
 
 ## Approved and rejected
 
-Kept in the taste ledger (`taste.py show ellaz`), not here, because a list in a
-document decays and the ledger decays on purpose. Picks so far: SNES 16-bit,
+Kept in the taste ledger (`taste.py show ellaz`) and in the STYLES LEDGER
+(`docs/styles-ledger.md`, rendered by `scripts/styles-ledger.mjs` from `registry.ts`
+and `art/styles/ledger.json`, and the gallery's Ledger page), not here, because a list
+in a document decays; the ledger is gated and the taste rows decay on purpose. Picks so far: SNES 16-bit,
 paper cut-out and flat vector for both games; crayon doodle for Toybox Brawl.
 Game Boy was picked and unpicked.
 

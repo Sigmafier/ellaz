@@ -8,7 +8,7 @@ description: Work inside studio/ - the art bible, sprite pipeline and gallery th
 The studio art bible: 6 style renderers with recipes, four rigged or
 frame-authored characters with five clips each, a technique library, an
 engine-neutral sprite export, adapters, and a gallery. **Its own
-`package.json`, lockfile, tests, seven gates and workflow.** Nothing in `src/`
+`package.json`, lockfile, tests, eight gates and workflow.** Nothing in `src/`
 or `holdem/` imports from it and nothing in it imports from them;
 `scripts/assert-boundary.mjs` refuses both directions from source.
 
@@ -21,7 +21,7 @@ studio's.** Anything touching `studio/` runs its checks from inside:
 cd studio && npm ci && npm run build:check
 ```
 
-`build:check` is typecheck, tests, the gallery build, the export, the seven
+`build:check` is typecheck, tests, the gallery build, the export, the eight
 gates, and every gate's `--control`. `.github/workflows/studio.yml` runs the
 same list, scoped with `paths: studio/**`; both ellaz deploys carry the
 matching `paths-ignore`.

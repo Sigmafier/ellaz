@@ -3,7 +3,7 @@
 // person can all name the same thing; the page ids are fixed here and the
 // shots script names them by these strings.
 
-export const PAGE_IDS = ["styles", "characters", "sprites", "palettes", "techniques", "games"] as const;
+export const PAGE_IDS = ["styles", "characters", "sprites", "palettes", "techniques", "games", "ledger"] as const;
 export type PageId = (typeof PAGE_IDS)[number];
 
 export interface Route { id: PageId; params: URLSearchParams }

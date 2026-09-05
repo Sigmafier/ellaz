@@ -22,7 +22,7 @@ if (!existsSync(HTML)) {
   execFileSync("npx", ["vite", "build", "--config", "gallery/vite.config.ts", "--logLevel", "warn"], { cwd: STUDIO, stdio: "inherit" });
 }
 
-export const PAGES = ["styles", "styles?open=paper", "characters", "sprites", "sprites?char=slime&style=crayon", "palettes", "techniques", "games"];
+export const PAGES = ["styles", "styles?open=paper", "characters", "sprites", "sprites?char=slime&style=crayon", "palettes", "techniques", "games", "ledger"];
 
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width, height: 900 } });
