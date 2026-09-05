@@ -12,6 +12,10 @@ import { robotRig } from "./robot/rig";
 import { knightRig } from "./knight/rig";
 import { teddyRig } from "./teddy/rig";
 import { slimeClips } from "./slime/frames";
+import { knight48Rig, KNIGHT48_UNIT } from "./knight/rig48";
+import { snapClips, snapOps } from "../techniques/pixel-parts";
+import { bakePose } from "../rig/rig";
+import { transformOp, translate } from "../rig/transform";
 
 export type Side = "hero" | "enemy";
 
@@ -22,7 +26,9 @@ export interface Character {
   /** the static reference pose, in the scene builders' coordinate space */
   staticOps: () => Op[];
   /** how the frames are made - the technique library's vocabulary */
-  technique: "parts-rig" | "parametric" | "shape-frames";
+  technique: "parts-rig" | "parametric" | "shape-frames" | "pixel-parts";
+  /** body units per authored pixel, when the character IS pixel art: frames are snapped to this grid and every placement aligns to it */
+  pixel?: number;
   /** the rig, when the character has one; slime is frames only */
   rig: Rig | null;
   /** every clip, baked. The one thing an exporter needs. */
@@ -33,6 +39,11 @@ export const CHARACTERS: Character[] = [
   { id: "robot", name: "Robot", side: "hero", technique: "parts-rig", staticOps: robotOps, rig: robotRig, clips: () => bakeAll(robotRig) },
   { id: "knight", name: "Knight", side: "hero", technique: "parts-rig", staticOps: knightOps, rig: knightRig, clips: () => bakeAll(knightRig) },
   { id: "teddy", name: "Angry Teddy", side: "enemy", technique: "parametric", staticOps: teddyOps, rig: teddyRig, clips: () => bakeAll(teddyRig) },
+  {
+    id: "knight48", name: "Knight (48px)", side: "hero", technique: "pixel-parts", pixel: KNIGHT48_UNIT, rig: knight48Rig,
+    staticOps: () => snapOps(bakePose(knight48Rig, {}), KNIGHT48_UNIT).map((o) => transformOp(o, translate(16 * KNIGHT48_UNIT, 52 * KNIGHT48_UNIT))),
+    clips: () => snapClips(bakeAll(knight48Rig), KNIGHT48_UNIT),
+  },
   { id: "slime", name: "Slime", side: "enemy", technique: "shape-frames", staticOps: slimeOps, rig: null, clips: slimeClips },
 ];
 

@@ -9,9 +9,9 @@ const rectsOf = (ops: ReturnType<typeof bakePose>) => ops.filter((o) => o.k !== 
 
 describe("the cast", () => {
   it("four characters, two of each side, unique ids", () => {
-    expect(CHARACTERS).toHaveLength(4);
-    expect(CHARACTERS.filter((c) => c.side === "hero")).toHaveLength(2);
-    expect(new Set(CHARACTERS.map((c) => c.id)).size).toBe(4);
+    expect(CHARACTERS).toHaveLength(5);
+    expect(CHARACTERS.filter((c) => c.side === "hero")).toHaveLength(3);
+    expect(new Set(CHARACTERS.map((c) => c.id)).size).toBe(5);
   });
   it("every static pose validates as a scene fragment", () => {
     for (const c of CHARACTERS) expect(validate({ id: c.id, w: 200, h: 200, ops: c.staticOps() }), c.id).toEqual([]);

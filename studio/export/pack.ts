@@ -21,7 +21,7 @@ export interface FrameGeometry {
 }
 
 /** Frame size to hold every frame of every clip at `scale`, with `pad` pixels of margin. */
-export function frameGeometry(clips: BakedClip[], scale: number, pad = 4): FrameGeometry {
+export function frameGeometry(clips: BakedClip[], scale: number, pad = 4, align = 1): FrameGeometry {
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   for (const c of clips) {
     for (const f of c.frames) {
@@ -33,9 +33,15 @@ export function frameGeometry(clips: BakedClip[], scale: number, pad = 4): Frame
   }
   if (!Number.isFinite(x0)) throw new Error("frameGeometry: no frames have any ops");
   // symmetric about x=0 so a flipped sprite keeps its pivot column
-  const half = Math.max(-x0, x1) * scale + pad;
-  const top = -y0 * scale + pad;
-  const bottom = Math.max(0, y1) * scale + pad;
+  let half = Math.max(-x0, x1) * scale + pad;
+  let top = -y0 * scale + pad;
+  let bottom = Math.max(0, y1) * scale + pad;
+  if (align > 1) {
+    // a pixel character's grid must land on the style's cell grid, or every
+    // authored pixel straddles two cells and doubles
+    const up = (v: number) => Math.ceil(v / align) * align;
+    half = up(half); top = up(top); bottom = up(bottom);
+  }
   const w = Math.ceil(half * 2), h = Math.ceil(top + bottom);
   return { w, h, pivot: { x: w / 2, y: Math.ceil(top) }, body: [x0, y0, x1 - x0, y1 - y0] };
 }

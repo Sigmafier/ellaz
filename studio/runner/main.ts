@@ -64,13 +64,15 @@ export interface StripResult {
 function clipStrip(charId: string, styleId: string, scale: number): StripResult[] {
   const ch = characterById(charId);
   if (!ch) throw new Error(`no character "${charId}"`);
-  const cell = 90 * scale, ground = 74 * scale;
-  return ch.clips().map((clip) => {
-    const w = cell * clip.frames.length, h = 90 * scale;
+  const clips = ch.clips();
+  const geo = frameGeometry(clips, scale, 6 * scale, ch.pixel ? ch.pixel * scale : 1);
+  const cell = geo.w, ground = geo.pivot.y;
+  return clips.map((clip) => {
+    const w = cell * clip.frames.length, h = geo.h;
     const ops = [R(0, 0, w, h, "#e8eef7", false), R(0, ground, w, h - ground, "#c9d3e3", false)];
     clip.frames.forEach((f, i) => {
       const cx = cell * i + cell / 2;
-      ops.push(E(cx, ground + 2 * scale, 16 * scale, 3 * scale, "rgba(0,0,0,.2)", false));
+      ops.push(E(cx, ground + 2 * scale, Math.round(cell / 5), 3 * scale, "rgba(0,0,0,.2)", false));
       ops.push(...place(f.ops, cx, ground, scale));
     });
     const r = renderOne(styleId, { id: `${charId}-${clip.id}`, w, h, ops });
@@ -114,7 +116,7 @@ function exportCharacter(charId: string, styleId: string, scale: number, built: 
   const style = styleById(styleId);
   if (!style) throw new Error(`no style "${styleId}"`);
   const clips = ch.clips();
-  const geo = frameGeometry(clips, scale);
+  const geo = frameGeometry(clips, scale, 4, ch.pixel ? ch.pixel * scale : 1);
   const image = `${charId}--${styleId}.png`;
   const { atlas, cells } = layoutAtlas(clips, geo, image);
   const [sheet, sx] = mk(atlas.meta.size.w, atlas.meta.size.h);
