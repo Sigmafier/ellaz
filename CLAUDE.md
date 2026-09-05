@@ -24,6 +24,16 @@ it may import from `src/`. See § The poker table below before touching anything
 under `holdem/`, and note the trap that follows from it: **`npm test` at the
 repository root does not run a single one of its tests.**
 
+**And a THIRD workspace, `studio/`, since 2026-09-05: the art bible.** Thirteen
+style renderers with recipes, four characters with five clips each, a technique
+library, an engine-neutral sprite export (sheet + atlas + manifest) with Phaser
+and canvas adapters, and a one-file gallery. Same independence as the poker
+table: its own `package.json`, tests, six gates and `studio.yml`; nothing in
+`src/` or `holdem/` imports from it and nothing in it imports from them, and
+**root `npm test` runs none of its tests** - `cd studio && npm run build:check`.
+Run the **`studio-workspace` skill** before touching it; the map is
+[`studio/README.md`](studio/README.md).
+
 **What shipped, in order, with the measured numbers and the traps each one
 cost**: [`docs/build-log.md`](docs/build-log.md). Read it before re-deriving a
 payload figure, re-litigating the engine choice, or wondering why analytics has
