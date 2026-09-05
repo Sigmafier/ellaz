@@ -28,6 +28,8 @@ be logged into and the failure reads as a product bug.
 **Root `npm test` runs none of this.** Its vitest include is `src/**`, by
 design. Run the studio's checks from inside `studio/`.
 
+**How a character is drawn**: [`docs/pixel-characters.md`](docs/pixel-characters.md) - one hand-placed grid per character, sized by role, cut along the bones, snapped on every frame (2026-09-05).
+
 ## What is in here
 
 | directory | holds |

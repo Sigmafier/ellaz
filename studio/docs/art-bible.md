@@ -125,3 +125,11 @@ why the game is better for it.
 ## Changelog
 
 - 2026-09-05 - written, alongside the port of the 13 prototype renderers.
+
+## Pixel characters (since 2026-09-05)
+
+Every character is pixel art drawn by hand at its role's size (hero 48, small
+enemy 32, boss 64), cut along the standard bones, posed by the standard clips
+and snapped back to the grid on every frame. The pixel styles render it cell for
+cell and add no outline of their own. The recipe, the craft rules and the four
+worked examples: [`pixel-characters.md`](pixel-characters.md).
