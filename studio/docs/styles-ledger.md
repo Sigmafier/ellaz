@@ -36,14 +36,14 @@ game ever needs it back; re-adding it to the registry is a decision, not a resto
 | `hibit` | Hi-bit modern pixel | pixel | 2026-09-05 | “get rid of this style” | `aa73f4b` | `git show aa73f4b^:studio/art/styles/hibit/render.ts` |
 | `crt` | CRT arcade | pixel | 2026-09-05 | “get rid of this style” | `aa73f4b` | `git show aa73f4b^:studio/art/styles/crt/render.ts` |
 
-## Backlog (32) - researched, not built
+## Backlog (33) - researched, not built
 
 Proposed from the 2026-09-05 research pass (pixel sub-styles, teen and adult 2D
 styles, print and craft). None has a renderer. A row marked `adjacent-to-rejected`
 sits next to a style the operator removed and needs an explicit yes before anyone
 builds it. Audience is who the style suits, not who it is limited to.
 
-### pixel (12)
+### pixel (13)
 
 | id | name | audience | the look | seen in | status |
 |---|---|---|---|---|---|
@@ -54,6 +54,7 @@ builds it. Audience is who the style suits, not who it is limited to.
 | `ega16` | EGA 16-colour | all | 320x200 feel, 16 hard RGBI colours, crosshatch dithering, stepped curves | Commander Keen, early Monkey Island | proposed |
 | `vga256` | VGA painterly | adult | 256-colour ramps, atmospheric dither, hand-painted backdrops, selective outlines | Monkey Island VGA, Another World, Beneath a Steel Sky | proposed |
 | `neogeo` | Arcade hand-drawn | teen | large 100px+ sprites, many colours, strong outlines, dramatic highlight ramps | Metal Slug, Street Fighter III, King of Fighters | proposed |
+| `brawler80` | 80px brawler | teen | hand-drawn sprites in an 80px cell, black outlines, 3-4 tones, bright cast on muted painted backdrops, big readable attack poses | Little Fighter 2 (our own drawing, never a trace), Golden Axe, Streets of Rage | proposed |
 | `isopixel` | Isometric pixel | all | 2:1 stair-step diagonals, tile diamond ground, patterned shadows | Stardew Valley, Landstalker, Habbo | proposed |
 | `chunky32` | Chunky 32x32 | all | 16-32px sprites blown up, thick outlines, details abstracted to a few clusters | Minit, A Short Hike, Kingdom | proposed |
 | `prerender` | Pre-rendered to pixel | all | a shaded 3D form quantised to a pixel grid: plastic highlights, real perspective | Donkey Kong Country, Killer Instinct | proposed |
