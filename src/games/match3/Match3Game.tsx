@@ -10,8 +10,14 @@ import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
 // see the game-over branch below. The barrel does not re-export it.
 import { announceWinShare } from "@shared/shareResult";
 import {
+  BURST,
   DIFFICULTIES,
+  KINDS,
   LEVELS,
+  PLAIN,
+  RAINBOW,
+  STRIPE_COL,
+  STRIPE_ROW,
   findMatches,
   goalFor,
   hasMove,
@@ -22,6 +28,7 @@ import {
   tapCell,
   type CascadeStep,
   type Difficulty,
+  type Kind,
   type Match3State,
   type SwapOutcome,
   type SwipeDir,
@@ -73,6 +80,8 @@ const WORDS: Record<
     moves: string;
     over: string;
     finalScore: string;
+    /** What a power-up is CALLED, so a screen reader can say which one. */
+    kind: Record<Exclude<Kind, 0>, string>;
   }
 > = {
   he: {
@@ -85,6 +94,7 @@ const WORDS: Record<
     moves: "מהלכים",
     over: "נגמרו המהלכים",
     finalScore: "ניקוד סופי",
+    kind: { 1: "פס רוחב", 2: "פס אורך", 3: "פיצוץ", 4: "קשת" },
   },
   en: {
     hint: "Tap a gem, then one next to it, or swipe it across",
@@ -96,6 +106,7 @@ const WORDS: Record<
     moves: "Moves",
     over: "Out of moves",
     finalScore: "Final score",
+    kind: { 1: "row blast", 2: "column blast", 3: "bomb", 4: "rainbow" },
   },
   es: {
     hint: "Toca una gema y luego una vecina, o deslízala",
@@ -107,6 +118,7 @@ const WORDS: Record<
     moves: "Jugadas",
     over: "Sin jugadas",
     finalScore: "Puntuación final",
+    kind: { 1: "fila", 2: "columna", 3: "bomba", 4: "arcoíris" },
   },
 };
 
@@ -133,6 +145,62 @@ const GEMS: readonly { fill: string; path: string }[] = [
   { fill: "#A855C9", path: "M50 8 68 26h26v26l18 18-18 18v26H68l-18 18-18-18H24V88L6 70l18-18V26h26Z" }, // star-ish
   { fill: "#FF8A3D", path: "M28 12h44l22 38-22 38H28L6 50Z" }, // hexagon
 ];
+
+/**
+ * The mark a power-up wears, drawn on top of its gem in the same 100x100 box.
+ *
+ * SHAPE-distinct, not hue-distinct, for the same reason the gems themselves
+ * are: roughly one boy in twelve cannot separate the red gem from the green
+ * one, and a power-up a child can only identify by its colour is one they
+ * cannot plan around. Bars across, bars down, a ring, a star - four outlines
+ * anybody can name.
+ *
+ * ONE INK, and it is dark rather than white. Measured against all six gem
+ * fills on 2026-09-05: `#12172B` scores 4.06 (purple) to 11.38 (yellow), so
+ * every one clears the 3:1 floor a graphical object needs. White scores 1.56
+ * on the yellow gem, 1.87 on the green and 2.20 on the blue - it fails four of
+ * the six, and the one it looks best on is the one nobody would have checked.
+ *
+ * The rainbow's arms are 5 units wide, not 8. Three widths were rendered side
+ * by side on the real hexagon at both 136px and the board's own 41px
+ * (2026-09-05): at 8 the eight-point star fills in and reads as a dark BLOB at
+ * board size, at 6 the points are visible, and at 5-and-shorter it is still an
+ * asterisk. Only the small arm matters - all three are identical at 136px,
+ * which is the size nobody plays at.
+ *
+ * Every mark stays inside a circle of radius ~17 about the middle, which is
+ * the largest disc that fits inside the TRIANGLE gem - the tightest of the six.
+ * A mark drawn wider than the gem it sits on spills onto the dark well, where
+ * a dark ink is invisible, and the ring appears broken on exactly one colour.
+ */
+const MARK_INK = "#12172B";
+
+function KindMark({ kind }: { kind: number }) {
+  if (kind === STRIPE_ROW) {
+    return <path d="M34 41h32v7H34zM34 52h32v7H34z" fill={MARK_INK} />;
+  }
+  if (kind === STRIPE_COL) {
+    return <path d="M41 34h7v32h-7zM52 34h7v32h-7z" fill={MARK_INK} />;
+  }
+  if (kind === BURST) {
+    return (
+      <path
+        d="M50 33a17 17 0 1 0 .1 0zM50 40a10 10 0 1 0 .1 0z"
+        fill={MARK_INK}
+        fillRule="evenodd"
+      />
+    );
+  }
+  if (kind === RAINBOW) {
+    return (
+      <g fill={MARK_INK}>
+        <path d="M47.5 36h5v28h-5zM36 47.5h28v5H36z" />
+        <path d="M47.5 36h5v28h-5zM36 47.5h28v5H36z" transform="rotate(45 50 50)" />
+      </g>
+    );
+  }
+  return null;
+}
 
 /**
  * The pitch of each cascade step, in semitones over the base pop.
@@ -184,7 +252,12 @@ interface Match3Session {
 }
 
 const SESSION: SessionSpec<Match3Session> = {
-  version: 1,
+  // 2 since 2026-09-05: the state gained `kinds`, so every v1 snapshot is
+  // discarded rather than migrated. That is the port's own rule and it costs a
+  // child at most one board - and the alternative, defaulting a missing
+  // `kinds` to all-plain, is a second copy of this game's rules living in a
+  // validator that nothing keeps in sync (session.ts, `SessionSpec.version`).
+  version: 2,
   validate: (value): value is Match3Session => {
     const s = value as Partial<Match3Session> | null;
     if (typeof s !== "object" || s === null) return false;
@@ -204,6 +277,12 @@ const SESSION: SessionSpec<Match3Session> = {
     // what a board caught mid-cascade would look like, and it would restore as
     // a hole nothing can ever fill.
     if (!g.grid.every((v) => Number.isInteger(v) && v >= 1 && v <= cfg.colors)) return false;
+    // The power-ups, parallel to the board and the same length. A short array
+    // reads as `undefined` at the far end and every gem past it silently
+    // becomes plain - a board that loses the rainbow a child was saving, with
+    // nothing anywhere reporting a fault.
+    if (!Array.isArray(g.kinds) || g.kinds.length !== cfg.size * cfg.size) return false;
+    if (!g.kinds.every((k) => (KINDS as readonly number[]).includes(k))) return false;
     // And settled: no line already sitting on it, and a move still available.
     // Both are guaranteed by `newGame` and by every `swapAt`, so a board
     // failing either was written by something that is not this game.
@@ -253,6 +332,16 @@ export function Match3Game({ ctx }: { ctx: GameContext }) {
   const [best, setBest] = useState<number | undefined>(() => ctx.score?.best(level));
   /** The board currently DRAWN. Equals `state.grid` except mid-cascade. */
   const [view, setView] = useState<readonly number[]>(() => state.grid);
+  /**
+   * The power-ups currently DRAWN, parallel to `view`.
+   *
+   * A second piece of state rather than a read of `state.kinds`, and the two
+   * are ALWAYS set together below. Drawing the marks from the settled state
+   * while the colours replay the cascade puts every power-up on the wrong gem
+   * for the length of the animation - a board that looks like it is cheating,
+   * which is the whole reason `view` exists in the first place.
+   */
+  const [viewKinds, setViewKinds] = useState<readonly number[]>(() => state.kinds);
   /** Gems vanishing right now, for one short flash. */
   const [clearing, setClearing] = useState<readonly number[]>([]);
   /** The pair a refused swap tried. See `onCell` - a refusal is not an error. */
@@ -289,6 +378,7 @@ export function Match3Game({ ctx }: { ctx: GameContext }) {
       setLevel(next);
       setState(fresh);
       setView(fresh.grid);
+      setViewKinds(fresh.kinds);
       setBest(ctx.score?.best(next));
       setClearing([]);
       setBumped([]);
@@ -329,11 +419,17 @@ export function Match3Game({ ctx }: { ctx: GameContext }) {
 
   /** Walk the cascade's steps, one flash and one drop at a time. */
   const play = useCallback(
-    (steps: readonly CascadeStep[], i: number, settled: readonly number[], shuffled: boolean) => {
+    (
+      steps: readonly CascadeStep[],
+      i: number,
+      settled: { grid: readonly number[]; kinds: readonly number[] },
+      shuffled: boolean,
+    ) => {
       if (i >= steps.length) {
         // The settled board, which differs from the last step only when the
         // rules had to rearrange a locked board.
-        setView(settled);
+        setView(settled.grid);
+        setViewKinds(settled.kinds);
         setBusy(false);
         if (shuffled) {
           setNote(T.shuffled);
@@ -344,15 +440,40 @@ export function Match3Game({ ctx }: { ctx: GameContext }) {
       }
       const step = steps[i];
       setClearing(step.cleared);
+
+      // A power-up going off is a bigger event than a match, so it gets a
+      // bigger answer: its own sound instead of the pop, and a shake for the
+      // two that clear an area rather than a line. One sound per step either
+      // way - a chain of five would otherwise stack five noises a child hears
+      // as a glitch.
+      const bang = step.fired.length > 0;
+      if (bang && step.fired.some((f) => f.kind === BURST || f.kind === RAINBOW)) {
+        if (boardRef.current) shake(boardRef.current);
+        haptic.success();
+      }
       // The cascade climbs a PENTATONIC ladder rather than a chromatic one, the
       // same scale `sdk/streak.ts` uses and for the same reason: a leading tone
       // makes an ascending line beg for the next step, and building that pull
       // deliberately for five-year-olds is not something this platform does. It
       // caps at the top rather than running off the end of the keyboard.
-      ctx.audio.play("pop", { semitones: CASCADE_STEPS[Math.min(i, CASCADE_STEPS.length - 1)] });
+      ctx.audio.play(bang ? "star" : "pop", {
+        semitones: CASCADE_STEPS[Math.min(i, CASCADE_STEPS.length - 1)],
+      });
       after(180, () => {
         setClearing([]);
         setView(step.grid);
+        setViewKinds(step.kinds);
+        // A minted gem sparkles ON THE SQUARE IT LANDED ON. `spawned` is
+        // reported after gravity for exactly this - the pre-drop index draws
+        // the sparkle on empty air (see `settle`). The cell is looked up in
+        // the DOM rather than computed from the board rect, so a board that
+        // has resized between the swap and this frame cannot smear it.
+        for (const made of step.spawned) {
+          const cell = boardRef.current?.querySelector<HTMLElement>(`[data-cell="${made.index}"]`);
+          if (!cell) continue;
+          const r = cell.getBoundingClientRect();
+          burst(r.left + r.width / 2, r.top + r.height / 2, { count: 8 });
+        }
         after(110, () => play(steps, i + 1, settled, shuffled));
       });
     },
@@ -397,10 +518,15 @@ export function Match3Game({ ctx }: { ctx: GameContext }) {
       const r = el.getBoundingClientRect();
       const at = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
 
-      // Draw the trade first, then let the cascade play over it.
+      // Draw the trade first, then let the cascade play over it. The marks
+      // move with it: a power-up left on the square it came from for 140ms is
+      // visible, and it is the frame in which the board looks wrong.
       setView(outcome.swapped);
+      setViewKinds(outcome.swappedKinds);
       setBusy(true);
-      after(140, () => play(outcome.steps, 0, next.grid, outcome.shuffled));
+      after(140, () =>
+        play(outcome.steps, 0, { grid: next.grid, kinds: next.kinds }, outcome.shuffled),
+      );
 
       if (outcome.gems >= 5) burst(at.x, at.y, { count: 6 + outcome.gems });
 
@@ -728,6 +854,7 @@ export function Match3Game({ ctx }: { ctx: GameContext }) {
           const gem = gemOf(cell);
           const held = state.selected === i;
           const going = clearingSet.has(i);
+          const kind = viewKinds[i] ?? PLAIN;
           return (
             <button
               key={i}
@@ -735,7 +862,11 @@ export function Match3Game({ ctx }: { ctx: GameContext }) {
               // 64 cells that all read "gem" are 64 cells a screen reader cannot
               // tell apart, so each carries its own column and row. One-based,
               // because nobody counts from zero out loud.
-              aria-label={`${T.gem(cell)} ${(i % size) + 1}, ${Math.floor(i / size) + 1}${held ? ` — ${T.held}` : ""}`}
+              // The power-up is NAMED, not merely drawn. A child on a screen
+              // reader gets the mark's meaning; without it the two stripes are
+              // the same announcement as an ordinary gem and the one piece of
+              // information they carry is sighted-only.
+              aria-label={`${T.gem(cell)}${kind === PLAIN ? "" : ` ${T.kind[kind as Exclude<Kind, 0>]}`} ${(i % size) + 1}, ${Math.floor(i / size) + 1}${held ? ` — ${T.held}` : ""}`}
               aria-pressed={held}
               // Which gem a gesture started on. Read off the DOM rather than
               // hit-tested from coordinates, so the cell the browser says was
@@ -779,6 +910,7 @@ export function Match3Game({ ctx }: { ctx: GameContext }) {
                 style={{ width: "100%", height: "100%", display: "block" }}
               >
                 <path d={gem.path} fill={gem.fill} />
+                <KindMark kind={kind} />
               </svg>
             </button>
           );

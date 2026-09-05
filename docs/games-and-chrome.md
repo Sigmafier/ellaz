@@ -751,6 +751,70 @@ one line.
 - **Legal:** original art and names only. No trademarked names/trade dress (no
   "Tetris"/"Wordle"/"Waldo"; change shapes/colors/names for any cloned mechanic).
 
+### Match Three — power-ups, made by the SHAPE of a match
+
+Asked for 2026-09-04, issue #24: "the candy crash super powers".
+
+**There is no new input.** A gem's KIND is decided by the shape of the run that
+made it, and it fires when it is CLEARED — never by being tapped. Nothing a
+five-year-old has to be taught: you match, and sometimes the board does
+something bigger. Four kinds:
+
+| shape | gem | what it takes |
+|---|---|---|
+| four in a line | a stripe **along** the run | that whole row, or that whole column |
+| an L or a T | a burst at the **intersection** | the 3x3 around it |
+| five or more | a rainbow | every gem sharing its colour |
+| a cross with a five-long arm | a rainbow, **not** a burst | as above |
+
+That last row was wrong in the first draft: retiring both runs of a cross meant
+the five never reached the rainbow branch, so a child who lines up five that
+happen to touch a three got the *weaker* gem for the bigger shape.
+
+**A KIND IS A SECOND ARRAY, parallel to the grid**, not a richer gem — so
+`findMatches`, `hasMove`, `dealBoard` and `shuffleBoard` all still reason about
+colour alone and are the same code they were before this existed. Three cells
+assert exactly that. A minted gem SURVIVES its own match, and a blast that
+catches another special fires it too, to a fixed point rather than one pass: a
+chain that stops after one link is what makes a power-up feel broken.
+
+**Two defects the tests were written to catch, both invisible on screen:**
+
+- `spawned` was derived by DIFFING the kinds arrays across gravity. A special
+  that merely FELL lands on a square that used to be plain, so every drop read
+  as a fresh mint and the renderer drew the sparkle on a gem the child had had
+  for three moves. It is mapped through `collapse`'s own record of what moved
+  where now.
+- The marks are drawn from `viewKinds`, a second replay array set at every one
+  of the four places `view` is set. Drawing them from the settled state instead
+  puts every power-up on the wrong gem for the length of the animation — the
+  same reason `view` exists at all.
+
+**The mark is SHAPE-distinct and its ink was measured.** Bars across, bars down,
+a ring, a star, in `#12172B` — which scores **4.06 (purple) to 11.38 (yellow)**
+against all six gem fills, so every one clears the 3:1 floor a graphical object
+needs. White scores **1.56 on yellow, 1.87 on green, 2.20 on blue**: it fails
+four of the six, and the gem it looks best on is the one nobody would have
+checked. A negative cell pins that, so an ink change has to walk past it.
+
+The rainbow's star arms are **5 units wide, not 8**, and that was a real
+before/after: three widths rendered on the real hexagon at both 136 px and the
+board's own **41 px**. At 8 the eight points fill in and the mark reads as a
+dark BLOB at board size; at 5 it is still an asterisk. All three look identical
+at 136 px, which is the size nobody plays at.
+
+**The snapshot is version 2**, so every v1 board is discarded rather than
+migrated — the port's own rule, and the alternative (defaulting a missing
+`kinds` to all-plain) is a second copy of this game's rules living in a
+validator nothing keeps in sync.
+
+**20 planted defects, 20 caught**, ten in the rules and ten in the renderer —
+and the renderer harness needed three attempts. Two instruments reported four
+distinct mark branches on a file where the rainbow had been mutated to draw the
+burst's exact markup: the first compared strings that each began with their own
+kind's NAME, and the second let the last branch run to the end of the function
+so it carried `return null;` and its neighbour did not.
+
 ### Bubble Shooter — the aim guide's off switch, and squeezing through a gap
 
 Two player reports, 2026-09-04, issues #28 and #29.

@@ -119,6 +119,14 @@ export interface Match3State {
   colors: number;
   /** Row-major, `size * size` entries, every one 1..colors on a settled board. */
   grid: readonly number[];
+  /**
+   * The power-up on each gem, parallel to `grid` and the same length.
+   *
+   * A SECOND ARRAY rather than a richer gem, so every function that reasons
+   * about colour alone - `findMatches`, `hasMove`, `dealBoard`, `shuffleBoard`
+   * - is the same code it was before power-ups existed.
+   */
+  kinds: readonly number[];
   /** The gem a child has picked, or null. The whole input model — see `tapCell`. */
   selected: number | null;
   /** 1-based. The endless ladder this game climbs instead of ending. */
@@ -155,6 +163,16 @@ export interface CascadeStep {
   cleared: readonly number[];
   /** The board after clearing, gravity and refill. */
   grid: readonly number[];
+  /** The kinds after this step, parallel to `grid`. */
+  kinds: readonly number[];
+  /**
+   * Specials that fired in this step, on the board BEFORE it, with the kind
+   * each one was. The renderer needs this to draw the blast; deriving it from
+   * `cleared` is impossible once the gems are gone.
+   */
+  fired: readonly { index: number; kind: number }[];
+  /** Specials minted in this step, on the board AFTER it. */
+  spawned: readonly { index: number; kind: number }[];
   /** Points this step scored, multiplier already applied. */
   points: number;
 }
@@ -182,6 +200,8 @@ export type SwapOutcome =
        * there is one answer to what a swap does instead of two that can drift.
        */
       swapped: readonly number[];
+      /** The kinds at that same instant, parallel to `swapped`. */
+      swappedKinds: readonly number[];
       steps: readonly CascadeStep[];
       /** Total points, all steps. */
       points: number;
@@ -201,6 +221,45 @@ export type Rng = () => number;
 
 const at = (size: number, r: number, c: number): number => r * size + c;
 
+/* ─────────────────────────────────────────────────────────────────── kinds
+
+   A gem has a COLOUR and a KIND, and they are two parallel arrays rather than
+   one array of objects. That is deliberate: `findMatches`, `hasMove`,
+   `dealBoard` and `shuffleBoard` all reason about colour alone and none of them
+   had to change, so the matching rule this game is built on is the same code it
+   was before power-ups existed.
+
+   A kind is created by the SHAPE of the run that made it, and it fires when it
+   is cleared - never by being tapped. There is no new input path, no new
+   gesture, and nothing a five-year-old has to be taught: you match, and
+   sometimes the board does something bigger.
+   ───────────────────────────────────────────────────────────────────────────*/
+
+/** An ordinary gem. */
+export const PLAIN = 0;
+/** Four in a row: clears its whole row when it goes. */
+export const STRIPE_ROW = 1;
+/** Four in a column: clears its whole column. */
+export const STRIPE_COL = 2;
+/** An L or a T - one gem in both a row run and a column run: clears the 3x3. */
+export const BURST = 3;
+/** Five or more: clears every gem sharing its colour. */
+export const RAINBOW = 4;
+
+export type Kind = 0 | 1 | 2 | 3 | 4;
+export const KINDS: readonly Kind[] = [PLAIN, STRIPE_ROW, STRIPE_COL, BURST, RAINBOW];
+
+/** A board of nothing but ordinary gems. */
+export const plainKinds = (n: number): Kind[] => new Array<Kind>(n).fill(PLAIN);
+
+/** One maximal line of three or more of the same colour. */
+export interface Run {
+  /** Indices in board order. */
+  cells: number[];
+  dir: "row" | "col";
+  color: number;
+}
+
 /* ───────────────────────────────────────────────────────────────── matching */
 
 /**
@@ -212,16 +271,18 @@ const at = (size: number, r: number, c: number): number => r * size + c;
  * without that guard a column of three holes mid-cascade reads as a line and
  * scores itself, repeatedly.
  */
-export function findMatches(grid: readonly number[], size: number): number[] {
-  const hit = new Set<number>();
+export function findRuns(grid: readonly number[], size: number): Run[] {
+  const runs: Run[] = [];
 
-  const scan = (get: (i: number) => number, index: (i: number) => number) => {
+  const scan = (dir: "row" | "col", get: (i: number) => number, index: (i: number) => number) => {
     let runStart = 0;
     for (let i = 1; i <= size; i += 1) {
       const same = i < size && get(i) !== 0 && get(i) === get(runStart);
       if (same) continue;
-      if (i - runStart >= 3) {
-        for (let k = runStart; k < i; k += 1) hit.add(index(k));
+      if (i - runStart >= 3 && get(runStart) !== 0) {
+        const cells: number[] = [];
+        for (let k = runStart; k < i; k += 1) cells.push(index(k));
+        runs.push({ cells, dir, color: get(runStart) });
       }
       runStart = i;
     }
@@ -229,17 +290,153 @@ export function findMatches(grid: readonly number[], size: number): number[] {
 
   for (let r = 0; r < size; r += 1) {
     scan(
+      "row",
       (c) => grid[at(size, r, c)],
       (c) => at(size, r, c),
     );
   }
   for (let c = 0; c < size; c += 1) {
     scan(
+      "col",
       (r) => grid[at(size, r, c)],
       (r) => at(size, r, c),
     );
   }
+  return runs;
+}
+
+/**
+ * Every index that is part of a run of three or more.
+ *
+ * DERIVED from `findRuns` rather than implemented beside it. It used to be the
+ * only matcher and it flattened the run away, which is why nothing could tell a
+ * three from a five - see `findRuns`. Keeping it as a projection means the
+ * matching rule has exactly one implementation, and every caller and test that
+ * predates power-ups is untouched.
+ *
+ * Runs are unioned, so a cross-shaped match clears both arms and the shared gem
+ * exactly once. Holes (0) never match - without that guard a column of three
+ * holes mid-cascade reads as a line and scores itself, repeatedly.
+ */
+export function findMatches(grid: readonly number[], size: number): number[] {
+  const hit = new Set<number>();
+  for (const run of findRuns(grid, size)) for (const i of run.cells) hit.add(i);
   return [...hit].sort((x, y) => x - y);
+}
+
+/**
+ * Which cell of each run becomes a special, and which special.
+ *
+ * A gem in BOTH a row run and a column run is the L/T shape and outranks
+ * everything: it becomes a BURST at the intersection, and both its runs are
+ * spent. Otherwise five or more makes a RAINBOW and four makes a STRIPE along
+ * the run, both at the run's middle cell so the new gem appears where the eye
+ * was already looking.
+ *
+ * At most one special per run, and a cell already claimed by a longer run keeps
+ * the stronger kind - two runs crossing cannot mint two gems on one square.
+ */
+export function decideSpawns(runs: readonly Run[]): Map<number, Kind> {
+  const out = new Map<number, Kind>();
+  const rank: Record<number, number> = { [PLAIN]: 0, [STRIPE_ROW]: 1, [STRIPE_COL]: 1, [BURST]: 2, [RAINBOW]: 3 };
+  const claim = (index: number, kind: Kind) => {
+    const held = out.get(index);
+    if (held === undefined || rank[kind] > rank[held]) out.set(index, kind);
+  };
+
+  const rows = runs.filter((r) => r.dir === "row");
+  const cols = runs.filter((r) => r.dir === "col");
+  const spent = new Set<Run>();
+
+  for (const row of rows) {
+    for (const col of cols) {
+      const cross = row.cells.find((i) => col.cells.includes(i));
+      if (cross === undefined) continue;
+      // A cross whose longer arm is five or more is a rainbow, not a burst.
+      // Without this the L outranks the 5 and a child who lined up five gems
+      // that happen to touch a three gets the WEAKER gem for the bigger shape,
+      // which reads as the game punishing the better move.
+      claim(cross, Math.max(row.cells.length, col.cells.length) >= 5 ? RAINBOW : BURST);
+      spent.add(row);
+      spent.add(col);
+    }
+  }
+
+  for (const run of runs) {
+    if (spent.has(run)) continue;
+    const middle = run.cells[Math.floor(run.cells.length / 2)];
+    if (run.cells.length >= 5) claim(middle, RAINBOW);
+    else if (run.cells.length === 4) claim(middle, run.dir === "row" ? STRIPE_ROW : STRIPE_COL);
+  }
+  return out;
+}
+
+/**
+ * What this special takes with it when it goes.
+ *
+ * Returns only the EXTRA cells: the special's own square is already in the set
+ * that triggered it. A PLAIN gem takes nothing, which is what makes this safe
+ * to call on every cleared cell without asking first.
+ */
+export function blastOf(
+  index: number,
+  kind: number,
+  grid: readonly number[],
+  size: number,
+): number[] {
+  const r = Math.floor(index / size);
+  const c = index % size;
+  const out: number[] = [];
+  if (kind === STRIPE_ROW) {
+    for (let k = 0; k < size; k += 1) out.push(at(size, r, k));
+  } else if (kind === STRIPE_COL) {
+    for (let k = 0; k < size; k += 1) out.push(at(size, k, c));
+  } else if (kind === BURST) {
+    for (let dr = -1; dr <= 1; dr += 1) {
+      for (let dc = -1; dc <= 1; dc += 1) {
+        const rr = r + dr;
+        const cc = c + dc;
+        if (rr < 0 || cc < 0 || rr >= size || cc >= size) continue;
+        out.push(at(size, rr, cc));
+      }
+    }
+  } else if (kind === RAINBOW) {
+    const color = grid[index];
+    if (color !== 0) {
+      for (let i = 0; i < grid.length; i += 1) if (grid[i] === color) out.push(i);
+    }
+  }
+  return out;
+}
+
+/**
+ * Fire every special caught in `seed`, and every special their blasts catch,
+ * until nothing new is caught.
+ *
+ * A fixed point rather than one pass, because a stripe that clears a row can
+ * reach a bomb three squares away, and that bomb has to go off too - a chain
+ * that stops after one link is the thing that makes a power-up feel broken.
+ * Terminates because the set only ever grows and the board is finite.
+ */
+export function fireSpecials(
+  seed: Iterable<number>,
+  grid: readonly number[],
+  kinds: readonly number[],
+  size: number,
+): Set<number> {
+  const all = new Set<number>(seed);
+  const pending = [...all];
+  while (pending.length > 0) {
+    const i = pending.pop()!;
+    const kind = kinds[i] ?? PLAIN;
+    if (kind === PLAIN) continue;
+    for (const j of blastOf(i, kind, grid, size)) {
+      if (all.has(j)) continue;
+      all.add(j);
+      pending.push(j);
+    }
+  }
+  return all;
 }
 
 /** Are two indices orthogonally adjacent on a `size` board? */
@@ -259,22 +456,44 @@ export function areAdjacent(a: number, b: number, size: number): boolean {
  * relative order of the survivors — a naive "compact the array" pass mixes
  * columns and makes gems teleport sideways, which looks like a bug and is one.
  */
-function collapse(grid: readonly number[], size: number, colors: number, rng: Rng): number[] {
+function collapse(
+  grid: readonly number[],
+  kinds: readonly number[],
+  size: number,
+  colors: number,
+  rng: Rng,
+): { grid: number[]; kinds: Kind[]; moved: Map<number, number> } {
   const next = [...grid];
+  // Where each surviving gem ENDED UP. Returned rather than re-derived,
+  // because the only other way to find a minted gem after gravity is to
+  // compare kinds index by index - and that reports a special which merely
+  // FELL as one that was just created, drawing the mint sparkle on a gem the
+  // child has had for three moves.
+  const moved = new Map<number, number>();
+  // The kind falls WITH its gem. Moving the colour and leaving the kind behind
+  // would teleport a power-up onto whatever landed underneath it, which reads
+  // as the board cheating and is the one bug this pairing can have.
+  const nextKinds = [...kinds] as Kind[];
   for (let c = 0; c < size; c += 1) {
     let write = size - 1;
     for (let r = size - 1; r >= 0; r -= 1) {
-      const v = next[at(size, r, c)];
+      const from = at(size, r, c);
+      const v = next[from];
       if (v !== 0) {
-        next[at(size, write, c)] = v;
+        const to = at(size, write, c);
+        next[to] = v;
+        nextKinds[to] = nextKinds[from];
+        moved.set(from, to);
         write -= 1;
       }
     }
     for (let r = write; r >= 0; r -= 1) {
-      next[at(size, r, c)] = 1 + Math.floor(rng() * colors);
+      const i = at(size, r, c);
+      next[i] = 1 + Math.floor(rng() * colors);
+      nextKinds[i] = PLAIN;
     }
   }
-  return next;
+  return { grid: next, kinds: nextKinds, moved };
 }
 
 /**
@@ -286,31 +505,79 @@ function collapse(grid: readonly number[], size: number, colors: number, rng: Rn
  */
 function settle(
   grid: readonly number[],
+  kinds: readonly number[],
   size: number,
   colors: number,
   rng: Rng,
-): { grid: readonly number[]; steps: CascadeStep[]; points: number; gems: number } {
+): {
+  grid: readonly number[];
+  kinds: readonly number[];
+  steps: CascadeStep[];
+  points: number;
+  gems: number;
+} {
   const steps: CascadeStep[] = [];
   let board = grid;
+  let kind = kinds;
   let points = 0;
   let gems = 0;
 
   for (let depth = 1; ; depth += 1) {
-    const cleared = findMatches(board, size);
-    if (cleared.length === 0) break;
+    const runs = findRuns(board, size);
+    if (runs.length === 0) break;
+
+    // The three questions, in this order and no other:
+    //   what lined up  ->  what that sets off  ->  what it leaves behind.
+    const spawns = decideSpawns(runs);
+    const lined = new Set<number>();
+    for (const run of runs) for (const i of run.cells) lined.add(i);
+
+    const fired: { index: number; kind: number }[] = [];
+    for (const i of lined) if ((kind[i] ?? PLAIN) !== PLAIN) fired.push({ index: i, kind: kind[i] });
+    const all = fireSpecials(lined, board, kind, size);
+    // ...and every special the blast itself reached, which is the chain.
+    for (const i of all) {
+      if (lined.has(i)) continue;
+      if ((kind[i] ?? PLAIN) !== PLAIN) fired.push({ index: i, kind: kind[i] });
+    }
+
+    // A minted gem SURVIVES its own match. If it was already a special its
+    // blast has fired above and it is upgraded rather than removed - generous,
+    // deliberate, and the alternative is a five-run that mints a rainbow and
+    // clears it in the same breath.
+    for (const i of spawns.keys()) all.delete(i);
 
     const holed = [...board];
-    for (const i of cleared) holed[i] = 0;
-    const after = collapse(holed, size, colors, rng);
+    const holedKinds = [...kind] as Kind[];
+    for (const i of all) {
+      holed[i] = 0;
+      holedKinds[i] = PLAIN;
+    }
+    for (const [i, k] of spawns) holedKinds[i] = k;
 
+    const after = collapse(holed, holedKinds, size, colors, rng);
+
+    // Where each minted gem ENDED UP. It is placed BEFORE gravity runs, so the
+    // index the renderer needs is the one after the drop, not the one the run
+    // was on - reporting the pre-drop index draws the sparkle on empty air.
+    //
+    // Mapped through `collapse`'s own record of what moved where. Diffing the
+    // kinds arrays index by index looks equivalent and is not: a special that
+    // simply FELL lands on a square that used to be plain, so the diff reports
+    // it as newly minted every time anything under it clears.
+    const landed: { index: number; kind: number }[] = [];
+    for (const [i, k] of spawns) landed.push({ index: after.moved.get(i) ?? i, kind: k });
+
+    const cleared = [...all].sort((x, y) => x - y);
     const stepPoints = cleared.length * POINTS_PER_GEM * Math.min(depth, 5);
     points += stepPoints;
     gems += cleared.length;
-    steps.push({ cleared, grid: after, points: stepPoints });
-    board = after;
+    steps.push({ cleared, grid: after.grid, kinds: after.kinds, fired, spawned: landed, points: stepPoints });
+    board = after.grid;
+    kind = after.kinds;
   }
 
-  return { grid: board, steps, points, gems };
+  return { grid: board, kinds: kind, steps, points, gems };
 }
 
 /* ─────────────────────────────────────────────────────────── legality */
@@ -361,15 +628,41 @@ export function shuffleBoard(
   colors: number,
   rng: Rng,
 ): number[] {
-  const bag = [...grid];
+  return shuffleWithKinds(grid, plainKinds(grid.length), size, colors, rng).grid;
+}
+
+/**
+ * The same shuffle, moving each gem's POWER-UP with it.
+ *
+ * A shuffle happens when the board has no legal move, which is exactly the
+ * moment a child is most likely to be holding a special they were saving. A
+ * shuffle that dropped it would be the game taking something away as a reward
+ * for being stuck.
+ *
+ * The permutation is shuffled, not the values, so both arrays move together by
+ * construction rather than by two shuffles being asked to agree. The fallback
+ * is a fresh deal, and a fresh deal genuinely has no specials on it.
+ */
+export function shuffleWithKinds(
+  grid: readonly number[],
+  kinds: readonly number[],
+  size: number,
+  colors: number,
+  rng: Rng,
+): { grid: number[]; kinds: Kind[] } {
+  const order = grid.map((_, i) => i);
   for (let attempt = 0; attempt < SHUFFLE_TRIES; attempt += 1) {
-    for (let i = bag.length - 1; i > 0; i -= 1) {
+    for (let i = order.length - 1; i > 0; i -= 1) {
       const j = Math.floor(rng() * (i + 1));
-      [bag[i], bag[j]] = [bag[j], bag[i]];
+      [order[i], order[j]] = [order[j], order[i]];
     }
-    if (findMatches(bag, size).length === 0 && hasMove(bag, size)) return [...bag];
+    const bag = order.map((from) => grid[from]);
+    if (findMatches(bag, size).length === 0 && hasMove(bag, size)) {
+      return { grid: bag, kinds: order.map((from) => (kinds[from] ?? PLAIN) as Kind) };
+    }
   }
-  return dealBoard(size, colors, rng);
+  const fresh = dealBoard(size, colors, rng);
+  return { grid: fresh, kinds: plainKinds(fresh.length) };
 }
 
 /**
@@ -420,6 +713,7 @@ export function newGame(level: Difficulty, rng: Rng = Math.random): Match3State 
     size: cfg.size,
     colors: cfg.colors,
     grid: dealBoard(cfg.size, cfg.colors, rng),
+    kinds: plainKinds(cfg.size * cfg.size),
     selected: null,
     round: 1,
     cleared: 0,
@@ -464,6 +758,10 @@ export function swapAt(
 
   const swapped = [...state.grid];
   [swapped[a], swapped[b]] = [swapped[b], swapped[a]];
+  // The power-up travels with the gem, or a swap would leave it behind on a
+  // square whose colour it no longer belongs to.
+  const swappedKinds = [...(state.kinds ?? plainKinds(n))];
+  [swappedKinds[a], swappedKinds[b]] = [swappedKinds[b], swappedKinds[a]];
 
   if (findMatches(swapped, state.size).length === 0) {
     // Nothing changes but the selection, which clears: holding the gem would
@@ -471,7 +769,7 @@ export function swapAt(
     return { state: { ...state, selected: null }, outcome: { kind: "rejected", a, b } };
   }
 
-  const done = settle(swapped, state.size, state.colors, rng);
+  const done = settle(swapped, swappedKinds, state.size, state.colors, rng);
 
   // The round advances at most ONCE per swap. A cascade big enough to clear two
   // rounds' worth pays the second one into the next round's progress instead of
@@ -495,11 +793,14 @@ export function swapAt(
   const over = movesLeft <= 0;
 
   let grid = done.grid;
+  let kinds = done.kinds;
   let shuffled = false;
   // Only reshuffle a board somebody can still play. Shuffling under a finished
   // run would redraw the gems behind the game-over card for no one.
   if (!over && !hasMove(grid, state.size)) {
-    grid = shuffleBoard(grid, state.size, state.colors, rng);
+    const mixed = shuffleWithKinds(grid, kinds, state.size, state.colors, rng);
+    grid = mixed.grid;
+    kinds = mixed.kinds;
     shuffled = true;
   }
 
@@ -507,6 +808,7 @@ export function swapAt(
     state: {
       ...state,
       grid,
+      kinds,
       selected: null,
       round,
       cleared,
@@ -520,6 +822,7 @@ export function swapAt(
       a,
       b,
       swapped,
+      swappedKinds,
       steps: done.steps,
       points: done.points,
       gems: done.gems,

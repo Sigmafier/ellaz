@@ -41,6 +41,8 @@ report**. Ask of any probe: *could this even express the failure I am looking fo
 | 2026-08-30 prospect `freshness` | the FIRST structured date in the document | the `article:modified_time` three tags later. `weareteachers.com` - 208 dofollow anchors, one of the largest US teacher publications - was ruled **dormant** on a 2023 published date while the page had been modified **2026-07-28** |
 | 2026-08-30 prospect `door` | `/about\|/contact` matched on ANY host | whose page it was. weareteachers' door came back as a page on **`nature.org`**: a real URL, a real 200, a real About page, and a letter about our children's games addressed to a conservation charity |
 | 2026-08-30 prospect `get()` | `res.ok`, which is true for **202** | the page. Three library sites answered `HTTP 202` with a ~2 KB AWS WAF challenge - well-formed, `</html>` present, empty `<title>`, zero anchors - and all three were reported `blind`, a word this repo's own docs define as *"says nothing about the page"* and which prints in the same column as a real reading |
+| 2026-09-05 match3 mark-distinctness | comparing four `if (kind === X)` branch bodies split at the `if` | **nothing - each chunk began with its own kind's NAME**, so "STRIPE_ROW) {...}" and "BURST) {...}" can never collide. A planted mutation making the rainbow draw the burst's exact markup SURVIVED, and the cell read green |
+| 2026-09-05 the same cell, second try | slicing each chunk from its first `{` to its own last `}` | the LAST branch. Its chunk runs to the end of the function, so it carried `return null; }` and its neighbour did not - two strings that differ by a trailing `return`, again never colliding. Same mutation, still SURVIVED. Fixed by a balanced-brace walk |
 | 2026-08-30 backlinks `resolve1` | an `expected` row returned unchanged, whatever the fetch said | **every positive reading.** The instrument built to read the 2026-11-27 verdict could report a failure and not a success - fed a page carrying our link, an `expected` row still resolved to `expected`. Eighty-nine days early, and it would have read `expected` on the day whether or not a single editor had published us |
 | 2026-08-30 prospect control's FAIL path | `c.bad.map(([k, v]) => ...)` on an array of OBJECTS | the entire message. It threw `object is not iterable`, losing the field name, losing the "believe nothing" sentence, and exiting **1** (*no candidates*) instead of **2** (*believe nothing*). The one path that exists to explain a broken instrument had never once been run |
 
@@ -54,6 +56,14 @@ an instrument nobody had watched succeed, **what a success would look like**.
 Ask it of anything you are about to depend on months from now: *what does this
 print on the day it works?* If you cannot answer from the code, you do not have
 an instrument, you have a thing that says no.
+
+**The 2026-09-05 pair is the cheapest lesson in the table and the easiest to repeat:
+an instrument that compares strings must not include, in those strings, the thing
+that makes them different for a reason other than the one being tested.** Both
+versions were written to answer "do these four branches render four different
+things", and both were really answering "are these four branches at four different
+places in the file" - which is true of any four branches, always. Neither could have
+been caught by reading it; only by planting a collision and watching for a red.
 
 **The 2026-08-30 four share a shape the earlier ones do not: every one of them
 produced a NON-VERDICT.** `dormant`, `blind`, `unchecked`, a crash - none of which
