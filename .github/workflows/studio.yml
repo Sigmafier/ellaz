@@ -1,0 +1,96 @@
+name: Studio (art bible)
+
+# studio/ is the third independent workspace in this repository, beside the
+# games platform (src/) and the poker table (holdem/). Root `npm test` runs
+# none of its tests (vitest's include is src/**), so without this workflow
+# the studio's suite and its six gates run nowhere.
+#
+# Same path-filter shape as holdem.yml, mirrored by a paths-ignore on the two
+# ellaz deploys: a studio commit must not publish ellaz.fun, and an ellaz
+# commit must not spend a runner here.
+#
+# Half the gates drive headless Chromium (render-smoke renders every style,
+# atlas-coverage reads the sheet's pixels, the export itself composes the
+# sheets), so Playwright's browser is installed before they run.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "studio/**"
+      - ".github/workflows/studio.yml"
+  pull_request:
+    paths:
+      - "studio/**"
+      - ".github/workflows/studio.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: studio
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: studio/package-lock.json
+
+      - run: npm ci
+
+      - name: Chromium for the browser-driven gates
+        run: npx playwright-core install --with-deps chromium
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # One run, two reporters, then a count: vitest exits 0 on "No test
+      # files found", so a green run is not evidence anything ran.
+      - name: Tests
+        run: npm test -- --reporter=default --reporter=json --outputFile=/tmp/studio-tests.json
+
+      - name: Assert the suite is not vacuous
+        run: |
+          set -euo pipefail
+          COUNT=$(node -p "require('/tmp/studio-tests.json').numTotalTests")
+          echo "ran $COUNT tests"
+          if [ "$COUNT" -lt 120 ]; then
+            echo "::error::only $COUNT tests ran, expected at least 120. Did the vitest include stop matching?"
+            exit 1
+          fi
+
+      - name: Build the gallery (one HTML file)
+        run: npm run gallery:build
+
+      - name: Export sheets, atlases, manifests, palettes
+        run: npm run export
+
+      # Every gate reads a different artifact; a green one says nothing
+      # about what another would find.
+      - name: The six gates
+        run: npm run assert:all
+
+      # The gates' own controls: each plants the defects it claims to catch
+      # and requires every one to fire. A gate nobody has watched fail is
+      # not a gate.
+      - name: The gates can still fail
+        run: npm run assert:controls
+
+      - name: Gallery shots (every route renders without a page error)
+        run: npm run shots
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: studio-export
+          path: |
+            studio/dist-export
+            studio/dist-gallery/index.html
+            studio/shots/gallery
+          retention-days: 14

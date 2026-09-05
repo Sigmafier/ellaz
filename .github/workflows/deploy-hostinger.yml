@@ -12,6 +12,9 @@ on:
       - "holdem/**"
       - ".github/workflows/holdem.yml"
       - ".github/workflows/deploy-holdem.yml"
+      # the studio art bible - its own workspace and workflow (studio.yml); never a reason to publish ellaz.fun
+      - "studio/**"
+      - ".github/workflows/studio.yml"
       # Same argument for the reach board: it is a third site on a third host,
       # `assert:outreach` is deliberately NOT in `build:check`, and nothing under
       # these paths is imported by anything that builds `dist/` - so a commit that
