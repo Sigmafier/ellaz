@@ -6,8 +6,10 @@
 import { Component, useEffect, useState, type ErrorInfo, type ReactNode } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 import { PAGES } from "./pages";
-import { go, parseRoute, type PageId, type Route } from "./router";
+import { useBeetle } from "./beetle";
+import { go, hashFor, parseRoute, type PageId, type Route } from "./router";
 
 declare global {
   interface Window { __galleryReady?: string; __galleryError?: string }
@@ -16,6 +18,9 @@ declare global {
 function useRoute(): Route {
   const [route, setRoute] = useState(() => parseRoute(location.hash));
   useEffect(() => {
+    // "/" and "#/styles" are the same page; make the address say so, so a
+    // beetle note left on the bare URL records the page it was really on
+    if (!location.hash) history.replaceState(null, "", hashFor(route.id));
     const on = () => setRoute(parseRoute(location.hash));
     window.addEventListener("hashchange", on);
     return () => window.removeEventListener("hashchange", on);
@@ -38,6 +43,7 @@ class PageBoundary extends Component<{ id: PageId; children: ReactNode }, { erro
 export function App() {
   const route = useRoute();
   const page = PAGES[route.id];
+  const beetle = useBeetle();
   useEffect(() => {
     document.title = `Ellaz Studio · ${page.label}`;
     window.__galleryReady = route.id;
@@ -65,6 +71,22 @@ export function App() {
             </SidebarGroupContent>
           </SidebarGroup>
           {page.Side && <page.Side params={route.params} />}
+          {beetle.present && (
+            <SidebarGroup>
+              <SidebarGroupLabel>Feedback</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    {/* the hub's own door to the beetle's notes: pins on the page and the drawer, from the same widget */}
+                    <SidebarMenuButton onClick={() => window.__beetle?.toggle()} isActive={beetle.shown} aria-pressed={beetle.shown} className="font-bold" data-beetle-nav>
+                      Notes
+                      <span className={cn("ms-auto rounded-full px-2 py-0.5 text-[11px] font-extrabold", beetle.count ? "bg-yellow text-foreground" : "bg-border text-muted-foreground")}>{beetle.count}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
         </SidebarContent>
       </Sidebar>
       <SidebarInset className="bg-transparent">

@@ -9,7 +9,34 @@
 // with nowhere to send is worse than none.
 //
 // The standard this implements: `~/.claude/rules/quality/every-surface-we-build-carries-the-beetle.md`.
+import { useEffect, useState } from "react";
 export const BEETLE_HALL = "http://localhost:8772";
+
+/** What the widget exposes (v2): the hub calls toggle() from its own Notes entry. */
+export interface BeetleApi { surface: string; hall: string; version: number; toggle(): boolean; open(): void; close(): void; isOpen(): boolean; refresh(): Promise<void>; counts(): { open: number; done: number; removed: number } }
+export interface BeetleCount { surface: string; open: number; done: number; removed: number; on: boolean }
+declare global {
+  interface Window { __beetle?: BeetleApi }
+  interface WindowEventMap { "beetle:count": CustomEvent<BeetleCount> }
+}
+
+/**
+ * The count and the notes-mode state, for a hub's own "Notes" entry. `present`
+ * is false until the widget has spoken once, so a build with no beetle (file://,
+ * production) renders no entry rather than a dead one.
+ */
+export function useBeetle(): { present: boolean; count: number; shown: boolean } {
+  const [st, setSt] = useState(() => {
+    const b = window.__beetle;
+    return b ? { present: true, count: b.counts().open, shown: b.isOpen() } : { present: false, count: 0, shown: false };
+  });
+  useEffect(() => {
+    const on = (e: CustomEvent<BeetleCount>) => setSt({ present: true, count: e.detail.open, shown: e.detail.on });
+    window.addEventListener("beetle:count", on);
+    return () => window.removeEventListener("beetle:count", on);
+  }, []);
+  return st;
+}
 
 export function mountBeetle(surface: string): void {
   if (!/^https?:$/.test(location.protocol)) return;
