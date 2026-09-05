@@ -44,6 +44,17 @@ Evidence, measurements and the full prose for every step:
   `meta.ts`, so `meta.ts`, the art scene and the renderer land together or those two stay
   red. That is the gates working: a game with no picture is not finished.
 
+## Which kit, and where the art comes from
+
+- **A game is a PRODUCT, so its chrome is `@ui` on Preact - never shadcn, never React,
+  never a UI dependency in `src/`.** The budget is bytes a child downloads and
+  `assert:payload` holds it. The rule, with the measured pair behind it:
+  [`a-tool-ships-on-the-shared-kit-a-product-on-the-lightest.md`](../../rules/a-tool-ships-on-the-shared-kit-a-product-on-the-lightest.md).
+- **Its style and sprites are PICKED in the studio gallery** (`cd studio && npm run
+  gallery`, port 5188) and bound in `studio/art/games/<id>.json`; sprites reach a game
+  from `studio/dist-export` through an adapter, never by importing `studio/`. Run the
+  `studio-workspace` skill before touching that side.
+
 ## Before you call it done
 
 `npm test` · `npm run build:check` · then read the rule for whatever the game does:

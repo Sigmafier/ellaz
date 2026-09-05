@@ -1,0 +1,265 @@
+/* Ellaz design tokens - one source of truth for colour, space, type, radius.
+   Kid-friendly: bright accents, big touch targets (min 48px ~= adult; games for
+   kids bump to 64px+), rounded shapes, Hebrew-first font stack.
+
+   THE FILE IS IN THREE PARTS AND THE ORDER OF THE LAST TWO IS THE THEME.
+
+   1. `:root` - NEUTRAL. Everything that is the same in every theme: space,
+      radius, tap targets, fonts, easing. A value belongs here if changing the
+      look would never change it.
+   2. `:root, :root[data-theme="night"]` - the DEFAULT theme's values.
+   3. `:root[data-theme="market"]` - the other theme.
+
+   The default lives in the BARE `:root` selector, and that is load-bearing:
+   the site now emits 46 documents, and a page whose boot script has not run
+   yet has no `data-theme` attribute at all. Bare `:root` means such a page
+   paints the default rather than painting nothing.
+
+   Theme blocks use `:root[data-theme=...]` (specificity 0,2,0) so a theme wins
+   over the bare default regardless of which order a bundler happens to
+   concatenate them in. Never write a theme value at bare `:root` specificity
+   in the non-default block.
+
+   BOTH THEME BLOCKS MUST DECLARE AN IDENTICAL SET OF KEYS. A key present in
+   one and missing from the other resolves to the default's value in that
+   theme, silently and only for that one property - which is the shape of a
+   theme bug nobody finds. `theme-tokens.test.ts` asserts the sets match. */
+
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-8: 48px;
+
+  --radius-1: 8px;
+  --radius-2: 14px;
+  --radius-3: 22px;
+  --radius-pill: 999px;
+
+  /* THE BETA BADGE, and the one colour pair in this file that does NOT follow
+     the theme. It is here, in the block that holds sizes rather than colours,
+     because that is what "the same on every ground" means: a badge saying a
+     game is unfinished means the same thing at night and in the market, and a
+     per-theme amber would read as decoration rather than as a notice. The pill
+     carries its own background, so it is legible over either page.
+
+     `src/build/layout.ts` paints the emitted twin of this badge and cannot
+     read a token that only exists once the bundle loads - it names the same
+     two values as literals, and `beta-is-declared.test.ts` compares them
+     against these declarations so the two copies cannot drift. */
+  --beta-fill: #F2B93F;
+  --beta-ink: #241C17;
+
+  --tap: 48px; /* minimum interactive target */
+  /* The round control in the home bar. It is --tap on a tablet and up and
+     40px on a phone, and that 8px is what buys the bar its single line -
+     measured, arm P: at 48px the same bar is TWO rows at 390 on a real
+     wallet. Its own name rather than a smaller --tap, because --tap is the
+     platform target for every control in every game and a five-year-old's
+     is --tap-kids at 64. The phone value lives in global.css, which is the
+     only file here that can carry a media query. */
+  --hpill: var(--tap);
+  --tap-kids: 64px; /* age-5 target (~2cm+) */
+
+  --font: "Heebo", "Assistant", "Rubik", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Fredoka", "Heebo", "Assistant", system-ui, sans-serif;
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* ---------------------------------------------------------------------------
+   NIGHT - today's look, and today's DEFAULT.
+
+   Every value below is byte-identical to what this file held before the theme
+   split, which is what makes "the plumbing changed nothing" a claim a diff can
+   settle rather than an eyeball. The `-ink` siblings alias their bright value
+   here for the same reason: night was designed against a dark page, where the
+   accents are already readable as text.
+
+   NIGHT IS NO LONGER THE DEFAULT (2026-08-06). The bare `:root` selector moved
+   to the market rule below; that one line IS the flip, and moving it back here
+   is the kill switch. Night is complete and unchanged - reverting costs one
+   line and no values.
+   --------------------------------------------------------------------------- */
+:root[data-theme="night"] {
+  --bg: #0f1226;
+  --bg-soft: #171a34;
+  --surface: #1e2240;
+  --surface-2: #262b52;
+  --text: #f5f6ff;
+  --text-dim: #b3b8e0;
+  --brand: #6c5ce7;
+  --brand-2: #a29bfe;
+  --teal: #00cec9;
+  --yellow: #fdcb6e;
+  --red: #ff7675;
+  --green: #55efc4;
+  --pink: #fd79a8;
+  --orange: #ffa94d;
+
+  /* INK SIBLINGS. An accent used as a FILL and the same accent used as TEXT
+     are different problems: sunflower #ffc730 on cream is 1.5:1. Every accent
+     therefore has an `-ink` sibling that is the same hue, dark enough to read.
+     In night they alias the bright value, so night renders unchanged. */
+  /* Every sibling here aliases its bright accent EXCEPT --brand-ink, and the
+     exception is measured rather than taste: #6c5ce7 on night's --surface is
+     3.18:1, under the 4.5 floor. The lighter purple reads 6.37:1. Aliasing it
+     would have shipped a token whose whole job is "safe as text" and which is
+     not - so `contrast.test.ts` asserts all eight in BOTH themes, and that
+     assertion is what caught this. Nothing consumes these tokens yet, so the
+     correction costs no pixels today. */
+  --brand-ink: var(--brand-2);
+  --brand-2-ink: var(--brand-2);
+  --teal-ink: var(--teal);
+  --yellow-ink: var(--yellow);
+  --red-ink: var(--red);
+  --green-ink: var(--green);
+  --pink-ink: var(--pink);
+  --orange-ink: var(--orange);
+
+  /* FILLS. `background` accepts an image OR a colour, so one declaration
+     renders night's gradient and market's flat colour with no branch, no
+     class, and no JavaScript. This is what retires the hardcoded gradient in
+     components.tsx, the highest-fanout colour line in the repo. */
+  --brand-fill: linear-gradient(180deg, var(--brand-2), var(--brand));
+  --surface-fill: var(--surface);
+
+  /* The page backdrop, as a VALUE the theme owns rather than a declaration
+     hardcoded in global.css. */
+  --page-bg: radial-gradient(1200px 800px at 50% -10%, #202650 0%, var(--bg) 55%);
+
+  /* Text that sits ON --brand (a filter chip's label, a primary button). */
+  --on-brand: #ffffff;
+
+  /* THE FILL UNDER A LABEL, which is not the same token as the fill under a
+     shape. `--brand-fill` is a GRADIENT here, and a gradient has no contrast
+     ratio - it has a worst stop. Measured on rendered pixels 2026-09-02:
+     --on-brand reads 4.86 on this block's dark stop and 2.43 on its light one,
+     and --text reads 2.53 at the top of a real 52px button. So NO ink clears
+     4.5 across that gradient, and text must never sit on it.
+
+     --brand-strong is flat for exactly that reason, and it is the darker of
+     night's two brand stops so --on-brand clears 4.86:1 on it. */
+  --brand-strong: var(--brand);
+
+  /* The earned-star pill on a game card, and the shadow that keeps the
+     UNEARNED outline star legible where it sits directly on the art. */
+  --badge-fill: rgba(6, 8, 20, 0.72);
+  --badge-glow: 0 1px 2px rgba(0, 0, 0, 0.7);
+
+  /* Used by the 46 EMITTED DOCUMENTS, which have a hairline rule between
+     sections and a stage the game mounts into. They are theme tokens because
+     a content page is part of this product, not a separate white website. */
+  --line: #2a2f55;
+  --stage-bg: #12142b;
+
+  --shadow-1: 0 4px 16px rgba(0, 0, 0, 0.28);
+  --shadow-2: 0 10px 30px rgba(0, 0, 0, 0.38);
+
+  /* How strongly a game card's own colour washes its tile. Night keeps the
+     20%-alpha radial the cards already had; see `.ellaz-tint` in global.css
+     for why this cannot live as a plain colour token. */
+  --tint-strength: 0.2;
+
+  /* The one way the theme reaches inside a game's key art. The scenes are
+     drawn on their own light - swapping their paper and ink for tokens turns a
+     memory card into a dark navy playing card and breaks what the shapes mean.
+     A uniform veil instead: it deepens 21 bright tiles by the same amount so
+     they stop shouting off a dark page, and because it is uniform it cannot
+     disturb the property the palette was picked for, that any two adjacent
+     thumbnails stay distinguishable. See `gameArt()`. */
+  --art-veil: rgba(15, 18, 38, 0.28);
+
+  /* Confetti. A custom property holds arbitrary text, so a comma list is a
+     legal value and `juice/effects.ts` splits it - which is how the palette
+     follows the theme without effects.ts importing React or a palette module.
+     Both lists are byte-identical to the arrays that used to be hardcoded
+     there, hue for hue and in order. */
+  --spark-colors: #6c5ce7, #00cec9, #fdcb6e, #ff7675, #55efc4;
+  --confetti-colors: #6c5ce7, #a29bfe, #00cec9, #fdcb6e, #ff7675, #55efc4, #fd79a8, #74b9ff;
+}
+
+/* ---------------------------------------------------------------------------
+   BRIGHT MARKETPLACE - daylight, and THE DEFAULT since 2026-08-06.
+
+   It holds the bare `:root` selector, which is load-bearing: the 46 emitted
+   documents carry no `data-theme` until the inline boot script runs, so bare
+   `:root` is what a cold page paints. `themes.ts` DEFAULT_THEME must name this
+   same theme, and `theme-sync.test.ts` asserts it - a mismatch would show as a
+   flash of the wrong theme on every cold load and nowhere else at all.
+
+   Flat fills, no gradients, no blurred shadows: the shadows here are hard
+   offsets in ink, which is what gives the look its printed-sticker feel.
+   `theme-tokens.test.ts` asserts this block contains zero `gradient`, so "no
+   gradients" is a property of the file rather than a promise in a comment.
+   --------------------------------------------------------------------------- */
+:root,
+:root[data-theme="market"] {
+  --bg: #fff6e9;
+  --bg-soft: #ffeed8;
+  --surface: #fffdf8;
+  --surface-2: #fff3e0;
+  --text: #241c17;
+  --text-dim: #6b5c50;
+  --brand: #ff4d8d;
+  --brand-2: #ff8fb3;
+  --teal: #12b5ad;
+  --yellow: #ffc730;
+  --red: #ef4a3f;
+  --green: #3cb46a;
+  --pink: #ff6fa8;
+  --orange: #ff8a3d;
+
+  /* Same hue, dark enough to be text on cream. Every one of these clears
+     4.5:1 against --surface; `contrast.test.ts` asserts it rather than
+     trusting the eye that picked them. */
+  --brand-ink: #c2185b;
+  --brand-2-ink: #b03a63;
+  --teal-ink: #0a6f6a;
+  --yellow-ink: #7a5600;
+  --red-ink: #b3261e;
+  --green-ink: #1f7a45;
+  --pink-ink: #b83a6d;
+  --orange-ink: #96470d;
+
+  --brand-fill: var(--brand);
+  --surface-fill: var(--surface);
+  --page-bg: var(--bg);
+
+  --on-brand: #ffffff;
+
+  /* Deliberately NOT --brand. #ff4d8d is a fine fill under a shape and a bad
+     one under a label: measured on rendered pixels 2026-09-02, --on-brand
+     reads 3.14 on it and --text reads 5.34, so the only ink that clears 4.5
+     on the bright pink is a near-black one - which is why a Send button drawn
+     that way reads as a highlighter swipe rather than a button.
+     Same hue, darkened until the white label clears: 5.87:1. */
+  --brand-strong: #c2185b;
+
+  --badge-fill: rgba(36, 28, 23, 0.78);
+  /* Lighter on cream: a hard black halo would read as grime on a pale card. */
+  --badge-glow: 0 1px 2px rgba(36, 28, 23, 0.45);
+
+  --line: #efe0cc;
+  --stage-bg: #ffeed8;
+
+  /* Hard ink offsets, not blur. */
+  --shadow-1: 0 3px 0 rgba(36, 28, 23, 0.16);
+  --shadow-2: 0 6px 0 rgba(36, 28, 23, 0.2);
+
+  /* A 20% radial is nearly invisible on cream, so market lays a flatter,
+     stronger tint instead. */
+  --tint-strength: 0.14;
+
+  /* Daylight is the light the art was drawn in, so it gets none. Declared
+     rather than omitted: a key present in one theme block and missing from the
+     other silently inherits the default's value for that one property, which
+     is the shape of a theme bug nobody finds. `theme-tokens.test.ts` asserts
+     the two key sets match. */
+  --art-veil: transparent;
+
+  --spark-colors: #ff4d8d, #12b5ad, #ffc730, #ef4a3f, #3cb46a;
+  --confetti-colors: #ff4d8d, #ff8fb3, #12b5ad, #ffc730, #ef4a3f, #3cb46a, #ff6fa8, #4c9be8;
+}

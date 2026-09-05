@@ -39,7 +39,7 @@ Two other workspaces share the repository and none of this table: `holdem/`
 (the poker table, [`docs/poker-table.md`](poker-table.md)) and, since
 2026-09-05, `studio/` - the art bible: style renderers with recipes, rigged
 characters, a sprite export (sheet + atlas + manifest) with Phaser and canvas
-adapters, and a one-file gallery. Each has its own `package.json`, tests and
+adapters, and a gallery (shadcn on the ellaz tokens, port 5188, built to one file). Each has its own `package.json`, tests and
 workflow; nothing in `src/` imports from either and nothing in them imports
 from `src/`, and root `npm test` runs none of their tests. The studio's map is
 [`studio/README.md`](../studio/README.md); its rules for what every style must

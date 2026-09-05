@@ -2,11 +2,13 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "types": ["vitest/globals", "node", "vite/client"],
+    "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
       "@art/*": ["art/*"],
       "@export/*": ["export/*"],
-      "@adapters/*": ["adapters/*"]
+      "@adapters/*": ["adapters/*"],
+      "@/*": ["gallery/src/*"]
     }
   },
   "include": ["art", "export", "adapters", "gallery/src", "vitest.config.ts"]

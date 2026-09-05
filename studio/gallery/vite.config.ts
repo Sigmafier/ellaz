@@ -1,12 +1,23 @@
 import { fileURLToPath, URL } from "node:url";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, type Plugin } from "vite";
 
-// ONE HTML file. The gallery is opened from file:// (the operator's browser,
-// the Visual Hall copies it as-is) and from a headless page for shots, and
-// neither can load a module script from a sibling file over file://. So the
-// build inlines its single JS chunk and its CSS into index.html. No dev
-// server is configured on purpose: a port is the operator's to authorise,
-// and this page needs none.
+// The gallery is shadcn + Radix on the ellaz tokens (the products-vs-tools
+// rule: a product ships on the lightest kit that meets its byte budget, a
+// tool ships on the one shared kit). Two ways to open it, both real:
+//
+//   npm run gallery         the dev server, on 5188 and ONLY 5188. The port
+//                           is the operator's to authorise and this one is
+//                           on the approved list; strictPort means a taken
+//                           port is an error, never a silently different
+//                           origin (which cannot be logged into and loses
+//                           the browser's state).
+//   npm run gallery:build   ONE HTML file. The Visual Hall copies it as-is
+//                           and the shots script opens it over file://, and
+//                           neither can load a module script from a sibling
+//                           file over file://. So the build inlines its
+//                           single JS chunk and its CSS into index.html.
 function singleFile(): Plugin {
   return {
     name: "studio-single-file",
@@ -37,7 +48,12 @@ function singleFile(): Plugin {
 export default defineConfig({
   root: fileURLToPath(new URL(".", import.meta.url)),
   base: "./",
-  plugins: [singleFile()],
+  plugins: [react(), tailwindcss(), singleFile()],
+  resolve: {
+    alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
+  },
+  server: { port: 5188, strictPort: true, host: "localhost" },
+  preview: { port: 5188, strictPort: true, host: "localhost" },
   build: {
     outDir: fileURLToPath(new URL("../dist-gallery", import.meta.url)),
     emptyOutDir: true,

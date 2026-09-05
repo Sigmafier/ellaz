@@ -1,14 +1,14 @@
 ---
 name: studio-workspace
-description: Work inside studio/ - the art bible, sprite pipeline and gallery that share this repo with the games platform and the poker table but import nothing from either. Use before touching anything under studio/, because root npm test runs none of its tests and its renderers only run in a browser.
+description: Work inside studio/ - the art bible, sprite pipeline and gallery that share this repo with the games platform and the poker table but import nothing from either. Use before touching anything under studio/, because root npm test runs none of its tests, its renderers only run in a browser, and its gallery is shadcn on a copy of the ellaz tokens with one authorised port.
 ---
 
 # The `studio/` workspace
 
 The studio art bible: 13 style renderers with recipes, four rigged or
 frame-authored characters with five clips each, a technique library, an
-engine-neutral sprite export, adapters, and a one-file gallery. **Its own
-`package.json`, lockfile, tests, six gates and workflow.** Nothing in `src/`
+engine-neutral sprite export, adapters, and a gallery. **Its own
+`package.json`, lockfile, tests, seven gates and workflow.** Nothing in `src/`
 or `holdem/` imports from it and nothing in it imports from them;
 `scripts/assert-boundary.mjs` refuses both directions from source.
 
@@ -21,25 +21,51 @@ studio's.** Anything touching `studio/` runs its checks from inside:
 cd studio && npm ci && npm run build:check
 ```
 
-`build:check` is typecheck, tests, the gallery build, the export, the six
+`build:check` is typecheck, tests, the gallery build, the export, the seven
 gates, and every gate's `--control`. `.github/workflows/studio.yml` runs the
 same list, scoped with `paths: studio/**`; both ellaz deploys carry the
 matching `paths-ignore`.
+
+## The gallery is a TOOL: shadcn + Radix on the ellaz tokens, port 5188
+
+The products-vs-tools rule
+([`.claude/rules/a-tool-ships-on-the-shared-kit-a-product-on-the-lightest.md`](../../rules/a-tool-ships-on-the-shared-kit-a-product-on-the-lightest.md)):
+the app ships on the lightest kit that meets its byte budget; a tool ships on
+the one shared kit. The gallery is the first tool.
+
+- **`npm run gallery` serves it on `http://localhost:5188` and ONLY 5188**
+  (`strictPort` in `gallery/vite.config.ts`). The port is the operator's to
+  authorise; if the dev-port gate refuses it, the operator adds it - never
+  pick another. **`npm run gallery:build` still emits ONE html file**
+  (`dist-gallery/index.html`) that opens from `file://` and from the Visual
+  Hall; the shots script and CI read that file.
+- **Need a primitive? `cd studio && npx shadcn add <name>`.** `components.json`
+  at the studio root points at `gallery/src`. Never hand-roll a button, a
+  rail, a dialog. `gallery/src/components/ui/*` is vendor code: re-add, do not
+  edit, do not hold it to the 500-line law.
+- **The tokens are a COPY**: `gallery/src/tokens.css` is byte-equal to
+  `src/ui/tokens.css`, held by `npm run assert:tokens`. When it reds, run the
+  `cp` it prints. Never edit the copy. `gallery/src/index.css` maps every
+  shadcn role onto a token; no page names a colour.
+- **The sidebar holds the page list AND the page's own pickers** (character,
+  style, scene). A page is a `{ Side, Main }` pair in `gallery/src/pages/`,
+  both pure functions of the route, so the rail and the page cannot disagree.
+- **Routes are the address**: `#/sprites?char=slime&style=crayon`. The shots
+  script names pages by these strings; `router.test.ts` pins the parser.
+- **A page that throws must say so twice**: on the page, and on
+  `window.__galleryError` for the shots script. `__galleryReady` is the id.
 
 ## Standing constraints
 
 - **Renderers run in a browser.** `art/` never touches `document`; the canvas
   comes from `art/canvas.ts`'s factory. Headless jobs bundle `art/` into
   `dist-runner/studio.iife.js` and inject it into a blank Playwright page -
-  **no dev server, no port**. Never add one; a port is the operator's to
-  authorise.
+  **no dev server, no port for the RUNNER**. The gallery's 5188 is the
+  studio's only port.
 - **The bundle goes stale silently.** `scripts/lib/browser.mjs` rebuilds it
   when anything under `art/`, `runner/`, `export/` or `adapters/` is newer;
   `STUDIO_REBUILD=1` forces it. A function "missing" from `window.studio`
   that the source plainly has is a stale bundle.
-- **The gallery is ONE html file** (`dist-gallery/index.html`), opened from
-  `file://` and from the Visual Hall. The vite plugin inlines the chunk and
-  CSS and refuses a build where an external asset reference survives.
 - **Frame names are the contract**: `<character>_<clip>_<nnnn>`, four digits
   from 0000, contiguous, in clip order. The five clip ids are fixed.
 - **The pivot is the feet, at body-space (0, 0), on every frame.** A rig
@@ -59,7 +85,9 @@ matching `paths-ignore`.
 The operator's style picks are in the taste ledger
 (`python3 ~/.claude/skills/design-shotgun/bin/taste.py show ellaz`) and in
 `art/games/<id>.json`. Record a new pick in both. Never re-ask a pick the
-ledger already holds.
+ledger already holds. Gallery batches go to the Visual Hall with each card's
+`--link` pointing at the served gallery route, so the operator judges the
+real page and not only the capture.
 
 Runbook and the map of the tree: [`studio/README.md`](../../../studio/README.md).
 The rules every style agrees with: [`studio/docs/art-bible.md`](../../../studio/docs/art-bible.md).

@@ -27,12 +27,16 @@ repository root does not run a single one of its tests.**
 **And a THIRD workspace, `studio/`, since 2026-09-05: the art bible.** Thirteen
 style renderers with recipes, four characters with five clips each, a technique
 library, an engine-neutral sprite export (sheet + atlas + manifest) with Phaser
-and canvas adapters, and a one-file gallery. Same independence as the poker
-table: its own `package.json`, tests, six gates and `studio.yml`; nothing in
+and canvas adapters, and a gallery. Same independence as the poker
+table: its own `package.json`, tests, seven gates and `studio.yml`; nothing in
 `src/` or `holdem/` imports from it and nothing in it imports from them, and
 **root `npm test` runs none of its tests** - `cd studio && npm run build:check`.
 Run the **`studio-workspace` skill** before touching it; the map is
-[`studio/README.md`](studio/README.md).
+[`studio/README.md`](studio/README.md). **The gallery is a TOOL, so it is
+shadcn + Radix wearing a byte copy of the ellaz tokens, on port 5188 and no
+other** - the products-vs-tools rule in
+[`a-tool-ships-on-the-shared-kit-a-product-on-the-lightest.md`](.claude/rules/a-tool-ships-on-the-shared-kit-a-product-on-the-lightest.md).
+The app itself stays Preact on `src/ui`, because its budget is bytes.
 
 **What shipped, in order, with the measured numbers and the traps each one
 cost**: [`docs/build-log.md`](docs/build-log.md). Read it before re-deriving a
