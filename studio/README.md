@@ -12,7 +12,7 @@ cd studio
 npm ci
 npm test               # vitest, pure logic, node (CI reds under 120 tests)
 npm run typecheck
-npm run gallery        # the gallery on http://localhost:5188 - and ONLY 5188
+npm run gallery        # the gallery on http://localhost:5188 - and ONLY 5188; it carries the beetle (notes -> localhost:8772/_notes/)
 npm run gallery:build  # dist-gallery/index.html - ONE file, opens from file://
 npm run export         # dist-export/: sheets, atlases, manifests, palettes
 npm run assert:all     # the seven gates

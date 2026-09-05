@@ -33,6 +33,12 @@ The products-vs-tools rule
 the app ships on the lightest kit that meets its byte budget; a tool ships on
 the one shared kit. The gallery is the first tool.
 
+- **It carries the beetle.** `gallery/src/beetle.ts` injects the hall's widget at runtime on a
+  loopback http origin (never on `file://`, never in a build that leaves the machine), as
+  surface `studio-gallery`. Before touching the gallery:
+  `python3 ~/.claude/scripts/hall-server.py notes studio-gallery`; before handing it over:
+  `node ~/.claude/scripts/beetle-check.mjs http://localhost:5188/ --surface studio-gallery`.
+  The operator follows up at `http://localhost:8772/_notes/#studio-gallery`.
 - **`npm run gallery` serves it on `http://localhost:5188` and ONLY 5188**
   (`strictPort` in `gallery/vite.config.ts`). The port is the operator's to
   authorise; if the dev-port gate refuses it, the operator adds it - never
