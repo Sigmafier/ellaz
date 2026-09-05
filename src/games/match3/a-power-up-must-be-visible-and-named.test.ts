@@ -324,16 +324,24 @@ describe("a power-up that fires draws the shape it cleared", () => {
   });
 
   it("draws a row beam and a column beam that are NOT the same shape", () => {
-    // The stripes share one arm, so the difference is a ternary rather than two
-    // blocks: the row spans the full inner width and one cell of height, the
-    // column the reverse. A single `row ?` deciding both is what makes them
-    // impossible to collapse into each other by accident.
-    const arm = BLAST.slice(BLAST.indexOf("STRIPE_ROW || kind === STRIPE_COL"), BLAST.indexOf("if (kind === BURST)"));
+    // The stripes share one arm and one BOX - the width of the board, one cell
+    // tall - because the board is square, so a quarter turn lands that box
+    // exactly on the column. The two heads inside it need no second version,
+    // and that is the point: there is one implementation, so the row and the
+    // column cannot drift apart. What must differ is where the box is put and
+    // whether it is turned, and both are decided by the same `row` flag.
+    const arm = BLAST.slice(
+      BLAST.indexOf("STRIPE_ROW || kind === STRIPE_COL"),
+      BLAST.indexOf("if (kind === BURST)"),
+    );
     expect(arm).toContain("const row = kind === STRIPE_ROW");
-    expect(arm).toMatch(/width:\s*row \?/);
-    expect(arm).toMatch(/height:\s*row \?/);
-    expect(arm).toContain("scaleX(0.12)");
-    expect(arm).toContain("scaleY(0.12)");
+    expect(arm).toMatch(/left: row\s*$/m);
+    expect(arm).toMatch(/top: row \?/);
+    expect(arm).toContain('transform: row ? "none" : "rotate(90deg)"');
+    // Two heads, thrown in opposite directions from the gem that fired.
+    expect(arm).toContain("head(true)");
+    expect(arm).toContain("head(false)");
+    expect(arm).toMatch(/transformOrigin: toRight \?/);
   });
 
   it("draws the burst as a ring three cells across, which is what it clears", () => {
@@ -342,13 +350,81 @@ describe("a power-up that fires draws the shape it cleared", () => {
     expect(arm).toContain("span(3)");
     expect(arm).toContain("from(c - 1)");
     expect(arm).toContain("from(r - 1)");
+    // A RING rather than a filled disc: the burst clears the ring of eight
+    // around the gem and the gem, and a solid circle covers the gems it is
+    // about to take instead of showing them go.
+    expect(arm).toMatch(/border: `4px solid/);
   });
 
-  it("draws the rainbow over the whole board, which is also what it clears", () => {
+  it("throws one head at every square the rainbow is taking, in that square's colour", () => {
+    // The rainbow is the one power whose reach is not a SHAPE - it takes every
+    // gem of a colour, scattered anywhere - so it is the one that cannot be
+    // drawn as a rectangle or a circle. It gets a head per target instead,
+    // which is also why `Blast` is handed the step's `cleared` list at all.
     const arm = BLAST.slice(BLAST.indexOf("if (kind === RAINBOW)"));
-    expect(arm).toContain("inset:");
-    expect(arm).toContain("radial-gradient");
+    expect(arm).toContain("cleared.filter((t) => t !== index)");
+    expect(arm).toContain("--m3x");
+    expect(arm).toContain("--m3y");
+    // Each head carries the colour of the square it is flying to, not the
+    // colour of the gem it left. A rainbow onto a rainbow takes the whole
+    // board, and this is what makes that throw every colour at once.
+    // The BACKGROUND specifically, not merely the string appearing somewhere
+    // in the arm: the first version of this line passed a planted defect that
+    // painted every head the source gem's colour, because the glow beneath it
+    // still named the target and that was enough to satisfy a loose match.
+    expect(arm).toContain("background: gemOf(grid[t] ?? 1).fill,");
+    expect(arm).toContain("boxShadow: `0 0 10px 1px ${gemOf(grid[t] ?? 1).fill}`");
+    expect(arm).not.toContain("radial-gradient");
     expect(arm).not.toContain("span(3)");
+  });
+
+  it("gives each power its OWN motion, not one shape in three sizes", () => {
+    // The operator's ruling, 2026-09-05: "each superpower should have its
+    // animation". Three arms, three keyframe names, and no arm may borrow
+    // another's - which is the whole claim, so it is asserted as a SET
+    // difference rather than as three `toContain`s that would all pass on one
+    // arm using all three.
+    const arms = {
+      stripe: BLAST.slice(
+        BLAST.indexOf("STRIPE_ROW || kind === STRIPE_COL"),
+        BLAST.indexOf("if (kind === BURST)"),
+      ),
+      burst: BLAST.slice(BLAST.indexOf("if (kind === BURST)"), BLAST.indexOf("if (kind === RAINBOW)")),
+      rainbow: BLAST.slice(BLAST.indexOf("if (kind === RAINBOW)")),
+    };
+    const names = ["m3Run", "m3Ring", "m3Fly"];
+    const used = Object.fromEntries(
+      Object.entries(arms).map(([k, body]) => [k, names.filter((n) => body.includes(n))]),
+    );
+    expect(used).toEqual({ stripe: ["m3Run"], burst: ["m3Ring"], rainbow: ["m3Fly"] });
+    // And every one of the three is really declared, so a typo in an
+    // `animation:` string cannot pass this by naming nothing.
+    for (const n of names) expect(GAME, `${n} is used but never declared`).toContain(`@keyframes ${n} `);
+  });
+
+  it("draws every power in the GEM'S colour, never in flat white", () => {
+    // White was the first version and the operator's word for it was "lame":
+    // it reads as a flash on the glass rather than as the gem doing something.
+    // Each arm must reach for a real gem fill; `#fff` survives only as the hot
+    // tip of a head, on top of a colour.
+    for (const [name, body] of [
+      ["stripe", BLAST.slice(BLAST.indexOf("STRIPE_ROW || kind === STRIPE_COL"), BLAST.indexOf("if (kind === BURST)"))],
+      ["burst", BLAST.slice(BLAST.indexOf("if (kind === BURST)"), BLAST.indexOf("if (kind === RAINBOW)"))],
+      ["rainbow", BLAST.slice(BLAST.indexOf("if (kind === RAINBOW)"))],
+    ] as const) {
+      expect(body, `the ${name} blast is not drawn in the gem's colour`).toMatch(/\$\{ink\}|gemOf\(grid\[/);
+      expect(body, `the ${name} blast is a flat white fill`).not.toMatch(/background: "#fff"/);
+    }
+    expect(BLAST).toContain("const ink = gemOf(grid[index] ?? 1).fill;");
+  });
+
+  it("keeps its keyframes out of the stylesheet every child downloads", () => {
+    // `global.css` is the shell. These three rules belong to one game, so they
+    // ride in the game's own chunk and are injected the first time a board
+    // mounts. A future move of them into the shell should red this.
+    const shell = readFileSync(new URL("../../ui/global.css", import.meta.url), "utf8");
+    for (const n of ["m3Run", "m3Ring", "m3Fly"]) expect(shell).not.toContain(n);
+    expect(GAME).toContain("document.head.append(el)");
   });
 
   it("renders nothing for somebody who asked for less motion", () => {

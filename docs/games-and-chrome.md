@@ -833,18 +833,36 @@ behind it:
 
 Until 2026-09-05 every cleared cell played the same 0.16 s fade whether a three
 lined up or a rainbow took a whole colour; the only thing separating them was a
-board shake on two of the four kinds. Each kind now draws the shape it actually
-clears — a beam down the row or column, a ring for the burst, a wash for the
-rainbow — from `CascadeStep.fired`, which carries the index and the kind for
-exactly this. `cleared` cannot say which power sent those gems, because by then
-they are gone.
+board shake on two of the four kinds. Each kind now draws its OWN motion, from
+`CascadeStep.fired`, which carries the index and the kind for exactly this.
+`cleared` cannot say which power sent those gems, because by then they are gone.
 
-It is a transition on a self-flipping component rather than a keyframe:
-`global.css` is the shell every child downloads before choosing a game, and this
-is one game's flourish. Under `prefers-reduced-motion` it renders nothing at
-all — the sound, the shake and the clear still happen; this is the decoration.
-`BOARD_PAD` is the one number the overlay and the board must agree on, and a
-cell asserts they do.
+| power | motion | why that one |
+|---|---|---|
+| stripe | two heads race out from the gem to each edge, each dragging a tail | the row is never fully lit at once, so you can still see WHICH gem fired |
+| burst | a ring pushes outward through the three-by-three | a ring rather than a disc, because a filled circle covers the gems it is about to take instead of showing them go |
+| rainbow | a head flies from the gem to every square it is taking, each carrying THAT square's colour | the rainbow is the one power whose reach is not a shape — it takes a colour, scattered anywhere — so it is the one that cannot be drawn as a rectangle or a circle. It is also why a rainbow onto a rainbow throws the whole board's colours at once |
+
+**The first version drew all three in flat white, and the operator's word for it
+was "lame"** — it read as a flash on the glass rather than as the gem doing
+something. Everything is drawn in the gem's own colour now; `#fff` survives only
+as the hot tip of a head, on top of a colour. Four alternatives were built on the
+real board behind a `?blast=` switch and shown one at a time; `comet` won, and
+the ruling that came back with it was that each power gets its own motion rather
+than one shape in three sizes. The switch and the three losers came out in the
+same commit as the winner.
+
+Keyframes rather than the two-value transition this used until then: each motion
+has to stay lit while it travels and fade only at the end, which is a three-stop
+curve, and a transition has two stops — the old beam faded the whole way out and
+read as a smear. They are injected from the game's own module the first time a
+board mounts, never written into `global.css`, because that stylesheet is the
+shell every child downloads before choosing a game and these three rules belong
+to one game's flourish. A cell asserts the shell does not contain them.
+
+Under `prefers-reduced-motion` it renders nothing at all — the sound, the shake
+and the clear still happen; this is the decoration. `BOARD_PAD` is the one number
+the overlay and the board must agree on, and a cell asserts they do.
 
 **And it shipped, briefly, built and wired and never rendered.** Twelve source
 assertions were green over a build where `Blast` existed, was correct, was

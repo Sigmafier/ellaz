@@ -231,31 +231,83 @@ const CASCADE_STEPS = [0, 2, 4, 7, 9, 12] as const;
 const BOARD_PAD = 6;
 
 /**
+ * The three motions a blast is built from, as keyframes.
+ *
+ * Injected from THIS module rather than written into `global.css`, and that is
+ * the whole reason it is done in JavaScript at all: `global.css` is the
+ * stylesheet every child downloads before choosing a game, and these three
+ * rules belong to one game's flourish. They land when a match3 board first
+ * mounts and never before.
+ *
+ * A keyframe rather than the two-value transition this used until 2026-09-05:
+ * every one of these has to stay lit while it travels and fade only at the
+ * end, which is a three-stop curve. A transition has two stops, so the old
+ * beam faded the whole way out and read as a smear.
+ */
+const BLAST_KEYFRAMES = `
+@keyframes m3Run { from { transform: scaleX(0); opacity: 1 } 70% { opacity: 1 } to { transform: scaleX(1); opacity: 0 } }
+@keyframes m3Ring { from { transform: scale(0.18); opacity: 1 } 70% { opacity: 0.9 } to { transform: scale(1.15); opacity: 0 } }
+@keyframes m3Fly { from { transform: translate(0,0) scale(0.35); opacity: 0 } 22% { opacity: 1 } to { transform: translate(var(--m3x), var(--m3y)) scale(1); opacity: 0 } }
+`;
+
+let blastCssInjected = false;
+
+/** Put the keyframes in the document once, the first time a board mounts. */
+function useBlastKeyframes() {
+  useEffect(() => {
+    if (blastCssInjected || typeof document === "undefined") return;
+    blastCssInjected = true;
+    const el = document.createElement("style");
+    el.textContent = BLAST_KEYFRAMES;
+    document.head.append(el);
+  }, []);
+}
+
+/**
  * What a power-up going off LOOKS like, per kind.
  *
  * Until 2026-09-05 every cleared cell played the same 0.16 s fade whether a
  * three lined up or a rainbow took a whole colour, and the only thing telling
  * the two apart was a board shake on two of the four kinds. A player asked for
- * the effect to match the effect, so each kind now draws the shape it actually
- * clears: a beam down the row or column, a ring for the burst, a wash for the
- * rainbow. Drawn from `CascadeStep.fired`, which already carries the index and
- * the kind for exactly this - the cleared cells cannot say which power sent
- * them, because by then the gems are gone.
+ * the effect to match the effect; the operator then ruled that each power gets
+ * its OWN motion rather than one shape in four sizes. So:
  *
- * A transition rather than a keyframe: `global.css` is the shell every child
- * downloads before choosing a game, and this is one game's flourish. It flips
- * its own state on the first frame after mount, which is what gives the
- * transition two values to move between.
+ *   stripe   two heads race out from the gem to each edge, each dragging a
+ *            tail. The row is never fully lit at once, so you can still see
+ *            WHICH gem fired.
+ *   burst    a ring pushes outward through the three-by-three it clears.
+ *   rainbow  a head flies from the gem to every square the rainbow is taking,
+ *            each one carrying that square's own colour - which is why a
+ *            rainbow onto a rainbow throws the whole board's colours at once.
+ *
+ * Every one of them is drawn in the GEM'S colour rather than in white. White
+ * was the first version and the operator's word for it was "lame": it reads as
+ * a flash on the glass rather than as the gem doing something.
+ *
+ * Drawn from `CascadeStep.fired`, which carries the index and the kind, plus
+ * the step's own `cleared` list and the board still on screen - the cleared
+ * cells cannot say which power sent them, and by the time the next grid lands
+ * their colours are gone.
  *
  * Under `prefers-reduced-motion` it renders nothing at all. The sound, the
  * shake and the clear all still happen - this is the decoration.
  */
-function Blast({ index, kind, size }: { index: number; kind: number; size: number }) {
-  const [out, setOut] = useState(false);
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setOut(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
+function Blast({
+  index,
+  kind,
+  size,
+  grid,
+  cleared,
+}: {
+  index: number;
+  kind: number;
+  size: number;
+  /** The board as it still looks, so every head can carry its square's colour. */
+  grid: readonly number[];
+  /** What this step is taking. Only the rainbow uses it - it is the only power whose reach is not a shape. */
+  cleared: readonly number[];
+}) {
+  useBlastKeyframes();
   if (prefersReducedMotion()) return null;
 
   const r = Math.floor(index / size);
@@ -263,63 +315,102 @@ function Blast({ index, kind, size }: { index: number; kind: number; size: numbe
   const inner = `(100% - ${BOARD_PAD * 2}px)`;
   const span = (n: number) => `calc(${inner} * ${n} / ${size})`;
   const from = (n: number) => `calc(${BOARD_PAD}px + ${inner} * ${n} / ${size})`;
-
-  const base: Record<string, string | number> = {
-    position: "absolute",
-    pointerEvents: "none",
-    zIndex: 2,
-    opacity: out ? 0 : 0.85,
-    transition: "opacity 0.26s ease-out, transform 0.26s ease-out",
-    background: "#fff",
-  };
+  const ink = gemOf(grid[index] ?? 1).fill;
 
   if (kind === STRIPE_ROW || kind === STRIPE_COL) {
     const row = kind === STRIPE_ROW;
+    // Both orientations draw into the SAME box: one the width of the board and
+    // one cell tall, laid along the row - or laid the same way and turned a
+    // quarter circle for a column. The board is square, so the turned box lands
+    // exactly on the column and the two heads inside it need no second version.
+    const along = ((row ? c : r) + 0.5) / size;
+    const head = (toRight: boolean) => ({
+      position: "absolute" as const,
+      top: "26%",
+      bottom: "26%",
+      left: toRight ? `${along * 100}%` : 0,
+      right: toRight ? 0 : `${100 - along * 100}%`,
+      borderRadius: 999,
+      transformOrigin: toRight ? ("left" as const) : ("right" as const),
+      background: `linear-gradient(${toRight ? "90deg" : "270deg"}, ${ink}00, ${ink} 72%, #fff)`,
+      animation: "m3Run 0.3s cubic-bezier(.15,.75,.35,1) both",
+    });
     return (
       <div
         aria-hidden
         style={{
-          ...base,
-          borderRadius: 999,
-          left: row ? `${BOARD_PAD}px` : from(c),
-          top: row ? from(r) : `${BOARD_PAD}px`,
-          width: row ? `calc(${inner})` : span(1),
-          height: row ? span(1) : `calc(${inner})`,
-          transform: out ? "scale(1)" : row ? "scaleX(0.12)" : "scaleY(0.12)",
+          position: "absolute",
+          pointerEvents: "none",
+          zIndex: 2,
+          width: `calc(${inner})`,
+          height: span(1),
+          left: row
+            ? `${BOARD_PAD}px`
+            : `calc(${BOARD_PAD}px + ${inner} * ${c + 0.5} / ${size} - ${inner} / 2)`,
+          top: row ? from(r) : `calc(${BOARD_PAD}px + ${inner} / 2 - ${inner} / ${2 * size})`,
+          transform: row ? "none" : "rotate(90deg)",
         }}
-      />
+      >
+        <div style={head(true)} />
+        <div style={head(false)} />
+      </div>
     );
   }
+
   if (kind === BURST) {
     return (
       <div
         aria-hidden
         style={{
-          ...base,
-          borderRadius: "50%",
+          position: "absolute",
+          pointerEvents: "none",
+          zIndex: 2,
           left: from(c - 1),
           top: from(r - 1),
           width: span(3),
           height: span(3),
-          transform: out ? "scale(1.1)" : "scale(0.25)",
+          borderRadius: "50%",
+          border: `4px solid ${ink}`,
+          boxShadow: `0 0 16px 2px ${ink}, inset 0 0 14px 0 ${ink}`,
+          animation: "m3Ring 0.34s cubic-bezier(.2,.8,.3,1) both",
         }}
       />
     );
   }
+
   if (kind === RAINBOW) {
+    // One head per square being taken, each carrying THAT square's colour. The
+    // rainbow's own square is skipped: a head with nowhere to go is a dot that
+    // sits still while everything else moves, and it reads as a stuck frame.
+    const heads = cleared.filter((t) => t !== index);
     return (
-      <div
-        aria-hidden
-        style={{
-          ...base,
-          inset: `${BOARD_PAD}px`,
-          borderRadius: 12,
-          background:
-            "radial-gradient(circle at " +
-            `${((c + 0.5) / size) * 100}% ${((r + 0.5) / size) * 100}%, #fff, rgba(255,255,255,0))`,
-          transform: out ? "scale(1)" : "scale(0.35)",
-        }}
-      />
+      <>
+        {heads.map((t) => (
+          <div
+            key={t}
+            aria-hidden
+            style={
+              {
+                position: "absolute",
+                pointerEvents: "none",
+                zIndex: 2,
+                left: from(c + 0.5),
+                top: from(r + 0.5),
+                width: span(0.34),
+                height: span(0.34),
+                marginLeft: `calc(${span(0.34)} / -2)`,
+                marginTop: `calc(${span(0.34)} / -2)`,
+                borderRadius: "40%",
+                background: gemOf(grid[t] ?? 1).fill,
+                boxShadow: `0 0 10px 1px ${gemOf(grid[t] ?? 1).fill}`,
+                "--m3x": `calc(${inner} * ${(t % size) - c} / ${size})`,
+                "--m3y": `calc(${inner} * ${Math.floor(t / size) - r} / ${size})`,
+                animation: "m3Fly 0.36s cubic-bezier(.2,.7,.3,1) both",
+              } as Record<string, string | number>
+            }
+          />
+        ))}
+      </>
     );
   }
   return null;
@@ -460,7 +551,9 @@ export function Match3Game({ ctx }: { ctx: GameContext }) {
   // Keyed by a counter as well as the step, because two consecutive steps can
   // fire the same kind on the same square and React would otherwise reuse the
   // element and skip the animation entirely.
-  const [blasts, setBlasts] = useState<{ key: number; index: number; kind: number }[]>([]);
+  const [blasts, setBlasts] = useState<
+    { key: number; index: number; kind: number; cleared: readonly number[] }[]
+  >([]);
   const blastKey = useRef(0);
   /** Gems vanishing right now, for one short flash. */
   const [clearing, setClearing] = useState<readonly number[]>([]);
@@ -570,7 +663,7 @@ export function Match3Game({ ctx }: { ctx: GameContext }) {
       setBlasts(
         step.fired.map((f) => {
           blastKey.current += 1;
-          return { key: blastKey.current, index: f.index, kind: f.kind };
+          return { key: blastKey.current, index: f.index, kind: f.kind, cleared: step.cleared };
         }),
       );
       if (bang && step.fired.some((f) => f.kind === BURST || f.kind === RAINBOW)) {
@@ -1045,7 +1138,14 @@ export function Match3Game({ ctx }: { ctx: GameContext }) {
         {/* The blasts sit OVER the cells, absolutely positioned, so they are
             not grid items and do not push a gem out of its square. */}
         {blasts.map((b) => (
-          <Blast key={b.key} index={b.index} kind={b.kind} size={size} />
+          <Blast
+            key={b.key}
+            index={b.index}
+            kind={b.kind}
+            size={size}
+            grid={view}
+            cleared={b.cleared}
+          />
         ))}
       </div>
     </GameChrome>
