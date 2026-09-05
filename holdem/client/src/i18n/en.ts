@@ -42,6 +42,7 @@ export const en: Record<StringKey, string> = {
   raise: "Raise",
   allIn: "All-in",
   timeBank: "Time bank",
+  autoCheckFold: "Auto check / fold",
   pot: "Pot",
   toCall: "to call",
   yourTurn: "Your turn!",

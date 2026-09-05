@@ -32,6 +32,9 @@ an English toggle.
 - Timeout = check if free, else fold; two consecutive timeouts sit you out.
   One 30s time bank per hand. Disconnection does NOT pause the game — the
   timer protects the table, the snapshot-on-reconnect protects you.
+- **Check/fold can be armed before the turn arrives** — the box in the action
+  bar. Client-side, one hand at a time, and it unticks itself the moment it
+  fires. See below.
 - Mucked cards are never sent to anyone and stay hidden in the history replay.
 
 ## Develop
@@ -372,6 +375,65 @@ heartbeat immediately exposed the cost of not doing that: `alarm()`'s
 interHand branch started the next hand on ANY alarm, which was correct only
 while the inter-hand deadline was the sole thing that could wake an occupied
 table. It checks its deadline now.
+
+## Arming check/fold before your turn
+
+**The check/fold box is a PRE-ACTION, and it is deliberately not a mode.** A
+player who has given up on a hand can arm it while somebody else is thinking;
+when the turn lands it checks if the street is free and folds if it costs
+anything — the same move `doTimeout` makes in the engine, taken at once instead
+of after the whole shot clock, and without the timeout that would sit the
+player out after two of them.
+
+Three properties, and the second is the one that decides whether this is safe:
+
+- **Client-side.** No protocol message, no Durable Object state, no extra row
+  written — it sends the ordinary `act` a tapped button sends, so the server
+  stays the only authority on what is legal, and the free-plan write quota does
+  not move.
+- **It is armed FOR A HAND, never as a flag.** `ActionBar` stores the hand
+  number it was armed in and `stillArmed()` compares (`preAction.ts`), so the
+  inter-hand pause disarms it with no cleanup anywhere. A boolean would be a
+  latch, and the hand a latch survives into is the one somebody was dealt aces
+  in.
+- **It unticks the instant it fires**, before the send. One tick is one
+  decision: giving up on the flop is not giving up on the turn.
+
+Where it SITS is also load-bearing, and it took three screenshots at 400x860 to
+place. It is in the action bar, not in the menu beside Sit out, because it is a
+decision about the hand in front of the player. It is drawn away from where the
+buttons appear — top of the rail when wide, floated clear of the bottom edge and
+pushed to the inline start when tall — so a tap landing a frame after the turn
+arrives hits felt rather than FOLD. That float was measured rather than chosen:
+centred at one button's height it sat squarely on the player's own seat plate,
+and at the inline start it reached the hole cards, so it is capped narrow enough
+to wrap to two lines and floated 1.9 tap heights, which is the one spot on a
+portrait phone that is empty for the whole hand.
+
+Its unarmed half wears the plain `btn` surface, not `btn ghost`. A transparent
+pill over dark felt photographs as floating text rather than a control, which is
+the defect
+[`a-control-that-carries-an-imperative-must-be-a-control.md`](../.claude/rules/a-control-that-carries-an-imperative-must-be-a-control.md)
+is about — and every one of these was found by looking at the picture, not at
+the code.
+
+Nothing in the suite can see any of that: `preAction.ts` is pure and tested in
+node, and this workspace's vitest has no DOM, so the wiring is proven by
+`scripts/repro/pre-action.mjs`, which sits down at the practice table in a real
+browser, arms the box, and reports what the SOCKET carried.
+
+```
+PLAYWRIGHT_CHROMIUM=<chrome> MINUTES=8 node scripts/repro/pre-action.mjs
+```
+
+Measured 2026-09-03 against `npm run dev`, both arms live: hand 24
+`fold/call/raise -> fold`, hand 25 `check/raise/fold -> check`, hand 26
+`fold/call/raise -> fold`; offered 0 times on our own turn across 9 hands, and
+unticked after every fire. Its control is `preActionMove` stubbed to return
+null, which reds with *armed, and no action was ever sent* — and its own dedupe
+key was wrong before that ran: `actionSeq` restarts every hand, so a seq-only
+key printed PASS while watching one fire in seven hands
+([`a-diagnostic-that-truncates-what-it-compares.md`](../.claude/rules/a-diagnostic-that-truncates-what-it-compares.md)).
 
 ## Six decisions that are the table, not a preference
 

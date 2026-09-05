@@ -41,6 +41,8 @@ export const he = {
   raise: "רייז",
   allIn: "אול-אין",
   timeBank: "עוד זמן",
+  // The pre-action box. Two lines on a 116px rail, so it stays short.
+  autoCheckFold: "אוטומטי: צ'ק/פולד",
   pot: "קופה",
   toCall: "להשוואה",
   yourTurn: "תורך!",
