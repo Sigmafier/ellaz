@@ -1,0 +1,13 @@
+{
+  "id": "toybox-brawl",
+  "name": "Toybox Brawl",
+  "pitch": "A side-view 2.5D brawler in a child's playroom: toys with move lists and an on-screen pad.",
+  "style": "snes16",
+  "candidateStyles": ["snes16", "paper", "flat", "crayon"],
+  "palette": "snes16",
+  "technique": "parts-rig",
+  "scene": "brawl-room",
+  "cast": ["robot", "teddy"],
+  "scale": 2,
+  "decided": "2026-09-05 - operator picked four styles in the hall; the default binding is the first pick, the other three stay listed so the gallery can switch"
+}

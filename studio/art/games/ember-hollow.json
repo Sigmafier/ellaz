@@ -1,0 +1,13 @@
+{
+  "id": "ember-hollow",
+  "name": "Ember Hollow",
+  "pitch": "A grid-tactics fight with enemy intent arrows and a party panel, in a meadow under a ruined keep.",
+  "style": "snes16",
+  "candidateStyles": ["snes16", "flat", "paper"],
+  "palette": "snes16",
+  "technique": "parts-rig",
+  "scene": "ember-field",
+  "cast": ["knight", "slime"],
+  "scale": 2,
+  "decided": "2026-09-05 - operator picked three styles in the hall; the default binding is the first pick"
+}
