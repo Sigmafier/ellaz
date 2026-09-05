@@ -12,6 +12,7 @@
     "gallery:build": "vite build gallery",
     "export": "node export/export-all.mjs",
     "shots": "node scripts/render-gallery-shots.mjs",
+    "render:styles": "node scripts/render-styles.mjs",
     "assert:boundary": "node scripts/assert-boundary.mjs",
     "assert:recipes": "node scripts/assert-recipe-headings.mjs",
     "assert:render": "node scripts/assert-render-smoke.mjs",

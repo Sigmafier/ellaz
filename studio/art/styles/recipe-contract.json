@@ -1,0 +1,5 @@
+{
+  "headings": ["Look", "Palette", "Outline", "Lighting", "Grid and scale", "Animation", "Best for", "Avoid", "Sample"],
+  "minWordsPerSection": { "full": 25, "card": 6 },
+  "why": "Identical H2s in every style, in this order, so two recipes read side by side and the difference between them is the style. Read by art/styles/recipe-contract.test.ts and scripts/assert-recipe-headings.mjs - one list, two readers."
+}
