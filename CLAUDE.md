@@ -63,6 +63,7 @@ something is built the way it is.
 | [`docs/poker-table.md`](docs/poker-table.md) | the Hold'em sub-project in full |
 | [`docs/deploy.md`](docs/deploy.md) | the deploy runbook, verification commands, secret rotation |
 | [`docs/reports.md`](docs/reports.md) | player bug and idea reports: what a report carries, what it never carries, the throttle, and how the inbox becomes GitHub issues |
+| the **`handle-a-report` skill** (`.claude/skills/handle-a-report/`) | how a report becomes a closed issue - read it whole (the title is a 60-char slice), split its asks, find whose code it really is, close on live bytes |
 | [`docs/payload-history.md`](docs/payload-history.md) · [`docs/scaling-the-first-visit.md`](docs/scaling-the-first-visit.md) | superseded payload readings, and the O(1) argument |
 | [`.claude/rules/`](.claude/rules/) | 49 traps, one per file, each with its measurement. Path-scoped, so each loads when you touch what it governs |
 | [`holdem/README.md`](holdem/README.md) | the poker runbook, quotas, DNS |
