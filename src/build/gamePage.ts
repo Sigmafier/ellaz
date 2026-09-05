@@ -258,10 +258,26 @@ export function embedSnippet(meta: GameMeta, locale: Locale): string {
 /**
  * The section at the end of a game page that hands the snippet over.
  *
- * A live preview - the embed page itself, in an iframe, LAZY so the page's
- * ~900 words and its own game are not competing with a second copy of the app
- * before anyone has scrolled to it - then the credit line exactly as their
- * page will render it, then the code in a `<pre>`, then the copy button.
+ * THE PREVIEW IS BEHIND A TAP, AND `loading="lazy"` IS WHY IT HAD TO BE.
+ *
+ * This shipped an `<iframe>` in the emitted markup, lazily loaded, on the
+ * reasoning that the page's ~900 words and its own game would not be competing
+ * with a second copy of the app before anyone scrolled to it. Measured on
+ * 2026-09-05 against the built `/games/match3/`, that reasoning was wrong in
+ * every part:
+ *
+ *   two 64-cell boards live in one document, 7,624 px tall
+ *   the frame had booted on load - lazy loads generously, and a page this
+ *     tall is inside the browser's own margin
+ *   the frame is SAME-ORIGIN, so it shares `ellaz:<gameId>:session` with the
+ *     game the player is playing above it: reloaded, it came back at
+ *     `Score 30 / Moves 24`, which was their position, not a demo
+ *
+ * A player reported it as "the bottom embed place renders the game twice",
+ * which is exactly what it was. So the markup now carries the game's own key
+ * art and a button, and the iframe is built by `wireEmbedPreview` in
+ * `PageApp.tsx` only once somebody asks for it. Without script there is a
+ * picture and the code, which is the honest degraded state.
  *
  * The `<pre>` holds the snippet as TEXT: the tagged template escapes it, the
  * browser decodes it, and `textContent` hands the runtime the raw bytes back.
@@ -284,15 +300,25 @@ function embedSection(meta: GameMeta, locale: Locale, base: string): RawHtml {
   return html`<section class="embed" id="embed">
     <h2>${e.heading}</h2>
     <p>${e.lede}</p>
-    <iframe
-      src="${href(embedPath(meta.id), base)}?lang=${locale}"
-      width="100%"
-      height="${String(EMBED_HEIGHT)}"
-      style="border:0;border-radius:12px;background:var(--doc-stage)"
-      allow="fullscreen"
-      loading="lazy"
-      title="${`${name} - ellaz.fun`}"
-    ></iframe>
+    <div
+      class="embed-preview"
+      data-embed-preview
+      data-src="${href(embedPath(meta.id), base)}?lang=${locale}"
+      data-height="${String(EMBED_HEIGHT)}"
+      data-title="${`${name} - ellaz.fun`}"
+      style="border-radius:12px;background:var(--doc-stage);overflow:hidden"
+    >
+      <img
+        src="${artHref(base, meta.id)}"
+        alt=""
+        width="${ART_WIDTH}"
+        height="${ART_HEIGHT}"
+        loading="lazy"
+        decoding="async"
+        style="display:block;width:100%;height:auto"
+      />
+    </div>
+    <button type="button" class="play" data-embed-play hidden>${e.preview}</button>
     <p class="embed-credit">${raw(embedCredit(meta, locale))}</p>
     <pre
       class="embed-code"

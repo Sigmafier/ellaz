@@ -398,6 +398,61 @@ export function requestedLocale(search: string): AppLocale {
 }
 
 /**
+ * Build the embed preview's iframe, but only once somebody asks for it.
+ *
+ * The emitted markup carries the game's key art and this button; the frame is
+ * made here. Until 2026-09-05 the `<iframe>` was in the markup with
+ * `loading="lazy"`, which sounds like the same thing and is not - measured on
+ * the built `/games/match3/`, the frame had already booted on load, so every
+ * game page ran TWO live copies of the game in one 7,624 px document, and the
+ * second one shared `ellaz:<gameId>:session` with the first. Reloaded, it came
+ * back at the player's own `Score 30 / Moves 24`. A player reported it as the
+ * page rendering the game twice, which it was.
+ *
+ * The button is emitted `hidden` like every other control the runtime owns, so
+ * without a script the section is a picture and the code rather than a control
+ * that does nothing. The art is clickable too - the same handler, never a
+ * second copy of it, because two implementations of one action drift and the
+ * one nobody uses drifts first.
+ *
+ * One-way on purpose: once the frame is in, the button goes. There is nothing
+ * to toggle back to, and a button that removes a game somebody just asked to
+ * see is a control nobody wants.
+ *
+ * Exported for `embed-context.test.ts`, for the same reason `mayReachOut` and
+ * `requestedLocale` are: this module is the lazy page chunk, so nothing here
+ * rides in the shell a child downloads before choosing a game.
+ */
+export function wireEmbedPreview(): void {
+  const slot = document.querySelector<HTMLElement>("[data-embed-preview]");
+  const button = document.querySelector<HTMLButtonElement>("[data-embed-play]");
+  if (!slot || !button) return;
+  const src = slot.dataset.src;
+  if (!src) return;
+
+  const show = () => {
+    // `setAttribute` throughout rather than the IDL properties: `allow` is a
+    // reflected property in a browser and simply absent in jsdom, so the
+    // property form ships correctly and cannot be tested.
+    const frame = document.createElement("iframe");
+    frame.setAttribute("src", src);
+    frame.setAttribute("width", "100%");
+    frame.setAttribute("height", slot.dataset.height ?? "");
+    frame.setAttribute("title", slot.dataset.title ?? "");
+    frame.setAttribute("allow", "fullscreen");
+    frame.style.border = "0";
+    frame.style.display = "block";
+    slot.replaceChildren(frame);
+    button.hidden = true;
+  };
+
+  button.hidden = false;
+  button.addEventListener("click", show);
+  slot.addEventListener("click", show);
+  slot.style.cursor = "pointer";
+}
+
+/**
  * Reveal and wire the game page's "copy the code" button.
  *
  * It copies `textContent` of the `<pre>` the emitter wrote - the RAW snippet,
@@ -543,6 +598,7 @@ export function bootContentPage(ctx: PageContext): void {
     wirePause();
     wireShare(ctx, locale);
     wireEmbedCopy();
+    wireEmbedPreview();
   }
   const exitHref = embed ? wireEmbedHome(appLocale) : undefined;
 

@@ -5,7 +5,7 @@ import { readPageContext, type PageKind } from "./pageContext";
 // much as the behaviour: `main.tsx` imports `pageContext` statically, so a
 // helper placed there rides in the shell every child downloads. These two
 // live in the lazy page chunk - 89 B gz of first visit, measured.
-import { mayReachOut, requestedLocale } from "./PageApp";
+import { mayReachOut, requestedLocale, wireEmbedPreview } from "./PageApp";
 import { hostChrome } from "./GameHost";
 import { APP_LOCALES, CANONICAL_LOCALE } from "@i18n/locales";
 import { embedSnippet } from "../build/gamePage";
@@ -109,5 +109,55 @@ describe("which platform controls the host's own bar draws", () => {
 
   it("draws nothing on a page, where the emitted header holds every platform control", () => {
     expect(hostChrome("page")).toEqual({ bar: false, back: false, wallet: false, mute: false });
+  });
+});
+
+describe("the embed preview builds its frame only when asked", () => {
+  // The measurement behind the whole shape: until 2026-09-05 the iframe was in
+  // the emitted markup with `loading="lazy"`, and on the built /games/match3/
+  // it had ALREADY booted on load - two live 64-cell boards in one document,
+  // sharing `ellaz:match3:session`, the frame reloading to the player's own
+  // Score 30 / Moves 24. Lazy says WHEN, never WHETHER.
+  const slotHtml = `
+    <div data-embed-preview data-src="/embed/snake/?lang=en"
+         data-height="940" data-title="Snake - ellaz.fun"><img src="/art.svg"></div>
+    <button data-embed-play hidden>Show the game here</button>`;
+
+  beforeEach(() => {
+    document.body.innerHTML = slotHtml;
+  });
+
+  it("shows the button, and no frame exists until it is pressed", () => {
+    wireEmbedPreview();
+    const button = document.querySelector<HTMLButtonElement>("[data-embed-play]")!;
+    expect(button.hidden).toBe(false);
+    expect(document.querySelector("iframe")).toBeNull();
+  });
+
+  it("builds the frame the emitter described, and takes the button away", () => {
+    wireEmbedPreview();
+    document.querySelector<HTMLButtonElement>("[data-embed-play]")!.click();
+    const frame = document.querySelector("iframe")!;
+    expect(frame, "no iframe after the button was pressed").not.toBeNull();
+    expect(frame.getAttribute("src")).toBe("/embed/snake/?lang=en");
+    expect(frame.getAttribute("height")).toBe("940");
+    expect(frame.getAttribute("title")).toBe("Snake - ellaz.fun");
+    expect(frame.getAttribute("allow")).toBe("fullscreen");
+    expect(document.querySelector<HTMLButtonElement>("[data-embed-play]")!.hidden).toBe(true);
+    // The poster is replaced, not stacked on top of - one game, one picture.
+    expect(document.querySelector("[data-embed-preview] img")).toBeNull();
+  });
+
+  it("answers a tap on the picture with the SAME frame, not a second one", () => {
+    wireEmbedPreview();
+    document.querySelector<HTMLElement>("[data-embed-preview]")!.click();
+    expect(document.querySelectorAll("iframe").length).toBe(1);
+    expect(document.querySelector("iframe")!.getAttribute("src")).toBe("/embed/snake/?lang=en");
+  });
+
+  it("does nothing at all on a page with no preview slot - the positive control", () => {
+    document.body.innerHTML = "<p>no embed section here</p>";
+    expect(() => wireEmbedPreview()).not.toThrow();
+    expect(document.querySelector("iframe")).toBeNull();
   });
 });

@@ -125,13 +125,36 @@ describe("the section on a game page that hands it over", () => {
     expect(decodeEntities(pre!)).toBe(embedSnippet(snake, "en"));
   });
 
-  it("previews the embed page LAZILY, from this host's base, in this page's language", () => {
-    const iframe = /<iframe[\s\S]*?<\/iframe>/.exec(page)?.[0] ?? "";
-    expect(iframe).toContain('src="/embed/snake/?lang=en"');
-    expect(iframe).toContain('loading="lazy"');
-    expect(iframe).toContain('allow="fullscreen"');
+  it("boots NO second game: the emitted page carries no iframe at all", () => {
+    // The measurement this replaced a `loading="lazy"` iframe over. On the
+    // built /games/match3/ on 2026-09-05 that frame had ALREADY booted on
+    // load - two 64-cell boards in one 7,624 px document - and being
+    // same-origin it shared `ellaz:match3:session` with the game above it,
+    // reloading to the player's own `Score 30 / Moves 24`. Lazy is a hint
+    // about WHEN, never a promise of WHETHER.
+    //
+    // `<pre>` holds the snippet ESCAPED, so a literal `<iframe` anywhere in
+    // these bytes is a real frame, which is exactly what must not be here.
+    expect(page).not.toContain("<iframe");
+    expect(page).toContain("&lt;iframe");
+  });
+
+  it("hands the runtime the frame to build, from this host's base, in this page's language", () => {
+    const slot = /<div[^>]*data-embed-preview[\s\S]*?<\/div>/.exec(page)?.[0] ?? "";
+    expect(slot, "no [data-embed-preview] on the page").not.toBe("");
+    expect(slot).toContain('data-src="/embed/snake/?lang=en"');
+    expect(slot).toContain(`data-height="${EMBED_HEIGHT}"`);
+    expect(slot).toContain('data-title="Snake - ellaz.fun"');
+    // The poster, so the section is a picture and the code without script.
+    expect(slot).toContain("<img");
     const mirror = renderRoute(route, "/ellaz/", ASSETS);
-    expect(/<iframe[\s\S]*?<\/iframe>/.exec(mirror)?.[0]).toContain('src="/ellaz/embed/snake/?lang=en"');
+    expect(/<div[^>]*data-embed-preview[\s\S]*?<\/div>/.exec(mirror)?.[0]).toContain(
+      'data-src="/ellaz/embed/snake/?lang=en"',
+    );
+  });
+
+  it("emits the button hidden, like every other control the runtime owns", () => {
+    expect(page).toMatch(/<button[^>]*data-embed-play[^>]*hidden/);
   });
 
   it("renders the credit line as the stranger's page will, with absolute links", () => {

@@ -128,6 +128,16 @@ export interface SiteCopy {
     heading: string;
     /** What to do, and in one sentence why the pasted line is the part that counts. */
     lede: string;
+    /**
+     * The button that loads the live preview.
+     *
+     * The preview used to be an `<iframe>` in the emitted markup, so every game
+     * page booted a SECOND live copy of the game on load - measured 2026-09-05
+     * on `/games/match3/`: two 64-cell boards, a 7,624 px document, and the
+     * frame reloaded to `Score 30 / Moves 24`, which was the player's own saved
+     * position rather than a demo. `loading="lazy"` did not prevent the boot.
+     */
+    preview: string;
     /** The copy button, at rest. */
     copy: string;
     /** The copy button, once the clipboard took it. */
@@ -230,6 +240,7 @@ const he: SiteCopy = {
     heading: "לשים את המשחק באתר שלכם",
     lede:
       "מעתיקים את הקוד ומדביקים אותו בעמוד שלכם. השורה שמתחת למסגרת היא החשובה: קישור בתוך המסגרת נשאר ב-ellaz.fun, ורק הקישור שהדבקתם הוא שלכם.",
+    preview: "להציג את המשחק כאן",
     copy: "להעתיק את הקוד",
     copied: "הועתק",
     select: "סמנו את הקוד והעתיקו אותו",
@@ -325,6 +336,7 @@ const en: SiteCopy = {
     heading: "Put this game on your site",
     lede:
       "Copy the code and paste it into your page. The line under the frame is the part that counts: a link inside the frame stays on ellaz.fun, and only the one you paste is yours.",
+    preview: "Show the game here",
     copy: "Copy the code",
     copied: "Copied",
     select: "The code is selected - copy it",
@@ -439,6 +451,7 @@ const es: SiteCopy = {
     heading: "Pon este juego en tu web",
     lede:
       "Copia el código y pégalo en tu página. La línea bajo el marco es la que cuenta: un enlace dentro del marco se queda en ellaz.fun, y solo el que pegas es tuyo.",
+    preview: "Mostrar el juego aquí",
     copy: "Copiar el código",
     copied: "Copiado",
     select: "El código está seleccionado: cópialo",
@@ -542,6 +555,7 @@ const fr: SiteCopy = {
     heading: "Mettez ce jeu sur votre site",
     lede:
       "Copiez le code et collez-le dans votre page. La ligne sous le cadre est celle qui compte : un lien dans le cadre reste sur ellaz.fun, et seul celui que vous collez est le vôtre.",
+    preview: "Afficher le jeu ici",
     copy: "Copier le code",
     copied: "Copié",
     select: "Le code est sélectionné : copiez-le",
