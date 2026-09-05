@@ -142,7 +142,18 @@ const GEMS: readonly { fill: string; path: string }[] = [
   { fill: "#3DBBEE", path: "M50 10a40 40 0 1 0 .1 0Z" }, // circle
   { fill: "#6FD44E", path: "M14 14h72v72H14Z" }, // square
   { fill: "#FFC730", path: "M50 10 90 84H10Z" }, // triangle
-  { fill: "#A855C9", path: "M50 8 68 26h26v26l18 18-18 18v26H68l-18 18-18-18H24V88L6 70l18-18V26h26Z" }, // star-ish
+  // Star. REDRAWN 2026-09-05: the original ran to x=112 and y=132 in a 0..100
+  // box, so the right and bottom points were CLIPPED OFF by the viewBox and the
+  // gem rendered as a lopsided blob - centred at (59,70) rather than (50,50),
+  // and taller than it was wide. It had been that way since the game shipped.
+  //
+  // The construction is unchanged and it is the one the original was reaching
+  // for: from a tip, a diagonal of d, a notch of h across and h down, then
+  // another diagonal of d, giving 2d + h = a (the tip's distance from the
+  // middle). The original used d=18, h=26, so a=62 - a 124-unit shape asked to
+  // fit in 100. This uses d=12, h=18, a=42, which spans 8..92 both ways, the
+  // same as the diamond.
+  { fill: "#A855C9", path: "M50 8l12 12h18v18l12 12-12 12v18H62l-12 12-12-12H20V62L8 50l12-12V20h18Z" },
   { fill: "#FF8A3D", path: "M28 12h44l22 38-22 38H28L6 50Z" }, // hexagon
 ];
 

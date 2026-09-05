@@ -803,6 +803,21 @@ board's own **41 px**. At 8 the eight points fill in and the mark reads as a
 dark BLOB at board size; at 5 it is still an asterisk. All three look identical
 at 136 px, which is the size nobody plays at.
 
+**And the purple gem had been clipped by its own box since the game shipped.**
+Its path ran to **x=112 and y=132 inside a 0..100 viewBox**, so SVG cut the
+right and bottom points off: the shape rendered centred at (59,70), taller than
+it was wide, as a lopsided blob rather than a star. No error, no warning, every
+test green - nothing had ever asked where a path goes. It is redrawn with the
+same construction at the right scale (8..92 both ways, centred (50,50), the same
+span as the diamond), and a test now walks every gem path for containment,
+centring and size. Five planted defects, five caught.
+
+That test's first bbox walker approximated an arc as its endpoints expanded by
+twice the radii, and reported the perfectly fine **circle** gem as
+`-29.9..130.1`. The shipped one REFUSES a curve rather than guessing, pins the
+one arc by its own geometry, and carries a cell asserting there is still only
+one - so a second curved gem reds instead of quietly leaving the population.
+
 **The snapshot is version 2**, so every v1 board is discarded rather than
 migrated — the port's own rule, and the alternative (defaulting a missing
 `kinds` to all-plain) is a second copy of this game's rules living in a

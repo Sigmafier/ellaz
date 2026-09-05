@@ -62,6 +62,54 @@ function branchBodies(src: string): string[] {
   return out;
 }
 
+/**
+ * The extent of a path built from straight segments, in viewBox units.
+ *
+ * Straight segments ONLY - M/m/L/l/H/h/V/v/Z. It refuses a path carrying any
+ * other command rather than guessing, because a curve or an arc BULGES past
+ * the coordinates it names and a walker that ignores that reports a box too
+ * small. The one arc in the table is pinned separately, by its own geometry,
+ * and a cell below asserts there is still only one - so a new curved gem reds
+ * here instead of quietly falling outside the population.
+ *
+ * The first version of this measurement approximated an arc as its endpoints
+ * expanded by twice the radii, and reported the perfectly-fine circle gem as
+ * -29.9..130.1. A conservative over-estimate is not a safe default: it is a
+ * false positive with a confident number attached.
+ */
+function straightExtent(d: string): { minX: number; maxX: number; minY: number; maxY: number } {
+  const tokens = d.match(/[A-Za-z]|-?\d*\.?\d+/g) ?? [];
+  let x = 0, y = 0, sx = 0, sy = 0, cmd = "M", i = 0;
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  const see = () => {
+    minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+    minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+  };
+  while (i < tokens.length) {
+    if (/[A-Za-z]/.test(tokens[i])) {
+      cmd = tokens[i++];
+      if (/[Zz]/.test(cmd)) { x = sx; y = sy; continue; }
+      if (!/[MmLlHhVv]/.test(cmd)) throw new Error(`straightExtent cannot measure "${cmd}"`);
+    }
+    if (cmd === "M") { x = +tokens[i++]; y = +tokens[i++]; sx = x; sy = y; }
+    else if (cmd === "m") { x += +tokens[i++]; y += +tokens[i++]; sx = x; sy = y; }
+    else if (cmd === "L") { x = +tokens[i++]; y = +tokens[i++]; }
+    else if (cmd === "l") { x += +tokens[i++]; y += +tokens[i++]; }
+    else if (cmd === "H") { x = +tokens[i++]; }
+    else if (cmd === "h") { x += +tokens[i++]; }
+    else if (cmd === "V") { y = +tokens[i++]; }
+    else { y += +tokens[i++]; }
+    see();
+  }
+  return { minX, maxX, minY, maxY };
+}
+
+/** Every `path:` in the GEMS table, in order, 1-based like the colours. */
+function gemPaths(): string[] {
+  const table = GAME.slice(GAME.indexOf("const GEMS"), GAME.indexOf("const CASCADE_STEPS"));
+  return [...table.matchAll(/path:\s*"([^"]*)"/g)].map((m) => m[1]).filter((d) => d.length > 0);
+}
+
 function markInk(): string {
   const m = GAME.match(/const MARK_INK = "(#[0-9A-Fa-f]{6})"/);
   if (!m) throw new Error("MARK_INK is gone - this file measures the wrong thing now");
@@ -109,6 +157,67 @@ describe("the mark is legible on every gem it can land on", () => {
     expect(new Set(bodies).size).toBe(4);
     // And an ordinary gem draws nothing at all.
     expect(mark).toMatch(/return null;/);
+  });
+});
+
+describe("a gem is drawn inside the box it is drawn in", () => {
+  // The defect this block exists for, found 2026-09-05 and shipped since the
+  // game did: the purple star's path ran to x=112 and y=132 in a 0..100
+  // viewBox. SVG simply CLIPS what falls outside, so the right and bottom
+  // points were cut off and the gem rendered as a lopsided blob - centred at
+  // (59,70), taller than it was wide. No error, no warning, and every test in
+  // the repo green over it, because nothing had ever asked where a path goes.
+
+  it("found six paths to measure", () => {
+    expect(gemPaths().length).toBe(6);
+  });
+
+  it("uses exactly one curved path, which this measurement cannot walk", () => {
+    // The population statement. `straightExtent` refuses anything but straight
+    // segments, so a second curved gem would silently leave the cell below
+    // measuring five of seven rather than six of six.
+    const curved = gemPaths().filter((d) => /[AaCcSsQqTt]/.test(d));
+    expect(curved.length).toBe(1);
+    // And it is the circle, pinned by its own geometry rather than walked:
+    // a radius-40 arc starting at y=10 spans 10..90 about (50,50).
+    expect(curved[0]).toBe("M50 10a40 40 0 1 0 .1 0Z");
+  });
+
+  it("keeps every straight gem inside 0..100, with a margin", () => {
+    for (const d of gemPaths()) {
+      if (/[AaCcSsQqTt]/.test(d)) continue;
+      const b = straightExtent(d);
+      expect(b.minX, `left edge of ${d}`).toBeGreaterThanOrEqual(0);
+      expect(b.minY, `top edge of ${d}`).toBeGreaterThanOrEqual(0);
+      expect(b.maxX, `right edge of ${d}`).toBeLessThanOrEqual(100);
+      expect(b.maxY, `bottom edge of ${d}`).toBeLessThanOrEqual(100);
+    }
+  });
+
+  it("centres every straight gem, and gives it real size", () => {
+    // A path can fit the box and still be wrong: the broken star was off
+    // centre as well as too big, and containment alone would not have said so.
+    // The triangle sits at (50,47) by design - a triangle's visual middle is
+    // below its bounding box's - so the tolerance is 6, not 1.
+    for (const d of gemPaths()) {
+      if (/[AaCcSsQqTt]/.test(d)) continue;
+      const b = straightExtent(d);
+      expect(Math.abs((b.minX + b.maxX) / 2 - 50), `x centre of ${d}`).toBeLessThanOrEqual(6);
+      expect(Math.abs((b.minY + b.maxY) / 2 - 50), `y centre of ${d}`).toBeLessThanOrEqual(6);
+      expect(b.maxX - b.minX, `width of ${d}`).toBeGreaterThanOrEqual(60);
+      expect(b.maxY - b.minY, `height of ${d}`).toBeGreaterThanOrEqual(60);
+    }
+  });
+
+  it("would have caught the star as it shipped, and clears the circle", () => {
+    // The control. Without it this block passes on a walker that returns
+    // 0..100 for everything, and a walker that flags the circle - which an
+    // arc-approximating first draft really did, at -29.9..130.1.
+    const broken = "M50 8 68 26h26v26l18 18-18 18v26H68l-18 18-18-18H24V88L6 70l18-18V26h26Z";
+    const b = straightExtent(broken);
+    expect(b.maxX).toBeGreaterThan(100);
+    expect(b.maxY).toBeGreaterThan(100);
+    expect(() => straightExtent("M50 10a40 40 0 1 0 .1 0Z")).toThrow(/cannot measure/);
   });
 });
 
