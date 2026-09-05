@@ -53,6 +53,18 @@ Every report carries `ctx.game.session` — the exact snapshot, in the shape tha
 three throws. Reproduce at **their** viewport, from the **built** page, not from
 `npm run dev`, which has no service worker and emits no page.
 
+Two traps, both measured on 2026-09-05, and each one produces a board that looks right:
+
+- **Plant the snapshot on a page that is NOT the game.** Setting the key on the game page
+  and reloading loses it — the mounted board writes its own snapshot back on the way out,
+  so the reload restores a fresh scramble. Use `/404.html`, or any page of the same origin
+  with no game on it, then navigate to the game.
+- **Never hand-weave a board.** A tidy striped grid can have no legal move at all, and the
+  validator then refuses it for that reason rather than for anything you were testing. Deal
+  it with the game's own `newGame` and perturb one field. This ate a whole adversarial run:
+  seven hostile snapshots all "correctly refused", every one of them refused for the wrong
+  reason, and only a positive control that was supposed to RESTORE could see it.
+
 Grep open and closed issues for the footer signature
 `ellaz-report:<game>:<kind>:<reason>` — that is the dedupe key, coarse on purpose, because
 two people describe one bug in two different sentences.
