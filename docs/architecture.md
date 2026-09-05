@@ -33,7 +33,19 @@ graph TD
 ## Module layout
 
 Single Vite app; internal modules mirror extractable packages 1:1 (imported via
-the `@sdk` / `@ui` / `@juice` / `@i18n` / `@shared` aliases, never deep paths):
+the `@sdk` / `@ui` / `@juice` / `@i18n` / `@shared` aliases, never deep paths).
+
+Two other workspaces share the repository and none of this table: `holdem/`
+(the poker table, [`docs/poker-table.md`](poker-table.md)) and, since
+2026-09-05, `studio/` - the art bible: style renderers with recipes, rigged
+characters, a sprite export (sheet + atlas + manifest) with Phaser and canvas
+adapters, and a one-file gallery. Each has its own `package.json`, tests and
+workflow; nothing in `src/` imports from either and nothing in them imports
+from `src/`, and root `npm test` runs none of their tests. The studio's map is
+[`studio/README.md`](../studio/README.md); its rules for what every style must
+agree with are [`studio/docs/art-bible.md`](../studio/docs/art-bible.md).
+
+The app's own modules:
 
 | Module | Responsibility |
 |--------|----------------|

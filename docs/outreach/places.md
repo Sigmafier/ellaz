@@ -33,8 +33,8 @@ the actual reason, which is sometimes the suggestion and sometimes not.
 Measured 2026-09-02: every one of the five target subreddits now redirects
 `old.reddit.com/r/<sub>/about/rules` to a login page — a change from what this
 repo's own `prospects.mjs` docstring says about `old.reddit.com` rendering
-logged out, which is exactly [`reach-doctrine`](../../.claude/skills/reach-doctrine)
-RCH5's point: read the destination on the day, never from a note. Facebook
+logged out, which is exactly `reach-doctrine` (a machine-level skill at
+`~/.claude/skills/reach-doctrine`, not a file in this repo) RCH5's point: read the destination on the day, never from a note. Facebook
 groups and most Telegram/forum searches for "Israeli parents" and "Israeli
 homeschooling" surfaced no real, individually-verifiable, currently-postable
 destination from this environment — not a login wall in every case, sometimes
