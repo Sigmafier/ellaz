@@ -439,6 +439,113 @@ export function fireSpecials(
   return all;
 }
 
+/**
+ * What a swap of two POWER-UPS clears, or a rainbow swapped onto any gem.
+ *
+ * THIS IS THE ONE GESTURE IN THIS GAME THAT IS NOT "A POWER FIRES WHEN IT IS
+ * CLEARED". Every other kind is made by the shape of a run and goes off when a
+ * line sweeps it up, which is why nothing here ever needed a second way to
+ * touch the board. A player asked for the Candy Crush move - put two specials
+ * together and get something bigger, and touch the rainbow to any gem to take
+ * that colour - so this returns the cells such a swap clears, and `null` when
+ * the swap is an ordinary one that still has to make a line.
+ *
+ * Read on the SWAPPED board, so `a` holds what the player dragged there.
+ * `b` is the pivot: it is where the second tap landed, and a cross drawn
+ * anywhere else reads as the game aiming somewhere the finger was not.
+ */
+export function comboBlast(
+  a: number,
+  b: number,
+  grid: readonly number[],
+  kinds: readonly number[],
+  size: number,
+): number[] | null {
+  const ka = kinds[a] ?? PLAIN;
+  const kb = kinds[b] ?? PLAIN;
+  if (ka === PLAIN && kb === PLAIN) return null;
+
+  const cells = new Set<number>([a, b]);
+  const row = (r: number) => {
+    for (let c = 0; c < size; c += 1) cells.add(at(size, r, c));
+  };
+  const col = (c: number) => {
+    for (let r = 0; r < size; r += 1) cells.add(at(size, r, c));
+  };
+  const block = (i: number, reach: number) => {
+    const r0 = Math.floor(i / size);
+    const c0 = i % size;
+    for (let dr = -reach; dr <= reach; dr += 1) {
+      for (let dc = -reach; dc <= reach; dc += 1) {
+        const r = r0 + dr;
+        const c = c0 + dc;
+        if (r < 0 || c < 0 || r >= size || c >= size) continue;
+        cells.add(at(size, r, c));
+      }
+    }
+  };
+  const stripe = (k: number) => k === STRIPE_ROW || k === STRIPE_COL;
+  const r = Math.floor(b / size);
+  const c = b % size;
+
+  // Two rainbows: the whole board. The biggest moment the game has, and it can
+  // hand a round over in one tap - chosen on purpose rather than by accident.
+  if (ka === RAINBOW && kb === RAINBOW) {
+    for (let i = 0; i < grid.length; i += 1) cells.add(i);
+    return [...cells];
+  }
+
+  // A rainbow and anything else - including a plain gem, which is the move
+  // everybody knows: every gem of the OTHER gem's colour goes. Paired with a
+  // stripe or a burst, each of those gems becomes that power first and then
+  // fires, which is what makes the pairing worth setting up.
+  if (ka === RAINBOW || kb === RAINBOW) {
+    const other = ka === RAINBOW ? b : a;
+    const partner = ka === RAINBOW ? kb : ka;
+    const color = grid[other];
+    const same: number[] = [];
+    for (let i = 0; i < grid.length; i += 1) if (grid[i] === color) same.push(i);
+    for (const i of same) cells.add(i);
+    if (stripe(partner)) {
+      // Alternating rather than random: a board that plays out differently on
+      // two runs of the same seed is a board no test can pin.
+      same.forEach((i, n) => (n % 2 === 0 ? row(Math.floor(i / size)) : col(i % size)));
+    } else if (partner === BURST) {
+      for (const i of same) block(i, 1);
+    }
+    return [...cells];
+  }
+
+  // Two stripes: a full row AND a full column, whichever way round the two
+  // gems were facing. Two rows would be the literal reading of "fire both" and
+  // it is not the move - a cross is.
+  if (stripe(ka) && stripe(kb)) {
+    row(r);
+    col(c);
+    return [...cells];
+  }
+
+  // A stripe and a burst: the cross, three wide.
+  if ((stripe(ka) && kb === BURST) || (ka === BURST && stripe(kb))) {
+    for (let d = -1; d <= 1; d += 1) {
+      if (r + d >= 0 && r + d < size) row(r + d);
+      if (c + d >= 0 && c + d < size) col(c + d);
+    }
+    return [...cells];
+  }
+
+  // Two bursts: 5x5, which is the 3x3 each of them would have done, joined.
+  if (ka === BURST && kb === BURST) {
+    block(b, 2);
+    return [...cells];
+  }
+
+  // One special and one plain gem, and the special is not a rainbow. An
+  // ordinary swap: it still has to make a line, and the power still fires by
+  // being cleared.
+  return null;
+}
+
 /** Are two indices orthogonally adjacent on a `size` board? */
 export function areAdjacent(a: number, b: number, size: number): boolean {
   if (a === b) return false;
@@ -509,6 +616,7 @@ function settle(
   size: number,
   colors: number,
   rng: Rng,
+  seed?: { cells: readonly number[]; fired: readonly { index: number; kind: number }[] },
 ): {
   grid: readonly number[];
   kinds: readonly number[];
@@ -523,16 +631,29 @@ function settle(
   let gems = 0;
 
   for (let depth = 1; ; depth += 1) {
-    const runs = findRuns(board, size);
-    if (runs.length === 0) break;
+    // A COMBO SWAP SEEDS THE FIRST STEP AND NOTHING ELSE. The two gems the
+    // player put together clear a shape the matching rules know nothing about,
+    // and everything under it - the chain into other specials, gravity, the
+    // cascade multiplier, the round - runs exactly as it does for a line. From
+    // the second step on this is an ordinary cascade, which is why the whole
+    // gesture costs one parameter rather than a second code path.
+    //
+    // No mint on a seeded step: a combo is spent, not banked.
+    const seeded = depth === 1 && seed !== undefined && seed.cells.length > 0;
+    const runs = seeded ? [] : findRuns(board, size);
+    if (!seeded && runs.length === 0) break;
 
     // The three questions, in this order and no other:
     //   what lined up  ->  what that sets off  ->  what it leaves behind.
-    const spawns = decideSpawns(runs);
+    const spawns = seeded ? new Map<number, Kind>() : decideSpawns(runs);
     const lined = new Set<number>();
-    for (const run of runs) for (const i of run.cells) lined.add(i);
+    if (seeded) for (const i of seed!.cells) lined.add(i);
+    else for (const run of runs) for (const i of run.cells) lined.add(i);
 
-    const fired: { index: number; kind: number }[] = [];
+    // The two combo gems are already PLAIN in `kind` - `swapAt` spends them -
+    // so this loop reports the OTHER specials the blast swallowed and never
+    // double-counts the pair, which arrive in `seed.fired` instead.
+    const fired: { index: number; kind: number }[] = seeded ? [...seed!.fired] : [];
     for (const i of lined) if ((kind[i] ?? PLAIN) !== PLAIN) fired.push({ index: i, kind: kind[i] });
     const all = fireSpecials(lined, board, kind, size);
     // ...and every special the blast itself reached, which is the chain.
@@ -594,7 +715,24 @@ function settle(
  * Only right and down are tried, because every adjacency is some cell's right
  * or down neighbour and swapping is symmetric.
  */
-export function hasMove(grid: readonly number[], size: number): boolean {
+export function hasMove(grid: readonly number[], size: number, kinds?: readonly number[]): boolean {
+  // A power-up swap is legal with no line in it, so a board holding a rainbow
+  // is never dead however the colours fell, and neither is one with two
+  // specials side by side. Checked BEFORE the colour sweep because it is the
+  // cheaper question and because getting it wrong shuffles a board the player
+  // was about to win on.
+  //
+  // `kinds` is optional: `dealBoard` and the shuffler ask about a board of
+  // plain gems, where there is nothing to find.
+  if (kinds) {
+    for (let i = 0; i < grid.length; i += 1) {
+      const k = kinds[i] ?? PLAIN;
+      if (k === PLAIN) continue;
+      if (k === RAINBOW) return true;
+      if (i % size < size - 1 && (kinds[i + 1] ?? PLAIN) !== PLAIN) return true;
+      if (i + size < grid.length && (kinds[i + size] ?? PLAIN) !== PLAIN) return true;
+    }
+  }
   const test = [...grid];
   const swapped = (a: number, b: number): boolean => {
     [test[a], test[b]] = [test[b], test[a]];
@@ -763,13 +901,35 @@ export function swapAt(
   const swappedKinds = [...(state.kinds ?? plainKinds(n))];
   [swappedKinds[a], swappedKinds[b]] = [swappedKinds[b], swappedKinds[a]];
 
-  if (findMatches(swapped, state.size).length === 0) {
+  // Two power-ups put together, or a rainbow touched to any gem, is legal with
+  // no line in it at all - see `comboBlast`. Asked BEFORE the line check,
+  // because the line check is what would refuse it.
+  const combo = comboBlast(a, b, swapped, swappedKinds, state.size);
+
+  if (combo === null && findMatches(swapped, state.size).length === 0) {
     // Nothing changes but the selection, which clears: holding the gem would
     // leave a child tapping a neighbour that has already been tried.
     return { state: { ...state, selected: null }, outcome: { kind: "rejected", a, b } };
   }
 
-  const done = settle(swapped, swappedKinds, state.size, state.colors, rng);
+  let seed: { cells: readonly number[]; fired: readonly { index: number; kind: number }[] } | undefined;
+  if (combo !== null) {
+    seed = {
+      cells: combo,
+      fired: [
+        { index: a, kind: swappedKinds[a] },
+        { index: b, kind: swappedKinds[b] },
+      ].filter((f) => f.kind !== PLAIN),
+    };
+    // SPENT. Without this the pair fires twice - once as the combo, again as
+    // ordinary specials caught inside their own blast - and a rainbow paired
+    // with a stripe would clear its own colour as well as the one it was
+    // pointed at.
+    swappedKinds[a] = PLAIN;
+    swappedKinds[b] = PLAIN;
+  }
+
+  const done = settle(swapped, swappedKinds, state.size, state.colors, rng, seed);
 
   // The round advances at most ONCE per swap. A cascade big enough to clear two
   // rounds' worth pays the second one into the next round's progress instead of
@@ -797,7 +957,7 @@ export function swapAt(
   let shuffled = false;
   // Only reshuffle a board somebody can still play. Shuffling under a finished
   // run would redraw the gems behind the game-over card for no one.
-  if (!over && !hasMove(grid, state.size)) {
+  if (!over && !hasMove(grid, state.size, kinds)) {
     const mixed = shuffleWithKinds(grid, kinds, state.size, state.colors, rng);
     grid = mixed.grid;
     kinds = mixed.kinds;

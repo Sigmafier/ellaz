@@ -4,7 +4,7 @@ import type { GameContext, SessionSpec } from "@sdk/index";
 import type { Locale } from "@i18n/index";
 import { GameChrome } from "@ui/GameChrome";
 import { type DifficultyOption } from "@ui/DifficultySelector";
-import { burst, haptic, shake } from "@juice/index";
+import { burst, haptic, prefersReducedMotion, shake } from "@juice/index";
 import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
 // Direct, because this is the one announcement in the game that is NOT a win -
 // see the game-over branch below. The barrel does not re-export it.
@@ -223,6 +223,109 @@ function KindMark({ kind }: { kind: number }) {
 const CASCADE_STEPS = [0, 2, 4, 7, 9, 12] as const;
 
 /**
+ * The board's padding, in px. The blast overlays are positioned against the
+ * INNER area, so this has to agree with the board's own `padding` below - it is
+ * the one number two places have to share, and a mismatch smears every blast by
+ * six pixels in a way nothing but looking would show.
+ */
+const BOARD_PAD = 6;
+
+/**
+ * What a power-up going off LOOKS like, per kind.
+ *
+ * Until 2026-09-05 every cleared cell played the same 0.16 s fade whether a
+ * three lined up or a rainbow took a whole colour, and the only thing telling
+ * the two apart was a board shake on two of the four kinds. A player asked for
+ * the effect to match the effect, so each kind now draws the shape it actually
+ * clears: a beam down the row or column, a ring for the burst, a wash for the
+ * rainbow. Drawn from `CascadeStep.fired`, which already carries the index and
+ * the kind for exactly this - the cleared cells cannot say which power sent
+ * them, because by then the gems are gone.
+ *
+ * A transition rather than a keyframe: `global.css` is the shell every child
+ * downloads before choosing a game, and this is one game's flourish. It flips
+ * its own state on the first frame after mount, which is what gives the
+ * transition two values to move between.
+ *
+ * Under `prefers-reduced-motion` it renders nothing at all. The sound, the
+ * shake and the clear all still happen - this is the decoration.
+ */
+function Blast({ index, kind, size }: { index: number; kind: number; size: number }) {
+  const [out, setOut] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setOut(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  if (prefersReducedMotion()) return null;
+
+  const r = Math.floor(index / size);
+  const c = index % size;
+  const inner = `(100% - ${BOARD_PAD * 2}px)`;
+  const span = (n: number) => `calc(${inner} * ${n} / ${size})`;
+  const from = (n: number) => `calc(${BOARD_PAD}px + ${inner} * ${n} / ${size})`;
+
+  const base: Record<string, string | number> = {
+    position: "absolute",
+    pointerEvents: "none",
+    zIndex: 2,
+    opacity: out ? 0 : 0.85,
+    transition: "opacity 0.26s ease-out, transform 0.26s ease-out",
+    background: "#fff",
+  };
+
+  if (kind === STRIPE_ROW || kind === STRIPE_COL) {
+    const row = kind === STRIPE_ROW;
+    return (
+      <div
+        aria-hidden
+        style={{
+          ...base,
+          borderRadius: 999,
+          left: row ? `${BOARD_PAD}px` : from(c),
+          top: row ? from(r) : `${BOARD_PAD}px`,
+          width: row ? `calc(${inner})` : span(1),
+          height: row ? span(1) : `calc(${inner})`,
+          transform: out ? "scale(1)" : row ? "scaleX(0.12)" : "scaleY(0.12)",
+        }}
+      />
+    );
+  }
+  if (kind === BURST) {
+    return (
+      <div
+        aria-hidden
+        style={{
+          ...base,
+          borderRadius: "50%",
+          left: from(c - 1),
+          top: from(r - 1),
+          width: span(3),
+          height: span(3),
+          transform: out ? "scale(1.1)" : "scale(0.25)",
+        }}
+      />
+    );
+  }
+  if (kind === RAINBOW) {
+    return (
+      <div
+        aria-hidden
+        style={{
+          ...base,
+          inset: `${BOARD_PAD}px`,
+          borderRadius: 12,
+          background:
+            "radial-gradient(circle at " +
+            `${((c + 0.5) / size) * 100}% ${((r + 0.5) / size) * 100}%, #fff, rgba(255,255,255,0))`,
+          transform: out ? "scale(1)" : "scale(0.35)",
+        }}
+      />
+    );
+  }
+  return null;
+}
+
+/**
  * How far a finger travels before it means a swipe, as a fraction of ONE CELL
  * plus an absolute floor in pixels.
  *
@@ -298,7 +401,7 @@ const SESSION: SessionSpec<Match3Session> = {
     // Both are guaranteed by `newGame` and by every `swapAt`, so a board
     // failing either was written by something that is not this game.
     if (findMatches(g.grid, cfg.size).length > 0) return false;
-    if (!hasMove(g.grid, cfg.size)) return false;
+    if (!hasMove(g.grid, cfg.size, g.kinds)) return false;
 
     if (g.selected !== null) {
       if (!Number.isInteger(g.selected)) return false;
@@ -353,6 +456,12 @@ export function Match3Game({ ctx }: { ctx: GameContext }) {
    * which is the whole reason `view` exists in the first place.
    */
   const [viewKinds, setViewKinds] = useState<readonly number[]>(() => state.kinds);
+  // What fired this step, so the board can draw the shape each power cleared.
+  // Keyed by a counter as well as the step, because two consecutive steps can
+  // fire the same kind on the same square and React would otherwise reuse the
+  // element and skip the animation entirely.
+  const [blasts, setBlasts] = useState<{ key: number; index: number; kind: number }[]>([]);
+  const blastKey = useRef(0);
   /** Gems vanishing right now, for one short flash. */
   const [clearing, setClearing] = useState<readonly number[]>([]);
   /** The pair a refused swap tried. See `onCell` - a refusal is not an error. */
@@ -458,6 +567,12 @@ export function Match3Game({ ctx }: { ctx: GameContext }) {
       // way - a chain of five would otherwise stack five noises a child hears
       // as a glitch.
       const bang = step.fired.length > 0;
+      setBlasts(
+        step.fired.map((f) => {
+          blastKey.current += 1;
+          return { key: blastKey.current, index: f.index, kind: f.kind };
+        }),
+      );
       if (bang && step.fired.some((f) => f.kind === BURST || f.kind === RAINBOW)) {
         if (boardRef.current) shake(boardRef.current);
         haptic.success();
@@ -472,6 +587,7 @@ export function Match3Game({ ctx }: { ctx: GameContext }) {
       });
       after(180, () => {
         setClearing([]);
+        setBlasts([]);
         setView(step.grid);
         setViewKinds(step.kinds);
         // A minted gem sparkles ON THE SQUARE IT LANDED ON. `spawned` is
@@ -926,6 +1042,11 @@ export function Match3Game({ ctx }: { ctx: GameContext }) {
             </button>
           );
         })}
+        {/* The blasts sit OVER the cells, absolutely positioned, so they are
+            not grid items and do not push a gem out of its square. */}
+        {blasts.map((b) => (
+          <Blast key={b.key} index={b.index} kind={b.kind} size={size} />
+        ))}
       </div>
     </GameChrome>
   );

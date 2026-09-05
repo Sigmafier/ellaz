@@ -772,9 +772,90 @@ the five never reached the rainbow branch, so a child who lines up five that
 happen to touch a three got the *weaker* gem for the bigger shape.
 
 **A KIND IS A SECOND ARRAY, parallel to the grid**, not a richer gem — so
-`findMatches`, `hasMove`, `dealBoard` and `shuffleBoard` all still reason about
-colour alone and are the same code they were before this existed. Three cells
-assert exactly that. A minted gem SURVIVES its own match, and a blast that
+`findMatches`, `dealBoard` and `shuffleBoard` all still reason about colour
+alone and are the same code they were before this existed. `hasMove` is the one
+exception, and it is a deliberate one — see the gesture below. Cells assert both
+halves separately, because they are two different claims.
+
+#### The one gesture — added 2026-09-05, issue #32
+
+The sentence above said "it fires when it is CLEARED — never by being tapped",
+and that is still true of every gem the board mints on its own. It is no longer
+the whole story. A player asked for the Candy Crush move, in three parts:
+
+> Super powers should do an effect when they go to animate their effect better.
+> Also matching 2 super effects together should have a bigger effect just like
+> candy crush. And the 5 line match should be able to be used with any color
+> match
+
+So **a swap is now legal with no line in it when it puts two powers together, or
+touches a rainbow to any gem at all.** That is the first gesture in this game
+that is not "match something", and it is worth being plain about the cost: it is
+a rule a child has to discover. It earns its place because it is the rule
+everybody already knows from somewhere else.
+
+| swapped together | what goes |
+|---|---|
+| stripe + stripe | the full row **and** the full column — never two rows |
+| stripe + burst | a cross three wide |
+| burst + burst | 5x5 |
+| rainbow + stripe | every gem of that colour becomes a stripe, then all fire |
+| rainbow + burst | every gem of that colour becomes a burst, then all fire |
+| rainbow + rainbow | the whole board |
+| rainbow + a plain gem | every gem of **that gem's** colour |
+
+The cross is drawn where the second tap landed, not where the first did — a
+cross aimed anywhere else reads as the game aiming somewhere the finger was not.
+
+**Mechanically it is one parameter.** `settle()` takes an optional seed set of
+cells to clear as its FIRST step; `swapAt` computes that set and asks for it.
+Everything under it — the chain into other specials, gravity, the cascade
+multiplier, the round, the snapshot — is the code that was already there, which
+is why the saved shape did not move and `version` stays at 2.
+
+Three things that are rules rather than details, each with a planted defect
+behind it:
+
+- **The pair is SPENT.** Both gems go PLAIN before the cascade runs. Without
+  that they fire twice — once as the combo and again as ordinary specials caught
+  inside their own blast — and a rainbow paired with a stripe would take its own
+  colour as well as the one it was pointed at.
+- **A combo mints nothing.** It is spent, not banked. That rule only has teeth
+  on a swap that is *both* a combo and a run of four, because a three mints
+  nothing anyway — a planted defect survived two earlier fixtures for exactly
+  that reason before one was built that could tell the difference.
+- **`hasMove` had to learn about kinds**, because a board holding a rainbow is
+  never dead however the colours fell, and neither is one with two specials side
+  by side. The parameter is optional, so `dealBoard` and the shuffler still ask
+  the colour-only question and get the colour-only answer.
+
+#### What a power looks like when it fires
+
+Until 2026-09-05 every cleared cell played the same 0.16 s fade whether a three
+lined up or a rainbow took a whole colour; the only thing separating them was a
+board shake on two of the four kinds. Each kind now draws the shape it actually
+clears — a beam down the row or column, a ring for the burst, a wash for the
+rainbow — from `CascadeStep.fired`, which carries the index and the kind for
+exactly this. `cleared` cannot say which power sent those gems, because by then
+they are gone.
+
+It is a transition on a self-flipping component rather than a keyframe:
+`global.css` is the shell every child downloads before choosing a game, and this
+is one game's flourish. Under `prefers-reduced-motion` it renders nothing at
+all — the sound, the shake and the clear still happen; this is the decoration.
+`BOARD_PAD` is the one number the overlay and the board must agree on, and a
+cell asserts they do.
+
+**And it shipped, briefly, built and wired and never rendered.** Twelve source
+assertions were green over a build where `Blast` existed, was correct, was
+handed the right list — and appeared nowhere in the board's JSX, so nothing was
+ever drawn. Source assertions read the file; they cannot notice that the file's
+own markup never mentions the component. `tsc` caught it (`'Blast' is declared
+but its value is never read`), which is luck rather than a gate — one stray
+reference would have silenced it. There is a cell for it now, and its first
+version failed too: it sliced to `</GameChrome>`, which contains the board's own
+closing tag, so moving the blasts OUT of the board and in beside it still
+passed. It asserts ordering now, not membership of a region. A minted gem SURVIVES its own match, and a blast that
 catches another special fires it too, to a fixed point rather than one pass: a
 chain that stops after one link is what makes a power-up feel broken.
 

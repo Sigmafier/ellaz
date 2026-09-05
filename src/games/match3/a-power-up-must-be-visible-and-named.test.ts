@@ -296,3 +296,111 @@ describe("the snapshot knows the shape changed", () => {
     expect(spec).toMatch(/KINDS as readonly number\[\]\)\.includes/);
   });
 });
+
+/**
+ * What a power-up going off LOOKS like, per kind.
+ *
+ * Source assertions again, and named as such - the node environment cannot
+ * render `Blast` and read a pixel back. What they CAN do is refuse the two
+ * failures that have real consequences: two kinds drawing the same shape, so
+ * the effect stops telling a child which power fired; and the overlay's
+ * geometry disagreeing with the board it is drawn over.
+ */
+describe("a power-up that fires draws the shape it cleared", () => {
+  const BLAST = GAME.slice(GAME.indexOf("function Blast("), GAME.indexOf("export function Match3Game"));
+
+  it("was found in the file at all - the control for every cell below", () => {
+    expect(BLAST.length).toBeGreaterThan(500);
+    expect(BLAST).toContain("prefersReducedMotion");
+  });
+
+  it("has an arm for each of the four kinds, and none for a plain gem", () => {
+    for (const name of ["STRIPE_ROW", "STRIPE_COL", "BURST", "RAINBOW"]) {
+      expect(BLAST, `no arm for ${name}`).toContain(name);
+    }
+    // Four kinds plus PLAIN is the whole union; a plain gem never fires.
+    expect(KINDS.length).toBe(5);
+    expect(BLAST).not.toContain("PLAIN");
+  });
+
+  it("draws a row beam and a column beam that are NOT the same shape", () => {
+    // The stripes share one arm, so the difference is a ternary rather than two
+    // blocks: the row spans the full inner width and one cell of height, the
+    // column the reverse. A single `row ?` deciding both is what makes them
+    // impossible to collapse into each other by accident.
+    const arm = BLAST.slice(BLAST.indexOf("STRIPE_ROW || kind === STRIPE_COL"), BLAST.indexOf("if (kind === BURST)"));
+    expect(arm).toContain("const row = kind === STRIPE_ROW");
+    expect(arm).toMatch(/width:\s*row \?/);
+    expect(arm).toMatch(/height:\s*row \?/);
+    expect(arm).toContain("scaleX(0.12)");
+    expect(arm).toContain("scaleY(0.12)");
+  });
+
+  it("draws the burst as a ring three cells across, which is what it clears", () => {
+    const arm = BLAST.slice(BLAST.indexOf("if (kind === BURST)"), BLAST.indexOf("if (kind === RAINBOW)"));
+    expect(arm).toContain('borderRadius: "50%"');
+    expect(arm).toContain("span(3)");
+    expect(arm).toContain("from(c - 1)");
+    expect(arm).toContain("from(r - 1)");
+  });
+
+  it("draws the rainbow over the whole board, which is also what it clears", () => {
+    const arm = BLAST.slice(BLAST.indexOf("if (kind === RAINBOW)"));
+    expect(arm).toContain("inset:");
+    expect(arm).toContain("radial-gradient");
+    expect(arm).not.toContain("span(3)");
+  });
+
+  it("renders nothing for somebody who asked for less motion", () => {
+    expect(BLAST).toMatch(/if \(prefersReducedMotion\(\)\) return null;/);
+  });
+
+  it("is drawn from what FIRED, never from what cleared", () => {
+    // `cleared` cannot say which power sent those gems - by then they are gone,
+    // which is why `CascadeStep` carries `fired` at all.
+    expect(GAME).toMatch(/setBlasts\(\s*step\.fired\.map/);
+    expect(GAME).not.toMatch(/setBlasts\(\s*step\.cleared/);
+    // ...and taken away again when the step ends, or the last blast of a run
+    // would sit on the settled board.
+    expect(GAME).toContain("setBlasts([]);");
+  });
+
+  it("carries a fresh key per blast, so two identical ones in a row both animate", () => {
+    expect(GAME).toContain("blastKey.current += 1;");
+  });
+
+  it("is actually RENDERED, which every cell above would have missed", () => {
+    // Written after the fact, and it is the sharpest thing in this file. Every
+    // assertion above passed on a build where `Blast` existed, was correct, was
+    // wired to `setBlasts` - and was never put on the screen, because nothing
+    // rendered it. Source assertions read the file; they cannot notice that the
+    // file's own JSX never mentions the component. `tsc` caught it, with
+    // "'Blast' is declared but its value is never read", which is luck rather
+    // than a gate: one more reference anywhere would have silenced it.
+    expect(GAME).toMatch(/\{blasts\.map\(/);
+    expect(GAME).toMatch(/<Blast\b/);
+    // ...and INSIDE the board element, not merely somewhere after it. The
+    // overlay's `left`/`top` are percentages of the board, so a blast rendered
+    // as a sibling is positioned against the page instead and lands nowhere
+    // near the gem. The first version of this cell sliced to `</GameChrome>`,
+    // which contains the board's own closing tag - so moving the blasts out of
+    // the board and in beside it passed. Ordering is the assertion, not
+    // membership of a region.
+    const region = GAME.slice(GAME.indexOf("ref={boardRef}"), GAME.indexOf("</GameChrome>"));
+    expect(region.indexOf("<Blast"), "no <Blast> anywhere near the board").toBeGreaterThan(-1);
+    expect(
+      region.indexOf("<Blast"),
+      "the blasts are rendered outside the board they measure against",
+    ).toBeLessThan(region.lastIndexOf("</div>"));
+  });
+
+  it("measures its geometry against the padding the board actually has", () => {
+    // The one number two places must agree on. A board whose padding moved
+    // without this constant moving smears every blast by that many pixels, and
+    // nothing but looking at it would show that.
+    const pad = /const BOARD_PAD = (\d+);/.exec(GAME)?.[1];
+    expect(pad, "no BOARD_PAD constant").toBeDefined();
+    const boardStyle = GAME.slice(GAME.indexOf('width: "min(92vw'), GAME.indexOf("touchAction"));
+    expect(boardStyle, "the board's own padding disagrees with BOARD_PAD").toContain(`padding: ${pad},`);
+  });
+});

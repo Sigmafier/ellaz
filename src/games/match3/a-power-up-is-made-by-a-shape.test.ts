@@ -364,10 +364,24 @@ describe("the power-up travels with its gem", () => {
 });
 
 describe("the rules that existed before power-ups are the same rules", () => {
-  it("matching is not given the kinds at all, so it cannot depend on them", () => {
+  it("MATCHING is not given the kinds at all, so it cannot depend on them", () => {
+    // The load-bearing one. What lines up is a question about colour, and a
+    // matcher that could see a power-up is a matcher that could be wrong about
+    // a board in a way no colour test would catch.
     expect(findMatches.length).toBe(2);
-    expect(hasMove.length).toBe(2);
     expect(dealBoard.length).toBe(3);
+  });
+
+  it("LEGALITY is, since 2026-09-05, and that is a different question", () => {
+    // `hasMove` asks whether the board is dead, and a board holding a rainbow
+    // is not - a rainbow can be swapped onto any neighbour with no line in it.
+    // So this one grew a third parameter while `findMatches` did not, and the
+    // parameter is OPTIONAL: `dealBoard` and the shuffler still ask about a
+    // board of plain gems and get the answer they always got.
+    expect(hasMove.length).toBe(3);
+    const locked = Array.from({ length: 36 }, (_, i) => (((i % 3) + Math.floor(i / 6) * 2) % 5) + 1);
+    expect(hasMove(locked, 6), "the fixture must be dead on colours alone").toBe(false);
+    expect(hasMove(locked, 6, new Array(36).fill(PLAIN))).toBe(false);
   });
 
   it("a fresh deal carries no power-ups, on every level", () => {
