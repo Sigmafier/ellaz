@@ -70,6 +70,45 @@ describe("the aim helper has an off switch", () => {
     expect(GAME).not.toMatch(/setHelper\(\s*\(/);
   });
 
+  it("stays out of the control row, so it cannot push Shoot off the screen", () => {
+    // The whole reason it moved. It shipped as its own line above the aim
+    // buttons and cost the footer a 44px row; at 360x726, scroll pinned to 0,
+    // that put Shoot's bottom at 721 in a 726 viewport - five pixels from
+    // unreachable, and past it on any phone showing an address bar. Measured on
+    // the built page, both arms; the corner placement reads 677.
+    const footer = GAME.slice(GAME.indexOf("footer={"), GAME.indexOf("{/* Two boxes,"));
+    expect(footer).not.toContain("aria-pressed");
+    expect(footer).not.toContain("toggleHelper");
+    // ...and it IS somewhere: inside the board wrapper, which is the only other
+    // place it can be. Without this the cell above passes on a build that lost
+    // the switch entirely.
+    expect(GAME).toMatch(/position: "absolute",[\s\S]{0,400}aria-pressed=\{helper\}|aria-pressed=\{helper\}[\s\S]{0,600}position: "absolute"/);
+  });
+
+  it("is placed with a LOGICAL inset, so it flips in Hebrew", () => {
+    // `right: 10` would pin it to the right in an RTL app, where the launcher's
+    // own furniture and the reading order both go the other way.
+    expect(GAME).toMatch(/insetInlineEnd: 10,/);
+    const btn = /<button\b[\s\S]*?aria-pressed=\{helper\}[\s\S]*?\/>|<button\b[\s\S]*?aria-pressed=\{helper\}[\s\S]*?<\/button>/.exec(GAME);
+    expect(btn).not.toBeNull();
+    expect(btn![0]).not.toMatch(/\bright: \d/);
+  });
+
+  it("names itself, because it is an icon with no words", () => {
+    expect(GAME).toMatch(/aria-label=\{WORDS\[ctx\.locale\]\.helper\}/);
+  });
+
+  it("carries an edge that is visible on the BOARD in both themes", () => {
+    // The fill alone cannot do it: --surface on --surface-2 measures 1.08 in
+    // market and 1.14 in night, and --line is 1.18 / 1.06. --text-dim is
+    // 5.85 / 7.00, so the border is what makes this read as a control.
+    // `contrast.test.ts` holds those numbers; this holds that the component
+    // still declares the pair they were measured for.
+    expect(GAME).toMatch(/border: "2px solid var\(--text-dim\)"/);
+    expect(GAME).toMatch(/background: helper \? "var\(--brand-strong\)" : "transparent"/);
+    expect(GAME).toMatch(/color: helper \? "var\(--on-brand\)" : "var\(--text-dim\)"/);
+  });
+
   it("is a real control, and never a disabled one", () => {
     expect(GAME).toMatch(/aria-pressed=\{helper\}/);
     const btn = /<button[^>]*aria-pressed=\{helper\}[\s\S]*?>/.exec(GAME);

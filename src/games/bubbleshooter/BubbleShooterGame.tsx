@@ -649,66 +649,30 @@ export function BubbleShooterGame({ ctx }: { ctx: GameContext }) {
             boxShadow: "var(--shadow-1)",
             padding: "10px 12px",
             display: "flex",
-            flexDirection: "column",
-            alignItems: "stretch",
+            alignItems: "center",
+            justifyContent: "center",
+            // The item count is fixed here and the WIDTH is not — see
+            // a-row-that-grows-with-the-catalog-must-wrap.md.
+            flexWrap: "wrap",
             gap: 8,
           }}
         >
-          {/* The guide's off switch, on its OWN row and at the logical end.
-              Not in the row below, and that is the whole placement decision: a
-              settings chip wedged beside Shoot is a chip a child taps when they
-              meant to fire. `flex-end` is logical, so it sits left in Hebrew. */}
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <button
-              type="button"
-              onClick={toggleHelper}
-              aria-pressed={helper}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                minHeight: 38,
-                padding: "6px 14px",
-                border: "none",
-                borderRadius: 999,
-                // --brand-strong is FLAT and carries --on-brand at 5.87:1 in
-                // market and 4.86:1 in night. The gradient --brand-fill cannot
-                // carry a label at all — see a-contrast-floor-is-a-floor.
-                background: helper ? "var(--brand-strong)" : "var(--surface-2)",
-                color: helper ? "var(--on-brand)" : "var(--text-dim)",
-                fontFamily: "inherit",
-                fontSize: ".82rem",
-                fontWeight: 700,
-                cursor: "pointer",
-                touchAction: "manipulation",
-              }}
-            >
-              <span aria-hidden="true">{helper ? "◉" : "○"}</span>
-              {WORDS[ctx.locale].helper}
-            </button>
-          </div>
+          {/* Aiming without a pointer. Not a fallback: holding a steady angle on
+              a phone is exactly what a five-year-old and anyone on assistive
+              input cannot do, and these two buttons plus Shoot are a complete
+              way to play the game.
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              // The item count is fixed here and the WIDTH is not — see
-              // a-row-that-grows-with-the-catalog-must-wrap.md.
-              flexWrap: "wrap",
-              gap: 8,
-            }}
-          >
-            {/* Aiming without a pointer. Not a fallback: holding a steady angle on
-                a phone is exactly what a five-year-old and anyone on assistive
-                input cannot do, and these two buttons plus Shoot are a complete
-                way to play the game. */}
-            <AimButton label={WORDS[ctx.locale].aimLeft} glyph="◀" onPress={() => nudge(-KEY_STEP * 2)} />
-            <Button onClick={shoot} aria-label={WORDS[ctx.locale].shoot}>
-              {WORDS[ctx.locale].shoot}
-            </Button>
-            <AimButton label={WORDS[ctx.locale].aimRight} glyph="▶" onPress={() => nudge(KEY_STEP * 2)} />
-          </div>
+              THE AIM-GUIDE SWITCH IS NOT IN THIS ROW, and that is measured
+              rather than tidy. It shipped here as its own line above these
+              buttons, and at 360x726 that left Shoot's bottom edge 5px from the
+              bottom of the screen - one strip of browser chrome from being
+              unreachable, which is exactly what the operator saw on their phone.
+              It lives on the board now and costs this row nothing. */}
+          <AimButton label={WORDS[ctx.locale].aimLeft} glyph="◀" onPress={() => nudge(-KEY_STEP * 2)} />
+          <Button onClick={shoot} aria-label={WORDS[ctx.locale].shoot}>
+            {WORDS[ctx.locale].shoot}
+          </Button>
+          <AimButton label={WORDS[ctx.locale].aimRight} glyph="▶" onPress={() => nudge(KEY_STEP * 2)} />
         </div>
       }
     >
@@ -743,6 +707,57 @@ export function BubbleShooterGame({ ctx }: { ctx: GameContext }) {
             outlineOffset: 3,
           }}
         />
+
+        {/* The aim-guide switch.
+            WHY IT IS HERE AND NOT IN THE CONTROL ROW: it costs the layout
+            nothing. The bottom corner of the board is dead space - the launcher
+            sits centre-bottom and bubbles rest from the ceiling down, so nothing
+            is ever drawn under this. Measured at 360x726 on the built page,
+            scroll pinned to 0: with the switch on its own row Shoot's bottom sat
+            at 721 in a 726 viewport; here it sits at 677.
+
+            THE COLOURS ARE MEASURED, not chosen. This floats on the BOARD, whose
+            background is `--surface-2`, so that is the surface every pair here
+            is against (2026-09-05, both themes):
+
+              --surface  on --surface-2   1.08 market / 1.14 night   invisible
+              --line     on --surface-2   1.18 / 1.06                invisible
+              --text-dim on --surface-2   5.85 / 7.00                the edge
+              --on-brand on --brand-strong 5.87 / 4.86               the glyph
+
+            So the EDGE carries the shape in both states and the fill only says
+            on or off - a fill-only design disappears against the board in one
+            theme or the other. `--brand-strong` is flat; the gradient
+            `--brand-fill` cannot carry a label at all
+            (a-contrast-floor-is-a-floor-not-a-target.md). */}
+        <button
+          type="button"
+          onClick={toggleHelper}
+          aria-pressed={helper}
+          aria-label={WORDS[ctx.locale].helper}
+          style={{
+            position: "absolute",
+            // LOGICAL, so it sits on the left in Hebrew without a second rule.
+            insetInlineEnd: 10,
+            bottom: 10,
+            width: 44,
+            height: 44,
+            display: "grid",
+            placeItems: "center",
+            padding: 0,
+            borderRadius: "50%",
+            border: "2px solid var(--text-dim)",
+            background: helper ? "var(--brand-strong)" : "transparent",
+            color: helper ? "var(--on-brand)" : "var(--text-dim)",
+            font: "inherit",
+            fontSize: 18,
+            lineHeight: 1,
+            cursor: "pointer",
+            touchAction: "manipulation",
+          }}
+        >
+          <span aria-hidden="true">{helper ? "◉" : "○"}</span>
+        </button>
 
         {state.dead && (
           <div

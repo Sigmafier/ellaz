@@ -164,6 +164,52 @@ describe("a label's fill clears the TEXT floor, in both themes", () => {
   }
 
   /**
+   * A CONTROL THAT FLOATS ON THE BOARD is measured against the board, not
+   * against a card.
+   *
+   * Bubble Shooter's aim-guide switch sits on the canvas, whose background is
+   * `--surface-2`. Every instinct for a floating button - a `--surface` fill, a
+   * `--line` border - is invisible there, and invisible in BOTH themes, which
+   * is why it is worth pinning rather than remembering (2026-09-05):
+   *
+   *                                     market   night
+   *     --surface   on --surface-2       1.08     1.14
+   *     --line      on --surface-2       1.18     1.06
+   *     --text-dim  on --surface-2       5.85     7.00   <- the edge it uses
+   *     --brand-strong on --surface-2    5.36     2.79   <- fill alone is NOT
+   *                                                        enough in night
+   *
+   * So the border carries the shape and the fill only says on or off. The last
+   * row is the one that would have bitten: a fill-only design measures fine in
+   * market and fails the 3:1 component floor in night, and night is one tap
+   * away on Home.
+   */
+  for (const theme of ["night", "market"] as const) {
+    it(`${theme}: the board-corner switch has an edge you can see on the board`, () => {
+      expect(
+        contrastRatio(tokenValue(theme, "--text-dim"), tokenValue(theme, "--surface-2")),
+      ).toBeGreaterThanOrEqual(3);
+    });
+
+    it(`${theme}: its off-state glyph clears the text floor on the board`, () => {
+      // Off has no fill at all - the board shows through - so the glyph is
+      // measured against the board itself.
+      expect(
+        contrastRatio(tokenValue(theme, "--text-dim"), tokenValue(theme, "--surface-2")),
+      ).toBeGreaterThanOrEqual(FLOOR);
+    });
+  }
+
+  it("a fill-only version of that switch would fail in night, which is why it has a border", () => {
+    // The negative half. If this ever starts passing, --brand-strong has moved
+    // and the border is no longer load-bearing - delete the border and this
+    // assertion together, rather than keeping a guard nothing needs.
+    expect(
+      contrastRatio(tokenValue("night", "--brand-strong"), tokenValue("night", "--surface-2")),
+    ).toBeLessThan(3);
+  });
+
+  /**
    * A gradient has no contrast ratio - it has a worst stop, and the worst stop
    * governs. Night's --brand-fill runs --brand-2 -> --brand, and NO ink clears
    * 4.5 across it: white reads 2.43 on the light stop, --text reads 2.25.
