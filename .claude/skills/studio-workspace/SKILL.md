@@ -5,7 +5,7 @@ description: Work inside studio/ - the art bible, sprite pipeline and gallery th
 
 # The `studio/` workspace
 
-The studio art bible: 13 style renderers with recipes, four rigged or
+The studio art bible: 12 style renderers with recipes, four rigged or
 frame-authored characters with five clips each, a technique library, an
 engine-neutral sprite export, adapters, and a gallery. **Its own
 `package.json`, lockfile, tests, seven gates and workflow.** Nothing in `src/`

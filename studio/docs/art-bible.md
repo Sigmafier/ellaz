@@ -70,7 +70,7 @@ highlight pixel or a long shadow.
 
 - Scenes are authored at 1x in scene units; a style chooses its cell. The
   pixel styles are 3 (hi-bit), 5 (SNES, CRT), 7 (Game Boy), 9 (NES) scene
-  units per cell; voxel is 8 and mosaic 12.
+  units per cell; voxel is 8.
 - A sprite's pivot is the bottom centre of its feet. Every clip of a character
   keeps the same pivot, so swapping clips never makes the character hop.
 - Sockets (where a held thing attaches: hand, head) are named, not numbered.
@@ -105,6 +105,11 @@ Kept in the taste ledger (`taste.py show ellaz`), not here, because a list in a
 document decays and the ledger decays on purpose. Picks so far: SNES 16-bit,
 paper cut-out and flat vector for both games; crayon doodle for Toybox Brawl.
 Game Boy was picked and unpicked.
+
+- **Rejected for good, 2026-09-05: Stained-glass mosaic.** The operator's first beetle
+  note on the gallery (`#/styles`, the thirteenth tile): *"get rid of this style for good"*.
+  Module, recipe and registry row deleted; recorded as `rejected mood` in the taste ledger
+  so no session re-proposes it under another name.
 
 ## Exceptions
 

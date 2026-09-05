@@ -13,7 +13,7 @@ export interface RenderOpts {
   seed?: string;
   /**
    * Sprite mode: a style that normally paints a page (paper, crayon,
-   * watercolor, voxel ground, mosaic grout) leaves the canvas transparent
+   * watercolor, voxel ground) leaves the canvas transparent
    * instead, so the export can sit on any background.
    */
   transparent?: boolean;

@@ -77,7 +77,7 @@ export function pixelate(ops: Op[], W: number, H: number, cell: number, opts: Pi
   return out;
 }
 
-/** The low-res layers themselves, for styles (voxel, mosaic) that read cells rather than upscale. */
+/** The low-res layers themselves, for styles (voxel) that read cells rather than upscale. */
 export function lowRes(ops: Op[], W: number, H: number, cell: number): { w: number; h: number; all: Uint8ClampedArray; fgAlpha: Uint8ClampedArray } {
   const w = Math.ceil(W / cell), h = Math.ceil(H / cell);
   const [, lx] = mk(w, h);

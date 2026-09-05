@@ -17,7 +17,6 @@ import { render as voxel } from "./voxel/render";
 import { render as sticker } from "./sticker/render";
 import { render as clay } from "./clay/render";
 import { render as watercolor } from "./watercolor/render";
-import { render as mosaic } from "./mosaic/render";
 
 export const STYLES: Style[] = [
   { id: "snes16", name: "SNES 16-bit", tier: "full", family: "pixel", tagline: "5px cells, a dark outline, flat fills - the classic 16-bit sprite", render: snes16 },
@@ -32,7 +31,6 @@ export const STYLES: Style[] = [
   { id: "sticker", name: "Sticker book", tier: "card", family: "vector", tagline: "die-cut white borders and a glossy highlight", render: sticker },
   { id: "clay", name: "Clay / soft 3D", tier: "card", family: "craft", tagline: "soft shadows, rim light, rounded plasticine forms", render: clay },
   { id: "watercolor", name: "Watercolor storybook", tier: "card", family: "paint", tagline: "blurred translucent washes with a darker wet edge", render: watercolor },
-  { id: "mosaic", name: "Stained-glass mosaic", tier: "card", family: "craft", tagline: "12px tesserae on dark grout, hand-laid", render: mosaic },
 ];
 
 export const STYLE_IDS = STYLES.map((s) => s.id);

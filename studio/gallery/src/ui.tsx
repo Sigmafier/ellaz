@@ -28,10 +28,11 @@ export function Badge({ kind, children }: { kind: BadgeKind; children: ReactNode
 }
 
 /** A card with a picture on top and a caption under it. */
-export function Tile({ picture, title, sub, badge, onClick }: { picture: HTMLCanvasElement | HTMLElement; title: string; sub?: string; badge?: { text: string; kind: BadgeKind }; onClick?: () => void }) {
+/** `id` becomes `data-tile`, so a beetle note that lands on this tile names the ITEM (`button[data-tile="mosaic"]`) rather than its position in the grid. */
+export function Tile({ id, picture, title, sub, badge, onClick }: { id?: string; picture: HTMLCanvasElement | HTMLElement; title: string; sub?: string; badge?: { text: string; kind: BadgeKind }; onClick?: () => void }) {
   const Tag = onClick ? "button" : "div";
   return (
-    <Tag type={onClick ? "button" : undefined} onClick={onClick} className={cn("overflow-hidden rounded-xl border-2 bg-card text-start shadow-[var(--shadow-card)]", onClick && "cursor-pointer hover:border-brand focus-visible:outline-2 focus-visible:outline-ring")}>
+    <Tag type={onClick ? "button" : undefined} onClick={onClick} data-tile={id} className={cn("overflow-hidden rounded-xl border-2 bg-card text-start shadow-[var(--shadow-card)]", onClick && "cursor-pointer hover:border-brand focus-visible:outline-2 focus-visible:outline-ring")}>
       <CanvasView canvas={picture} />
       <div className="px-3 py-2">
         <b className="block text-[15px]">{title}{badge && <Badge kind={badge.kind}>{badge.text}</Badge>}</b>

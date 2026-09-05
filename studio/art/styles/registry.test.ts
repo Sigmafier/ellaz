@@ -7,8 +7,8 @@ const HERE = new URL(".", import.meta.url).pathname;
 
 describe("style registry", () => {
   it("has thirteen styles with unique ids", () => {
-    expect(STYLES).toHaveLength(13);
-    expect(new Set(STYLE_IDS).size).toBe(13);
+    expect(STYLES).toHaveLength(12);
+    expect(new Set(STYLE_IDS).size).toBe(12);
   });
   it("the four picked styles are the full tier, in that order", () => {
     expect(FULL_STYLES.map((s) => s.id)).toEqual(["snes16", "flat", "paper", "crayon"]);

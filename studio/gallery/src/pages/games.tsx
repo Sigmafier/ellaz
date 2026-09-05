@@ -44,7 +44,7 @@ function GameCard({ g, params }: { g: (typeof GAMES)[number]; params: URLSearchP
         <dt className="font-bold text-muted-foreground">scale</dt><dd>{g.scale}</dd>
         <dt className="font-bold text-muted-foreground">decided</dt><dd>{g.decided}</dd>
       </dl>
-      <Grid>{cast.map((c) => <Tile key={c.id} picture={c.canvas} title={c.name} sub={c.id} />)}</Grid>
+      <Grid>{cast.map((c) => <Tile key={c.id} id={c.id} picture={c.canvas} title={c.name} sub={c.id} />)}</Grid>
     </section>
   );
 }

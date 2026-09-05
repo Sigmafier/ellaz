@@ -27,7 +27,7 @@ export function StylesMain({ params }: PageProps) {
       <Lede>Every style renders the same scene, so the only thing that differs across the grid is the style. Click a tile for its recipe: nine headings, identical in every style.</Lede>
       <Grid>
         {tiles.map(({ s, canvas }) => (
-          <Tile key={s.id} picture={canvas} title={s.name} sub={s.tagline} badge={{ text: s.tier === "full" ? "full" : "card", kind: s.tier === "full" ? "full" : "card" }} onClick={() => go("styles", { scene: sceneId, open: s.id })} />
+          <Tile key={s.id} id={s.id} picture={canvas} title={s.name} sub={s.tagline} badge={{ text: s.tier === "full" ? "full" : "card", kind: s.tier === "full" ? "full" : "card" }} onClick={() => go("styles", { scene: sceneId, open: s.id })} />
         ))}
       </Grid>
       {opened && big && (

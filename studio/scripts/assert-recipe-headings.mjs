@@ -111,7 +111,9 @@ function controls() {
     { name: "a section emptied", expect: "FIRE", run: () => withCopy((r) => edit(r, "snes16", (s) => s.replace(/## Avoid\n[\s\S]*?(?=\n## Sample)/, "## Avoid\n"))) },
     { name: "tier line disagrees with registry", expect: "FIRE", run: () => withCopy((r) => edit(r, "flat", (s) => s.replace("**Tier**: full", "**Tier**: card"))) },
     { name: "a style directory with no registry row", expect: "FIRE", run: () => withCopy((r) => { mkdirSync(join(r, "zzz")); writeFileSync(join(r, "zzz", "render.ts"), "export const render = () => null;\n"); }) },
-    { name: "a registry row with no directory", expect: "FIRE", run: () => withCopy((r) => rmSync(join(r, "mosaic"), { recursive: true })) },
+    // The LAST registry row, read from the copy, never a name written here: "mosaic" was
+    // written here once, and the day that style was deleted the control threw instead of firing.
+    { name: "a registry row with no directory", expect: "FIRE", run: () => withCopy((r) => rmSync(join(r, [...registryTiers(r).keys()].pop()), { recursive: true })) },
   ];
 }
 

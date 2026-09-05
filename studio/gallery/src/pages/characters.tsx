@@ -37,7 +37,7 @@ export function CharactersMain({ params }: PageProps) {
       <Lede>The cast at rest, in one style at a time. Two heroes, two enemies; each carries the same five clips (see Sprites).</Lede>
       <Grid>
         {tiles.map(({ ch, canvas }) => (
-          <Tile key={ch.id} picture={canvas} title={ch.name} sub={`${ch.side} · made by ${ch.technique}`} badge={{ text: ch.side, kind: ch.side === "hero" ? "pick" : "card" }} />
+          <Tile key={ch.id} id={ch.id} picture={canvas} title={ch.name} sub={`${ch.side} · made by ${ch.technique}`} badge={{ text: ch.side, kind: ch.side === "hero" ? "pick" : "card" }} />
         ))}
       </Grid>
     </>

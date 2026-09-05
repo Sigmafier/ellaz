@@ -31,7 +31,7 @@ export function TechniquesMain({ params }: PageProps) {
       <Lede>How frames are MADE, independent of how they look. Every sampled technique produces the same robot, so the difference across the grid is the technique. Cards are real techniques blocked on something outside the repo.</Lede>
       <Grid>
         {tiles.map(({ t, canvas }) => canvas ? (
-          <Tile key={t.id} picture={canvas} title={t.name} sub={t.costPerAnimation} badge={{ text: "sample", kind: "sample" }} />
+          <Tile key={t.id} id={t.id} picture={canvas} title={t.name} sub={t.costPerAnimation} badge={{ text: "sample", kind: "sample" }} />
         ) : (
           <div key={t.id} className="rounded-xl border-2 bg-card px-3 py-2 shadow-[var(--shadow-card)]">
             <b className="block text-[15px]">{t.name}<Badge kind="card">card</Badge></b>
