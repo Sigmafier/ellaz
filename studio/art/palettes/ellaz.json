@@ -1,0 +1,63 @@
+{
+  "id": "ellaz",
+  "name": "Ellaz key art",
+  "note": "The platform's poster palette, copied from src/ui/gameArt.ts PAL on 2026-09-05 so sprites and key art agree. Roles per docs/art-bible.md.",
+  "colors": [
+    {
+      "name": "ink",
+      "hex": "#241C3B",
+      "role": "text"
+    },
+    {
+      "name": "inkSoft",
+      "hex": "#4A4066"
+    },
+    {
+      "name": "paper",
+      "hex": "#FFF7EC",
+      "role": "ground"
+    },
+    {
+      "name": "raspberry",
+      "hex": "#FF4D8D",
+      "role": "player"
+    },
+    {
+      "name": "tangerine",
+      "hex": "#FF8A3D",
+      "role": "warning"
+    },
+    {
+      "name": "sunflower",
+      "hex": "#FFC730",
+      "role": "interactable"
+    },
+    {
+      "name": "lime",
+      "hex": "#6FD44E",
+      "role": "enemy"
+    },
+    {
+      "name": "jade",
+      "hex": "#17B98A"
+    },
+    {
+      "name": "lagoon",
+      "hex": "#26B0E6"
+    },
+    {
+      "name": "indigo",
+      "hex": "#4F5BD5",
+      "role": "interactable"
+    },
+    {
+      "name": "orchid",
+      "hex": "#A855C9"
+    },
+    {
+      "name": "clay",
+      "hex": "#E4572E",
+      "role": "warning"
+    }
+  ]
+}

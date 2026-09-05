@@ -1,0 +1,103 @@
+{
+  "id": "nes",
+  "name": "NES (24 of 54)",
+  "note": "The 24 PPU colours the prototype kept. Note the NES style renders with an HSL snap rather than a nearest-colour snap to this list; this is the reference set, not the renderer's lookup.",
+  "colors": [
+    {
+      "name": "c00",
+      "hex": "#000000"
+    },
+    {
+      "name": "c01",
+      "hex": "#FCFCFC"
+    },
+    {
+      "name": "c02",
+      "hex": "#F8F8F8"
+    },
+    {
+      "name": "c03",
+      "hex": "#BCBCBC"
+    },
+    {
+      "name": "c04",
+      "hex": "#7C7C7C"
+    },
+    {
+      "name": "c05",
+      "hex": "#A40000"
+    },
+    {
+      "name": "c06",
+      "hex": "#F83800"
+    },
+    {
+      "name": "c07",
+      "hex": "#F87858"
+    },
+    {
+      "name": "c08",
+      "hex": "#AC7C00"
+    },
+    {
+      "name": "c09",
+      "hex": "#F8B800"
+    },
+    {
+      "name": "c10",
+      "hex": "#F8D878"
+    },
+    {
+      "name": "c11",
+      "hex": "#00A800"
+    },
+    {
+      "name": "c12",
+      "hex": "#58D854"
+    },
+    {
+      "name": "c13",
+      "hex": "#B8F818"
+    },
+    {
+      "name": "c14",
+      "hex": "#0058F8"
+    },
+    {
+      "name": "c15",
+      "hex": "#3CBCFC"
+    },
+    {
+      "name": "c16",
+      "hex": "#6844FC"
+    },
+    {
+      "name": "c17",
+      "hex": "#F878F8"
+    },
+    {
+      "name": "c18",
+      "hex": "#D82800"
+    },
+    {
+      "name": "c19",
+      "hex": "#503000"
+    },
+    {
+      "name": "c20",
+      "hex": "#E45C10"
+    },
+    {
+      "name": "c21",
+      "hex": "#FCA044"
+    },
+    {
+      "name": "c22",
+      "hex": "#006800"
+    },
+    {
+      "name": "c23",
+      "hex": "#005800"
+    }
+  ]
+}

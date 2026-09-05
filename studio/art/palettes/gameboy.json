@@ -1,0 +1,25 @@
+{
+  "id": "gameboy",
+  "name": "Game Boy DMG",
+  "note": "The four shades, darkest first. The renderer gives the cast the first two and the background the last two.",
+  "colors": [
+    {
+      "name": "darkest",
+      "hex": "#0F380F",
+      "role": "player"
+    },
+    {
+      "name": "dark",
+      "hex": "#306230"
+    },
+    {
+      "name": "light",
+      "hex": "#8BAC0F",
+      "role": "ground"
+    },
+    {
+      "name": "lightest",
+      "hex": "#9BBC0F"
+    }
+  ]
+}

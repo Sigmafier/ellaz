@@ -1,0 +1,63 @@
+{
+  "id": "paper",
+  "name": "Paper cut-out",
+  "note": "Construction-paper pigments: the key-art hues pulled about 15% toward grey so they read as card, over cream stock. Shadows stay rgba(0,0,0,.28), never coloured.",
+  "colors": [
+    {
+      "name": "card",
+      "hex": "#FBF3E4",
+      "role": "ground"
+    },
+    {
+      "name": "ink",
+      "hex": "#3A3350",
+      "role": "text"
+    },
+    {
+      "name": "raspberry",
+      "hex": "#E85A8F",
+      "role": "player"
+    },
+    {
+      "name": "tangerine",
+      "hex": "#EE8E4E",
+      "role": "warning"
+    },
+    {
+      "name": "sunflower",
+      "hex": "#EFC24A",
+      "role": "interactable"
+    },
+    {
+      "name": "lime",
+      "hex": "#7BC95C",
+      "role": "enemy"
+    },
+    {
+      "name": "jade",
+      "hex": "#3AAE8C"
+    },
+    {
+      "name": "lagoon",
+      "hex": "#48A8D6"
+    },
+    {
+      "name": "indigo",
+      "hex": "#5C64C2",
+      "role": "interactable"
+    },
+    {
+      "name": "orchid",
+      "hex": "#A468BE"
+    },
+    {
+      "name": "clay",
+      "hex": "#D86444",
+      "role": "warning"
+    },
+    {
+      "name": "kraft",
+      "hex": "#C9A35A"
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "id": "snes16",
+  "name": "SNES 16-bit cast",
+  "note": "The reference cast's fills plus the outline ink, as the 16-bit style renders them (no snapping). Sixteen entries, which is the joke and also the budget.",
+  "colors": [
+    {
+      "name": "outline",
+      "hex": "#1A1230"
+    },
+    {
+      "name": "robotShell",
+      "hex": "#D8342E",
+      "role": "player"
+    },
+    {
+      "name": "robotShellDark",
+      "hex": "#8F1C18"
+    },
+    {
+      "name": "metal",
+      "hex": "#9AA3B2"
+    },
+    {
+      "name": "visor",
+      "hex": "#FFD23F",
+      "role": "interactable"
+    },
+    {
+      "name": "eye",
+      "hex": "#1A1A2E"
+    },
+    {
+      "name": "chest",
+      "hex": "#2B5CFF",
+      "role": "interactable"
+    },
+    {
+      "name": "teddyFur",
+      "hex": "#8A5A2B",
+      "role": "enemy"
+    },
+    {
+      "name": "teddyFurLight",
+      "hex": "#D9A06A"
+    },
+    {
+      "name": "teddyFurDark",
+      "hex": "#5C3A18"
+    },
+    {
+      "name": "plate",
+      "hex": "#C0C8D8",
+      "role": "player"
+    },
+    {
+      "name": "cape",
+      "hex": "#C2185B"
+    },
+    {
+      "name": "shield",
+      "hex": "#2B5CFF"
+    },
+    {
+      "name": "slime",
+      "hex": "#5FCF3A",
+      "role": "enemy"
+    },
+    {
+      "name": "slimeLight",
+      "hex": "#7EE04A"
+    },
+    {
+      "name": "fire",
+      "hex": "#FF7A1A",
+      "role": "warning"
+    }
+  ]
+}

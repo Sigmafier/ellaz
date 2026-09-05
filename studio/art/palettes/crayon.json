@@ -1,0 +1,62 @@
+{
+  "id": "crayon",
+  "name": "Crayon box",
+  "note": "A 12-crayon box on notebook paper. The stroke colour of each is derived by the renderer (45% darker), so only the wax colours are listed.",
+  "colors": [
+    {
+      "name": "paper",
+      "hex": "#FFFDF5",
+      "role": "ground"
+    },
+    {
+      "name": "rule",
+      "hex": "#78A0C8"
+    },
+    {
+      "name": "black",
+      "hex": "#2B2B2B",
+      "role": "text"
+    },
+    {
+      "name": "red",
+      "hex": "#E23B3B",
+      "role": "player"
+    },
+    {
+      "name": "orange",
+      "hex": "#F58A2C",
+      "role": "warning"
+    },
+    {
+      "name": "yellow",
+      "hex": "#FFD23F",
+      "role": "interactable"
+    },
+    {
+      "name": "green",
+      "hex": "#4FBF3A",
+      "role": "enemy"
+    },
+    {
+      "name": "blue",
+      "hex": "#3A7BE0",
+      "role": "interactable"
+    },
+    {
+      "name": "purple",
+      "hex": "#8B4FC9"
+    },
+    {
+      "name": "brown",
+      "hex": "#8A5A2B"
+    },
+    {
+      "name": "pink",
+      "hex": "#FF7AB8"
+    },
+    {
+      "name": "skyBlue",
+      "hex": "#6FCBF5"
+    }
+  ]
+}

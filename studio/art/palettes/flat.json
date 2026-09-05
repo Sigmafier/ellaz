@@ -1,0 +1,63 @@
+{
+  "id": "flat",
+  "name": "Flat vector",
+  "note": "The key-art palette as the flat style uses it: fills unchanged, one long shadow of rgba(0,0,0,.12) stamped ten times (about 70% black where the stamps agree).",
+  "colors": [
+    {
+      "name": "ink",
+      "hex": "#241C3B",
+      "role": "text"
+    },
+    {
+      "name": "paper",
+      "hex": "#FFF7EC",
+      "role": "ground"
+    },
+    {
+      "name": "raspberry",
+      "hex": "#FF4D8D",
+      "role": "player"
+    },
+    {
+      "name": "tangerine",
+      "hex": "#FF8A3D",
+      "role": "warning"
+    },
+    {
+      "name": "sunflower",
+      "hex": "#FFC730",
+      "role": "interactable"
+    },
+    {
+      "name": "lime",
+      "hex": "#6FD44E",
+      "role": "enemy"
+    },
+    {
+      "name": "jade",
+      "hex": "#17B98A"
+    },
+    {
+      "name": "lagoon",
+      "hex": "#26B0E6"
+    },
+    {
+      "name": "indigo",
+      "hex": "#4F5BD5",
+      "role": "interactable"
+    },
+    {
+      "name": "orchid",
+      "hex": "#A855C9"
+    },
+    {
+      "name": "clay",
+      "hex": "#E4572E",
+      "role": "warning"
+    },
+    {
+      "name": "shadowFull",
+      "hex": "#4D4D4D"
+    }
+  ]
+}
