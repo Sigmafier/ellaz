@@ -129,7 +129,18 @@ function exportCharacter(charId: string, styleId: string, scale: number, built: 
   return { character: charId, style: styleId, sheetPng: sheet.toDataURL("image/png"), atlas, manifest, frames: cells.length };
 }
 
+/** One sampled technique's robot on the plain ground, one style. */
+function techniqueTile(id: string, styleId: string, scale: number): { id: string; w: number; h: number; png: string } {
+  const t = SAMPLED.find((x) => x.id === id);
+  if (!t) throw new Error(`no sampled technique "${id}"`);
+  const w = 100 * scale, h = 100 * scale, ground = 82 * scale;
+  const ops = [R(0, 0, w, h, "#e8eef7", false), R(0, ground, w, h - ground, "#c9d3e3", false), E(w / 2, ground + 2 * scale, 18 * scale, 3 * scale, "rgba(0,0,0,.2)", false), ...place(t.sample(), w / 2, ground, scale)];
+  const r = renderOne(styleId, { id: `technique-${id}`, w, h, ops });
+  return { id, w, h, png: r.png };
+}
+
 const api = {
+  renderTechniqueTile: techniqueTile,
   exportCharacter,
   paletteExports: () => PALETTES.map((p) => ({ id: p.id, gpl: toGpl(p), hex: toHex(p), json: JSON.stringify(p, null, 2) + "\n" })),
   techniques: TECHNIQUES.map(({ id, name, input, costPerAnimation, summary, sample, blockedOn }) => ({ id, name, input, costPerAnimation, summary, sampled: sample !== null, blockedOn })),

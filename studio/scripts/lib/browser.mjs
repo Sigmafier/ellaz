@@ -25,8 +25,10 @@ function newestMtime(dir) {
 
 /** Build the runner bundle if it is missing or older than its sources. */
 export function ensureBundle({ force = false } = {}) {
-  const fresh = existsSync(BUNDLE) && statSync(BUNDLE).mtimeMs >= Math.max(newestMtime(join(STUDIO, "art")), newestMtime(join(STUDIO, "runner")));
-  if (fresh && !force) return BUNDLE;
+  // every directory the runner bundle imports from - a stale bundle renders yesterday's code and reads exactly like today's
+  const sources = ["art", "runner", "export", "adapters"].map((d) => newestMtime(join(STUDIO, d)));
+  const fresh = existsSync(BUNDLE) && statSync(BUNDLE).mtimeMs >= Math.max(...sources);
+  if (fresh && !force && !process.env.STUDIO_REBUILD) return BUNDLE;
   execFileSync("npx", ["vite", "build", "--config", "runner/vite.config.ts", "--logLevel", "warn"], { cwd: STUDIO, stdio: "inherit" });
   if (!existsSync(BUNDLE)) throw new Error(`runner bundle was not written: ${BUNDLE}`);
   return BUNDLE;
