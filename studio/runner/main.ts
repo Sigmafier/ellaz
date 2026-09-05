@@ -11,6 +11,7 @@ import { STYLES, styleById } from "../art/styles/registry";
 import { SCENES } from "../art/scenes";
 import { E, R, place, validate, type Scene } from "../art/scene-ops";
 import { CHARACTERS, characterById } from "../art/characters";
+import { SAMPLED, TECHNIQUES } from "../art/techniques";
 
 export interface RenderResult {
   styleId: string;
@@ -74,7 +75,23 @@ function clipStrip(charId: string, styleId: string, scale: number): StripResult[
   });
 }
 
+/** The eight sampled techniques' robots in a row, one style. */
+function techniqueStrip(styleId: string, scale: number): { ids: string[]; w: number; h: number; png: string } {
+  const cell = 100 * scale, ground = 82 * scale, h = 100 * scale;
+  const w = cell * SAMPLED.length;
+  const ops = [R(0, 0, w, h, "#e8eef7", false), R(0, ground, w, h - ground, "#c9d3e3", false)];
+  SAMPLED.forEach((t, i) => {
+    const cx = cell * i + cell / 2;
+    ops.push(E(cx, ground + 2 * scale, 18 * scale, 3 * scale, "rgba(0,0,0,.2)", false));
+    ops.push(...place(t.sample(), cx, ground, scale));
+  });
+  const r = renderOne(styleId, { id: `techniques`, w, h, ops });
+  return { ids: SAMPLED.map((t) => t.id), w, h, png: r.png };
+}
+
 const api = {
+  techniques: TECHNIQUES.map(({ id, name, input, costPerAnimation, summary, sample, blockedOn }) => ({ id, name, input, costPerAnimation, summary, sampled: sample !== null, blockedOn })),
+  renderTechniqueStrip: techniqueStrip,
   characterIds: CHARACTERS.map((c) => c.id),
   characters: CHARACTERS.map(({ id, name, side, technique }) => ({ id, name, side, technique })),
   renderClipStrips: clipStrip,

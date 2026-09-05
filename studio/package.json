@@ -13,6 +13,8 @@
     "export": "node export/export-all.mjs",
     "shots": "node scripts/render-gallery-shots.mjs",
     "render:styles": "node scripts/render-styles.mjs",
+    "render:clips": "node scripts/render-clips.mjs",
+    "render:techniques": "node scripts/render-techniques.mjs",
     "assert:boundary": "node scripts/assert-boundary.mjs",
     "assert:recipes": "node scripts/assert-recipe-headings.mjs",
     "assert:render": "node scripts/assert-render-smoke.mjs",
