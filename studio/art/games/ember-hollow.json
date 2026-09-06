@@ -5,7 +5,7 @@
   "style": "snes16",
   "candidateStyles": ["snes16", "flat", "paper"],
   "palette": "snes16",
-  "technique": "parts-rig",
+  "technique": "pixel-parts",
   "scene": "ember-field",
   "cast": ["knight", "ninja", "wizard", "slime", "bat"],
   "scale": 2,
