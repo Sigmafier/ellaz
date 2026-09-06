@@ -133,3 +133,26 @@ enemy 32, boss 64), cut along the standard bones, posed by the standard clips
 and snapped back to the grid on every frame. The pixel styles render it cell for
 cell and add no outline of their own. The recipe, the craft rules and the four
 worked examples: [`pixel-characters.md`](pixel-characters.md).
+
+## The roster (since 2026-09-06)
+
+Twelve characters, drawn by ARCHETYPE across three AUDIENCE BANDS, sized by
+role (hero 48, small enemy 32, boss 64). The band decides the proportions and
+what a face is allowed to do; the role decides the size and the job in a fight.
+
+| band | proportions as drawn | hero (48) | small enemy (32) | boss (64) |
+|---|---|---|---|---|
+| kids | round, ~3 heads, big eyes, no sharp edges | Robot · Bunny | Angry Teddy · Slime · Crab | Owl King |
+| teen | ~4 heads, a weapon or a tool, a silhouette prop (scarf, hat, wings) | Knight · Ninja · Wizard | Bat | - |
+| adult | ~5 heads, bare-knuckle or brute mass, harder shading | Brawler | - | Golem |
+
+The heads-tall bands in § Proportions are the targets a larger style can hit;
+at these pixel sizes they compress (an 8-head adult at 48 px would have a
+6-pixel face), so the table above records what is actually drawn. Two things
+the roster holds by test (`pixel-cast.test.ts`): every character re-composes
+its drawing cell for cell from its parts, and no two rest SILHOUETTES overlap
+more than 0.85 when boxed to 24 cells (the closest pair, ninja and brawler,
+measured 0.82 on 2026-09-06). Bodies whose legs are wide or long shuffle by
+translation in their walk instead of swinging about the hip, and flat bodies
+flip onto their back at ko rather than tumbling - both because the feet test
+holds every standing frame within one pixel of the ground line.

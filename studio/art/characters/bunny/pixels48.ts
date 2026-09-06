@@ -1,0 +1,76 @@
+// The bunny at 48 pixels (hero size): a round white bunny with tall pink-lined ears, a cream belly, big feet, and a carrot held up in the right paw.
+//
+// Painted 2026-09-06 with the craft rules the knight set (see
+// docs/pixel-characters.md): native size by role, clusters not dots, one
+// light, hue-shifted ramps, its own selective outline. 32 wide x 48 tall,
+// feet on the last row. rig48.ts cuts it into parts.
+
+export const BUNNY48_W = 32;
+export const BUNNY48_H = 48;
+
+export const BUNNY48_PALETTE: Record<string, string> = {
+  O: "#1a1230",
+  F: "#f6f6ff",
+  f: "#cfd3e8",
+  d: "#9098c0",
+  N: "#ffa3c7",
+  n: "#e0608f",
+  L: "#fff7e0",
+  K: "#1a1a2e",
+  W: "#ffffff",
+  C: "#ff8c2a",
+  c: "#d9621a",
+  G: "#5fcf3a",
+  g: "#3e9a26",
+};
+
+export const BUNNY48_GRID: string[] = [
+  ".........OFFO......OFFO.........",
+  "........OFFFFO....OFFFFO........",
+  "........OFFFFO....OFFFFO........",
+  ".......OFFFFFFO..OFFFFFfO.......",
+  ".......OFFNNFFO..OFFNNFfO.......",
+  ".......OFFNNFFO..OFFNNFfO.......",
+  ".......OFFNNFFO..OFFNNFfO.......",
+  ".......OFNNNNFO..OFNNNnfO.......",
+  ".......OFNNNNFO..OFNNNnfO.......",
+  ".......OFNNNNFO..OFNNNnfO.......",
+  ".......OFNNNNFO..OFNNNnfO.......",
+  ".......OFFNNFFOOOOFFNNFfO.......",
+  ".......OFFNNFFFFFFFFNNffO.......",
+  "........OFNFFFFFFFFFFNfO........",
+  "........OFFFFFFFFFFFFFfO........",
+  "........OFFFFFFFFFFFFFfO........",
+  ".......OFFFFFFFFFFFFFFffO.......",
+  ".......OFFFFFFFFFFFFFFffO.......",
+  ".......OFFFFFFFFFFFFFFffO.......",
+  ".......OFFFFWKFFFFWKFFffO......O",
+  ".......OFFFFKKFFFFKKFFffO.....Og",
+  ".......OFFFFFFFFFFFFFFffO....OGG",
+  ".......OFNNFFFFLLFFFFNNdO....OGG",
+  ".......OFFFFFLLnnLLFFFfdO.....Og",
+  "........OFFFLLLnLLLLFFfO......OC",
+  ".........OFFFLLLLLLFFFO......OCc",
+  "..........OffffLLffffO..O...OCcO",
+  "......O....OffffffffO.OOFOOOCcO.",
+  ".....OFO....OfffffffOOFFFFFCcO..",
+  "....OFFFO...OFFFFFFO.OFFFFCcO...",
+  "....OFFFO..OFFFFFFFFOOFFFCcO....",
+  "...OFFFFFOOFFFFFFFFFFOfffffO....",
+  "...OFFFFFOFFFFLLLLFFFfOOfOO.....",
+  "...OFFFFFOFFFLLLLLLFFfO.O.......",
+  "....OfffOfFFFLLLLLLFFfdO........",
+  "....OfffOfFFLLLLLLLLFfdO........",
+  ".....OfOOfFFLLLLLLLLffdO........",
+  "......O..OFFLLLLLLLLffO.........",
+  ".........OFFFLLLLLLFffO.........",
+  "..........OFFLLLLLLffO..........",
+  "...........OFFLLLLFfO...........",
+  "..........OOfffFFFfffO..........",
+  ".......OOOFFfffOOOffFFOOO.......",
+  "......OFFFFFFFFOOFFFFFFFFO......",
+  "......OFFFFFFFFOOFFFFFFFFO......",
+  ".....OFFFFFFFFFOFFFFFFFFFFO.....",
+  "......OffffffffOOffffffffO......",
+  ".......OfdffffO..OfdffffO.......",
+];

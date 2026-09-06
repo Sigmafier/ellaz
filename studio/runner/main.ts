@@ -148,7 +148,7 @@ const api = {
   techniques: TECHNIQUES.map(({ id, name, input, costPerAnimation, summary, sample, blockedOn }) => ({ id, name, input, costPerAnimation, summary, sampled: sample !== null, blockedOn })),
   renderTechniqueStrip: techniqueStrip,
   characterIds: CHARACTERS.map((c) => c.id),
-  characters: CHARACTERS.map(({ id, name, side, technique }) => ({ id, name, side, technique })),
+  characters: CHARACTERS.map(({ id, name, side, role, band, technique }) => ({ id, name, side, role, band, technique })),
   renderClipStrips: clipStrip,
   styles: STYLES.map(({ id, name, tier, family, tagline }) => ({ id, name, tier, family, tagline })),
   sceneIds: Object.keys(SCENES),

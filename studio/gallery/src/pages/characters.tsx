@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { CHARACTERS } from "../../../art/characters";
+import { CHARACTERS, HEIGHT_BY_ROLE } from "../../../art/characters";
 import { FULL_STYLES, STYLES } from "../../../art/styles/registry";
 import { E, R, bounds, place, type Scene } from "../../../art/scene-ops";
 import { go } from "../router";
@@ -34,10 +34,10 @@ export function CharactersMain({ params }: PageProps) {
   const tiles = useMemo(() => CHARACTERS.map((ch) => ({ ch, canvas: characterTile(ch.id, styleId) })), [styleId]);
   return (
     <>
-      <Lede>The cast at rest, in one style at a time. Two heroes, two enemies; each carries the same five clips (see Sprites).</Lede>
+      <Lede>The roster at rest, in one style at a time: twelve characters by archetype across the kids, teen and adult bands, sized by role (hero 48, small enemy 32, boss 64). Each carries the same five clips (see Sprites).</Lede>
       <Grid>
         {tiles.map(({ ch, canvas }) => (
-          <Tile key={ch.id} id={ch.id} picture={canvas} title={ch.name} sub={`${ch.side} · made by ${ch.technique}`} badge={{ text: ch.side, kind: ch.side === "hero" ? "pick" : "card" }} />
+          <Tile key={ch.id} id={ch.id} picture={canvas} title={ch.name} sub={`${ch.band} ${ch.role} · ${HEIGHT_BY_ROLE[ch.role]} px · ${ch.technique}`} badge={{ text: ch.role, kind: ch.role === "hero" ? "pick" : "card" }} />
         ))}
       </Grid>
     </>

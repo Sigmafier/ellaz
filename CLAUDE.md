@@ -25,7 +25,8 @@ under `holdem/`, and note the trap that follows from it: **`npm test` at the
 repository root does not run a single one of its tests.**
 
 **And a THIRD workspace, `studio/`, since 2026-09-05: the art bible.** Six
-style renderers with recipes, four characters with five clips each, a technique
+style renderers with recipes, twelve pixel characters (three audience bands,
+sized by role) with five clips each, a technique
 library, an engine-neutral sprite export (sheet + atlas + manifest) with Phaser
 and canvas adapters, and a gallery. Same independence as the poker
 table: its own `package.json`, tests, eight gates and `studio.yml`; nothing in

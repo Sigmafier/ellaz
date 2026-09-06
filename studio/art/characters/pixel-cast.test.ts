@@ -9,6 +9,9 @@ import { CLIP_IDS } from "../rig/types";
 import { snapClips, snapOps, type PixelRigSpec } from "../techniques/pixel-parts";
 import { HEIGHT_BY_ROLE, PIXEL_CAST } from "./index";
 
+/** measured 2026-09-06 over 66 pairs of the twelve, boxed to 24: closest ninja/brawler 0.82, then robot/brawler 0.75, teddy/owl 0.74. A ratchet, not a target: a new character must land under the closest pair that already reads apart */
+const SILHOUETTE_MAX = 0.85;
+
 /** snapped ops back to a text grid in the drawing's own frame */
 function toGrid(spec: PixelRigSpec, ops: ReturnType<typeof snapOps>): string[] {
   const ink = Object.fromEntries(Object.entries(spec.palette).map(([ch, hex]) => [hex, ch]));
@@ -21,6 +24,39 @@ function toGrid(spec: PixelRigSpec, ops: ReturnType<typeof snapOps>): string[] {
   }
   return rows.map((r) => r.join(""));
 }
+
+/** the rest silhouette scaled to fit a box, so a 32 and a 64 compare by shape and not by size */
+function silhouette(spec: PixelRigSpec, N = 24): Set<string> {
+  const ink: [number, number][] = [];
+  spec.grid.forEach((row, r) => { for (let c = 0; c < row.length; c++) if (row[c] !== ".") ink.push([c, r]); });
+  const c0 = Math.min(...ink.map((p) => p[0])), r0 = Math.min(...ink.map((p) => p[1]));
+  const w = Math.max(...ink.map((p) => p[0])) - c0 + 1, h = Math.max(...ink.map((p) => p[1])) - r0 + 1;
+  const k = N / Math.max(w, h);
+  return new Set(ink.map(([c, r]) => `${Math.floor((c - c0) * k)},${Math.floor((r - r0) * k)}`));
+}
+
+describe("the roster's silhouettes", () => {
+  it("no two characters share more than SILHOUETTE_MAX of their black mass, boxed to 24", () => {
+    const masks = PIXEL_CAST.map((c) => ({ id: c.id, m: silhouette(c.spec) }));
+    const pairs: [number, string, string][] = [];
+    for (let i = 0; i < masks.length; i++) for (let j = i + 1; j < masks.length; j++) {
+      const a = masks[i].m, b = masks[j].m;
+      let both = 0; for (const k of a) if (b.has(k)) both++;
+      pairs.push([both / (a.size + b.size - both), masks[i].id, masks[j].id]);
+    }
+    pairs.sort((x, y) => y[0] - x[0]);
+    expect(pairs.length).toBe((PIXEL_CAST.length * (PIXEL_CAST.length - 1)) / 2);
+    // the closest pair is printed so a new character is judged against the real number, not a guess
+    console.log(`silhouettes: ${pairs.length} pairs, closest ${pairs.slice(0, 3).map(([v, a, b]) => `${a}/${b} ${v.toFixed(2)}`).join(" · ")}`);
+    for (const [v, a, b] of pairs) expect(v, `${a} and ${b} read alike`).toBeLessThan(SILHOUETTE_MAX);
+  });
+  it("the control: a character against itself is 1, and against a blank box is 0", () => {
+    const m = silhouette(PIXEL_CAST[0].spec);
+    let both = 0; for (const k of m) if (m.has(k)) both++;
+    expect(both / m.size).toBe(1);
+    expect(new Set<string>().size / (m.size || 1)).toBe(0);
+  });
+});
 
 for (const { id, built, spec, role } of PIXEL_CAST) {
   describe(`${id} as pixel parts on the rig`, () => {

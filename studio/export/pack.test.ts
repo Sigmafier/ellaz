@@ -21,7 +21,7 @@ describe("frame geometry", () => {
 });
 
 describe("atlas layout", () => {
-  const robot = CHARACTERS[0];
+  const robot = CHARACTERS.find((c) => c.id === "robot")!;
   const clips = robot.clips();
   const geo = frameGeometry(clips, 2);
   const { atlas, cells } = layoutAtlas(clips, geo, "robot--snes16.png");
@@ -57,7 +57,7 @@ describe("atlas layout", () => {
 });
 
 describe("manifest", () => {
-  const knight = CHARACTERS[1];
+  const knight = CHARACTERS.find((c) => c.id === "knight")!; // by id: the roster order put the bunny second (2026-09-06)
   const clips = knight.clips();
   const geo = frameGeometry(clips, 2);
   const m = buildManifest("knight", "flat", 2, clips, geo, knight.rig!.hitbox, "atlas.json", built);

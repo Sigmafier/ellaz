@@ -12,8 +12,8 @@ The source is the ceiling. This is the source.
 **One drawing per character, at its role's size, by hand, with the craft rules;
 cut along the standard bones; posed by the standard clips; every frame snapped
 back to the grid.** One grid gives five clips. The code is
-`art/techniques/pixel-parts.ts`; the first four are in `art/characters/*/pixels*.ts`
-with a `rig*.ts` beside each.
+`art/techniques/pixel-parts.ts`; all twelve are in `art/characters/*/pixels*.ts`
+with a `rig*.ts` beside each (the roster and its bands: `art-bible.md` § The roster).
 
 ## Sizes by role (the operator's, 2026-09-05)
 
@@ -96,6 +96,34 @@ a hairline. Nothing outside the palette can appear; the test asserts it.
   `sx`/`sy`; it hops in its walk (`hops: true`), and its drips are cells that
   the body did not keep - if a drip's inner cells stay with the body and the
   drip bone slides, it tears away, so the collapse squashes and does not slide.
+
+- **Bunny (48, kids hero).** The ears are head cells, so they turn with the
+  nod. The carrot is the right paw's, and a small white star at its tip is the
+  attack's effect - a bonk, not a blade.
+- **Crab (32, kids enemy).** Claws are the arms, eye stalks are the head. Three
+  legs a side share one hip, and because they reach far from it, the standard
+  swing dipped them four pixels under the ground: its walk SHUFFLES the leg
+  parts by dx instead. Its ko flips it onto its back (`rot: Math.PI`), since a
+  body wider than tall stood on end by the standard tumble.
+- **Owl King (64, kids boss).** Crown, tufts, eyes and beak are the head; the
+  wings are the arms, pivoted at the top so the standard walk flaps them. Ko
+  tips it a quarter turn onto its side.
+- **Ninja (48, teen hero).** The blade rides the right arm and the attack draws
+  a crescent at its tip, like the knight's. The scarf stays with the torso so
+  it does not turn with the head.
+- **Wizard (48, teen hero).** The staff is the right arm's and reaches up, not
+  down, so nothing but the boots touches the ground line. The orb throws a
+  star on attack. The boots are the whole leg, so its walk shuffles too.
+- **Bat (32, teen enemy).** Its own walk: wings flap and the root lifts
+  (`hops: true`). Flat, so it flips at ko.
+- **Brawler (48, adult hero).** The forward glove throws an impact star; a
+  one-row eye is closed by darkening it and crossed by two skin-and-ink
+  diagonals.
+- **Golem (64, adult boss).** The head claims only the stone and glow
+  characters of its rows (`only`), so the moss on the shoulders stays with the
+  torso. Its arms hang as pillars; the standard lunge (`legR` swing + a 7-unit
+  arm slide) dipped its long legs and slid the arm off the shoulder, so its
+  attack is its own: a wind-up and a swing with the arm barely displaced.
 
 ## Adding a character in an hour
 

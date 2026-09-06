@@ -1,0 +1,77 @@
+// The ninja at 48 pixels (hero size): lean, in navy, a hooded mask with an eye slit, a red scarf trailing back, a short blade held forward.
+//
+// Painted 2026-09-06 with the craft rules the knight set (see
+// docs/pixel-characters.md): native size by role, clusters not dots, one
+// light, hue-shifted ramps, its own selective outline. 34 wide x 48 tall,
+// feet on the last row. rig48.ts cuts it into parts.
+
+export const NINJA48_W = 34;
+export const NINJA48_H = 48;
+
+export const NINJA48_PALETTE: Record<string, string> = {
+  O: "#1a1230",
+  P: "#5a60a8",
+  p: "#383d78",
+  q: "#232650",
+  C: "#ff4d5e",
+  c: "#b8202f",
+  F: "#ffd9b3",
+  f: "#d9a87a",
+  K: "#1a1a2e",
+  B: "#f4f8ff",
+  b: "#c0cce6",
+  h: "#7c82b4",
+  T: "#3a2a4a",
+  t: "#5c4a6c",
+};
+
+export const NINJA48_GRID: string[] = [
+  "..................................",
+  ".............OOOOOO...............",
+  "...........OOPPPPPpOO.............",
+  "..........OPPPPPPppppO............",
+  "..........OPPPPPpppppO............",
+  ".........OPPPPPppppppqO...........",
+  ".........OPPPPpppppppqO...........",
+  ".........OPPFPKFFFPKFqO...........",
+  ".........OPPfKKFFFKKfqO...........",
+  ".........OPppppppppppqO...........",
+  ".........OpppppppppppqO...........",
+  "..........OppppppppppqO...........",
+  "......OOOOOppppppppppqO...........",
+  "..OOOOCCCCCCCCCCCCCCCCO...........",
+  ".OCCCCCCCCCCCCCCCCCCCCO...........",
+  ".OCCCCCCCCCcccccccccccO...........",
+  "OCCCCCCPppOPPPpppppqqqO...........",
+  "OccccccPppOPPPpppppqqqOOOOOO......",
+  "OccOOOOPppOPhhhhhhpppqPPPPPPOO....",
+  ".OO...OPppOPhhhhhhpppqppppFTFFOOOO",
+  "......OPppOPhhhhhhpppqppppFFBBBBBb",
+  "......OPppOPhhhhhhpppqppppFFbbbbbb",
+  "......OqqqOPhhhhhhpppqOOOOFTFfOOOO",
+  "......OPppOPhhhhhhpppqO..OFFffO...",
+  "......OPppOPhhhhhhpppqO...OOOO....",
+  "......OPppOPPPpppppqqqO...........",
+  "......OPppOPPPpppppqqqO...........",
+  "......OPppOcccccccccccO...........",
+  "......OPppOqqqqqqqqqqqO...........",
+  "......OFFFOPPPpppppqqqO...........",
+  "......OFFfPPpppqOPPpppqO..........",
+  "......OFFFPPpppqOPPpppqO..........",
+  ".......OOOPPpppqOPPpppqO..........",
+  ".........OPPpppqOPPpppqO..........",
+  ".........OPPpppqOPPpppqO..........",
+  ".........OPPpppqOPPpppqO..........",
+  ".........OPPpppqOPPpppqO..........",
+  ".........OPPpppqOPPpppqO..........",
+  ".........OqqqqqqOqqqqqqO..........",
+  ".........OPPpppqOPPpppqO..........",
+  ".........OPPpppqOPPpppqO..........",
+  ".........OPPpppqOPPpppqO..........",
+  ".........OttTTTTOttTTTTO..........",
+  ".........OttTTTTOttTTTTO..........",
+  ".........OTTTTTTOTTTTTTO..........",
+  "........OTTTTTTTOTTTTTTO..........",
+  "........OTTTTTTTOTTTTTTO..........",
+  "........OTTTTTTTOTTTTTTO..........",
+];
