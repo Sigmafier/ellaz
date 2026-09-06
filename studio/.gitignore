@@ -8,3 +8,5 @@ dist-export/
 # Gallery screenshots headed for the Visual Hall.
 shots/
 *.local
+# Python bytecode from tools/roster-painter (reproduce.sh runs python -B; a stale .pyc read green once)
+__pycache__/

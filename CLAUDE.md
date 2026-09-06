@@ -24,8 +24,9 @@ it may import from `src/`. See § The poker table below before touching anything
 under `holdem/`, and note the trap that follows from it: **`npm test` at the
 repository root does not run a single one of its tests.**
 
-**And a THIRD workspace, `studio/`, since 2026-09-05: the art bible.** Six
-style renderers with recipes, twelve pixel characters (three audience bands,
+**And a THIRD workspace, `studio/`, since 2026-09-05: the art bible.** Nineteen
+registered style renderers with recipes (six kept, thirteen pixel cards awaiting
+their cull), twelve pixel characters (three audience bands,
 sized by role) with five clips each, a technique
 library, an engine-neutral sprite export (sheet + atlas + manifest) with Phaser
 and canvas adapters, and a gallery. Same independence as the poker
@@ -33,7 +34,8 @@ table: its own `package.json`, tests, nine gates and `studio.yml`; nothing in
 `src/` or `holdem/` imports from it and nothing in it imports from them, and
 **root `npm test` runs none of its tests** - `cd studio && npm run build:check`.
 Run the **`studio-workspace` skill** before touching it; the map is
-[`studio/README.md`](studio/README.md). **The gallery is a TOOL, so it is
+[`studio/README.md`](studio/README.md) and the log of what shipped, with the
+plan's parked position, is [`studio/docs/build-log.md`](studio/docs/build-log.md). **The gallery is a TOOL, so it is
 shadcn + Radix wearing a byte copy of the ellaz tokens, on port 5188 and no
 other** - the products-vs-tools rule in
 [`a-tool-ships-on-the-shared-kit-a-product-on-the-lightest.md`](.claude/rules/a-tool-ships-on-the-shared-kit-a-product-on-the-lightest.md).

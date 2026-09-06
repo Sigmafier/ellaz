@@ -28,6 +28,8 @@ be logged into and the failure reads as a product bug.
 **Root `npm test` runs none of this.** Its vitest include is `src/**`, by
 design. Run the studio's checks from inside `studio/`.
 
+**What shipped, in order, and where the plan is parked**: [`docs/build-log.md`](docs/build-log.md).
+
 **How a character is drawn**: [`docs/pixel-characters.md`](docs/pixel-characters.md) - one hand-placed grid per character, sized by role, cut along the bones, snapped on every frame (2026-09-05).
 
 ## What is in here
@@ -40,15 +42,16 @@ design. Run the studio's checks from inside `studio/`.
 | `art/scenes/` | the three reference scenes every style renders |
 | `art/palettes/` | canonical JSON, exported to `.gpl` and `.hex` |
 | `art/rig/` | the parts rig: bones, poses, keyframes, baking to frames |
-| `art/characters/` | robot and knight (hand-rigged), teddy (parametric), slime (hand-authored frames) |
+| `art/characters/` | twelve hand-placed pixel characters on the rig, by audience band and role (hero 48 / small enemy 32 / boss 64), five clips each; `parametric.ts` and slime's frames survive as technique samples |
 | `art/techniques/` | eight ways to make frames, each producing the same robot; three card-only |
 | `art/games/` | per-game bindings: style, palette, technique, scene, cast |
 | `export/` | frame geometry, atlas layout, manifest, `export-all.mjs`, `manifest.schema.json` |
 | `adapters/` | Phaser (`load.atlas` + one anim per clip), canvas (player + drawFrame), Godot (a stub, and it says so) |
 | `gallery/` | six pages on shadcn + Radix, wearing the ellaz tokens: styles, characters, sprites, palettes, techniques, games. Built to one HTML file; served on 5188 |
 | `runner/` | the browser bundle every headless job drives - no server, no port |
-| `scripts/` | the six gates, three renderers, gallery shots, and `lib/` they share |
-| `docs/` | `art-bible.md` (the studio-wide rules) and `techniques.md` (the library, checked against the code) |
+| `scripts/` | the nine gates, three renderers, gallery shots, and `lib/` they share |
+| `tools/roster-painter/` | the Python range-painter that drew the eight roster characters and emits their `pixels<H>.ts` + `rig<H>.ts`; `reproduce.sh` proves the repo's rows come back byte-identical. Needs a python with Pillow (not a studio dependency) |
+| `docs/` | `art-bible.md` (the studio-wide rules), `pixel-characters.md` (how a character is drawn), `techniques.md` (the library, checked against the code), `styles-ledger.md` (rendered, never hand-edited), `reference/little-fighter-2.md`, and `build-log.md` (what shipped, in order, with the numbers and the traps) |
 
 ## The two ideas
 
@@ -63,7 +66,7 @@ manifest naming the clips (fps, loop), the pivot, the sockets and the hitbox
 in frame pixels. An adapter reads those three files and nothing else, so a
 Godot game and a Phaser game load the same sprite.
 
-## The gates, and why there are eight
+## The gates, and why there are nine
 
 Each reads a different artifact. A green one says nothing about what
 another would find.
@@ -126,9 +129,10 @@ directory; `assert:render` reds if it does not draw.
 
 ## Adding a character
 
-Hand-rig it (`art/characters/robot/rig.ts` is the model), or generate it
-(`art/characters/parametric.ts`), or author frames (`art/characters/slime/frames.ts`).
-Whichever way, it carries the five clips - `idle`, `walk`, `attack`, `hurt`,
+Run the **`add-a-pixel-character` skill** (`.claude/skills/add-a-pixel-character/`):
+paint it in `tools/roster-painter/`, claim it into parts, emit, register, prove.
+The geometric routes (`art/characters/parametric.ts`, `slime/frames.ts`) survive
+only as technique samples. Whichever way, it carries the five clips - `idle`, `walk`, `attack`, `hurt`,
 `ko` - and the tests in `art/characters/characters.test.ts` hold every
 character to the same contract.
 

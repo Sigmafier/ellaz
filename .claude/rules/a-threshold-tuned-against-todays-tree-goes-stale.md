@@ -113,6 +113,17 @@ claims, and the four captions went away.
 Ask of any probe: **when this screen is redesigned, will this line fail loudly for the
 right reason, quietly for the wrong one, or not fail at all?**
 
+## A floor tuned against the reference it replaced (2026-09-06, the studio)
+
+`assert-render-smoke` refused every palette-locked style with an ink floor of **100**,
+chosen when the reference scene held four geometric figures. The twelve-character
+pixel reference reads **77-90** on ega16, c64, spectrum and their siblings - correct
+renders, thinner ink. The floor is 40 now (a blank still reads 0, so the distance the
+floor must see is a chasm), the comment names both trees, and the gate PRINTS its lowest
+reading with the population so the next re-tune is a read, not a guess. Same shape as
+the content floor above, from the other side: the threshold stood still and the
+legitimate case moved under it.
+
 ## When to Apply
 
 - Committing or raising any tuned constant: a ceiling, a floor, a cap, a budget

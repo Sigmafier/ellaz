@@ -5,8 +5,9 @@ description: Work inside studio/ - the art bible, sprite pipeline and gallery th
 
 # The `studio/` workspace
 
-The studio art bible: 6 style renderers with recipes, four rigged or
-frame-authored characters with five clips each, a technique library, an
+The studio art bible: 19 registered style renderers with recipes (six kept,
+thirteen pixel-family cards awaiting their cull), twelve hand-placed pixel
+characters on the rig with five clips each, a technique library, an
 engine-neutral sprite export, adapters, and a gallery. **Its own
 `package.json`, lockfile, tests, nine gates and workflow.** Nothing in `src/`
 or `holdem/` imports from it and nothing in it imports from them;
@@ -21,7 +22,7 @@ studio's.** Anything touching `studio/` runs its checks from inside:
 cd studio && npm ci && npm run build:check
 ```
 
-`build:check` is typecheck, tests, the gallery build, the export, the eight
+`build:check` is typecheck, tests, the gallery build, the export, the nine
 gates, and every gate's `--control`. `.github/workflows/studio.yml` runs the
 same list, scoped with `paths: studio/**`; both ellaz deploys carry the
 matching `paths-ignore`.
@@ -95,5 +96,9 @@ ledger already holds. Gallery batches go to the Visual Hall with each card's
 `--link` pointing at the served gallery route, so the operator judges the
 real page and not only the capture.
 
+A new character: the `add-a-pixel-character` skill (the painter is
+`studio/tools/roster-painter/`, and `reproduce.sh` there must say `0 differ`).
+
 Runbook and the map of the tree: [`studio/README.md`](../../../studio/README.md).
+What shipped, in order, and where the plan is parked: [`studio/docs/build-log.md`](../../../studio/docs/build-log.md).
 The rules every style agrees with: [`studio/docs/art-bible.md`](../../../studio/docs/art-bible.md).
