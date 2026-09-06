@@ -13,6 +13,7 @@ import { E, R, place, validate, type Scene } from "../art/scene-ops";
 import { CHARACTERS, characterById } from "../art/characters";
 import { SAMPLED, TECHNIQUES } from "../art/techniques";
 import { PALETTES, toGpl, toHex } from "../art/palettes";
+import { buildMovesFile, type MovesFile } from "../export/moves";
 import { buildManifest, frameGeometry, layoutAtlas, type Manifest } from "../export/pack";
 import { mk } from "../art/canvas";
 
@@ -100,6 +101,8 @@ export interface ExportResult {
   sheetPng: string;
   atlas: ReturnType<typeof layoutAtlas>["atlas"];
   manifest: Manifest;
+  /** the fight half, when the character has one */
+  moves: MovesFile | null;
   frames: number;
 }
 
@@ -128,7 +131,8 @@ function exportCharacter(charId: string, styleId: string, scale: number, built: 
     sx.drawImage(c, cell.col * geo.w, cell.row * geo.h);
   }
   const manifest = buildManifest(charId, styleId, scale, clips, geo, ch.rig?.hitbox ?? null, `${charId}--${styleId}.atlas.json`, built);
-  return { character: charId, style: styleId, sheetPng: sheet.toDataURL("image/png"), atlas, manifest, frames: cells.length };
+  const moves = ch.moves ? buildMovesFile(charId, styleId, scale, geo, ch.moves) : null;
+  return { character: charId, style: styleId, sheetPng: sheet.toDataURL("image/png"), atlas, manifest, moves, frames: cells.length };
 }
 
 /** One sampled technique's robot on the plain ground, one style. */

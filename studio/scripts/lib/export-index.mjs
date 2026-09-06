@@ -9,14 +9,14 @@ import { fileURLToPath } from "node:url";
 export const STUDIO = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 export const DEFAULT_EXPORT = join(STUDIO, "dist-export");
 
-/** { root, built, sets: [{ character, style, dir, sheet, atlasFile, manifestFile, atlas, manifest }] } */
+/** { root, built, sets: [{ character, style, dir, sheet, atlasFile, manifestFile, atlas, manifest, movesFile, moves }] } - movesFile/moves are null for a character that does not fight */
 export function readExport(root = process.env.EXPORT_DIR ?? DEFAULT_EXPORT) {
   const indexFile = join(root, "index.json");
   if (!existsSync(indexFile)) throw new Error(`no export at ${root} (missing index.json) - run \`npm run export\` first`);
   const index = JSON.parse(readFileSync(indexFile, "utf8"));
   if (!Array.isArray(index.sprites) || index.sprites.length === 0) throw new Error(`${indexFile} lists zero sprite sets - a gate over nothing is not a pass`);
   const sets = index.sprites.map((s) => {
-    for (const f of [s.sheet, s.atlas, s.manifest]) if (!existsSync(join(root, f))) throw new Error(`${indexFile} names ${f}, which does not exist`);
+    for (const f of [s.sheet, s.atlas, s.manifest, ...(s.moves ? [s.moves] : [])]) if (!existsSync(join(root, f))) throw new Error(`${indexFile} names ${f}, which does not exist`);
     return {
       character: s.character,
       style: s.style,
@@ -26,6 +26,8 @@ export function readExport(root = process.env.EXPORT_DIR ?? DEFAULT_EXPORT) {
       manifestFile: join(root, s.manifest),
       atlas: JSON.parse(readFileSync(join(root, s.atlas), "utf8")),
       manifest: JSON.parse(readFileSync(join(root, s.manifest), "utf8")),
+      movesFile: s.moves ? join(root, s.moves) : null,
+      moves: s.moves ? JSON.parse(readFileSync(join(root, s.moves), "utf8")) : null,
     };
   });
   return { root, built: index.built, sets };

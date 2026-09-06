@@ -16,8 +16,15 @@ import { fileURLToPath } from "node:url";
 import { openRunner } from "./lib/browser.mjs";
 import { runControls, report } from "./lib/control.mjs";
 
-/** Below this many inked samples (of 256) a tile is "blank". Sticker's reference read 228; the floor is generous on purpose. */
-export const INK_FLOOR = 100;
+/**
+ * Below this many inked samples (of 256) a tile is "blank". A blank scene reads 0.
+ * Re-tuned 2026-09-06 when the reference became the twelve-character lineup on a
+ * 1590 x 800 ground: the six styles that leave the pale ground transparent
+ * (ega16, c64, spectrum, vga256, neogeo, prerender) read 77-90 there, against
+ * 228 on the old 480 x 200 four. The scan prints the lowest real reading so the
+ * next re-tune has its number instead of this comment.
+ */
+export const INK_FLOOR = 40;
 
 /** Failures for one render attempt. `r` is the runner result or `{ error }`. */
 export function judge(styleId, sceneId, expected, r) {
@@ -48,14 +55,16 @@ async function scanReal(page) {
   })), scenes);
   const out = [];
   let n = 0;
+  let lowest = { ink: Infinity, tag: "-" };
   for (const sceneId of scenes) {
     for (const styleId of styles) {
       const r = await attempt(page, ([st, sc]) => window.studio.render(st, sc), [styleId, sceneId]);
       out.push(...judge(styleId, sceneId, sizes[sceneId], r));
+      if (typeof r.inkSamples === "number" && r.inkSamples < lowest.ink) lowest = { ink: r.inkSamples, tag: `${styleId} on ${sceneId}` };
       n++;
     }
   }
-  return { failures: out, population: `${n} renders (${styles.length} styles x ${scenes.length} scenes)` };
+  return { failures: out, population: `${n} renders (${styles.length} styles x ${scenes.length} scenes) · lowest ink ${lowest.ink}/256 (${lowest.tag}, floor ${INK_FLOOR})` };
 }
 
 const BLANK = { id: "blank", w: 100, h: 60, ops: [] };

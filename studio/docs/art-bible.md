@@ -131,7 +131,7 @@ why the game is better for it.
 Every character is pixel art drawn by hand at its role's size (hero 48, small
 enemy 32, boss 64), cut along the standard bones, posed by the standard clips
 and snapped back to the grid on every frame. The pixel styles render it cell for
-cell and add no outline of their own. The recipe, the craft rules and the four
+cell and add no outline of their own. The recipe, the craft rules and the twelve
 worked examples: [`pixel-characters.md`](pixel-characters.md).
 
 ## The roster (since 2026-09-06)

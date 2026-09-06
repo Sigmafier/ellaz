@@ -15,7 +15,7 @@ npm run typecheck
 npm run gallery        # the gallery on http://localhost:5188 - and ONLY 5188; it carries the beetle (notes -> localhost:8772/_notes/)
 npm run gallery:build  # dist-gallery/index.html - ONE file, opens from file://
 npm run export         # dist-export/: sheets, atlases, manifests, palettes
-npm run assert:all     # the eight gates
+npm run assert:all     # the nine gates
 npm run assert:controls  # every gate's planted-defect controls
 npm run build:check    # all of the above, in order
 ```
@@ -77,6 +77,7 @@ another would find.
 | `assert:manifest` | every exported manifest against the schema | a missing pivot, an fps of 0, a stray key |
 | `assert:grammar` | every frame name | anything but `<character>_<clip>_<nnnn>`, contiguous, in order |
 | `assert:atlas` | atlas vs manifest vs the sheet's pixels | a frame played but not packed, a rect off the sheet, a blank cell |
+| `assert:moves` | every exported `moves.json` against its schema and the manifest beside it | a state playing a clip the manifest lacks, a frame count that disagrees, a box outside the frame, a transition or input outside the closed sets, a hit with no damage |
 | `assert:ledger` | `art/styles/ledger.json` against `registry.ts`, the style dirs, git history and `docs/styles-ledger.md` | a removed style still registered, a backlog row re-proposing a removed one, a deletion the ledger never recorded, a hand-edited doc |
 
 Every gate has `--control`: it plants the defects it claims to catch and

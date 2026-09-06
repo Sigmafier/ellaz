@@ -7,7 +7,7 @@
   "palette": "snes16",
   "technique": "parts-rig",
   "scene": "brawl-room",
-  "cast": ["robot", "teddy"],
+  "cast": ["robot", "bunny", "teddy", "slime", "crab", "owl"],
   "scale": 2,
   "decided": "2026-09-05 - operator picked four styles in the hall; the default binding is the first pick, the other three stay listed so the gallery can switch"
 }

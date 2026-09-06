@@ -8,7 +8,7 @@ description: Work inside studio/ - the art bible, sprite pipeline and gallery th
 The studio art bible: 6 style renderers with recipes, four rigged or
 frame-authored characters with five clips each, a technique library, an
 engine-neutral sprite export, adapters, and a gallery. **Its own
-`package.json`, lockfile, tests, eight gates and workflow.** Nothing in `src/`
+`package.json`, lockfile, tests, nine gates and workflow.** Nothing in `src/`
 or `holdem/` imports from it and nothing in it imports from them;
 `scripts/assert-boundary.mjs` refuses both directions from source.
 

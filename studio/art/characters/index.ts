@@ -24,6 +24,9 @@ import { wizard48, WIZARD48_SPEC } from "./wizard/rig48";
 import { bat32, BAT32_SPEC } from "./bat/rig32";
 import { brawler48, BRAWLER48_SPEC } from "./brawler/rig48";
 import { golem64, GOLEM64_SPEC } from "./golem/rig64";
+import { robotMoves } from "./robot/moves";
+import { teddyMoves } from "./teddy/moves";
+import type { Moves } from "../../export/moves";
 
 export type Side = "hero" | "enemy";
 export type Role = "hero" | "enemy" | "boss";
@@ -46,26 +49,29 @@ export interface Character {
   rig: Rig | null;
   /** every clip, baked. The one thing an exporter needs. */
   clips: () => BakedClip[];
+  /** the fight half, when the character fights (export/moves.ts); exported beside the atlas as <character>--<style>.moves.json */
+  moves?: Moves;
 }
 
 /** the operator's sizes by role, in pixels tall (2026-09-05) */
 export const HEIGHT_BY_ROLE: Record<Role, number> = { hero: 48, enemy: 32, boss: 64 };
 
-function pixelCharacter(id: string, name: string, role: Role, band: Band, built: PixelRig, spec: PixelRigSpec): Character & { rig: Rig } {
+function pixelCharacter(id: string, name: string, role: Role, band: Band, built: PixelRig, spec: PixelRigSpec, moves?: Moves): Character & { rig: Rig } {
   const U = spec.unit;
   const [oc, orow] = spec.origin;
   return {
     id, name, side: role === "hero" ? "hero" : "enemy", role, band, technique: "pixel-parts", pixel: U, rig: built.rig,
     staticOps: () => snapOps(bakePose(built.rig, {}), U).map((o) => transformOp(o, translate(oc * U, orow * U))),
     clips: () => snapClips(bakeAll(built.rig), U),
+    ...(moves ? { moves } : {}),
   };
 }
 
 /** the roster: archetype x audience band (docs/art-bible.md § The roster), in the order the gallery lists them */
-export const PIXEL_CAST: { id: string; name: string; built: PixelRig; spec: PixelRigSpec; role: Role; band: Band }[] = [
-  { id: "robot", name: "Robot", built: robot48, spec: ROBOT48_SPEC, role: "hero", band: "kids" },
+export const PIXEL_CAST: { id: string; name: string; built: PixelRig; spec: PixelRigSpec; role: Role; band: Band; moves?: Moves }[] = [
+  { id: "robot", name: "Robot", built: robot48, spec: ROBOT48_SPEC, role: "hero", band: "kids", moves: robotMoves },
   { id: "bunny", name: "Bunny", built: bunny48, spec: BUNNY48_SPEC, role: "hero", band: "kids" },
-  { id: "teddy", name: "Angry Teddy", built: teddy32, spec: TEDDY32_SPEC, role: "enemy", band: "kids" },
+  { id: "teddy", name: "Angry Teddy", built: teddy32, spec: TEDDY32_SPEC, role: "enemy", band: "kids", moves: teddyMoves },
   { id: "slime", name: "Slime", built: slime32, spec: SLIME32_SPEC, role: "enemy", band: "kids" },
   { id: "crab", name: "Crab", built: crab32, spec: CRAB32_SPEC, role: "enemy", band: "kids" },
   { id: "owl", name: "Owl King", built: owl64, spec: OWL64_SPEC, role: "boss", band: "kids" },
@@ -77,7 +83,7 @@ export const PIXEL_CAST: { id: string; name: string; built: PixelRig; spec: Pixe
   { id: "golem", name: "Golem", built: golem64, spec: GOLEM64_SPEC, role: "boss", band: "adult" },
 ];
 
-export const CHARACTERS: Character[] = PIXEL_CAST.map((c) => pixelCharacter(c.id, c.name, c.role, c.band, c.built, c.spec));
+export const CHARACTERS: Character[] = PIXEL_CAST.map((c) => pixelCharacter(c.id, c.name, c.role, c.band, c.built, c.spec, c.moves));
 
 export const CHARACTER_IDS = CHARACTERS.map((c) => c.id);
 export const characterById = (id: string): Character | undefined => CHARACTERS.find((c) => c.id === id);

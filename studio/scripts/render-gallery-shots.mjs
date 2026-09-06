@@ -25,13 +25,15 @@ if (!existsSync(HTML)) {
 export const PAGES = ["styles", "styles?open=paper", "characters", "sprites", "sprites?char=slime&style=crayon", "palettes", "techniques", "games", "ledger"];
 
 const browser = await chromium.launch({ headless: true });
-const page = await browser.newPage({ viewport: { width, height: 900 } });
 const errors = [];
-page.on("pageerror", (e) => errors.push(String(e)));
-page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
 let failed = 0;
 try {
   for (const p of PAGES) {
+    // one page per route: the Styles page alone renders nineteen 1590 x 800 canvases,
+    // and a tab that keeps them all reached "Target crashed" on the sixth route (2026-09-06)
+    const page = await browser.newPage({ viewport: { width, height: 900 } });
+    page.on("pageerror", (e) => errors.push(String(e)));
+    page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
     const before = errors.length;
     await page.goto(`${pathToFileURL(HTML).href}#/${p}`);
     // the router renders synchronously on hashchange; give the player one frame
@@ -42,9 +44,11 @@ try {
     if (state.error || errors.length > before) {
       console.log(`FAIL ${p}: ${state.error ?? errors.slice(before).join(" | ")}`);
       failed++;
+      await page.close();
       continue;
     }
     await page.screenshot({ path: file, fullPage: true });
+    await page.close();
     console.log(`ok   ${p} -> ${file}`);
   }
 } finally {

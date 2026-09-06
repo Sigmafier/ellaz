@@ -4,6 +4,7 @@
 //   sprites/<char>--<style>/<char>--<style>.png          the sheet
 //   sprites/<char>--<style>/<char>--<style>.atlas.json   TexturePacker JSON-hash
 //   sprites/<char>--<style>/<char>--<style>.manifest.json  the neutral manifest
+//   sprites/<char>--<style>/<char>--<style>.moves.json     the fight half, only for characters that have one
 //   references/<scene>--<style>.png                       every style on every scene
 //   palettes/<id>.{json,gpl,hex}
 //   index.json                                            what was written, and the build stamp
@@ -65,7 +66,8 @@ try {
       const sheet = write(`${dir}/${ch}--${st}.png`, pngBytes(r.sheetPng));
       const atlas = write(`${dir}/${ch}--${st}.atlas.json`, JSON.stringify(r.atlas, null, 2) + "\n");
       const manifest = write(`${dir}/${ch}--${st}.manifest.json`, JSON.stringify(r.manifest, null, 2) + "\n");
-      index.sprites.push({ character: ch, style: st, frames: r.frames, sheet, atlas, manifest, sheetSize: r.atlas.meta.size });
+      const moves = r.moves ? write(`${dir}/${ch}--${st}.moves.json`, JSON.stringify(r.moves, null, 2) + "\n") : null;
+      index.sprites.push({ character: ch, style: st, frames: r.frames, sheet, atlas, manifest, ...(moves ? { moves } : {}), sheetSize: r.atlas.meta.size });
       console.log(`${ch.padEnd(7)} ${st.padEnd(7)} ${String(r.frames).padStart(3)} frames  ${r.atlas.meta.size.w}x${r.atlas.meta.size.h}`);
     }
   }

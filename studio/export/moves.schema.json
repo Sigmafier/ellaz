@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ellaz.fun/studio/moves.schema.json",
+  "title": "Ellaz studio moves file",
+  "description": "The FIGHT half of a character, kept apart from the sprite manifest so a game that does not fight never carries it. A state graph over the manifest's clip names; per-frame hurt boxes (bdy), hit boxes (itr) and a push box in frame pixels of the atlas this file sits beside; transitions on named inputs; an impulse on frame entry. Modelled on Little Fighter 2's frame records (docs/reference/little-fighter-2.md) with names where it had numbers: no 999, no frame ranges, every target a state that must exist.",
+  "type": "object",
+  "required": ["character", "style", "scale", "initial", "inputs", "onHit", "states"],
+  "additionalProperties": false,
+  "properties": {
+    "character": { "type": "string", "pattern": "^[a-z0-9]+$" },
+    "style": { "type": "string", "pattern": "^[a-z0-9]+$" },
+    "scale": { "type": "number", "exclusiveMinimum": 0 },
+    "initial": { "type": "string", "description": "the state a fighter spawns in" },
+    "inputs": { "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^[a-z]+$" }, "description": "the closed vocabulary every `on` key must come from" },
+    "onHit": {
+      "type": "object",
+      "required": ["light", "heavy"],
+      "additionalProperties": false,
+      "properties": {
+        "light": { "type": "string", "description": "the state entered when a hit lands and `fall` has not accumulated past the threshold" },
+        "heavy": { "type": "string", "description": "the state entered when it has: the knockdown" }
+      }
+    },
+    "states": { "type": "object", "additionalProperties": { "$ref": "#/$defs/state" } }
+  },
+  "$defs": {
+    "state": {
+      "type": "object",
+      "required": ["clip", "frames"],
+      "additionalProperties": false,
+      "properties": {
+        "clip": { "type": "string", "pattern": "^[a-z]+$", "description": "the manifest animation this state plays; frames has exactly as many entries" },
+        "next": { "type": "string", "description": "the state entered after the last frame; absent means the clip loops (or holds, for a terminal state)" },
+        "on": { "type": "object", "additionalProperties": { "type": "string" }, "description": "input -> state, honoured from cancelFrom on" },
+        "cancelFrom": { "type": "integer", "minimum": 0 },
+        "frames": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/frame" } }
+      }
+    },
+    "frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "wait": { "type": "integer", "minimum": 1, "description": "ticks this frame holds; absent means the clip's fps decides" },
+        "bdy": { "type": "array", "items": { "$ref": "#/$defs/rect" }, "description": "hurt boxes: where this frame can be hit. Empty means untargetable (lying down)" },
+        "itr": { "type": "array", "items": { "$ref": "#/$defs/hit" }, "description": "hit boxes: where this frame hurts others" },
+        "push": { "$ref": "#/$defs/rect", "description": "the body box two fighters cannot overlap" },
+        "impulse": { "$ref": "#/$defs/vec", "description": "velocity applied on entering the frame, frame pixels per tick" }
+      }
+    },
+    "hit": {
+      "type": "object",
+      "required": ["kind", "box", "damage"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "type": "string", "pattern": "^(hit|grab|shove)$" },
+        "box": { "$ref": "#/$defs/rect" },
+        "damage": { "type": "number", "minimum": 0 },
+        "knock": { "$ref": "#/$defs/vec" },
+        "stun": { "type": "integer", "minimum": 0, "description": "ticks the victim is held in onHit.light" },
+        "fall": { "type": "integer", "minimum": 0, "description": "how far toward the knockdown one landing pushes" },
+        "effect": { "type": "string", "pattern": "^(none|spark|dust|star)$" }
+      }
+    },
+    "rect": { "type": "object", "required": ["x", "y", "w", "h"], "additionalProperties": false, "properties": { "x": { "type": "number" }, "y": { "type": "number" }, "w": { "type": "number", "minimum": 0 }, "h": { "type": "number", "minimum": 0 } } },
+    "vec": { "type": "object", "required": ["dx", "dy"], "additionalProperties": false, "properties": { "dx": { "type": "number" }, "dy": { "type": "number" } } }
+  }
+}

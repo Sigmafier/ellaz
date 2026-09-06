@@ -116,6 +116,24 @@ draws `bdy` in one colour and `itr` in another over the playing clip - the thing
 LF2 data changer shows and the reason its modding scene is thirty years old. It is
 not built; it is proposed.
 
+## What we built from it (2026-09-06)
+
+`export/moves.schema.json` and `export/moves.ts`: a state graph over the manifest's
+clip names, per-frame `bdy` / `itr` / `push` boxes in frame pixels, `on` transitions
+from a closed input vocabulary, `impulse` on frame entry, `onHit.light` / `onHit.heavy`
+for the stagger and the knockdown, `fall` accumulating toward the latter. Where LF2 has
+`next: 999` we have a named state; where it has frame ranges we have clip names the
+manifest gate already holds; where it has `hit_a` we have `on.attack`. Boxes are
+authored in the rig's body units from the pivot (`gridBox`, naming grid cells of the
+drawing) and converted to frame pixels at export exactly as the manifest's hitbox is,
+so a re-trim cannot move them. The robot and the teddy carry moves
+(`art/characters/<id>/moves.ts`); `scripts/assert-moves.mjs` reads every exported
+`moves.json` beside its manifest and refuses a state naming a missing clip, a frame
+count that disagrees, a box off the frame, a transition or input outside the closed
+sets, and a hit that does no damage - fourteen planted controls. `opoint`, `cpoint`
+and `wpoint` are not ported: sockets already are the general form, and nothing here
+throws or grabs yet.
+
 ## The style, as a style
 
 LF2's look is worth a backlog row of its own: **hand-drawn arcade sprites at roughly

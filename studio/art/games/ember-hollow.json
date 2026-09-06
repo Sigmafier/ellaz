@@ -7,7 +7,7 @@
   "palette": "snes16",
   "technique": "parts-rig",
   "scene": "ember-field",
-  "cast": ["knight", "slime"],
+  "cast": ["knight", "ninja", "wizard", "slime", "bat"],
   "scale": 2,
   "decided": "2026-09-05 - operator picked three styles in the hall; the default binding is the first pick"
 }

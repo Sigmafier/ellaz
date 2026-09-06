@@ -3,7 +3,7 @@ name: Studio (art bible)
 # studio/ is the third independent workspace in this repository, beside the
 # games platform (src/) and the poker table (holdem/). Root `npm test` runs
 # none of its tests (vitest's include is src/**), so without this workflow
-# the studio's suite and its eight gates run nowhere.
+# the studio's suite and its nine gates run nowhere.
 #
 # Same path-filter shape as holdem.yml, mirrored by a paths-ignore on the two
 # ellaz deploys: a studio commit must not publish ellaz.fun, and an ellaz
@@ -74,7 +74,7 @@ jobs:
 
       # Every gate reads a different artifact; a green one says nothing
       # about what another would find.
-      - name: The eight gates
+      - name: The nine gates
         run: npm run assert:all
 
       # The gates' own controls: each plants the defects it claims to catch
