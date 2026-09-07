@@ -3809,3 +3809,120 @@ structurally, and a browser that recycles and retries.
 `gh workflow run deploy-hostinger.yml --ref main` was used instead. Worth knowing
 that "I pushed and nothing happened" has a third cause beyond the two already in
 `CLAUDE.md`.
+
+---
+
+## S+1 — The slowest thing on the site was one line of CSS (2026-09-07)
+
+PageSpeed, mobile 79 / desktop 89, reported 350 ms (desktop) and 1,300 ms
+(mobile) of render blocked on `fonts.googleapis.com` — and the home page's
+`<head>` did not mention fonts at all. Both were true, and the second is what
+made it invisible for months.
+
+### Where the request actually came from
+
+`src/ui/global.css:5`, the first line of the render-blocking shell stylesheet:
+
+```
+@import"https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;800…";
+```
+
+An `@import` is not discoverable until the file containing it has downloaded
+**and parsed**, so it made a five-hop serial chain — document, entry JS, shell
+CSS, Google's CSS, the woff2 — where hops four and five could not begin until
+hop three finished. No preload can shorten that and no preconnect can warm it,
+because nothing in the document has ever seen the URL. Lighthouse said so
+itself, in a panel that reads like a bug until you understand it: *"No
+additional origins are good candidates for preconnecting."*
+
+Meanwhile `layout.ts` **did** emit a correct `preconnect` and stylesheet link —
+on content pages only. The app shell received neither. So a grep of the source
+found the right tag in the wrong file, and a game page loaded the same two
+families twice, over two origins, by two different paths.
+
+**Seven gates were green over this every day**: `npm test`, `build:check`,
+`assert-payload`, `assert-first-visit`, `assert-pages`, `assert-crawlable`,
+`assert-live`. Not one reads the first line of a stylesheet or the shape of a
+served `<head>`. The absence was the defect.
+
+### The gate came first, and was watched failing
+
+`npm run assert:fast` fetches three page shapes and reds on a third-party
+`@import` in a blocking stylesheet, a third-party blocking stylesheet, a
+non-deferred third-party script in `<head>`, and a page whose body face is not
+preloaded. Run against the live site **before any fix**: 11 failures across 3
+pages, recorded verbatim in `docs/perf/assert-fast-before-2026-09-07.md`.
+Controls 12/12, including the near-misses that decide whether the matcher means
+anything — a first-party `@import` (this repo has one) and a deferred
+third-party script must both stay silent.
+
+**Its first version truncated its own evidence.** The matcher stopped at the
+first `;`, which terminates a CSS statement and also appears inside
+`wght@400;600;800`, so it printed `…css2?family=Heebo:wght@400` — two weights and
+a whole second family silently gone. Fixed, and pinned by a control asserting the
+URL is reported whole. That is the fourth member of this family found in this
+repo, and it was found in a gate written to enforce measurement discipline.
+
+### What shipped
+
+| | |
+|---|---|
+| Fonts | 6 Google subset woff2, self-hosted, 99,988 B. Generator + `--check` committed beside them (`scripts/fonts/sync-fonts.mjs`), watched failing on a one-byte flip |
+| Preload | Per locale, from each document's head: `he` gets the 12,000 B hebrew subset, everyone else the 30,148 B latin one |
+| The app shell | Gets its preload in `generateBundle`, because `index.html` is the one page not written from the route table and its transform hook runs before a bundle exists. Without it the site root — the URL PageSpeed audits — would have been the one page still discovering its font late |
+| Precache | `**/*.woff2` added to `globIgnores`; `globPatterns` already swept woff2, so all 99,988 B would otherwise have been precached behind a green build |
+| gtag | Deferred to the first pointerdown/keydown/scroll/touchstart, 15 s fallback. `dataLayer` still fills at boot, so no pageview is lost |
+| Consent dialog | `aria-label` in four locales — closed the ARIA failure and the site's only Agentic Browsing failure at once |
+| Contrast | `--brand` → `--brand-strong` at **six** call sites |
+
+### The font CSS is 15 blocks and stays that way
+
+Collapsing them to 6 with `font-weight: 400 800` would save several hundred
+bytes. It would also change rendering: the app asks for weight **700** in
+several places, and against declared 400/600/800 the CSS font-matching algorithm
+resolves that to 800, while a variable range resolves it to a true, lighter 700.
+The promise was that nothing renders differently, so the bytes stay — and the
+ceiling moved instead, 56,000 → 56,800, argued in `assert-payload.mjs`.
+
+**20 B of headroom is not headroom.** The pre-raise reading was 55,980 of 56,000
+on Node 24, and that file's own warning puts the Node 22/24 spread at ~54 B. A
+gate with less margin than its toolchain's variance measures the Node version.
+
+### The contrast comment was wrong in both directions
+
+`contrast.test.ts` pinned the 3.14:1 ratio and said in prose that it shipped in
+*"ShareSheet's primary button and two Boards labels"*, promising that fixing them
+would RED the test.
+
+It was **six** call sites — those three plus the home category chips (the one
+Lighthouse eventually caught), a mode toggle inside Nonogram, and the Play button
+on every embed page. And fixing them could never have redded anything, because
+the assertion reads **token values**, which call sites do not change. A green run
+standing over a false sentence for as long as anyone read it.
+
+The claim is a scan now, its population from `readdirSync` rather than a
+remembered list, watched failing on a real reverted call site — naming the file,
+printing 454 files scanned.
+
+### What was NOT established
+
+**The desktop CLS 0.2.** PageSpeed attributed it to the game grid; the grid
+already reserves its own height, so what moved was its position. It could not be
+re-measured here: the PSI API's keyless quota was exhausted, and a browser tab
+driven from this harness is `visibilityState: "hidden"`, which paints nothing and
+therefore reports **CLS 0 and zero shifts for free**. The harness's own control
+caught that and refused the number, which is the only reason it is written here
+as unmeasured rather than as fixed.
+
+`scripts/repro/repro-home-cls-attribution.mjs` is committed for whoever runs it
+next: interleaved arms, per-element attribution, and a decision rule fixed in
+advance.
+
+### Shipped
+
+Four commits, `b04eb0a..8c044e3`, 28 files, nothing of the peer's lettercross
+work taken. CI built on Node 22 and passed. **`assert:fast` on the live site: 11
+failures → 0.** Verified in a real browser: zero requests to `googleapis` or
+`gstatic`, both woff2 fetched at 224 ms and 258 ms, and gtag.js loading at
+**15,976 ms** — the idle fallback firing exactly as designed with nobody
+touching the page.

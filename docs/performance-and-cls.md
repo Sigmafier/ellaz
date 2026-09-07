@@ -104,3 +104,55 @@ after the navigation commits does not reproduce one that was never there. A
 control that cannot fail was reporting FAIL on a correct page, which is the worst
 of both. Pass `--control-base` at a build whose `global.css` lacks the rule; with
 no control base the run says so out loud rather than pretending.
+
+---
+
+## The desktop CLS 0.2, and why this session did not close it (2026-09-07)
+
+PageSpeed reported **CLS 0.200 on desktop and 0.000 on mobile** for `/` in the
+same session, attributing the desktop shift to the 42-tile game grid
+(`<div style="display: grid">`).
+
+**The grid is almost certainly not the cause.** `Home.tsx` already draws an
+`aspect-ratio: 1/1` placeholder for every roster id not yet in the catalogue, so
+the grid's own height is right from the first React paint. What a layout shift is
+charged to is the element that MOVED, not the element that caused it — and above
+the grid sit `WorldHero`, `DailyCard` and the `recent.length > 0` keep-playing
+rail, the last two of which appear after an async profile read. That matches what
+this file already recorded as open: the lazy roster landing ~800 ms after mount
+and pushing ~100 px down.
+
+**It was not re-measured, and the reason is worth writing down.** Two instruments
+were tried and both refused to produce a trustworthy number:
+
+- **The PageSpeed API** returned `429 RESOURCE_EXHAUSTED` — the keyless quota is
+  shared across every anonymous caller and was spent for the day.
+- **A browser tab driven from the agent harness reports `visibilityState:
+  "hidden"`.** Chrome does not paint a background tab, so `getEntriesByType("paint")`
+  is empty, LCP never fires, and no layout shift is ever recorded. The tab
+  returned **CLS 0 with zero shifts, twice**, on a page that had just been
+  measured at 0.200 by Lighthouse.
+
+That second one is the dangerous instrument, and it is the reason this section
+exists rather than a claim that the CLS was fixed. A hidden tab does not error,
+does not warn, and returns exactly the number you were hoping for. The only
+defence is a control that asserts the measurement was possible at all — here,
+printing `visibilityState` and the paint entries beside every reading, and
+treating an empty paint list as "no measurement" rather than "no shifts".
+See [`.claude/rules/a-diagnostic-that-truncates-what-it-compares.md`](../.claude/rules/a-diagnostic-that-truncates-what-it-compares.md).
+
+**What is genuinely known after the font work:** a real (foreground) load makes
+zero requests to `googleapis` or `gstatic`, and fetches both woff2 at 224 ms and
+258 ms in parallel with the shell. Since the fonts now arrive before first paint
+rather than five hops later, a font-swap contribution to CLS should be gone — but
+"should be" is the whole problem this file keeps recording, so it is written as a
+hypothesis.
+
+**The harness for whoever picks this up**:
+`scripts/repro/repro-home-cls-attribution.mjs` — Lighthouse's own two device
+profiles, arms **interleaved** (desktop/mobile/desktop/mobile, because
+non-interleaved arms measure the arm order as much as the arm), per-element
+attribution summed across runs, and a decision rule fixed before the run: whatever
+is attributed more than 0.05 gets the `:empty { min-height }` reservation already
+proven on the room. It needs `playwright`, which is not currently resolvable from
+this repo's `node_modules`.

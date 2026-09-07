@@ -103,6 +103,7 @@ one says nothing about what another would find.
 | `npm run assert:pages` | the 200 emitted documents | prose floor, canonical, hreflang, JSON-LD, sitemap bijection, share cards, titles |
 | `npm run assert:crawlable` | **the network**, as every crawler robots.txt names | a challenge, a 429, or a 200 carrying no content |
 | `npm run assert:live` | **the live site** after a deploy | HTML naming assets that never landed, or bytes that arrived truncated |
+| `npm run assert:fast` | **the served bytes** of three page shapes | a third-party `@import` inside a blocking stylesheet, a third-party blocking stylesheet, an undeferred third-party script in `<head>`, a page whose body face is not preloaded |
 | `npm run assert:standalone` | `dist-standalone/` or an extracted zip | anything that phones home, an absolute path, a stale stamp |
 | `npm run assert:outreach` | `docs/outreach/` | a published number that has gone stale |
 | `npm run assert:context` | `CLAUDE.md` + `docs/` vs the pre-split commit | prose lost when this file was split, and any dead pointer in `docs/` |
@@ -201,6 +202,7 @@ conventions; the named rule file carries the evidence.
 - **A delta is only a per-game cost if the game is the only variable.** Build two arms from one tree; do not diff across a working session.
 - **A survey of other people's pages does not predict what a platform will do to ours.** Newgrounds was chosen partly because author links are dofollow - measured properly, with a control, and still true of everyone else. Both of our own listings publish `rel="nofollow"`. → [`a-survey-of-their-artifacts-is-not-a-prediction-about-yours.md`](.claude/rules/a-survey-of-their-artifacts-is-not-a-prediction-about-yours.md)
 - **A checklist step between a handover and the publish button will be skipped**, however clearly it is written. Move it before the handover or make the default correct; a louder instruction is not a fix. → [`a-step-between-a-handover-and-the-button-is-skipped.md`](.claude/rules/a-step-between-a-handover-and-the-button-is-skipped.md)
+- **A resource behind an `@import` is on the critical path and invisible to every preload.** It is not discoverable until the file containing it has downloaded AND parsed, so no preload shortens it and no preconnect warms it. One line of `global.css` cost 1,300 ms of blocked mobile render for months, behind seven green gates, because none of them reads the first line of a stylesheet. → [`a-font-behind-an-import-is-invisible-to-every-preload.md`](.claude/rules/a-font-behind-an-import-is-invisible-to-every-preload.md)
 - **A gate that reads the bytes cannot tell you the artifact RUNS.** Load a standalone bundle in a browser before it leaves the repo: `2048` shipped a green-gated zip whose own game module had been stubbed out, and every static assertion passed. → [`a-build-gate-that-never-runs-the-artifact.md`](.claude/rules/a-build-gate-that-never-runs-the-artifact.md)
 
 ## Add a new game
