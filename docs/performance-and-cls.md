@@ -246,3 +246,52 @@ the room draws.
 five named checks to fail and every other one to pass, and reds if the set is
 wrong in either direction. A run where nothing fails is a blind harness and a run
 where everything fails is a broken one.
+
+### Verified on the live site after the deploy (2026-09-07)
+
+The same harness, same controls, against `https://ellaz.fun/` once the deploy
+finished and its own `assert-live` step had passed:
+
+```
+CONTROL desktop  visibility=visible  paints=2  planted-shift 0.2223 -> SEEN
+CONTROL mobile   visibility=visible  paints=2  planted-shift 0.3572 -> SEEN
+
+DESKTOP  0.0005  0.0000  0.0005   median 0.0005   (was 0.2000)
+MOBILE   0.0304  0.0308  0.0000   median 0.0304   (was 0.7134)
+```
+
+`e2e-shell-walkthrough.mjs` against the live site: **18/18**. `assert:fast`
+across three page shapes: green.
+
+**What the residual is, and why it is being left.** Every remaining shift on
+mobile is the consent bar. It is `position: fixed` and starts `display: none`,
+so it pushes nothing - what moves is the BAR ITSELF, because its text reflows by
+a line when Heebo swaps in and a fixed bar anchored to the bottom grows upward.
+0.0304 is a third of the "good" threshold, PageSpeed's own mobile run scored
+this page CLS 0 before any of this work, and the only levers on it are the
+consent copy and the font swap. Recorded rather than chased.
+
+### Two things found while measuring, neither fixed here
+
+**The English page downloads the Hebrew font subset - 12,000 B, every first
+visit.** Not a glyph in `U+0590-05FF` is rendered by the app, and a browser scan
+at 3,000 ms finds nothing at all; the SERVED document settles it in one line:
+
+```
+<a href="/he/" hreflang="he" lang="he">עברית</a>
+```
+
+Five characters, in the boot document's language-sibling links, which
+`main.tsx` removes as soon as React mounts - which is why the browser scan came
+back clean and the served bytes did not. The fix would be a system font for
+`lang="he"` links inside the emitted document; the cost is that one word not
+being set in Heebo. It is not render-blocking, it is `font-display: swap`, and
+it is cached after the first visit, so it is written down rather than shipped.
+
+**`label-content-name-mismatch` scores 0 on five links** - `aria-label="My
+world"` on a card whose visible text is "My world / Play to earn coins / Enter",
+and the same shape on the daily card and three game tiles. The audit carries no
+weight in Lighthouse's accessibility score, which is why the page reads 100 with
+it failing, but the rule is real: a voice-control user saying the visible words
+cannot activate a control whose accessible name does not contain them. It
+predates this work and is a separate change.
