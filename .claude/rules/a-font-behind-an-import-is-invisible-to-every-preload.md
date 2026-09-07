@@ -79,6 +79,35 @@ re-reads.
   precached all 99,988 B - every subset, including the two a given reader never draws -
   and bought nothing behind a green build.
 
+## A SUBSET'S unicode-range is not the script it is named after (2026-09-07)
+
+Self-hosting the fonts introduced a second, quieter version of the same class. Google's
+`hebrew` `@font-face` declares:
+
+```
+U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F
+                          ^^^^^^^^^^^ ZWNJ, ZERO WIDTH JOINER, LRM, RLM
+```
+
+A ZWJ is what holds an emoji sequence together - Memory's footer reads "Two players
+🧑‍🤝‍🧑" - so **every English page fetched the 12,000 B Hebrew subset to render one
+invisible character.** The `latin` face already covers those codepoints with
+`U+2000-206F`, and both faces matched; Chrome picked hebrew, which is declared FIRST
+while latin is declared LAST. "Put the one you want last so it wins" is a theory this
+repo has measured to be false.
+
+**Three things generalise.**
+
+- **A cost claim needs the control that would refute it.** The finding this fixed named
+  the footer's `עברית` as the cause. A copy of the page with every Hebrew codepoint
+  replaced still fetched the file, at 1244 ms, `initiatorType: "css"`. One `sed`.
+- **Read the whole range, not the subset's NAME.** A scan for `[\u0590-\u05FF]`
+  certified a page as Hebrew-free while it was full of the codepoint doing the pulling.
+- **The guard belongs in the generator** (`scripts/fonts/sync-fonts.mjs`, under
+  `--check`): the hebrew face may claim nothing in general punctuation. It throws rather
+  than silently narrowing nothing if Google's range ever changes, and it was watched
+  failing on the unmodified range before it was believed.
+
 ## The gate
 
 `npm run assert:fast` reads the **served** bytes of three page shapes and reds on a

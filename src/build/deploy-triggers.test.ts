@@ -104,6 +104,48 @@ describe("the deploy filters", () => {
     for (const root of ["docs/**", ".claude/**", "CLAUDE.md"]) expect(list).toContain(root);
   });
 
+  it("names the reproducer directory, so committing a probe cannot redeploy the site", () => {
+    // Added 2026-09-07, the day a probe commit's deploy dropped two JS chunks
+    // and took ellaz.fun down for ~40 minutes. A reproducer is RUN, never
+    // imported: it cannot change a byte of `dist/`, so the upload it triggered
+    // was pure risk. The filter that stood here covered `repro-reach-*` only.
+    expect(ignoreList(WORKFLOWS[0])).toContain("scripts/repro/**");
+  });
+
+  it("and nothing in the deploy path imports a reproducer, which is what makes that safe", () => {
+    const files = deployPathFiles();
+    expect(files.length, "no deploy-path files found - the walker read nothing").toBeGreaterThan(50);
+    // The CALL, never the mention: a dozen modules cite a probe by path in a
+    // comment to say where a number came from, and a comment does not contain
+    // `import(` or `readFileSync(`. Same technique as the document check below,
+    // and for the same reason - a comment-stripping regex is the thing that has
+    // broken here before.
+    const re = new RegExp(
+      String.raw`(readFileSync|readFile|createReadStream|existsSync|readdirSync|statSync|import\s*\(|\bfrom\s+)` +
+        String.raw`\s*\(?\s*["'\x60][^"'\x60]*scripts/repro`,
+      "g",
+    );
+    const hits: string[] = [];
+    for (const f of files) {
+      const src = readFileSync(f, "utf8");
+      re.lastIndex = 0;
+      for (const m of src.matchAll(re)) hits.push(`${f.replace(REPO + "/", "")}: ${m[0].slice(0, 70)}`);
+    }
+    expect(hits, "the deploy path imports a reproducer, so ignoring it is now wrong").toEqual([]);
+  });
+
+  it("and neither ellaz workflow RUNS one", () => {
+    // The other way the entry could be wrong, and no import graph can see it:
+    // a workflow step that executes a probe as part of the deploy.
+    for (const rel of WORKFLOWS) {
+      const src = readFileSync(join(REPO, rel), "utf8");
+      const steps = src
+        .split("\n")
+        .filter((l) => !/^\s*#/.test(l) && /scripts\/repro/.test(l) && !/^\s+-\s+"/.test(l));
+      expect(steps, `${rel} runs a reproducer during the deploy`).toEqual([]);
+    }
+  });
+
   it("and nothing in the deploy path reads a document, which is what makes that safe", () => {
     const files = deployPathFiles();
     // The population, always. A walk that found nothing would pass silently.

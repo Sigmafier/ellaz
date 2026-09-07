@@ -271,27 +271,85 @@ a line when Heebo swaps in and a fixed bar anchored to the bottom grows upward.
 this page CLS 0 before any of this work, and the only levers on it are the
 consent copy and the font swap. Recorded rather than chased.
 
-### Two things found while measuring, neither fixed here
+### The two findings from that measurement, and what the first one really was
 
-**The English page downloads the Hebrew font subset - 12,000 B, every first
-visit.** Not a glyph in `U+0590-05FF` is rendered by the app, and a browser scan
-at 3,000 ms finds nothing at all; the SERVED document settles it in one line:
+**The English pages downloaded Heebo's Hebrew subset - 12,000 B - and the reason
+written down the first time was wrong.**
+
+The note said the cost came from the emitted footer's language link, `<a href="/he/"
+hreflang="he" lang="he">עברית</a>`, and prescribed a system font for it. The byte
+figure was right. The cause was not, and the fix it prescribed moves nothing on its
+own.
 
 ```
-<a href="/he/" hreflang="he" lang="he">עברית</a>
+CLAIMED                            MEASURED, in Chrome, with a control
+-------                            -----------------------------------
+"the boot document's language      /                  no hebrew woff2 at all
+ links, which main.tsx removes"    /games/memory/     heebo-hebrew 12,000 B
+
+                                   then the control: the SAME page with every
+                                   codepoint in U+0590-05FF replaced
+                                   -> STILL fetches it, initiatorType "css",
+                                      at 1244 ms - after the app mounted
 ```
 
-Five characters, in the boot document's language-sibling links, which
-`main.tsx` removes as soon as React mounts - which is why the browser scan came
-back clean and the served bytes did not. The fix would be a system font for
-`lang="he"` links inside the emitted document; the cost is that one word not
-being set in Heebo. It is not render-blocking, it is `font-display: swap`, and
-it is cached after the first visit, so it is written down rather than shipped.
+Google's `hebrew` `@font-face` does not only cover Hebrew. It declares
+**`U+200C-2010`**: ZWNJ, ZERO WIDTH JOINER, LRM, RLM. A ZWJ is what holds an emoji
+sequence together, and Memory's own footer reads "Two players 🧑‍🤝‍🧑". So the browser
+needed a face for one invisible character, chose the Hebrew one, and pulled 12,000 B
+onto pages with no Hebrew letter anywhere in them.
 
-**`label-content-name-mismatch` scores 0 on five links** - `aria-label="My
-world"` on a card whose visible text is "My world / Play to earn coins / Enter",
-and the same shape on the daily card and three game tiles. The audit carries no
-weight in Lighthouse's accessibility score, which is why the page reads 100 with
-it failing, but the rule is real: a voice-control user saying the visible words
-cannot activate a control whose accessible name does not contain them. It
-predates this work and is a separate change.
+**Both halves shipped**, because the autonym is a second, smaller trigger that the
+range fix does not cover:
+
+1. `scripts/fonts/sync-fonts.mjs` drops `U+200C-2010` from the hebrew face. Lossless:
+   the LATIN face already declares `U+2000-206F` and every page fetches it, so those
+   characters are drawn by the same typeface from a file already on the wire.
+2. `src/ui/global.css` gives `html:not([lang="he"]) a[hreflang][lang="he"]` a system
+   face, so the visible `עברית` in the footer does not pull the subset either.
+
+And a guard, because the next sync would put the range back: `--check` now asserts the
+hebrew face claims nothing in general punctuation, watched failing on Google's
+unmodified range and naming the span. **"Declare latin last so it wins" is a theory
+this measured to be false** - hebrew is declared first, latin last, and hebrew won.
+
+Three instruments were wrong before one was right, all recorded in
+[`a-diagnostic-that-truncates-what-it-compares.md`](../.claude/rules/a-diagnostic-that-truncates-what-it-compares.md):
+the production preview registers a service worker and the first three readings were of
+a precached document; the "zero Hebrew characters" scan covered one of the font's six
+spans; and computed style pointed at a cascade bug that did not exist. The instrument
+that settled it measured the DOWNLOAD, not the markup.
+
+**`label-content-name-mismatch`: three of four fixed.** A probe faithful to axe -
+accessible name lowercased, visible text stripped of emoji and punctuation and read
+with `aria-hidden` subtrees skipped, with a planted mismatch and two near-miss controls
+- found four on the home screen:
+
+| element | the name said | the eye read |
+|---|---|---|
+| the world card | "my world" | "my world coins 3 enter" |
+| the daily card | "today's puzzle: two make one" | "todays puzzle two make one play" |
+| the Lettercross tile | "lettercross, not played yet" | "beta lettercross" |
+| the Tic-Tac-Toe tile | "tic-tac-toe, not played yet" | "tictactoe" |
+
+The first two are now named from their own contents - the `aria-label` was OVERRIDING
+the card, so a screen reader lost the coin count and the Play pill as well. The third
+puts the beta word at the front of the name, from `betaWord()` so the badge and the
+name cannot drift. **The fourth is left**: the name contains the visible words in the
+order they are read, and only axe's punctuation stripping makes "Tic-Tac-Toe" and
+"tictactoe" differ. There is no name a person would write that satisfies it.
+
+
+**The measured result, both arms, one build, service worker cleared first:**
+
+```
+                              BEFORE            AFTER
+/games/memory/  (English)     3 woff2           2 woff2   heebo-hebrew: unloaded
+                              incl. 12,000 B    -12,000 B on every first visit
+/he/games/memory/ (Hebrew)    4 woff2           4 woff2   unchanged, Hebrew still Heebo
+label mismatches on /         4                 1         (Tic-Tac-Toe, above)
+```
+
+A category or print page loads no shell stylesheet and declares no `@font-face` at all
+(`/games/kids/` serves zero), so it never could fetch a subset - the pages that pay are
+the app shell and the game pages, and the rule lives where both of them read it.

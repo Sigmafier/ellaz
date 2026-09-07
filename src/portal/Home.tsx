@@ -672,7 +672,11 @@ function DailyCard({ locale, onTap }: { locale: AppLocale; onTap: () => void }) 
     <a
       href={gameHref(meta.id, pageLocaleFor(locale))}
       onClick={onTap}
-      aria-label={`${t("dailyPuzzle")}: ${title}${done ? `, ${t("dailyDone")}` : ""}`}
+      // Also named from contents, for the reason above: the name carried
+      // "Today's puzzle: <title>" while the card visibly ends in a "Play" (or
+      // "Played today") pill that the name did not contain. Nothing is lost by
+      // dropping it - the done state IS that pill's text, so it is still
+      // announced, and now it is announced with the same word the eye reads.
       style={DAILY_BOX}
     >
       <span style={DAILY_ART} aria-hidden="true">
@@ -814,7 +818,15 @@ function WorldHero({
     <a
       href={worldHref(pageLocaleFor(locale))}
       onClick={onTap}
-      aria-label={t("world")}
+      // NO aria-label, deliberately. It used to say just "My world", which
+      // OVERRODE the card's own text - so a screen reader lost the coin count
+      // and the Enter affordance, and `label-content-name-mismatch` scored 0
+      // because the visible words ("My world / Coins: 3 / Enter") are not
+      // inside the name. Both halves of that are the same bug: a voice-control
+      // user saying what they can see could not activate this card.
+      //
+      // Named from its own contents, the name is "My world Coins: 3 Enter" -
+      // longer, complete, and it cannot drift from what is on screen.
       style={{
         display: "flex",
         alignItems: "center",
@@ -1049,10 +1061,19 @@ function RecentCard({
  * with no digits, which renders the same either way - and pinning LTR would be
  * pinning the wrong direction for the Hebrew word.
  */
+/**
+ * The word, in one place. `GameCard` puts it at the FRONT of its aria-label
+ * because the pill is visible text on the card, and an accessible name that
+ * omits a visible word is one a voice-control user cannot say
+ * (`label-content-name-mismatch`, which scored 0 on Lettercross). Two copies of
+ * this string would let the badge and the name drift apart silently.
+ */
+function betaWord(locale: AppLocale): string {
+  return textFor({ en: "Beta", he: "בטא", es: "Beta" }, locale);
+}
+
 function BetaPill({ locale }: { locale: AppLocale }) {
-  return (
-    <span className="ellaz-beta">{textFor({ en: "Beta", he: "בטא", es: "Beta" }, locale)}</span>
-  );
+  return <span className="ellaz-beta">{betaWord(locale)}</span>;
 }
 
 function GameCard({
@@ -1079,10 +1100,16 @@ function GameCard({
       onClick={onTap}
       // The star count belongs in the label, not just the picture: a screen
       // reader announcing only the game name would lose the progress entirely.
+      // The star count belongs in the name and is NOT visible text - the badge
+      // above is aria-hidden - so this one keeps its aria-label rather than
+      // being named from contents. What it must not do is drop a word the eye
+      // CAN read, which is why the beta badge leads: the visible order is
+      // "Beta" then the title, and the name has to contain that run verbatim.
       aria-label={
-        stars > 0
-          ? `${textFor(meta.title, locale)}, ${stars} ${t(stars === 1 ? "starEarnedOne" : "starsEarned")}`
-          : `${textFor(meta.title, locale)}, ${t("noStarsYet")}`
+        `${meta.beta ? `${betaWord(locale)} ` : ""}${textFor(meta.title, locale)}, ` +
+        (stars > 0
+          ? `${stars} ${t(stars === 1 ? "starEarnedOne" : "starsEarned")}`
+          : t("noStarsYet"))
       }
       style={{
         border: "none",

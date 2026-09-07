@@ -73,6 +73,48 @@ const WANTED = [
 
 const subsetOf = (range) => WANTED.find(([, m]) => m(range))?.[0];
 
+/**
+ * ONE RANGE REMOVED FROM GOOGLE'S HEBREW SUBSET, WORTH 12,000 B ON EVERY PAGE
+ * OF THIS SITE INCLUDING THE ENGLISH ONES.
+ *
+ * Google's `hebrew` block does not only cover Hebrew. It declares
+ * `U+200C-2010`, which is ZWNJ, ZERO WIDTH JOINER, LRM, RLM and U+2010 - and a
+ * ZWJ is what holds an ordinary emoji sequence together. Memory's own footer
+ * says "Two players 🧑‍🤝‍🧑". So Chrome needed a face for one invisible joiner,
+ * picked the hebrew one, and pulled 12,000 B onto a page with no Hebrew letter
+ * anywhere in it.
+ *
+ * Measured 2026-09-07, localhost preview, service worker cleared first: a copy
+ * of `/games/memory/` with EVERY codepoint in U+0590-05FF replaced still
+ * fetched `heebo-hebrew.woff2`, `initiatorType: "css"`, at 1244 ms - long after
+ * the app mounted and drew that emoji. That control is the whole finding: the
+ * page the cost was originally blamed on (the footer's `עברית`) was not the
+ * reason, and no amount of styling that one word would ever have moved it.
+ *
+ * The drop is LOSSLESS, not a trade. `U+2000-206F` in the LATIN block already
+ * covers every codepoint being removed, and the latin face is fetched by every
+ * page anyway - so those characters are drawn by the same typeface, from a file
+ * already on the wire. Everything the hebrew face uniquely owns stays:
+ * `U+0307-0308`, `U+0590-05FF`, `U+20AA` (₪), `U+25CC`, `U+FB1D-FB4F`.
+ *
+ * It THROWS rather than silently doing nothing if Google's range ever changes.
+ * A filter that quietly matches nothing is how a fix reads as applied while the
+ * artifact is unchanged.
+ */
+const DROPPED_FROM_HEBREW = "U+200C-2010";
+
+function narrowRange(range, subset) {
+  if (subset !== "hebrew") return range;
+  const parts = range.split(",").map((r) => r.trim());
+  if (!parts.includes(DROPPED_FROM_HEBREW)) {
+    throw new Error(
+      `the hebrew unicode-range no longer contains ${DROPPED_FROM_HEBREW}; Google changed it. ` +
+        `Re-measure which face a ZWJ resolves to before deleting this step. Got: ${range}`,
+    );
+  }
+  return parts.filter((r) => r !== DROPPED_FROM_HEBREW).join(", ");
+}
+
 async function fetchText(url) {
   const res = await fetch(url, { headers: { "User-Agent": UA } });
   if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
@@ -97,7 +139,7 @@ async function readGoogle() {
     if (!family || !weight || !url || !range) continue;
     const subset = subsetOf(range);
     if (!subset) continue;
-    faces.push({ family, weight, style, url, range, subset });
+    faces.push({ family, weight, style, url, range: narrowRange(range, subset), subset });
   }
   if (!faces.length) throw new Error("parsed zero usable @font-face blocks — did the CSS format change?");
   return faces;
@@ -137,9 +179,59 @@ function renderCss(faces) {
   return `${head}\n${blocks.join("\n\n")}\n`;
 }
 
+/**
+ * THE GUARD THAT WOULD HAVE CAUGHT IT.
+ *
+ * The first version of this asserted that no two subsets overlap at all, and it
+ * was wrong: Google's own `latin` and `latin-ext` share U+131, U+152-153,
+ * U+304, U+308, U+329 and U+2020, and always have. A rule that reds on every
+ * sync is a rule somebody deletes.
+ *
+ * The real invariant is narrower and is the thing that actually cost us bytes:
+ * THE HEBREW FACE MUST NOT CLAIM ANYTHING IN GENERAL PUNCTUATION, U+2000-206F.
+ * That block holds ZWNJ, ZERO WIDTH JOINER, LRM and RLM - characters with no
+ * shape, which appear on pages in every language (a ZWJ is what holds an emoji
+ * sequence like 🧑‍🤝‍🧑 together), and which the LATIN face already covers with
+ * `U+2000-206F`. Google's hebrew block declares `U+200C-2010`, so both faces
+ * matched, and Chrome chose hebrew - 12,000 B for an invisible joiner, on
+ * pages with no Hebrew letter in them.
+ *
+ * "Declare latin last so it wins" is a theory this repo has MEASURED to be
+ * false: hebrew is declared first, latin last, and hebrew won anyway.
+ *
+ * Watched failing on Google's unmodified range before it was believed.
+ */
+const PUNCT_LO = 0x2000;
+const PUNCT_HI = 0x206f;
+
+function assertHebrewClaimsNoPunctuation(faces) {
+  const hebrew = faces.filter((f) => f.subset === "hebrew");
+  // The POPULATION, always. A filter that matched nothing would pass in silence
+  // and read exactly like a clean bill of health.
+  if (!hebrew.length) throw new Error("no hebrew @font-face parsed - the guard checked nothing");
+
+  const bad = [];
+  for (const r of hebrew[0].range.split(",")) {
+    const m = r.trim().match(/^U\+([0-9A-Fa-f]+)(?:-([0-9A-Fa-f]+))?$/);
+    if (!m) throw new Error(`unparsable unicode-range piece: ${r}`);
+    const lo = parseInt(m[1], 16);
+    const hi = m[2] ? parseInt(m[2], 16) : lo;
+    if (Math.max(lo, PUNCT_LO) <= Math.min(hi, PUNCT_HI)) bad.push(r.trim());
+  }
+  console.log(`  hebrew range: ${hebrew.length} face(s), ${hebrew[0].range.split(",").length} spans checked`);
+  if (bad.length) {
+    throw new Error(
+      "the hebrew @font-face claims general punctuation (U+2000-206F), which the latin " +
+        "face already covers - so an invisible joiner on an English page downloads the " +
+        `Hebrew subset. Offending span(s): ${bad.join(", ")}`,
+    );
+  }
+}
+
 async function main() {
   const check = process.argv.includes("--check");
   const faces = await readGoogle();
+  assertHebrewClaimsNoPunctuation(faces);
 
   // One file per family+subset; the weights share it, which is why Google
   // serves the same URL for all of them.

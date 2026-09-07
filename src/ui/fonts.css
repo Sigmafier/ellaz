@@ -19,7 +19,7 @@
   font-weight: 500;
   font-display: swap;
   src: url("./fonts/fredoka-hebrew.woff2") format("woff2");
-  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+  unicode-range: U+0307-0308, U+0590-05FF, U+20AA, U+25CC, U+FB1D-FB4F;
 }
 
 @font-face {
@@ -46,7 +46,7 @@
   font-weight: 600;
   font-display: swap;
   src: url("./fonts/fredoka-hebrew.woff2") format("woff2");
-  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+  unicode-range: U+0307-0308, U+0590-05FF, U+20AA, U+25CC, U+FB1D-FB4F;
 }
 
 @font-face {
@@ -73,7 +73,7 @@
   font-weight: 400;
   font-display: swap;
   src: url("./fonts/heebo-hebrew.woff2") format("woff2");
-  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+  unicode-range: U+0307-0308, U+0590-05FF, U+20AA, U+25CC, U+FB1D-FB4F;
 }
 
 @font-face {
@@ -100,7 +100,7 @@
   font-weight: 600;
   font-display: swap;
   src: url("./fonts/heebo-hebrew.woff2") format("woff2");
-  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+  unicode-range: U+0307-0308, U+0590-05FF, U+20AA, U+25CC, U+FB1D-FB4F;
 }
 
 @font-face {
@@ -127,7 +127,7 @@
   font-weight: 800;
   font-display: swap;
   src: url("./fonts/heebo-hebrew.woff2") format("woff2");
-  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+  unicode-range: U+0307-0308, U+0590-05FF, U+20AA, U+25CC, U+FB1D-FB4F;
 }
 
 @font-face {

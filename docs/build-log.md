@@ -4128,3 +4128,82 @@ serving a working app right now` instead of producing a page of specific-soundin
 findings. And the sequence to remember is that a red Hostinger run needs a
 `workflow_dispatch` re-run immediately — one re-run has always fixed it, and a second
 failure is the signal to stop retrying and read.
+
+## 2026-09-07 · The two open findings, and the one that was blamed on the wrong thing
+
+Both findings from the speed work were closed, and the first one turned out to be a
+correct number attached to a wrong cause.
+
+### 12,000 B on every English page, and it was never the Hebrew word
+
+The note said English pages fetch Heebo's Hebrew subset because the emitted footer
+links to `/he/` with the autonym `עברית`, and prescribed a system font for that link.
+The byte figure was right. The cause was not.
+
+```
+CLAIMED                            MEASURED, with a control
+-------                            ------------------------
+"the boot document's language      /                  no hebrew woff2 at all
+ links, which main.tsx removes"    /games/memory/     heebo-hebrew 12,000 B
+
+                                   the control: the SAME page with every
+                                   codepoint in U+0590-05FF replaced
+                                   -> STILL fetches it, initiatorType "css",
+                                      at 1244 ms
+```
+
+Google's `hebrew` `@font-face` also declares **`U+200C-2010`** — ZWNJ, ZERO WIDTH
+JOINER, LRM, RLM. A ZWJ is what holds an emoji sequence together, and Memory's own
+footer reads "Two players 🧑‍🤝‍🧑". The browser needed a face for one invisible
+character, chose the Hebrew one, and pulled 12,000 B onto pages with no Hebrew letter
+in them.
+
+Both halves shipped, because the autonym is a second, smaller trigger the range fix
+does not cover: `sync-fonts.mjs` drops `U+200C-2010` from the hebrew face (lossless —
+the latin face already declares `U+2000-206F` and every page fetches it), and
+`global.css` gives `html:not([lang="he"]) a[hreflang][lang="he"]` a system face.
+
+The guard is in the generator, under `--check`: the hebrew face may claim nothing in
+general punctuation. Watched failing on Google's unmodified range, naming the span.
+**"Declare latin last so it wins" is a theory this measured to be false** — hebrew is
+declared first, latin last, and hebrew won.
+
+Result, both arms, one build, service worker cleared first: the English game page goes
+3 woff2 → 2, the Hebrew page is unchanged at 4 and still draws Hebrew in Heebo.
+
+### Three instruments were wrong before one was right
+
+Recorded in full in `.claude/rules/a-diagnostic-that-truncates-what-it-compares.md`.
+The production preview registers a service worker, so the first three readings were of
+a precached document; the "zero Hebrew characters" scan covered one of the font's six
+unicode spans; and computed style pointed at a cascade bug that did not exist. The
+instrument that settled it measured the DOWNLOAD, not the markup.
+
+The accessible-name probe needed three tries too — counting emoji reported 12,
+counting the `aria-hidden` card art reported 9, and a rewrite that pasted `U+2000` as
+a plain space turned the punctuation class into `[ -⁯]`, stripped every
+letter on the page, and made the **planted control read PASS**. Non-ASCII in a pattern
+goes in as `\u` escapes.
+
+### `label-content-name-mismatch`: four found, three fixed
+
+The world card and the daily card are now named from their own contents — the
+`aria-label` was OVERRIDING the card, so a screen reader lost the coin count and the
+Play pill as well as failing the audit. The Lettercross tile puts the beta word at the
+front of its name, from a shared `betaWord()` so the badge and the name cannot drift.
+Tic-Tac-Toe is left: its name contains the visible words in the order they are read,
+and only axe's punctuation stripping separates "Tic-Tac-Toe" from "tictactoe".
+
+### And committing a probe no longer republishes the site
+
+`scripts/repro/**` joins `paths-ignore` in both ellaz workflows, replacing the narrower
+`repro-reach-*` line — which was itself the hand-kept mirror its own comment warns
+about, covering the reach probes and none of the others. A reproducer is run by hand,
+never imported by `src/`, never listed in `build:check`, and never executed by either
+workflow, so committing one used to rebuild and re-upload the whole site for a change
+`dist/` cannot contain. On 2026-09-07 one such deploy dropped two JS chunks and took
+the site down for about forty minutes.
+
+`deploy-triggers.test.ts` now pins three things, each watched failing on its own
+planted defect: the entry is present, nothing in the deploy path imports a reproducer,
+and neither workflow runs one during a deploy.

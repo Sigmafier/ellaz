@@ -26,9 +26,24 @@ on:
       # two days, once per input the board gained, because it is a hand-kept
       # mirror of an import graph - and every miss ships ellaz.fun over FTP for
       # no change, which the comment above already calls a fresh chance to die
-      # mid-transfer. A reach-only probe is named `repro-reach-*` so the next one
-      # is covered without anybody remembering this.
-      - "scripts/repro/repro-reach-*.mjs"
+      # mid-transfer.
+      #
+      # THE WHOLE `scripts/repro/` DIRECTORY, since 2026-09-07, and it replaces
+      # the narrower `repro-reach-*` line that used to sit here. A reproducer is
+      # a probe: it is RUN by hand or by a control, never imported by `src/`,
+      # never listed in `build:check`, and never executed by either of these two
+      # workflows. Committing one therefore rebuilt and re-uploaded the entire
+      # site for a change `dist/` cannot contain - and on 2026-09-07 one such
+      # deploy silently dropped two JS chunks and took ellaz.fun down for about
+      # forty minutes. The narrow name-prefix filter was itself the hand-kept
+      # mirror this comment warns about: it covered the reach probes and none of
+      # the others, so every non-reach probe kept paying the full cost.
+      #
+      # PROVEN, not assumed, on the day: grepped `src/`, `vite.config.ts` and
+      # every script the two workflows run for `scripts/repro` - every hit is a
+      # COMMENT citing a measurement. `deploy-triggers.test.ts` re-proves it on
+      # every run and reds the moment the deploy path starts reading one.
+      - "scripts/repro/**"
       - "scripts/assert-reach-live.mjs"
       - ".github/workflows/deploy-reach.yml"
       # And the documentation, which the argument above always covered and the

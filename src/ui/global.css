@@ -202,6 +202,40 @@ body.app-shell:has(#root:not(:empty)) #home-doc {
   color: var(--brand-ink, inherit);
 }
 
+/* THE ONE HEBREW WORD ON AN ENGLISH PAGE, AND THE 12,000 B IT USED TO COST.
+
+   Every emitted document ends with a row of autonyms linking its own siblings,
+   so an English, Spanish or French page renders `עברית` - five characters, and
+   enough to make the browser fetch Heebo's Hebrew subset. Measured in Chrome on
+   the live site, 2026-09-07:
+
+     /                    heebo-latin 30,148 + fredoka-latin 29,704
+     /games/memory/       the same two, PLUS heebo-hebrew 12,000
+
+   The home shell does not pay it: React removes `#home-doc` before the font
+   engine needs the glyphs. The 196 CONTENT pages do, on every first visit, for
+   one word in a footer nobody has clicked yet. That distinction is why this
+   comment carries two URLs - a scan of the home page alone reports zero and
+   reads as proof there is nothing here.
+
+   A system face draws an autonym perfectly well and needs no download. Scoped
+   to `a[hreflang][lang]` because only the three emitters produce that pair
+   (`sitePages.ts`, `layout.ts`'s footer and its picker); the app's own
+   LanguagePicker uses `<button lang>` with no hreflang and is untouched.
+
+   NOT on a Hebrew document, where Heebo's Hebrew subset is the body face and is
+   already on its way. And NOT copied into DOCUMENT_CSS: a category or print page
+   loads no shell stylesheet and therefore declares no `@font-face` at all -
+   checked, `/games/kids/` serves zero - so it cannot fetch a subset and has
+   nothing for this rule to prevent. The pages that CAN pay are the app shell and
+   the game pages, and both load this file. A fifth page locale in a non-latin script needs its own
+   arm here - `es` and `fr` are covered by latin-ext, which every page fetches
+   anyway, so widening this to every autonym would be a visual change to 200
+   footers that buys nothing. */
+html:not([lang="he"]) a[hreflang][lang="he"] {
+  font-family: system-ui, "Segoe UI", Arial, sans-serif;
+}
+
 #root {
   /* dynamic viewport height so mobile browser chrome doesn't clip the layout,
      plus safe-area insets for notched devices */

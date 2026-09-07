@@ -121,6 +121,49 @@ different stages. So the gate was right and only its description overclaimed - w
 this rule's own subject, one level up from the code.
 
 
+## A sixth instance: the number was right and the CAUSE was wrong (2026-09-07)
+
+A finding written up a day earlier said the English pages download Heebo's Hebrew
+subset - 12,000 B - **because** the emitted footer links to `/he/` with the autonym
+`עברית`. The byte figure is exactly right. The page it named is wrong, and so is
+everything that follows from it.
+
+```
+WRITTEN DOWN                          MEASURED, with a control
+------------                          ------------------------
+"the boot document's language-        `/`              no hebrew woff2 at all
+ sibling links ... which main.tsx     `/games/memory/` heebo-hebrew 12,000 B
+ removes as soon as React mounts"
+                                      then: the same page with EVERY codepoint
+"the fix would be a system font        in U+0590-05FF replaced
+ for lang=he links"                   -> STILL fetches it, initiatorType css,
+                                         at 1244 ms
+```
+
+The cause is that Google's `hebrew` `@font-face` also declares **`U+200C-2010`** -
+ZWNJ, ZERO WIDTH JOINER, LRM, RLM - and a ZWJ is what holds an emoji sequence
+together. Memory's own footer says "Two players 🧑‍🤝‍🧑". So the browser needed a
+face for one invisible character, picked the Hebrew one, and pulled 12,000 B onto
+pages with no Hebrew letter in them.
+
+**Three things generalise.**
+
+**A cost claim needs the control that would have refuted it.** "This page contains
+X and downloads Y" is a correlation; the experiment is a copy of the page with X
+removed. It cost one `sed` and it is the only reason the real cause was found.
+
+**Fixing what the sentence names produces a change that measures zero.** The CSS
+rule this session first wrote does exactly what the note prescribed, and on its own
+it moved nothing - the page still fetched the file. Both fixes shipped in the end,
+because the autonym IS a second, smaller trigger; but a fix argued from a wrong
+cause is only right by luck.
+
+**"Last declared wins" is a theory, and it is false here.** Heebo's hebrew block is
+declared FIRST and latin LAST, both cover `U+200D`, and Chrome chose hebrew. The
+guard in `scripts/fonts/sync-fonts.mjs` therefore asserts the ranges do not
+overlap in general punctuation at all, rather than relying on order - watched
+failing on Google's unmodified range, naming the span.
+
 ## The tell
 
 You are typing *because*, *which is cheaper*, *for free*, *costs nothing*, *a fraction
