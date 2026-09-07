@@ -4025,3 +4025,32 @@ Its `--control` blocks the `meta-rest` chunk so the catalogue never lands, then
 requires **exactly five named checks to fail and every other one to pass** —
 reddening if the set is wrong in either direction. A run where nothing fails is
 a blind harness; a run where everything fails is a broken one.
+
+### The score, on the deployed site
+
+PageSpeed Insights, `https://ellaz.fun/`, report of Sep 7 2026 9:12 PM,
+Lighthouse 13.4.1 — the run after the layout-shift deploy, both form factors
+from one report id:
+
+```
+              perf   a11y   best   seo   agentic      FCP    LCP    TBT   CLS   SI
+  desktop      100    100    100   100     3/3       0.3s   0.4s    0ms    0    -
+  mobile        99    100    100   100     3/3       1.4s   1.7s   50ms    0   2.4s
+
+  and where the day started, on the same URL:
+  desktop       89     92    100   100     1/3       0.7s   0.9s   90ms  0.2    -
+  mobile        79     92    100   100     2/3       2.7s   4.2s    0ms    0   4.5s
+```
+
+**Mobile's 99 is every metric badge at maximum** — FCP +10, LCP +25, TBT +30,
+CLS +25, SI +10 — and 50 ms of blocking time short of the rounding. There is no
+named audit left to fix on it.
+
+**Speed Index fell 3.8s → 2.4s as a side effect of the shift work**, which was
+predicted and is worth stating because it is the only number here nobody set out
+to move: the app's first paint now draws nine games in their final positions
+where it used to draw a blank grid, and Speed Index is exactly the metric that
+measures how quickly a page LOOKS finished.
+
+The remaining desktop `-` for Speed Index is the report's own dash; desktop SI
+scored +10 with no displayed value.
