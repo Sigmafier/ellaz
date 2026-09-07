@@ -3962,3 +3962,66 @@ built from the commit that was deployed. In a tree with a peer's work in flight,
 it is not — and its failure is telling you about your disk, not about the site.
 Nothing was deployed from that contaminated build, because the deploy path is a
 push to `main` and CI builds the commit. That is the whole reason the path exists.
+
+## The layout shift, measured and closed (2026-09-07, same day)
+
+The font work took mobile from 79 to **98** and desktop from 89 to **91**. The
+whole of desktop's remaining loss was one number: **CLS 0.200**, which also
+failed Agentic Browsing 2/3. It had been left open the same morning because two
+instruments refused to produce a trustworthy reading.
+
+**A third instrument, with a control that fires.**
+`repro-home-cls-attribution.mjs` now plants a 300px block at the top of the page
+a second after load and requires each arm to detect it — printing
+`visibility=visible paints=2` beside every verdict — before it will report
+anything. The operator's own Chrome was tried first and reported
+`visibilityState: "hidden"`, zero paints, CLS 0 with zero shifts, on the page
+Lighthouse had measured at 0.200. The control caught it and the run was thrown
+away instead of believed.
+
+**Two causes, and the second one had no symptom at all.**
+
+```
+  t=400ms   224  div.ellaz-rail        t=800ms   224  a   🔥 Today's puzzle
+            304  div  the 42 tiles               324  div.ellaz-rail   +100px
+                                                 404  div  the tiles   +100px
+```
+
+The daily card returned `null` until the lazy catalogue arrived, so it appeared
+half a second in and pushed everything down. That is cause one and the trace
+names it. Cause two is invisible in that trace, because the grid's HEIGHT was
+always right: the shell has carried one slot per roster id since 2026-08-21 for
+exactly this reason — but it drew all the placeholders first and the arrived
+cards after them, so **every card jumped from the tail of the grid to its place
+in catalogue order** as the catalogue landed. Forty-two tiles moving, page
+height unchanged, nothing about it looking wrong.
+
+```
+                        desktop            mobile
+  live, before          0.2000             0.7134
+  + daily card's box    0.0877             0.4575
+  + grid holds order    0.0000             0.0017
+```
+
+Desktop matched PageSpeed's own 0.200 to four decimal places, which is the only
+reason to trust the harness.
+
+**And it is a visible improvement, not only a metric.** At 300ms on a phone the
+old page showed the category rail 200px too high over a completely blank grid —
+the placeholders are transparent and the fifteen games the shell already carries
+were below the fold behind twenty-seven of them. The new page shows nine
+playable games in their final positions.
+
+### The first gate in this repo that USES the site
+
+`scripts/repro/e2e-shell-walkthrough.mjs`, 18 checks, written because every
+other gate here reads bytes: the grid fills, no placeholder survives, every link
+has an accessible name, a chip filters to a non-empty grid and All restores it,
+the daily card links to a real game, a tile opens a game that mounts, the
+keep-playing rail comes back for a seeded returning player with a slot count
+that never changes, Hebrew is RTL, the room draws.
+
+Its `--control` blocks the `meta-rest` chunk so the catalogue never lands, then
+requires **exactly five named checks to fail and every other one to pass** —
+reddening if the set is wrong in either direction. A run where nothing fails is
+a blind harness; a run where everything fails is a broken one.

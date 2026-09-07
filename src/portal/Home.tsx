@@ -2,7 +2,6 @@ import { useEffect, useReducer, useRef, useState, type CSSProperties } from "rea
 import type { AppLocale } from "@i18n/locales";
 import { makeT, textFor, pageLocaleFor } from "@i18n/index";
 import {
-  catalog,
   CATEGORY_ORDER,
   ensureFullCatalog,
   findEntry,
@@ -32,7 +31,7 @@ import { attachShellJuice } from "@juice/index";
 import { LanguagePicker } from "@ui/LanguagePicker";
 import { HEADER_PILL } from "@ui/headerPill";
 import { WalletChip } from "./WalletChip";
-import { todayKey, todaysGame } from "./dailyRotation";
+import { dailyGameId, todayKey, todaysGame } from "./dailyRotation";
 import { Scene } from "./world/Scene";
 
 // Home screen. Four moving parts, all of them there because a four-year-old is
@@ -85,15 +84,22 @@ export function Home({
     return stop;
   }, []);
 
-  const shown = filter === ALL ? catalog() : catalog().filter((e) => e.meta.category === filter);
-
-  // How many cards are still on their way, in THIS filter. The grid draws an
-  // empty slot for each, so the page height is right from the first paint -
-  // which is the whole reason the shell still carries every id.
-  const loaded = new Set(catalog().map((e) => e.meta.id));
-  const pending = ROSTER_IDS.filter(
-    (id) => !loaded.has(id) && (filter === ALL || ROSTER_CATEGORY[id] === filter),
-  );
+  // ONE SLOT PER GAME, IN ROSTER ORDER, AND THE SAME SLOT THROUGHOUT.
+  //
+  // This is a list of ids, never of loaded entries, because a card must occupy
+  // its FINAL position from the first paint. The grid used to draw the empty
+  // slots first and the arrived cards after them, which made the height right
+  // and every position wrong: as the lazy catalogue landed, each card jumped
+  // from the tail of the grid to its place in catalogue order. The page did not
+  // grow, so nothing about it looked broken - but 42 tiles moving is a layout
+  // shift, and it was the larger half of what PageSpeed measured on 2026-09-07
+  // (mobile CLS 0.4575 with the daily card's box already reserved; 0.0026 once
+  // the grid stopped reordering, three interleaved runs per arm).
+  //
+  // `ROSTER_IDS` is the shell's own list and `roster-split.test.ts` asserts it
+  // equals `GAMES.map(m => m.id)` element for element, so this order IS the
+  // catalogue's order - the cards do not move when they arrive, they fill in.
+  const slots = ROSTER_IDS.filter((id) => filter === ALL || ROSTER_CATEGORY[id] === filter);
 
   // Only categories that actually have a game are offered. A chip that filters
   // to an empty grid is a dead end, and an empty grid gives a child no way back.
@@ -109,10 +115,20 @@ export function Home({
   // have since been deleted. Slicing before dropping those would quietly return
   // a short row - four stamps, one dead, three cards - with nothing to show for
   // the missing one.
-  const recent = wallet
+  // WHICH games the keep-playing rail will show is known on the first paint;
+  // WHAT they are called is not. `recentlyPlayed()` is a synchronous read of
+  // the profile, and `ROSTER_IDS` is the shell's own list - so the COUNT is
+  // settled before the lazy catalogue lands, and the rail can hold its own
+  // height instead of appearing later and pushing the grid down. The slice
+  // happens BEFORE the lookup for exactly that reason: slicing the resolved
+  // entries would grow the rail from one card to four as they arrived.
+  //
+  // Filtered by `ROSTER_IDS` so a game that has LEFT the roster reserves
+  // nothing - its id can sit in a returning player's profile forever, and
+  // `findEntry` will never resolve it.
+  const recentIds = wallet
     .recentlyPlayed()
-    .map((id) => findEntry(id))
-    .filter((e): e is CatalogEntry => Boolean(e))
+    .filter((id) => ROSTER_IDS.includes(id))
     .slice(0, RECENT_LIMIT);
 
   const juiceRef = useRef<HTMLDivElement>(null);
@@ -345,7 +361,7 @@ export function Home({
             in `PageApp.tsx` opens the sheet), and what it sends is an invite to
             THAT game at THAT game's URL. */}
 
-        {recent.length > 0 && (
+        {recentIds.length > 0 && (
           <section style={{ marginBottom: 20 }}>
             <h2 style={{ fontSize: 18, margin: "0 4px 12px", color: "var(--text-dim)" }}>
               {t("keepPlaying")}
@@ -354,9 +370,24 @@ export function Home({
               className="ellaz-rail"
               style={{ display: "flex", gap: 12, overflowX: "auto", padding: "2px 4px 4px" }}
             >
-              {recent.map((e) => (
-                <RecentCard key={e.meta.id} entry={e} locale={locale} onTap={tap} />
-              ))}
+              {recentIds.map((id) => {
+                const entry = findEntry(id);
+                // Deliberately empty, unlabelled and out of the accessibility
+                // tree, exactly like the grid's pending slots below: a
+                // placeholder title would flash the wrong game's name, and an
+                // anchor with no accessible name is an accessibility failure.
+                // It holds the space and nothing else.
+                return entry ? (
+                  <RecentCard key={id} entry={entry} locale={locale} onTap={tap} />
+                ) : (
+                  <div key={`pending-${id}`} aria-hidden style={RECENT_SLOT}>
+                    <div style={{ height: RECENT_ART_H }} />
+                    <span style={{ ...RECENT_LABEL, background: "var(--surface-2)" }}>
+                      {"\u00A0"}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </section>
         )}
@@ -395,26 +426,29 @@ export function Home({
             gap: 12,
           }}
         >
-          {pending.map((id) => (
+          {slots.map((id) => {
+            const entry = findEntry(id);
             // Deliberately empty and unlabelled: a placeholder TITLE would flash
             // the wrong text, and a spinner on a card nobody has scrolled to is
-            // noise. It holds the space and nothing else.
-            <div
-              key={`pending-${id}`}
-              aria-hidden
-              style={{ aspectRatio: "1 / 1", borderRadius: "var(--radius-3)" }}
-            />
-          ))}
-          {shown.map((e) => (
-            <GameCard
-              key={e.meta.id}
-              entry={e}
-              locale={locale}
-              stars={profile.games[e.meta.id]?.stars ?? 0}
-              onTap={tap}
-              t={t}
-            />
-          ))}
+            // noise. It holds the space and nothing else - the same square the
+            // card itself is, so the arriving card replaces it in place.
+            return entry ? (
+              <GameCard
+                key={id}
+                entry={entry}
+                locale={locale}
+                stars={profile.games[id]?.stars ?? 0}
+                onTap={tap}
+                t={t}
+              />
+            ) : (
+              <div
+                key={id}
+                aria-hidden
+                style={{ aspectRatio: "1 / 1", borderRadius: "var(--radius-3)" }}
+              />
+            );
+          })}
         </div>
 
         <PrintablePacks locale={locale} onTap={tap} />
@@ -565,6 +599,37 @@ function CardStyleToggle({ locale, onTap }: { locale: AppLocale; onTap: () => vo
  * mystery box. A four-year-old decides whether to tap by looking at the picture,
  * and "find out what today's game is" is a reading-age idea.
  */
+/**
+ * The daily card's box and its art slot, shared by the real card and by the
+ * placeholder that holds its space. The 68px art governs the height whether or
+ * not there is any text beside it, so the two are the same 88px tall by
+ * construction rather than by a copied number.
+ */
+const DAILY_BOX: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+  width: "calc(100% - 8px)",
+  margin: "0 4px 12px",
+  padding: 10,
+  border: "none",
+  borderRadius: "var(--radius-3)",
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-1)",
+  color: "var(--text)",
+  textAlign: "start",
+  textDecoration: "none",
+};
+
+const DAILY_ART: CSSProperties = {
+  flex: "0 0 68px",
+  width: 68,
+  height: 68,
+  borderRadius: "var(--radius-2)",
+  overflow: "hidden",
+  display: "block",
+};
+
 function DailyCard({ locale, onTap }: { locale: AppLocale; onTap: () => void }) {
   const t = makeT(locale);
   const [daily, setDaily] = useState<DailyStateV1>(() => dailyStreak.read());
@@ -572,7 +637,33 @@ function DailyCard({ locale, onTap }: { locale: AppLocale; onTap: () => void }) 
 
   // After the hooks, never before them.
   const meta = todaysGame();
-  if (!meta) return null;
+
+  // RESERVE THE BOX WHILE THE CATALOGUE IS STILL ARRIVING.
+  //
+  // `todaysGame()` needs the game's METADATA, which lives in the lazy
+  // catalogue - so this card used to return null on the first paint and appear
+  // about half a second later, dropping the category rail and the whole
+  // 42-tile grid 100px down the page. Measured on the live site 2026-09-07 as
+  // the ONLY late arrival above the grid (the category rail's top went 224 ->
+  // 324 between t=400ms and t=800ms), and worth CLS 0.200 on desktop and 0.713
+  // on mobile over three interleaved runs per arm.
+  //
+  // Which game it IS, though, is known from the first paint: `dailyGameId()` is
+  // pure and reads `ROSTER_IDS`, which the shell carries. So an undefined id
+  // means there genuinely is no card today and nothing should be reserved,
+  // while a defined one means the card is coming and its space is held.
+  //
+  // The placeholder is unlabelled and `aria-hidden`, the same as the grid's
+  // pending slots: a placeholder title would flash the wrong game's name, and
+  // it is a div rather than an anchor because an anchor with no accessible name
+  // is an accessibility failure - and because nothing on it invites a tap.
+  if (!meta) {
+    return dailyGameId(todayKey()) === undefined ? null : (
+      <div aria-hidden style={DAILY_BOX}>
+        <span style={DAILY_ART} />
+      </div>
+    );
+  }
 
   const done = daily.last === todayKey();
   const title = textFor(meta.title, locale);
@@ -582,33 +673,9 @@ function DailyCard({ locale, onTap }: { locale: AppLocale; onTap: () => void }) 
       href={gameHref(meta.id, pageLocaleFor(locale))}
       onClick={onTap}
       aria-label={`${t("dailyPuzzle")}: ${title}${done ? `, ${t("dailyDone")}` : ""}`}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        width: "calc(100% - 8px)",
-        margin: "0 4px 12px",
-        padding: 10,
-        border: "none",
-        borderRadius: "var(--radius-3)",
-        background: "var(--surface)",
-        boxShadow: "var(--shadow-1)",
-        color: "var(--text)",
-        textAlign: "start",
-        textDecoration: "none",
-      }}
+      style={DAILY_BOX}
     >
-      <span
-        style={{
-          flex: "0 0 68px",
-          width: 68,
-          height: 68,
-          borderRadius: "var(--radius-2)",
-          overflow: "hidden",
-          display: "block",
-        }}
-        aria-hidden="true"
-      >
+      <span style={DAILY_ART} aria-hidden="true">
         <GameArt id={meta.id} emoji={meta.emoji} height="100%" />
       </span>
       {/* `minWidth: 0` so a long game name ellipses instead of pushing the pill
@@ -885,6 +952,43 @@ function CategoryRail({
   );
 }
 
+/**
+ * The keep-playing card's shape, in three pieces, because the rail draws two
+ * things with it: the real card, and the slot that holds its space while the
+ * lazy catalogue is still arriving. Sharing the values is the point - a
+ * placeholder built from copied numbers is a second implementation of the
+ * card's height, and it goes wrong the first time anyone changes a padding.
+ */
+const RECENT_ART_H = 92;
+
+const RECENT_SLOT: CSSProperties = {
+  flex: "0 0 auto",
+  width: 132,
+  border: "none",
+  borderRadius: "var(--radius-3)",
+  padding: 0,
+  overflow: "hidden",
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-1)",
+  textAlign: "center",
+  display: "block",
+  color: "inherit",
+  textDecoration: "none",
+};
+
+const RECENT_LABEL: CSSProperties = {
+  // display:block matters: a button's children are inline by default, so
+  // the label would size to its text and clip the longer Hebrew names.
+  display: "block",
+  width: "100%",
+  padding: "8px 6px",
+  fontWeight: 800,
+  fontSize: 14,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
 function RecentCard({
   entry,
   locale,
@@ -900,39 +1004,17 @@ function RecentCard({
       href={gameHref(meta.id, pageLocaleFor(locale))}
       onPointerEnter={() => void entry.load().catch(() => {})}
       onClick={onTap}
-      style={{
-        flex: "0 0 auto",
-        width: 132,
-        border: "none",
-        borderRadius: "var(--radius-3)",
-        padding: 0,
-        overflow: "hidden",
-        background: "var(--surface)",
-        boxShadow: "var(--shadow-1)",
-        textAlign: "center",
-        display: "block",
-        color: "inherit",
-        textDecoration: "none",
-      }}
+      style={RECENT_SLOT}
     >
-      <GameArt id={meta.id} emoji={meta.emoji} height={92} />
+      <GameArt id={meta.id} emoji={meta.emoji} height={RECENT_ART_H} />
       <span
         style={{
-          // display:block matters: a button's children are inline by default, so
-          // the label would size to its text and clip the longer Hebrew names.
-          display: "block",
-          width: "100%",
-          padding: "8px 6px",
-          fontWeight: 800,
-          fontSize: 14,
+          ...RECENT_LABEL,
           background: meta.color,
           // Derived, not fixed: one ink cannot serve twenty-one accents. See
           // ui/ink.ts - a hardcoded dark ink here read at 3.23:1 on
           // minesweeper's slate and 3.49:1 on sequence's violet.
           color: inkFor(meta.color),
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
         }}
       >
         {textFor(meta.title, locale)}

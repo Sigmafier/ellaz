@@ -107,7 +107,7 @@ no control base the run says so out loud rather than pretending.
 
 ---
 
-## The desktop CLS 0.2, and why this session did not close it (2026-09-07)
+## The desktop CLS 0.2 - measured, attributed and closed (2026-09-07)
 
 PageSpeed reported **CLS 0.200 on desktop and 0.000 on mobile** for `/` in the
 same session, attributing the desktop shift to the 42-tile game grid
@@ -148,11 +148,101 @@ rather than five hops later, a font-swap contribution to CLS should be gone — 
 "should be" is the whole problem this file keeps recording, so it is written as a
 hypothesis.
 
-**The harness for whoever picks this up**:
-`scripts/repro/repro-home-cls-attribution.mjs` — Lighthouse's own two device
-profiles, arms **interleaved** (desktop/mobile/desktop/mobile, because
-non-interleaved arms measure the arm order as much as the arm), per-element
-attribution summed across runs, and a decision rule fixed before the run: whatever
-is attributed more than 0.05 gets the `:empty { min-height }` reservation already
-proven on the room. It needs `playwright`, which is not currently resolvable from
-this repo's `node_modules`.
+### The measurement, later the same day
+
+The harness is `scripts/repro/repro-home-cls-attribution.mjs` - Lighthouse's own
+two device profiles, arms **interleaved** (desktop/mobile/desktop/mobile, because
+non-interleaved arms measure the arm order as much as the arm), and per-element
+attribution summed across runs rather than one number.
+
+**It now refuses to report anything until it has proved it can see.** Before the
+real arms it plants a 300px block at the top of the page a second after load and
+requires each arm to detect it, printing `visibility` and the paint count beside
+the verdict. That is the direct answer to the hidden tab above: an arm that cannot
+see a 300px block landing is an arm whose 0.0000 means *no measurement*, and it
+aborts with exit 2 instead of printing a healthy-looking table.
+
+It needs `playwright`, which is deliberately **not** a dependency of this repo.
+Copy it into a tree that has one and run it from there; a bare `NODE_PATH` does
+not work, because ESM ignores it.
+
+**The operator's own Chrome was tried first and reported the hidden tab again** -
+`visibilityState: "hidden"`, zero paint entries, CLS 0 with zero shifts, on the
+page Lighthouse had just measured at 0.200. The control caught it, and the run was
+thrown away rather than believed. Playwright is the fallback, and this is it being
+used as one.
+
+### What was actually moving - two things, not one
+
+A second probe printed the y-offset of every direct child of the home column at
+intervals. It named the first cause in one read:
+
+```
+  t=400ms   224  div.ellaz-rail   the category rail
+            304  div              the 42-tile grid
+  t=800ms   224  a                🔥 Today's puzzle          <- arrives here
+            324  div.ellaz-rail   the category rail, 100px down
+            404  div              the grid, 100px down
+```
+
+**Cause 1 - the daily card had no box.** `todaysGame()` needs the game's METADATA,
+which is in the lazy catalogue, so `DailyCard` returned `null` on the first paint
+and appeared about half a second later. Everything below it moved 100px.
+
+**Cause 2 - the grid re-ordered itself.** This one is invisible in the trace above,
+because the grid's HEIGHT was always right: the shell has carried one slot per
+roster id since 2026-08-21 for exactly that reason. What it did not have was one
+slot per id *in the right place*. It drew all the pending placeholders first and
+the arrived cards after them, so as the catalogue landed each card jumped from the
+tail of the grid to its position in catalogue order. Forty-two tiles moving, with
+the page height unchanged and nothing about it looking wrong.
+
+### The fixes, and the numbers
+
+Both are the same shape, and it is the shape this file already recommends: hold the
+slot from the first paint, keyed on something the shell knows synchronously.
+
+- `dailyGameId()` is pure and reads `ROSTER_IDS`, so WHETHER there is a card today
+  is known immediately even though its title and art are not. When the metadata is
+  missing the card renders as its own 88px box - `aria-hidden`, unlabelled, and a
+  `div` rather than an anchor, because an anchor with no accessible name is an
+  accessibility failure and because nothing on it invites a tap.
+- The grid maps over `ROSTER_IDS`, one slot per id, each slot either the card or
+  the placeholder. `roster-split.test.ts` asserts `ROSTER_IDS` equals
+  `GAMES.map(m => m.id)` element for element, so that order IS catalogue order.
+- The keep-playing rail got the same treatment. `recentlyPlayed()` is a synchronous
+  profile read, so the COUNT is settled before the catalogue lands; the slice now
+  happens before the lookup, so the rail cannot grow from one card to four.
+
+```
+                        desktop            mobile
+  live, before          0.2000             0.7134
+  + daily card's box    0.0877             0.4575
+  + grid holds order    0.0000             0.0017
+                        ^ three interleaved runs per arm, control firing on each
+```
+
+Desktop matches what PageSpeed measured (0.200) to four decimal places, which is
+the only reason to believe the harness at all.
+
+**It is also a visible improvement, not only a metric.** At 300ms on a phone the
+old page showed the category rail 200px too high over a completely blank grid -
+the placeholders are transparent, and the fifteen games the shell already has were
+below the fold behind twenty-seven of them. The new page shows nine playable games
+in their final positions.
+
+### What proves the app still works
+
+`scripts/repro/e2e-shell-walkthrough.mjs` - the first thing in this repo that
+DRIVES the site rather than reading its bytes. Eighteen checks: the grid fills,
+no placeholder survives, every link has an accessible name, a category chip
+filters to a non-empty grid and the All chip restores it, the daily card links to
+a real game, a tile opens a game that mounts, the keep-playing rail comes back for
+a seeded returning player with a slot count that never changes, Hebrew is RTL, and
+the room draws.
+
+**It has a control, and the control is the point.** `--control` blocks the
+`meta-rest` chunk so the catalogue never lands; the script then requires exactly
+five named checks to fail and every other one to pass, and reds if the set is
+wrong in either direction. A run where nothing fails is a blind harness and a run
+where everything fails is a broken one.

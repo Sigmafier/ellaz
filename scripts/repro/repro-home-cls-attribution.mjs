@@ -74,9 +74,37 @@ const INSTRUMENT = () => {
   }).observe({ type: "layout-shift", buffered: true });
 };
 
+/**
+ * WAS A MEASUREMENT EVEN POSSIBLE. A browser tab that is not painting reports
+ * CLS 0 with zero shifts - it does not error, it does not warn, and it returns
+ * exactly the number you were hoping for. This repo has that receipt twice
+ * over (docs/performance-and-cls.md, 2026-09-07), so every reading below
+ * carries the two facts that would have exposed it: the visibility state, and
+ * whether the page painted at all.
+ */
+const LIVENESS = () => ({
+  visibility: document.visibilityState,
+  paints: performance.getEntriesByType("paint").length,
+});
+
+/**
+ * THE POSITIVE CONTROL. Plants a 300px block at the top of the body a second
+ * after load, which must shove everything below it down. An arm that cannot
+ * see this cannot see anything, and its 0.0000 means "no measurement", not
+ * "no shifts".
+ */
+const PLANT = () => {
+  setTimeout(() => {
+    const d = document.createElement("div");
+    d.id = "planted-control";
+    d.style.cssText = "height:300px;background:#f0f";
+    document.body.prepend(d);
+  }, 1200);
+};
+
 const browser = await chromium.launch();
 
-async function once(arm) {
+async function once(arm, { plant = false } = {}) {
   const cfg = ARMS[arm];
   const ctx = await browser.newContext({ viewport: cfg.viewport });
   const page = await ctx.newPage();
@@ -85,19 +113,38 @@ async function once(arm) {
   await cdp.send("Network.emulateNetworkConditions", { offline: false, ...cfg.net });
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: cfg.cpu });
   await page.addInitScript(INSTRUMENT);
+  if (plant) await page.addInitScript(PLANT);
   await page.goto(`${BASE}${PATH}`, { waitUntil: "commit" });
   // Long enough to cover the lazy roster landing (~800 ms after mount) and the
   // font swap, both of which arrive after any "load" event.
   await page.waitForTimeout(4000);
   const shifts = await page.evaluate(() => window.__shifts);
+  const live = await page.evaluate(LIVENESS);
   await ctx.close();
-  return shifts;
+  return { shifts, live };
 }
+
+// ---------------------------------------------------------------------------
+// The control runs FIRST, and a failure here stops the script. A harness that
+// reports a healthy page because it was never looking is worse than no harness.
+for (const arm of ["desktop", "mobile"]) {
+  const { shifts, live } = await once(arm, { plant: true });
+  const total = shifts.reduce((a, e) => a + e.value, 0);
+  const saw = shifts.some((e) => e.sources.some((s) => s.includes("planted-control")) || e.value > 0.05);
+  console.log(`CONTROL ${arm.padEnd(8)} visibility=${live.visibility} paints=${live.paints} planted-shift CLS=${total.toFixed(4)} -> ${saw ? "SEEN" : "NOT SEEN"}`);
+  if (live.visibility !== "visible" || live.paints === 0 || !saw) {
+    console.log(`\nABORT: the ${arm} arm cannot see a 300px block landing at the top of the page.`);
+    console.log("Every reading it would print is 'no measurement', not 'no shifts'.");
+    await browser.close();
+    process.exit(2);
+  }
+}
+console.log("");
 
 const runs = { desktop: [], mobile: [] };
 // INTERLEAVED. desktop, mobile, desktop, mobile, ...
 for (let r = 0; r < ROUNDS; r++) {
-  for (const arm of ["desktop", "mobile"]) runs[arm].push(await once(arm));
+  for (const arm of ["desktop", "mobile"]) runs[arm].push((await once(arm)).shifts);
 }
 await browser.close();
 
