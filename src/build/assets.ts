@@ -24,6 +24,34 @@ export interface HeadAssets {
    * itself. Absent in dev, where there is no bundle and nothing is hashed.
    */
   lazy?: LazyChunks;
+  /**
+   * The body face's hashed woff2, per subset. Absent in dev, where nothing is
+   * hashed. See `resolveFontAssets`.
+   */
+  fonts?: FontAssets;
+}
+
+/**
+ * The hashed woff2 files a page may preload, keyed by SUBSET.
+ *
+ * WHY A PAGE PRELOADS A FONT AT ALL
+ * Until 2026-09-07 the webfont was reached by an `@import` at the top of the
+ * shell stylesheet, so it could not begin downloading until the document, the
+ * entry script and that stylesheet had each completed - five serial hops, on a
+ * third-party origin, blocking the first paint for 1,300 ms on mobile. A
+ * `<link rel=preload>` in the document's own head starts it with the page.
+ *
+ * WHY KEYED BY SUBSET AND NOT JUST "the font"
+ * `fonts.css` declares each family three times over three `unicode-range`s, so
+ * a reader who draws Latin fetches 30,148 B of Heebo and a reader who draws
+ * Hebrew fetches 12,000 B - the browser picks. A preload has no such
+ * discretion: it fetches exactly what it is told. Preloading the wrong subset
+ * is not a small waste, it is a download the page never uses PLUS the one it
+ * needs still arriving late.
+ */
+export interface FontAssets {
+  /** Subset name (`latin`, `hebrew`, ...) -> dist-relative hashed filename. */
+  body: Readonly<Record<string, string>>;
 }
 
 /**
@@ -144,6 +172,64 @@ export function resolveLazyChunks(
  */
 export function modulePreloadTag(file: string, base: string): string {
   return `<link rel="modulepreload" crossorigin href="${base}${file}">`;
+}
+
+/** The face body text is set in - `--font` in tokens.css leads with it. */
+export const BODY_FACE = "heebo";
+
+/** Which subset a locale's readers actually draw. Anything else is Latin. */
+const SUBSET_OF_LOCALE: Readonly<Record<string, string>> = { he: "hebrew" };
+
+/**
+ * The body face's hashed files, read out of the bundle rather than guessed.
+ *
+ * Same rule as `resolveLazyChunks` above and for the same reason: these names
+ * carry a content hash, the one under `/ellaz/` is a different string from the
+ * one under `/`, and anything that rebuilds the name by hand is a second
+ * implementation of Rollup's naming that is wrong the first time a file
+ * changes. `Object.keys(bundle)` is the only honest source.
+ *
+ * Returns an empty map rather than throwing: a preload is an optimisation, and
+ * a build that somehow emitted no woff2 should still produce readable pages in
+ * the fallback stack. `assert-fast.mjs` reds on the served page if the preload
+ * is missing, which is the right place for that refusal - it reads what a
+ * visitor actually received.
+ */
+export function resolveFontAssets(fileNames: readonly string[]): FontAssets {
+  const body: Record<string, string> = {};
+  for (const f of fileNames) {
+    const m = /(?:^|\/)([a-z]+)-([a-z-]+)-[^/]*\.woff2$/.exec(f);
+    if (!m || m[1] !== BODY_FACE) continue;
+    body[m[2]] = f;
+  }
+  return { body };
+}
+
+/**
+ * `crossorigin` is mandatory, not decoration. Fonts are fetched in CORS mode
+ * whatever their origin, so a preload without it is fetched in a DIFFERENT
+ * mode from the request `@font-face` makes moments later - the browser cannot
+ * match them, downloads the file twice, and the preload costs bytes instead of
+ * saving time. Same trap `modulePreloadTag` above documents.
+ */
+export function fontPreloadTag(file: string, base: string): string {
+  return `<link rel="preload" as="font" type="font/woff2" crossorigin href="${base}${file}">`;
+}
+
+/**
+ * The one font preload for a page, chosen by the locale it is written in.
+ * Empty in dev, and empty if the bundle carried no matching file - the page is
+ * still correct, just no faster than it was.
+ */
+export function fontPreloadTags(
+  assets: HeadAssets | undefined,
+  base: string,
+  locale: string,
+): string[] {
+  const body = assets?.fonts?.body;
+  if (!body) return [];
+  const file = body[SUBSET_OF_LOCALE[locale] ?? "latin"];
+  return file ? [fontPreloadTag(file, base)] : [];
 }
 
 /**

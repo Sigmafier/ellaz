@@ -1,8 +1,20 @@
 @import "./tokens.css";
 
-/* Load Hebrew-first web fonts (woff2) from Google Fonts CSS. If offline the
-   system fallback stack in --font applies. */
-@import url("https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;800&family=Fredoka:wght@500;600&display=swap");
+/* Hebrew-first web fonts, SERVED BY US. This was an `@import` of
+   fonts.googleapis.com until 2026-09-07, and that one line was the slowest
+   thing on the site: an `@import` is not discoverable until the stylesheet
+   containing it has downloaded AND parsed, so it made a five-hop serial chain
+   - document, entry JS, this stylesheet, Google's CSS, the woff2 - that no
+   preload could shorten and no preconnect could help. Measured by PageSpeed
+   that day: 350 ms of blocked render on desktop, 1,300 ms on mobile, and a
+   mobile LCP of 4.2 s that was 2,440 ms of render delay on a 0 ms TTFB.
+
+   Same two families, same weights, same glyphs - Google's own subset files,
+   fetched by scripts/fonts/sync-fonts.mjs and committed. `fonts.css` is
+   GENERATED; edit the generator, not it. The document head preloads the body
+   face so the download starts with the page.
+   See .claude/rules/a-font-behind-an-import-is-invisible-to-every-preload.md */
+@import "./fonts.css";
 
 * {
   box-sizing: border-box;

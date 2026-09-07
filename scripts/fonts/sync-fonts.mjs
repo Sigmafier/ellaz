@@ -1,0 +1,204 @@
+#!/usr/bin/env node
+/**
+ * The generator for `src/ui/fonts/` and `src/ui/fonts.css`.
+ * ===========================================================================
+ *
+ * Those files are EMITTED, not typed, so the thing that emitted them lives
+ * here beside them and ships with a way to prove they are still what it
+ * would produce. Without the generator the next weight or subset is a manual
+ * download; without the check, this script is a claim about those files that
+ * nothing tests.
+ * See .claude/rules/a-generator-of-committed-literals-lives-beside-them.md
+ *
+ * WHAT IT DOES. Asks Google for the same stylesheet the site used to
+ * `@import` at run time, keeps the three subsets our four locales actually
+ * render, downloads Google's OWN already-subsetted woff2, and writes
+ * `@font-face` blocks that mirror Google's declarations exactly.
+ *
+ * WHY IT MIRRORS RATHER THAN SIMPLIFIES. Heebo's three weights share one
+ * file and so do Fredoka's two, which means these are variable faces and a
+ * single `font-weight: 400 800` block would probably be correct. Probably is
+ * not good enough for a change whose whole promise is that nothing renders
+ * differently: one `@font-face` per family-weight-subset is precisely what
+ * ships today, so it cannot change rendering. The repetition costs almost
+ * nothing after gzip because the unicode-ranges are identical strings.
+ *
+ * WHY WE DO NOT RE-SUBSET. Cutting Fredoka to the two weights we use would
+ * save real bytes, but it needs a font toolchain in the build and a gate
+ * proving the subset still carries every glyph the four locales draw. That
+ * was offered and declined; the preload is body-face-only instead.
+ *
+ *   node scripts/fonts/sync-fonts.mjs           # download + write
+ *   node scripts/fonts/sync-fonts.mjs --check   # prove the tree matches
+ */
+
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+/** From this file, never from a cwd — the script must run from anywhere. */
+const UI = join(HERE, "..", "..", "src", "ui");
+const FONT_DIR = join(UI, "fonts");
+const CSS_OUT = join(UI, "fonts.css");
+
+/**
+ * The exact request the site made from inside `global.css` until 2026-09-07.
+ * Keeping it verbatim is what makes "same fonts, same weights" checkable
+ * rather than asserted.
+ */
+const GOOGLE_CSS =
+  "https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;800" +
+  "&family=Fredoka:wght@500;600&display=swap";
+
+/** A modern UA, or Google serves ttf instead of woff2 and everything doubles. */
+const UA =
+  "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) " +
+  "Chrome/120.0.0.0 Mobile Safari/537.36";
+
+/**
+ * The three subsets this site's four locales actually draw. Google emits 21
+ * blocks; the other 15 are Greek, Cyrillic, maths and symbol ranges that no
+ * page here renders, and shipping them would be 100 KB of dead weight.
+ * `hebrew` is matched by CONTAINS, not startsWith: its range begins with two
+ * combining marks (`U+0307-0308`) before `U+0590-05FF`, and a startsWith
+ * matcher silently drops the entire Hebrew subset — which is how the first
+ * measurement of this work came back missing a language.
+ */
+const WANTED = [
+  ["hebrew", (r) => r.includes("U+0590-05FF")],
+  ["latin-ext", (r) => r.startsWith("U+0100-02BA")],
+  ["latin", (r) => r.startsWith("U+0000-00FF")],
+];
+
+const subsetOf = (range) => WANTED.find(([, m]) => m(range))?.[0];
+
+async function fetchText(url) {
+  const res = await fetch(url, { headers: { "User-Agent": UA } });
+  if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
+  return res.text();
+}
+async function fetchBytes(url) {
+  const res = await fetch(url, { headers: { "User-Agent": UA } });
+  if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
+  return Buffer.from(await res.arrayBuffer());
+}
+
+/** Parse Google's stylesheet into the blocks we keep. */
+async function readGoogle() {
+  const css = await fetchText(GOOGLE_CSS);
+  const faces = [];
+  for (const body of css.match(/@font-face\s*\{[^}]*\}/g) ?? []) {
+    const family = body.match(/font-family:\s*'([^']+)'/)?.[1];
+    const weight = body.match(/font-weight:\s*(\d+)/)?.[1];
+    const style = body.match(/font-style:\s*(\w+)/)?.[1] ?? "normal";
+    const url = body.match(/url\((https:[^)]+)\)/)?.[1];
+    const range = body.match(/unicode-range:\s*([^;]+);/)?.[1]?.trim();
+    if (!family || !weight || !url || !range) continue;
+    const subset = subsetOf(range);
+    if (!subset) continue;
+    faces.push({ family, weight, style, url, range, subset });
+  }
+  if (!faces.length) throw new Error("parsed zero usable @font-face blocks — did the CSS format change?");
+  return faces;
+}
+
+const fileFor = (f) => `${f.family.toLowerCase()}-${f.subset}.woff2`;
+
+function renderCss(faces) {
+  const head = [
+    "/* GENERATED by scripts/fonts/sync-fonts.mjs — do not edit by hand.",
+    " * Re-run `node scripts/fonts/sync-fonts.mjs` to regenerate, and",
+    " * `--check` to prove this file still matches what it would produce.",
+    " *",
+    " * These blocks mirror Google's own declarations exactly, over Google's own",
+    " * subset files, so nothing renders differently from what shipped before",
+    " * 2026-09-07. What changed is WHERE they come from: our origin, on a",
+    " * connection the browser has already opened, named in the document head",
+    " * so the download starts with the page instead of after two more round",
+    " * trips. See .claude/rules/a-font-behind-an-import-is-invisible-to-every-preload.md",
+    " *",
+    " * `font-display: swap` is deliberate and unchanged: text is readable in the",
+    " * fallback immediately rather than invisible while a font arrives.",
+    " */",
+    "",
+  ].join("\n");
+  const blocks = faces.map(
+    (f) =>
+      `@font-face {\n` +
+      `  font-family: "${f.family}";\n` +
+      `  font-style: ${f.style};\n` +
+      `  font-weight: ${f.weight};\n` +
+      `  font-display: swap;\n` +
+      `  src: url("./fonts/${fileFor(f)}") format("woff2");\n` +
+      `  unicode-range: ${f.range};\n` +
+      `}`,
+  );
+  return `${head}\n${blocks.join("\n\n")}\n`;
+}
+
+async function main() {
+  const check = process.argv.includes("--check");
+  const faces = await readGoogle();
+
+  // One file per family+subset; the weights share it, which is why Google
+  // serves the same URL for all of them.
+  const files = new Map();
+  for (const f of faces) files.set(fileFor(f), f.url);
+
+  if (!existsSync(FONT_DIR)) mkdirSync(FONT_DIR, { recursive: true });
+
+  let differ = 0;
+  let total = 0;
+  for (const [name, url] of files) {
+    const bytes = await fetchBytes(url);
+    total += bytes.length;
+    const path = join(FONT_DIR, name);
+    if (check) {
+      const have = existsSync(path) ? readFileSync(path) : Buffer.alloc(0);
+      const same = have.equals(bytes);
+      if (!same) differ++;
+      console.log(`  ${same ? "same" : "DIFF"}  ${name.padEnd(24)} ${String(bytes.length).padStart(7)} B`);
+    } else {
+      writeFileSync(path, bytes);
+      console.log(`  wrote ${name.padEnd(24)} ${String(bytes.length).padStart(7)} B`);
+    }
+  }
+
+  const css = renderCss(faces);
+  if (check) {
+    const have = existsSync(CSS_OUT) ? readFileSync(CSS_OUT, "utf8") : "";
+    const same = have === css;
+    if (!same) differ++;
+    console.log(`  ${same ? "same" : "DIFF"}  fonts.css                ${String(css.length).padStart(7)} B`);
+  } else {
+    writeFileSync(CSS_OUT, css);
+    console.log(`  wrote fonts.css                ${String(css.length).padStart(7)} B`);
+  }
+
+  const bySubset = {};
+  for (const f of faces) bySubset[f.subset] = (bySubset[f.subset] ?? 0) + 0;
+  for (const [name] of files) {
+    const subset = name.replace(/^[a-z]+-/, "").replace(/\.woff2$/, "");
+    bySubset[subset] = (bySubset[subset] ?? 0) + readFileSync(join(FONT_DIR, name)).length;
+  }
+  console.log(
+    `\n${files.size} files, ${faces.length} @font-face blocks, ${total.toLocaleString()} B total\n` +
+      Object.entries(bySubset)
+        .map(([k, v]) => `  a reader who draws ${k.padEnd(9)} fetches ${v.toLocaleString()} B`)
+        .join("\n"),
+  );
+
+  if (check) {
+    if (differ) {
+      console.error(`\nFAIL  ${differ} file(s) differ from what this generator produces.`);
+      process.exit(1);
+    }
+    console.log("\nOK  every committed file matches the generator.");
+  }
+}
+
+main().catch((e) => {
+  console.error(`FAIL  ${e.stack ?? e}`);
+  process.exit(1);
+});

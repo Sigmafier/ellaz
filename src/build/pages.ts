@@ -46,6 +46,8 @@ import { indexNowKeyFile, INDEXNOW_KEY, llmsTxt, robotsTxt, sitemapXml } from ".
 import {
   DEV_HEAD_ASSETS,
   extractHeadAssets,
+  resolveFontAssets,
+  fontPreloadTags,
   resolveLazyChunks,
   type HeadAssets,
 } from "./assets";
@@ -494,7 +496,33 @@ export function pagesPlugin(base: string): Plugin {
       const headAssets: HeadAssets = {
         ...extractHeadAssets(String(index.source)),
         lazy: resolveLazyChunks(Object.keys(bundle), GAMES.map((m) => m.id)),
+        // The body face, from the same place and for the same reason. Vite
+        // hashes the woff2 out of `fonts.css`, so the name is only knowable
+        // from the bundle - and a page that guesses it preloads a 404 and
+        // stays exactly as slow as it was, with a green build.
+        fonts: resolveFontAssets(Object.keys(bundle)),
       };
+
+      // THE APP SHELL GETS ITS PRELOAD HERE, because `index.html` is the one
+      // page not written from the route table - `transformIndexHtml` builds it,
+      // and that hook runs before a bundle exists, so the hashed font name is
+      // not knowable there. Every other document gets this tag from
+      // `documentShell`; without these three lines the site root - the most
+      // visited URL here and the one PageSpeed audits - would be the single
+      // page still discovering its font two round trips late, behind a green
+      // build and a gate that only sampled `/he/` and a game page.
+      //
+      // AFTER `extractHeadAssets` above, deliberately: those tags are copied
+      // verbatim onto all 246 other pages, and a `latin` preload riding along
+      // would hand every Hebrew page the subset it does not draw.
+      const shellPreload = fontPreloadTags(headAssets, base, CANONICAL_LOCALE);
+      if (shellPreload.length) {
+        const src = String(index.source);
+        if (!src.includes("</head>")) {
+          throw new Error("page emitter: index.html has no </head> to place the font preload before.");
+        }
+        index.source = src.replace("</head>", `  ${shellPreload.join("\n  ")}\n  </head>`);
+      }
       // THE SHARE CARDS ARE RENDERED FIRST, AND THAT ORDER IS LOAD-BEARING.
       //
       // Each card is written under a name carrying the hash of its own bytes,

@@ -279,6 +279,16 @@ export default defineConfig({
         // has not chosen a game yet. They are served from the network and
         // cached as they are visited (the navigate rule below).
         globIgnores: [
+          // THE FONTS. `globPatterns` above sweeps `**/*.woff2`, so without
+          // this line all 99,988 B of them - every family, every subset,
+          // including the two subsets a given reader will never draw - land in
+          // the precache and every first visit downloads the lot. That would
+          // undo the entire point of self-hosting them behind a green build,
+          // which is exactly the failure precache-glob-sweeps-new-chunks.md
+          // names. The browser already fetches only the subset it renders,
+          // guided by `unicode-range`, and the head preloads the one the page
+          // is written in; the precache has no such discretion.
+          "**/*.woff2",
           // The purge script above. It is IMPORTED by sw.js, which stores it with
           // the registration, so precaching it as well would ship a second copy to
           // every first visit for nothing - and `assert-first-visit.mjs` is an

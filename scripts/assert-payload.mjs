@@ -337,7 +337,36 @@ function ciNodeMajor() {
 // `scripts/repro/repro-preact-swap.mjs` drives all 38 games in a real browser
 // with both lazy-arrival controls, and the home, the room and the boards render
 // BYTE-IDENTICAL to the React arm at 390x844. Read that before reading this.
-const CEILING = 56_000;
+// 56,000 -> 56,800 on 2026-09-07, to buy the fonts back off the critical path.
+//
+// WHAT WAS BOUGHT. The webfont used to arrive via `@import` at the top of the
+// shell stylesheet - five serial hops from the document, on a third-party
+// origin, costing 350 ms of blocked render on desktop and 1,300 ms on mobile,
+// with a mobile LCP of 4.2 s that was 2,440 ms of pure render delay. The fonts
+// are now ours, declared in `src/ui/fonts.css` and preloaded per locale from
+// each document's head. gtag.js (167 KiB, 206 ms of main thread) moved to the
+// first real interaction in the same pass.
+//
+// WHAT IT COST HERE, and why the gate cannot see the trade. Roughly 900 B gz:
+// the `@font-face` blocks now live in the shell stylesheet, which this gate
+// counts, while the 242 KiB of third-party bytes the change REMOVED were never
+// counted - they were not fetched by `index.html`, they were fetched by a
+// stylesheet, which is exactly the blind spot that let the problem exist.
+//
+// WHY THE FONT CSS IS NOT SMALLER. It is 15 `@font-face` blocks - one per
+// family, weight and subset - mirroring what Google served. Collapsing them to
+// 6 with a `font-weight: 400 800` range would save several hundred bytes and
+// CHANGE RENDERING: the app asks for weight 700 in several places, and against
+// declared weights 400/600/800 the CSS font-matching algorithm resolves that to
+// 800, while a variable range would resolve it to a true, lighter 700. The
+// promise of this change was that nothing renders differently, so the bytes stay.
+//
+// WHY 56,800 AND NOT 56,100. Measured 55,980 on Node 24; the deploy builds on
+// Node 22 and this file's own warning puts that spread at ~54 B. A ceiling with
+// 20 B of room measures the Node version, not the payload. 820 B is ~25 games
+// at the 32.5 B slope - thinner than the ~3 KB the note below argues for, and
+// deliberately so: the next raise should have to be argued too.
+const CEILING = 56_800;
 
 function gzBytes(path) {
   return gzipSync(readFileSync(path)).length;
