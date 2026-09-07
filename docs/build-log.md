@@ -4109,6 +4109,13 @@ document and dropped `index-CTYOAVGu.js` and `shell-gwtlNAU9.js`. The app never
 mounted, so every cell measured a blank page and each described a defect in its own
 subject.
 
+**The `paths-ignore` filter was not at fault and it is worth saying so**, because the
+first guess was that a docs-only push had republished the site — the exact failure the
+`docs/**` lines were added for on 2026-08-30. It had not: that push carried two
+commits, and the second one changed `src/portal/roster-split.test.ts`. The deploy was
+correct to run. This was the older trap underneath — Hostinger accepting an upload and
+silently not writing some of the files.
+
 **The gate did its job and it was not enough.** `assert-live` ran, caught it, and
 failed the workflow — which is exactly what it is for. But a red run is not a
 notification: the upload had already replaced `index.html`, so the site stayed broken
