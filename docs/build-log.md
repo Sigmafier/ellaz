@@ -4054,3 +4054,70 @@ measures how quickly a page LOOKS finished.
 
 The remaining desktop `-` for Speed Index is the report's own dash; desktop SI
 scored +10 with no displayed value.
+
+## The deep test, and the outage it found (2026-09-07, late)
+
+Every gate in this repo reads bytes. `build:check` reads the source, `assert:payload`
+reads `dist/`, `assert:pages` reads the emitted documents, `assert:fast` reads the
+served head, `assert:live` compares hashes. Not one of them uses the site. So after
+the day's font, analytics, accessibility and layout-shift work, three harnesses were
+written that do:
+
+| harness | what it drives | control |
+|---|---|---|
+| `e2e-shell-walkthrough.mjs` | the shell: grid, chips, daily card, keep-playing rail, one game, Hebrew, the room | blocks `meta-rest`; exactly five named checks must fail |
+| `deep-test-every-game.mjs` | all 42 games: open, mount, respond to input | blocks every game chunk; all 42 cells must fail |
+| `deep-test-edges-and-faults.mjs` | odd profiles, 11 locales, storage that throws, analytics blocked, a chunk that never arrives, a three-game session | a liveness preflight that aborts rather than describing imaginary defects |
+
+**Eighty-five checks against the live site, all green.** 42 of 42 games open, mount
+and move with zero console errors; 25 of 25 edge and fault cells; 18 of 18 shell
+checks. The controls are what make that mean anything: blocking each game's own chunk
+fails all 42 cells with "didn't load", and blocking `meta-rest` fails exactly the five
+named checks the walkthrough expects and no others.
+
+Worth pulling out of the edge suite, because each one is a claim the layout-shift work
+made and nothing else tests: a game that has LEFT the roster (`sortsize`, deleted
+2026-08-14) sits in a returning player's profile forever and reserves **no** slot; a
+profile with twenty games played still shows **four**, because the cap is applied to
+the slots and not to the resolved cards; a corrupt profile still renders all 43 tiles;
+all eleven interface languages render with the right direction and zero sideways
+scroll; storage that THROWS (a browser set to block site data, which is not an empty
+store) still opens a game; analytics blocked by an ad blocker changes nothing; and
+with the catalogue never arriving the grid still holds all 42 slots, which is what
+the shell's roster of ids is for.
+
+### The first run called eight healthy games dead
+
+It tapped the geometric CENTRE of the play area. On a memory board that is the gap
+between four cards; on find-the-differences it is the seam between two pictures; on
+the maths quiz it is the question rather than the answers; and echo, music and
+sequence sit still until you press start. Eight games reported no animation and no
+response.
+
+All eight moved the instant a real control was clicked. **The finding was in the
+harness and it was pointing at eight healthy games** — which is this repo's
+diagnostic family exactly, in the benign direction. It now tries the first real
+control, then a 3x3 sweep, then the centre plus keys, and prints WHICH one worked:
+41 of 42 answer the first control, `finddiff` needs the sweep.
+
+### And then the harness found a real outage — ours
+
+The edge suite reported eight confident failures about profiles and locales. Every
+one of them was false. `https://ellaz.fun/` was serving an `index.html` naming two
+chunks that returned **404**: the Hostinger deploy for `7b2ba53` had uploaded the
+document and dropped `index-CTYOAVGu.js` and `shell-gwtlNAU9.js`. The app never
+mounted, so every cell measured a blank page and each described a defect in its own
+subject.
+
+**The gate did its job and it was not enough.** `assert-live` ran, caught it, and
+failed the workflow — which is exactly what it is for. But a red run is not a
+notification: the upload had already replaced `index.html`, so the site stayed broken
+until somebody looked, and what looked was a test harness written for another purpose
+forty minutes later. A failing deploy leaves the site DOWN, not unchanged.
+
+Two things came out of it. The edge harness now **preflights**: it loads the site
+once, and if the app does not mount or any request 4xxs it aborts with `ABORT: not
+serving a working app right now` instead of producing a page of specific-sounding
+findings. And the sequence to remember is that a red Hostinger run needs a
+`workflow_dispatch` re-run immediately — one re-run has always fixed it, and a second
+failure is the signal to stop retrying and read.
