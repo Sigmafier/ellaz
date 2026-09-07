@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Ellaz — a cross-device games platform. Play on phone, tablet, and PC.",
+  "description": "Ellaz \u2014 a cross-device games platform. Play on phone, tablet, and PC.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -23,6 +23,8 @@
     "reports:pull:control": "node scripts/reports/pull.mjs --control",
     "assert:crawlable": "node scripts/assert-crawlable.mjs",
     "assert:live": "node scripts/assert-live.mjs",
+    "assert:fast": "node scripts/assert-fast.mjs",
+    "assert:fast:control": "node scripts/assert-fast.mjs --control",
     "build:standalone": "vite build --config vite.standalone.config.ts",
     "assert:standalone": "node scripts/assert-standalone.mjs",
     "assert:outreach": "node scripts/assert-outreach.mjs",
