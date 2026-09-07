@@ -344,11 +344,28 @@ order they are read, and only axe's punctuation stripping makes "Tic-Tac-Toe" an
 
 ```
                               BEFORE            AFTER
-/games/memory/  (English)     3 woff2           2 woff2   heebo-hebrew: unloaded
-                              incl. 12,000 B    -12,000 B on every first visit
+/games/memory/  (English)     needs the         does not need it
+                              hebrew face       heebo-hebrew: unloaded, no entry
+                              (12,000 B)        -12,000 B on a cold first visit
 /he/games/memory/ (Hebrew)    4 woff2           4 woff2   unchanged, Hebrew still Heebo
 label mismatches on /         4                 1         (Tic-Tac-Toe, above)
 ```
+
+**Say "needs", not "downloads", and measure it COLD.** A resource-timing entry
+exists for a cache hit too, and `encodedBodySize` reports the file's full size
+whether or not a byte crossed the wire - so counting entries cannot tell a download
+from a replay. Measured 2026-09-08, three arms on the live site:
+
+```
+A  fresh tab, cold                    2 entries, hebrew face UNLOADED
+B  same tab, arrived from /he/        4 entries, ALL transferSize 0, deliveryType "cache"
+C  same tab, SW + caches cleared      2 entries, hebrew face UNLOADED, 0 B over the wire
+```
+
+Arm B is the trap: four entries on a page with zero rendered Hebrew, and it reads as
+a regression until you print `transferSize`. Nothing was downloaded. The claim that
+holds is about what a page NEEDS - and an absent entry in a cold context cannot be a
+cache replay, which is why arms A and C are the ones quoted.
 
 A category or print page loads no shell stylesheet and declares no `@font-face` at all
 (`/games/kids/` serves zero), so it never could fetch a subset - the pages that pay are

@@ -4168,8 +4168,12 @@ general punctuation. Watched failing on Google's unmodified range, naming the sp
 **"Declare latin last so it wins" is a theory this measured to be false** — hebrew is
 declared first, latin last, and hebrew won.
 
-Result, both arms, one build, service worker cleared first: the English game page goes
-3 woff2 → 2, the Hebrew page is unchanged at 4 and still draws Hebrew in Heebo.
+Result, measured COLD on the live site: the English pages no longer NEED the Hebrew
+face at all (no entry, face `unloaded`), the Hebrew page is unchanged at 4 and still
+draws Hebrew in Heebo. A long-lived tab that has visited `/he/` can still show four
+entries — every one `transferSize: 0`, `deliveryType: "cache"` — which is a replay of
+files already on disk, not a download. Counting entries cannot tell those apart; the
+arms that settle it are a fresh tab and a caches-cleared reload.
 
 ### Three instruments were wrong before one was right
 
