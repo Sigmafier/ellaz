@@ -338,7 +338,7 @@ function WindowRow<T extends string>({
               fontWeight: 800,
               fontFamily: "inherit",
               whiteSpace: "nowrap",
-              background: on ? "var(--brand)" : "transparent",
+              background: on ? "var(--brand-strong)" : "transparent",
               color: on ? "var(--on-brand)" : "var(--text)",
             }}
           >
@@ -941,7 +941,7 @@ function GameBoard({
           marginTop: 18,
           minHeight: "var(--tap-kids)",
           borderRadius: "var(--radius-3)",
-          background: "var(--brand)",
+          background: "var(--brand-strong)",
           color: "var(--on-brand)",
           fontSize: 17,
           fontWeight: 800,

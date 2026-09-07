@@ -48,7 +48,19 @@ import type { PageLocale } from "../i18n/locales";
 /** Where the answer lives. Never renamed - a rename re-asks everybody. */
 export const CONSENT_KEY = "ellaz:consent:v1";
 
-type Copy = { line: string; yes: string; no: string };
+/**
+ * `label` is the dialog's ACCESSIBLE NAME, and it is not decoration: an element
+ * carrying `role="dialog"` with no name is announced to a screen reader as a
+ * dialog about nothing, which is worse than no role at all. Lighthouse failed
+ * this on 2026-09-07 in both form factors ("ARIA dialog and alertdialog nodes
+ * should have an accessible name") and it was the site's only Agentic Browsing
+ * failure too - one missing attribute costing two separate audits.
+ *
+ * A short noun phrase, NOT the sentence: `aria-labelledby` pointing at the <p>
+ * would make the name the whole paragraph, which a screen reader then reads
+ * twice - once as the dialog's name and again as its content.
+ */
+type Copy = { line: string; yes: string; no: string; label: string };
 
 /**
  * One entry per PAGE locale, and the other seven interface languages fall back
@@ -61,21 +73,25 @@ export const CONSENT_COPY: Record<PageLocale, Copy> = {
     line: "אנחנו סופרים כניסות בעזרת עוגייה קטנה של גוגל. אין פרסומות ואין מעקב אישי.",
     yes: "אישור",
     no: "לא תודה",
+    label: "הודעת עוגיות",
   },
   en: {
     line: "We count visits with a small Google cookie. No ads, no personal tracking.",
     yes: "Allow",
     no: "No thanks",
+    label: "Cookie notice",
   },
   es: {
     line: "Contamos visitas con una cookie pequeña de Google. Sin anuncios ni seguimiento personal.",
     yes: "Aceptar",
     no: "No, gracias",
+    label: "Aviso de cookies",
   },
   fr: {
     line: "Nous comptons les visites avec un petit cookie Google. Sans publicité ni suivi personnel.",
     yes: "Accepter",
     no: "Non merci",
+    label: "Avis de cookies",
   },
 };
 
@@ -114,7 +130,7 @@ export function consentBootScript(): string {
 export function consentBar(base: string, locale: PageLocale): RawHtml | "" {
   if (base !== "/") return "";
   const c = CONSENT_COPY[locale] ?? CONSENT_COPY.en;
-  return html`<div id="consent" class="consent" role="dialog" aria-live="polite" lang="${locale}" dir="${locale === "he" ? "rtl" : "ltr"}"><p>${c.line}</p><button type="button" data-yes>${c.yes}</button><button type="button" data-no>${c.no}</button></div>
+  return html`<div id="consent" class="consent" role="dialog" aria-label="${c.label}" aria-live="polite" lang="${locale}" dir="${locale === "he" ? "rtl" : "ltr"}"><p>${c.line}</p><button type="button" data-yes>${c.yes}</button><button type="button" data-no>${c.no}</button></div>
     <style>
       ${raw(CONSENT_CSS)}
     </style>

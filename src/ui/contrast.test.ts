@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { GAMES } from "../portal/games";
 import { contrastRatio, inkFor, inkContrast, INK_DARK, INK_LIGHT } from "./ink";
 
@@ -227,15 +228,98 @@ describe("a label's fill clears the TEXT floor, in both themes", () => {
   });
 
   /**
-   * The defect this block was written from, pinned so it cannot be quietly
-   * re-introduced or quietly fixed. --on-brand on market's --brand is 3.14,
-   * and it ships today in `ShareSheet`'s primary button and two `Boards`
-   * labels. Fixing those to --brand-strong REDS this test, which is the point:
-   * the fix should delete this assertion, not edit it.
+   * A PROPERTY OF THE TOKEN, which has not changed and is not a defect: market's
+   * --brand is a bright pink that a white label cannot clear. Kept because the
+   * guard below is meaningless without it - if this ever rose above 4.5, the
+   * scan would be forbidding something harmless.
    */
-  it("market's --brand still cannot carry a white label (known, 2 call sites)", () => {
+  it("market's --brand cannot carry a white label - 3.14, below the text floor", () => {
     const r = contrastRatio(tokenValue("market", "--on-brand"), tokenValue("market", "--brand"));
     expect(r).toBeLessThan(FLOOR);
     expect(r).toBeGreaterThanOrEqual(3);
+  });
+
+  /**
+   * AND NOW THE THING THAT ACTUALLY MATTERS: that no component pairs them.
+   *
+   * What stood here until 2026-09-07 was the ratio assertion above plus a
+   * comment saying the pair "ships today in ShareSheet's primary button and two
+   * Boards labels", and promising that fixing those would RED this test.
+   *
+   * Both halves were false. The set was six, not two - it also included the
+   * home page's category chips (which is the one Lighthouse eventually caught),
+   * a mode toggle inside Nonogram, and the Play button on every embed page.
+   * And fixing them could never have redded anything, because the assertion
+   * reads TOKEN VALUES, which the call sites do not change. A green run over a
+   * false sentence, for as long as anyone cared to read it.
+   *
+   * So the claim moved out of prose and into a scan, and the population comes
+   * from the filesystem rather than from a list someone remembered to update.
+   * See .claude/rules/a-comment-that-explains-a-cost-must-name-its-measurement.md
+   */
+  describe("no component paints a label on the bright brand fill", () => {
+    const ROOT = fileURLToPath(new URL("..", import.meta.url));
+
+    /** Every source file that could render one, found, never listed. */
+    function sources(dir: string, out: string[] = []): string[] {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        const full = join(dir, e.name);
+        if (e.isDirectory()) {
+          if (e.name !== "node_modules") sources(full, out);
+        } else if (/\.(tsx?|css)$/.test(e.name) && !/\.test\.tsx?$/.test(e.name)) {
+          out.push(full);
+        }
+      }
+      return out;
+    }
+
+    /**
+     * `--on-brand` within 12 lines of a `--brand` BACKGROUND. This is the exact
+     * instrument that found all six, so it is known to fire on the real corpus
+     * rather than only on a fixture. It is deliberately not a style-object
+     * parser: the six live in inline styles, template CSS strings and a
+     * concatenated string of CSS, and no one parser reads all three.
+     *
+     * `--brand-strong`, `--brand-fill`, `--brand-2` and `--brand-ink` are
+     * different tokens and must not match - that is what the near-miss case
+     * below pins.
+     */
+    const BAD_BG = /background\s*:[^;\n]*var\(--brand\)/;
+    const INK = /var\(--on-brand[,)]/;
+
+    function offenders(text: string): number {
+      const lines = text.split("\n");
+      let n = 0;
+      for (let i = 0; i < lines.length; i++) {
+        if (!BAD_BG.test(lines[i])) continue;
+        const from = Math.max(0, i - 12);
+        if (INK.test(lines.slice(from, i + 13).join("\n"))) n++;
+      }
+      return n;
+    }
+
+    it("fires on the pairing, and stays silent on --brand-strong", () => {
+      // Positive control. Without this a clean scan and a dead scan look alike.
+      expect(
+        offenders('background: "var(--brand)",\ncolor: "var(--on-brand)",'),
+      ).toBe(1);
+      // The near-miss that matters: this is the FIX, and it must not be flagged.
+      expect(
+        offenders('background: "var(--brand-strong)",\ncolor: "var(--on-brand)",'),
+      ).toBe(0);
+      // And a brand background with no label on it is fine - an outline, a dot.
+      expect(offenders('background: "var(--brand)",\nborderRadius: 8,')).toBe(0);
+    });
+
+    it("no source file pairs --on-brand with a --brand background", () => {
+      const files = sources(ROOT);
+      // The denominator, printed with the finding. A scan over zero files
+      // passes just as quietly as a scan over a clean corpus.
+      expect(files.length).toBeGreaterThan(100);
+      const bad = files
+        .map((f) => [f.slice(ROOT.length), offenders(readFileSync(f, "utf8"))] as const)
+        .filter(([, n]) => n > 0);
+      expect(bad, `${files.length} files scanned; pair --brand-strong with --on-brand instead`).toEqual([]);
+    });
   });
 });

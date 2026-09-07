@@ -850,7 +850,7 @@ function CategoryRail({
           padding: "6px 10px",
           border: "none",
           borderRadius: "var(--radius-2)",
-          background: on ? "var(--brand)" : "var(--surface)",
+          background: on ? "var(--brand-strong)" : "var(--surface)",
           color: "var(--text)",
           boxShadow: "var(--shadow-1)",
         }}

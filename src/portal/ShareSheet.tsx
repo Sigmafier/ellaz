@@ -253,7 +253,7 @@ export function ShareSheet({ locale, game, url, onClose, onTap }: ShareSheetProp
               minHeight: "var(--tap)",
               border: "none",
               borderRadius: "var(--radius-pill)",
-              background: "var(--brand)",
+              background: "var(--brand-strong)",
               color: "var(--on-brand)",
               fontWeight: 800,
               fontSize: 15,

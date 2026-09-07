@@ -225,3 +225,42 @@ work nobody had ever measured. Both were written by someone who had measured
 something true at the time. **Re-measure before quoting any payload figure here**
 — the gate is one command, and this prose has now gone stale twice. See
 [`.claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md`](../.claude/rules/a-threshold-tuned-against-todays-tree-goes-stale.md).
+
+---
+
+## The consent bar names a cookie that is never written (2026-09-07, REPORTED, not fixed)
+
+Found while deferring gtag off the first paint. **Reported deliberately and changed
+deliberately not at all** — the operator's ruling on the day was "just report it".
+
+The bar says, in four languages:
+
+> We count visits with a small Google cookie. No ads, no personal tracking.
+
+`analytics.ts` configures the tag with `client_storage:'none'`, which tells GA to use
+no cookie and no browser storage at all — and that is independent of consent, so it
+holds whether the visitor taps Allow or No thanks. The existing note in that file
+already recorded the live evidence from 2026-08-22: `ep.client_storage=none` on every
+`/g/collect`, `gcs=G100`, and a **fresh `cid` on a second load of the same URL**, which
+is precisely what "no stored identifier" looks like from outside.
+
+So the sentence appears to describe a mechanism that is switched off. **Appears**: this
+is read off the configuration and off a previous session's network capture, not off a
+fresh runtime check of `document.cookie`, which is why it is written here as a finding
+rather than as a fact. Confirming it costs one browser session.
+
+**Three things follow, and they pull in different directions:**
+
+- If no cookie is written, the copy is inaccurate and the bar may not be required at
+  all. That is a legal-shaped question, not an engineering one.
+- That bar is the **LCP element of the home page in both form factors** — PageSpeed
+  named `<p>` "We count visits with a small Google cookie…" as the largest contentful
+  paint, with 2,440 ms of render delay on mobile. Removing it would change what LCP even
+  measures.
+- It is also where the Accessibility score was losing its points: `role="dialog"` with
+  no accessible name. That half is fixed separately, by giving the element an
+  `aria-label`; the copy question below is untouched by it.
+
+The honest summary: **the bar asks permission for something the code has already
+declined to do.** Whether that is a copy fix, a deletion, or correct-as-is under a
+consent regime nobody here has read, is the operator's call and is still open.

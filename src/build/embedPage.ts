@@ -85,7 +85,7 @@ export const EMBED_CSS =
   "#game-poster .em{font-size:64px;line-height:1}" +
   "#game-poster .msg{font-size:.95rem;opacity:.75;max-width:22ch}" +
   ".play{min-height:56px;padding:0 28px;border:0;border-radius:999px;font:inherit;font-weight:700;" +
-  "font-size:1.1rem;background:var(--brand,#ff4d8d);color:var(--on-brand,#fff)}" +
+  "font-size:1.1rem;background:var(--brand-strong,#c2185b);color:var(--on-brand,#fff)}" +
   `.embed-home{flex:0 0 ${EMBED_ROW_HEIGHT}px;box-sizing:border-box;margin:0;padding:0 12px;` +
   "display:flex;align-items:center;justify-content:center;text-align:center;font-size:.85rem}" +
   ".embed-home a{color:inherit;text-decoration:underline}";
