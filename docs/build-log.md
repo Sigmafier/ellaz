@@ -3926,3 +3926,39 @@ failures → 0.** Verified in a real browser: zero requests to `googleapis` or
 `gstatic`, both woff2 fetched at 224 ms and 258 ms, and gtag.js loading at
 **15,976 ms** — the idle fallback firing exactly as designed with nobody
 touching the page.
+
+### A footnote worth more than the fix: `assert:live` red locally, green in CI
+
+After the deploy, `node scripts/assert-live.mjs` run **locally** reported 102
+problems and exited 1, while CI's own *"Verify the live site is serving this
+build"* step — the same script — reported success. A contradiction like that is
+either a broken gate or a real outage, and it is worth resolving rather than
+picking whichever answer is convenient.
+
+It was neither. `assert-live` SHA-256s every file in the local `dist/` against
+what the live host serves, and **the local `dist/` was contaminated**:
+
+```
+dist/assets/game-lettercross-Ba1xDexV.js   237,909 B   <- built from a peer's
+                                                          UNCOMMITTED lettercross
+                                                          work in the working tree
+live shell's dep map                        names no such chunk
+```
+
+Same story throughout: `index.html` was byte-for-byte the same LENGTH as live
+(14,417 B) and differed only in the hashed chunk names it points at, and the
+shell JS differed at character 77 — inside `__vite__mapDeps`, on a lazy chunk
+filename.
+
+**A build packages the WORKING TREE, not `HEAD`.** This repo's global rules
+already name that trap for deploys; the same mechanism makes a local artifact an
+invalid *reference* for a gate that compares against production. Three
+independent checks confirmed the site itself is fine: CI's assert-live (which
+compared the dist it actually uploaded), every asset referenced by the live home
+and snake pages returning 200, and `assert:fast` green on live.
+
+**The rule to carry:** `assert:live` is meaningful only when your `dist/` was
+built from the commit that was deployed. In a tree with a peer's work in flight,
+it is not — and its failure is telling you about your disk, not about the site.
+Nothing was deployed from that contaminated build, because the deploy path is a
+push to `main` and CI builds the commit. That is the whole reason the path exists.
