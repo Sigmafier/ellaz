@@ -3,7 +3,7 @@ import { SHELL_ART_COUNT } from "@ui/gameArt";
 import { SHELL_LOADERS } from "./catalog";
 import { GAMES } from "./games";
 import { REST, REST_LOADERS } from "./gamesRest";
-import { ROSTER_IDS, SHELL_GAMES, SHELL_META_COUNT } from "./shellRoster";
+import { ROSTER_CATEGORY, ROSTER_IDS, SHELL_GAMES, SHELL_META_COUNT } from "./shellRoster";
 
 /**
  * The roster is split across three files so a first visit stops carrying a
@@ -37,6 +37,25 @@ describe("the roster split", () => {
     // here is a card that never appears at all until the lazy chunk lands - and
     // an id here with no game behind it is a permanently empty box.
     expect(ROSTER_IDS).toEqual(GAMES.map((m) => m.id));
+  });
+
+  it("agrees with each game's own category, for every game", () => {
+    // LOAD-BEARING SINCE 2026-09-07, and it was not before. The grid used to
+    // filter the ARRIVED cards by `meta.category` and only the placeholders by
+    // `ROSTER_CATEGORY`; it now maps over `ROSTER_IDS` and filters every slot by
+    // this table, so that the cards hold their catalogue positions from the
+    // first paint instead of jumping when the lazy catalogue lands.
+    //
+    // Which means a disagreement here is no longer a placeholder on the wrong
+    // shelf for half a second - it is a GAME on the wrong shelf, permanently,
+    // rendering perfectly and looking deliberate. Nothing else would catch it.
+    const wrong = GAMES.filter((m) => ROSTER_CATEGORY[m.id] !== m.category).map(
+      (m) => `${m.id}: roster says ${ROSTER_CATEGORY[m.id]}, the game says ${m.category}`,
+    );
+    expect(wrong, wrong.join("\n")).toEqual([]);
+    // The denominator, so a table that has quietly emptied cannot pass by
+    // having nothing to disagree about.
+    expect(Object.keys(ROSTER_CATEGORY)).toHaveLength(GAMES.length);
   });
 
   it("carries the game's id and never its directory name", () => {
