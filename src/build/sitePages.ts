@@ -149,7 +149,7 @@ export function homeShellBody(
       <ul>
         ${site.facts.map((f) => html`<li>${f}</li>`)}
       </ul>
-      <ul>
+      <ul class="home-tiles">
         ${homeGameLinks(games, locale, base)}
       </ul>
       ${copy.body.map((p) => html`<p>${p}</p>`)}

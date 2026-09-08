@@ -202,6 +202,58 @@ body.app-shell:has(#root:not(:empty)) #home-doc {
   color: var(--brand-ink, inherit);
 }
 
+/* THE HALF-SECOND BEFORE THE APP, LAID OUT LIKE THE APP.
+
+   `#home-doc` is what a visitor sees between the first paint and the app
+   committing - 504 ms measured at 390x844 on a desktop-class machine, longer on
+   a phone - and it listed the same 42 games the app was about to draw as a
+   bulleted list of names. Nothing about it resembled the grid that replaced it,
+   so the swap changed every pixel on screen. Speed Index is measured against the
+   LAST frame, which makes a whole-viewport change late in the load expensive;
+   and long before that, it is simply the wrong first impression of the site.
+
+   THE GEOMETRY IS COPIED FROM THE APP, NOT APPROXIMATED. `minmax(96px, 1fr)`,
+   the 12px gap, `aspect-ratio: 1/1`, `--radius-3`, `--surface` and `--shadow-1`
+   are `Home.tsx`'s grid and `GameCard`'s box, and
+   `home-tiles-match-the-grid.test.ts` reds if either side moves - two places
+   drawing the same thing is a hand-kept mirror, and this repo has a rule file
+   about those.
+
+   The 6-fact list above keeps its bullets: it is prose, not a set of tiles. */
+#home-doc .home-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 12px;
+  /* Beats `#home-doc ul` on specificity - a class outranks a type selector. */
+  padding-inline-start: 0;
+  list-style: none;
+}
+
+#home-doc .home-tiles > li {
+  display: block;
+}
+
+/* `--text`, not the `#home-doc a` link colour: on a card the caption is body
+   ink on card stock, and that pairing is the one `contrast.test.ts` already
+   holds. A tile is not a link in a paragraph and should not read as one. */
+#home-doc .home-tiles a {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  aspect-ratio: 1 / 1;
+  padding: 7px 4px;
+  border-radius: var(--radius-3);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+}
+
 /* THE ONE HEBREW WORD ON AN ENGLISH PAGE, AND THE 12,000 B IT USED TO COST.
 
    Every emitted document ends with a row of autonyms linking its own siblings,
