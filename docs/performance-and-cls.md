@@ -428,6 +428,25 @@ first paint was blocked for 1,300 ms the same work happened outside the TBT wind
 Speed Index has its own cause and it is the documented boot flash - the page paints a
 plain document, then React replaces it with a card grid, so the screen changes twice.
 
+### Inlining the stylesheet: what the interleaved arms said
+
+```
+LINKED css (old)   scores 89 92 91 91 92 94  median 91.5  TBT 139  FCP 2477  LCP 2712  SI 2477
+INLINE css (new)   scores 93 93 88 94 86 90  median 91.5  TBT 239  FCP 2047  LCP 2426  SI 2047
+```
+
+Same build, two local ports, one variable, six runs each, run L/I/L/I. FCP 430 ms
+earlier, LCP 286 ms, SI 430 ms, TTI 119 ms, and the render-blocking audit's 300 ms of
+estimated savings gone. **The score did not move**: TBT rose 100 ms and carries 30% of it.
+Main-thread total 1,823 -> 2,074 ms with Script Evaluation flat and Style & Layout
+561 -> 729, so it is not only the TBT window sliding earlier - resolving style during HTML
+parsing costs more on a page with 1,140 elements than resolving it after one blocking
+fetch.
+
+The first attempt at this comparison was the live site before the deploy against the live
+site after, an hour apart. It read 97 -> 93 and it was noise plus machine state; the arms
+were not interleaved. That reading is kept here as the wrong one.
+
 ### `content-visibility: auto` on the cards - measured and REJECTED
 
 The obvious lever for 592 ms of Style & Layout is to stop styling and laying out the

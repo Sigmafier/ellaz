@@ -4328,6 +4328,34 @@ The first visit got *smaller*: the CSS gzips against the HTML instead of alone, 
 request disappears. What it costs is the deploy - 2.4 MB more over FTP each time - and
 that is stated rather than waved away, because this host has dropped an upload twice.
 
+### What it actually bought, measured with both arms interleaved
+
+The first live before/after read WORSE (median 97 -> 93) and it was not evidence: the
+arms were an hour and a deploy apart, on a machine that had run two builds and a test
+suite in between. Non-interleaved arms measure the arm ORDER as much as the arm. So both
+shapes were served from the SAME build on two local ports - one with the CSS inline, one
+patched back to a `<link>` - and run L/I/L/I, six times each:
+
+```
+LINKED css   scores 89 92 91 91 92 94   median 91.5
+             TBT 139   FCP 2477   LCP 2712   SI 2477   render-blocking savings 300 ms
+INLINE css   scores 93 93 88 94 86 90   median 91.5
+             TBT 239   FCP 2047   LCP 2426   SI 2047   render-blocking savings   0 ms
+```
+
+**FCP is 430 ms earlier, LCP 286 ms earlier, Speed Index 430 ms better, TTI 119 ms
+earlier, and the render-blocking audit is gone. The score is unchanged**, because TBT
+went the other way by 100 ms and TBT carries 30% of it.
+
+That is not a window artefact - main-thread total moved 1,823 -> 2,074 ms with Script
+Evaluation flat (495 -> 489) and Style & Layout up 561 -> 729. Inline CSS starts style
+resolution during HTML parsing rather than after one blocking fetch, and this page has
+1,140 elements to resolve.
+
+**So: a real defect closed and a real paint improvement, at no net score change.** Said
+plainly here because the render-blocking number on its own would read as a score win, and
+the next person to quote it would be wrong.
+
 ### Two gates had to move in the same change, and one of them would have gone silent
 
 `assert-pages` counted `<link rel=stylesheet>` to decide whether a page had styles, so on
