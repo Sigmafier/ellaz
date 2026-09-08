@@ -4385,3 +4385,97 @@ What the runs agree on is where the cost actually sits: **Style & Layout 592 ms*
 1.4 s main thread, against Script Evaluation's 277 ms, over **1,140 DOM elements** - 42
 cards each carrying an inline SVG twelve levels deep. No stylesheet or font change touches
 that, and it only became visible once the first paint stopped being blocked for 1,300 ms.
+
+## 2026-09-08 · The half-second before the app, and the gate that said how many
+
+The operator's mobile PageSpeed came back FCP 1.4 s, LCP 1.7 s, TBT 10 ms, CLS 0 - and
+**Speed Index 4.0 s**. One number out of line, on a page where every other number was
+good.
+
+### What was built first: an instrument, with a control
+
+Nothing in this repo could read a filmstrip, so `scripts/repro/repro-speed-index.mjs`
+was written: its own Chrome on an ephemeral debugging port, Lighthouse pinned and its
+version PRINTED from each run's own JSON, a population header, a per-run table before
+any median, every filmstrip frame saved. Its `--control` proves it can separate a late
+paint from an early one - **FAST 0.66 s, LATE 4.04 s, separation 3,382 ms against a
+1,000 ms floor**.
+
+Ten runs against the live site read **SI median 1.29 s**, min 1.10, max 3.07. The 4.0
+did not reproduce, and the plan's decision rule - written down in advance so it could
+not be rationalised afterwards - said a median under 1.5 s means the reading was a draw.
+
+**So this arc bought no speed, and every number below says so.**
+
+### What shipped, and why it is bounded at fifteen
+
+The emitted home document is what a visitor sees until React commits. Its 42 game links
+were white boxes with a word in them, resembling nothing about the site they precede.
+The first fifteen now carry the game's emoji on the app's own `.ellaz-tint` wash,
+reading the same `--game` the app sets on the same kind of span, with the name on a strip
+in `meta.color` and the ink `inkFor` picks - the same call `GameCard` makes, so
+`contrast.test.ts`'s per-game floor covers this surface rather than a second palette
+nothing measures.
+
+**Fifteen and not forty-two, because `assert:slope` refused forty-two.** Decoration costs
+~17 B gz per game and does not compress away - the emoji glyph barely compresses and the
+colour is close to unique - so decorating the roster took the catalogue slope from 32.5
+to **47.0 B gz per game against a 45 B budget**. That gate is not a threshold to argue
+with: the first visit must be O(1) in the size of the roster. Bounding it at
+`SHELL_META_COUNT` is not a compromise either - fifteen is the number of cards the APP
+paints on its own first frame, so the document now shows exactly what the app is about
+to show and nothing it is not.
+
+**And the visitor sees no difference**: the 412x823 frame is byte-identical between
+decorating fifteen and decorating forty-two, same PNG md5, because the fold falls around
+tile nine.
+
+```
+                  first visit    slope         Speed Index (interleaved x4)
+  white (HEAD)    56,180 B gz    32.5 B/game   2.27s median, spread 1.08s
+  all 42          56,906  OVER   47.0  FAIL    -
+  15 (shipped)    56,533  ok     32.8  ok      2.19s median, spread 0.41s
+```
+
+A raise of `CEILING` to 57,600 was written, argued in full, measured - and then REVERTED
+once the bound made it unnecessary. The ceiling in the shipped commit is the one that was
+already there.
+
+### Three things it cost, each caught by something
+
+**A clipped name.** `white-space: nowrap` mirrored `GameCard` faithfully and rendered
+"What Comes Next" as "What Comes Ne..." at 412px. The tiles wrapped before the decoration
+existed, so that was a regression this change introduced. The strip wraps now, and the
+DIFFERENCE from `GameCard` is pinned by a test so the next reader does not restore the
+mirror.
+
+**An orphan token.** `--g`/`--i` were read by CSS and declared nowhere, and
+`token-hygiene.test.ts` said so. The fix was not an exemption but the app's own names:
+`--game` was already exempt for exactly this reason, `.ellaz-tint` is now REUSED rather
+than restated, and only `--game-ink` needed listing - by exact name, never a `--game*`
+prefix, so a typo still reads as an orphan.
+
+**A stale server.** A capture came back byte-identical to a previous arm because
+`python3 -m http.server` failed to bind and an old server from earlier in the session
+answered the 200. `curl` proved a server answered, not that it was mine. Ports are
+verified by the listener's own cwd now.
+
+### The measurement traps, since they cost more than the code
+
+- **A gate under a pipe.** `npm run build:check | tail` reported exit 0 while
+  `assert-payload` was failing by 106 B. Every gate in this arc was re-run with its exit
+  captured before any pipe, and that is how the failure was found at all.
+- **A probe whose two numbers disagree.** `repro-frame-distance` said the coloured tiles
+  differ from the app in MORE pixels (50.25% -> 52.86%) by a SMALLER amount (68.76 ->
+  65.14). A 24/255 threshold turns magnitude into a boolean; it was retired from the
+  decision rather than quoted.
+- **A two-state capture.** Both arms' settled-app frames produce both of two hashes,
+  alternating, because the daily card's art arrives on `requestIdleCallback`. A single
+  pair would have read as a diff caused by this change.
+
+### One row that could not be measured
+
+`repro-home-boot-shift.mjs` imports `playwright`, and so do **29 of the probes in
+`scripts/repro/`**. It is not installed and was deliberately not installed. CLS was
+0.000 on all eight interleaved Lighthouse runs, both arms, which is a substitute for
+that row and not the row itself.

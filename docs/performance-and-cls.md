@@ -468,3 +468,137 @@ and the containment bookkeeping is not free.
 Recorded because a rejected experiment with a number is worth more than an untried idea:
 the next session that reaches for this lever can read the measurement instead of spending
 an hour rediscovering it.
+
+---
+
+## 2026-09-08 · Speed Index: a committed instrument, and what it says about the flash
+
+The operator's PageSpeed run read **Speed Index 4.0 s** beside FCP 1.4 s, LCP 1.7 s,
+TBT 10 ms and CLS 0. One number out of line, and nothing in this repo could read a
+filmstrip, so `scripts/repro/repro-speed-index.mjs` was written and committed.
+
+### Its control, which is the reason to believe anything below
+
+`--control` builds two local pages and serves them from a SEPARATE process: FAST fills
+the viewport at once, LATE fills it with the identical SVG after the server holds it
+2,500 ms. Arms interleaved F/L/F/L. Measured 2026-09-08:
+
+```
+FAST median SI  0.66s
+LATE median SI  4.04s
+separation      3382 ms   (floor 1000 ms, or it exits 1 calling its own numbers worthless)
+CONTROL PASSED
+```
+
+**It was run AFTER the numbers below were first quoted, not before, and that was the
+wrong order** - the plan's own T14a said "before any real number is quoted". The
+instrument turned out to be sound; the process was not, and a control that had failed
+would have invalidated a day of readings after they had been acted on.
+
+The control's first version could not run at all: `spawnSync` blocks node's event loop,
+so an in-process HTTP server can never answer Chrome's request. It timed out with
+`exit null` and read as a Lighthouse fault.
+
+### Ten runs against the live site - the 4.0 did not reproduce
+
+Lighthouse 13.4.1, mobile preset, Slow 4G, sequential, HeadlessChrome/150:
+
+```
+run  score     FCP     LCP      TBT     CLS      SI
+  1     92   1.37s   1.37s    330ms   0.000   3.07s
+  2     98   0.95s   0.95s    165ms   0.000   1.18s
+  3     96   0.96s   0.96s    220ms   0.000   1.12s
+  4     77   1.61s   1.73s    994ms   0.000   2.74s
+  5     99   1.01s   1.01s    105ms   0.000   1.18s
+  6     92   1.13s   1.13s    334ms   0.000   1.26s
+  7     99   0.96s   0.96s    124ms   0.000   1.10s
+  8     92   1.04s   1.04s    341ms   0.000   1.33s
+  9     96   1.90s   1.90s    165ms   0.000   1.90s
+ 10     83   1.25s   1.31s    706ms   0.000   1.95s
+
+  Speed Index  median 1.29s   min 1.10s   max 3.07s   spread 2.8x
+  score        median 94      min 77      max 99
+```
+
+**Median 1.29 s against a decision rule that said "<= 1.5 s means the 4.0 was a draw".**
+So it was a draw, and everything below is a LOOKS change, said out loud rather than
+rationalised afterwards.
+
+### Four visual states, from the saved filmstrips
+
+57 of 80 frames were byte-identical to their run's final frame; every run's final frame
+shared one md5. The states, by frame size:
+
+```
+  blank
+  the plain text document   17,177 B   on screen in 2 of 10 runs
+  the app, puzzle box empty 23,416 B   5 of 10
+  the app, complete         25,492 B
+```
+
+### The frame-distance probe cannot decide a tile change, and said so
+
+`repro-frame-distance.mjs` at threshold 24/255, all arms against one settled-app frame:
+
+```
+  CONTROL  target vs itself     0.00%   mean  0.00
+  plain list                   50.06%   mean 65.87    thirds 22.8 / 51.5 / 75.8
+  white tiles                  50.25%   mean 68.76    thirds 22.8 / 51.3 / 76.5
+  coloured tiles               52.86%   mean 65.14    thirds 22.8 / 53.3 / 82.4
+```
+
+**Its two numbers disagree**: more pixels differ, by a smaller amount. A 24/255 threshold
+turns magnitude into a boolean, and magnitude is the half that moved the right way. The
+bottom third is also dominated by the consent bar, which the document can never show. So
+this probe was retired from the decision and Lighthouse was asked instead.
+
+### The interleaved A/B - Speed Index does not move
+
+Two arms built from one tree with the tiles as the only variable, served from two local
+ports, runs alternating white/coloured x4:
+
+```
+arm         n   SI med  SI min  SI max  FCP med  TBT med  score med
+white       4    2.27s   2.13s   3.21s    2.25s    184ms       92.0
+coloured    4    2.19s   2.03s   2.44s    2.19s    399ms       85.5
+```
+
+80 ms against per-arm spreads of 1.08 s and 0.41 s: **noise**. CLS was 0.000 in all eight.
+It cannot be anything else - `global.css` hides `#home-doc` the instant `#root` is
+non-empty, so the frame and the app never coexist.
+
+### What the tiles cost, and the gate that sized them
+
+```
+                  first visit    slope         verdict
+  white (HEAD)    56,180 B gz    32.5 B/game   the tree as it was
+  all 42 coloured 56,906  OVER   47.0  FAIL    assert:slope refused it (budget 45)
+  15 coloured     56,533  ok     32.8  ok      shipped, ceiling untouched at 56,800
+```
+
+Per-component, measured on the built `index.html`: the 42 emoji glyphs **236 B** and
+barely compressible, the `--game`/`--game-ink` attributes **294 B**, the two spans 51 B,
+the CSS 155 B. Trims were measured before the bound was chosen and all rejected: dropping
+both class attributes for structural selectors 45 B, folding the ink into a class 2 B,
+restating the gradient once instead of twice 6 B - 53 B of the 106 needed, at a real cost
+to legibility.
+
+**Bounding it at 15 costs the visitor nothing**: the 412x823 frame is byte-identical
+between decorating 15 and decorating 42 (same PNG md5), because the fold falls around
+tile 9.
+
+### The app is untouched, and the probe has a two-state race
+
+Both arms' settled app frames produce BOTH of two hashes, alternating - the daily card's
+art arrives on `requestIdleCallback`, so a capture can land either side of it. Interleaved
+x2 per arm: head-1 = mine-2 and head-2 = mine-1. A single pair would have read as a diff.
+
+### One row that could not be measured here
+
+`repro-home-boot-shift.mjs` - the named instrument for T15b - **cannot run in this
+environment**: it imports `playwright`, and so do **29 of the probes in
+`scripts/repro/`**, which is not installed and was deliberately not installed (~300 MB of
+browsers). The property it guards was measured by a different instrument instead - CLS
+0.000 on all eight interleaved Lighthouse runs, both arms - but that is a substitute, not
+the row, and the probe fleet being inert is worth knowing before the next session reaches
+for one.
