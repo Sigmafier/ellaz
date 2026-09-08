@@ -102,7 +102,7 @@ one says nothing about what another would find.
 | `npm run assert:slope` | two build arms | the per-game cost of the catalogue growing |
 | `npm run assert:pages` | the 200 emitted documents | prose floor, canonical, hreflang, JSON-LD, sitemap bijection, share cards, titles |
 | `npm run assert:crawlable` | **the network**, as every crawler robots.txt names | a challenge, a 429, or a 200 carrying no content |
-| `npm run assert:live` | **the live site** after a deploy | HTML naming assets that never landed, or bytes that arrived truncated |
+| `npm run assert:live` | **the live site** after a deploy | HTML naming assets that never landed (any type under `assets/`, fonts included), or bytes that arrived truncated |
 | `npm run assert:fast` | **the served bytes** of three page shapes | a third-party `@import` inside a blocking stylesheet, a third-party blocking stylesheet, an undeferred third-party script in `<head>`, a page whose body face is not preloaded |
 | `node scripts/fonts/sync-fonts.mjs --check` | **Google's live font CSS** + the six committed woff2 | a font file that drifted from what Google serves, and a hebrew `@font-face` claiming general punctuation (the ZWJ trap) |
 | `npm run assert:standalone` | `dist-standalone/` or an extracted zip | anything that phones home, an absolute path, a stale stamp |

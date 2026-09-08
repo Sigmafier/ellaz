@@ -23,6 +23,7 @@
     "reports:pull:control": "node scripts/reports/pull.mjs --control",
     "assert:crawlable": "node scripts/assert-crawlable.mjs",
     "assert:live": "node scripts/assert-live.mjs",
+    "assert:live:control": "node scripts/assert-live.mjs --control",
     "assert:fast": "node scripts/assert-fast.mjs",
     "assert:fast:control": "node scripts/assert-fast.mjs --control",
     "build:standalone": "vite build --config vite.standalone.config.ts",

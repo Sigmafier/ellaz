@@ -4211,3 +4211,73 @@ the site down for about forty minutes.
 `deploy-triggers.test.ts` now pins three things, each watched failing on its own
 planted defect: the entry is present, nothing in the deploy path imports a reproducer,
 and neither workflow runs one during a deploy.
+
+---
+
+## 2026-09-08 · The deploy gate was reading four of the five assets on the page
+
+**Commit**: this one. `scripts/assert-live.mjs`, `package.json`, one rule.
+
+`/finalize` on the font work reported a gap it had found and not fixed: measured on the
+live home page, **5 hashed assets named in the document, 4 compared**. The uncovered one
+was the woff2 preload that had shipped the day before. The matcher read
+`assets/<name>.(?:js|css)` — an extension allowlist, which is a hand-kept mirror of what
+Vite happens to emit, and the third face of a shape this repo already has a rule for.
+
+```
+BEFORE                         AFTER
+------                         -----
+\.(?:js|css))"                  \.[A-Za-z0-9]{2,6})"
+
+/            4 asset refs      /            5 asset refs
+/games/snake/ 6                /games/snake/ 7
+/world/       5                /world/       6
+/boards/      5                /boards/      6
+                               /he/          5   <- a new route
+```
+
+`/he/` is now in `ROUTES`, and it earns the place as a KIND rather than a locale: it
+boots the app like the other four and it is the only one that names a *different* hashed
+font file, because the preload is chosen by the locale the page is written in. `/es/` and
+`/fr/` render the same latin subset as `/`, so they are deliberately not added.
+
+### What this actually closes is narrower than the recommendation said
+
+The recommendation that bought this work said *"a dropped upload would leave every page
+in a fallback face behind a green deploy"*. That is false, and five minutes reading
+`distArtifacts()` in the same file refutes it: the script already walks every non-html
+file in `dist/` and compares it to the live copy by SHA-256, so the font **files** have
+been covered since the day they landed.
+
+The case nothing could see is a preload href naming a file that is not in the build.
+`assert-fast` checks the tag is present and never fetches it; this walk never looked at
+it. A browser recovers, because the `@font-face` in the CSS carries its own fingerprinted
+`url()` — so the page still renders in the right face and the only symptom is that the
+preload silently stops working. A win that reverts behind a green build, which is the
+shape `precache-glob-sweeps-new-chunks.md` exists for.
+
+### Three arms, each watched
+
+The live documents were saved as the local `dist/` so the equality half is trivially
+true, and then one variable was changed per arm:
+
+```
+ARM 3  the shipped matcher                     exit 0   8 assets, 5 routes
+ARM 1  the pre-2026-09-08 matcher, nothing     exit 1   guard fires; every route 5 -> 4
+       else changed
+ARM 2  a preload href naming a file not in     exit 1   named twice — "built but not
+       the build (heebo-latin-DEADBEEF)                  live", and HTTP 404 on the fetch
+```
+
+Arm 1 is red because of the other half of this change: a **scope guard that runs on
+every invocation**, not once. Zero woff2 across five app-booting routes has two causes
+and both are defects — the preload was dropped from every page, or the matcher stopped
+seeing it. Without that assertion Arm 1 is a clean green run with slightly smaller
+numbers, which is exactly how the gap survived for a day.
+
+`npm run assert:live:control` is the offline half: 11 cases, five that must match
+(module script, stylesheet, the font preload, a modulepreload, a base-prefixed Pages
+href), five near-misses that must not (an internal link, a locale link, a canonical, a
+share card outside `assets/`, a third-party font), and one asserting an extension we do
+not emit today is matched anyway — so the allowlist cannot quietly grow back. Run against
+the old matcher it reports **2 WRONG**.

@@ -112,6 +112,55 @@ And pin it in both directions. `deploy-triggers.test.ts` now asserts the entry i
 present, that nothing in the deploy path imports a reproducer, and that neither workflow
 RUNS one - the last of which no import graph could ever see.
 
+## A third face: a filter narrowed by EXTENSION (2026-09-08)
+
+Same defect again, in a gate rather than a workflow. `assert-live.mjs` follows every
+document's asset references and compares them to the build; it matched
+`assets/<name>.(?:js|css)`, which is a hand-kept mirror of what Vite happens to emit.
+The woff2 that the font work put in every head on 2026-09-07 fell straight through it.
+
+```
+BEFORE                              AFTER
+------                              -----
+\.(?:js|css))"                       \.[A-Za-z0-9]{2,6})"
+
+live home page:                     live home page:
+  5 hashed assets named               5 hashed assets named
+  4 compared                          5 compared
+```
+
+**The cost is smaller than it looks, and saying so is the point.** The woff2 FILES were
+never at risk - the same script already walks all of `dist/` and compares every
+non-html file by SHA-256, so a dropped font upload has always been caught. The
+uncovered case is a preload href naming a file that is not in the build: `assert-fast`
+checks the tag is present and never fetches it, and this walk never looked at it. A
+browser recovers, because the `@font-face` in the CSS carries its own fingerprinted
+url - so the only symptom is that the preload silently stops working. **A win that
+reverts behind a green build**, the shape
+[`precache-glob-sweeps-new-chunks.md`](precache-glob-sweeps-new-chunks.md) is about.
+
+The recommendation that produced this work said something stronger and wrong - *"a
+dropped upload would leave every page in a fallback face behind a green deploy"* - and
+five minutes reading `distArtifacts()` refuted it. **Read the gate you are about to
+extend before quoting what it does not cover**, or the fix ships with a false reason
+attached and the next reader inherits it.
+
+Three arms, each watched:
+
+```
+ARM 1  the pre-2026-09-08 matcher, everything else identical  -> exit 1, guard fires,
+                                                                 every route 5 -> 4
+ARM 2  a preload href naming a file not in the build          -> exit 1, named twice:
+                                                                 the equality half AND
+                                                                 a 404 on the fetch
+ARM 3  the shipped matcher, live documents as the local dist  -> exit 0, 8 assets, 5 routes
+```
+
+And the scope guard now runs on **every** invocation rather than once: zero woff2
+across five app-booting routes means either the preload was dropped from every page or
+the matcher stopped seeing it, and both are defects. That assertion is what turned Arm 1
+red - the counts alone would have read as a healthy site.
+
 ## Related
 
 - [`a-workflow-outside-the-repo-root-is-an-ordinary-text-file.md`](a-workflow-outside-the-repo-root-is-an-ordinary-text-file.md)

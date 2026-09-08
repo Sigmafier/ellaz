@@ -64,8 +64,17 @@ const SETTLE_MS = Number(process.env.LIVE_SETTLE_MS || 15000);
    This is NOT a fourth "which pages boot the app" list, and must not become
    one: there are already three (build.test.ts, assert-pages.mjs, and the
    runtime's own switch in pageContext.ts) and CLAUDE.md names adding another as
-   a trap. This is a sample, not an enumeration - it needs one of each KIND. */
-const ROUTES = ["/", "/games/snake/", "/world/", "/boards/"];
+   a trap. This is a sample, not an enumeration - it needs one of each KIND.
+
+   `/he/` earns its place as a KIND rather than as a locale. It boots the app
+   like the four above - it carries `index-*.js` - and it is the ONLY route that
+   names a DIFFERENT hashed font file: `heebo-hebrew-*.woff2` where every other
+   route names `heebo-latin-*.woff2`, because the preload is chosen by the
+   locale the page is written in. Without it the Hebrew subset's reference is
+   never compared against the build. The other locales are NOT added: `/es/` and
+   `/fr/` render the same latin subset as `/`, so they would be a fourth and
+   fifth copy of a comparison already made. */
+const ROUTES = ["/", "/games/snake/", "/world/", "/boards/", "/he/"];
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const sha256 = (buf) => createHash("sha256").update(buf).digest("hex");
@@ -76,8 +85,30 @@ function localFile(route) {
 }
 
 /* Only hashed build output. Not every href - the pages are full of internal
-   links, and a link check is assert-pages.mjs's job, not this one. */
-const ASSET_RE = /(?:src|href)\s*=\s*"([^"]*\bassets\/[A-Za-z0-9_.-]+\.(?:js|css))"/g;
+   links, and a link check is assert-pages.mjs's job, not this one.
+
+   The EXTENSION is deliberately not enumerated. Until 2026-09-08 this read
+   `(?:js|css)`, which was a hand-kept mirror of what Vite happened to emit, and
+   the woff2 that the 2026-09-07 font work put in every document's head fell
+   straight through it. Measured on the live home page that day: 5 hashed assets
+   named in the document, 4 of them compared. Everything under `assets/` is
+   build output by construction, so matching any extension cannot go stale when
+   the next asset type arrives - which is the whole failure being fixed. Checked
+   the same day across all 247 emitted documents: 1,094 js, 222 css, 222 woff2,
+   and nothing else at all.
+
+   What this actually closes is narrow, and worth stating so nobody quotes it
+   for more than it does. The woff2 FILES were never at risk: the dist-artifact
+   walk below fetches every non-html file in `dist/` and compares it by SHA-256,
+   so a dropped font upload has always been caught. What nothing could see is a
+   preload href pointing at a file that is not in the build - assert-fast checks
+   the TAG is present and never fetches it, and this walk never looked at it. A
+   browser recovers (the `@font-face` in the CSS carries its own fingerprinted
+   url), so the page still renders in the right face and the only symptom is
+   that the preload silently stops working: the exact shape of
+   `.claude/rules/precache-glob-sweeps-new-chunks.md`, where the win reverts
+   behind a green build. */
+const ASSET_RE = /(?:src|href)\s*=\s*"([^"]*\bassets\/[A-Za-z0-9_.-]+\.[A-Za-z0-9]{2,6})"/g;
 
 function assetsIn(html) {
   const out = new Set();
@@ -154,6 +185,21 @@ async function runChecks() {
 
     for (const a of live) wanted.add(a);
     for (const a of local) wanted.add(a);
+  }
+
+  /* The matcher's own positive control, run every time rather than once.
+
+     Every emitted document that boots the app carries exactly one hashed woff2
+     in its head, so zero of them across five routes has only two causes and
+     both are defects: the preload was dropped from the emitted head, or this
+     file's ASSET_RE stopped seeing it - which is precisely what it did from
+     2026-09-07, when the fonts arrived, until 2026-09-08. A gate whose scope
+     silently narrows reads exactly like a gate over a healthy site. */
+  if (wanted.size && ![...wanted].some((a) => a.endsWith(".woff2"))) {
+    failures.push(
+      "no route referenced a hashed woff2 - either every page lost its font preload," +
+        " or this gate's ASSET_RE stopped matching it. The gate is the suspect, not the site.",
+    );
   }
 
   /* Now the half that the outage was: every asset the live html POINTS AT must
@@ -390,7 +436,66 @@ function distArtifacts() {
   return out.sort();
 }
 
+/**
+ * The matcher's negative control. A gate is not trustworthy because it is
+ * green - it is trustworthy because it was watched going red on a planted
+ * defect and staying quiet on a legitimate near-miss.
+ *
+ * Offline and pure: it needs neither `dist/` nor the network, so it can be run
+ * from anywhere to answer "can this thing still see what it claims to see".
+ */
+function control() {
+  const CASES = [
+    // The three that must be caught. woff2 is the one that was missed.
+    { name: 'module script', fires: true, html: '<script type="module" src="/assets/index-Br6LrOby.js"></script>' },
+    { name: "shell stylesheet", fires: true, html: '<link rel="stylesheet" href="/assets/shell-DOWfAMu2.css">' },
+    {
+      name: "font preload - THE 2026-09-07 MISS",
+      fires: true,
+      html: '<link rel="preload" as="font" type="font/woff2" crossorigin href="/assets/heebo-latin-C2eWiQZy.woff2">',
+    },
+    { name: "modulepreload", fires: true, html: '<link rel="modulepreload" crossorigin href="/assets/vendor-react-DKb1IkY9.js">' },
+    { name: "base-prefixed href (the Pages copy)", fires: true, html: '<link rel="stylesheet" href="/ellaz/assets/shell-DOWfAMu2.css">' },
+
+    // NEAR MISSES. A matcher that merely swept every href would pass all five
+    // cases above and be wrong: these documents are mostly internal links.
+    { name: "NEAR MISS - an internal page link", fires: false, html: '<a href="/games/snake/">Snake</a>' },
+    { name: "NEAR MISS - a locale link", fires: false, html: '<a href="/he/" hreflang="he" lang="he">*</a>' },
+    { name: "NEAR MISS - a canonical", fires: false, html: '<link rel="canonical" href="https://ellaz.fun/games/snake/">' },
+    { name: "NEAR MISS - a share card outside assets/", fires: false, html: '<meta property="og:image" content="https://ellaz.fun/share/snake.png">' },
+    { name: "NEAR MISS - a third-party font, not ours", fires: false, html: '<link rel="preload" href="https://fonts.gstatic.com/s/heebo/v26/x.woff2">' },
+  ];
+
+  let wrong = 0;
+  console.log("negative control - planted references and legitimate near-misses\n");
+  for (const c of CASES) {
+    const got = assetsIn(c.html);
+    const fired = got.size > 0;
+    const good = fired === c.fires;
+    if (!good) wrong++;
+    console.log(`  ${good ? "ok  " : "WRONG"} ${c.name} - ${fired ? `matched ${[...got].join(", ")}` : "silent"}`);
+  }
+
+  /* The extension set is NOT enumerated in the matcher on purpose, so prove
+     that: an asset type this repo does not emit today must still be seen. */
+  const future = assetsIn('<link rel="preload" href="/assets/sprite-Ab12Cd34.webp">');
+  const openEnded = future.size === 1;
+  if (!openEnded) wrong++;
+  console.log(
+    `  ${openEnded ? "ok  " : "WRONG"} an asset type we do not emit today is matched anyway` +
+      (openEnded ? "" : " - the extension list has become a hand-kept mirror again"),
+  );
+
+  console.log(
+    wrong === 0
+      ? `\nOK  ${CASES.length + 1}/${CASES.length + 1} cases classified correctly.`
+      : `\nFAIL  ${wrong} case(s) classified WRONG - this gate cannot be trusted.`,
+  );
+  process.exit(wrong === 0 ? 0 : 1);
+}
+
 async function main() {
+  if (process.argv.includes("--control")) return control();
   if (!existsSync(DIST)) {
     console.error(`FAIL  no ${DIST}/ - build before verifying, or set DIST_DIR`);
     process.exit(1);
