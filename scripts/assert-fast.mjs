@@ -142,26 +142,54 @@ async function checkPage(path) {
   const locale = path.split("/").filter(Boolean)[0] ?? "en";
 
   // 1 — a third-party @import inside anything that blocks render.
+  //
+  // INLINE <style> BLOCKS COUNT, and since 2026-09-08 they are where the whole
+  // shell stylesheet lives: it ships inside each document rather than beside it
+  // (`inlineStylesheets`, src/build/assets.ts). A version of this check that
+  // reads only LINKED sheets therefore has nothing to read on these pages and
+  // passes in silence - the scope narrows without the gate saying so, which is
+  // the same defect `assert-live.mjs`'s asset matcher had for a day. An
+  // `@import` is equally render-blocking wherever it is written, so the
+  // population is: every linked local stylesheet, plus every inline block.
   const sheets = blockingStylesheets(head, page.url);
+  const inlineBlocks = [...page.body.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)].map((m) => m[1]);
   let imported = 0;
+  const scanCss = (css, where) => {
+    for (const href of importedUrls(css)) {
+      if (!isThirdParty(href, page.url)) continue;
+      imported++;
+      fail(
+        `${path} — ${where} @imports a third-party stylesheet:\n` +
+          `        ${href}\n` +
+          `        Nothing can preload it: it is not discoverable until this file\n` +
+          `        has downloaded and parsed. Name the font in the document head.`,
+      );
+    }
+  };
   for (const sheet of sheets) {
     const css = await get(sheet);
     if (css.status !== 200) {
       fail(`${path} — blocking stylesheet ${sheet} answered HTTP ${css.status}`);
       continue;
     }
-    for (const href of importedUrls(css.body)) {
-      if (!isThirdParty(href, page.url)) continue;
-      imported++;
-      fail(
-        `${path} — ${sheet.replace(ORIGIN, "")} @imports a third-party stylesheet:\n` +
-          `        ${href}\n` +
-          `        Nothing can preload it: it is not discoverable until this file\n` +
-          `        has downloaded and parsed. Name the font in the document head.`,
-      );
-    }
+    scanCss(css.body, sheet.replace(ORIGIN, ""));
   }
-  if (sheets.length && !imported) ok(`no third-party @import in ${sheets.length} blocking stylesheet(s)`);
+  for (const [i, css] of inlineBlocks.entries()) scanCss(css, `inline <style> #${i + 1}`);
+
+  // A page with NO styles by either mechanism is not a page that passed this
+  // check - it is a page this check could not see. Say so rather than printing
+  // nothing, which is what a zero-population run used to do.
+  if (!sheets.length && !inlineBlocks.length) {
+    fail(
+      `${path} — carries no stylesheet and no inline <style>. Either the page is ` +
+        `genuinely unstyled or this gate is reading the wrong document; both need a human.`,
+    );
+  } else if (!imported) {
+    ok(
+      `no third-party @import in ${sheets.length} blocking stylesheet(s) and ` +
+        `${inlineBlocks.length} inline block(s)`,
+    );
+  }
 
   // 1b — a third-party stylesheet linked straight from <head>. Same cost as
   // the @import above and a different code path: on 2026-09-07 a game page
@@ -278,6 +306,42 @@ function control() {
       (whole ? "" : `\n        got: ${read}`),
   );
 
+  // The POPULATION, not the matcher. Since the shell stylesheet moved inside
+  // the document, a check that reads only linked sheets has nothing to read on
+  // our own pages - it would pass on every document below.
+  const DOCS = [
+    {
+      name: "@import inside an inline <style> - the post-2026-09-08 shape",
+      fires: true,
+      html: '<head><style>@import"https://fonts.googleapis.com/css2?family=Heebo";body{margin:0}</style></head>',
+    },
+    {
+      name: "NEAR MISS - a first-party @import inside an inline <style>",
+      fires: false,
+      html: '<head><style>@import "/assets/tokens.css";body{margin:0}</style></head>',
+    },
+    {
+      name: "NEAR MISS - an inline <style> with no @import at all",
+      fires: false,
+      html: "<head><style>body.app-shell{font-family:var(--font)}</style></head>",
+    },
+  ];
+  for (const c of DOCS) {
+    const blocks = [...c.html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)].map((m) => m[1]);
+    const fired = blocks.some((css) => importedUrls(css).some((h) => isThirdParty(h, PAGE)));
+    const good = fired === c.fires;
+    if (!good) wrong++;
+    console.log(`  ${good ? "ok  " : "WRONG"} ${c.name} — ${fired ? "fired" : "silent"}`);
+  }
+
+  // A document with no styles by either mechanism: the gate must say it cannot
+  // see, never pass in silence.
+  const blind = "<head><title>x</title></head>";
+  const blindOk =
+    (blind.match(/<style[^>]*>/gi) ?? []).length === 0 && blockingStylesheets(blind, PAGE).length === 0;
+  if (!blindOk) wrong++;
+  console.log(`  ${blindOk ? "ok  " : "WRONG"} a document with no styles at all is detected as unreadable`);
+
   const SHEETS = [
     { name: "third-party <link rel=stylesheet> in head", fires: true, href: "https://fonts.googleapis.com/css2?family=X" },
     { name: "NEAR MISS — first-party stylesheet", fires: false, href: "/assets/shell-abc.css" },
@@ -306,7 +370,7 @@ function control() {
 
   console.log(
     wrong === 0
-      ? `\nOK  ${CASES.length + SHEETS.length + SCRIPTS.length + 1}/${CASES.length + SHEETS.length + SCRIPTS.length + 1} cases classified correctly.`
+      ? `\nOK  ${CASES.length + DOCS.length + SHEETS.length + SCRIPTS.length + 2}/${CASES.length + DOCS.length + SHEETS.length + SCRIPTS.length + 2} cases classified correctly.`
       : `\nFAIL  ${wrong} case(s) classified WRONG — this gate cannot be trusted.`,
   );
   process.exit(wrong === 0 ? 0 : 1);

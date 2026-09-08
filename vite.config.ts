@@ -289,6 +289,16 @@ export default defineConfig({
           // guided by `unicode-range`, and the head preloads the one the page
           // is written in; the precache has no such discretion.
           "**/*.woff2",
+          // THE SHELL STYLESHEET, which since 2026-09-08 no document links:
+          // its bytes ship inside every emitted document as an inline <style>
+          // (see `inlineStylesheets` in src/build/assets.ts). Vite still emits
+          // the file - deleting it from the bundle would race vite-plugin-pwa's
+          // own manifest hook, and a manifest naming a file that was never
+          // written is a service worker that fails to install - so it stays on
+          // disk, unreferenced, and out of the precache. Without this line the
+          // `**/*.css` half of globPatterns above ships every first visit a
+          // second copy of styles it already has in the HTML.
+          "**/assets/*.css",
           // The purge script above. It is IMPORTED by sw.js, which stores it with
           // the registration, so precaching it as well would ship a second copy to
           // every first visit for nothing - and `assert-first-visit.mjs` is an

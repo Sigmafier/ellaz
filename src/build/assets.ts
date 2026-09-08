@@ -277,6 +277,105 @@ export function extractHeadAssets(indexHtml: string): HeadAssets {
 }
 
 /**
+ * The shell stylesheet, INLINED into the document instead of linked from it.
+ *
+ * WHY, AND WHAT IT COSTS
+ * A `<link rel="stylesheet">` in the head blocks the first paint on a second
+ * round trip, and it is a SEPARATE artifact with its own cache entry and its
+ * own lifetime. Both halves of that were costing us:
+ *
+ *   - PageSpeed, 2026-09-08, mobile: `assets/shell-*.css` 2.7 KiB, **150 ms**
+ *     of render-blocking time, and the last two hops of an 883 ms critical
+ *     chain (document -> entry js -> this stylesheet -> Fredoka's woff2, which
+ *     is declared inside it and therefore not discoverable until it parses).
+ *   - The operator, the same morning: the home page rendered COMPLETELY
+ *     UNSTYLED for a moment and then snapped into shape. That is not a font
+ *     swap and not a mount - it is this file being absent at paint time. The
+ *     proof is in the screenshot: the consent bar was styled and everything
+ *     else was not, and the consent bar is the one block whose CSS ships
+ *     INLINE in the body (`consent.ts`). Nothing else on that page has any
+ *     styling of its own; `#home-doc` depends entirely on this stylesheet.
+ *
+ * A separately-cached, separately-versioned stylesheet can go missing in more
+ * ways than one - a service-worker update racing a navigation, a runtime cache
+ * older than the assets on the server (this host deletes hashed files on
+ * deploy: every pre-deploy asset name 404s within the hour), a single failed
+ * request. Inlining does not fix any one of those; it removes the whole class,
+ * because a document cannot be missing part of itself.
+ *
+ * The cost is real and is not hidden: every emitted document that boots the app
+ * carries the stylesheet's bytes. Measured on the day, `dist/` grew from 21 MB
+ * to 23 MB and the first visit moved by the amount `assert:payload` prints -
+ * one fewer request, the same bytes, gzipped against the HTML instead of alone.
+ *
+ * IT THROWS RATHER THAN DEGRADING. A missing entry here means the linked file
+ * is not in the bundle, and the two survivable-looking outcomes are both worse
+ * than a red build: keeping the link reintroduces exactly the failure above,
+ * and dropping it ships a site with no styles at all.
+ */
+export function inlineStylesheets(
+  tags: readonly string[],
+  cssByFile: Readonly<Record<string, string>>,
+): string[] {
+  return tags.map((tag) => {
+    if (!/<link\b[^>]*\brel="stylesheet"/i.test(tag)) return tag;
+    const href = /\bhref="([^"]+)"/.exec(tag)?.[1];
+    if (href === undefined) {
+      throw new Error(`page emitter: a stylesheet tag with no href: ${tag}`);
+    }
+    // The href carries the BASE (`/assets/...` on ellaz.fun, `/ellaz/assets/...`
+    // on the Pages copy) and the bundle is keyed dist-relative, so take the
+    // `assets/...` tail rather than stripping a fixed prefix.
+    const file = /(assets\/[^"]+)$/.exec(href)?.[1];
+    const css = file === undefined ? undefined : cssByFile[file];
+    if (css === undefined) {
+      throw new Error(
+        `page emitter: index.html links ${href}, which is not in the bundle as ` +
+          `"${file ?? "(no assets/ path)"}". Known stylesheets: ` +
+          `${Object.keys(cssByFile).join(", ") || "(none)"}. Refusing to emit: keeping the ` +
+          `link restores the render-blocking hop, and dropping it ships a page with no styles.`,
+      );
+    }
+    // A `</style` inside the text would end the block early and dump the rest
+    // of the stylesheet into the page as visible prose. Minified CSS cannot
+    // contain one, which is exactly why nobody would notice if it did.
+    if (/<\/style/i.test(css)) {
+      throw new Error(`page emitter: ${file} contains "</style" and cannot be inlined verbatim.`);
+    }
+    return `<style>${css}</style>`;
+  });
+}
+
+/**
+ * The same transform applied to a whole document - used for `index.html`, the
+ * one page Vite writes itself rather than the emitter writing it.
+ *
+ * Asserts that it changed something. A `replace` whose pattern has drifted
+ * returns the input unchanged and reports success, which is how a fix ships
+ * that was never applied.
+ */
+export function inlineStylesheetsInHtml(
+  html: string,
+  cssByFile: Readonly<Record<string, string>>,
+): string {
+  const links = html.match(/<link\b[^>]*\brel="stylesheet"[^>]*>/gi) ?? [];
+  if (links.length === 0) {
+    throw new Error(
+      "page emitter: index.html links no stylesheet. Either Vite stopped emitting one " +
+        "or this matcher has drifted - both mean the app shell would ship unstyled.",
+    );
+  }
+  let out = html;
+  for (const [i, link] of links.entries()) {
+    out = out.replace(link, inlineStylesheets([link], cssByFile)[0]);
+    if (out.includes(link)) {
+      throw new Error(`page emitter: failed to replace stylesheet link ${i + 1}: ${link}`);
+    }
+  }
+  return out;
+}
+
+/**
  * Dev has no bundle: Vite serves the unbundled entry and injects its own client.
  * The one tag below is what `index.html` says in source, so the dev middleware
  * boots the same app through the same module.

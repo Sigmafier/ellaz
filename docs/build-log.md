@@ -4282,3 +4282,78 @@ href), five near-misses that must not (an internal link, a locale link, a canoni
 share card outside `assets/`, a third-party font), and one asserting an extension we do
 not emit today is matched anyway — so the allowlist cannot quietly grow back. Run against
 the old matcher it reports **2 WRONG**.
+
+---
+
+## 2026-09-08 · The stylesheet moves inside the document (2026-09-08, afternoon)
+
+**Commits**: this one. `src/build/assets.ts`, `src/build/pages.ts`, `vite.config.ts`,
+`scripts/assert-pages.mjs`, `scripts/assert-fast.mjs`, one rule, two docs.
+
+The operator reported the home page rendering completely unstyled for a moment and then
+snapping into shape, alongside a PageSpeed score of 87. Two different problems, and only
+one of them is a defect.
+
+### The unstyled paint was proven from the screenshot, before anything was changed
+
+One element on that screen was styled - the consent bar - and it is the only element
+whose CSS ships inline, in the body. Everything else on the page depends on
+`assets/shell-*.css`, and none of it had applied. That is not a font swap and not a slow
+mount: the external stylesheet was not there.
+
+It was correct in every way a gate can read. 200, `text/css`, byte-identical to the
+build, render-blocking in the head, first-party. What it also is, is a separate artifact
+with its own cache entry and its own version - and this host deletes hashed assets on
+deploy (every pre-deploy name 404s within the hour), the service worker keeps up to 60
+documents for 30 days on a `NetworkFirst` route, and `cleanupOutdatedCaches()` fires when
+a new worker activates. Three ways for a document and its stylesheet to disagree, and
+Lighthouse can see none of them because it clears storage before every run.
+
+**So the styles moved into the document.** Every emitted page and `index.html` itself now
+carry the shell stylesheet as an inline `<style>`; nothing links it. A document cannot be
+missing part of itself. Reasoning, gates and costs:
+[`a-stylesheet-in-another-file-can-be-missing-at-paint-time.md`](../.claude/rules/a-stylesheet-in-another-file-can-be-missing-at-paint-time.md).
+
+```
+                        BEFORE            AFTER
+first visit             56,076 B gz       56,001 B gz     <- 75 B SMALLER
+render-blocking req     1 (150 ms mob)    0
+critical chain          4 hops, 883 ms    document -> everything in parallel
+dist/                   21 MB             23 MB
+emitted HTML            8.6 MB            11 MB
+precache entries        11                10
+```
+
+The first visit got *smaller*: the CSS gzips against the HTML instead of alone, and one
+request disappears. What it costs is the deploy - 2.4 MB more over FTP each time - and
+that is stated rather than waved away, because this host has dropped an upload twice.
+
+### Two gates had to move in the same change, and one of them would have gone silent
+
+`assert-pages` counted `<link rel=stylesheet>` to decide whether a page had styles, so on
+the first build after this change it reded on eight embed pages saying they "boot the app
+with no app stylesheet" - the right shape, pointed the wrong way. It reads
+`body.app-shell` inside an inline block now, which occurs exactly once in the built shell
+CSS and never in `SERVED_CSS`, so the check did not widen into "has any `<style>`" - every
+content page already has one of those. Four controls, and a planted mutation kills exactly
+the two near-misses.
+
+It also reds now if any emitted document links a local stylesheet at all.
+
+`assert-fast` read only LINKED stylesheets when hunting a third-party `@import`. With the
+CSS inline its population was about to become zero and it would have passed in silence -
+the scope narrowing without the gate saying so, the same failure its sibling had for a
+day. It scans inline blocks too, fails on a document with no styles by either mechanism,
+and carries three new population controls plus one for the blind case: 16/16.
+
+### And the 87 is mostly the instrument
+
+Four Lighthouse runs against the same live bytes, minutes apart, same machine and flags:
+**94, 95, 99, 99** - TBT spanning 100-290 ms and Speed Index 1.0-4.1 s. Between the 99 the
+night before and this 87 the only source change was a build stamp. A single score is not
+evidence at this variance; a distribution is.
+
+What the runs agree on is where the cost actually sits: **Style & Layout 592 ms** of a
+1.4 s main thread, against Script Evaluation's 277 ms, over **1,140 DOM elements** - 42
+cards each carrying an inline SVG twelve levels deep. No stylesheet or font change touches
+that, and it only became visible once the first paint stopped being blocked for 1,300 ms.

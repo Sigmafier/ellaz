@@ -424,6 +424,32 @@ export function hreflangFaults(alts, want, page, xDefaultLocale) {
   return out;
 }
 
+/**
+ * Does this page carry the APP's styles at all - by any mechanism?
+ *
+ * It used to be enough to count `<link rel=stylesheet>`. Since 2026-09-08 the
+ * shell stylesheet ships INSIDE each document as an inline <style> (see
+ * `inlineStylesheets` in src/build/assets.ts), so a link count alone reads a
+ * correct page as an unstyled one - which is exactly what this gate did, out
+ * loud, on the first build after that change. The failure was the right shape
+ * in the wrong direction, so the fix is to widen what counts as styles WITHOUT
+ * widening it to "any <style> at all": every content page already carries
+ * `SERVED_CSS` inline, so a bare `<style>` test would pass on a game page that
+ * had genuinely lost the app's stylesheet.
+ *
+ * `body.app-shell` is the discriminator. It occurs exactly once in the built
+ * shell stylesheet and NOWHERE in `SERVED_CSS` (checked, both, on the day), and
+ * it is the rule that gives the app its font and its text colour - so a page
+ * without it is unstyled in precisely the way this gate exists to catch.
+ */
+export function hasAppStyles(html) {
+  if (localStylesheets(html).length > 0) return true;
+  for (const m of html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)) {
+    if (m[1].includes("body.app-shell")) return true;
+  }
+  return false;
+}
+
 /** Local stylesheet links, base-relative. The Google Fonts one is skipped. */
 export function localStylesheets(html) {
   const out = [];
@@ -1060,7 +1086,22 @@ function main() {
       if (other.length > 0) fail(`${where} eagerly fetches ${other.join(", ")}`);
       if (page.kind === "game") preloadedGame.set(page.file, gameChunks[0]);
       if (embed) embedChunk.set(page.id, gameChunks[0]);
-      if (localStylesheets(html).length === 0) {
+      // And it must carry them INSIDE the document. A linked stylesheet is a
+      // separately-cached, separately-versioned artifact, and a document that
+      // arrives without it renders naked - which is what the operator saw on
+      // 2026-09-08 and what `inlineStylesheets` (src/build/assets.ts) removes.
+      // Asserted here rather than trusted, because the emitter would happily
+      // pass a <link> through if the bundle ever stopped matching.
+      const linked = localStylesheets(html);
+      if (linked.length) {
+        fail(
+          `${where} LINKS a stylesheet (${linked.join(", ")}) instead of carrying it inline.\n` +
+            `    A separate file can be missing at paint time - a service-worker update racing\n` +
+            `    the navigation, a runtime cache older than the assets on the server - and the\n` +
+            `    page then renders with no styles at all.`,
+        );
+      }
+      if (!hasAppStyles(html)) {
         fail(`${where} boots the app with no app stylesheet — the game renders unstyled`);
       }
       if (shell) {
@@ -1775,6 +1816,25 @@ function runControls() {
       () =>
         localStylesheets('<link rel="stylesheet" href="https://fonts.googleapis.com/x">').length ===
         0,
+    ],
+    [
+      "the inlined shell stylesheet counts as app styles",
+      () => hasAppStyles('<style>body.app-shell,#game-frame{font-family:var(--font)}</style>'),
+    ],
+    [
+      "a linked local stylesheet still counts",
+      () => hasAppStyles('<link rel="stylesheet" href="/assets/shell-abc.css">'),
+    ],
+    [
+      "SOME other inline style does NOT count as the app's",
+      () => !hasAppStyles('<style>.consent{display:none}</style><style>.crumb{margin:0}</style>'),
+    ],
+    [
+      "a remote stylesheet plus unrelated inline styles is still unstyled",
+      () =>
+        !hasAppStyles(
+          '<link rel="stylesheet" href="https://fonts.googleapis.com/x"><style>p{margin:0}</style>',
+        ),
     ],
     [
       "a page stripped of its prose",

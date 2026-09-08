@@ -46,6 +46,8 @@ import { indexNowKeyFile, INDEXNOW_KEY, llmsTxt, robotsTxt, sitemapXml } from ".
 import {
   DEV_HEAD_ASSETS,
   extractHeadAssets,
+  inlineStylesheets,
+  inlineStylesheetsInHtml,
   resolveFontAssets,
   fontPreloadTags,
   resolveLazyChunks,
@@ -493,6 +495,21 @@ export function pagesPlugin(base: string): Plugin {
       // of discovering it two round trips later. `Object.keys(bundle)` is the
       // only honest source for these names - they carry a content hash, and the
       // one under `/ellaz/` is a different string from the one under `/`.
+      // THE STYLESHEET GOES INTO THE DOCUMENT, not beside it. Every emitted
+      // page and index.html itself carry the shell CSS as an inline <style>
+      // rather than a <link>, which removes a render-blocking round trip (150 ms
+      // on PageSpeed mobile, 2026-09-08) and makes an unstyled first paint
+      // structurally impossible. The reasoning, the measurement and what it
+      // costs are on `inlineStylesheets` in ./assets.
+      //
+      // Keyed dist-relative, from the bundle, for the same reason every other
+      // name here is: the filename carries a content hash.
+      const cssByFile = Object.fromEntries(
+        Object.entries(bundle).flatMap(([name, art]) =>
+          name.endsWith(".css") && art.type === "asset" ? [[name, String(art.source)]] : [],
+        ),
+      );
+
       const headAssets: HeadAssets = {
         ...extractHeadAssets(String(index.source)),
         lazy: resolveLazyChunks(Object.keys(bundle), GAMES.map((m) => m.id)),
@@ -502,6 +519,15 @@ export function pagesPlugin(base: string): Plugin {
         // stays exactly as slow as it was, with a green build.
         fonts: resolveFontAssets(Object.keys(bundle)),
       };
+      headAssets.tags = inlineStylesheets(headAssets.tags, cssByFile);
+
+      // And index.html itself, which Vite writes rather than this emitter. It is
+      // the app shell AND the site root - the single most visited URL here and
+      // the one PageSpeed audits - so leaving it on a <link> while all 246 other
+      // documents inline would put the one page that matters most on the slower
+      // path, behind a green build. That is the shape of the font preload bug
+      // fixed one day earlier, in this same hook.
+      index.source = inlineStylesheetsInHtml(String(index.source), cssByFile);
 
       // THE APP SHELL GETS ITS PRELOAD HERE, because `index.html` is the one
       // page not written from the route table - `transformIndexHtml` builds it,

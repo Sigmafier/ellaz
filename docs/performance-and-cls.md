@@ -370,3 +370,82 @@ cache replay, which is why arms A and C are the ones quoted.
 A category or print page loads no shell stylesheet and declares no `@font-face` at all
 (`/games/kids/` serves zero), so it never could fetch a subset - the pages that pay are
 the app shell and the game pages, and the rule lives where both of them read it.
+
+## The unstyled first paint, and the noise floor underneath the score (2026-09-08)
+
+The operator reported two things in one message: PageSpeed at **87** where it had read
+99 the night before, and the home page rendering **completely unstyled** for a moment on
+load. They are different problems and only one of them is a defect.
+
+### The unstyled paint - proven from the screenshot alone
+
+```
+WHAT WAS ON SCREEN                     WHAT THAT MEANS
+h1 in a serif face                     body.app-shell{font-family:var(--font)}  not applied
+links default blue + underlined        #home-doc a{color:var(--brand-ink,...)}  not applied
+no page layout at all                  #home-doc{max-width:44rem;padding:...}   not applied
+
+the consent bar, correctly styled      .consent{...}  IS applied - and it is the one
+dark navy, white text, two buttons     block whose CSS ships INLINE (consent.ts)
+```
+
+Exactly one element was styled, and it was the only one whose styles were part of the
+document. So the external stylesheet had not applied - not a font swap, not a slow
+mount. `assets/shell-*.css` was a render-blocking `<link>` in the head, correctly typed
+`text/css`, 200, byte-identical to the build: a separate artifact with its own cache
+entry, its own version, and its own chance to be absent. This host deletes hashed assets
+on deploy (every pre-deploy name 404s within the hour), the service worker holds up to 60
+documents for 30 days on a `NetworkFirst` route, and `cleanupOutdatedCaches()` runs when a
+new worker activates - three ways for a document and its stylesheet to disagree.
+
+**The fix removes the class rather than any one cause**: the shell stylesheet now ships
+INSIDE every emitted document as an inline `<style>`. A document cannot be missing part
+of itself. Full write-up, gates and costs:
+[`a-stylesheet-in-another-file-can-be-missing-at-paint-time.md`](../.claude/rules/a-stylesheet-in-another-file-can-be-missing-at-paint-time.md).
+
+### The 87 is mostly the instrument, and here is the measurement that says so
+
+Four Lighthouse runs against the **same live bytes**, same machine, same flags, minutes
+apart:
+
+```
+run1   95   FCP 0.9  LCP 0.9  TBT 190 ms  SI 4.1 s  CLS 0
+run2   94   FCP 1.2  LCP 1.2  TBT 290 ms  SI 1.3 s  CLS 0
+run3   99   FCP 1.3  LCP 1.4  TBT 110 ms  SI 1.3 s  CLS 0
+run4   99   FCP 0.9  LCP 0.9  TBT 100 ms  SI 1.0 s  CLS 0.002
+```
+
+**94 to 99 on identical bytes. TBT spans 3x, Speed Index 4x.** Between the 99 and the 87
+the only source change was a build stamp, so a large part of that gap is the instrument,
+not the site. A single score is not evidence here; a distribution is.
+
+What the runs agree on is where the real cost sits: **Style & Layout 592 ms** of a 1.4 s
+main thread, against Script Evaluation's 277 ms, on **1,140 DOM elements** - 42 game cards
+each carrying an inline SVG twelve levels deep. That is what TBT is made of, and no font
+or stylesheet change touches it. It became visible only after the font work: while the
+first paint was blocked for 1,300 ms the same work happened outside the TBT window.
+
+Speed Index has its own cause and it is the documented boot flash - the page paints a
+plain document, then React replaces it with a card grid, so the screen changes twice.
+
+### `content-visibility: auto` on the cards - measured and REJECTED
+
+The obvious lever for 592 ms of Style & Layout is to stop styling and laying out the
+cards nobody has scrolled to. It was probed properly rather than assumed: two static
+servers on 5176 and 5177 from the SAME build, one variable - a rule giving every grid
+child `content-visibility:auto; contain-intrinsic-size:auto 100px` - and four Lighthouse
+runs per arm, **interleaved** A/B/A/B so arm order could not become the result.
+
+```
+A  no content-visibility    scores 88 86 91 89   TBT med 311 ms  S&L med 782 ms  SI med 2138
+B  content-visibility       scores 92 92 83 72   TBT med 298 ms  S&L med 827 ms  SI med 2280
+```
+
+**Style & Layout went UP.** TBT moved 13 ms, which is a twentieth of the arm's own spread,
+and B produced both the best run and by far the worst. Nothing here is a win, so nothing
+shipped - the elements still have to be created and styled when they enter the viewport,
+and the containment bookkeeping is not free.
+
+Recorded because a rejected experiment with a number is worth more than an untried idea:
+the next session that reaches for this lever can read the measurement instead of spending
+an hour rediscovering it.
