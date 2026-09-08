@@ -238,20 +238,62 @@ body.app-shell:has(#root:not(:empty)) #home-doc {
    holds. A tile is not a link in a paragraph and should not read as one. */
 #home-doc .home-tiles a {
   display: flex;
-  align-items: flex-end;
-  justify-content: center;
+  flex-direction: column;
   aspect-ratio: 1 / 1;
-  padding: 7px 4px;
   border-radius: var(--radius-3);
   background: var(--surface);
   box-shadow: var(--shadow-1);
   overflow: hidden;
   color: var(--text);
+  text-decoration: none;
+}
+
+/* THE EMOJI ON ITS OWN GROUND - `.ellaz-tint` itself, the class a card with no
+   drawn art already uses in the app, reading the same `--game` the app sets on
+   the same kind of span. Not a copy of the gradient: the copy is what would
+   drift. This rule adds only the box and the 42px glyph, so the wash a visitor
+   sees for half a second is the wash still there after the swap.
+
+   Twelve of the 42 games have drawn SVG art in the app and get the emoji here
+   instead. That is deliberate: the art is ~1 KB of paths per game and lives in
+   a chunk this document must never pull, so the choice is an emoji or a blank
+   square, and this page is the one that has to be cheap. */
+#home-doc .home-tiles .ellaz-tint {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  font-size: 42px;
+  line-height: 1;
+}
+
+/* The name strip: `GameCard`'s own label, down to the 7px 4px padding and the
+   13.5px/800. The colour pair is the game's accent and the ink `inkFor` picks
+   for it - the same call the app makes, so `contrast.test.ts`'s per-game floor
+   covers this surface too rather than a second palette nothing measures.
+
+   `margin-top: auto` and not `justify-content: flex-end`, so a tile with no art
+   span still puts its name on the floor of the card. That is every game past
+   `DECORATED_HOME_TILES`, and a category link over `MAX_FLAT_HOME_LINKS`; the
+   `var(--game, transparent)` / `var(--game-ink, var(--text))` fallbacks are what make one
+   render as the plain white box it was before any of this existed. */
+#home-doc .home-tiles .home-tile-name {
+  margin-top: auto;
+  padding: 7px 4px;
+  background: var(--game, transparent);
+  color: var(--game-ink, var(--text));
   font-size: 13.5px;
   font-weight: 800;
   line-height: 1.2;
   text-align: center;
-  text-decoration: none;
+  /* WRAPS, where `GameCard`'s strip clips with an ellipsis. Not an oversight
+     and not a drift from the app: the app's card has a full-bleed picture the
+     strip must not crowd, and this one has an emoji with room around it. What
+     settled it is that the tiles WRAPPED before this decoration existed, so
+     clipping here would be a regression - measured at 412px, "What Comes Next"
+     and "What Disappeared" both rendered as "What Comes Ne..." with the
+     ellipsis on, and both fit on two lines with it off. A clipped game NAME on
+     the one document a crawler reads is the wrong trade either way.
+     .claude/rules/a-row-that-grows-with-the-catalog-must-wrap.md */
 }
 
 /* THE ONE HEBREW WORD ON AN ENGLISH PAGE, AND THE 12,000 B IT USED TO COST.

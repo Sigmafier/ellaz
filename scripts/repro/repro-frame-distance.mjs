@@ -111,9 +111,9 @@ async function session(port) {
 
 const SETUP = `
 window.__px = {};
-window.__load = async (key, b64) => {
+window.__load = async (key, b64, mime) => {
   const img = new Image();
-  img.src = "data:image/png;base64," + b64;
+  img.src = "data:" + (mime || "image/png") + ";base64," + b64;
   await img.decode();
   const c = document.createElement("canvas");
   c.width = img.width; c.height = img.height;
@@ -166,7 +166,11 @@ async function main() {
     await cdp.js(SETUP);
     const put = async (key, file) => {
       const b64 = fs.readFileSync(file).toString("base64");
-      const size = await cdp.js(`window.__load(${JSON.stringify(key)}, ${JSON.stringify(b64)})`);
+      // Lighthouse's filmstrip frames are JPEG; our own captures are PNG. The
+      // mime must follow the file, or every frame decodes to nothing and the
+      // comparator reports a confident 0x0.
+      const mime = /\.jpe?g$/i.test(file) ? "image/jpeg" : "image/png";
+      const size = await cdp.js(`window.__load(${JSON.stringify(key)}, ${JSON.stringify(b64)}, ${JSON.stringify(mime)})`);
       return size;
     };
     const [w, h] = await put("target", target);

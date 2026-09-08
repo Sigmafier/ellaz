@@ -146,7 +146,11 @@ describe("every var() resolves", () => {
         if (declared.has(name)) continue;
         // `--game` is set inline on a card and read by .ellaz-tint; `--doc-*`
         // belong to the emitted documents' own stylesheet in src/build.
-        if (name === "--game" || name.startsWith("--doc-")) continue;
+        // `--game-ink` is its partner, set on the same element by the emitted
+        // home document (`src/build/sitePages.ts`) and read by the tile's name
+        // strip. Both are exact names, not a `--game*` prefix: a typo must
+        // still read as an orphan.
+        if (name === "--game" || name === "--game-ink" || name.startsWith("--doc-")) continue;
         // The Design Bench's four. They are SET AT RUNTIME on the root by
         // `src/lab/design/spec.ts` and every read carries the shipped literal
         // as its fallback, so declaring them in tokens.css would buy nothing

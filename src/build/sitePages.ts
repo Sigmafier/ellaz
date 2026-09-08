@@ -10,6 +10,11 @@ import { stage } from "./gamePage";
 // room and the boards are tinted out of the app's own colours rather than out
 // of two literals nobody would ever find again.
 import { PAL } from "../ui/gameArt";
+// Which ink is readable on a game's accent. The SAME function `GameCard` calls,
+// not a second table of dark-or-light per colour: the name strip here sits on
+// the same `meta.color` as the app's, so a divergence would be a legibility bug
+// on one of the two surfaces and nobody would know which.
+import { inkFor } from "../ui/ink";
 import {
   LOCALES,
   PAGED_CATEGORIES,
@@ -184,6 +189,34 @@ export function homeShellBody(
 export const MAX_FLAT_HOME_LINKS = 60;
 
 /**
+ * How many of the home document's tiles carry their game's emoji and colour.
+ * The rest are the plain white boxes they were before.
+ *
+ * WHY IT IS BOUNDED AT ALL, and this is not a taste decision: decoration costs
+ * ~17 B gz PER GAME on the first visit - the emoji glyph barely compresses and
+ * the colour is close to unique - so decorating all 42 took the catalogue slope
+ * from 32.5 to **47.0 B gz per game against a 45 B budget**, and `assert:slope`
+ * refused the build. That gate is not a threshold to argue with: the first visit
+ * must be O(1) in the size of the roster, and a per-game cost that grows forever
+ * is exactly what it exists to catch. Measured 2026-09-08, two arms from one
+ * copy, 42 games against 34.
+ *
+ * WHY 15 AND NOT SOME OTHER BOUND. It is `SHELL_META_COUNT` - the number of
+ * cards the APP itself paints on its own first frame, before the lazy catalogue
+ * lands (`src/portal/shellRoster.ts`). So the document shows exactly what the
+ * app is about to show and nothing it is not: 15 real cards among reserved
+ * boxes, in both. `home-tiles-match-the-grid.test.ts` asserts the two numbers
+ * are equal rather than trusting this sentence - the alias `@sdk/index` that
+ * `shellRoster.ts` imports is unavailable to `src/build/**`, which Node loads
+ * from `vite.config.ts` at config time where no Vite alias exists yet, so this
+ * cannot simply import it.
+ *
+ * On a 390px phone the fold falls around tile 9 to 12, so every tile a visitor
+ * actually sees in that half-second is a decorated one.
+ */
+export const DECORATED_HOME_TILES = 15;
+
+/**
  * The game links on the emitted home document.
  *
  * Under the threshold: every game, in roster order, exactly as before.
@@ -200,17 +233,50 @@ function homeGameLinks(
   locale: Locale,
   base: string,
 ): RawHtml {
-  const link = (path: string, label: string) =>
-    html`<li><a href="${href(path, base)}">${label}</a></li>`;
+  /** An undecorated tile: the name on bare card stock, which is what every tile
+   *  looked like before the decoration existed. Used for a category page, which
+   *  has no emoji or accent of its own, and for every game past
+   *  `DECORATED_HOME_TILES`. The `var(--g, ...)` fallbacks in `global.css` are
+   *  what make it render as the plain white box rather than a coloured strip. */
+  const groupTile = (path: string, label: string) =>
+    html`<li><a href="${href(path, base)}"><span class="home-tile-name">${label}</span></a></li>`;
+
+  /**
+   * One game, as the card the app is about to draw in the same place: its emoji
+   * on its own tinted ground, its name on a strip in its own colour.
+   *
+   * The emoji is `aria-hidden`, exactly as `GameCard`'s art is. It is decoration
+   * beside a real word, and letting it into the accessible name would announce
+   * "brain emoji Memory" and give a voice-control user a name they cannot say.
+   * The link's text is still the game's name and nothing else, so the crawlable
+   * content of this page is unchanged - the words did not move, only the box
+   * around them.
+   *
+   * `--game` and `--game-ink` rather than a class per game: 42 colours would be
+   * 42 rules, and a stylesheet that grows with the roster is the thing
+   * `assert:slope` exists to refuse. Two custom properties carry the palette in
+   * the markup, where gzip already has the roster to compress against.
+   *
+   * `--game` is the APP'S OWN name for this, set the same way on `GameCard`'s
+   * emoji span, and `.ellaz-tint` is the app's own wash rather than a second
+   * copy of the gradient - so there is one recipe here, not a mirror of one.
+   */
+  const gameTile = (m: GameMeta, i: number) =>
+    i < DECORATED_HOME_TILES
+      ? html`<li><a href="${href(gamePath(m.id, locale), base)}" style="--game:${m.color};--game-ink:${inkFor(m.color)}"><span class="ellaz-tint" aria-hidden="true">${m.emoji}</span><span class="home-tile-name">${gameName(m.id, locale)}</span></a></li>`
+      : groupTile(gamePath(m.id, locale), gameName(m.id, locale));
 
   if (games.length <= MAX_FLAT_HOME_LINKS) {
-    return html`${games.map((m) => link(gamePath(m.id, locale), gameName(m.id, locale)))}`;
+    return html`${games.map(gameTile)}`;
   }
 
+  // Past the flat threshold nothing is decorated: this branch exists to SAVE
+  // bytes on a 60+ roster, and its stragglers are a tail nobody sees in the
+  // half-second the decoration is for.
   const orphans = games.filter((m) => !PAGED_CATEGORIES.includes(m.category));
   return html`${PAGED_CATEGORIES.map((c) =>
-    link(categoryPath(c, locale), categoryCopy(locale, c, 0).h1),
-  )}${orphans.map((m) => link(gamePath(m.id, locale), gameName(m.id, locale)))}`;
+    groupTile(categoryPath(c, locale), categoryCopy(locale, c, 0).h1),
+  )}${orphans.map((m) => groupTile(gamePath(m.id, locale), gameName(m.id, locale)))}`;
 }
 
 /**
