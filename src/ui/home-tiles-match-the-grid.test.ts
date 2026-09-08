@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { globSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -174,6 +175,31 @@ describe("the emitted home document's tiles match the app's grid", () => {
     // with no caller. Without this line the whole 42-tile catalogue could be
     // decorated and every other assertion here would still pass.
     expect(emitter).toMatch(/i < DECORATED_HOME_TILES\s*\?/);
+  });
+
+  it("every game's colour is a bare hex, because it now reaches a raw style attribute", () => {
+    // FOUND BY /deep-test 2026-09-08. Before the tiles, `meta.color` only ever
+    // reached React as an inline style VALUE, where the CSSOM silently drops
+    // anything malformed and nothing can escape. It now goes into a hand-built
+    // `style="--game:${...}"` string in an emitted document, and `escapeHtml`
+    // escapes `&<>"'` - NOT `;` or `:`. Reproduced through the real emitter:
+    //
+    //   color: 'red;background-image:url(https://example.invalid/x)'
+    //   -> style="--game:red;background-image:url(https://example.invalid/x);..."
+    //
+    // which is a live external request from the one page that must make none.
+    // Exposure when found: 0 of 42. The risk is the 43rd game, or a well-meant
+    // `hsl(200 80% 50%)`. `game-art.test.ts` does NOT cover this - it pins
+    // `artGround(id)`, which reads the ART palette and falls back to PAL.indigo.
+    const metas = globSync("src/games/*/meta.ts").sort();
+    expect(metas.length, "no meta.ts found - the glob is broken").toBeGreaterThan(30);
+    const bad: string[] = [];
+    for (const f of metas) {
+      const m = /\bcolor:\s*"([^"]*)"/.exec(readFileSync(f, "utf8"));
+      if (!m) continue;
+      if (!/^#[0-9a-fA-F]{6}$/.test(m[1])) bad.push(`${f}: ${m[1]}`);
+    }
+    expect(bad, "a colour that is not #rrggbb reaches a raw style attribute").toEqual([]);
   });
 
   it("is the GAMES list that becomes tiles, and not the facts list", () => {
