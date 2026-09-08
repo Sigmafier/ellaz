@@ -80,6 +80,38 @@ You are adding an `import` to a script that a workflow triggers on, and the work
 file is not open. Or: you are adding a row to one file that a second file is supposed
 to mirror, and nothing reads both.
 
+## The other direction: a filter narrowed by a NAME PREFIX (2026-09-07)
+
+The shape above is a filter with entries MISSING. This is the same defect wearing the
+opposite face: a filter that is present, deliberate, argued for in its own comment - and
+scoped to a name prefix, so it covers the one input somebody had in front of them and
+none of that input's siblings.
+
+```
+BEFORE                                   AFTER
+------                                   -----
+# "A GLOB rather than a third name."     - "scripts/repro/**"
+- "scripts/repro/repro-reach-*.mjs"
+       ^ covers the reach probes           covers every reproducer, including the
+         and nothing else                  ones nobody has written yet
+```
+
+The comment above that line already said *"this list has gone stale three times in two
+days ... because it is a hand-kept mirror of an import graph"*, and then named a prefix -
+which is a hand-kept mirror with one entry. Every non-reach probe kept rebuilding and
+re-uploading the whole site for a change `dist/` cannot contain, and **on 2026-09-07 one
+of those deploys silently dropped two JS chunks and took ellaz.fun down for about forty
+minutes.**
+
+**The test: name the CLASS the entry belongs to, then ask what else is in it.** Here the
+class is "a file that is run by hand and imported by nothing" - a whole directory, not a
+naming convention. A prefix is the right scope only when the prefix is what makes the
+file's class, and `repro-reach-` did not: the directory did.
+
+And pin it in both directions. `deploy-triggers.test.ts` now asserts the entry is
+present, that nothing in the deploy path imports a reproducer, and that neither workflow
+RUNS one - the last of which no import graph could ever see.
+
 ## Related
 
 - [`a-workflow-outside-the-repo-root-is-an-ordinary-text-file.md`](a-workflow-outside-the-repo-root-is-an-ordinary-text-file.md)

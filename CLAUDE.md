@@ -104,6 +104,7 @@ one says nothing about what another would find.
 | `npm run assert:crawlable` | **the network**, as every crawler robots.txt names | a challenge, a 429, or a 200 carrying no content |
 | `npm run assert:live` | **the live site** after a deploy | HTML naming assets that never landed, or bytes that arrived truncated |
 | `npm run assert:fast` | **the served bytes** of three page shapes | a third-party `@import` inside a blocking stylesheet, a third-party blocking stylesheet, an undeferred third-party script in `<head>`, a page whose body face is not preloaded |
+| `node scripts/fonts/sync-fonts.mjs --check` | **Google's live font CSS** + the six committed woff2 | a font file that drifted from what Google serves, and a hebrew `@font-face` claiming general punctuation (the ZWJ trap) |
 | `npm run assert:standalone` | `dist-standalone/` or an extracted zip | anything that phones home, an absolute path, a stale stamp |
 | `npm run assert:outreach` | `docs/outreach/` | a published number that has gone stale |
 | `npm run assert:context` | `CLAUDE.md` + `docs/` vs the pre-split commit | prose lost when this file was split, and any dead pointer in `docs/` |
