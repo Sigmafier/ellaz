@@ -9,7 +9,8 @@ Git history is the source of truth for *what*; this file is the source of truth
 for *why*, and for numbers that were measured once on a live artifact and are
 expensive to re-measure.
 
-**Status at the last entry**: `main` @ `4ffd75f`, deployed and verified live.
+**Status at the last entry**: `main` @ `4dfe264`, deployed and verified live -
+`assert-live` green in CI across 5 routes, 8 assets, both font subsets compared.
 
 ---
 
