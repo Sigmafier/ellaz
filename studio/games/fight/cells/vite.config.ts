@@ -51,12 +51,16 @@ function copyFightData(): Plugin {
   // source, not data: data/ holds load.ts and data.test.ts beside the json, and a
   // built tree that a hall serves has no business carrying them
   const noSource = (src: string): boolean => !src.endsWith(".ts");
+  // honour `vite build --outDir <dir>`: two cell lanes building at once must not empty each
+  // other's tree, so each builds its own and the harness reads it with --dist
+  let out = OUT;
   return {
     name: "fight-copy-data",
+    configResolved(c) { out = resolve(c.root, c.build.outDir); },
     closeBundle() {
-      cpSync(resolve(FIGHT, "assets"), resolve(OUT, "assets"), { recursive: true, filter: noSource });
-      cpSync(resolve(FIGHT, "data"), resolve(OUT, "data"), { recursive: true, filter: noSource });
-      cpSync(resolve(FIGHT, "tournament/tapes"), resolve(OUT, "tournament/tapes"), { recursive: true, filter: noSource });
+      cpSync(resolve(FIGHT, "assets"), resolve(out, "assets"), { recursive: true, filter: noSource });
+      cpSync(resolve(FIGHT, "data"), resolve(out, "data"), { recursive: true, filter: noSource });
+      cpSync(resolve(FIGHT, "tournament/tapes"), resolve(out, "tournament/tapes"), { recursive: true, filter: noSource });
     },
   };
 }
