@@ -32,7 +32,8 @@ describe("the fight core imports only its siblings", () => {
     const banned = [/\bdocument\b/, /\bwindow\b/, /\bperformance\./, /\brequestAnimationFrame\b/, /\bMath\.random\b/, /\bsetTimeout\b/, /\bDate\.now\b/];
     const bad: string[] = [];
     for (const f of sources()) {
-      const text = readFileSync(join(HERE, f), "utf8").replace(/\/\/.*$/gm, "");
+      // strip block comments too: a JSDoc line naming `window` is prose, not a call
+      const text = readFileSync(join(HERE, f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
       for (const re of banned) if (re.test(text)) bad.push(`${f}: ${re.source}`);
     }
     expect(bad).toEqual([]);

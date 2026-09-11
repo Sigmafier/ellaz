@@ -1,0 +1,12 @@
+# canvas cell - defects log
+
+One line per defect hit while building the plain Canvas2D arm: what it was, and
+the class it belongs to. A defect logged here is one every other arm can expect
+to meet, which is the point of the bar going first.
+
+- 2026-09-12 `run-cell.ts` builds `__fightStats` as `{ ..., drawn, ...cell.stats(), ... }`, so the cell's own `drawn` overwrites the harness's own and `tsc -p tsconfig.json` reds with TS2783 - class: a duplicate key silently shadowed. It is the harness's file, not a cell's, so EVERY arm inherits the red. Reported to the lane that owns run-cell.ts; not fixed here.
+- 2026-09-12 vite's default `assetsDir` is `assets`, and the built tree's `assets/` is the directory the sprite sets are copied into and the one every cell fetches its sheets from - so hashed chunks landed among `robot--snes16/` and `teddy--snes16/`, inside a directory `emptyOutDir` owns. Class: two things claiming one path, both correct alone. Fixed by `assetsDir: "bundle"`; caught by listing the built tree, not by any assertion.
+- 2026-09-12 the copy plugin's first version shipped `data/load.ts` and `data/data.test.ts` into the served tree, because `data/` holds source beside its json. Class: a recursive copy takes what is there, not what was meant. Fixed with a `.ts` filter.
+- 2026-09-12 `drawHud` reset the transform to identity to keep the HUD out of the screen shake, and the harness draws `drawBoxes` AFTER `drawHud` - so the boxes would have lost the shake offset. Class: a method that mutates shared state for its own frame and hands it on. Fixed with save/restore. Caught by reading the harness's call order, before any run.
+- 2026-09-12 the KO panel (`phase >= 2`) is UNREACHABLE from the golden tape: `versus-600` ends at `winner: -1`, so nothing in the verified run ever drew it. Exercised instead by a scratch run serving a 6 hp teddy through `page.route` - real sim, real KO, screenshot read. Class: a branch no run takes (`a-build-gate-that-never-runs-the-artifact`). Every arm will have this same hole, and a longer tape does not close it - 30,000 ticks of constant attacking never KO'd a 100 hp teddy.
+- 2026-09-12 and a corollary for whoever screenshots a KO: `koFadeTicks` is 60, and `?fast=1` steps 60 ticks per drawn frame, so the whole KO window is AT MOST one drawn frame and will usually be stepped straight past. A KO screenshot has to come from a real-time run.

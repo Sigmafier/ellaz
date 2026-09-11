@@ -160,3 +160,16 @@ export function hashEvents(events: readonly FightEvent[]): string {
   }
   return hex8(fnv1a(bytes));
 }
+
+/**
+ * Fold a sequence of 8-hex-char tick hashes into one word: the trajectory
+ * chain. A flight that differs mid-air and lands on the same pixel moves this
+ * when it moves nothing else (gravity +1: apex 7680 -> 7560 FP, hash and
+ * events unchanged - measured 2026-09-12). Every cell folds the same way so
+ * window.__fightChain compares to the golden's `chain`.
+ */
+export function chainOf(tickHashes: readonly string[]): string {
+  const bytes: number[] = [];
+  for (const h of tickHashes) for (let i = 0; i < h.length; i++) bytes.push(h.charCodeAt(i));
+  return fnv1a(bytes).toString(16).padStart(8, "0");
+}

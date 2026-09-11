@@ -9,7 +9,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadMode } from "../data/load";
 import { compileFight } from "./compile";
-import { fnv1a, hashEvents, hashState } from "./hash";
+import { chainOf, hashEvents, hashState } from "./hash";
 import { createState } from "./match";
 import { step } from "./step";
 import { inputsAtTick, readTape } from "./tape";
@@ -27,13 +27,6 @@ const tape = readTape(JSON.parse(readFileSync(TAPE, "utf8")));
  * · eventHash: every event of the run.
  */
 export interface Golden { tape: string; ticks: number; hash: string; chain: string; eventHash: string; hp: number[]; winner: number; hits: number }
-
-/** fold a sequence of 8-hex-char tick hashes into one FNV-1a word */
-export function chainOf(tickHashes: readonly string[]): string {
-  const bytes: number[] = [];
-  for (const h of tickHashes) for (let i = 0; i < h.length; i++) bytes.push(h.charCodeAt(i));
-  return fnv1a(bytes).toString(16).padStart(8, "0");
-}
 
 export function replay(data: FightData, ticks = tape.ticks): Golden {
   let s = createState(data);

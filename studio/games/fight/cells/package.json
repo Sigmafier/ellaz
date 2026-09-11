@@ -1,0 +1,14 @@
+{
+  "name": "ellaz-fight-cells",
+  "private": true,
+  "type": "module",
+  "description": "The engine cells: one page per arm, all driven by the same harness and built by one vite config. Each engine lane adds its own library to devDependencies; the canvas arm needs none, which is the point of it being the bar.",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.2",
+    "vite": "^5.4.8"
+  }
+}

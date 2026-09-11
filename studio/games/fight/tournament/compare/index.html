@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fight compare</title>
+<!--
+  The grading surface. Every arm is a letter, every letter is on screen at
+  once, and one button starts all of them on the same frame.
+
+  Two properties this page exists to hold, both learned the hard way:
+  a set comparison that needs sideways scrolling silently becomes a sequence
+  of pairwise ones, so the cards are SCALED to fit rather than laid out at
+  their natural size; and a control the operator cannot reach is a control
+  they do not use, so the rank box and the verdict box live inside the card
+  they are about, and the fit reserves room for them.
+
+  It is a tool, not a product: static HTML, one module, no dependency, no
+  server. The verdict is copied out by hand because there is nothing here to
+  post it to.
+-->
+<style>
+  :root {
+    --ground: #fff6d8;
+    --card: #fffdf5;
+    --ink: #1a1230;
+    --dim: #6b5f7a;
+    --line: #e3d6ae;
+    --accent: #c2185b;
+    --on-accent: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; display: flex; flex-direction: column;
+    background: var(--ground); color: var(--ink);
+    font: 14px/1.4 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 8px 14px; border-bottom: 1px solid var(--line);
+  }
+  h1 { font-size: 15px; margin: 0; letter-spacing: 0.02em; }
+  .meta { color: var(--dim); font-size: 12px; }
+  button {
+    font: inherit; font-weight: 600; cursor: pointer;
+    background: var(--accent); color: var(--on-accent);
+    border: 0; border-radius: 8px; padding: 7px 16px;
+  }
+  button[disabled] { background: var(--line); color: var(--dim); cursor: default; }
+  main {
+    flex: 1; min-height: 0; padding: 12px;
+    display: grid; gap: 12px; align-content: start; justify-content: center;
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 8px; display: flex; flex-direction: column; gap: 6px;
+  }
+  .wrap { position: relative; overflow: hidden; background: var(--ground); border-radius: 6px; }
+  .wrap iframe { position: absolute; top: 0; left: 0; width: 640px; height: 360px; border: 0; transform-origin: top left; }
+  .letter { font-size: 22px; font-weight: 800; line-height: 1; }
+  .top { display: flex; align-items: center; gap: 10px; }
+  .readout { color: var(--dim); font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rank { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); }
+  .rank input { font: inherit; width: 54px; padding: 3px 6px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink); }
+  textarea {
+    font: inherit; resize: none; width: 100%; padding: 5px 7px;
+    border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink);
+  }
+  #panel {
+    position: fixed; inset: 0; background: rgba(26, 18, 48, 0.45);
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  #panel[hidden] { display: none; }
+  #panel > div {
+    background: var(--card); border-radius: 12px; padding: 16px;
+    max-width: 760px; width: 100%; max-height: 100%; display: flex; flex-direction: column; gap: 10px;
+  }
+  #out { margin: 0; overflow: auto; white-space: pre-wrap; word-break: break-word; font-size: 12px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Fight compare</h1>
+    <span class="meta" id="seed">loading</span>
+    <button id="go" disabled>Go</button>
+    <button id="copy">Copy verdict</button>
+    <span class="meta" id="status"></span>
+  </header>
+  <main id="grid"></main>
+  <div id="panel" hidden>
+    <div>
+      <strong>Verdict - paste this back</strong>
+      <pre id="out"></pre>
+      <button id="close">Close</button>
+    </div>
+  </div>
+  <script type="module" src="./compare.ts"></script>
+</body>
+</html>
