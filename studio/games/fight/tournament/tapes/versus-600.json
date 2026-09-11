@@ -1,0 +1,32 @@
+{
+  "mode": "versus",
+  "seed": 20260912,
+  "ticks": 600,
+  "note": "the sticky input for every engine cell: a row [tick, [robot input]] holds until the next row; teddy is the CPU and takes no rows. 600 ticks = 10 s at 60. walk in, three punches, a step back, a lane change, a rush, then idle out.",
+  "frames": [
+    [0,   [{ "mx": 1,  "mz": 0,  "attack": false }]],
+    [110, [{ "mx": 0,  "mz": 0,  "attack": false }]],
+    [118, [{ "mx": 0,  "mz": 0,  "attack": true  }]],
+    [122, [{ "mx": 0,  "mz": 0,  "attack": false }]],
+    [150, [{ "mx": 0,  "mz": 0,  "attack": true  }]],
+    [154, [{ "mx": 0,  "mz": 0,  "attack": false }]],
+    [176, [{ "mx": 0,  "mz": 0,  "attack": true  }]],
+    [180, [{ "mx": 0,  "mz": 0,  "attack": false }]],
+    [200, [{ "mx": -1, "mz": 0,  "attack": false }]],
+    [240, [{ "mx": 0,  "mz": 1,  "attack": false }]],
+    [270, [{ "mx": 0,  "mz": 0,  "attack": false }]],
+    [290, [{ "mx": 1,  "mz": 0,  "attack": false }]],
+    [340, [{ "mx": 1,  "mz": -1, "attack": false }]],
+    [370, [{ "mx": 0,  "mz": 0,  "attack": true  }]],
+    [374, [{ "mx": 0,  "mz": 0,  "attack": false }]],
+    [380, [{ "mx": 0,  "mz": 0,  "attack": true  }]],
+    [384, [{ "mx": 0,  "mz": 0,  "attack": false }]],
+    [420, [{ "mx": 1,  "mz": 0,  "attack": false }]],
+    [450, [{ "mx": 0,  "mz": 0,  "attack": true  }]],
+    [454, [{ "mx": 0,  "mz": 0,  "attack": false }]],
+    [480, [{ "mx": -1, "mz": 1,  "attack": false }]],
+    [520, [{ "mx": 0,  "mz": 0,  "attack": false }]],
+    [540, [{ "mx": 0,  "mz": 0,  "attack": true  }]],
+    [544, [{ "mx": 0,  "mz": 0,  "attack": false }]]
+  ]
+}

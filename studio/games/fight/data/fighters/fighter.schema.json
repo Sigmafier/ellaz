@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ellaz.fun/studio/fight/fighter.schema.json",
+  "title": "Ellaz fighter file",
+  "description": "What a fighter IS, as opposed to what it looks like (the sprite set's manifest) or what it does (that set's moves file). Speeds are VIEW PIXELS PER SECOND at TICK_RATE, because that is the unit a human can reason about; compile.ts turns each into FP per tick, floored, once.",
+  "type": "object",
+  "required": ["id", "sprites", "hp", "speed", "zSpeed"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "must equal the file's basename" },
+    "sprites": { "type": "string", "pattern": "^[a-z0-9]+--[a-z0-9]+$", "description": "a directory under ../assets/ holding <set>.manifest.json and <set>.moves.json; data.test.ts asserts both exist" },
+    "hp": { "type": "integer", "exclusiveMinimum": 0 },
+    "speed": { "type": "integer", "exclusiveMinimum": 0, "description": "view px per second, walking along x" },
+    "zSpeed": { "type": "integer", "exclusiveMinimum": 0, "description": "view px per second, stepping between lanes" }
+  }
+}

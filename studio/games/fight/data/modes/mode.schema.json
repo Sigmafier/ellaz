@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ellaz.fun/studio/fight/mode.schema.json",
+  "title": "Ellaz fight mode file",
+  "description": "The one file a game names. It points at an arena, a match ruleset and a cast; data/load.ts opens everything it names and compile.ts refuses any name that was not loaded. `seed` lives here and not in code so a replay is a mode file plus an input log, and nothing else.",
+  "type": "object",
+  "required": ["id", "arena", "match", "seed", "cast"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "must equal the file's basename" },
+    "arena": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "a basename under ../arena/" },
+    "match": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "a basename under ../match/" },
+    "seed": { "type": "integer", "minimum": 0, "description": "the whole state of the sim's rng; uint32" },
+    "cast": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/castEntry" } }
+  },
+  "$defs": {
+    "castEntry": {
+      "type": "object",
+      "required": ["fighter", "control", "team", "x", "z", "face"],
+      "additionalProperties": false,
+      "description": "`ai` is REQUIRED when control is \"ai\" and FORBIDDEN otherwise. The validator subset (scripts/lib/schema.mjs) has no if/then and no oneOf, so that conditional cannot be written here and is asserted by data.test.ts instead - watched failing in both directions before it was believed.",
+      "properties": {
+        "fighter": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "a basename under ../fighters/" },
+        "control": { "type": "string", "pattern": "^(player|ai)$" },
+        "ai": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "a basename under ../ai/; see the conditional above" },
+        "team": { "type": "integer", "minimum": 0 },
+        "x": { "type": "integer", "description": "view px; inside the arena's sim.xMin..xMax" },
+        "z": { "type": "integer", "description": "view px; inside the arena's sim.zMin..zMax" },
+        "face": { "type": "integer", "description": "1 or -1; data.test.ts asserts it, the subset has no enum" }
+      }
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "id": "teddy",
+  "sprites": "teddy--snes16",
+  "hp": 100,
+  "speed": 66,
+  "zSpeed": 44
+}

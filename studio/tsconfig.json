@@ -11,5 +11,5 @@
       "@/*": ["gallery/src/*"]
     }
   },
-  "include": ["art", "export", "adapters", "gallery/src", "vitest.config.ts"]
+  "include": ["art", "export", "adapters", "gallery/src", "games", "vitest.config.ts"]
 }

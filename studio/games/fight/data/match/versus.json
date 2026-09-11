@@ -1,0 +1,20 @@
+{
+  "id": "versus",
+  "tickRate": 60,
+  "rounds": 1,
+  "hp": 100,
+  "knockScale": 10,
+  "liftScale": 60,
+  "hitZBand": 12,
+  "fallThreshold": 60,
+  "friction": 8,
+  "hitstopTicks": 4,
+  "shakeTicks": 8,
+  "hitsToKnockdown": 3,
+  "knockdownWindowTicks": 90,
+  "downTicks": 60,
+  "getupTicks": 25,
+  "invTicks": 36,
+  "koFadeTicks": 60,
+  "rematchAfterTicks": 90
+}

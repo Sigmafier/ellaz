@@ -1,0 +1,34 @@
+{
+  "id": "playroom",
+  "view": { "w": 640, "h": 360 },
+  "scale": { "num": 1, "den": 5 },
+  "sim": {
+    "zMin": 186,
+    "zMax": 344,
+    "xMin": 44,
+    "xMax": 596,
+    "gravity": 900,
+    "floorTop": 157
+  },
+  "art": {
+    "palette": "snes16",
+    "bands": [
+      { "kind": "wall", "y": 0, "h": 150, "stripe": 40, "colors": ["wallLight", "wallStripe"] },
+      { "kind": "planks", "y": 157, "h": 203, "seed": 11, "rowH": 16, "rowGrow": 3, "colors": ["floor", "floorLine", "floorLight"] }
+    ],
+    "props": [
+      {
+        "kind": "shelf",
+        "x": 36,
+        "y": 104,
+        "w": 568,
+        "blocks": [
+          { "x": 70, "w": 24, "h": 26, "color": "pink" },
+          { "x": 160, "w": 40, "h": 20, "color": "mint" },
+          { "x": 300, "w": 28, "h": 30, "color": "sky" },
+          { "x": 420, "w": 36, "h": 18, "color": "gold" }
+        ]
+      }
+    ]
+  }
+}

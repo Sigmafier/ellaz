@@ -1,0 +1,615 @@
+{
+  "frames": {
+    "robot_idle_0000": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "sourceSize": {
+        "w": 980,
+        "h": 660
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7575757575757576
+      }
+    },
+    "robot_idle_0001": {
+      "frame": {
+        "x": 980,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "sourceSize": {
+        "w": 980,
+        "h": 660
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7575757575757576
+      }
+    },
+    "robot_idle_0002": {
+      "frame": {
+        "x": 1960,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "sourceSize": {
+        "w": 980,
+        "h": 660
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7575757575757576
+      }
+    },
+    "robot_idle_0003": {
+      "frame": {
+        "x": 2940,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "sourceSize": {
+        "w": 980,
+        "h": 660
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7575757575757576
+      }
+    },
+    "robot_walk_0000": {
+      "frame": {
+        "x": 3920,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "sourceSize": {
+        "w": 980,
+        "h": 660
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7575757575757576
+      }
+    },
+    "robot_walk_0001": {
+      "frame": {
+        "x": 0,
+        "y": 660,
+        "w": 980,
+        "h": 660
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "sourceSize": {
+        "w": 980,
+        "h": 660
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7575757575757576
+      }
+    },
+    "robot_walk_0002": {
+      "frame": {
+        "x": 980,
+        "y": 660,
+        "w": 980,
+        "h": 660
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "sourceSize": {
+        "w": 980,
+        "h": 660
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7575757575757576
+      }
+    },
+    "robot_walk_0003": {
+      "frame": {
+        "x": 1960,
+        "y": 660,
+        "w": 980,
+        "h": 660
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "sourceSize": {
+        "w": 980,
+        "h": 660
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7575757575757576
+      }
+    },
+    "robot_walk_0004": {
+      "frame": {
+        "x": 2940,
+        "y": 660,
+        "w": 980,
+        "h": 660
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "sourceSize": {
+        "w": 980,
+        "h": 660
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7575757575757576
+      }
+    },
+    "robot_walk_0005": {
+      "frame": {
+        "x": 3920,
+        "y": 660,
+        "w": 980,
+        "h": 660
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "sourceSize": {
+        "w": 980,
+        "h": 660
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7575757575757576
+      }
+    },
+    "robot_attack_0000": {
+      "frame": {
+        "x": 0,
+        "y": 1320,
+        "w": 980,
+        "h": 660
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "sourceSize": {
+        "w": 980,
+        "h": 660
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7575757575757576
+      }
+    },
+    "robot_attack_0001": {
+      "frame": {
+        "x": 980,
+        "y": 1320,
+        "w": 980,
+        "h": 660
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "sourceSize": {
+        "w": 980,
+        "h": 660
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7575757575757576
+      }
+    },
+    "robot_attack_0002": {
+      "frame": {
+        "x": 1960,
+        "y": 1320,
+        "w": 980,
+        "h": 660
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "sourceSize": {
+        "w": 980,
+        "h": 660
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7575757575757576
+      }
+    },
+    "robot_attack_0003": {
+      "frame": {
+        "x": 2940,
+        "y": 1320,
+        "w": 980,
+        "h": 660
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "sourceSize": {
+        "w": 980,
+        "h": 660
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7575757575757576
+      }
+    },
+    "robot_attack_0004": {
+      "frame": {
+        "x": 3920,
+        "y": 1320,
+        "w": 980,
+        "h": 660
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "sourceSize": {
+        "w": 980,
+        "h": 660
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7575757575757576
+      }
+    },
+    "robot_attack_0005": {
+      "frame": {
+        "x": 0,
+        "y": 1980,
+        "w": 980,
+        "h": 660
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "sourceSize": {
+        "w": 980,
+        "h": 660
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7575757575757576
+      }
+    },
+    "robot_hurt_0000": {
+      "frame": {
+        "x": 980,
+        "y": 1980,
+        "w": 980,
+        "h": 660
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "sourceSize": {
+        "w": 980,
+        "h": 660
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7575757575757576
+      }
+    },
+    "robot_hurt_0001": {
+      "frame": {
+        "x": 1960,
+        "y": 1980,
+        "w": 980,
+        "h": 660
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "sourceSize": {
+        "w": 980,
+        "h": 660
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7575757575757576
+      }
+    },
+    "robot_hurt_0002": {
+      "frame": {
+        "x": 2940,
+        "y": 1980,
+        "w": 980,
+        "h": 660
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "sourceSize": {
+        "w": 980,
+        "h": 660
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7575757575757576
+      }
+    },
+    "robot_ko_0000": {
+      "frame": {
+        "x": 3920,
+        "y": 1980,
+        "w": 980,
+        "h": 660
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "sourceSize": {
+        "w": 980,
+        "h": 660
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7575757575757576
+      }
+    },
+    "robot_ko_0001": {
+      "frame": {
+        "x": 0,
+        "y": 2640,
+        "w": 980,
+        "h": 660
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "sourceSize": {
+        "w": 980,
+        "h": 660
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7575757575757576
+      }
+    },
+    "robot_ko_0002": {
+      "frame": {
+        "x": 980,
+        "y": 2640,
+        "w": 980,
+        "h": 660
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "sourceSize": {
+        "w": 980,
+        "h": 660
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7575757575757576
+      }
+    },
+    "robot_ko_0003": {
+      "frame": {
+        "x": 1960,
+        "y": 2640,
+        "w": 980,
+        "h": 660
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "sourceSize": {
+        "w": 980,
+        "h": 660
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7575757575757576
+      }
+    },
+    "robot_ko_0004": {
+      "frame": {
+        "x": 2940,
+        "y": 2640,
+        "w": 980,
+        "h": 660
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "sourceSize": {
+        "w": 980,
+        "h": 660
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7575757575757576
+      }
+    },
+    "robot_ko_0005": {
+      "frame": {
+        "x": 3920,
+        "y": 2640,
+        "w": 980,
+        "h": 660
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 980,
+        "h": 660
+      },
+      "sourceSize": {
+        "w": 980,
+        "h": 660
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7575757575757576
+      }
+    }
+  },
+  "meta": {
+    "app": "ellaz-studio",
+    "version": "1",
+    "image": "robot--snes16.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 4900,
+      "h": 3300
+    },
+    "scale": "1"
+  }
+}

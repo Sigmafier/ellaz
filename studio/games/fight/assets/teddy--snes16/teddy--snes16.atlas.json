@@ -1,0 +1,615 @@
+{
+  "frames": {
+    "teddy_idle_0000": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 680,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7446808510638298
+      }
+    },
+    "teddy_idle_0001": {
+      "frame": {
+        "x": 680,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 680,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7446808510638298
+      }
+    },
+    "teddy_idle_0002": {
+      "frame": {
+        "x": 1360,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 680,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7446808510638298
+      }
+    },
+    "teddy_idle_0003": {
+      "frame": {
+        "x": 2040,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 680,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7446808510638298
+      }
+    },
+    "teddy_walk_0000": {
+      "frame": {
+        "x": 2720,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 680,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7446808510638298
+      }
+    },
+    "teddy_walk_0001": {
+      "frame": {
+        "x": 0,
+        "y": 470,
+        "w": 680,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 680,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7446808510638298
+      }
+    },
+    "teddy_walk_0002": {
+      "frame": {
+        "x": 680,
+        "y": 470,
+        "w": 680,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 680,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7446808510638298
+      }
+    },
+    "teddy_walk_0003": {
+      "frame": {
+        "x": 1360,
+        "y": 470,
+        "w": 680,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 680,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7446808510638298
+      }
+    },
+    "teddy_walk_0004": {
+      "frame": {
+        "x": 2040,
+        "y": 470,
+        "w": 680,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 680,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7446808510638298
+      }
+    },
+    "teddy_walk_0005": {
+      "frame": {
+        "x": 2720,
+        "y": 470,
+        "w": 680,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 680,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7446808510638298
+      }
+    },
+    "teddy_attack_0000": {
+      "frame": {
+        "x": 0,
+        "y": 940,
+        "w": 680,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 680,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7446808510638298
+      }
+    },
+    "teddy_attack_0001": {
+      "frame": {
+        "x": 680,
+        "y": 940,
+        "w": 680,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 680,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7446808510638298
+      }
+    },
+    "teddy_attack_0002": {
+      "frame": {
+        "x": 1360,
+        "y": 940,
+        "w": 680,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 680,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7446808510638298
+      }
+    },
+    "teddy_attack_0003": {
+      "frame": {
+        "x": 2040,
+        "y": 940,
+        "w": 680,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 680,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7446808510638298
+      }
+    },
+    "teddy_attack_0004": {
+      "frame": {
+        "x": 2720,
+        "y": 940,
+        "w": 680,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 680,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7446808510638298
+      }
+    },
+    "teddy_attack_0005": {
+      "frame": {
+        "x": 0,
+        "y": 1410,
+        "w": 680,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 680,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7446808510638298
+      }
+    },
+    "teddy_hurt_0000": {
+      "frame": {
+        "x": 680,
+        "y": 1410,
+        "w": 680,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 680,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7446808510638298
+      }
+    },
+    "teddy_hurt_0001": {
+      "frame": {
+        "x": 1360,
+        "y": 1410,
+        "w": 680,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 680,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7446808510638298
+      }
+    },
+    "teddy_hurt_0002": {
+      "frame": {
+        "x": 2040,
+        "y": 1410,
+        "w": 680,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 680,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7446808510638298
+      }
+    },
+    "teddy_ko_0000": {
+      "frame": {
+        "x": 2720,
+        "y": 1410,
+        "w": 680,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 680,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7446808510638298
+      }
+    },
+    "teddy_ko_0001": {
+      "frame": {
+        "x": 0,
+        "y": 1880,
+        "w": 680,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 680,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7446808510638298
+      }
+    },
+    "teddy_ko_0002": {
+      "frame": {
+        "x": 680,
+        "y": 1880,
+        "w": 680,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 680,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7446808510638298
+      }
+    },
+    "teddy_ko_0003": {
+      "frame": {
+        "x": 1360,
+        "y": 1880,
+        "w": 680,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 680,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7446808510638298
+      }
+    },
+    "teddy_ko_0004": {
+      "frame": {
+        "x": 2040,
+        "y": 1880,
+        "w": 680,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 680,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7446808510638298
+      }
+    },
+    "teddy_ko_0005": {
+      "frame": {
+        "x": 2720,
+        "y": 1880,
+        "w": 680,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 680,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 680,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7446808510638298
+      }
+    }
+  },
+  "meta": {
+    "app": "ellaz-studio",
+    "version": "1",
+    "image": "teddy--snes16.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 3400,
+      "h": 2350
+    },
+    "scale": "1"
+  }
+}

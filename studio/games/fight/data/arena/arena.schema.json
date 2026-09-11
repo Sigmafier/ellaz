@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ellaz.fun/studio/fight/arena.schema.json",
+  "title": "Ellaz fight arena file",
+  "description": "Where a match happens. `view` and `sim` are VIEW PIXELS - compile.ts turns every one of them into FP (1/256 px) and gravity into FP per tick squared, so the sim never divides. `scale` is the rational the sprite frame pixels are drawn at (1/5 here, and 0.2 is not representable in binary floating point, which is why it is a pair and not a number). `art` is the ONLY loose object in this directory: the core never opens it, a cell draws from it, and pinning its shape here would mean editing a schema every time somebody adds a stripe.",
+  "type": "object",
+  "required": ["id", "view", "scale", "sim", "art"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "must equal the file's basename" },
+    "view": {
+      "type": "object",
+      "required": ["w", "h"],
+      "additionalProperties": false,
+      "properties": {
+        "w": { "type": "integer", "exclusiveMinimum": 0 },
+        "h": { "type": "integer", "exclusiveMinimum": 0 }
+      }
+    },
+    "scale": {
+      "type": "object",
+      "required": ["num", "den"],
+      "additionalProperties": false,
+      "description": "frame pixels -> view pixels, as num/den",
+      "properties": {
+        "num": { "type": "integer", "exclusiveMinimum": 0 },
+        "den": { "type": "integer", "exclusiveMinimum": 0 }
+      }
+    },
+    "sim": {
+      "type": "object",
+      "required": ["zMin", "zMax", "xMin", "xMax", "gravity", "floorTop"],
+      "additionalProperties": false,
+      "description": "everything step() reads, in view pixels; gravity is view px per second squared",
+      "properties": {
+        "zMin": { "type": "integer" },
+        "zMax": { "type": "integer" },
+        "xMin": { "type": "integer" },
+        "xMax": { "type": "integer" },
+        "gravity": { "type": "integer", "minimum": 0 },
+        "floorTop": { "type": "integer", "description": "view y of the floor's top edge; read by the cell, not by the sim" }
+      }
+    },
+    "art": {
+      "type": "object",
+      "required": ["palette", "bands", "props"],
+      "description": "loose on purpose - see the file description. Extra keys are allowed here and inside every band and prop.",
+      "properties": {
+        "palette": { "type": "string" },
+        "bands": { "type": "array", "items": { "$ref": "#/$defs/artItem" } },
+        "props": { "type": "array", "items": { "$ref": "#/$defs/artItem" } }
+      }
+    }
+  },
+  "$defs": {
+    "artItem": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": { "kind": { "type": "string" } }
+    }
+  }
+}

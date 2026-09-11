@@ -1,0 +1,10 @@
+{
+  "id": "versus",
+  "arena": "playroom",
+  "match": "versus",
+  "seed": 20260912,
+  "cast": [
+    { "fighter": "robot", "control": "player", "team": 0, "x": 190, "z": 268, "face": 1 },
+    { "fighter": "teddy", "control": "ai", "ai": "teddy-cpu", "team": 1, "x": 450, "z": 250, "face": -1 }
+  ]
+}

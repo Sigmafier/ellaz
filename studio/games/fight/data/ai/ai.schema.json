@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ellaz.fun/studio/fight/ai.schema.json",
+  "title": "Ellaz fight AI file",
+  "description": "One opponent's temperament. Every range is an inclusive [lo, hi] tick pair drawn with rngRange, and every probability is 0-255 compared against ONE rng byte - so the AI draws from the sim's own generator and a replay reproduces it exactly. Nothing here is a percentage: a percentage needs a division.",
+  "type": "object",
+  "required": [
+    "id",
+    "zTolerance",
+    "cooldownTicks",
+    "reactTicks",
+    "retreatChance",
+    "retreatTicks",
+    "retreatDistance",
+    "reachPad"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "must equal the file's basename" },
+    "zTolerance": { "type": "integer", "minimum": 0, "description": "view px of z difference it will accept before stepping toward the target's lane" },
+    "cooldownTicks": { "$ref": "#/$defs/tickRange", "description": "how long it waits between attacks" },
+    "reactTicks": { "$ref": "#/$defs/tickRange", "description": "how long it takes to notice a change" },
+    "retreatChance": { "type": "integer", "minimum": 0, "description": "0-255, compared against one rng byte; the upper bound is the byte's, so no maximum is written here" },
+    "retreatTicks": { "$ref": "#/$defs/tickRange" },
+    "retreatDistance": { "type": "integer", "minimum": 0, "description": "view px it backs off to" },
+    "reachPad": {
+      "type": "object",
+      "required": ["min", "max"],
+      "additionalProperties": false,
+      "description": "view px added to the attack's own reach when deciding to swing; max is NEGATIVE here on purpose - it stops short so the swing lands rather than overshooting",
+      "properties": {
+        "min": { "type": "integer" },
+        "max": { "type": "integer" }
+      }
+    }
+  },
+  "$defs": {
+    "tickRange": {
+      "type": "array",
+      "minItems": 2,
+      "description": "exactly [lo, hi], inclusive, in ticks. The validator subset has no maxItems, so data.test.ts asserts the length is 2 and that lo <= hi.",
+      "items": { "type": "integer", "minimum": 0 }
+    }
+  }
+}

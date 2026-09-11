@@ -1,0 +1,7 @@
+{
+  "id": "robot",
+  "sprites": "robot--snes16",
+  "hp": 100,
+  "speed": 96,
+  "zSpeed": 62
+}
