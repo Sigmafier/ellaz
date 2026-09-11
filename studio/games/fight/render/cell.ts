@@ -20,13 +20,13 @@
 // sprites take 10 + their position in the (already z-sorted) call order.
 
 import Phaser from "phaser";
-import type { Manifest } from "../../../../adapters/manifest";
-import { loadStudioAtlas, originFor } from "../../../../adapters/phaser/load-atlas";
-import { NO_INPUT } from "../../core/types";
-import type { InputFrame } from "../../core/types";
-import type { BoxOp, HudModel, ShadowOp, SpriteOp } from "../../core/view";
-import type { ArenaDrawOp, Cell, CellStats, FxOp, SpriteSetRef } from "../contract";
-import { drawText, textWidth } from "../canvas/font";
+import type { Manifest } from "../../../adapters/manifest";
+import { loadStudioAtlas, originFor } from "../../../adapters/phaser/load-atlas";
+import { NO_INPUT } from "../core/types";
+import type { InputFrame } from "../core/types";
+import type { BoxOp, HudModel, ShadowOp, SpriteOp } from "../core/view";
+import type { ArenaDrawOp, Cell, CellStats, FxOp, SpriteSetRef } from "../cells/contract";
+import { drawText, textWidth } from "../cells/canvas/font";
 
 const DRAW_SCALE = 1 / 5;
 const INK = 0x1a1230;

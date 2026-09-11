@@ -27,6 +27,9 @@ function inputs(): Record<string, string> {
   }
   const compare = resolve(FIGHT, "tournament/compare/index.html");
   if (existsSync(compare)) found.compare = compare;
+  // the promoted renderer: the game page itself, beside the cells it was picked from
+  const render = resolve(FIGHT, "render/index.html");
+  if (existsSync(render)) found.render = render;
   return found;
 }
 

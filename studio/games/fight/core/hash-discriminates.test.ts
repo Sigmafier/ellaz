@@ -45,7 +45,7 @@ function makeState(): FightState {
         st: 4, stT: 9, frame: 2,
         hp: 87, stun: 5, inv: 12,
         down: 0, fall: 3,
-        hits: 2, hitsT: 17, hitMask: 1,
+        hits: 2, hitsT: 17, hitMask: 1, cool: 3,
         ai,
       },
       {
@@ -55,7 +55,7 @@ function makeState(): FightState {
         st: 1, stT: 33, frame: 5,
         hp: 42, stun: 0, inv: 0,
         down: 8, fall: 14,
-        hits: 1, hitsT: 4, hitMask: 2,
+        hits: 1, hitsT: 4, hitMask: 2, cool: 3,
         ai: null,
       },
     ],

@@ -18,14 +18,24 @@ function enterState(f: FighterState, st: number): FighterState {
   return { ...f, st, stT: 0, frame: 0, hitMask: 0 };
 }
 
-/** input -> a transition, or -1. Only stand/walk take movement; attack re-enters from cancelFrom. */
+/**
+ * input -> a transition, or -1. Only stand/walk take movement; attack re-enters
+ * from cancelFrom, and never while `cool` is running - the recovery window
+ * match.attackCooldownTicks opens after every attack START.
+ */
 function transition(f: FighterState, cf: CFighter, input: InputFrame): number {
   const st = cf.states[f.st];
   const moving = input.mx !== 0 || input.mz !== 0;
-  if (input.attack && st.onAttack >= 0 && (f.st !== st.onAttack || canCancel(st, f.frame))) return st.onAttack;
+  if (input.attack && f.cool === 0 && st.onAttack >= 0 && (f.st !== st.onAttack || canCancel(st, f.frame))) return st.onAttack;
   if (moving && st.onMove >= 0) return st.onMove;
   if (!moving && st.onStop >= 0) return st.onStop;
   return -1;
+}
+
+/** take the transition; an attack start also arms the cooldown */
+function applyTransition(f: FighterState, cf: CFighter, match: CMatch, to: number): FighterState {
+  const started = enterState(f, to);
+  return to === cf.states[f.st].onAttack ? { ...started, cool: match.attackCooldownTicks } : started;
 }
 
 /** only the state that can `stop` (walk) takes its velocity from the stick */
@@ -66,9 +76,10 @@ function tickDown(f: FighterState, cf: CFighter, match: CMatch): FighterState {
 
 function tickTimers(f: FighterState, match: CMatch): FighterState {
   const inv = f.inv > 0 ? f.inv - 1 : 0;
+  const cool = f.cool > 0 ? f.cool - 1 : 0;
   let hits = f.hits, hitsT = f.hitsT;
   if (hits > 0) { hitsT += 1; if (hitsT > match.knockdownWindowTicks) { hits = 0; hitsT = 0; } }
-  return { ...f, inv, hits, hitsT };
+  return { ...f, inv, cool, hits, hitsT };
 }
 
 /** the clip clock; a finished one-shot goes to `next`, or - the ko clip - to the floor */
@@ -96,7 +107,7 @@ export function tickFighter(f0: FighterState, cf: CFighter, arena: CArena, match
   }
   if (f.hp > 0) {
     const to = transition(f, cf, input);
-    if (to >= 0) f = enterState(f, to);
+    if (to >= 0) f = applyTransition(f, cf, match, to);
     f = walkVelocity(f, cf, input);
   }
   f = move(f, arena, match, events, who);
@@ -106,5 +117,5 @@ export function tickFighter(f0: FighterState, cf: CFighter, arena: CArena, match
 
 /** a fresh fighter at its cast position */
 export function spawnFighter(cf: CFighter, x: number, z: number, face: 1 | -1, ai: FighterState["ai"]): FighterState {
-  return { x, z, h: 0, vx: 0, vz: 0, vh: 0, face, st: cf.initial, stT: 0, frame: 0, hp: cf.hp, stun: 0, inv: 0, down: 0, fall: 0, hits: 0, hitsT: 0, hitMask: 0, ai };
+  return { x, z, h: 0, vx: 0, vz: 0, vh: 0, face, st: cf.initial, stT: 0, frame: 0, hp: cf.hp, stun: 0, inv: 0, down: 0, fall: 0, hits: 0, hitsT: 0, hitMask: 0, cool: 0, ai };
 }

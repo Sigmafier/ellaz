@@ -51,14 +51,24 @@ export function parseFlags(argv, defaults = {}) {
   return out;
 }
 
-/** Every built cell page, from the tree itself - never a hand-kept list. */
+/** relative path under dist for a cell's page: cells/<name>, or render/ for the promoted winner */
+const relDir = (cell) => (cell === "render" ? "render" : `cells/${cell}`);
+
+/** where a cell's page lives in the built tree */
+export const pageDirOf = (dist, cell) => join(dist, relDir(cell));
+
+/**
+ * Every built cell page, from the tree itself - never a hand-kept list. The
+ * promoted renderer (render/index.html) is a cell too: it must keep admitting
+ * on the golden after the tournament, or the game has drifted from the bar.
+ */
 export function listCells(dist) {
   const dir = join(dist, "cells");
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir, { withFileTypes: true })
+  const cells = !existsSync(dir) ? [] : readdirSync(dir, { withFileTypes: true })
     .filter((e) => e.isDirectory() && existsSync(join(dir, e.name, "index.html")))
-    .map((e) => e.name)
-    .sort();
+    .map((e) => e.name);
+  if (existsSync(join(pageDirOf(dist, "render"), "index.html"))) cells.push("render");
+  return cells.sort();
 }
 
 /** Answer http://fight.test/** from `dist`. Works on a page or a context. */
@@ -85,7 +95,7 @@ export function appendRow(row) {
   appendFileSync(RAW, `${JSON.stringify(row)}\n`);
 }
 
-export const cellUrl = (cell, query) => `${ORIGIN}/cells/${cell}/index.html?${query}`;
+export const cellUrl = (cell, query) => `${ORIGIN}/${relDir(cell)}/index.html?${query}`;
 
 export function readGolden(tape) {
   const file = join(FIGHT, "tournament", "data", `${tape}.golden.json`);

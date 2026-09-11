@@ -23,7 +23,8 @@ import { createClock, detectRefresh } from "./retime";
 import { arenaOps } from "./shared/arena";
 import { loadFightHttp, spriteRefs } from "./shared/assets";
 import { createFx } from "./shared/fx";
-import { attachKeyboard } from "./shared/input";
+import { attachKeyboard, attachTouch } from "./shared/input";
+import type { InputSource } from "./shared/input";
 import type { Tape } from "../core/tape";
 
 interface Live { data: FightData; prev: FightState; next: FightState; tape: Tape | null; ticks: string[]; events: FightEvent[]; done: boolean }
@@ -45,6 +46,11 @@ function fail(err: unknown): void {
   pre.style.cssText = "color:#c2185b;background:#fff6d8;padding:8px;white-space:pre-wrap";
   pre.textContent = `fight cell error: ${msg}`;
   document.body.prepend(pre);
+}
+
+/** two sources of one frame: a held axis beats a resting one, a swing on either is a swing */
+function mergeInput(a: InputFrame, b: InputFrame): InputFrame {
+  return { mx: b.mx !== 0 ? b.mx : a.mx, mz: b.mz !== 0 ? b.mz : a.mz, attack: a.attack || b.attack };
 }
 
 /** step whole ticks; a tape run feeds the tape and stops at its length */
@@ -72,8 +78,10 @@ export async function runCell(cell: Cell, opts: CellOptions): Promise<void> {
     const live: Live = { data, prev: createState(data), next: createState(data), tape, ticks: [], events: [], done: false };
     const arena = arenaOps(loaded.arena.art, loaded.arena.view);
     const fx = createFx();
-    const keys = tape ? null : attachKeyboard(window);
-    const read = (side: number): InputFrame => (keys ? keys.read(side) : NO_INPUT);
+    // a live run reads the keyboard AND the touch surface; whichever is moving wins the axis, and
+    // either can swing. A tape run reads neither - the hash measures the sim, not the hands
+    const sources: InputSource[] = tape ? [] : [attachKeyboard(window), attachTouch(host)];
+    const read = (side: number): InputFrame => sources.reduce((frame, s) => mergeInput(frame, s.read(side)), NO_INPUT);
     const clock = createClock();
     const fast = new URLSearchParams(location.search).get("fast") === "1";
     let drawn = 0, distinct = 0, draws = 0, lastKey = "", ttff = -1, fxFed = 0;

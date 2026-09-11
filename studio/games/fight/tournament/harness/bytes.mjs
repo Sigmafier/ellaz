@@ -19,7 +19,7 @@ import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
-import { DEFAULT_DIST, appendRow, listCells, parseFlags } from "./run-tape.mjs";
+import { DEFAULT_DIST, appendRow, listCells, pageDirOf, parseFlags } from "./run-tape.mjs";
 
 /** Every JS URL the built page declares: its module script and its preloads. */
 export function declaredScripts(html) {
@@ -55,7 +55,7 @@ export function bucketOf(basename) {
 }
 
 function measureCell(dist, cell) {
-  const pageDir = join(dist, "cells", cell);
+  const pageDir = pageDirOf(dist, cell);
   const html = readFileSync(join(pageDir, "index.html"), "utf8");
   const out = { cell, engine: 0, shared: 0, authored: 0, total: 0, files: [], missing: [] };
   for (const url of declaredScripts(html)) {

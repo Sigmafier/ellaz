@@ -72,6 +72,8 @@ export interface MatchFile {
   friction: number;
   hitstopTicks: number;
   shakeTicks: number;
+  /** ticks from one attack's START before the next may start - the recovery window a moves file's `cancelFrom` alone cannot express (a robot mashing attack took zero damage in 6,000 ticks without it, measured 2026-09-12) */
+  attackCooldownTicks: number;
   hitsToKnockdown: number;
   knockdownWindowTicks: number;
   downTicks: number;
@@ -165,6 +167,7 @@ export interface FighterState {
   hits: number;                             // recent hits toward hitsToKnockdown
   hitsT: number;                            // ticks since the first recent hit
   hitMask: number;                          // which opposing fighters this attack has already hit
+  cool: number;                             // ticks before another attack may START (match.attackCooldownTicks)
   ai: AiState | null;
 }
 

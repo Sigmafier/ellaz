@@ -58,6 +58,7 @@ export const HASHED_FIGHTER_FIELDS: readonly HashedFighterField[] = [
   "hits",
   "hitsT",
   "hitMask",
+  "cool",
 ];
 
 /** every AiState field, in fold order */
