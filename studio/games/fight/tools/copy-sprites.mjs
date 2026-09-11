@@ -27,9 +27,14 @@ const baseName = (setName, kind) => `${setName}.${FILES[kind]}`;
  * { sets, source } so the caller can say where the list came from. */
 function defaultSets() {
   if (existsSync(FIGHTERS_DIR)) {
+    // the schema sits beside the fighters and carries no `sprites`; a fighter without one is an error, not a skip
     const sets = readdirSync(FIGHTERS_DIR)
-      .filter((f) => f.endsWith(".json"))
-      .map((f) => JSON.parse(readFileSync(join(FIGHTERS_DIR, f), "utf8")).sprites);
+      .filter((f) => f.endsWith(".json") && !f.endsWith(".schema.json"))
+      .map((f) => {
+        const s = JSON.parse(readFileSync(join(FIGHTERS_DIR, f), "utf8")).sprites;
+        if (typeof s !== "string") throw new Error(`copy-sprites: ${f} names no sprites set`);
+        return s;
+      });
     return { sets, source: `${FIGHTERS_DIR} (${sets.length} fighter files)` };
   }
   const sets = existsSync(DEFAULT_ASSETS) ? readdirSync(DEFAULT_ASSETS).filter((d) => existsSync(join(DEFAULT_ASSETS, d))) : [];
