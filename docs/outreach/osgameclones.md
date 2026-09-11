@@ -1,6 +1,6 @@
 # osgameclones - eight games listed on the open-source clones site
 
-**Status**: fired 2026-09-03. **PR <https://github.com/opengaming/osgameclones/pull/5052> is OPEN and mergeable.** Nothing below is a proposal any more; it is the record of what was sent. The operator ACKs the PR text below (D9), then the PR is opened from the operator's own GitHub account (`gh` is logged in as `ytrofr`) and the row in `ledger.md` flips to `fired`.
+**Status**: fired 2026-09-03. **PR <https://github.com/opengaming/osgameclones/pull/5052> is OPEN and mergeable.** **Reviewed 2026-09-10 by the maintainer, cxong**: two GitHub suggestions, `type: similar` -> `type: clone` on Match Three and Picture Logic, and nothing else. Both applied 2026-09-11 in `511f13d` on the PR branch, crediting him as co-author, so all eight entries now read `clone`. The same maintainer merged #5053 (opened after ours) that morning, so the PR was waiting on us, not on him. Nothing below is a proposal any more; it is the record of what was sent. The operator ACKs the PR text below (D9), then the PR is opened from the operator's own GitHub account (`gh` is logged in as `ytrofr`) and the row in `ledger.md` flips to `fired`.
 
 ## Why this door, measured 2026-09-02
 
@@ -24,7 +24,11 @@ in `originals/`), `type`, `status`, `langs`, `licenses`, `updated`. Optional and
 
 - **`type`**: `clone` where the mechanic is the original's (2048, Snake, Minesweeper,
   Tetris, Simon, Wordle); `similar` where it diverges or the original is a trademark
-  (Bejeweled -> Match Three, Picross Series -> Picture Logic).
+  (Bejeweled -> Match Three, Picross Series -> Picture Logic). **Overruled by the
+  maintainer 2026-09-10**: both are `clone` in their taxonomy, and the trademark worry
+  was ours, not theirs, since `originals:` names the game either way. Their list, their
+  labels, so it was accepted. The PR body below still says `similar`, because it is the
+  record of what was sent.
 - **`ai: true`** on every entry. The schema's own description is *"whether this project
   contains LLM-generated outputs"*, and this repository does. Newgrounds asked the same
   question and the answer was left to the operator; here it is a boolean the maintainer
@@ -184,7 +188,7 @@ problems: none
 - name: Ellaz Match Three
   originals:
   - Bejeweled
-  type: similar
+  type: clone
   repo: https://github.com/Sigmafier/ellaz
   url: https://ellaz.fun/games/match3/
   development: active
@@ -206,7 +210,7 @@ problems: none
 - name: Ellaz Picture Logic
   originals:
   - Picross Series
-  type: similar
+  type: clone
   repo: https://github.com/Sigmafier/ellaz
   url: https://ellaz.fun/games/nonogram/
   development: active
