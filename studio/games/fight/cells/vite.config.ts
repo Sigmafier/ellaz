@@ -36,7 +36,8 @@ function inputs(): Record<string, string> {
 // clock, the shared input/fx/arena), and what the CELL AUTHOR wrote - which is
 // whatever is left. Merging any two of them would make the engine's byte cost
 // unreadable, which is half of what the tournament measures.
-const ENGINES = ["phaser", "pixi.js", "kaplay", "excalibur", "littlejsengine", "melonjs"];
+// only the winner is installed now; a package added here without a cell is a chunk name nothing emits
+const ENGINES = ["phaser"];
 
 function chunkOf(id: string): string | undefined {
   const path = id.split("\0").pop() ?? id;
