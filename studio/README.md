@@ -51,6 +51,8 @@ design. Run the studio's checks from inside `studio/`.
 | `runner/` | the browser bundle every headless job drives - no server, no port |
 | `scripts/` | the nine gates, three renderers, gallery shots, and `lib/` they share |
 | `tools/roster-painter/` | the Python range-painter that drew the eight roster characters and emits their `pixels<H>.ts` + `rig<H>.ts`; `reproduce.sh` proves the repo's rows come back byte-identical. Needs a python with Pillow (not a studio dependency) |
+| `tools/facings-painter/` | the painter behind the knight's front/back facings (demo-grade, outside the rig); `reproduce.sh` there says `0 differ` |
+| `games/fight/` | the fight game scaffold: `core/` (pure sim, tested), `data/` (every number, with schemas), `assets/` (sprite sets copied from `dist-export`, byte-checked), `cells/` (the renderer on one harness), `tournament/` (the seven-arm instruments and defect logs). Gate: `npm run assert:fight`. Verdict: `docs/engine-tournament/fight-2026-09/` - Phaser 4 |
 | `docs/` | `art-bible.md` (the studio-wide rules), `pixel-characters.md` (how a character is drawn), `techniques.md` (the library, checked against the code), `styles-ledger.md` (rendered, never hand-edited), `reference/little-fighter-2.md`, and `build-log.md` (what shipped, in order, with the numbers and the traps) |
 
 ## The two ideas

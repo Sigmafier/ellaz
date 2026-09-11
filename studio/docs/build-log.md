@@ -248,3 +248,47 @@ Open beside the plan:
 - A new character is the `add-a-pixel-character` skill; the painter is in `tools/`.
 - `--on-brand on --brand` at 3.14:1 in the app's ShareSheet and Boards is a
   platform defect, pinned by a test, not the studio's.
+
+## The fight game: one pure sim, seven renderers, Phaser picked (2026-09-12)
+
+`studio/games/fight/` is the studio's first game scaffold. The sim is engine-free
+TypeScript (`core/`, int32 in 1/256 px, 60 ticks/s, seeded rng IN the state,
+FNV-1a over an ordered field list, 14 test files including a golden tape whose
+two negative controls were watched red first), every gameplay number is a JSON
+file under `data/` with a schema, and the sprite sets are copied from
+`dist-export` by `tools/copy-sprites.mjs` with a byte-identity `--check`.
+`assert:fight` is the studio's tenth gate: data, assets and the golden must
+agree, nine planted controls.
+
+Seven renderers then ran ONE recorded match (`tournament/tapes/versus-600.json`)
+through `cells/run-cell.ts`, which owns the clock, the tape and the hash - a
+cell has no `update`, `step` or `dt`. All seven reached the same three hashes
+(`dfd5d033` / `2617d8f2` / `687c23d3`), did equal work at 640x360 dpr 1 drawn
+20 (Kaplay's hard-coded 4 MSAA samples printed beside it), and were pixel-
+identical to the plain-canvas bar outside 1-LSB blend rounding and the fx
+burst. The operator saw all seven blind on one hall page and ruled a tie -
+*"actually it all looks well"* - and delegated the pick to the measured axes.
+
+**Phaser 4 wins**: 6 defects (none engine-permitted), 394 authored lines,
+scenes/camera/tilemaps/audio in the box for the Stage and Crypt modes, and zero
+marginal site bytes because snake already ships `vendor-phaser`. Its cost is
+stated: 378,540 gz, the heaviest engine in the field. PixiJS 8 is the runner-up
+(0 defects, 164,029 gz, a renderer only). Verdict, letters and every number:
+`docs/engine-tournament/fight-2026-09/`; six Stack Ledger rows written with
+evidence, lesson, pair and the verdict; the losing cells deleted in their own
+commit so `git log -- studio/games/fight/cells` still holds them.
+
+Two findings worth more than the pick. **The admission gate cannot see a
+drawing**: the melonJS lane planted a frozen picture and a fully black canvas
+and `run-tape.mjs` printed ADMITTED over both, because it reads the sim's hashes
+and never the pixels - the eyeball is the only pixel gate. **The TTFF sweep
+refused to rank**: three interleaved rounds found four arms overlapping inside
+their own noise, so it printed per-round orderings and no order is claimed.
+
+Parked for W10 tuning, in the moves data and not in code: a robot mashing
+attack takes zero damage in 6,000 ticks, because attack cancels from frame 4
+with no recovery window.
+
+**Next.** The winner promoted to `games/fight/render/`, the Versus MVP playable
+from the hall with keyboard and touch, `distinctDraws` read at 100% on the
+operator's 120 Hz display.
