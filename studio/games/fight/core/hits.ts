@@ -80,7 +80,9 @@ export function resolveHits(s: FightState, fighters: CFighter[], cast: { fighter
     const bonus = cast[attacker].control === "player" ? levelDamage : 0;
     const struck = applyHit(t, fighters[cast[target].fighter], hit, a.face, match, bonus);
     next[target] = struck;
-    next[attacker] = { ...a, hitMask: a.hitMask | (1 << target) };
+    // a swing that LANDS refunds its recovery down to match.landedCooldownTicks (0: the next swing is the moves
+    // file's cancelFrom); a whiff keeps attackCooldownTicks, which is what still refutes a standing mash
+    next[attacker] = { ...a, hitMask: a.hitMask | (1 << target), cool: Math.min(a.cool, match.landedCooldownTicks) };
     events.push({ kind: "hit", attacker, target, x: t.x, z: t.z, h: t.h, damage: hit.damage + bonus, effect: hit.effect });
     if (struck.hp <= 0) events.push({ kind: "ko", target });
     else if (struck.st === fighters[cast[target].fighter].ko) events.push({ kind: "knockdown", target });

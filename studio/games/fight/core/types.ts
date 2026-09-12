@@ -93,6 +93,8 @@ export interface MatchFile {
   shakeTicks: number;
   /** ticks from one attack's START before the next may start - the recovery window a moves file's `cancelFrom` alone cannot express (a robot mashing attack took zero damage in 6,000 ticks without it, measured 2026-09-12) */
   attackCooldownTicks: number;
+  /** what the attacker's recovery becomes the tick its swing LANDS: 0 hands the next swing to the moves file's cancelFrom, so hits chain while a whiff still pays attackCooldownTicks (a standing mash whiffs, so it stays refuted - measured 2026-09-12) */
+  landedCooldownTicks: number;
   hitsToKnockdown: number;
   knockdownWindowTicks: number;
   downTicks: number;

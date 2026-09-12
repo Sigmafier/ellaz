@@ -11,6 +11,7 @@
   "hitstopTicks": 4,
   "shakeTicks": 8,
   "attackCooldownTicks": 60,
+  "landedCooldownTicks": 0,
   "hitsToKnockdown": 3,
   "knockdownWindowTicks": 90,
   "downTicks": 60,

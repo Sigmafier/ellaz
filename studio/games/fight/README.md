@@ -85,6 +85,16 @@ draws. Nothing in `core/stage.ts` names a wave count except `data.stage.waves`.
   attacks; 75 lands 15. 60 is the smallest value at which standing and
   mashing is no longer a perfect defence. One number to retune if the robot
   feels slow.
+- `match/versus.json` `landedCooldownTicks` (0): what the recovery becomes the
+  tick a swing LANDS - 0 hands the next swing to the moves file's `cancelFrom`,
+  so hits chain (swing-hit-swing at 24 ticks apart, measured in
+  `core/chain.test.ts`) while a whiff still pays the 60 above. Added
+  2026-09-12 after the operator played Stage and could not chain: the mash
+  matrix showed that LOWERING `attackCooldownTicks` instead lands 0 hits on a
+  standing masher at every value below 60 (15/20/30/40/45, both holds), so the
+  chain is a refund on a hit and not a shorter recovery. With it the standing
+  mash still takes 2/4/5 over three seeds (was 2/3/10: the teddy's landed hits
+  refund too).
 - `ai/*.json` `holdWhenTargetAttacks` (teddy 200, slime 160, bat 120): 0-255
   against one rng byte each tick the target's swing is still ahead - the odds
   the AI steps out of the target's reach (its reach + this fighter's body
