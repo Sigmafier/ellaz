@@ -1,0 +1,22 @@
+{
+  "mode": "stage",
+  "seed": 20260913,
+  "ticks": 600,
+  "note": "the stage admission tape: a row [tick, [hero input]] holds until the next row; the twelve wave spawns are CPU rows and take none. 600 ticks = 10 s at 60. Walk right for four seconds to meet the first slime (it wakes at tick 18 off the right edge and walks in), then a punch at the start of every recovery window (attackCooldownTicks 60) until the tape ends - long enough for hits both ways, a KO and its coin, and the second and third spawns walking in.",
+  "frames": [
+    [0,   [{ "mx": 1,  "mz": 0,  "attack": false }]],
+    [240, [{ "mx": 0,  "mz": 0,  "attack": false }]],
+    [250, [{ "mx": 0,  "mz": 0,  "attack": true  }]],
+    [254, [{ "mx": 0,  "mz": 0,  "attack": false }]],
+    [310, [{ "mx": 0,  "mz": 0,  "attack": true  }]],
+    [314, [{ "mx": 0,  "mz": 0,  "attack": false }]],
+    [370, [{ "mx": 0,  "mz": 0,  "attack": true  }]],
+    [374, [{ "mx": 0,  "mz": 0,  "attack": false }]],
+    [430, [{ "mx": 0,  "mz": 0,  "attack": true  }]],
+    [434, [{ "mx": 0,  "mz": 0,  "attack": false }]],
+    [490, [{ "mx": 0,  "mz": 0,  "attack": true  }]],
+    [494, [{ "mx": 0,  "mz": 0,  "attack": false }]],
+    [550, [{ "mx": 0,  "mz": 0,  "attack": true  }]],
+    [554, [{ "mx": 0,  "mz": 0,  "attack": false }]]
+  ]
+}

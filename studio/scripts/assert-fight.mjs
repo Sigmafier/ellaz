@@ -56,6 +56,7 @@ function checkRefs(root, assets) {
     }
   }
   const has = (list, id) => list.some((x) => x.id === id);
+  const stages = existsSync(join(root, "data", "stage")) ? idsOf(root, "stage") : [];
   for (const m of idsOf(root, "modes")) {
     if (!has(arenas, m.arena)) out.push(`mode "${m.id}" names arena "${m.arena}", which does not exist`);
     if (!has(matches, m.match)) out.push(`mode "${m.id}" names match "${m.match}", which does not exist`);
@@ -63,6 +64,12 @@ function checkRefs(root, assets) {
       if (!has(fighters, c.fighter)) out.push(`mode "${m.id}" casts fighter "${c.fighter}", which does not exist`);
       if (c.control === "ai" && !has(ais, c.ai)) out.push(`mode "${m.id}" gives "${c.fighter}" ai "${c.ai}", which does not exist`);
     }
+    // a stage mode: its stage file, and every wave's spawns, the same names the cast is held to
+    if (m.stage !== undefined && !has(stages, m.stage)) out.push(`mode "${m.id}" names stage "${m.stage}", which does not exist`);
+    (m.waves ?? []).forEach((w, wi) => (w.spawns ?? []).forEach((s, si) => {
+      if (!has(fighters, s.fighter)) out.push(`mode "${m.id}" wave ${wi} spawn ${si} names fighter "${s.fighter}", which does not exist`);
+      if (!has(ais, s.ai)) out.push(`mode "${m.id}" wave ${wi} spawn ${si} names ai "${s.ai}", which does not exist`);
+    }));
   }
   return out;
 }
@@ -118,6 +125,7 @@ function controls() {
     { name: "a stray key on the match file", expect: "FIRE", run: () => scratch((d) => edit(d, "data/match/versus.json", (m) => { m.gravity = 900; })) },
     { name: "a golden whose tick count disagrees with its tape", expect: "FIRE", run: () => scratch((d) => edit(d, "tournament/data/versus-600.golden.json", (g) => { g.ticks = 599; })) },
     { name: "a golden hash one digit short", expect: "FIRE", run: () => scratch((d) => edit(d, "tournament/data/versus-600.golden.json", (g) => { g.chain = g.chain.slice(1); })) },
+    { name: "a wave spawn naming a fighter that does not exist", expect: "FIRE", run: () => scratch((d) => edit(d, "data/modes/stage.json", (m) => { m.waves[1].spawns[2].fighter = "ghost"; })) },
     { name: "one byte flipped in a committed sheet", expect: "FIRE", run: () => scratch((d) => { const a = copyAssets(d); const p = join(a, "robot--snes16", "robot--snes16.png"); const b = readFileSync(p); b[Math.floor(b.length / 2)] ^= 0xff; writeFileSync(p, b); return a; }) },
   ];
 }
