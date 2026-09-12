@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ellaz.fun/studio/fight/mode.schema.json",
   "title": "Ellaz fight mode file",
-  "description": "The one file a game names. It points at an arena, a match ruleset and a cast; data/load.ts opens everything it names and compile.ts refuses any name that was not loaded. `seed` lives here and not in code so a replay is a mode file plus an input log, and nothing else.",
+  "description": "The one file a game names. It points at an arena, a match ruleset and a cast; data/load.ts opens everything it names and compile.ts refuses any name that was not loaded. `seed` lives here and not in code so a replay is a mode file plus an input log, and nothing else. A STAGE mode adds `stage` (its tuning file) and `waves` (its level design): every wave's spawns join the cast as one fixed roster, dormant until their wave and delay - at most 31 rows in all, because the hit mask is one bit per target. `stage` and `waves` come together or not at all; the validator subset cannot write that conditional, so data.test.ts and compile.ts both assert it.",
   "type": "object",
   "required": ["id", "arena", "match", "seed", "cast"],
   "additionalProperties": false,
@@ -11,9 +11,32 @@
     "arena": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "a basename under ../arena/" },
     "match": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "a basename under ../match/" },
     "seed": { "type": "integer", "minimum": 0, "description": "the whole state of the sim's rng; uint32" },
-    "cast": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/castEntry" } }
+    "cast": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/castEntry" } },
+    "stage": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "a basename under ../stage/; present iff `waves` is" },
+    "waves": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/wave" }, "description": "the level design, in play order" }
   },
   "$defs": {
+    "wave": {
+      "type": "object",
+      "required": ["spawns"],
+      "additionalProperties": false,
+      "properties": {
+        "spawns": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/spawnEntry" } }
+      }
+    },
+    "spawnEntry": {
+      "type": "object",
+      "required": ["fighter", "ai", "team", "side", "delayTicks"],
+      "additionalProperties": false,
+      "description": "an enemy that walks in `delayTicks` after its wave starts, from the `side` edge of the screen (1 right, -1 left), facing in. Always ai-controlled. Its x and z are the sim's to decide at spawn time (the stage file's spawn block), not authored here.",
+      "properties": {
+        "fighter": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "a basename under ../fighters/" },
+        "ai": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "a basename under ../ai/" },
+        "team": { "type": "integer", "minimum": 0 },
+        "side": { "type": "integer", "description": "1 or -1; data.test.ts asserts it, the subset has no enum" },
+        "delayTicks": { "type": "integer", "minimum": 0, "description": "ticks after the wave's start" }
+      }
+    },
     "castEntry": {
       "type": "object",
       "required": ["fighter", "control", "team", "x", "z", "face"],

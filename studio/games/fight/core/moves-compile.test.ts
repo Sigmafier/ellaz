@@ -165,7 +165,8 @@ describe("the unit conversions, computed here by hand from the files", () => {
     expect(byId("teddy")).toMatchObject({ set: "teddy--snes16", hp: 100, speed: 281, zSpeed: 187 });
   });
 
-  // arena sim is view px -> FP; gravity is view px/s^2 -> floor(900 * 256 / 3600) = 64
+  // arena sim is view px -> FP; gravity is view px/s^2 -> floor(900 * 256 / 3600) = 64;
+  // the playroom names no `world`, so the world is one screen wide
   it("turns the arena bounds and gravity", () => {
     expect(data.arena).toEqual({
       xMin: 44 * 256,
@@ -173,10 +174,12 @@ describe("the unit conversions, computed here by hand from the files", () => {
       zMin: 186 * 256,
       zMax: 344 * 256,
       gravity: 64,
+      viewW: 640 * 256,
+      worldW: 640 * 256,
     });
   });
 
-  it("turns the cast's spawn points and resolves its rows to indices", () => {
+  it("turns the cast's spawn points and resolves its rows to indices; a fixed row is wave -1", () => {
     expect(data.seed).toBe(20260912);
     expect(data.cast[0]).toEqual({
       fighter: data.fighters.findIndex((f) => f.id === "robot"),
@@ -186,6 +189,9 @@ describe("the unit conversions, computed here by hand from the files", () => {
       x: 190 * 256,
       z: 268 * 256,
       face: 1,
+      wave: -1,
+      delayTicks: 0,
+      side: 0,
     });
     expect(data.cast[1]).toMatchObject({
       fighter: data.fighters.findIndex((f) => f.id === "teddy"),

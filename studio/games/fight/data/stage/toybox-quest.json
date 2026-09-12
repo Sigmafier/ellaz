@@ -1,0 +1,20 @@
+{
+  "id": "toybox-quest",
+  "camera": { "lead": 280, "divisor": 12, "snap": 1 },
+  "screen": { "heroPad": 20, "enemyPad": 12, "outsidePad": 60, "spawnPad": 30 },
+  "spawn": { "zMin": 206, "zMax": 326 },
+  "xp": { "base": 10, "perLevel": 10 },
+  "levelUp": { "hp": 10, "heal": 25, "damage": 2 },
+  "coin": {
+    "launchVh": 170,
+    "launchVx": 30,
+    "gravity": 900,
+    "bounceKeep": { "num": 9, "den": 20 },
+    "bounceMinVh": 80,
+    "slideKeep": { "num": 1, "den": 2 },
+    "magnetDivisor": 12,
+    "pickupX": 16,
+    "pickupZ": 13,
+    "pickupH": 12
+  }
+}

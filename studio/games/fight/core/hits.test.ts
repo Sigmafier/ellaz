@@ -22,7 +22,7 @@ function scene(gapPx: number, dz = 0): FightState {
   const rr = { ...r, st: attack, stT: activeTick, face: 1 as const };
   const hit = frameAt(robot, attack, activeTick).itr[0];
   const tt = { ...t, x: rr.x + hit.box.x + gapPx * FP, z: rr.z + dz * FP, face: -1 as const };
-  return { tick: 0, rng: 0, phase: 1, phaseT: 0, freeze: 0, shake: 0, winner: -1, fighters: [rr, tt], events: [] };
+  return { tick: 0, rng: 0, phase: 1, phaseT: 0, freeze: 0, shake: 0, winner: -1, stage: null, pickups: [], fighters: [rr, tt], events: [] };
 }
 
 describe("hits", () => {

@@ -12,14 +12,16 @@
 import {
   HASHED_AI_FIELDS,
   HASHED_FIGHTER_FIELDS,
+  HASHED_PICKUP_FIELDS,
+  HASHED_STAGE_FIELDS,
   HASHED_STATE_FIELDS,
   fnv1a,
   hashEvents,
   hashState,
 } from "./hash";
-import type { AiState, FightEvent, FightState } from "./types";
+import type { AiState, FightEvent, FightState, PickupState, StageState } from "./types";
 
-/** A fully-populated state: two fighters, one with ai, one without. */
+/** A fully-populated state: two fighters, one with ai, one without; a stage block; one pickup. */
 function makeState(): FightState {
   const ai: AiState = {
     cooldown: 13,
@@ -29,6 +31,16 @@ function makeState(): FightState {
     wantMz: 0, // +1 -> 1
     wantAttack: false, // flips
   };
+  const stage: StageState = {
+    wave: 1,
+    wphase: 0, // +1 -> 1, still a valid WavePhase
+    waveT: 44,
+    camX: 163840,
+    coins: 5,
+    xp: 12,
+    level: 2,
+  };
+  const pickup: PickupState = { x: 90000, z: 70000, h: 2000, vx: -40, vh: 300, age: 17 };
   return {
     tick: 1234,
     rng: 0xdeadbeef,
@@ -37,6 +49,8 @@ function makeState(): FightState {
     freeze: 3,
     shake: 7,
     winner: -1, // +1 -> 0
+    stage,
+    pickups: [pickup],
     fighters: [
       {
         x: 1000, z: 200, h: 30,
@@ -46,6 +60,7 @@ function makeState(): FightState {
         hp: 87, stun: 5, inv: 12,
         down: 0, fall: 3,
         hits: 2, hitsT: 17, hitMask: 1, cool: 3,
+        active: 1, // +1 -> 2, still a valid 0 | 1 | 2
         ai,
       },
       {
@@ -56,6 +71,7 @@ function makeState(): FightState {
         hp: 42, stun: 0, inv: 0,
         down: 8, fall: 14,
         hits: 1, hitsT: 4, hitMask: 2, cool: 3,
+        active: 0,
         ai: null,
       },
     ],
@@ -176,6 +192,41 @@ describe("hashState discriminates EVERY hashed field", () => {
     s.fighters.pop();
     expect(hashState(s)).not.toBe(base);
   });
+
+  for (const field of HASHED_STAGE_FIELDS) {
+    it(`stage.${field}`, () => {
+      const s = clone(makeState());
+      const st = s.stage;
+      expect(st).not.toBeNull();
+      write(st, field, bump(field, read(st, field)));
+      expect(hashState(s)).not.toBe(base);
+    });
+  }
+
+  it("a Versus state (no stage block) hashes differently from the same state with one", () => {
+    const s = clone(makeState());
+    s.stage = null;
+    expect(hashState(s)).not.toBe(base);
+  });
+
+  for (const field of HASHED_PICKUP_FIELDS) {
+    it(`pickups[0].${field}`, () => {
+      const s = clone(makeState());
+      const p = s.pickups[0];
+      write(p, field, bump(field, read(p, field)));
+      expect(hashState(s)).not.toBe(base);
+    });
+  }
+
+  it("the pickup COUNT is part of the state: a second coin, and no coin, both move it", () => {
+    const more = clone(makeState());
+    more.pickups.push({ ...more.pickups[0] });
+    expect(hashState(more)).not.toBe(base);
+    const none = clone(makeState());
+    none.pickups = [];
+    expect(hashState(none)).not.toBe(base);
+    expect(hashState(more)).not.toBe(hashState(none));
+  });
 });
 
 describe("events are hashed separately, never into hashState", () => {
@@ -261,13 +312,22 @@ describe("the field lists cover the interfaces", () => {
     expect(sorted(Object.keys(ai))).toEqual(sorted(HASHED_AI_FIELDS));
   });
 
-  it("HASHED_STATE_FIELDS is every FightState key except the two collections", () => {
-    const keys = Object.keys(makeState()).filter((k) => k !== "fighters" && k !== "events");
+  it("HASHED_STATE_FIELDS is every FightState scalar: not fighters, events, the stage block or the pickups", () => {
+    const keys = Object.keys(makeState()).filter((k) => !["fighters", "events", "stage", "pickups"].includes(k));
     expect(sorted(keys)).toEqual(sorted(HASHED_STATE_FIELDS));
   });
 
+  it("HASHED_STAGE_FIELDS is every StageState key", () => {
+    const stage = makeState().stage as StageState;
+    expect(sorted(Object.keys(stage))).toEqual(sorted(HASHED_STAGE_FIELDS));
+  });
+
+  it("HASHED_PICKUP_FIELDS is every PickupState key", () => {
+    expect(sorted(Object.keys(makeState().pickups[0]))).toEqual(sorted(HASHED_PICKUP_FIELDS));
+  });
+
   it("no list repeats a field", () => {
-    for (const list of [HASHED_STATE_FIELDS, HASHED_FIGHTER_FIELDS, HASHED_AI_FIELDS]) {
+    for (const list of [HASHED_STATE_FIELDS, HASHED_FIGHTER_FIELDS, HASHED_AI_FIELDS, HASHED_STAGE_FIELDS, HASHED_PICKUP_FIELDS]) {
       expect(new Set(list).size).toBe(list.length);
     }
   });

@@ -34,6 +34,7 @@ import type {
   CFrame,
   CHit,
   CMatch,
+  CStage,
   CState,
   FighterFile,
   FightData,
@@ -46,6 +47,7 @@ import type {
   MovesState,
   Point,
   Rect,
+  StageFile,
 } from "./types";
 import { floorDiv, toFP } from "./fixed";
 
@@ -61,7 +63,12 @@ export interface CompileInput {
   fighters: FighterFile[];
   ais: AiFile[];
   sets: Record<string, SpriteSet>;
+  /** the stage file the mode names, when it names one */
+  stage?: StageFile;
 }
+
+/** the hit mask is one bit per target in an int32, so a roster is at most this many rows */
+export const ROSTER_CAP = 31;
 
 /** the draw scale, as the rational the arena file carries */
 interface Scale {
@@ -207,12 +214,16 @@ function compileFighter(f: FighterFile, sets: Record<string, SpriteSet>, s: Scal
     if (i < 0) fail(`fighter "${f.id}" names ${what} state "${target}", which its moves file does not define`);
     return i;
   };
+  if (f.hover !== undefined && !f.flying) fail(`fighter "${f.id}" has a hover height but does not fly`);
   return {
     id: f.id,
     set: f.sprites,
     hp: f.hp,
     speed: perTick(f.speed),
     zSpeed: perTick(f.zSpeed),
+    xp: f.xp ?? 0,
+    flying: f.flying ?? false,
+    hover: toFP(f.hover ?? 0),
     initial: pick(set.moves.initial, "initial"),
     hurt: pick(set.moves.onHit.light, "onHit.light"),
     ko: pick(set.moves.onHit.heavy, "onHit.heavy"),
@@ -223,27 +234,75 @@ function compileFighter(f: FighterFile, sets: Record<string, SpriteSet>, s: Scal
 // ---- the rest ---------------------------------------------------------------
 
 function compileArena(a: ArenaFile): CArena {
+  const worldW = a.world?.w ?? a.view.w;
+  if (worldW < a.view.w) fail(`arena "${a.id}" world is ${worldW} wide, narrower than its ${a.view.w} view`);
   return {
     zMin: toFP(a.sim.zMin),
     zMax: toFP(a.sim.zMax),
     xMin: toFP(a.sim.xMin),
     xMax: toFP(a.sim.xMax),
     gravity: floorDiv(a.sim.gravity * FP, TICK_RATE * TICK_RATE),
+    viewW: toFP(a.view.w),
+    worldW: toFP(worldW),
   };
 }
 
+/** fighter and ai names -> indices, throwing with `where` when a name was not loaded */
+function resolveRow(where: string, fighterId: string, aiId: string | undefined, control: "player" | "ai", fighters: CFighter[], ais: CAi[]): { fighter: number; ai: number } {
+  const fighter = fighters.findIndex((f) => f.id === fighterId);
+  if (fighter < 0) fail(`${where} names fighter "${fighterId}", which was not loaded`);
+  let ai = -1;
+  if (aiId !== undefined) {
+    ai = ais.findIndex((a) => a.id === aiId);
+    if (ai < 0) fail(`${where} names ai "${aiId}", which was not loaded`);
+  }
+  if (control === "ai" && ai < 0) fail(`${where} is controlled by ai but names none`);
+  return { fighter, ai };
+}
+
+/**
+ * the roster: the fixed cast (live from tick 0, wave -1), then every wave's spawns in
+ * order (dormant until their wave and delay). One flat list, because the sim carries a
+ * fixed roster and nothing is added or removed while it runs.
+ */
 function compileCast(mode: ModeFile, fighters: CFighter[], ais: CAi[]): CCast[] {
-  return mode.cast.map((c, i) => {
-    const fighter = fighters.findIndex((f) => f.id === c.fighter);
-    if (fighter < 0) fail(`mode "${mode.id}" cast ${i} names fighter "${c.fighter}", which was not loaded`);
-    let ai = -1;
-    if (c.ai !== undefined) {
-      ai = ais.findIndex((a) => a.id === c.ai);
-      if (ai < 0) fail(`mode "${mode.id}" cast ${i} names ai "${c.ai}", which was not loaded`);
-    }
-    if (c.control === "ai" && ai < 0) fail(`mode "${mode.id}" cast ${i} is controlled by ai but names none`);
-    return { fighter, control: c.control, ai, team: c.team, x: toFP(c.x), z: toFP(c.z), face: c.face };
+  const rows: CCast[] = mode.cast.map((c, i) => ({
+    ...resolveRow(`mode "${mode.id}" cast ${i}`, c.fighter, c.ai, c.control, fighters, ais),
+    control: c.control, team: c.team, x: toFP(c.x), z: toFP(c.z), face: c.face, wave: -1, delayTicks: 0, side: 0,
+  }));
+  (mode.waves ?? []).forEach((w, wi) => {
+    w.spawns.forEach((s, si) => {
+      rows.push({
+        ...resolveRow(`mode "${mode.id}" wave ${wi} spawn ${si}`, s.fighter, s.ai, "ai", fighters, ais),
+        control: "ai", team: s.team, x: 0, z: 0, face: (-s.side) as 1 | -1, wave: wi, delayTicks: s.delayTicks, side: s.side,
+      });
+    });
   });
+  if (rows.length > ROSTER_CAP) fail(`mode "${mode.id}" has ${rows.length} roster rows; the hit mask holds ${ROSTER_CAP}`);
+  return rows;
+}
+
+/** the stage file, every view px to FP and every per-second rate to per tick */
+function compileStage(s: StageFile, waves: number): CStage {
+  const c = s.coin;
+  return {
+    camera: { lead: toFP(s.camera.lead), divisor: s.camera.divisor, snap: toFP(s.camera.snap) },
+    screen: { heroPad: toFP(s.screen.heroPad), enemyPad: toFP(s.screen.enemyPad), outsidePad: toFP(s.screen.outsidePad), spawnPad: toFP(s.screen.spawnPad) },
+    spawn: { zMin: s.spawn.zMin, zMax: s.spawn.zMax },
+    xp: { base: s.xp.base, perLevel: s.xp.perLevel },
+    levelUp: { hp: s.levelUp.hp, heal: s.levelUp.heal, damage: s.levelUp.damage },
+    coin: {
+      launchVh: perTick(c.launchVh),
+      launchVx: perTick(c.launchVx),
+      gravity: floorDiv(c.gravity * FP, TICK_RATE * TICK_RATE),
+      bounceKeep: { num: c.bounceKeep.num, den: c.bounceKeep.den },
+      bounceMinVh: perTick(c.bounceMinVh),
+      slideKeep: { num: c.slideKeep.num, den: c.slideKeep.den },
+      magnetDivisor: c.magnetDivisor,
+      pickupX: toFP(c.pickupX), pickupZ: toFP(c.pickupZ), pickupH: toFP(c.pickupH),
+    },
+    waves,
+  };
 }
 
 function copyAi(a: AiFile): CAi {
@@ -268,6 +327,9 @@ export function compileFight(input: CompileInput): FightData {
   if (mode.arena !== arena.id) fail(`mode "${mode.id}" names arena "${mode.arena}" but was given "${arena.id}"`);
   if (mode.match !== match.id) fail(`mode "${mode.id}" names match "${mode.match}" but was given "${match.id}"`);
   if (match.tickRate !== TICK_RATE) fail(`match "${match.id}" runs at ${match.tickRate} ticks, but the core is built for ${TICK_RATE}`);
+  const hasWaves = (mode.waves?.length ?? 0) > 0;
+  if (hasWaves !== (mode.stage !== undefined)) fail(`mode "${mode.id}" must name a stage file and waves together, or neither`);
+  if (mode.stage !== undefined && input.stage?.id !== mode.stage) fail(`mode "${mode.id}" names stage "${mode.stage}" but was given "${input.stage?.id ?? "none"}"`);
 
   const s: Scale = { num: arena.scale.num, den: arena.scale.den };
   const fighters = input.fighters.map((f) => compileFighter(f, input.sets, s, match.knockScale, match.liftScale));
@@ -281,5 +343,6 @@ export function compileFight(input: CompileInput): FightData {
     fighters,
     ais,
     cast: compileCast(mode, fighters, ais),
+    stage: input.stage && hasWaves ? compileStage(input.stage, mode.waves!.length) : null,
   });
 }

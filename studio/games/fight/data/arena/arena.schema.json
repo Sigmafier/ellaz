@@ -17,6 +17,15 @@
         "h": { "type": "integer", "exclusiveMinimum": 0 }
       }
     },
+    "world": {
+      "type": "object",
+      "required": ["w"],
+      "additionalProperties": false,
+      "description": "the whole room, when it is wider than one screen: a stage scrolls its camera through it. Absent means the room is one view wide. Never narrower than view.w - compile.ts refuses that",
+      "properties": {
+        "w": { "type": "integer", "exclusiveMinimum": 0 }
+      }
+    },
     "scale": {
       "type": "object",
       "required": ["num", "den"],

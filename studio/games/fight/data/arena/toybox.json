@@ -1,0 +1,87 @@
+{
+  "id": "toybox",
+  "view": { "w": 640, "h": 360 },
+  "world": { "w": 1920 },
+  "scale": { "num": 1, "den": 5 },
+  "sim": {
+    "zMin": 186,
+    "zMax": 344,
+    "xMin": 20,
+    "xMax": 1900,
+    "gravity": 900,
+    "floorTop": 157
+  },
+  "art": {
+    "palette": "snes16",
+    "bands": [
+      { "kind": "wall", "y": 0, "h": 150, "stripe": 40, "colors": ["wallLight", "wallStripe"] },
+      { "kind": "planks", "y": 157, "h": 203, "seed": 11, "rowH": 16, "rowGrow": 3, "colors": ["floor", "floorLine", "floorLight"] }
+    ],
+    "props": [
+      {
+        "kind": "shelf",
+        "x": 40,
+        "y": 104,
+        "w": 250,
+        "blocks": [
+          { "x": 60, "w": 24, "h": 26, "color": "pink" },
+          { "x": 120, "w": 24, "h": 26, "color": "blue" },
+          { "x": 180, "w": 24, "h": 26, "color": "green" },
+          { "x": 240, "w": 24, "h": 26, "color": "yellow" }
+        ]
+      },
+      {
+        "kind": "shelf",
+        "x": 510,
+        "y": 90,
+        "w": 100,
+        "blocks": [
+          { "x": 530, "w": 18, "h": 18, "color": "blue" },
+          { "x": 560, "w": 30, "h": 12, "color": "yellow" }
+        ]
+      },
+      {
+        "kind": "shelf",
+        "x": 770,
+        "y": 60,
+        "w": 150,
+        "blocks": [
+          { "x": 790, "w": 30, "h": 24, "color": "sky" },
+          { "x": 850, "w": 24, "h": 30, "color": "mint" }
+        ]
+      },
+      {
+        "kind": "shelf",
+        "x": 1040,
+        "y": 110,
+        "w": 112,
+        "blocks": [
+          { "x": 1054, "w": 16, "h": 16, "color": "blue" },
+          { "x": 1116, "w": 18, "h": 18, "color": "green" }
+        ]
+      },
+      {
+        "kind": "shelf",
+        "x": 1340,
+        "y": 70,
+        "w": 124,
+        "blocks": [
+          { "x": 1352, "w": 20, "h": 30, "color": "pink" },
+          { "x": 1390, "w": 14, "h": 28, "color": "yellow" },
+          { "x": 1420, "w": 26, "h": 24, "color": "blue" }
+        ]
+      },
+      {
+        "kind": "shelf",
+        "x": 1520,
+        "y": 100,
+        "w": 230,
+        "blocks": [
+          { "x": 1540, "w": 24, "h": 26, "color": "yellow" },
+          { "x": 1600, "w": 24, "h": 26, "color": "pink" },
+          { "x": 1660, "w": 24, "h": 26, "color": "blue" }
+        ]
+      }
+    ]
+  }
+}

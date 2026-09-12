@@ -1,0 +1,10 @@
+{
+  "id": "bat",
+  "sprites": "bat--snes16",
+  "hp": 14,
+  "speed": 66,
+  "zSpeed": 46,
+  "xp": 10,
+  "flying": true,
+  "hover": 30
+}

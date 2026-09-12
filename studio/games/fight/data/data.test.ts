@@ -23,6 +23,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadMode } from "./load";
+import { compileFight } from "../core/compile";
 import type { AiFile, CastEntry, FighterFile, MatchFile, ModeFile } from "../core/types";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -53,12 +54,20 @@ const FILES = corpus();
 describe("every data file validates against the schema beside it", () => {
   it("found the whole corpus, so nothing below passes over an empty list", () => {
     expect(FILES.map((f) => f.name).sort()).toEqual([
+      "ai/bat-cpu.json",
+      "ai/slime-cpu.json",
       "ai/teddy-cpu.json",
       "arena/playroom.json",
+      "arena/toybox.json",
+      "fighters/bat.json",
       "fighters/robot.json",
+      "fighters/slime.json",
+      "fighters/teddy-boss.json",
       "fighters/teddy.json",
       "match/versus.json",
+      "modes/stage.json",
       "modes/versus.json",
+      "stage/toybox-quest.json",
     ]);
   });
 
@@ -126,14 +135,16 @@ describe("the conditional the validator subset cannot write", () => {
     for (const f of modes) expect(aiViolations(readJson(f.path) as unknown as ModeFile)).toEqual([]);
   });
 
+  const versus = modes.find((f) => f.name === "modes/versus.json")!;
+
   it("fires when an ai-controlled entry names no ai", () => {
-    const mode = readJson(modes[0].path) as unknown as ModeFile;
+    const mode = readJson(versus.path) as unknown as ModeFile;
     delete mode.cast[1].ai;
     expect(aiViolations(mode)).toEqual(["cast 1 is ai-controlled and names no ai"]);
   });
 
   it("fires the other way, when a player entry names one", () => {
-    const mode = readJson(modes[0].path) as unknown as ModeFile;
+    const mode = readJson(versus.path) as unknown as ModeFile;
     mode.cast[0].ai = "teddy-cpu";
     expect(aiViolations(mode).join("\n")).toMatch(/cast 0 is not ai-controlled/);
   });
@@ -142,6 +153,74 @@ describe("the conditional the validator subset cannot write", () => {
     for (const f of modes) {
       for (const c of (readJson(f.path) as unknown as ModeFile).cast) expect([1, -1]).toContain(c.face);
     }
+  });
+});
+
+describe("the stage conditionals the validator subset cannot write", () => {
+  const modes = FILES.filter((f) => f.name.startsWith("modes/"));
+  const fighters = FILES.filter((f) => f.name.startsWith("fighters/"));
+  const stage = readJson(modes.find((f) => f.name === "modes/stage.json")!.path) as unknown as ModeFile;
+
+  /** `stage` and `waves` come together or not at all; a spawn's side is 1 or -1 */
+  function stageViolations(mode: ModeFile): string[] {
+    const out: string[] = [];
+    const hasWaves = (mode.waves?.length ?? 0) > 0;
+    if (hasWaves !== (mode.stage !== undefined)) out.push(`mode "${mode.id}" has ${hasWaves ? "waves without a stage" : "a stage without waves"}`);
+    (mode.waves ?? []).forEach((w, wi) => w.spawns.forEach((s, si) => {
+      if (s.side !== 1 && s.side !== -1) out.push(`wave ${wi} spawn ${si} side is ${s.side}`);
+    }));
+    return out;
+  }
+
+  it("every real mode satisfies it", () => {
+    expect(modes.length).toBe(2);
+    for (const f of modes) expect(stageViolations(readJson(f.path) as unknown as ModeFile)).toEqual([]);
+  });
+
+  it("fires on waves without a stage file, and on a stage file without waves", () => {
+    const noStage = { ...stage }; delete noStage.stage;
+    expect(stageViolations(noStage)).toEqual(['mode "stage" has waves without a stage']);
+    const noWaves = { ...stage }; delete noWaves.waves;
+    expect(stageViolations(noWaves)).toEqual(['mode "stage" has a stage without waves']);
+  });
+
+  it("fires on a spawn side that is neither edge", () => {
+    const bad = JSON.parse(JSON.stringify(stage)) as ModeFile;
+    (bad.waves![1].spawns[2] as { side: number }).side = 0;
+    expect(stageViolations(bad)).toEqual(["wave 1 spawn 2 side is 0"]);
+  });
+
+  it("keeps the roster at 31 rows or fewer - the hit mask is one bit per target", () => {
+    const rows = stage.cast.length + stage.waves!.reduce((n, w) => n + w.spawns.length, 0);
+    expect(rows).toBe(13);
+    expect(rows).toBeLessThanOrEqual(31);
+    // and the compiler refuses one row over
+    const fat = JSON.parse(JSON.stringify(loadMode("stage")));
+    while (fat.mode.cast.length + fat.mode.waves.reduce((n: number, w: { spawns: unknown[] }) => n + w.spawns.length, 0) < 32) {
+      fat.mode.waves[0].spawns.push({ ...fat.mode.waves[0].spawns[0] });
+    }
+    expect(() => compileFight(fat)).toThrow(/32 roster rows; the hit mask holds 31/);
+  });
+
+  it("a hover height requires flying: the bat has both, and a grounded fighter with a hover is refused", () => {
+    for (const f of fighters) {
+      const ff = readJson(f.path) as unknown as FighterFile;
+      if (ff.hover !== undefined) expect({ id: ff.id, flying: ff.flying }).toEqual({ id: ff.id, flying: true });
+    }
+    const loaded = JSON.parse(JSON.stringify(loadMode("stage")));
+    const slime = loaded.fighters.find((f: FighterFile) => f.id === "slime");
+    slime.hover = 30;
+    expect(() => compileFight(loaded)).toThrow(/"slime" has a hover height but does not fly/);
+  });
+
+  it("every spawn lane lies inside the arena's z band, and the camera lead inside one screen", () => {
+    const loaded = loadMode("stage");
+    const st = loaded.stage!;
+    expect(st.spawn.zMin).toBeGreaterThanOrEqual(loaded.arena.sim.zMin);
+    expect(st.spawn.zMax).toBeLessThanOrEqual(loaded.arena.sim.zMax);
+    expect(st.spawn.zMin).toBeLessThanOrEqual(st.spawn.zMax);
+    expect(st.camera.lead).toBeLessThan(loaded.arena.view.w);
+    expect(loaded.arena.world!.w).toBeGreaterThanOrEqual(loaded.arena.view.w * stage.waves!.length);
   });
 });
 
@@ -158,9 +237,9 @@ describe("every tick field is a whole number of ticks", () => {
     return out;
   }
 
-  it("holds for every match and ai file", () => {
-    const timed = FILES.filter((f) => f.name.startsWith("match/") || f.name.startsWith("ai/"));
-    expect(timed.length).toBe(2);
+  it("holds for every match, ai, stage and mode file", () => {
+    const timed = FILES.filter((f) => /^(match|ai|stage|modes)\//.test(f.name));
+    expect(timed.length).toBe(7);
     for (const f of timed) expect(ints(readJson(f.path), f.name)).toEqual([]);
   });
 
@@ -192,11 +271,11 @@ describe("every tick field is a whole number of ticks", () => {
 describe("the match thresholds against the moves files they are measured from", () => {
   const match = readJson(join(HERE, "match", "versus.json")) as unknown as MatchFile;
 
-  /** every `fall` any authored hit carries, across every sprite set a fighter names */
+  /** every `fall` any authored hit carries, across every DISTINCT sprite set a fighter names (the teddy boss shares the teddy's) */
   function authoredFalls(): number[] {
     const out: number[] = [];
-    for (const f of FILES.filter((x) => x.name.startsWith("fighters/"))) {
-      const set = (readJson(f.path) as unknown as FighterFile).sprites;
+    const sets = new Set(FILES.filter((x) => x.name.startsWith("fighters/")).map((f) => (readJson(f.path) as unknown as FighterFile).sprites));
+    for (const set of sets) {
       const moves = readJson(join(ASSETS, set, `${set}.moves.json`)) as unknown as {
         states: Record<string, { frames: { itr?: { fall?: number }[] }[] }>;
       };
@@ -209,8 +288,8 @@ describe("the match thresholds against the moves files they are measured from", 
 
   it("keeps fallThreshold above what hitsToKnockdown-1 of the heaviest hit accumulates", () => {
     const falls = authoredFalls();
-    // the population: the robot's 20 twice over and the teddy's 12 twice over
-    expect(falls.sort((a, b) => a - b)).toEqual([12, 12, 20, 20]);
+    // the population: the bat's 8, the slime's 10, the teddy's 12 and the robot's 20, each on two active frames
+    expect(falls.sort((a, b) => a - b)).toEqual([8, 8, 10, 10, 12, 12, 20, 20]);
     // below this, `fall` knocks a fighter down a hit EARLY and hitsToKnockdown
     // stops meaning anything - the two thresholds would be fighting each other
     const heaviest = Math.max(...falls);
@@ -235,7 +314,7 @@ describe("the match thresholds against the moves files they are measured from", 
 describe("every fighter's sprite set is on disk, with both halves", () => {
   it("finds a manifest and a moves file for each", () => {
     const fighters = FILES.filter((f) => f.name.startsWith("fighters/"));
-    expect(fighters.length).toBe(2);
+    expect(fighters.length).toBe(5);
     for (const f of fighters) {
       const set = (readJson(f.path) as unknown as FighterFile).sprites;
       expect({ set, manifest: existsSync(join(ASSETS, set, `${set}.manifest.json`)) }).toEqual({ set, manifest: true });
@@ -259,6 +338,26 @@ describe("loadMode reads a mode and everything it names", () => {
     expect(Object.keys(loaded.sets).sort()).toEqual(["robot--snes16", "teddy--snes16"]);
     expect(loaded.sets["robot--snes16"].manifest.character).toBe("robot");
     expect(loaded.sets["robot--snes16"].moves.initial).toBe("idle");
+  });
+
+  it("reads the stage mode: the waves' fighters and ais join the cast's, and the stage file rides along", () => {
+    const loaded = loadMode("stage");
+    expect(loaded.arena.id).toBe("toybox");
+    expect(loaded.fighters.map((f) => f.id)).toEqual(["robot", "slime", "bat", "teddy-boss"]);
+    expect(loaded.ais.map((a) => a.id)).toEqual(["slime-cpu", "bat-cpu", "teddy-cpu"]);
+    expect(Object.keys(loaded.sets).sort()).toEqual(["bat--snes16", "robot--snes16", "slime--snes16", "teddy--snes16"]);
+    expect(loaded.stage?.id).toBe("toybox-quest");
+    const data = compileFight(loaded);
+    expect(data.cast.length).toBe(13);
+    expect(data.cast.slice(1).map((c) => c.wave)).toEqual([0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2]);
+    expect(data.stage?.waves).toBe(3);
+    expect(data.arena.worldW).toBe(1920 * 256);
+  });
+
+  it("a Versus load carries no stage, and compiles to none", () => {
+    const loaded = loadMode("versus");
+    expect(loaded.stage).toBeUndefined();
+    expect(compileFight(loaded).stage).toBeNull();
   });
 
   it("throws naming the mode when there is no such mode", () => {

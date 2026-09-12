@@ -5,14 +5,16 @@
 import { freshAi } from "./ai";
 import { spawnFighter } from "./fighter";
 import { seedRng } from "./rng";
-import type { FightData, FighterState, FightEvent, FightState, Phase } from "./types";
+import type { FightData, FighterState, FightEvent, FightState, Phase, StageState } from "./types";
 
+/** every roster row at its cast position; a wave spawn (wave >= 0) starts dormant and stage.ts wakes it */
 export function spawnAll(data: FightData): FighterState[] {
-  return data.cast.map((c) => spawnFighter(data.fighters[c.fighter], c.x, c.z, c.face, c.control === "ai" ? freshAi() : null));
+  return data.cast.map((c) => spawnFighter(data.fighters[c.fighter], c.x, c.z, c.face, c.control === "ai" ? freshAi() : null, c.wave < 0 ? 1 : 0));
 }
 
 export function createState(data: FightData): FightState {
-  return { tick: 0, rng: seedRng(data.seed), phase: 1, phaseT: 0, freeze: 0, shake: 0, winner: -1, fighters: spawnAll(data), events: [{ kind: "phase", phase: 1 }] };
+  const stage: StageState | null = data.stage ? { wave: 0, wphase: 0, waveT: 0, camX: 0, coins: 0, xp: 0, level: 1 } : null;
+  return { tick: 0, rng: seedRng(data.seed), phase: 1, phaseT: 0, freeze: 0, shake: 0, winner: -1, stage, pickups: [], fighters: spawnAll(data), events: [{ kind: "phase", phase: 1 }] };
 }
 
 function winnerOf(s: FightState, data: FightData): -1 | 0 | 1 {

@@ -21,13 +21,15 @@
 // and goes red when the two disagree.
 
 import { floorDiv } from "./fixed";
-import type { AiState, FighterState, FightEvent, FightState, HitEffect } from "./types";
+import type { AiState, FighterState, FightEvent, FightState, HitEffect, PickupState, StageState } from "./types";
 
-export type HashedStateField = Exclude<keyof FightState, "fighters" | "events">;
+export type HashedStateField = Exclude<keyof FightState, "fighters" | "events" | "stage" | "pickups">;
 export type HashedFighterField = Exclude<keyof FighterState, "ai">;
 export type HashedAiField = keyof AiState;
+export type HashedStageField = keyof StageState;
+export type HashedPickupField = keyof PickupState;
 
-/** the FightState scalars, in fold order. `fighters` and `events` are not scalars. */
+/** the FightState scalars, in fold order. `fighters`, `events`, `stage` and `pickups` are not scalars. */
 export const HASHED_STATE_FIELDS: readonly HashedStateField[] = [
   "tick",
   "rng",
@@ -36,6 +38,27 @@ export const HASHED_STATE_FIELDS: readonly HashedStateField[] = [
   "freeze",
   "shake",
   "winner",
+];
+
+/** every StageState field, in fold order */
+export const HASHED_STAGE_FIELDS: readonly HashedStageField[] = [
+  "wave",
+  "wphase",
+  "waveT",
+  "camX",
+  "coins",
+  "xp",
+  "level",
+];
+
+/** every PickupState field, in fold order */
+export const HASHED_PICKUP_FIELDS: readonly HashedPickupField[] = [
+  "x",
+  "z",
+  "h",
+  "vx",
+  "vh",
+  "age",
 ];
 
 /** every FighterState field except `ai`, in fold order */
@@ -59,6 +82,7 @@ export const HASHED_FIGHTER_FIELDS: readonly HashedFighterField[] = [
   "hitsT",
   "hitMask",
   "cool",
+  "active",
 ];
 
 /** every AiState field, in fold order */
@@ -99,13 +123,23 @@ function hex8(h: number): string {
 
 /**
  * Eight lowercase hex characters over the whole simulation state: the state
- * scalars in order, then each fighter's scalars in order, each followed by a
- * single marker byte (0 absent / 1 present) and the ai scalars when present.
- * `events` are NOT folded in - they are this tick's output, not its state.
+ * scalars in order; a marker byte (0 absent / 1 present) and the stage scalars
+ * when present; the pickup count then each pickup's scalars; then each
+ * fighter's scalars in order, each followed by a marker byte and the ai
+ * scalars when present. `events` are NOT folded in - they are this tick's
+ * output, not its state.
  */
 export function hashState(s: FightState): string {
   const bytes: number[] = [];
   for (const f of HASHED_STATE_FIELDS) pushU32(bytes, s[f]);
+  if (s.stage === null) {
+    bytes.push(0);
+  } else {
+    bytes.push(1);
+    for (const f of HASHED_STAGE_FIELDS) pushU32(bytes, s.stage[f]);
+  }
+  pushU32(bytes, s.pickups.length);
+  for (const p of s.pickups) for (const f of HASHED_PICKUP_FIELDS) pushU32(bytes, p[f]);
   for (const fighter of s.fighters) {
     for (const f of HASHED_FIGHTER_FIELDS) pushU32(bytes, fighter[f]);
     const ai = fighter.ai;

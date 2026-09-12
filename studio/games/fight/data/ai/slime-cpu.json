@@ -1,0 +1,10 @@
+{
+  "id": "slime-cpu",
+  "zTolerance": 5,
+  "cooldownTicks": [72, 120],
+  "reactTicks": [6, 15],
+  "retreatChance": 64,
+  "retreatTicks": [24, 48],
+  "retreatDistance": 78,
+  "reachPad": { "min": 4, "max": -8 }
+}

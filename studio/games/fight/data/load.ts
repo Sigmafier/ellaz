@@ -14,7 +14,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { AiFile, ArenaFile, FighterFile, Manifest, MatchFile, ModeFile, MovesFile } from "../core/types";
+import type { AiFile, ArenaFile, FighterFile, Manifest, MatchFile, ModeFile, MovesFile, StageFile } from "../core/types";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -33,6 +33,8 @@ export interface LoadedFight {
   ais: AiFile[];
   /** keyed by a fighter's `sprites` name */
   sets: Record<string, SpriteSet>;
+  /** the stage file, when the mode names one */
+  stage?: StageFile;
 }
 
 function readJson<T>(path: string, what: string): T {
@@ -83,12 +85,16 @@ export function loadMode(modeId: string, root: string = HERE): LoadedFight {
   const arena = readJson<ArenaFile>(join(root, "arena", `${mode.arena}.json`), `arena "${mode.arena}" (named by mode "${modeId}")`);
   const match = readJson<MatchFile>(join(root, "match", `${mode.match}.json`), `match "${mode.match}" (named by mode "${modeId}")`);
 
-  const fighters = distinct(mode.cast, (c) => c.fighter).map((id) =>
+  // the roster is the cast plus every wave's spawns; both name fighters and ais
+  const rows: { fighter: string; ai?: string }[] = [...mode.cast, ...(mode.waves ?? []).flatMap((w) => w.spawns)];
+  const fighters = distinct(rows, (c) => c.fighter).map((id) =>
     readJson<FighterFile>(join(root, "fighters", `${id}.json`), `fighter "${id}" (named by mode "${modeId}")`),
   );
-  const ais = distinct(mode.cast, (c) => c.ai).map((id) =>
+  const ais = distinct(rows, (c) => c.ai).map((id) =>
     readJson<AiFile>(join(root, "ai", `${id}.json`), `ai "${id}" (named by mode "${modeId}")`),
   );
+  const stage = mode.stage === undefined ? undefined
+    : readJson<StageFile>(join(root, "stage", `${mode.stage}.json`), `stage "${mode.stage}" (named by mode "${modeId}")`);
 
-  return { mode, arena, match, fighters, ais, sets: loadSets(fighters, join(root, "..", "assets")) };
+  return { mode, arena, match, fighters, ais, sets: loadSets(fighters, join(root, "..", "assets")), ...(stage ? { stage } : {}) };
 }

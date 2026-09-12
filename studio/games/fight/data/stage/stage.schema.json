@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ellaz.fun/studio/fight/stage.schema.json",
+  "title": "Ellaz fight stage file",
+  "description": "How a side-scrolling wave run FEELS, as opposed to what is in it (the mode file's waves) or where it happens (the arena). The camera follow, the screen that holds the hero and the enemies, where enemies spawn, the XP curve, what a level-up gives, and how a coin flies. Distances are VIEW PIXELS, rates are per second; compile.ts turns every one into FP and per-tick once. Ratios are num/den pairs because the sim never divides by a float.",
+  "type": "object",
+  "required": ["id", "camera", "screen", "spawn", "xp", "levelUp", "coin"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "must equal the file's basename" },
+    "camera": {
+      "type": "object",
+      "required": ["lead", "divisor", "snap"],
+      "additionalProperties": false,
+      "properties": {
+        "lead": { "type": "integer", "minimum": 0, "description": "view px the camera wants the hero at, from its left edge" },
+        "divisor": { "type": "integer", "exclusiveMinimum": 1, "description": "each tick the camera closes 1/divisor of the gap to where it wants to be (12 is the demo's dt*5 at 60 Hz)" },
+        "snap": { "type": "integer", "minimum": 0, "description": "view px; a gap this small or smaller closes in one tick, so a floored step cannot stall short" }
+      }
+    },
+    "screen": {
+      "type": "object",
+      "required": ["heroPad", "enemyPad", "outsidePad", "spawnPad"],
+      "additionalProperties": false,
+      "description": "view px from the screen's edges",
+      "properties": {
+        "heroPad": { "type": "integer", "minimum": 0, "description": "the hero cannot leave the screen by more than this" },
+        "enemyPad": { "type": "integer", "minimum": 0, "description": "an enemy that has entered the screen is held inside it by this" },
+        "outsidePad": { "type": "integer", "minimum": 0, "description": "an enemy still walking in may be this far outside the screen" },
+        "spawnPad": { "type": "integer", "minimum": 0, "description": "a spawn appears this far outside the screen's edge" }
+      }
+    },
+    "spawn": {
+      "type": "object",
+      "required": ["zMin", "zMax"],
+      "additionalProperties": false,
+      "description": "a spawn's lane is drawn from the sim's rng in [zMin, zMax] view px; inside the arena's sim.zMin..zMax",
+      "properties": {
+        "zMin": { "type": "integer" },
+        "zMax": { "type": "integer" }
+      }
+    },
+    "xp": {
+      "type": "object",
+      "required": ["base", "perLevel"],
+      "additionalProperties": false,
+      "description": "the xp the NEXT level costs is base + level * perLevel",
+      "properties": {
+        "base": { "type": "integer", "minimum": 0 },
+        "perLevel": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "levelUp": {
+      "type": "object",
+      "required": ["hp", "heal", "damage"],
+      "additionalProperties": false,
+      "properties": {
+        "hp": { "type": "integer", "minimum": 0, "description": "max hp gained per level" },
+        "heal": { "type": "integer", "minimum": 0, "description": "hp restored on the level-up, capped at the new max" },
+        "damage": { "type": "integer", "minimum": 0, "description": "added to every hit the hero lands, per level above 1" }
+      }
+    },
+    "coin": {
+      "type": "object",
+      "required": ["launchVh", "launchVx", "gravity", "bounceKeep", "bounceMinVh", "slideKeep", "magnetDivisor", "pickupX", "pickupZ", "pickupH"],
+      "additionalProperties": false,
+      "description": "a KO drops one coin at the corpse; it pops up, bounces, slides to rest, and flies to the hero once the stage is clear",
+      "properties": {
+        "launchVh": { "type": "integer", "minimum": 0, "description": "view px per second, upward, at the drop" },
+        "launchVx": { "type": "integer", "minimum": 0, "description": "view px per second sideways, drawn from the rng in [-launchVx, launchVx]" },
+        "gravity": { "type": "integer", "minimum": 0, "description": "view px per second squared" },
+        "bounceKeep": { "$ref": "#/$defs/ratio", "description": "the fraction of the vertical speed kept on a bounce" },
+        "bounceMinVh": { "type": "integer", "minimum": 0, "description": "view px per second; a landing slower than this stops instead of bouncing" },
+        "slideKeep": { "$ref": "#/$defs/ratio", "description": "the fraction of the sideways speed kept on each landing" },
+        "magnetDivisor": { "type": "integer", "exclusiveMinimum": 1, "description": "in the clear phase a coin closes 1/divisor of its gap to the hero each tick" },
+        "pickupX": { "type": "integer", "minimum": 0, "description": "view px; the hero collects a coin within this in x ..." },
+        "pickupZ": { "type": "integer", "minimum": 0, "description": "... and this in z ..." },
+        "pickupH": { "type": "integer", "minimum": 0, "description": "... while the coin is no higher than this" }
+      }
+    }
+  },
+  "$defs": {
+    "ratio": {
+      "type": "object",
+      "required": ["num", "den"],
+      "additionalProperties": false,
+      "properties": {
+        "num": { "type": "integer", "minimum": 0 },
+        "den": { "type": "integer", "exclusiveMinimum": 0 }
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "id": "slime",
+  "sprites": "slime--snes16",
+  "hp": 20,
+  "speed": 42,
+  "zSpeed": 30,
+  "xp": 10
+}

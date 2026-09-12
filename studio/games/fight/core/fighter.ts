@@ -115,7 +115,7 @@ export function tickFighter(f0: FighterState, cf: CFighter, arena: CArena, match
   return { f: fireImpulse(f, cf, prevSt, prevFrame), events };
 }
 
-/** a fresh fighter at its cast position */
-export function spawnFighter(cf: CFighter, x: number, z: number, face: 1 | -1, ai: FighterState["ai"]): FighterState {
-  return { x, z, h: 0, vx: 0, vz: 0, vh: 0, face, st: cf.initial, stT: 0, frame: 0, hp: cf.hp, stun: 0, inv: 0, down: 0, fall: 0, hits: 0, hitsT: 0, hitMask: 0, cool: 0, ai };
+/** a fresh fighter at its cast position; a flying one starts at its hover height. `active` 0 is a wave spawn not yet due */
+export function spawnFighter(cf: CFighter, x: number, z: number, face: 1 | -1, ai: FighterState["ai"], active: FighterState["active"] = 1): FighterState {
+  return { x, z, h: cf.flying ? cf.hover : 0, vx: 0, vz: 0, vh: 0, face, st: cf.initial, stT: 0, frame: 0, hp: cf.hp, stun: 0, inv: 0, down: 0, fall: 0, hits: 0, hitsT: 0, hitMask: 0, cool: 0, active, ai };
 }

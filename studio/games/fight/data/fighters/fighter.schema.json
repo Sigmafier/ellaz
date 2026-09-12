@@ -11,6 +11,9 @@
     "sprites": { "type": "string", "pattern": "^[a-z0-9]+--[a-z0-9]+$", "description": "a directory under ../assets/ holding <set>.manifest.json and <set>.moves.json; data.test.ts asserts both exist" },
     "hp": { "type": "integer", "exclusiveMinimum": 0 },
     "speed": { "type": "integer", "exclusiveMinimum": 0, "description": "view px per second, walking along x" },
-    "zSpeed": { "type": "integer", "exclusiveMinimum": 0, "description": "view px per second, stepping between lanes" }
+    "zSpeed": { "type": "integer", "exclusiveMinimum": 0, "description": "view px per second, stepping between lanes" },
+    "xp": { "type": "integer", "minimum": 0, "description": "what a stage pays the hero for this fighter's KO; absent means 0 (a hero)" },
+    "flying": { "type": "boolean", "description": "no gravity while alive: the fighter holds `hover` above the floor (a bat). A KO drops it" },
+    "hover": { "type": "integer", "minimum": 0, "description": "view px above the floor while flying; REQUIRES `flying` - the subset has no if/then, so data.test.ts and compile.ts assert it" }
   }
 }

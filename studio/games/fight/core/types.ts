@@ -48,11 +48,30 @@ export interface MovesFile {
 export interface ArenaFile {
   id: string;
   view: { w: number; h: number };
+  /** the whole room, when it is wider than one screen (a stage scrolls through it); absent means one screen */
+  world?: { w: number };
   scale: { num: number; den: number };
   /** everything step() reads, in view pixels */
   sim: { zMin: number; zMax: number; xMin: number; xMax: number; gravity: number; floorTop: number };
   /** everything only a cell reads; the core never opens it */
   art: unknown;
+}
+
+/** a stage's tuning: the camera, the screen that holds the fighters, where enemies spawn, the XP curve, the level bumps, the coin physics. View px and seconds; compile.ts converts */
+export interface StageFile {
+  id: string;
+  camera: { lead: number; divisor: number; snap: number };
+  screen: { heroPad: number; enemyPad: number; outsidePad: number; spawnPad: number };
+  spawn: { zMin: number; zMax: number };
+  xp: { base: number; perLevel: number };
+  levelUp: { hp: number; heal: number; damage: number };
+  coin: {
+    launchVh: number; launchVx: number; gravity: number;
+    bounceKeep: { num: number; den: number }; bounceMinVh: number;
+    slideKeep: { num: number; den: number };
+    magnetDivisor: number;
+    pickupX: number; pickupZ: number; pickupH: number;
+  };
 }
 
 export interface MatchFile {
@@ -95,11 +114,19 @@ export interface AiFile {
   reachPad: { min: number; max: number };
 }
 
-/** speeds are view pixels per second at TICK_RATE; compile.ts turns them into FP per tick */
-export interface FighterFile { id: string; sprites: string; hp: number; speed: number; zSpeed: number }
+/**
+ * speeds are view pixels per second at TICK_RATE; compile.ts turns them into FP per tick.
+ * `xp` is what a stage pays for the KO; `flying` keeps the fighter at `hover` view px above
+ * the floor (no gravity while alive) - a bat.
+ */
+export interface FighterFile { id: string; sprites: string; hp: number; speed: number; zSpeed: number; xp?: number; flying?: boolean; hover?: number }
 
 export interface CastEntry { fighter: string; control: "player" | "ai"; ai?: string; team: number; x: number; z: number; face: 1 | -1 }
-export interface ModeFile { id: string; arena: string; match: string; seed: number; cast: CastEntry[] }
+/** one enemy of a wave: it spawns `delayTicks` after the wave starts, off the `side` edge of the screen, facing in */
+export interface SpawnEntry { fighter: string; ai: string; team: number; side: 1 | -1; delayTicks: number }
+export interface WaveFile { spawns: SpawnEntry[] }
+/** `stage` (a basename under ../stage/) and `waves` come together or not at all - data.test.ts asserts it */
+export interface ModeFile { id: string; arena: string; match: string; seed: number; cast: CastEntry[]; stage?: string; waves?: WaveFile[] }
 
 // ---- compiled data: all integers, frozen, what step() actually reads -----------
 
@@ -127,15 +154,38 @@ export interface CFighter {
   hp: number;
   speed: number;             // FP per tick
   zSpeed: number;            // FP per tick
+  xp: number;                // paid on its KO in a stage; 0 for a hero
+  flying: boolean;
+  hover: number;             // FP above the floor while flying and alive
   initial: number;
   hurt: number;              // onHit.light
   ko: number;                // onHit.heavy
   states: CState[];          // sorted by name
 }
-export interface CArena { zMin: number; zMax: number; xMin: number; xMax: number; gravity: number }   // FP; gravity FP per tick^2
+/** FP; gravity FP per tick^2; viewW is one screen and worldW the whole room (equal when the arena has no `world`) */
+export interface CArena { zMin: number; zMax: number; xMin: number; xMax: number; gravity: number; viewW: number; worldW: number }
 export interface CMatch extends MatchFile {}
 export interface CAi extends AiFile {}
-export interface CCast { fighter: number; control: "player" | "ai"; ai: number; team: number; x: number; z: number; face: 1 | -1 }
+/**
+ * one roster row. A fixed cast row has wave -1 and is live from tick 0; a wave spawn has
+ * its wave index, its delay and the screen edge it enters from, and lies dormant until then.
+ */
+export interface CCast { fighter: number; control: "player" | "ai"; ai: number; team: number; x: number; z: number; face: 1 | -1; wave: number; delayTicks: number; side: 1 | 0 | -1 }
+export interface CStage {
+  camera: { lead: number; divisor: number; snap: number };                      // FP, count, FP
+  screen: { heroPad: number; enemyPad: number; outsidePad: number; spawnPad: number };   // FP
+  spawn: { zMin: number; zMax: number };                                          // view px - rngRange draws whole px
+  xp: { base: number; perLevel: number };
+  levelUp: { hp: number; heal: number; damage: number };
+  coin: {
+    launchVh: number; launchVx: number; gravity: number;                          // FP per tick, FP per tick, FP per tick^2
+    bounceKeep: { num: number; den: number }; bounceMinVh: number;                // rational, FP per tick
+    slideKeep: { num: number; den: number };
+    magnetDivisor: number;
+    pickupX: number; pickupZ: number; pickupH: number;                            // FP
+  };
+  waves: number;
+}
 export interface FightData {
   seed: number;
   arena: CArena;
@@ -143,6 +193,8 @@ export interface FightData {
   fighters: CFighter[];
   ais: CAi[];
   cast: CCast[];
+  /** present for a stage mode; Versus has none and runs tickMatch */
+  stage: CStage | null;
 }
 
 // ---- the state ----------------------------------------------------------------
@@ -168,10 +220,16 @@ export interface FighterState {
   hitsT: number;                            // ticks since the first recent hit
   hitMask: number;                          // which opposing fighters this attack has already hit
   cool: number;                             // ticks before another attack may START (match.attackCooldownTicks)
+  active: 0 | 1 | 2;                        // 0 dormant (a wave spawn not yet due: no input, no hits, no push, not drawn), 1 live, 2 live and inside the screen
   ai: AiState | null;
 }
 
 export type Phase = 0 | 1 | 2 | 3;         // 0 intro, 1 fight, 2 ko fade, 3 over
+export type WavePhase = 0 | 1 | 2 | 3;     // 0 fight, 1 go (the camera unlocks to the next screen), 2 clear (the last wave is down), 3 fade (the hero is down; the wave restarts)
+/** the wave machine's whole state; integers so it hashes */
+export interface StageState { wave: number; wphase: WavePhase; waveT: number; camX: number; coins: number; xp: number; level: number }
+/** a coin on the floor or in the air; FP */
+export interface PickupState { x: number; z: number; h: number; vx: number; vh: number; age: number }
 export interface FightState {
   tick: number;
   rng: number;                              // uint32, lives here so the sim has no hidden state
@@ -180,6 +238,8 @@ export interface FightState {
   freeze: number;                           // hitstop ticks left, applies to everyone
   shake: number;                            // ticks of shake left, for the view only
   winner: -1 | 0 | 1;
+  stage: StageState | null;                 // a stage mode's wave machine; null in Versus
+  pickups: PickupState[];
   fighters: FighterState[];
   events: FightEvent[];                     // produced this tick, consumed by the cell, never hashed into hashState
 }
