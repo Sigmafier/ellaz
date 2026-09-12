@@ -251,4 +251,6 @@ export type FightEvent =
   | { kind: "ko"; target: number }
   | { kind: "land"; who: number }
   | { kind: "phase"; phase: Phase }
-  | { kind: "wave"; wave: number; wphase: WavePhase };
+  | { kind: "wave"; wave: number; wphase: WavePhase }
+  | { kind: "levelup"; level: number }
+  | { kind: "coin"; x: number; z: number; coins: number };

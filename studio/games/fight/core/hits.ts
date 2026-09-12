@@ -41,9 +41,9 @@ export function findHits(s: FightState, fighters: CFighter[], cast: { fighter: n
   return out;
 }
 
-/** the target after a hit: hp, knock, stun, and which reaction state it enters */
-export function applyHit(t: FighterState, tf: CFighter, hit: CHit, face: 1 | -1, match: CMatch): FighterState {
-  const hp = t.hp - hit.damage;
+/** the target after a hit: hp, knock, stun, and which reaction state it enters. `bonus` is a stage hero's level damage on top of the move's */
+export function applyHit(t: FighterState, tf: CFighter, hit: CHit, face: 1 | -1, match: CMatch, bonus = 0): FighterState {
+  const hp = t.hp - (hit.damage + bonus);
   const hits = t.hits + 1;
   const fall = t.fall + hit.fall;
   const knockedDown = hp > 0 && (hits >= match.hitsToKnockdown || fall >= match.fallThreshold);
@@ -65,18 +65,23 @@ export function applyHit(t: FighterState, tf: CFighter, hit: CHit, face: 1 | -1,
   };
 }
 
-/** resolve every landed hit into new fighter states, hitstop, shake and events */
-export function resolveHits(s: FightState, fighters: CFighter[], cast: { fighter: number; team: number }[], match: CMatch): FightState {
+/**
+ * resolve every landed hit into new fighter states, hitstop, shake and events.
+ * `levelDamage` is what a player-controlled attacker adds to every hit (a stage hero's
+ * levels; 0 in Versus) - the one place a level touches a hit.
+ */
+export function resolveHits(s: FightState, fighters: CFighter[], cast: { fighter: number; team: number; control?: "player" | "ai" }[], match: CMatch, levelDamage = 0): FightState {
   const landed = findHits(s, fighters, cast, match);
   if (landed.length === 0) return s;
   const next = s.fighters.slice();
   const events: FightEvent[] = [...s.events];
   for (const { attacker, target, hit } of landed) {
     const a = next[attacker], t = next[target];
-    const struck = applyHit(t, fighters[cast[target].fighter], hit, a.face, match);
+    const bonus = cast[attacker].control === "player" ? levelDamage : 0;
+    const struck = applyHit(t, fighters[cast[target].fighter], hit, a.face, match, bonus);
     next[target] = struck;
     next[attacker] = { ...a, hitMask: a.hitMask | (1 << target) };
-    events.push({ kind: "hit", attacker, target, x: t.x, z: t.z, h: t.h, damage: hit.damage, effect: hit.effect });
+    events.push({ kind: "hit", attacker, target, x: t.x, z: t.z, h: t.h, damage: hit.damage + bonus, effect: hit.effect });
     if (struck.hp <= 0) events.push({ kind: "ko", target });
     else if (struck.st === fighters[cast[target].fighter].ko) events.push({ kind: "knockdown", target });
   }

@@ -13,5 +13,6 @@ export { step } from "./step";
 export { reachOf, thinkAi, freshAi } from "./ai";
 export { tickFighter, spawnFighter, dormant } from "./fighter";
 export { tickStage, heroIndex, heroMaxHp } from "./stage";
+export { tickPickups, xpToNext } from "./pickups";
 export { findHits, applyHit, resolveHits } from "./hits";
 export { readTape, inputsAtTick } from "./tape";

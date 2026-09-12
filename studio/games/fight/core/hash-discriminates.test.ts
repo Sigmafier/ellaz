@@ -286,6 +286,16 @@ describe("events are hashed separately, never into hashState", () => {
     expect(hashEvents([{ kind: "phase", phase: 0 }])).not.toBe(hashEvents([{ kind: "phase", phase: 1 }]));
   });
 
+  it("discriminates every field of the stage events: wave, levelup, coin", () => {
+    expect(hashEvents([{ kind: "wave", wave: 0, wphase: 1 }])).not.toBe(hashEvents([{ kind: "wave", wave: 1, wphase: 1 }]));
+    expect(hashEvents([{ kind: "wave", wave: 0, wphase: 1 }])).not.toBe(hashEvents([{ kind: "wave", wave: 0, wphase: 2 }]));
+    expect(hashEvents([{ kind: "levelup", level: 2 }])).not.toBe(hashEvents([{ kind: "levelup", level: 3 }]));
+    const c = (over: Partial<Extract<FightEvent, { kind: "coin" }>>) => hashEvents([{ kind: "coin", x: 10, z: 20, coins: 3, ...over }]);
+    for (const over of [{ x: 11 }, { z: 21 }, { coins: 4 }]) expect(c(over)).not.toBe(c({}));
+    const all: FightEvent[] = [{ kind: "wave", wave: 0, wphase: 0 }, { kind: "levelup", level: 0 }, { kind: "phase", phase: 0 }];
+    expect(new Set(all.map((e) => hashEvents([e]))).size).toBe(all.length);
+  });
+
   it("the events' ORDER matters", () => {
     const a: FightEvent = { kind: "land", who: 0 };
     const b: FightEvent = { kind: "ko", target: 1 };

@@ -11,6 +11,7 @@ import { resolveHits } from "./hits";
 import { tickMatch } from "./match";
 import { frameAt } from "./moves";
 import { floorDiv } from "./fixed";
+import { tickPickups } from "./pickups";
 import { tickStage } from "./stage";
 import { FP, NO_INPUT } from "./types";
 import type { FightData, FighterState, FightEvent, FightState, InputFrame } from "./types";
@@ -69,7 +70,8 @@ export function step(state: FightState, given: readonly InputFrame[], data: Figh
     return r.f;
   });
   let next: FightState = { ...state, tick, rng, shake: state.shake > 0 ? state.shake - 1 : 0, fighters: ticked, events };
-  next = resolveHits(next, data.fighters, data.cast, data.match);
+  const levelDamage = data.stage && state.stage ? (state.stage.level - 1) * data.stage.levelUp.damage : 0;
+  next = resolveHits(next, data.fighters, data.cast, data.match, levelDamage);
   next = { ...next, fighters: separate(next.fighters, data) };
-  return data.stage ? tickStage(next, data) : tickMatch(next, data);
+  return data.stage ? tickPickups(tickStage(next, data), data) : tickMatch(next, data);
 }
