@@ -4,8 +4,12 @@
 // not "probably fine": the whole premise of the cells is that seven arms run
 // one program, and a hash that differs by one digit means they do not.
 //
-//   node run-tape.mjs [--dist <dir>] [--tape versus-600] [cell...]
+//   node run-tape.mjs [--dist <dir>] [--game fight] [--tape versus-600] [cell...]
 //   node run-tape.mjs --control
+//
+// The built tree is dist-toybox: the engine's cells under toybox/cells/<name>/
+// and each game's page under games/<game>/page/, so `--game` says whose tapes,
+// goldens and page a run reads (fight, the one game today, by default).
 //
 // No ports. Playwright answers every request to http://fight.test/ from the
 // built tree on disk, so there is no server to leak, no port to collide with
@@ -26,7 +30,10 @@ import { chromium } from "playwright-core";
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const FIGHT = resolve(HERE, "..", "..");
 export const STUDIO = resolve(FIGHT, "..", "..");
-export const DEFAULT_DIST = join(STUDIO, "dist-fight");
+export const DEFAULT_DIST = join(STUDIO, "dist-toybox");
+export const DEFAULT_GAME = "fight";
+/** a game's source root under studio/games/ - its tapes/ holds the goldens */
+export const gameDirOf = (game) => join(STUDIO, "games", game);
 export const RAW = join(FIGHT, "tournament", "data", "raw-fight.jsonl");
 export const ORIGIN = "http://fight.test";
 
@@ -51,24 +58,24 @@ export function parseFlags(argv, defaults = {}) {
   return out;
 }
 
-/** relative path under dist for a cell's page: cells/<name>, or page/ for the game's own page */
-const relDir = (cell) => (cell === "page" ? "page" : `cells/${cell}`);
+/** relative path under dist for a cell's page: toybox/cells/<name>, or games/<game>/page for the game's own page */
+const relDir = (cell, game) => (cell === "page" ? `games/${game}/page` : `toybox/cells/${cell}`);
 
 /** where a cell's page lives in the built tree */
-export const pageDirOf = (dist, cell) => join(dist, relDir(cell));
+export const pageDirOf = (dist, cell, game = DEFAULT_GAME) => join(dist, relDir(cell, game));
 
 /**
  * Every built cell page, from the tree itself - never a hand-kept list. The
- * game's page (page/index.html, the promoted Phaser cell with live input) is a
- * cell too: it must keep admitting on the golden after the tournament, or the
- * game has drifted from the bar.
+ * game's page (games/<game>/page/index.html, the promoted Phaser cell with
+ * live input) is a cell too: it must keep admitting on the golden after the
+ * tournament, or the game has drifted from the bar.
  */
-export function listCells(dist) {
-  const dir = join(dist, "cells");
+export function listCells(dist, game = DEFAULT_GAME) {
+  const dir = join(dist, "toybox", "cells");
   const cells = !existsSync(dir) ? [] : readdirSync(dir, { withFileTypes: true })
     .filter((e) => e.isDirectory() && existsSync(join(dir, e.name, "index.html")))
     .map((e) => e.name);
-  if (existsSync(join(pageDirOf(dist, "page"), "index.html"))) cells.push("page");
+  if (existsSync(join(pageDirOf(dist, "page", game), "index.html"))) cells.push("page");
   return cells.sort();
 }
 
@@ -96,22 +103,23 @@ export function appendRow(row) {
   appendFileSync(RAW, `${JSON.stringify(row)}\n`);
 }
 
-export const cellUrl = (cell, query) => `${ORIGIN}/${relDir(cell)}/index.html?${query}`;
+/** an engine cell is told which game to play; a game's page already knows */
+export const cellUrl = (cell, query, game = DEFAULT_GAME) => `${ORIGIN}/${relDir(cell, game)}/index.html?${cell === "page" ? "" : `game=${game}&`}${query}`;
 
-export function readGolden(tape) {
-  const file = join(FIGHT, "tapes", `${tape}.golden.json`);
-  if (!existsSync(file)) throw new Error(`no golden for tape "${tape}": ${file}`);
+export function readGolden(tape, game = DEFAULT_GAME) {
+  const file = join(gameDirOf(game), "tapes", `${tape}.golden.json`);
+  if (!existsSync(file)) throw new Error(`no golden for tape "${tape}" of game "${game}": ${file}`);
   return JSON.parse(readFileSync(file, "utf8"));
 }
 
 /** Open one cell page, replay the tape at fast=1, read the triple back. */
-export async function observeCell(browser, dist, cell, tape) {
+export async function observeCell(browser, dist, cell, tape, game = DEFAULT_GAME) {
   const ctx = await browser.newContext({ viewport: { width: 800, height: 600 }, deviceScaleFactor: 1 });
   await routeDisk(ctx, dist);
   const page = await ctx.newPage();
   const errors = [];
   watchErrors(page, errors);
-  await page.goto(cellUrl(cell, `tape=${tape}&fast=1`));
+  await page.goto(cellUrl(cell, `tape=${tape}&fast=1`, game));
   try { await page.waitForFunction(() => window.__ready === true, null, { timeout: 15000 }); }
   catch { errors.push("window.__ready never became true within 15000 ms"); }
   try { await page.waitForFunction(() => window.__fightDone === true, null, { timeout: 60000 }); }
@@ -150,13 +158,13 @@ function printVerdict(cell, obs, v) {
   for (const m of v.mismatches) console.log(`      ${m}`);
 }
 
-async function control(dist, tape) {
-  const golden = readGolden(tape);
-  const cells = listCells(dist);
+async function control(dist, tape, game) {
+  const golden = readGolden(tape, game);
+  const cells = listCells(dist, game);
   const cell = cells.includes("canvas") ? "canvas" : cells[0];
   if (!cell) { console.log("run-tape control: NO cells built - cannot run a control"); return 2; }
   const browser = await chromium.launch({ headless: true });
-  const obs = await observeCell(browser, dist, cell, tape);
+  const obs = await observeCell(browser, dist, cell, tape, game);
   await browser.close();
   // One observation, two goldens: a tape run is deterministic by construction,
   // so re-running would vary the run AND the golden at once. The thing under
@@ -174,24 +182,26 @@ async function control(dist, tape) {
 }
 
 async function main(argv) {
-  const f = parseFlags(argv, { dist: DEFAULT_DIST, tape: "versus-600" });
+  const f = parseFlags(argv, { dist: DEFAULT_DIST, tape: "versus-600", game: DEFAULT_GAME });
   const dist = resolve(String(f.dist));
+  const game = String(f.game);
   if (!existsSync(dist)) { console.log(`run-tape: dist not found: ${dist}`); return 2; }
-  if (f.control) return control(dist, String(f.tape));
+  if (!existsSync(gameDirOf(game))) { console.log(`run-tape: no such game: ${gameDirOf(game)}`); return 2; }
+  if (f.control) return control(dist, String(f.tape), game);
   const tape = String(f.tape);
-  const golden = readGolden(tape);
-  const cells = f.rest.length ? f.rest : listCells(dist);
-  console.log(`run-tape: ${cells.length} cell(s) under ${dist}/cells against golden ${tape} (ticks ${golden.ticks} hash ${golden.hash} chain ${golden.chain} eventHash ${golden.eventHash})`);
+  const golden = readGolden(tape, game);
+  const cells = f.rest.length ? f.rest : listCells(dist, game);
+  console.log(`run-tape: ${cells.length} cell(s) under ${dist} playing game ${game} against golden ${tape} (ticks ${golden.ticks} hash ${golden.hash} chain ${golden.chain} eventHash ${golden.eventHash})`);
   if (cells.length === 0) { console.log("run-tape: NO cells found - a verdict over an empty population is not a verdict"); return 2; }
   const browser = await chromium.launch({ headless: true });
   let bad = 0;
   for (const cell of cells) {
-    const obs = await observeCell(browser, dist, cell, tape);
+    const obs = await observeCell(browser, dist, cell, tape, game);
     const v = verdictFor(golden, obs);
     if (!v.admitted) bad++;
     printVerdict(cell, obs, v);
     appendRow({
-      kind: "tape", at: new Date().toISOString(), cell, tape,
+      kind: "tape", at: new Date().toISOString(), game, cell, tape,
       ticks: obs.ticks, hash: obs.hash, chain: obs.chain, eventHash: obs.eventHash,
       admitted: v.admitted, errors: obs.errors, stats: obs.stats,
     });

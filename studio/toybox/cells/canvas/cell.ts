@@ -8,11 +8,11 @@
 // rather than a computed value so a cell cannot quietly disagree with the
 // arena it is drawing into.
 
-import type { Atlas, Manifest } from "../../../../adapters/manifest";
-import { drawFrame } from "../../../../adapters/canvas/draw-frame";
-import { NO_INPUT } from "../../../../toybox/sim/types";
-import type { InputFrame } from "../../../../toybox/sim/types";
-import type { BoxOp, HudModel, PropOp, ShadowOp, SpriteOp } from "../../../../toybox/sim/view";
+import type { Atlas, Manifest } from "../../../adapters/manifest";
+import { drawFrame } from "../../../adapters/canvas/draw-frame";
+import { NO_INPUT } from "../../sim/types";
+import type { InputFrame } from "../../sim/types";
+import type { BoxOp, HudModel, PropOp, ShadowOp, SpriteOp } from "../../sim/view";
 import type { ArenaDrawOp, Cell, CellStats, FxOp, SpriteSetRef } from "../contract";
 import { propOps } from "../shared/props";
 import { drawText, textWidth } from "./font";

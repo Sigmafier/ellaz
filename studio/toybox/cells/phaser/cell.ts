@@ -22,12 +22,12 @@
 import Phaser from "phaser";
 import type { Manifest } from "../../../adapters/manifest";
 import { loadStudioAtlas, originFor } from "../../../adapters/phaser/load-atlas";
-import { NO_INPUT } from "../../../toybox/sim/types";
-import type { InputFrame } from "../../../toybox/sim/types";
-import type { BoxOp, HudModel, PropOp, ShadowOp, SpriteOp } from "../../../toybox/sim/view";
-import type { ArenaDrawOp, Cell, CellStats, FxOp, SpriteSetRef } from "../cells/contract";
-import { drawText, textWidth } from "../cells/canvas/font";
-import { propOps } from "../cells/shared/props";
+import { NO_INPUT } from "../../sim/types";
+import type { InputFrame } from "../../sim/types";
+import type { BoxOp, HudModel, PropOp, ShadowOp, SpriteOp } from "../../sim/view";
+import type { ArenaDrawOp, Cell, CellStats, FxOp, SpriteSetRef } from "../contract";
+import { drawText, textWidth } from "../canvas/font";
+import { propOps } from "../shared/props";
 import { drawStageHud } from "./hud-stage";
 
 const DRAW_SCALE = 1 / 5;

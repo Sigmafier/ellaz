@@ -76,7 +76,8 @@ function makeCard(letter: string, total: number): Card {
  * the page while the src attribute stays absent.
  */
 function openFrame(card: Card, cellId: string): void {
-  const url = new URL(`../../cells/${cellId}/index.html?tape=${TAPE}&wait=1`, location.href).href;
+  // the cells are the engine's, under toybox/cells in the built tree; this page is the fight's, so the arms play the fight
+  const url = new URL(`../../../../toybox/cells/${cellId}/index.html?game=fight&tape=${TAPE}&wait=1`, location.href).href;
   const win = card.frame.contentWindow;
   if (!win) { card.readout.textContent = "frame did not open"; return; }
   win.location.replace(url);

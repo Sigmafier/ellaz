@@ -8,8 +8,8 @@
 // ticks a frame stepped. Side 1 is the AI's and always NO_INPUT - a second
 // human would need a second key map, and nothing in the tournament wants one.
 
-import { NO_INPUT } from "../../../../toybox/sim/types";
-import type { InputFrame } from "../../../../toybox/sim/types";
+import { NO_INPUT } from "../../sim/types";
+import type { InputFrame } from "../../sim/types";
 
 /** what both attach* return: poll the buttons, then take the listeners back off */
 export interface InputSource {

@@ -5,8 +5,8 @@
 // draw plan says, it reports its input and its stats. That absence is the
 // structural guarantee that seven arms run one program.
 
-import type { InputFrame } from "../../../toybox/sim/types";
-import type { BoxOp, HudModel, PropOp, ShadowOp, SpriteOp } from "../../../toybox/sim/view";
+import type { InputFrame } from "../sim/types";
+import type { BoxOp, HudModel, PropOp, ShadowOp, SpriteOp } from "../sim/view";
 
 /** where a sprite set's four files live, as URLs the cell can fetch or hand to its loader */
 export interface SpriteSetRef { name: string; png: string; atlas: string; manifest: string }

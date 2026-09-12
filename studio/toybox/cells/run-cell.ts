@@ -14,14 +14,14 @@
 // The mode: `opts.mode`, unless a tape is given - a tape names its own mode, and
 // replaying a stage tape against the Versus data would be a different sim.
 
-import { compileFight } from "../../../toybox/sim/compile";
-import { chainOf, hashEvents, hashState } from "../../../toybox/sim/hash";
-import { createState } from "../../../toybox/sim/match";
-import { step } from "../../../toybox/sim/step";
-import { inputsAtTick, readTape } from "../../../toybox/sim/tape";
-import { NO_INPUT } from "../../../toybox/sim/types";
-import type { FightData, FightEvent, FightState, InputFrame } from "../../../toybox/sim/types";
-import { viewOf } from "../../../toybox/sim/view";
+import { compileFight } from "../sim/compile";
+import { chainOf, hashEvents, hashState } from "../sim/hash";
+import { createState } from "../sim/match";
+import { step } from "../sim/step";
+import { inputsAtTick, readTape } from "../sim/tape";
+import { NO_INPUT } from "../sim/types";
+import type { FightData, FightEvent, FightState, InputFrame } from "../sim/types";
+import { viewOf } from "../sim/view";
 import type { Cell, CellOptions } from "./contract";
 import { createClock, detectRefresh } from "./retime";
 import { arenaOps } from "./shared/arena";
@@ -29,7 +29,7 @@ import { loadFightHttp, spriteRefs } from "./shared/assets";
 import { createFx } from "./shared/fx";
 import { attachKeyboard, attachTouch } from "./shared/input";
 import type { InputSource } from "./shared/input";
-import type { Tape } from "../../../toybox/sim/tape";
+import type { Tape } from "../sim/tape";
 
 interface Live { data: FightData; prev: FightState; next: FightState; tape: Tape | null; ticks: string[]; events: FightEvent[]; done: boolean }
 

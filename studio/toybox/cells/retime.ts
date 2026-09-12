@@ -12,7 +12,7 @@
 // interpolated one is `distinctDraws`: consecutive draws must differ while the
 // accumulator advances. run-cell.ts measures both.
 
-import { TICK_RATE } from "../../../toybox/sim/types";
+import { TICK_RATE } from "../sim/types";
 
 export const STEP_MS = 1000 / TICK_RATE;
 

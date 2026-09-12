@@ -9,7 +9,7 @@
       "@export/*": ["export/*"],
       "@adapters/*": ["adapters/*"],
       "@/*": ["gallery/src/*"],
-      "phaser": ["games/fight/cells/node_modules/phaser"]
+      "phaser": ["toybox/node_modules/phaser"]
     }
   },
   "include": ["art", "export", "adapters", "gallery/src", "games", "toybox", "vitest.config.ts"]
