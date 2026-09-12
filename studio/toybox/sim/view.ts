@@ -83,7 +83,11 @@ export function viewOf(prev: FightState, next: FightState, alpha256: number, dat
     if (dormant(f)) return;
     const p = prev.fighters[i] ?? f;
     const cf = data.fighters[data.cast[i].fighter];
-    const same = p.st === f.st;
+    // interpolate only across a tick the fighter spent in one state AND on screen: a row that was
+    // dormant a tick ago sits at compile's (0, 0) in the same idle state, and lerping from there drew
+    // each spawn once between the top-left corner and its edge (the bat over the shelf at tick 168,
+    // measured on the built page 2026-09-12 - the second flicker the operator saw)
+    const same = p.st === f.st && !dormant(p);
     const fx = same ? lerp256(p.x, f.x, alpha256) : f.x;
     const fz = same ? lerp256(p.z, f.z, alpha256) : f.z;
     const fh = same ? lerp256(p.h, f.h, alpha256) : f.h;

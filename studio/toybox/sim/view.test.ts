@@ -192,3 +192,36 @@ describe("viewOf", () => {
     }
   });
 });
+
+describe("viewOf on the tick a fighter spawns", () => {
+  // a stage mode: every wave row is a dormant cast row from tick 0, and compile parks it at (0, 0)
+  const stage = compileFight(loadMode("stage", gameDir("fight")));
+  const row = stage.cast.findIndex((c) => c.wave >= 0);
+
+  it("draws it AT its spawn point at every alpha, never between the dormant row and it", () => {
+    // the operator's second look, 2026-09-12: "it flickers as new enemies appear, every enemy,
+    // then it stops". Reproduced on the built page one frame per tick: the bat was drawn over the
+    // shelf at tick 168 and a slime over the hp bar at tick 244, for one frame each - the view
+    // interpolating from the dormant row at (0, 0) toward the spawn edge
+    const prev = createState(stage);
+    expect(prev.fighters[row].active).toBe(0);
+    expect([prev.fighters[row].x, prev.fighters[row].z]).toEqual([0, 0]);
+    const spawnX = 670 * FP, spawnZ = 250 * FP;
+    const next = { ...prev, fighters: prev.fighters.map((f, i) => (i === row ? { ...f, active: 1 as const, x: spawnX, z: spawnZ } : f)) };
+    expect(prev.fighters[row].st).toBe(next.fighters[row].st);   // same state, so this is the lerp path
+    for (const a of [0, 64, 128, 192, 256]) {
+      const s = spriteOf(viewOf(prev, next, a, stage), row);
+      expect(s.x).toBe(670);
+      expect(s.y).toBe(250);
+      expect(s.depth).toBe(250);
+      expect(shadowOf(viewOf(prev, next, a, stage), row).y).toBe(250);
+    }
+  });
+
+  it("CONTROL: a live fighter in the same state still interpolates", () => {
+    const prev = createState(stage);
+    const hero = stage.cast.findIndex((c) => c.control === "player");
+    const next = { ...prev, fighters: prev.fighters.map((f, i) => (i === hero ? { ...f, x: f.x + 10 * FP } : f)) };
+    expect(spriteOf(viewOf(prev, next, 128, stage), hero).x - spriteOf(viewOf(prev, prev, 256, stage), hero).x).toBe(5);
+  });
+});
