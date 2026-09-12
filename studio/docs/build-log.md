@@ -686,3 +686,55 @@ walking in the way the right side does. Not a flicker; the operator rules
 whether it is a Crypt-plan note or a stage retune.
 
 Hall: `20260912-210308-toybox-fight-spawn`. Commit: T9b, two files.
+
+## The crypt: the second game on the engine, five folders and a door (2026-09-12)
+
+The operator ruled the arc's third step the evening the flickers were gone:
+Crypt on the engine. Three questions via the tool settled it - the knight
+against bats, ninjas and a wizard boss; a room is one locked screen and the
+knight walks INTO a door so the screen cuts; nothing more for v1. Eight tasks,
+one additive commit each, the fight's two goldens printed whole and identical
+after every sim change.
+
+**What a second game costs, measured.** Three moves files (36 checks green on
+first placement), eleven data files, a page that is the fight's with a
+different default, a tape and a golden - and two things the engine did not
+have: one rule and three art kinds. The rule is `door.x` in a stage file: in
+the go phase the camera holds its room until the hero, standing, reaches the
+doorway, then jumps a screen in one tick; the screen hold and the next-wave
+rule already did the rest, so no new hashed field and no entry position. Six
+lines in `stage.ts`, gated on a block the fight's stage file does not carry,
+which is what let `write-golden` print `38c4cb3c / eaa3c2af / 442ceea2` and
+`b231a537 / 3a784cd1 / e8dd20be` unchanged twice. The kinds are `stone`,
+`flagstones` and `door` in the arena painter, which got its first test with
+them (twelve cells, ten watched red first, the unknown-kind and clipping
+controls green by construction).
+
+```
+crypt-600 on the built tree     canvas ADMITTED · page ADMITTED   d960cba7 / cca09ed7 / 6e98cddd
+fight, both tapes, both cells   ADMITTED at the old triples
+assert:fight                    2 games, 11 controls, 0 misbehaved
+the scripted hero               crypt 3 of 3 rooms at tick 1863 (cut at 639 and 1242) · fight 3 of 3 at 2711
+```
+
+**Three things the tree taught this time.**
+
+- **A tape before its golden reds the suite.** `golden-tape.test.ts` walks
+  `games/*/tapes/` and asserts the golden EXISTS, so writing the tape first
+  and running the whole suite next reads as a broken commit. The order is
+  tape, `write-golden`, suite - or accept that one run is red for the right
+  reason.
+- **Every population line pinned the fight by name.** "the games are the
+  fight", "the tapes are the fight's two", "found the fight's whole corpus" -
+  four tests, each correct, each red the moment a second game existed. That is
+  the pin doing its job (a walk that finds one game when there are two must
+  not pass), and each one now names both. A third game will red them again,
+  on purpose.
+- **The cell's clear colour shows through a gap in the art.** The stone band
+  stopped at 150 px and the floor started at 157; the toybox's wall paints a
+  skirting over that seam and stone does not. Seen only on the built page,
+  shot headlessly - the painter test cannot know what colour a cell clears to.
+
+The fight's own left-spawn pop (a wave-1 spawn at x -30 clamped to the arena
+floor 20) stays parked: the crypt avoids it by data, its floor at -40. Hall:
+`20260912-223734-toybox-crypt`; the operator plays three rooms next.
