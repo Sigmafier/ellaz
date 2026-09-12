@@ -54,5 +54,5 @@ export async function loadFightHttp(root: string, modeId: string): Promise<Loade
     ]);
     sets[name] = { manifest, moves };
   }));
-  return { mode, arena, match, fighters, ais, sets, ...(stage ? { stage } : {}) };
+  return { mode, arena, match, fighters, ais, sets, stage };
 }
