@@ -636,3 +636,53 @@ hero the operator already played, so it was not touched.
 Published to the hall for the eyeball that is the only pixel gate; suite 41 files /
 639 tests green on the toybox, `run-tape` admits both tapes on canvas and page.
 Commit: the eight-file T9 commit named in the Toybox plan's §15.
+
+## The second flicker: a spawn drawn between the origin and its edge, once per enemy (2026-09-12)
+
+The operator looked at the hold fix and said the enemies still flicker: "as new
+enemies appear, every enemy flickers, them all, then it stops." A different
+phenomenon from the per-tick hold roll, and it was not in the sim.
+
+**Two instruments, and only the second could see it.** The first re-ran the real
+stage data headless and bucketed every enemy signal into the 30 ticks after each
+spawn against the ticks outside: nothing - the one extra state change per spawn is
+the spawned enemy starting to walk. The second loaded the BUILT Phaser page in
+Playwright with the fake clock paused and stepped one 60 Hz frame at a time, so
+both rAF loops ran once per step and each screenshot was one rendered frame; it
+read Phaser's scene graph (the Game reached by putting the vendor chunk's export
+on `globalThis` and wrapping `Phaser.Game`) and diffed the pixels against the two
+previous frames, counting what changed and what changed back. Two instrument
+faults came first, both the kind this repo's rules collect: `clock.install()`
+alone lets time FLOW, so the first run read nine ticks a frame; and the display
+list re-sorts by depth every frame, so sprites had to be keyed by a tag given at
+first sight rather than by list position.
+
+```
+tick 168   a bat drawn over the shelf, top middle       one frame, then at x 670
+tick 244   a slime drawn over the robot's hp bar        one frame, then at x 670
+tick  96   a slime at (-20, 153) / (-11, 84)            one frame, then at x -30
+keyed by sprite identity: 0 other sprites change-and-change-back at any spawn
+```
+
+Compile parks a dormant wave row at (0, 0) in its idle state. On the spawn tick
+the previous row and the new one are in the SAME state, so `viewOf` took the
+interpolation path and drew the fighter a fraction of the way from the world
+origin to its spawn edge. Where along that diagonal depends on the frame's phase
+of the tick, which is why the bat sat over the shelf in one run and lower in the
+next. "Every enemy flickers" is each enemy flickering once as it appears; once
+the wave is in, it stops.
+
+**The fix is one predicate**: interpolate only when the previous row was not
+dormant. Watched red first at alpha 0 (drawn at x 0, the dormant row), then
+green at every alpha, with a control that a live fighter in the same state still
+interpolates. The view is not hashed, so both goldens stand and both tapes admit
+at the same triples. Re-probed on the rebuilt page: every new sprite first
+appears at x 670 or -30, and the only remaining change-and-change-back spikes are
+the 8-tick camera shake on a landed hit.
+
+**Parked, one line**: a wave-1 spawn on the LEFT (x -30) is clamped to the arena's
+x floor (20) on its first tick, so it pops 50 px inside the edge instead of
+walking in the way the right side does. Not a flicker; the operator rules
+whether it is a Crypt-plan note or a stage retune.
+
+Hall: `20260912-210308-toybox-fight-spawn`. Commit: T9b, two files.
