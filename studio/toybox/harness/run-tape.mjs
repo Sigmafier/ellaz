@@ -22,19 +22,19 @@
 // This module is also where the other three harnesses get their shared parts
 // (disk routing, cell listing, the jsonl sink). Importing it runs nothing.
 
-import { appendFileSync, existsSync, readdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright-core";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-export const FIGHT = resolve(HERE, "..", "..");
-export const STUDIO = resolve(FIGHT, "..", "..");
+export const STUDIO = resolve(HERE, "..", "..");
 export const DEFAULT_DIST = join(STUDIO, "dist-toybox");
 export const DEFAULT_GAME = "fight";
 /** a game's source root under studio/games/ - its tapes/ holds the goldens */
 export const gameDirOf = (game) => join(STUDIO, "games", game);
-export const RAW = join(FIGHT, "tournament", "data", "raw-fight.jsonl");
+/** every instrument row a game's runs produce, appended under that game's tournament/data */
+export const rawOf = (game) => join(gameDirOf(game), "tournament", "data", "raw-fight.jsonl");
 export const ORIGIN = "http://fight.test";
 
 const TYPES = {
@@ -97,10 +97,12 @@ export function watchErrors(page, errors) {
   page.on("requestfailed", (r) => errors.push(`requestfailed: ${r.url()} ${r.failure()?.errorText ?? ""}`));
 }
 
-/** One JSON object per line, appended - a long run persists per row, never buffered. */
+/** One JSON object per line, appended to the row's game's file - a long run persists per row, never buffered. */
 export function appendRow(row) {
-  if (!existsSync(RAW)) writeFileSync(RAW, "");
-  appendFileSync(RAW, `${JSON.stringify(row)}\n`);
+  const raw = rawOf(row.game ?? DEFAULT_GAME);
+  mkdirSync(dirname(raw), { recursive: true });
+  if (!existsSync(raw)) writeFileSync(raw, "");
+  appendFileSync(raw, `${JSON.stringify(row)}\n`);
 }
 
 /** an engine cell is told which game to play; a game's page already knows */

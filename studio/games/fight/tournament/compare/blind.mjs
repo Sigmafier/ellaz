@@ -17,7 +17,7 @@
 import { existsSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { DEFAULT_DIST, listCells, parseFlags } from "../harness/run-tape.mjs";
+import { DEFAULT_DIST, listCells, parseFlags } from "../../../../toybox/harness/run-tape.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const LETTERS_FILE = join(HERE, "letters.json");

@@ -1,7 +1,7 @@
 // Time to first frame, cold and warm, over N rounds - and a REFUSAL to rank
 // when the noise is bigger than the thing being ranked.
 //
-//   node sweep.mjs [--dist <dir>] [--rounds 3] [cell...]
+//   node sweep.mjs [--dist <dir>] [--game fight] [--rounds 3] [cell...]
 //
 // Three design choices, each of which a previous sweep got wrong somewhere:
 //
@@ -25,14 +25,14 @@ import { loadavg } from "node:os";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright-core";
-import { DEFAULT_DIST, appendRow, cellUrl, listCells, parseFlags, routeDisk, watchErrors } from "./run-tape.mjs";
+import { DEFAULT_DIST, DEFAULT_GAME, appendRow, cellUrl, listCells, parseFlags, routeDisk, watchErrors } from "./run-tape.mjs";
 
 const HOLD_MS = 2000;
 
 /** Navigate, wait for the first frame, run at real time for 2 s, read back. */
-async function loadOnce(page, cell) {
+async function loadOnce(page, cell, game) {
   const errors = [];
-  await page.goto(cellUrl(cell, "tape=versus-600"));
+  await page.goto(cellUrl(cell, "tape=versus-600", game));
   try { await page.waitForFunction(() => window.__ready === true, null, { timeout: 30000 }); }
   catch { errors.push("window.__ready never became true within 30000 ms"); }
   await page.waitForTimeout(HOLD_MS);
@@ -44,14 +44,14 @@ async function loadOnce(page, cell) {
 }
 
 /** Cold = a context that has never seen these bytes. Warm = the second visit. */
-async function sweepCell(browser, dist, cell) {
+async function sweepCell(browser, dist, cell, game) {
   const ctx = await browser.newContext({ viewport: { width: 800, height: 600 }, deviceScaleFactor: 1 });
   await routeDisk(ctx, dist);
   const page = await ctx.newPage();
   const errors = [];
   watchErrors(page, errors);
-  const cold = await loadOnce(page, cell);
-  const warm = await loadOnce(page, cell);
+  const cold = await loadOnce(page, cell, game);
+  const warm = await loadOnce(page, cell, game);
   await ctx.close();
   return { cold, warm, errors: [...errors, ...cold.errors, ...warm.errors] };
 }
@@ -103,10 +103,11 @@ function summarise(rows, cells, rounds) {
 }
 
 async function main(argv) {
-  const f = parseFlags(argv, { dist: DEFAULT_DIST, rounds: "3" });
+  const f = parseFlags(argv, { dist: DEFAULT_DIST, rounds: "3", game: DEFAULT_GAME });
   const dist = resolve(String(f.dist));
+  const game = String(f.game);
   if (!existsSync(dist)) { console.log(`sweep: dist not found: ${dist}`); return 2; }
-  const cells = f.rest.length ? f.rest : listCells(dist);
+  const cells = f.rest.length ? f.rest : listCells(dist, game);
   const rounds = Number(f.rounds);
   if (cells.length === 0) { console.log("sweep: NO cells found - nothing to time"); return 2; }
   const browser = await chromium.launch({ headless: true });
@@ -114,9 +115,9 @@ async function main(argv) {
   for (let round = 0; round < rounds; round++) {
     const order = round % 2 === 0 ? cells : [...cells].reverse();
     for (const cell of order) {
-      const { cold, warm, errors } = await sweepCell(browser, dist, cell);
+      const { cold, warm, errors } = await sweepCell(browser, dist, cell, game);
       const row = {
-        kind: "sweep", at: new Date().toISOString(), round, cell,
+        kind: "sweep", at: new Date().toISOString(), game, round, cell,
         cold: { ttffMs: cold.ttffMs }, warm: { ttffMs: warm.ttffMs },
         stepsPerFrame: warm.stepsPerFrame, distinctDraws: warm.distinctDraws,
         load: loadavg()[0], refresh: warm.refresh, errors,

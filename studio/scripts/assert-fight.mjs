@@ -94,7 +94,7 @@ function checkGolden(root) {
 }
 
 function checkAssets(assets) {
-  const r = spawnSync(process.execPath, [join(FIGHT, "tools", "copy-sprites.mjs"), "--check", "--assets", assets], { encoding: "utf8" });
+  const r = spawnSync(process.execPath, [join(STUDIO, "toybox", "harness", "copy-sprites.mjs"), "--check", "--game", "fight", "--assets", assets], { encoding: "utf8" });
   if (r.status === 0) return [];
   return [`copy-sprites --check exit ${r.status}: ${(r.stdout + r.stderr).trim().split("\n").filter((l) => /DIFF|compared|exist|export/.test(l)).join(" | ")}`];
 }

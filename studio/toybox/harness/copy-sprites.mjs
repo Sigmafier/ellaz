@@ -1,44 +1,47 @@
 #!/usr/bin/env node
-// Copy sprite exports (sheet, atlas, manifest, moves) from dist-export/ into the
-// fight game's committed assets. `manifest.json` carries a `built: {commit,
-// dirty, at}` stamp that changes on EVERY export - so byte-identity there is
-// judged with `built` stripped, or a --check would never pass twice in a row.
+// Copy sprite exports (sheet, atlas, manifest, moves) from dist-export/ into a
+// game's committed assets. `manifest.json` carries a `built: {commit, dirty,
+// at}` stamp that changes on EVERY export - so byte-identity there is judged
+// with `built` stripped, or a --check would never pass twice in a row.
 //
-//   node games/fight/tools/copy-sprites.mjs [--check] [--control] [--assets <dir>] [set...]
+// Which game: `--game <name>` (fight, the one game today, by default) - its
+// data/fighters/*.json name the sets, and its assets/ receives them.
+//
+//   node toybox/harness/copy-sprites.mjs [--game fight] [--check] [--control] [--assets <dir>] [set...]
 
 import { createHash } from "node:crypto";
 import { existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { readExport, DEFAULT_EXPORT } from "../../../scripts/lib/export-index.mjs";
-import { runControls } from "../../../scripts/lib/control.mjs";
+import { readExport, DEFAULT_EXPORT } from "../../scripts/lib/export-index.mjs";
+import { runControls } from "../../scripts/lib/control.mjs";
 
-const FIGHT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const DEFAULT_ASSETS = join(FIGHT, "assets");
-const FIGHTERS_DIR = join(FIGHT, "data", "fighters");
+const STUDIO = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const DEFAULT_GAME = "fight";
+const gameDirOf = (game) => join(STUDIO, "games", game);
 // kind -> file suffix. The order is the order plain runs print and --check counts.
 const FILES = { sheet: "png", atlas: "atlas.json", manifest: "manifest.json", moves: "moves.json" };
 const N_FILES = Object.keys(FILES).length;
 const baseName = (setName, kind) => `${setName}.${FILES[kind]}`;
 
-/** Sets named by data/fighters/*.json, or (that dir being absent - a concurrent
- * lane's WIP) whatever sets already have a committed assets/ dir. Returns
- * { sets, source } so the caller can say where the list came from. */
-function defaultSets() {
-  if (existsSync(FIGHTERS_DIR)) {
-    // the schema sits beside the fighters and carries no `sprites`; a fighter without one is an error, not a skip
-    const sets = readdirSync(FIGHTERS_DIR)
+/** Sets named by <game>/data/fighters/*.json, or (that dir being absent - a
+ * concurrent lane's WIP) whatever sets already have a committed assets/ dir.
+ * Returns { sets, source } so the caller can say where the list came from. */
+function defaultSets(fightersDir, assetsDir) {
+  if (existsSync(fightersDir)) {
+    // the schemas live with the engine (toybox/data/schemas), so every json here is a fighter; one without `sprites` is an error, not a skip
+    const sets = readdirSync(fightersDir)
       .filter((f) => f.endsWith(".json") && !f.endsWith(".schema.json"))
       .map((f) => {
-        const s = JSON.parse(readFileSync(join(FIGHTERS_DIR, f), "utf8")).sprites;
+        const s = JSON.parse(readFileSync(join(fightersDir, f), "utf8")).sprites;
         if (typeof s !== "string") throw new Error(`copy-sprites: ${f} names no sprites set`);
         return s;
       });
-    return { sets, source: `${FIGHTERS_DIR} (${sets.length} fighter files)` };
+    return { sets, source: `${fightersDir} (${sets.length} fighter files)` };
   }
-  const sets = existsSync(DEFAULT_ASSETS) ? readdirSync(DEFAULT_ASSETS).filter((d) => existsSync(join(DEFAULT_ASSETS, d))) : [];
-  return { sets, source: `${DEFAULT_ASSETS} (fighters data absent - fallback to existing asset dirs)` };
+  const sets = existsSync(assetsDir) ? readdirSync(assetsDir).filter((d) => existsSync(join(assetsDir, d))) : [];
+  return { sets, source: `${assetsDir} (fighters data absent - fallback to existing asset dirs)` };
 }
 
 /** Locate a set's export row, or throw naming it. */
@@ -140,14 +143,13 @@ const editJson = (p, edit) => { const m = JSON.parse(readFileSync(p, "utf8")); e
 // Each mutation touches ONE set's files in a scratch copy, then checks that copy
 // against the real assets - proving the check notices what it claims to (FIRE),
 // or, for the build stamp, that it does not (PASS: `built` must be ignored).
-function controls(ex) {
-  const { sets } = defaultSets();
+function controls(ex, sets, assetsDir) {
   const setName = sets[0];
   const mutated = (mutate) => {
     const scratch = mkdtempSync(join(tmpdir(), "copy-sprites-ctl-"));
     for (const s of sets) copyOne(s, ex, scratch);
     mutate(scratch);
-    const diffs = sets.flatMap((s) => diffSet(s, scratch, DEFAULT_ASSETS));
+    const diffs = sets.flatMap((s) => diffSet(s, scratch, assetsDir));
     rmSync(scratch, { recursive: true, force: true });
     return diffs.map((d) => `DIFF ${d}`);
   };
@@ -163,34 +165,49 @@ function controls(ex) {
   });
   const bumpBuiltAt = (dir) => editJson(join(dir, setName, `${setName}.manifest.json`), (m) => { m.built.at = new Date(0).toISOString(); });
   return [
-    { name: "the real assets", expect: "PASS", run: () => runCheck(sets, ex, DEFAULT_ASSETS).diffs.map((d) => `DIFF ${d}`) },
+    { name: "the real assets", expect: "PASS", run: () => runCheck(sets, ex, assetsDir).diffs.map((d) => `DIFF ${d}`) },
     { name: "one byte flipped in a committed sheet", expect: "FIRE", run: () => mutated(flipByte) },
     { name: "a manifest whose only change is its build stamp", expect: "PASS", run: () => mutated(bumpBuiltAt) },
     { name: "a moves file with one damage value changed", expect: "FIRE", run: () => mutated(bumpDamage) },
   ];
 }
 
+/** `--flag value` pairs pulled out of argv; everything else is a set name */
+function parseArgs(args) {
+  const flags = {};
+  const positional = [];
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (a === "--assets" || a === "--game") { flags[a.slice(2)] = args[++i]; continue; }
+    if (a.startsWith("--")) { flags[a.slice(2)] = true; continue; }
+    positional.push(a);
+  }
+  return { flags, positional };
+}
+
 const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
-  const args = process.argv.slice(2);
-  const assetsIdx = args.indexOf("--assets");
-  const assetsDir = assetsIdx >= 0 ? resolve(args[assetsIdx + 1]) : DEFAULT_ASSETS;
-  const positional = args.filter((a, i) => !a.startsWith("--") && args[i - 1] !== "--assets");
+  const { flags, positional } = parseArgs(process.argv.slice(2));
+  const game = flags.game ?? DEFAULT_GAME;
+  const gameDir = gameDirOf(game);
+  if (!existsSync(gameDir)) { console.error(`copy-sprites: no such game: ${gameDir}`); process.exit(2); }
+  const fightersDir = join(gameDir, "data", "fighters");
+  const assetsDir = flags.assets ? resolve(flags.assets) : join(gameDir, "assets");
   if (!existsSync(DEFAULT_EXPORT)) { console.error("copy-sprites: run `npm run export` first"); process.exit(3); }
   const ex = readExport();
 
   let sets = positional;
   if (sets.length === 0) {
-    const d = defaultSets();
+    const d = defaultSets(fightersDir, join(gameDir, "assets"));
     sets = d.sets;
     console.log(`copy-sprites: sets from ${d.source}`);
   }
   if (sets.length === 0) { console.error("copy-sprites: no sets to copy - a gate over nothing is not a pass"); process.exit(2); }
   for (const s of sets) findSet(ex, s); // fail fast, name the offender
 
-  if (args.includes("--control")) {
-    process.exit(runControls("copy-sprites", controls(ex)) ? 0 : 1);
-  } else if (args.includes("--check")) {
+  if (flags.control) {
+    process.exit(runControls("copy-sprites", controls(ex, sets, join(gameDir, "assets"))) ? 0 : 1);
+  } else if (flags.check) {
     if (!existsSync(assetsDir)) { console.log(`copy-sprites --check: 0 files compared, ${assetsDir} does not exist`); process.exit(2); }
     process.exit(doCheck(sets, ex, assetsDir));
   } else {

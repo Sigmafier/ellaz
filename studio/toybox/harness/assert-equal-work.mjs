@@ -1,7 +1,7 @@
 // Equal pixels, equal DPR, equal sprites - or the timing sweep is measuring
 // the arms' workloads and calling it engine performance.
 //
-//   node assert-equal-work.mjs [--dist <dir>] [cell...]
+//   node assert-equal-work.mjs [--dist <dir>] [--game fight] [cell...]
 //   node assert-equal-work.mjs --control
 //
 // Round 3 of the prior tournament (docs/engine-tournament/ROUND3-VERDICT.md)
@@ -21,7 +21,7 @@ import { existsSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright-core";
-import { DEFAULT_DIST, cellUrl, listCells, parseFlags, routeDisk, watchErrors } from "./run-tape.mjs";
+import { DEFAULT_DIST, DEFAULT_GAME, cellUrl, listCells, parseFlags, routeDisk, watchErrors } from "./run-tape.mjs";
 
 /** What the live page says about the surface it just drew 600 ticks onto. */
 async function readWork(page) {
@@ -51,13 +51,13 @@ async function readWork(page) {
   });
 }
 
-async function observeWork(browser, dist, cell) {
+async function observeWork(browser, dist, cell, game) {
   const ctx = await browser.newContext({ viewport: { width: 800, height: 600 }, deviceScaleFactor: 1 });
   await routeDisk(ctx, dist);
   const page = await ctx.newPage();
   const errors = [];
   watchErrors(page, errors);
-  await page.goto(cellUrl(cell, "tape=versus-600&fast=1"));
+  await page.goto(cellUrl(cell, "tape=versus-600&fast=1", game));
   try { await page.waitForFunction(() => window.__fightDone === true, null, { timeout: 60000 }); }
   catch { errors.push("window.__fightDone never became true within 60000 ms"); }
   const work = await readWork(page);
@@ -103,12 +103,12 @@ function table(rows) {
   for (const b of body) console.log(`  ${b.map((v, i) => v.padEnd(w[i])).join("  ")}`);
 }
 
-async function control(dist) {
-  const cells = listCells(dist);
+async function control(dist, game) {
+  const cells = listCells(dist, game);
   const cell = cells.includes("canvas") ? "canvas" : cells[0];
   if (!cell) { console.log("equal-work control: NO cells built - cannot run a control"); return 2; }
   const browser = await chromium.launch({ headless: true });
-  const { ctx, page, row } = await observeWork(browser, dist, cell);
+  const { ctx, page, row } = await observeWork(browser, dist, cell, game);
   const again = { cell: `${cell}#2`, ...(await readWork(page)), errors: [] };
   await page.evaluate(() => { document.querySelector("canvas").width *= 2; });
   const bent = { cell: `${cell}#bent`, ...(await readWork(page)), errors: [] };
@@ -126,17 +126,18 @@ async function control(dist) {
 }
 
 async function main(argv) {
-  const f = parseFlags(argv, { dist: DEFAULT_DIST });
+  const f = parseFlags(argv, { dist: DEFAULT_DIST, game: DEFAULT_GAME });
   const dist = resolve(String(f.dist));
+  const game = String(f.game);
   if (!existsSync(dist)) { console.log(`equal-work: dist not found: ${dist}`); return 2; }
-  if (f.control) return control(dist);
-  const cells = f.rest.length ? f.rest : listCells(dist);
-  console.log(`equal-work: ${cells.length} cell(s) under ${dist}/cells`);
+  if (f.control) return control(dist, game);
+  const cells = f.rest.length ? f.rest : listCells(dist, game);
+  console.log(`equal-work: ${cells.length} cell(s) under ${dist} playing ${game}`);
   if (cells.length === 0) { console.log("equal-work: NO cells found - nothing to compare"); return 2; }
   const browser = await chromium.launch({ headless: true });
   const rows = [];
   for (const cell of cells) {
-    const { ctx, row } = await observeWork(browser, dist, cell);
+    const { ctx, row } = await observeWork(browser, dist, cell, game);
     await ctx.close();
     rows.push(row);
   }

@@ -55,9 +55,9 @@ function inputs(): Record<string, string> {
   return found;
 }
 
-// Three chunk names, because the harness's bytes.mjs reports three numbers
+// Three chunk names, because harness/bytes.mjs reports three numbers
 // separately: what the ENGINE LIBRARY costs (vendor-<pkg>), what the one
-// program every arm shares costs (fight-core: the sim, the harness, the clock,
+// program every arm shares costs (toybox-core: the sim, the harness, the clock,
 // the shared input/fx/arena), and what the CELL AUTHOR wrote - whatever is
 // left. Merging any two of them would make the library's byte cost unreadable,
 // which is half of what the tournament measured.
@@ -68,7 +68,7 @@ function chunkOf(id: string): string | undefined {
   const path = id.split("\0").pop() ?? id;
   const pkg = ENGINES.find((e) => path.includes(`/node_modules/${e}/`));
   if (pkg) return `vendor-${pkg}`;
-  if (/\/toybox\/(sim\/|cells\/(run-cell|retime|shared\/))/.test(path)) return "fight-core";
+  if (/\/toybox\/(sim\/|cells\/(run-cell|retime|shared\/))/.test(path)) return "toybox-core";
   return undefined;
 }
 
