@@ -51,8 +51,8 @@ export function replay(data: FightData, tape: Tape, name: string, ticks = tape.t
 }
 
 describe("the tapes on disk", () => {
-  it("are the fight's two, so nothing below runs over an empty list", () => {
-    expect(Object.fromEntries(games.map((g) => [g, tapeNames(g)]))).toEqual({ fight: ["stage-600", "versus-600"] });
+  it("are the crypt's one and the fight's two, so nothing below runs over an empty list", () => {
+    expect(Object.fromEntries(games.map((g) => [g, tapeNames(g)]))).toEqual({ crypt: ["crypt-600"], fight: ["stage-600", "versus-600"] });
   });
 });
 

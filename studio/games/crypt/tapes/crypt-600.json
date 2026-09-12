@@ -1,0 +1,25 @@
+{
+  "mode": "crypt",
+  "seed": 20260912,
+  "ticks": 600,
+  "note": "the crypt admission tape: a row [tick, [hero input]] holds until the next row; the nine room spawns are CPU rows and take none. 600 ticks = 10 s at 60. Walk right for just over three seconds to meet the first bat (it wakes at tick 18 off the right edge and flies in; the second wakes at 90 off the LEFT edge, below the arena floor, and walks in), then a swing at the start of each recovery window (attackCooldownTicks 60), a lane change up at 300, and a last walk right - long enough for hits both ways, a KO and its coin, and all three bats in the room.",
+  "frames": [
+    [0,   [{ "mx": 1,  "mz": 0,  "attack": false }]],
+    [200, [{ "mx": 0,  "mz": 0,  "attack": false }]],
+    [210, [{ "mx": 0,  "mz": 0,  "attack": true  }]],
+    [220, [{ "mx": 0,  "mz": 0,  "attack": false }]],
+    [270, [{ "mx": 0,  "mz": 0,  "attack": true  }]],
+    [280, [{ "mx": 0,  "mz": 0,  "attack": false }]],
+    [300, [{ "mx": 0,  "mz": -1, "attack": false }]],
+    [320, [{ "mx": 0,  "mz": 0,  "attack": false }]],
+    [330, [{ "mx": 0,  "mz": 0,  "attack": true  }]],
+    [340, [{ "mx": 0,  "mz": 0,  "attack": false }]],
+    [390, [{ "mx": -1, "mz": 0,  "attack": false }]],
+    [420, [{ "mx": 0,  "mz": 0,  "attack": true  }]],
+    [430, [{ "mx": 0,  "mz": 0,  "attack": false }]],
+    [480, [{ "mx": 0,  "mz": 0,  "attack": true  }]],
+    [490, [{ "mx": 0,  "mz": 0,  "attack": false }]],
+    [520, [{ "mx": 1,  "mz": 0,  "attack": false }]],
+    [580, [{ "mx": 0,  "mz": 0,  "attack": false }]]
+  ]
+}
