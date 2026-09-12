@@ -354,6 +354,19 @@ describe("the door cut: a stage naming a door holds its room and cuts", () => {
     expect(st(s).camX).toBe(0);
   });
 
+  it("after the cut the next room's first spawn wakes at THAT room's edge, not the old one (the deep-test edge: a spawn on the go tick)", () => {
+    let s = dstep(inGo(doorData, DOOR));
+    expect(st(s)).toMatchObject({ wave: 1, wphase: 0, waveT: 0, camX: W });
+    const first = rowsOf(1)[0];
+    const c = doorData.cast[first];
+    s = run(s, c.delayTicks - 1, idle);
+    // one step short of the delay it is still dormant; the wave clock started at the cut (a row wakes on its delay-th step, as the fight's spawn test pins)
+    expect(s.fighters[first].active).toBe(0);
+    s = dstep(s);
+    expect(s.fighters[first].active).toBe(1);
+    expect(s.fighters[first].x).toBe(c.side > 0 ? W + W + dstage.screen.spawnPad : W - dstage.screen.spawnPad);
+  });
+
   it("compile refuses a door the hero cannot reach, naming the stage", () => {
     const far = raw.arena.view.w - raw.stage!.screen.heroPad + 1;
     expect(() => compileFight({ ...raw, stage: { ...raw.stage!, door: { x: far } } })).toThrow(/door/);
