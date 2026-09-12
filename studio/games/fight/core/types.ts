@@ -112,6 +112,8 @@ export interface AiFile {
   retreatTicks: [number, number];
   retreatDistance: number;
   reachPad: { min: number; max: number };
+  /** 0-255 against one rng byte, each tick the target is in a state that hits: the chance this AI holds its ground instead of walking into the swing. 0 is the old behaviour - it walked straight into a mashing robot's fist and never landed one (measured 2026-09-12) */
+  holdWhenTargetAttacks: number;
 }
 
 /**

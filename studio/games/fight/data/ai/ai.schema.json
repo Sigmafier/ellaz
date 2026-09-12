@@ -12,7 +12,8 @@
     "retreatChance",
     "retreatTicks",
     "retreatDistance",
-    "reachPad"
+    "reachPad",
+    "holdWhenTargetAttacks"
   ],
   "additionalProperties": false,
   "properties": {
@@ -23,6 +24,7 @@
     "retreatChance": { "type": "integer", "minimum": 0, "description": "0-255, compared against one rng byte; the upper bound is the byte's, so no maximum is written here" },
     "retreatTicks": { "$ref": "#/$defs/tickRange" },
     "retreatDistance": { "type": "integer", "minimum": 0, "description": "view px it backs off to" },
+    "holdWhenTargetAttacks": { "type": "integer", "minimum": 0, "description": "0-255 against one rng byte, drawn each tick the target is in a state that hits: the chance this fighter holds its ground that tick instead of walking into the swing. 0 walks straight in - a robot standing still and mashing attack took 0 hits in 6,000 ticks that way (measured 2026-09-12)" },
     "reachPad": {
       "type": "object",
       "required": ["min", "max"],

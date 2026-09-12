@@ -51,15 +51,16 @@ describe("golden tape", () => {
     expect(now).toEqual(golden);
   });
 
-  it("control: gravity one unit heavier moves the CHAIN, and only the chain (the flight the terminal state forgets)", () => {
+  it("control: gravity one unit heavier moves the CHAIN (the flight the terminal state can forget)", () => {
     const heavier = JSON.parse(JSON.stringify(data)) as FightData;
     heavier.arena.gravity += 1;
     const a = replay(heavier), b = replay(data);
-    // measured 2026-09-12 over this tape: apex 7680 -> 7560 FP, every hit lands on a grounded
-    // target, and friction decays vx back to the same integer - so hash and eventHash agree
-    // and a golden without the chain would have called the two sims identical
+    // measured 2026-09-12 over this tape BEFORE the AI read the target's swing: apex 7680 -> 7560 FP,
+    // every hit on a grounded target, friction back to the same integer - hash and eventHash agreed
+    // and a golden without the chain would have called the two sims identical. With the AI drawing
+    // an rng byte per held tick, a different landing tick now also moves what follows, so the
+    // terminal hash may move too; the chain moving is the assertion that holds either way
     expect(a.chain).not.toBe(b.chain);
-    expect([a.hash, a.eventHash]).toEqual([b.hash, b.eventHash]);
   });
 
   it("control: friction one unit higher moves the terminal hash itself", () => {

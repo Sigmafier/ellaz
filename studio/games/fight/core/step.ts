@@ -25,7 +25,7 @@ function inputsFor(s: FightState, given: readonly InputFrame[], data: FightData)
     if (!f.ai || f.hp <= 0 || dormant(f)) return NO_INPUT;
     const target = s.fighters.findIndex((t, j) => j !== i && data.cast[j].team !== c.team && t.hp > 0 && !dormant(t));
     if (target < 0) return NO_INPUT;
-    const thought = thinkAi(f, s.fighters[target], data.fighters[c.fighter], data.ais[c.ai], f.ai, rng);
+    const thought = thinkAi(f, s.fighters[target], data.fighters[c.fighter], data.fighters[data.cast[target].fighter], data.ais[c.ai], f.ai, rng);
     rng = thought.rng;
     fighters[i] = { ...f, ai: thought.ai };
     return thought.input;

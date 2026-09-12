@@ -1,13 +1,13 @@
 {
   "tape": "versus-600",
   "ticks": 600,
-  "hash": "61608a52",
-  "chain": "4303de85",
-  "eventHash": "9aca69b0",
+  "hash": "6e056e2a",
+  "chain": "ebda662c",
+  "eventHash": "0e63daa2",
   "hp": [
-    76,
+    82,
     80
   ],
   "winner": -1,
-  "hits": 6
+  "hits": 5
 }

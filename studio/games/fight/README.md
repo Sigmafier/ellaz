@@ -43,12 +43,25 @@ data kinds, not a fork.
 
 ## Tuning that is data, not code
 
-- `match/versus.json` `attackCooldownTicks` (45): the recovery window after
-  every attack START. Measured 2026-09-12 over 6,000 ticks of a robot walking
-  and mashing: hits taken 0 at 0 or 15 ticks, 11 at 45, 22 at 60. A robot
-  standing still and mashing still takes 0 at every value - the teddy's AI
-  walks straight into the robot's reach - and that is an `ai/teddy-cpu.json`
-  approach problem, parked.
+- `match/versus.json` `attackCooldownTicks` (60, was 45): the recovery window
+  after every attack START. Measured 2026-09-12 over 6,000 ticks of a robot
+  walking and mashing: hits taken 0 at 0 or 15 ticks, 11 at 45, 22 at 60. A
+  robot STANDING STILL and mashing took 0 at every value because the teddy
+  walked straight into the punch; with the AI's `holdWhenTargetAttacks` it
+  waits outside the punch instead, but at 45 it cannot cross the 27 px between
+  the robot's reach and its own inside the robot's recovery, so it still lands
+  0. The matrix (standing mash, 6,000 ticks, teddy at its file speed):
+  cooldown 45 lands 0 at every hold; 60 lands 2 (hold 200) with 14 teddy
+  attacks; 75 lands 15. 60 is the smallest value at which standing and
+  mashing is no longer a perfect defence. One number to retune if the robot
+  feels slow.
+- `ai/*.json` `holdWhenTargetAttacks` (teddy 200, slime 160, bat 120): 0-255
+  against one rng byte each tick the target's swing is still ahead - the odds
+  the AI steps out of the target's reach (its reach + this fighter's body
+  front + `reachPad.min`) or waits there instead of walking in. Only while
+  approaching; one already reacting in range swings through. 255 is too
+  careful (22 attacks, 0 landed at cooldown 60); 200 lands. Traced before it
+  was believed: a hold that stood in place sat 44 px inside a 56 px punch.
 - The moves files' `cancelFrom`, damage, knock and stun are the studio's
   (`studio/art/characters/<id>/moves.ts`), exported and copied here.
 

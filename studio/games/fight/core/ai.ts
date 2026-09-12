@@ -5,6 +5,7 @@
 // a player would, which is what keeps the state graph honest.
 
 import { abs, sign } from "./fixed";
+import { frameIndexAt } from "./moves";
 import { rngByte, rngRange } from "./rng";
 import { FP } from "./types";
 import type { AiState, CAi, CFighter, FighterState, InputFrame } from "./types";
@@ -45,13 +46,45 @@ function retreating(self: FighterState, target: FighterState, ai: AiState, rng: 
   return { input: { mx, mz: 0, attack: false }, ai: next, rng };
 }
 
-export function thinkAi(self: FighterState, target: FighterState, cf: CFighter, params: CAi, ai: AiState, rng0: number): AiThought {
+/** is a hit still AHEAD in the fighter's state - this frame or a later one carries an itr box. A swing whose active frames have passed is recovery, not danger */
+export function swinging(f: FighterState, cf: CFighter): boolean {
+  const st = cf.states[f.st];
+  return st.frames.slice(frameIndexAt(st, f.stT)).some((fr) => fr.itr.length > 0);
+}
+
+/** how far a fighter's standing hurt box sticks out from its pivot toward whoever it faces, in FP: the part of it a punch reaches first */
+export function bodyFront(cf: CFighter): number {
+  let front = 0;
+  for (const b of cf.states[cf.initial].frames[0].bdy) front = Math.max(front, abs(b.x), b.x + b.w);
+  return front;
+}
+
+/**
+ * While the target's swing is ahead, with `holdWhenTargetAttacks` odds this tick: step
+ * out of the target's reach if inside it, else stand and wait. Only while APPROACHING
+ * (mode 0) - a fighter already reacting in range (mode 1) is committed and swings through.
+ * The danger radius is the target's reach plus THIS fighter's body front plus the pad:
+ * traced 2026-09-12, a teddy holding at 60 px against a 56 px punch was still hit at
+ * 64-66 px, because its own hurt box begins 9 px ahead of its pivot.
+ */
+function holdBack(cf: CFighter, tcf: CFighter, params: CAi, dx: number, mx: -1 | 0 | 1, mz: -1 | 0 | 1, rng0: number): { mx: -1 | 0 | 1; mz: -1 | 0 | 1; rng: number } {
+  const [rng, byte] = rngByte(rng0);
+  if (byte >= params.holdWhenTargetAttacks) return { mx, mz, rng };
+  const danger = reachOf(tcf) + bodyFront(cf) + params.reachPad.min * FP;
+  return { mx: abs(dx) <= danger ? ((-sign(dx)) as -1 | 0 | 1) : 0, mz: 0, rng };
+}
+
+/** One tick of thought. `tcf` is the TARGET's compiled fighter: the AI reads its swing and its reach */
+export function thinkAi(self: FighterState, target: FighterState, cf: CFighter, tcf: CFighter, params: CAi, ai: AiState, rng0: number): AiThought {
   let rng = rng0;
   if (ai.mode === 2) return retreating(self, target, ai, rng);
   const dx = target.x - self.x, dz = target.z - self.z;
   const reach = reachOf(cf);
-  const mz = towardZ(dz, params);
-  const mx = towardX(dx, reach, params);
+  let mz = towardZ(dz, params);
+  let mx = towardX(dx, reach, params);
+  if (params.holdWhenTargetAttacks > 0 && ai.mode === 0 && swinging(target, tcf)) {
+    ({ mx, mz, rng } = holdBack(cf, tcf, params, dx, mx, mz, rng));
+  }
   let cooldown = ai.cooldown > 0 ? ai.cooldown - 1 : 0;
   let modeT = ai.modeT;
   let attack = false;
