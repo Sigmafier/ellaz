@@ -583,3 +583,56 @@ session's router edit); `vite build --config toybox/vite.config.ts` green;
 mutation red; `copy-sprites --check` 20 compared 0 differ; the §9 grep for
 old engine paths outside history returns nothing. Next: Crypt, as
 `games/crypt/` - five folders and a page on the same engine.
+
+## The hold decision: once per swing, and the enemies stop flickering (2026-09-12)
+
+The operator opened the extracted engine's page (T8 of the Toybox plan) and said it
+plays as before, with one note: the enemies flicker. The engine's README promises a
+game inherits the rules, so an engine defect is fixed before Crypt is built on it -
+the operator's ruling, via the tool, over "lane the notes, then Crypt".
+
+**Traced in the sim, headless, before anything was touched.** A probe ran the real
+stage data under the scripted hero of `stage-completes.test.ts` and counted, per
+enemy, the tick-to-tick signals a viewer reads as flicker: face flips, state
+changes, states lasting one or two ticks, one-frame holes in the draw plan, frame
+changes. The holes were 0 and the face flips small. The state changes were not:
+
+```
+                                            before      after
+enemy state changes while the hero swings   210 of 260  29 of 80   (18% of ticks)
+walk/idle runs of one or two ticks          149 of 248  0 of 66
+one-tick idles (the reach band's edge)      70          25
+```
+
+`holdWhenTargetAttacks` rolled a fresh rng byte EVERY tick the target's swing was
+ahead. At 160/256 a slime walked on 38% of those ticks and stood on the rest, at
+random, one tick at a time, and each 1-2 tick state restarted its clip at frame 0.
+That is a walk pose and an idle pose alternating at up to 30 Hz whenever the hero
+punches - which is what a player looks at most.
+
+**The fix is one decision per swing.** `AiState` gains `hold` (0 none, 1 hold this
+swing, 2 walk through it), decided on the first tick the target's swing is ahead
+and carried until the swing ends; a calm tick, a reaction in range or a retreat
+clears it. It is hashed - the discriminates fixture was watched red first - so a
+replay decides the same way. Three tests came first and were watched fail: fed its
+own state back through a sixty-tick swing the AI draws one byte and then none, and
+holds every tick or walks every tick, never a mix; the decision is forgotten on a
+calm tick and drawn afresh on the next swing.
+
+**Both goldens moved, and the writer printed them whole.** Versus keeps 82:80, five
+hits, winner -1 - only the ai fold moved. The stage tape lands six hits instead of
+seven: the slime that used to creep into the fist mid-swing now holds the whole
+swing and is alive at tick 600, so one fewer coin and no level-2 surplus.
+
+**The price, measured rather than assumed.** A held swing is now held whole, so the
+teddy lands fewer hits on a robot that stands still and mashes: 2/4/5 over three
+seeds became 1/0/3/2/0 over five, and a matrix of hold 128..255 against five seeds
+found no value reading a hit on every seed (seed 1 is 0 at all of them). The gate
+in `ai-holds.test.ts` is the aggregate now - at least three hits across five seeds
+at the file's value, none at hold 0 on any - and the README paragraph says so.
+Retuning `attackCooldownTicks` to buy the old per-seed number back would change the
+hero the operator already played, so it was not touched.
+
+Published to the hall for the eyeball that is the only pixel gate; suite 41 files /
+639 tests green on the toybox, `run-tape` admits both tapes on canvas and page.
+Commit: the eight-file T9 commit named in the Toybox plan's §15.
