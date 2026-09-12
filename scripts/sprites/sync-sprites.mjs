@@ -184,6 +184,40 @@ function encodeIndexedPng(idx, w, h, palette) {
 }
 
 // ---------------------------------------------------------------------------
+// what two copies of a file must agree on
+// ---------------------------------------------------------------------------
+
+/**
+ * `manifest.json` carries `built: {commit, dirty, at}` from the studio's export
+ * index, and `at` is a timestamp that moves every time the export is re-run -
+ * which `cd studio && npm run build:check` does as one of its own steps. Compared
+ * raw, this gate would red whenever somebody had run the studio's gates since the
+ * last sync: a red for the GATE'S reasons rather than for drift, which is exactly
+ * how a check teaches its reader to skip it.
+ *
+ * So the stamp is normalised out of the COMPARISON while staying in the file,
+ * where it is the provenance that says which studio commit this art came from.
+ * (Learned from `studio/toybox/harness/copy-sprites.mjs`, whose header names the
+ * same trap - two scripts, one job, and the other one had already paid for it.)
+ *
+ * NOTHING ELSE is normalised, and that is the half worth checking: the sheet, the
+ * atlas and the moves are compared byte for byte, and every field of the manifest
+ * except `built` is too, so a moved pivot, a renamed frame or a changed fps still
+ * reds. An unparsable file is a real difference rather than something to smooth
+ * away.
+ */
+function comparable(name, buf) {
+  if (!name.endsWith(".manifest.json") || buf.length === 0) return buf;
+  try {
+    const m = JSON.parse(buf.toString("utf8"));
+    delete m.built;
+    return Buffer.from(JSON.stringify(m));
+  } catch {
+    return buf;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // the studio side
 // ---------------------------------------------------------------------------
 
@@ -332,7 +366,7 @@ async function main() {
         total += bytes.length;
         if (check) {
           const have = existsSync(path) ? readFileSync(path) : Buffer.alloc(0);
-          const same = have.equals(bytes);
+          const same = comparable(name, have).equals(comparable(name, bytes));
           if (!same) differ++;
           rows.push(`  ${same ? "same" : "DIFF"}  ${name.padEnd(26)} ${String(bytes.length).padStart(8)} B`);
         } else {
