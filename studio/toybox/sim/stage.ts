@@ -49,11 +49,13 @@ function spawnDue(s: FightState, data: FightData, stage: CStage): FightState {
   return { ...s, rng, fighters };
 }
 
-/** the camera wants the hero `lead` px in from its left edge, inside the bounds the phase allows, and closes 1/divisor of the gap each tick */
+/** the camera wants the hero `lead` px in from its left edge, inside the bounds the phase allows, and closes 1/divisor of the gap each tick.
+ * A stage with a DOOR cuts instead: in the go phase the camera holds its room until the hero, standing, reaches the doorway, then jumps to the next room in one tick (holdToScreen then puts the hero at its left pad, and advancePhase starts the next wave) */
 function followCamera(s: FightState, data: FightData, stage: CStage, hero: FighterState): StageState {
   const st = s.stage as StageState;
   const lo = st.wave * data.arena.viewW;
   const hi = st.wphase === 1 ? lo + data.arena.viewW : lo;
+  if (stage.door && st.wphase === 1) return { ...st, camX: hero.hp > 0 && hero.x >= lo + stage.door.x ? hi : lo };
   const want = clamp(hero.x - stage.camera.lead, lo, hi);
   const gap = want - st.camX;
   const camX = abs(gap) <= stage.camera.snap ? want : st.camX + floorDiv(gap, stage.camera.divisor);

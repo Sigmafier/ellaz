@@ -283,9 +283,12 @@ function compileCast(mode: ModeFile, fighters: CFighter[], ais: CAi[]): CCast[] 
 }
 
 /** the stage file, every view px to FP and every per-second rate to per tick */
-function compileStage(s: StageFile, waves: number): CStage {
+function compileStage(s: StageFile, waves: number, viewW: number): CStage {
   const c = s.coin;
+  // the hero is held inside the screen by heroPad, so a door past that line can never be walked into
+  if (s.door && s.door.x > viewW - s.screen.heroPad) fail(`stage "${s.id}" puts its door at ${s.door.x} px, past the ${viewW - s.screen.heroPad} px the hero can reach (view ${viewW} minus heroPad ${s.screen.heroPad})`);
   return {
+    ...(s.door ? { door: { x: toFP(s.door.x) } } : {}),
     camera: { lead: toFP(s.camera.lead), divisor: s.camera.divisor, snap: toFP(s.camera.snap) },
     screen: { heroPad: toFP(s.screen.heroPad), enemyPad: toFP(s.screen.enemyPad), outsidePad: toFP(s.screen.outsidePad), spawnPad: toFP(s.screen.spawnPad) },
     spawn: { zMin: s.spawn.zMin, zMax: s.spawn.zMax },
@@ -344,6 +347,6 @@ export function compileFight(input: CompileInput): FightData {
     fighters,
     ais,
     cast: compileCast(mode, fighters, ais),
-    stage: input.stage && hasWaves ? compileStage(input.stage, mode.waves!.length) : null,
+    stage: input.stage && hasWaves ? compileStage(input.stage, mode.waves!.length, input.arena.view.w) : null,
   });
 }

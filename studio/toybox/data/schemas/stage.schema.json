@@ -9,6 +9,15 @@
   "properties": {
     "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "must equal the file's basename" },
     "corpseTicks": { "type": "integer", "minimum": 0, "description": "TICKS a KO'd enemy lies where it fell after its ko clip ends before it vanishes (the row goes active 3, gone). Added 2026-09-12 after the operator's first play: bodies had been clamped to the screen like the living and never left. The ko clips are 45 ticks (6 frames at 8 fps); 90 more is a beat and a half at 60 Hz." },
+    "door": {
+      "type": "object",
+      "required": ["x"],
+      "additionalProperties": false,
+      "description": "OPTIONAL. A stage of locked rooms (the crypt, 2026-09-12): each wave is one screen and the go phase is a walk into a doorway - the camera holds its room until the hero reaches x, then CUTS to the next room in one tick instead of scrolling. Absent, the go phase scrolls with the camera block above. The cell paints the archway from the arena file; the sim only knows the line.",
+      "properties": {
+        "x": { "type": "integer", "minimum": 0, "description": "view px from the room's left edge; must be at most view.w - screen.heroPad or the hero can never reach it (compile refuses)" }
+      }
+    },
     "camera": {
       "type": "object",
       "required": ["lead", "divisor", "snap"],

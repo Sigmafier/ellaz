@@ -306,6 +306,61 @@ describe("the hero going down restarts the wave and keeps what was earned", () =
   });
 });
 
+describe("the door cut: a stage naming a door holds its room and cuts", () => {
+  // the fight's own stage data with a door added: the same rooms, the go phase now a walk into a doorway
+  const raw = loadMode("stage", gameDir("fight"));
+  const DOOR = 560;
+  const doorData = compileFight({ ...raw, stage: { ...raw.stage!, door: { x: DOOR } } });
+  const dstage = doorData.stage!;
+  const dstep = (s: FightState, inputs: InputFrame[] = idle) => step(s, inputs, doorData);
+  /** wave 0 cleared and in the go phase, the hero standing at `x` px */
+  const inGo = (d: typeof doorData, x: number): FightState => {
+    let s = withStage(createState(d), { wave: 0, wphase: 1, waveT: 30 });
+    for (const i of rowsOf(0)) s = awake(s, i, 300 * FP, 260 * FP, { hp: 0 });
+    return withFighter(s, HERO, { x: x * FP });
+  };
+
+  it("compiles the door to FP and leaves the fight's own data with none", () => {
+    expect(dstage.door).toEqual({ x: DOOR * FP });
+    expect(data.stage!.door).toBeUndefined();
+  });
+
+  it("in go the camera holds at the room's edge while the hero is short of the door; without a door it scrolls", () => {
+    const s = dstep(inGo(doorData, DOOR - 1));
+    expect(st(s).camX).toBe(0);
+    expect(st(s).wave).toBe(0);
+    // the control: the same state on the door-less data starts scrolling toward the hero
+    expect(st(step(inGo(data, DOOR - 1), idle, data)).camX).toBeGreaterThan(0);
+  });
+
+  it("cuts the tick the hero reaches the door: the camera at the next room, the hero at its left pad, the next fight begun", () => {
+    const s = dstep(inGo(doorData, DOOR));
+    expect(st(s)).toMatchObject({ wave: 1, wphase: 0, waveT: 0, camX: W });
+    expect(s.fighters[HERO].x).toBe(W + dstage.screen.heroPad);
+    expect(s.events).toContainEqual({ kind: "wave", wave: 1, wphase: 0 });
+  });
+
+  it("a hero down in the doorway does not cut: the wave fades and restarts in its own room", () => {
+    let s = withFighter(inGo(doorData, DOOR), HERO, { hp: 0, st: doorData.fighters[doorData.cast[HERO].fighter].ko });
+    s = dstep(s);
+    expect(st(s)).toMatchObject({ wave: 0, wphase: 3, camX: 0 });
+    s = run(s, doorData.match.koFadeTicks, idle);
+    expect(st(step(s, idle, doorData))).toMatchObject({ wave: 0, wphase: 0, camX: 0 });
+  });
+
+  it("the door does not move the camera in a fight phase: the room stays locked whoever walks where", () => {
+    let s = withFighter(createState(doorData), HERO, { x: (W - dstage.screen.heroPad) });
+    s = run(s, 30, idle);
+    expect(st(s).camX).toBe(0);
+  });
+
+  it("compile refuses a door the hero cannot reach, naming the stage", () => {
+    const far = raw.arena.view.w - raw.stage!.screen.heroPad + 1;
+    expect(() => compileFight({ ...raw, stage: { ...raw.stage!, door: { x: far } } })).toThrow(/door/);
+    expect(() => compileFight({ ...raw, stage: { ...raw.stage!, door: { x: far - 1 } } })).not.toThrow();
+  });
+});
+
 describe("Versus is untouched by any of this", () => {
   it("runs with no stage block and no camera, and the golden test pins the rest", () => {
     const v = compileFight(loadMode("versus", gameDir("fight")));

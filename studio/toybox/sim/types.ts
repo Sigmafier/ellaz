@@ -74,6 +74,8 @@ export interface StageFile {
   };
   /** ticks a KO'd enemy lies where it fell after its ko clip ends, then it is gone */
   corpseTicks: number;
+  /** a stage of locked rooms: in the go phase the camera holds its room until the hero walks to `x` view px from the room's left edge, then CUTS to the next room. Absent, the go phase scrolls */
+  door?: { x: number };
 }
 
 export interface MatchFile {
@@ -193,6 +195,8 @@ export interface CStage {
   waves: number;
   /** ticks a KO'd enemy lies where it fell after its ko clip ends, before the row goes `active 3` (gone) */
   corpseTicks: number;
+  /** the doorway's x from the room's left edge, FP; present only for a stage of locked rooms (the go phase cuts instead of scrolling) */
+  door?: { x: number };
 }
 export interface FightData {
   seed: number;
