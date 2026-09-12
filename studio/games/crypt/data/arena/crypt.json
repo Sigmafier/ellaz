@@ -14,7 +14,7 @@
   "art": {
     "palette": "snes16",
     "bands": [
-      { "kind": "stone", "y": 0, "h": 150, "seed": 5, "rowH": 18, "colors": ["stoneLight", "stone", "stoneDark", "stoneLine"] },
+      { "kind": "stone", "y": 0, "h": 157, "seed": 5, "rowH": 18, "colors": ["stoneLight", "stone", "stoneDark", "stoneLine"] },
       { "kind": "flagstones", "y": 157, "h": 203, "seed": 7, "rowH": 16, "rowGrow": 3, "colors": ["flag", "flagLine", "flagLight"] }
     ],
     "props": [

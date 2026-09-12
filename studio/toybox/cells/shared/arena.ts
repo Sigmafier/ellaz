@@ -15,7 +15,7 @@
 
 import type { ArenaDrawOp } from "../contract";
 
-/** snes16, the palette the demos painted with, plus the three names playroom's props ask for */
+/** snes16, the palette the demos painted with, plus the three names playroom's props ask for and the crypt's nine */
 export const PALETTE: Record<string, string> = {
   ink: "#1a1230",
   wallLight: "#f4dca8",
@@ -39,6 +39,17 @@ export const PALETTE: Record<string, string> = {
   sky: "#7cc4ff",
   gold: "#ffc93c",
   white: "#ffffff",
+  // the crypt's stone, flagstones and archway (2026-09-12): cool greys with a
+  // little violet in them, three tones and a mortar line each - never navy
+  stoneLight: "#8f8ba6",
+  stone: "#716d8a",
+  stoneDark: "#575370",
+  stoneLine: "#3d3954",
+  flag: "#5d5975",
+  flagLine: "#413d58",
+  flagLight: "#726e8c",
+  doorDark: "#14101f",
+  doorFrame: "#a29ebb",
 };
 
 type Dict = Record<string, unknown>;
@@ -181,6 +192,83 @@ function shelf(p: Dict, view: View, ops: ArenaDrawOp[]): void {
   }
 }
 
+// ---- the three kinds the crypt uses ------------------------------------------
+
+/** a wall of stone blocks: mortar behind, one course per row, every other course offset half a block, a few blocks lighter or darker than the rest */
+function stone(b: Dict, view: View, ops: ArenaDrawOp[]): void {
+  const y = num(b, "y", 0);
+  const h = num(b, "h", 0);
+  const rowH = Math.max(4, Math.round(num(b, "rowH", 18)));
+  const rnd = lcg(num(b, "seed", 1));
+  const colors = strList(b, "colors");
+  const light = colorOf(colors[0], PALETTE.stoneLight);
+  const mid = colorOf(colors[1], PALETTE.stone);
+  const dark = colorOf(colors[2], PALETTE.stoneDark);
+  const line = colorOf(colors[3], PALETTE.stoneLine);
+
+  rect(ops, view, 0, y, view.w, h, line);
+  const bw = rowH * 2;
+  for (let row = 0, ry = y; ry < y + h; row++, ry += rowH) {
+    const rh = Math.min(rowH, y + h - ry);
+    const off = (row % 2) * Math.floor(bw / 2);
+    for (let x = -off; x < view.w; x += bw) {
+      const r = rnd();
+      const face = r < 0.12 ? dark : r < 0.24 ? light : mid;
+      rect(ops, view, x + 1, ry + 1, bw - 2, rh - 2, face);
+      rect(ops, view, x + 1, ry + 1, bw - 2, 1, light);
+      rect(ops, view, x + 1, ry + rh - 2, bw - 2, 1, dark);
+    }
+  }
+}
+
+/** a floor of stone slabs in perspective, the planks' shape: each row `rowGrow` px taller than the one behind it, the slab seams offset by the band's seed */
+function flagstones(b: Dict, view: View, ops: ArenaDrawOp[]): void {
+  const top = num(b, "y", 0);
+  const bottom = top + num(b, "h", view.h - top);
+  const rnd = lcg(num(b, "seed", 1));
+  const colors = strList(b, "colors");
+  const base = colorOf(colors[0], PALETTE.flag);
+  const line = colorOf(colors[1], PALETTE.flagLine);
+  const light = colorOf(colors[2], PALETTE.flagLight);
+  const grow = num(b, "rowGrow", 3);
+
+  rect(ops, view, 0, top, view.w, bottom - top, line);
+  let y = top, row = 0, rowH = Math.max(3, num(b, "rowH", 16));
+  while (y < bottom && row < 64) {
+    const h = Math.min(rowH, bottom - y);
+    rect(ops, view, 0, y, view.w, 1, line);
+    const span = 60 + row * 12;
+    const off = Math.floor(rnd() * span);
+    for (let sx = -off; sx < view.w; sx += span) {
+      rect(ops, view, sx + 1, y + 1, span - 2, h - 2, rnd() < 0.2 ? light : base);
+      rect(ops, view, sx + 1, y + 1, span - 2, 1, light);
+    }
+    y += h;
+    row++;
+    rowH += grow;
+  }
+}
+
+/** an archway in the back wall: a stone frame around a dark opening whose top is stepped into an arch; the opening reaches the prop's foot, which the file puts on the floor line */
+function door(p: Dict, view: View, ops: ArenaDrawOp[]): void {
+  const x = num(p, "x", 0);
+  const y = num(p, "y", 0);
+  const w = num(p, "w", 0);
+  const h = num(p, "h", 0);
+  const f = Math.max(2, Math.round(w / 9));
+  const ix = x + f, iw = w - 2 * f;
+  const steps = 4, sh = Math.max(1, Math.floor(iw / (2 * steps)));
+
+  rect(ops, view, x, y, w, h, PALETTE.doorFrame);
+  for (let k = 0; k < steps; k++) {
+    const inset = (steps - 1 - k) * sh;
+    rect(ops, view, ix + inset, y + f + k * sh, iw - 2 * inset, sh, PALETTE.doorDark);
+  }
+  rect(ops, view, ix, y + f + steps * sh, iw, h - f - steps * sh, PALETTE.doorDark);
+  rect(ops, view, x + Math.floor(w / 2) - 3, y, 6, f + 2, PALETTE.stoneLight);
+  rect(ops, view, x, y + h - 3, w, 3, PALETTE.stoneDark);
+}
+
 // ---- the entry point --------------------------------------------------------
 
 function paint(item: Dict, view: View, ops: ArenaDrawOp[]): void {
@@ -188,6 +276,9 @@ function paint(item: Dict, view: View, ops: ArenaDrawOp[]): void {
   if (kind === "wall") wall(item, view, ops);
   else if (kind === "planks") planks(item, view, ops);
   else if (kind === "shelf") shelf(item, view, ops);
+  else if (kind === "stone") stone(item, view, ops);
+  else if (kind === "flagstones") flagstones(item, view, ops);
+  else if (kind === "door") door(item, view, ops);
   // Never a throw. A cell that refuses to draw because one prop was mistyped
   // has taken the whole fight down over a decoration nobody is measuring.
   else console.warn(`fight/arena: skipping art of unknown kind "${kind}"`);
