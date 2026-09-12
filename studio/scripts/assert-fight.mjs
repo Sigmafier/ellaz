@@ -74,17 +74,17 @@ function checkRefs(root, assets) {
   return out;
 }
 
-/** the golden pins the tape it names, tick for tick, with whole hashes */
+/** the golden pins the tape it names, tick for tick, with whole hashes - both live in the game's tapes/ */
 function checkGolden(root) {
   const out = [];
-  const tapes = join(root, "tournament", "tapes"), goldens = join(root, "tournament", "data");
-  if (!existsSync(goldens)) return [`tournament/data is missing - no golden has been recorded`];
-  const files = readdirSync(goldens).filter((f) => f.endsWith(".golden.json"));
-  if (files.length === 0) out.push(`tournament/data holds no *.golden.json`);
+  const tapes = join(root, "tapes");
+  if (!existsSync(tapes)) return [`tapes/ is missing - no tape has been recorded`];
+  const files = readdirSync(tapes).filter((f) => f.endsWith(".golden.json"));
+  if (files.length === 0) out.push(`tapes/ holds no *.golden.json`);
   for (const f of files) {
-    const g = readJson(join(goldens, f));
+    const g = readJson(join(tapes, f));
     const tapeFile = join(tapes, `${g.tape}.json`);
-    if (!existsSync(tapeFile)) { out.push(`${f} pins tape "${g.tape}", which is not in tournament/tapes`); continue; }
+    if (!existsSync(tapeFile)) { out.push(`${f} pins tape "${g.tape}", which is not in tapes/`); continue; }
     const tape = readJson(tapeFile);
     if (tape.ticks !== g.ticks) out.push(`${f} says ${g.ticks} ticks, tape ${g.tape} says ${tape.ticks}`);
     if (!idsOf(root, "modes").some((m) => m.id === tape.mode)) out.push(`tape ${g.tape} names mode "${tape.mode}", which does not exist`);
@@ -103,12 +103,12 @@ export function scanFight(root = FIGHT, assets = join(root, "assets")) {
   return [...checkSchemas(root), ...checkRefs(root, assets), ...checkGolden(root), ...checkAssets(assets)];
 }
 
-/** a scratch copy of data/ + tournament/, mutated by `fn`; assets stay the real ones unless the control copies them */
+/** a scratch copy of data/ + tapes/, mutated by `fn`; assets stay the real ones unless the control copies them */
 function controls() {
   const scratch = (fn) => {
     const dir = mkdtempSync(join(tmpdir(), "assert-fight-"));
     cpSync(join(FIGHT, "data"), join(dir, "data"), { recursive: true });
-    cpSync(join(FIGHT, "tournament"), join(dir, "tournament"), { recursive: true });
+    cpSync(join(FIGHT, "tapes"), join(dir, "tapes"), { recursive: true });
     const assets = fn(dir) ?? join(FIGHT, "assets");
     const out = scanFight(dir, assets);
     rmSync(dir, { recursive: true, force: true });
@@ -123,8 +123,8 @@ function controls() {
     { name: "a fighter naming a set that is not in assets", expect: "FIRE", run: () => scratch((d) => edit(d, "data/fighters/teddy.json", (f) => { f.sprites = "ghost--snes16"; })) },
     { name: "a set present in assets but without its moves file", expect: "FIRE", run: () => scratch((d) => { const a = copyAssets(d); unlinkSync(join(a, "teddy--snes16", "teddy--snes16.moves.json")); return a; }) },
     { name: "a stray key on the match file", expect: "FIRE", run: () => scratch((d) => edit(d, "data/match/versus.json", (m) => { m.gravity = 900; })) },
-    { name: "a golden whose tick count disagrees with its tape", expect: "FIRE", run: () => scratch((d) => edit(d, "tournament/data/versus-600.golden.json", (g) => { g.ticks = 599; })) },
-    { name: "a golden hash one digit short", expect: "FIRE", run: () => scratch((d) => edit(d, "tournament/data/versus-600.golden.json", (g) => { g.chain = g.chain.slice(1); })) },
+    { name: "a golden whose tick count disagrees with its tape", expect: "FIRE", run: () => scratch((d) => edit(d, "tapes/versus-600.golden.json", (g) => { g.ticks = 599; })) },
+    { name: "a golden hash one digit short", expect: "FIRE", run: () => scratch((d) => edit(d, "tapes/versus-600.golden.json", (g) => { g.chain = g.chain.slice(1); })) },
     { name: "a wave spawn naming a fighter that does not exist", expect: "FIRE", run: () => scratch((d) => edit(d, "data/modes/stage.json", (m) => { m.waves[1].spawns[2].fighter = "ghost"; })) },
     { name: "one byte flipped in a committed sheet", expect: "FIRE", run: () => scratch((d) => { const a = copyAssets(d); const p = join(a, "robot--snes16", "robot--snes16.png"); const b = readFileSync(p); b[Math.floor(b.length / 2)] ^= 0xff; writeFileSync(p, b); return a; }) },
   ];

@@ -8,7 +8,7 @@
 // 100% on a 120 Hz display) is on the page rather than in a devtools console.
 
 import { runCell } from "../cells/run-cell";
-import { Phaser4Cell } from "./cell";
+import { Phaser4Cell } from "../render/cell";
 
 interface Stats { stepsPerFrame: number; distinctDraws: number; refresh: number | null; ttffMs: number }
 

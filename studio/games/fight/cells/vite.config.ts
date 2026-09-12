@@ -27,9 +27,9 @@ function inputs(): Record<string, string> {
   }
   const compare = resolve(FIGHT, "tournament/compare/index.html");
   if (existsSync(compare)) found.compare = compare;
-  // the promoted renderer: the game page itself, beside the cells it was picked from
-  const render = resolve(FIGHT, "render/index.html");
-  if (existsSync(render)) found.render = render;
+  // the game's page: the promoted renderer with live input, beside the cells it was picked from
+  const page = resolve(FIGHT, "page/index.html");
+  if (existsSync(page)) found.page = page;
   return found;
 }
 
@@ -53,8 +53,9 @@ function chunkOf(id: string): string | undefined {
 /** the built tree must be self-contained: a cell page reaches ../../data and ../../assets */
 function copyFightData(): Plugin {
   // source, not data: data/ holds load.ts and data.test.ts beside the json, and a
-  // built tree that a hall serves has no business carrying them
-  const noSource = (src: string): boolean => !src.endsWith(".ts");
+  // built tree that a hall serves has no business carrying them - nor the goldens
+  // that sit beside the tapes (the gate reads those from the source tree)
+  const noSource = (src: string): boolean => !src.endsWith(".ts") && !src.endsWith(".golden.json");
   // honour `vite build --outDir <dir>`: two cell lanes building at once must not empty each
   // other's tree, so each builds its own and the harness reads it with --dist
   let out = OUT;
@@ -64,7 +65,7 @@ function copyFightData(): Plugin {
     closeBundle() {
       cpSync(resolve(FIGHT, "assets"), resolve(out, "assets"), { recursive: true, filter: noSource });
       cpSync(resolve(FIGHT, "data"), resolve(out, "data"), { recursive: true, filter: noSource });
-      cpSync(resolve(FIGHT, "tournament/tapes"), resolve(out, "tournament/tapes"), { recursive: true, filter: noSource });
+      cpSync(resolve(FIGHT, "tapes"), resolve(out, "tapes"), { recursive: true, filter: noSource });
     },
   };
 }

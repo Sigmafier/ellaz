@@ -73,7 +73,7 @@ function advance(live: Live, n: number, read: (side: number) => InputFrame): voi
 
 export async function runCell(cell: Cell, opts: CellOptions): Promise<void> {
   try {
-    const tape = opts.tape ? readTape(await (await fetch(`${opts.root}/tournament/tapes/${opts.tape}.json`)).json()) : null;
+    const tape = opts.tape ? readTape(await (await fetch(`${opts.root}/tapes/${opts.tape}.json`)).json()) : null;
     const loaded = await loadFightHttp(opts.root, tape ? tape.mode : opts.mode);
     const data = compileFight(loaded);
     const refs = spriteRefs(opts.root, Object.keys(loaded.sets));

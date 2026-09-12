@@ -51,23 +51,24 @@ export function parseFlags(argv, defaults = {}) {
   return out;
 }
 
-/** relative path under dist for a cell's page: cells/<name>, or render/ for the promoted winner */
-const relDir = (cell) => (cell === "render" ? "render" : `cells/${cell}`);
+/** relative path under dist for a cell's page: cells/<name>, or page/ for the game's own page */
+const relDir = (cell) => (cell === "page" ? "page" : `cells/${cell}`);
 
 /** where a cell's page lives in the built tree */
 export const pageDirOf = (dist, cell) => join(dist, relDir(cell));
 
 /**
  * Every built cell page, from the tree itself - never a hand-kept list. The
- * promoted renderer (render/index.html) is a cell too: it must keep admitting
- * on the golden after the tournament, or the game has drifted from the bar.
+ * game's page (page/index.html, the promoted Phaser cell with live input) is a
+ * cell too: it must keep admitting on the golden after the tournament, or the
+ * game has drifted from the bar.
  */
 export function listCells(dist) {
   const dir = join(dist, "cells");
   const cells = !existsSync(dir) ? [] : readdirSync(dir, { withFileTypes: true })
     .filter((e) => e.isDirectory() && existsSync(join(dir, e.name, "index.html")))
     .map((e) => e.name);
-  if (existsSync(join(pageDirOf(dist, "render"), "index.html"))) cells.push("render");
+  if (existsSync(join(pageDirOf(dist, "page"), "index.html"))) cells.push("page");
   return cells.sort();
 }
 
@@ -98,7 +99,7 @@ export function appendRow(row) {
 export const cellUrl = (cell, query) => `${ORIGIN}/${relDir(cell)}/index.html?${query}`;
 
 export function readGolden(tape) {
-  const file = join(FIGHT, "tournament", "data", `${tape}.golden.json`);
+  const file = join(FIGHT, "tapes", `${tape}.golden.json`);
   if (!existsSync(file)) throw new Error(`no golden for tape "${tape}": ${file}`);
   return JSON.parse(readFileSync(file, "utf8"));
 }

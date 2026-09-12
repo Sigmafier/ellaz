@@ -1,7 +1,7 @@
 // A tick-indexed input tape: the admission instrument of the tournament. A
 // row `[tick, inputs]` holds until the next row, so the same file drives the
 // same simulation on every display and in every engine cell. The wall-clock
-// Playwright tape (tournament/tapes/steps-*.json) is a different file for a
+// Playwright tape (a steps-*.json under the game's tapes/) is a different file for a
 // different job - screenshots - and never reaches the sim.
 
 import { NO_INPUT } from "./types";

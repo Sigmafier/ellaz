@@ -1,12 +1,12 @@
-// The golden tapes: every tape under tournament/tapes replayed through the
+// The golden tapes: every tape under the game's tapes/ replayed through the
 // core pins its state hash, its chain, its event hash, the hp values, the
-// winner and the hit count - one golden per tape, and a stage tape also pins
-// its wave, coins, xp and level. Negative controls stand beside them, because
-// a golden that proves only "the code is the code" is not a gate: a
-// truncating divide, a one-unit gravity change and a one-unit friction change
-// must each move a Versus golden; a one-unit camera change must move the
-// STAGE golden and leave Versus untouched. Re-record with
-// tools/write-golden.mjs, never by hand.
+// winner and the hit count - one golden per tape, written BESIDE it as
+// <tape>.golden.json, and a stage tape also pins its wave, coins, xp and
+// level. Negative controls stand beside them, because a golden that proves
+// only "the code is the code" is not a gate: a truncating divide, a one-unit
+// gravity change and a one-unit friction change must each move a Versus
+// golden; a one-unit camera change must move the STAGE golden and leave
+// Versus untouched. Re-record with tools/write-golden.mjs, never by hand.
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -21,8 +21,8 @@ import type { Tape } from "./tape";
 import type { FightData, FightEvent } from "./types";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const TAPES = join(HERE, "..", "tournament", "tapes");
-const GOLDENS = join(HERE, "..", "tournament", "data");
+const TAPES = join(HERE, "..", "tapes");
+const GOLDENS = TAPES;
 
 /**
  * hash: the terminal state · chain: every tick's state hash folded in order, so a
@@ -35,8 +35,8 @@ export interface Golden {
   stage?: { wave: number; wphase: number; coins: number; xp: number; level: number };
 }
 
-/** every tape on disk, by name - the population, never a hand-kept list */
-const tapeNames = readdirSync(TAPES).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, "")).sort();
+/** every tape on disk, by name - the population, never a hand-kept list; a golden sits beside its tape and is not one */
+const tapeNames = readdirSync(TAPES).filter((f) => f.endsWith(".json") && !f.endsWith(".golden.json")).map((f) => f.replace(/\.json$/, "")).sort();
 const readTapeFile = (name: string): Tape => readTape(JSON.parse(readFileSync(join(TAPES, `${name}.json`), "utf8")));
 const goldenPath = (name: string): string => join(GOLDENS, `${name}.golden.json`);
 

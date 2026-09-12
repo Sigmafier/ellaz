@@ -53,7 +53,7 @@ export interface CellOptions {
   /** base URL holding data/ and assets/ (relative, e.g. "../.." from a built cell page) */
   root: string;
   mode: string;
-  /** a tick tape name under tournament/tapes to replay instead of live input */
+  /** a tick tape name under the game's tapes/ to replay instead of live input */
   tape?: string;
   /** draw bdy / itr / push boxes */
   boxes?: boolean;

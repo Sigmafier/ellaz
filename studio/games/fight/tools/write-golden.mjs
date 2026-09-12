@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // Re-record the golden tape hashes. The core is TypeScript and the studio's
 // toolchain for running it is vitest, so this runs the golden test with
-// WRITE_GOLDEN=1: the test replays EVERY tape under tournament/tapes, prints
+// WRITE_GOLDEN=1: the test replays EVERY tape under the game's tapes/, prints
 // each OLD and NEW golden whole (never a prefix - a diff hidden past a
-// truncation is how a gate reads as broken), and rewrites
-// tournament/data/<tape>.golden.json for each. Run it only after a deliberate
+// truncation is how a gate reads as broken), and rewrites the
+// tapes/<tape>.golden.json beside each. Run it only after a deliberate
 // change to the sim or a tape, and say why in the commit - and say WHICH
 // goldens moved: a Versus-only change that moves the stage golden, or the
 // other way round, is the thing the two goldens exist to show.
