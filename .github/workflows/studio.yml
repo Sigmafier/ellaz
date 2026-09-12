@@ -41,9 +41,20 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: studio/package-lock.json
+          cache-dependency-path: |
+            studio/package-lock.json
+            studio/games/fight/cells/package-lock.json
 
       - run: npm ci
+
+      # The fight game's engine cells are their own npm package: Phaser is a
+      # devDependency of games/fight/cells, not of studio/, and the studio
+      # typecheck reads games/fight/render, which imports it. The first CI run
+      # on the fight tree (2026-09-12) reded with "Cannot find module 'phaser'"
+      # for exactly that reason.
+      - name: The fight cells' own dependencies (Phaser)
+        run: npm ci
+        working-directory: studio/games/fight/cells
 
       - name: Chromium for the browser-driven gates
         run: npx playwright-core install --with-deps chromium
