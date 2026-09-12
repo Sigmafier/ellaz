@@ -1,0 +1,186 @@
+{
+  "character": "slime",
+  "style": "snes16",
+  "scale": 2,
+  "frameSize": {
+    "w": 740,
+    "h": 350
+  },
+  "pivot": {
+    "x": 370,
+    "y": 340
+  },
+  "animations": {
+    "idle": {
+      "fps": 6,
+      "loop": true,
+      "frames": [
+        "slime_idle_0000",
+        "slime_idle_0001",
+        "slime_idle_0002",
+        "slime_idle_0003"
+      ]
+    },
+    "walk": {
+      "fps": 10,
+      "loop": true,
+      "frames": [
+        "slime_walk_0000",
+        "slime_walk_0001",
+        "slime_walk_0002",
+        "slime_walk_0003",
+        "slime_walk_0004",
+        "slime_walk_0005"
+      ]
+    },
+    "attack": {
+      "fps": 12,
+      "loop": false,
+      "frames": [
+        "slime_attack_0000",
+        "slime_attack_0001",
+        "slime_attack_0002",
+        "slime_attack_0003",
+        "slime_attack_0004",
+        "slime_attack_0005"
+      ]
+    },
+    "hurt": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "slime_hurt_0000",
+        "slime_hurt_0001",
+        "slime_hurt_0002"
+      ]
+    },
+    "ko": {
+      "fps": 8,
+      "loop": false,
+      "frames": [
+        "slime_ko_0000",
+        "slime_ko_0001",
+        "slime_ko_0002",
+        "slime_ko_0003",
+        "slime_ko_0004",
+        "slime_ko_0005"
+      ]
+    }
+  },
+  "sockets": {
+    "head": {
+      "slime_idle_0000": {
+        "x": 370,
+        "y": 100
+      },
+      "slime_idle_0001": {
+        "x": 370,
+        "y": 90.39999999999998
+      },
+      "slime_idle_0002": {
+        "x": 370,
+        "y": 80.79999999999995
+      },
+      "slime_idle_0003": {
+        "x": 370,
+        "y": 90.39999999999998
+      },
+      "slime_walk_0000": {
+        "x": 370,
+        "y": 124
+      },
+      "slime_walk_0001": {
+        "x": 380,
+        "y": 64
+      },
+      "slime_walk_0002": {
+        "x": 390,
+        "y": 4
+      },
+      "slime_walk_0003": {
+        "x": 400,
+        "y": 70
+      },
+      "slime_walk_0004": {
+        "x": 410,
+        "y": 136
+      },
+      "slime_walk_0005": {
+        "x": 390,
+        "y": 130
+      },
+      "slime_attack_0000": {
+        "x": 340,
+        "y": 148
+      },
+      "slime_attack_0001": {
+        "x": 385,
+        "y": 88
+      },
+      "slime_attack_0002": {
+        "x": 430,
+        "y": 28
+      },
+      "slime_attack_0003": {
+        "x": 410,
+        "y": 52
+      },
+      "slime_attack_0004": {
+        "x": 390,
+        "y": 76
+      },
+      "slime_attack_0005": {
+        "x": 370,
+        "y": 100
+      },
+      "slime_hurt_0000": {
+        "x": 310,
+        "y": 160
+      },
+      "slime_hurt_0001": {
+        "x": 340,
+        "y": 130
+      },
+      "slime_hurt_0002": {
+        "x": 370,
+        "y": 100
+      },
+      "slime_ko_0000": {
+        "x": 370,
+        "y": 100
+      },
+      "slime_ko_0001": {
+        "x": 370,
+        "y": 126.4
+      },
+      "slime_ko_0002": {
+        "x": 370,
+        "y": 152.79999999999998
+      },
+      "slime_ko_0003": {
+        "x": 370,
+        "y": 179.20000000000002
+      },
+      "slime_ko_0004": {
+        "x": 370,
+        "y": 205.60000000000002
+      },
+      "slime_ko_0005": {
+        "x": 370,
+        "y": 232
+      }
+    }
+  },
+  "hitbox": {
+    "x": 210,
+    "y": 110,
+    "w": 320,
+    "h": 230
+  },
+  "atlas": "slime--snes16.atlas.json",
+  "built": {
+    "commit": "85fdf585bacb9f8b5736480a48ba8bede9bae3d1",
+    "dirty": true,
+    "at": "2026-09-12T08:58:12.807Z"
+  }
+}
