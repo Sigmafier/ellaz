@@ -26,6 +26,7 @@ export const meta: GameMeta = {
   category: "learn",
   orientation: "any",
   renderer: "dom",
+  tier: "simple",
   ownsChrome: true,
   // The record is the LONGEST STREAK of words solved in a row, so higher wins.
   // Not "guesses used": that would rank a four-letter fluke above a six-letter

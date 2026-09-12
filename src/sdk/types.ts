@@ -337,6 +337,27 @@ export interface GameMeta {
    */
   scoreUnit?: ScoreUnit;
   /**
+   * WHAT THIS GAME PROMISES TO LOOK LIKE. Unlike `beta`, this one is ENFORCED.
+   *
+   * `simple` is what the roster already is, and it carries no requirement ever.
+   * `showcase` is a promise the build holds you to: real studio sprites from
+   * the cast, the five animation clips, hit effects and juice, and two or more
+   * weapons that look different from each other - plus five distinct SFX and a
+   * weight budget for the whole game. `scripts/assert-tier.mjs` refuses a
+   * showcase game whose source is missing any of them.
+   *
+   * It lives here, on the DOM-free meta, for the reason every other field here
+   * does: the catalog imports this statically and must never pull a renderer
+   * into the shell. Which also means `meta.ts` MAY NEVER IMPORT AN ASSET - a
+   * sprite sheet imported here is a sprite sheet in every child's first visit,
+   * so the gate refuses that too.
+   *
+   * Absent is read as `simple`, because that is what a game that has never
+   * thought about this is. `tier-is-declared.test.ts` still requires the word
+   * to be written down, so the band is a decision rather than a default.
+   */
+  tier?: "simple" | "showcase";
+  /**
    * THIS GAME IS STILL BEING BUILT. Absent means finished, which is the whole
    * roster except the one that declares it.
    *

@@ -16,6 +16,7 @@ export const meta: GameMeta = {
   category: "classics",
   orientation: "any",
   renderer: "dom",
+  tier: "simple",
   ownsChrome: true,
   scoreUnit: "points",
   // STILL BEING BUILT, and the badge says so on the card and on the page.

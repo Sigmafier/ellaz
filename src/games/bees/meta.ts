@@ -11,6 +11,7 @@ export const meta: GameMeta = {
   category: "speed",
   orientation: "any",
   renderer: "dom",
+  tier: "simple",
   ownsChrome: true,
   scoreUnit: "points",
 };

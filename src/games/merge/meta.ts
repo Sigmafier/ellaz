@@ -11,6 +11,7 @@ export const meta: GameMeta = {
   category: "think",
   orientation: "any",
   renderer: "dom",
+  tier: "simple",
   ownsChrome: true,
   // An endless climb, so the honest record is how far a run got - `points`,
   // which `src/sdk/score.ts` ranks high. `logic.ts` is the one place that says

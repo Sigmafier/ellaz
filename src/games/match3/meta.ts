@@ -21,6 +21,7 @@ export const meta: GameMeta = {
   category: "think",
   orientation: "portrait",
   renderer: "dom",
+  tier: "simple",
   ownsChrome: true,
   // The record is the ROUND a run reached, which `logic.ts`'s `scoreReport`
   // is the one place to say. Points, so higher wins. Only the VALUE of a record

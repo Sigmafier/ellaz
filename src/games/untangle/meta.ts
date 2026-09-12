@@ -27,6 +27,7 @@ export const meta: GameMeta = {
   category: "think",
   orientation: "any",
   renderer: "dom",
+  tier: "simple",
   ownsChrome: true,
   scoreUnit: "ms",
 };

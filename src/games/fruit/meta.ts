@@ -17,6 +17,7 @@ export const meta: GameMeta = {
   category: "kids",
   orientation: "any",
   renderer: "dom",
+  tier: "simple",
   ownsChrome: true,
   scoreUnit: "points",
 };

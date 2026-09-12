@@ -24,6 +24,7 @@ export const meta: GameMeta = {
   category: "kids",
   orientation: "any",
   renderer: "dom",
+  tier: "simple",
   ownsChrome: true,
   // Points: perfect mazes finished in a row. NOT fewest steps - every maze is
   // dealt fresh, so a step count would measure which maze a player was handed
