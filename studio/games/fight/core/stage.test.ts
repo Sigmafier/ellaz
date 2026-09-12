@@ -225,6 +225,54 @@ describe("the phases", () => {
   });
 });
 
+describe("edges the plan named (deep-test)", () => {
+  const attack = stateIndex(data.fighters[data.cast[HERO].fighter], "attack");
+  const activeTick = (() => { const cf = data.fighters[data.cast[HERO].fighter]; for (let t = 0; t < 60; t++) if (frameAt(cf, attack, t).itr.length) return t; throw new Error("no itr"); })();
+
+  /** wave `w`: every row dead but the last, which stands in the hero's punch with 1 hp */
+  function lastOneStanding(w: number): FightState {
+    let s = withStage(createState(data), { wave: w, camX: w * W, waveT: 500 });
+    s = withFighter(s, HERO, { x: w * W + 300 * FP, z: 260 * FP, st: attack, stT: activeTick, face: 1 });
+    const hero = s.fighters[HERO];
+    const rows = rowsOf(w);
+    for (const i of rows.slice(0, -1)) s = awake(s, i, w * W + 100 * FP, 200 * FP, { hp: 0 });
+    const hit = frameAt(data.fighters[data.cast[HERO].fighter], attack, activeTick).itr[0];
+    const last = rows[rows.length - 1];
+    return awake(s, last, hero.x + hit.box.x + 2 * FP, hero.z, { hp: 1, face: -1 });
+  }
+
+  it("a kill on the last tick of a fight phase pays its coin and xp AND turns the phase in the same tick", () => {
+    const s = step(lastOneStanding(0), idle, data);
+    expect(s.events.filter((e) => e.kind === "ko").length).toBe(1);
+    expect(s.events).toContainEqual({ kind: "wave", wave: 0, wphase: 1 });
+    expect(st(s)).toMatchObject({ wphase: 1, waveT: 0 });
+    expect(s.pickups.length).toBe(1);
+    expect(st(s).xp).toBeGreaterThan(0);
+  });
+
+  it("the same kill on the LAST wave goes to clear, and the coin still reaches the hero", () => {
+    const last = stage.waves - 1;
+    let s = step(lastOneStanding(last), idle, data);
+    expect(st(s).wphase).toBe(2);
+    expect(s.pickups.length).toBe(1);
+    s = run(s, 120);
+    expect(s.pickups).toEqual([]);
+    expect(st(s).coins).toBe(1);
+  });
+
+  it("the hero dying during go restarts THIS wave with the camera back at its start", () => {
+    let s = withStage(createState(data), { wave: 1, wphase: 1, camX: W + 300 * FP, waveT: 40, coins: 3 });
+    s = waveCleared(s, 1);
+    s = withFighter(s, HERO, { x: W + 600 * FP, hp: 0, st: data.fighters[data.cast[HERO].fighter].ko });
+    s = step(s, idle, data);
+    expect(st(s)).toMatchObject({ wave: 1, wphase: 3 });
+    s = run(s, data.match.koFadeTicks);
+    expect(st(s)).toMatchObject({ wave: 1, wphase: 0, camX: W, coins: 3 });
+    expect(s.fighters[HERO].x).toBe(data.cast[HERO].x + W);
+    for (const i of rowsOf(1)) expect(s.fighters[i].active).toBe(0);
+  });
+});
+
 describe("the hero going down restarts the wave and keeps what was earned", () => {
   it("fades for koFadeTicks, then this wave restarts: full hp at the wave's start, its rows dormant, coins/xp/level intact", () => {
     let s = withStage(createState(data), { wave: 1, camX: W, waveT: 200, coins: 7, xp: 5, level: 2 });

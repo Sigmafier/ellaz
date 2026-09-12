@@ -35,14 +35,18 @@ function payKos(s: FightState, data: FightData, stage: CStage, heroI: number): {
   return { pickups, xp, rng };
 }
 
-/** spend xp on levels: each raises the max, heals up to it, and is announced */
+/**
+ * spend xp on levels: each raises the max, heals up to it, and is announced. A hero
+ * already down (the killing blow was a trade) keeps the level and stays down: healed
+ * to 25 it stood back up mid-fade and the wave reset under it (deep-test 2026-09-12).
+ */
 function levelUp(st: StageState, hero: FighterState, data: FightData, stage: CStage, events: FightEvent[]): { st: StageState; hero: FighterState } {
   let { xp, level } = st;
   let hp = hero.hp;
   while (xp >= xpToNext(stage, level)) {
     xp -= xpToNext(stage, level);
     level += 1;
-    hp = Math.min(heroMaxHp(data, level), hp + stage.levelUp.heal);
+    if (hp > 0) hp = Math.min(heroMaxHp(data, level), hp + stage.levelUp.heal);
     events.push({ kind: "levelup", level });
   }
   return { st: { ...st, xp, level }, hero: hp === hero.hp ? hero : { ...hero, hp } };

@@ -146,6 +146,46 @@ describe("collecting", () => {
   });
 });
 
+describe("edges the plan named (deep-test)", () => {
+  const W = data.arena.viewW;
+  const target = data.cast.findIndex((c) => c.wave === 0);
+  /** a KO of `target` standing at x, on screen `wave`, paid through tickPickups directly */
+  function koAt(x: number, wave: number, wphase: StageState["wphase"] = 0): FightState {
+    let s = withStage(quiet(), { wave, camX: wave * W, wphase });
+    s = withHero(s, { x: wave * W + 300 * FP });
+    const fighters = s.fighters.slice();
+    fighters[target] = { ...spawnFighter(data.fighters[data.cast[target].fighter], x, 260 * FP, -1, freshAi(), 1), hp: 0 };
+    return tickPickups({ ...s, fighters, events: [{ kind: "ko", target }] }, data);
+  }
+
+  it("a coin dropped outside the screen's edge lands inside it - right edge, left edge, and the world's far edge", () => {
+    const pad = stage.screen.enemyPad;
+    expect(koAt(W + 40 * FP, 0).pickups[0].x).toBe(W - pad);
+    expect(koAt(-20 * FP, 0).pickups[0].x).toBe(pad);
+    const lastWave = stage.waves - 1;
+    const far = koAt(lastWave * W + W + 40 * FP, lastWave);
+    expect(far.pickups[0].x).toBe(lastWave * W + W - pad);
+    expect(far.pickups[0].x).toBeLessThanOrEqual(data.arena.worldW);
+    // and the hero at the arena's own edge can still reach it once the stage is clear
+    let s = withHero(koAt(lastWave * W + W + 40 * FP, lastWave, 2), { x: data.arena.xMax });
+    s = run(s, 120);
+    expect(s.pickups).toEqual([]);
+    expect(st(s).coins).toBe(1);
+  });
+
+  it("a level-up on the killing blow that also downed the hero does not revive it: the level counts, the hp stays down", () => {
+    let s = withStage(quiet(), { xp: xpToNext(stage, 1) - 1 });
+    s = withHero(s, { hp: 0, st: heroCf.ko });
+    const out = tickPickups({ ...s, events: [{ kind: "ko", target }] }, data);
+    expect(st(out).level).toBe(2);
+    expect(out.events).toContainEqual({ kind: "levelup", level: 2 });
+    expect(out.fighters[HERO].hp).toBeLessThanOrEqual(0);
+    // the control: the same blow with the hero standing heals it
+    const alive = tickPickups({ ...withHero(s, { hp: 10, st: heroCf.initial }), events: [{ kind: "ko", target }] }, data);
+    expect(alive.fighters[HERO].hp).toBe(10 + stage.levelUp.heal);
+  });
+});
+
 describe("levels", () => {
   it("cost base + level * perLevel, raise the max by levelHp, heal by levelHeal capped at the new max, and announce", () => {
     expect(xpToNext(stage, 1)).toBe(stage.xp.base + stage.xp.perLevel);
