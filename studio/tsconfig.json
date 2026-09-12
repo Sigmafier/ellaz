@@ -8,7 +8,8 @@
       "@art/*": ["art/*"],
       "@export/*": ["export/*"],
       "@adapters/*": ["adapters/*"],
-      "@/*": ["gallery/src/*"]
+      "@/*": ["gallery/src/*"],
+      "phaser": ["games/fight/cells/node_modules/phaser"]
     }
   },
   "include": ["art", "export", "adapters", "gallery/src", "games", "vitest.config.ts"]
