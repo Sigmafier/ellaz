@@ -1,61 +1,54 @@
 # The fight game
 
-One pure simulation, every number in a file, and a renderer chosen by a
-seven-arm tournament. The verdict and its evidence:
+A game on the Toybox engine ([`studio/toybox/`](../../toybox/README.md)):
+every number in a file here, two recorded matches with their goldens beside
+them, a page, and the history of the seven-arm tournament that picked the
+renderer. The verdict and its evidence:
 [`docs/engine-tournament/fight-2026-09/`](../../../docs/engine-tournament/fight-2026-09/VERDICT.md)
-(Phaser 4). The plan: `~/.claude/plans/read-tbe-followin-hand-gentle-truffle.md`.
+(Phaser 4). The rules, the cells and the harness are the engine's, not this
+directory's - since 2026-09-12 nothing under `games/fight/` is engine.
 
 ## The map
 
-| directory | holds | imports |
-|---|---|---|
-| `core/` | the sim: int32 in 1/256 px (`FP`), 60 ticks/s, seeded rng IN the state, name-sorted state table, FNV-1a over an ordered field list. Pure `step(state, inputs, data)`; `match.ts` is Versus, `stage.ts` + `pickups.ts` are the wave run. Twenty test files beside it | nothing outside `core/` - `no-studio-import.test.ts` holds it, so promotion is a `git mv` |
-| `data/` | every gameplay number: `arena/`, `match/`, `ai/`, `fighters/`, `modes/`, `stage/`, each with a JSON schema. `load.ts` reads a mode's whole graph | - |
-| `assets/` | the sprite sets the fighters bind (png + atlas + manifest + moves), COPIED from `dist-export` by `tools/copy-sprites.mjs` and byte-checked by its `--check` | - |
-| `cells/` | the harness (`run-cell.ts` owns the clock, the tape, the hash and the input; `retime.ts`, `shared/`) and the canvas bar (`cells/canvas/`) | `core/`, `../../adapters/` |
-| `render/` | the game page: the Phaser 4 cell promoted from `cells/phaser4/` after the verdict. `?stats=1` prints the harness instruments under the stage | `cells/`, `core/`, `../../adapters/phaser/` |
-| `tournament/` | the tape, the golden, the four instruments (`harness/`), the compare page (`compare/`), the seven defect logs (`defects/`) and every measurement row (`data/raw-fight.jsonl`) | - |
-| `tools/` | `copy-sprites.mjs`, `write-golden.mjs` | - |
-
-The studio's tenth gate, `npm run assert:fight`, holds data, assets and the
-golden together (nine planted controls).
+| directory | holds |
+|---|---|
+| `data/` | every gameplay number: `arena/`, `match/`, `ai/`, `fighters/`, `modes/`, `stage/` - each file held to the engine's schema for its directory (`toybox/data/schemas/<dir>.schema.json`) |
+| `assets/` | the four sprite sets the fighters bind (png + atlas + manifest + moves), COPIED from `dist-export` by `node toybox/harness/copy-sprites.mjs --game fight` and byte-checked by its `--check` |
+| `tapes/` | `versus-600.json` and `stage-600.json`, each with its `.golden.json` beside it - the admission instruments |
+| `page/` | the game page: `index.html` + `main.ts`, which runs the engine's Phaser cell on the one harness with live input; `?mode=stage` or `?mode=versus`, `?tape=<name>&fast=1` replays a golden, `?stats=1` prints the harness instruments under the stage |
+| `tournament/` | history: the compare page (`compare/`), the seven defect logs (`defects/`), every instrument row ever appended (`data/raw-fight.jsonl`) |
 
 ## Running it
 
 ```bash
-cd studio/games/fight/cells && npx vite build      # -> studio/dist-fight (render, the canvas bar, the compare page)
 cd studio
-node games/fight/tournament/harness/run-tape.mjs --tape versus-600   # both pages must ADMIT on the golden triple
-node games/fight/tournament/harness/run-tape.mjs --tape stage-600    # and on the stage golden
-bash ~/.claude/scripts/hall-file.sh dist-fight --title fight-stage
-#   -> open .../dist-fight/render/index.html?mode=stage&stats=1 from Windows
+npx vite build --config toybox/vite.config.ts                  # -> studio/dist-toybox
+node toybox/harness/run-tape.mjs --game fight --tape versus-600   # canvas + page must ADMIT on the golden triple
+node toybox/harness/run-tape.mjs --game fight --tape stage-600    # and on the stage golden
+npm run assert:fight                                              # the tenth gate: data, assets, goldens agree
+bash ~/.claude/scripts/hall-file.sh dist-toybox --title toybox-fight
+#   -> open .../dist-toybox/games/fight/page/index.html?mode=stage&stats=1 from Windows
 ```
 
 The page reads the keyboard (arrows / WASD, space) and the touch surface (left
 half drags to walk, right half taps to swing) through one poll per tick; a
-`?tape=versus-600&fast=1` run reads neither, which is why the promoted page can
-still be admitted by the tournament's own gate. A tape names its own mode, so
+`?tape=versus-600&fast=1` run reads neither, which is why the page can still be
+admitted by the engine's own gate. A tape names its own mode, so
 `?tape=stage-600&fast=1` replays the stage golden without a `?mode=`.
-
-**Both pages draw at the display's integer upscale, not at 640x360 stretched
-by CSS** (since 2026-09-12). The draw plan carries the fraction of a game px
-(`viewOf` no longer floors the interpolation), and each cell rounds to its own
-grid - a whole device pixel at upscale `k`, so the art stays crisp while a
-half-px move between two sim ticks is a move the display shows. Measured with
-a rAF shim on the built pages, the stage-600 tape: distinct draws at an
-emulated 120 Hz went 88.5% -> 96.7% (render) and 89.1% -> 96.5% (canvas), the
-same figure the pages read at 60 Hz; the goldens did not move, because none of
-this touches the sim. `?stats=1` prints `distinctDraws` and the backbuffer.
 
 **Tuning loop**: edit a JSON under `data/`, rebuild, republish, reload. No
 port; nothing under `data/` needs a test to change, and everything under it is
-held by one (`data.test.ts`, `assert:fight`). A sim change moves a golden -
-see below.
+held by one (`toybox/data/data.test.ts`, `assert:fight`). A sim change moves a
+golden - `node toybox/harness/write-golden.mjs` re-records every game's and
+prints each old and new triple whole; say why in the commit, and which
+goldens moved. A scripted hero in `toybox/sim/stage-completes.test.ts` clears
+all three waves without a human; when it stops clearing them, the numbers made
+the run unwinnable.
 
 ## What a mode file can say
 
 `data/modes/versus.json` names an arena, a match, a seed and a cast: one match
-on one screen, `core/match.ts`.
+on one screen, `toybox/sim/match.ts`.
 
 `data/modes/stage.json` names the same four plus a `stage` file
 (`data/stage/toybox-quest.json`: the camera, the screen pads, the spawn lanes,
@@ -64,22 +57,25 @@ spawns `{fighter, ai, team, side, delayTicks}`. Every spawn joins the cast as
 ONE fixed roster row - dormant (`active` 0) until its wave and delay, at most
 31 rows because the hit mask is one bit per target - so nothing is added to or
 removed from the sim while it runs and the hash stays over a fixed field list.
-`core/stage.ts` wakes the spawns at the screen's edge in a lane drawn from the
-sim's rng, follows the hero with the camera (`camX` in the state, lerped in the
-view, `beginFrame(camX)` in both cells), holds everyone inside the screen, and
-turns fight -> go -> clear; the hero down fades for `koFadeTicks` and restarts
-THIS wave with coins, xp and level kept - no fail punishment. `core/pickups.ts`
-pays a KO exactly once (one coin, the fighter file's `xp`), spends xp on levels
-(`base + level * perLevel`; +hp, a heal, +damage on the hero's hits), and flies
-the coins. A fighter file may say `flying` + `hover` (the bat holds its height
-alive, drops when KO'd). Play it: `render/index.html?mode=stage`.
+`toybox/sim/stage.ts` wakes the spawns at the screen's edge in a lane drawn from
+the sim's rng, follows the hero with the camera (`camX` in the state, lerped in
+the view, `beginFrame(camX)` in both cells), holds everyone inside the screen,
+and turns fight -> go -> clear; the hero down fades for `koFadeTicks` and
+restarts THIS wave with coins, xp and level kept - no fail punishment.
+`toybox/sim/pickups.ts` pays a KO exactly once (one coin, the fighter file's
+`xp`), spends xp on levels (`base + level * perLevel`; +hp, a heal, +damage on
+the hero's hits), and flies the coins. A fighter file may say `flying` +
+`hover` (the bat holds its height alive, drops when KO'd). Play it:
+`page/index.html?mode=stage`.
 
 **Crypt reuses all of it.** A room is a wave with a door: the same fixed
 roster with `wave` on each row, the same dormant predicate, the same camera
 (a room is a screen the camera locks to), the same pickups, the same stage
 HUD layout. What Crypt adds is data: a `rooms[]` shape where `go` walks
 through a door instead of scrolling, and a `door` prop the arena painter
-draws. Nothing in `core/stage.ts` names a wave count except `data.stage.waves`.
+draws. Nothing in `toybox/sim/stage.ts` names a wave count except
+`data.stage.waves` - and Crypt is its own directory under `games/`, five
+folders and a page, on the same engine.
 
 ## Tuning that is data, not code
 
@@ -98,7 +94,7 @@ draws. Nothing in `core/stage.ts` names a wave count except `data.stage.waves`.
 - `match/versus.json` `landedCooldownTicks` (0): what the recovery becomes the
   tick a swing LANDS - 0 hands the next swing to the moves file's `cancelFrom`,
   so hits chain (swing-hit-swing at 24 ticks apart, measured in
-  `core/chain.test.ts`) while a whiff still pays the 60 above. Added
+  `toybox/sim/chain.test.ts`) while a whiff still pays the 60 above. Added
   2026-09-12 after the operator played Stage and could not chain: the mash
   matrix showed that LOWERING `attackCooldownTicks` instead lands 0 hits on a
   standing masher at every value below 60 (15/20/30/40/45, both holds), so the
@@ -114,7 +110,6 @@ draws. Nothing in `core/stage.ts` names a wave count except `data.stage.waves`.
   was believed: a hold that stood in place sat 44 px inside a 56 px punch.
 - The moves files' `cancelFrom`, damage, knock and stun are the studio's
   (`studio/art/characters/<id>/moves.ts`), exported and copied here.
-
 - `stage/toybox-quest.json`: every number from the demo the operator chose
   (2026-09-12). `camera.divisor` 12 is the demo's `dt*5` at 60 Hz;
   `screen.spawnPad` 30 puts a spawn just off the edge; the bat's `hover`
@@ -135,36 +130,13 @@ draws. Nothing in `core/stage.ts` names a wave count except `data.stage.waves`.
   so xp can be farmed by dying; a trade on the last enemy counts as the
   hero's death.
 
-Any sim change moves a golden: `node games/fight/tools/write-golden.mjs`
-re-records every tape's golden and prints each old and new triple whole; say
-why in the commit, and which goldens moved - a Versus-only change that moves
-the stage golden is the thing the two goldens exist to show. A scripted hero
-in `core/stage-completes.test.ts` clears all three waves without a human; when
-it stops clearing them, the numbers made the run unwinnable.
+**Both pages draw at the display's integer upscale, not at 640x360 stretched
+by CSS** (since 2026-09-12). Measured with a rAF shim on the built pages, the
+stage-600 tape: distinct draws at an emulated 120 Hz went 88.5% -> 96.7%
+(Phaser) and 89.1% -> 96.5% (canvas), the same figure the pages read at 60 Hz;
+the goldens did not move, because none of this touches the sim.
 
-## Promotion checklist - from the studio into the catalogue
-
-The winner is the engine ellaz already ships, so the promotion is smaller than
-the plan feared. Still a list, because each line is a gate somebody will hit:
-
-1. `git mv studio/games/fight/core src/games/fight/logic` - the core imports
-   nothing outside itself, so nothing else moves with it. Its tests move too.
-2. The data files become imports of the game module (they are JSON; a schema
-   test travels with them).
-3. The sprite sets go to `public/games/fight/` with `copy-sprites.mjs --check`
-   pointed at the new root - the byte-identity check is what makes the copy a
-   generator and not a fork.
-4. `render/cell.ts` becomes the game's Phaser scene; `run-cell.ts` becomes the
-   game's loop, reading `GameContext` for input and lifecycle instead of
-   `window`.
-5. **ONE new chunk, three changes**: `game-fight-` needs the dynamic
-   `import()` in `catalog.ts`, a NAMED `manualChunks` branch and a matching
-   `globIgnores` entry - `precache-glob-sweeps-new-chunks.md`. The engine
-   chunk `vendor-phaser-` already exists for snake and needs nothing. Had the
-   winner been any other engine this would have been two chunks and six
-   changes.
-6. `npm run assert:payload` on the tree in front of you - the shell must not
-   move; the chunk is lazy or it is not shipped.
-7. Product laws apply from here: `meta.ts` + `logic.ts` + a renderer land
-   together, every locale, `winMoment()` for the win, reasons not amounts,
-   kids rules if `ageBand` is kids.
+The goldens as of the extraction (2026-09-12): stage-600
+`1be09f21 / 801d2ac4 / c7532cf4`, versus-600 `216303af / 3ddd21d5 / 002862ad` -
+byte-identical through every move. The promotion checklist (from here into
+the catalogue) is the engine's: [`studio/toybox/README.md`](../../toybox/README.md).

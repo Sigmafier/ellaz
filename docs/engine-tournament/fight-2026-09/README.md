@@ -6,14 +6,17 @@ evidence is, so the numbers can be re-derived rather than quoted.
 
 ## What was compared
 
-- **The brick**: the renderer for the studio fight game. The sim
-  (`studio/games/fight/core/`) is engine-free TypeScript in int32 1/256 px at
-  60 ticks/s, and every arm runs the same compiled build of it through
-  `cells/run-cell.ts`, which owns the clock, the tape and the hash. A cell has
-  no `update`, `step` or `dt` - it cannot advance the sim, only draw it.
-- **The sticky input**: `studio/games/fight/tournament/tapes/versus-600.json`,
-  600 ticks of robot vs CPU teddy, tick-indexed and sparse. The golden it must
-  reach is `tournament/data/versus-600.golden.json`.
+- **The brick**: the renderer for the studio fight game. The sim (then
+  `studio/games/fight/core/`, since the 2026-09-12 extraction
+  `studio/toybox/sim/`) is engine-free TypeScript in int32 1/256 px at 60
+  ticks/s, and every arm runs the same compiled build of it through
+  `run-cell.ts` (now `studio/toybox/cells/`), which owns the clock, the tape
+  and the hash. A cell has no `update`, `step` or `dt` - it cannot advance the
+  sim, only draw it.
+- **The sticky input**: `versus-600.json`, 600 ticks of robot vs CPU teddy,
+  tick-indexed and sparse, with the golden it must reach beside it - both at
+  `studio/games/fight/tapes/` since the extraction (they were under
+  `tournament/tapes` and `tournament/data` when this ran).
 - **The field**: canvas (the bar, zero engine bytes), Phaser 4.2.1, PixiJS
   8.20.1, KAPLAY 3001.0.19, Excalibur 0.32.0, LittleJS 1.18.29, melonJS 20.4.0.
   Seven others were dropped at research time with a reason each (plan
@@ -35,21 +38,26 @@ it happens; `data/arms.jsonl` here is the one-row-per-arm digest.
 
 ## Re-running it
 
+The instruments moved into the engine on 2026-09-12 (`studio/toybox/harness/`,
+each taking `--game`, the build with root `studio/` into `dist-toybox`); the
+commands as they are today:
+
 ```bash
-cd studio/games/fight/cells && npx vite build          # all arms into studio/dist-fight
-cd ../../..                                            # studio/
-node games/fight/tournament/harness/run-tape.mjs
-node games/fight/tournament/harness/assert-equal-work.mjs
-node games/fight/tournament/harness/bytes.mjs
-node games/fight/tournament/harness/sweep.mjs --rounds 3
-node games/fight/tournament/compare/blind.mjs --seed <n> && cd games/fight/cells && npx vite build
-bash ~/.claude/scripts/hall-file.sh ../../../dist-fight --title fight-tournament
+cd studio
+npx vite build --config toybox/vite.config.ts          # the cells + every game's page into studio/dist-toybox
+node toybox/harness/run-tape.mjs --game fight
+node toybox/harness/assert-equal-work.mjs --game fight
+node toybox/harness/bytes.mjs --game fight
+node toybox/harness/sweep.mjs --game fight --rounds 3
+node games/fight/tournament/compare/blind.mjs --seed <n> && npx vite build --config toybox/vite.config.ts
+bash ~/.claude/scripts/hall-file.sh dist-toybox --title fight-tournament
 ```
 
 After the verdict the losing cells were deleted in their own commit (`git log
--- studio/games/fight/cells` finds them), so a re-run today builds the winner
-and the bar only. Check out the commit before that deletion to rebuild the
-whole field.
+-- studio/games/fight/cells` finds them, at the paths they had then), so a
+re-run today builds the winner and the bar only. Check out the commit before
+that deletion to rebuild the whole field - and note the paths in this file's
+first version, since the whole tree moved afterwards.
 
 ## Files
 

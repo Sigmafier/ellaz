@@ -52,7 +52,8 @@ design. Run the studio's checks from inside `studio/`.
 | `scripts/` | the nine gates, three renderers, gallery shots, and `lib/` they share |
 | `tools/roster-painter/` | the Python range-painter that drew the eight roster characters and emits their `pixels<H>.ts` + `rig<H>.ts`; `reproduce.sh` proves the repo's rows come back byte-identical. Needs a python with Pillow (not a studio dependency) |
 | `tools/facings-painter/` | the painter behind the knight's front/back facings (demo-grade, outside the rig); `reproduce.sh` there says `0 differ` |
-| `games/fight/` | the fight game scaffold: `core/` (pure sim, tested), `data/` (every number, with schemas), `assets/` (sprite sets copied from `dist-export`, byte-checked), `cells/` (the renderer on one harness), `tournament/` (the seven-arm instruments and defect logs). Gate: `npm run assert:fight`. Verdict: `docs/engine-tournament/fight-2026-09/` - Phaser 4 |
+| `toybox/` | **the engine** (2026-09-12): `sim/` (pure int32 sim, tested), `data/` (the loader + one schema per data directory), `cells/` (the one loop, the canvas bar, the Phaser 4 winner), `harness/` (run-tape and the other instruments, `--game`), one vite build with root `studio/` into `dist-toybox`. `boundary.test.ts` holds that nothing under it imports a game. Map and the five-folder contract a game brings: [`toybox/README.md`](toybox/README.md) |
+| `games/<name>/` | a game on the engine: `data/`, `assets/`, `tapes/` (with the goldens beside), `page/`, and optionally `tournament/` history. `games/fight/` is the one today ([`games/fight/README.md`](games/fight/README.md) - its measured numbers). Gate: `npm run assert:fight` walks every game. Verdict that picked Phaser: `docs/engine-tournament/fight-2026-09/` |
 | `docs/` | `art-bible.md` (the studio-wide rules), `pixel-characters.md` (how a character is drawn), `techniques.md` (the library, checked against the code), `styles-ledger.md` (rendered, never hand-edited), `reference/little-fighter-2.md`, and `build-log.md` (what shipped, in order, with the numbers and the traps) |
 
 ## The two ideas
@@ -84,6 +85,7 @@ another would find.
 | `assert:atlas` | atlas vs manifest vs the sheet's pixels | a frame played but not packed, a rect off the sheet, a blank cell |
 | `assert:moves` | every exported `moves.json` against its schema and the manifest beside it | a state playing a clip the manifest lacks, a frame count that disagrees, a box outside the frame, a transition or input outside the closed sets, a hit with no damage |
 | `assert:ledger` | `art/styles/ledger.json` against `registry.ts`, the style dirs, git history and `docs/styles-ledger.md` | a removed style still registered, a backlog row re-proposing a removed one, a deletion the ledger never recorded, a hand-edited doc |
+| `assert:fight` | every `games/*/` (a directory with `data/modes/`) against the engine's schemas, its own assets via `copy-sprites --check`, and its goldens against its tapes | a game with data but no modes, a mode naming a missing arena, a fighter naming a set that is not there, a golden that disagrees with its tape, a sheet one byte off `dist-export` |
 
 Every gate has `--control`: it plants the defects it claims to catch and
 requires each to fire, beside a positive control that must stay quiet. A

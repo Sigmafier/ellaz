@@ -26,7 +26,8 @@ opened, as the protocol asks. The mapping, opened after:
 ## The pick: Phaser 4 (`phaserjs/phaser` 4.2.1)
 
 Scored on the four axes the operator named. Every number below was measured on
-this tree on 2026-09-12 by the harness under `studio/games/fight/tournament/`,
+this tree on 2026-09-12 by the harness then under `studio/games/fight/tournament/`
+(since the extraction later that day: `studio/toybox/harness/`, taking `--game`),
 and the raw rows are in `data/arms.jsonl` and `studio/games/fight/tournament/data/raw-fight.jsonl`.
 
 | axis | what was measured | phaser4 | the field |

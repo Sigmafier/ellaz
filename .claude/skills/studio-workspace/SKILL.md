@@ -99,6 +99,14 @@ real page and not only the capture.
 A new character: the `add-a-pixel-character` skill (the painter is
 `studio/tools/roster-painter/`, and `reproduce.sh` there must say `0 differ`).
 
+**The engine is `studio/toybox/` (since 2026-09-12)** - sim, data loader + schemas,
+cells, harness - and a game is `studio/games/<name>/` with data, assets, tapes (goldens
+beside), a page. Build with `npx vite build --config toybox/vite.config.ts` (root
+`studio/`, into `dist-toybox`); admit with `node toybox/harness/run-tape.mjs --game
+<name> --tape <tape>`; a sim change re-records goldens with `toybox/harness/write-golden.mjs`
+and the commit says which moved. `toybox/boundary.test.ts` refuses any import of a game
+from the engine. Map and the five-folder contract: [`studio/toybox/README.md`](../../../studio/toybox/README.md).
+
 Runbook and the map of the tree: [`studio/README.md`](../../../studio/README.md).
 What shipped, in order, and where the plan is parked: [`studio/docs/build-log.md`](../../../studio/docs/build-log.md).
 The rules every style agrees with: [`studio/docs/art-bible.md`](../../../studio/docs/art-bible.md).
