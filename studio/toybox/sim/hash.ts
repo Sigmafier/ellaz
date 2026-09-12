@@ -93,6 +93,7 @@ export const HASHED_AI_FIELDS: readonly HashedAiField[] = [
   "wantMx",
   "wantMz",
   "wantAttack",
+  "hold",
 ];
 
 const FNV_OFFSET = 2166136261;

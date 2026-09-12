@@ -13,7 +13,7 @@ import type { AiState, CAi, CFighter, FighterState, InputFrame } from "./types";
 export interface AiThought { input: InputFrame; ai: AiState; rng: number }
 
 export function freshAi(): AiState {
-  return { cooldown: 0, mode: 0, modeT: 0, wantMx: 0, wantMz: 0, wantAttack: false };
+  return { cooldown: 0, mode: 0, modeT: 0, wantMx: 0, wantMz: 0, wantAttack: false, hold: 0 };
 }
 
 /** how far the attack reaches, in FP: the widest itr box across the attack state's frames */
@@ -42,7 +42,7 @@ function towardX(dx: number, reach: number, params: CAi): -1 | 0 | 1 {
 
 function retreating(self: FighterState, target: FighterState, ai: AiState, rng: number): AiThought {
   const mx = (-sign(target.x - self.x)) as -1 | 0 | 1;
-  const next: AiState = { ...ai, modeT: ai.modeT - 1, mode: ai.modeT - 1 > 0 ? 2 : 0, wantMx: mx, wantMz: 0, wantAttack: false };
+  const next: AiState = { ...ai, modeT: ai.modeT - 1, mode: ai.modeT - 1 > 0 ? 2 : 0, wantMx: mx, wantMz: 0, wantAttack: false, hold: 0 };
   return { input: { mx, mz: 0, attack: false }, ai: next, rng };
 }
 
@@ -60,18 +60,29 @@ export function bodyFront(cf: CFighter): number {
 }
 
 /**
- * While the target's swing is ahead, with `holdWhenTargetAttacks` odds this tick: step
- * out of the target's reach if inside it, else stand and wait. Only while APPROACHING
- * (mode 0) - a fighter already reacting in range (mode 1) is committed and swings through.
+ * While the target's swing is ahead, with `holdWhenTargetAttacks` odds: step out of the
+ * target's reach if inside it, else stand and wait. Only while APPROACHING (mode 0) - a
+ * fighter already reacting in range (mode 1) is committed and swings through.
  * The danger radius is the target's reach plus THIS fighter's body front plus the pad:
  * traced 2026-09-12, a teddy holding at 60 px against a 56 px punch was still hit at
  * 64-66 px, because its own hurt box begins 9 px ahead of its pivot.
+ *
+ * The odds are rolled ONCE per swing and the answer carried in `ai.hold` (1 hold, 2 walk)
+ * until the swing ends. Rolled per tick - as it first shipped - the enemy walked on some
+ * ticks and stood on others at random, each 1-2 tick state restarting its clip at frame 0:
+ * the flicker the operator saw on 2026-09-12 (210 of 260 enemy state changes inside the
+ * 18% of ticks the hero swings, measured under the scripted hero).
  */
-function holdBack(cf: CFighter, tcf: CFighter, params: CAi, dx: number, mx: -1 | 0 | 1, mz: -1 | 0 | 1, rng0: number): { mx: -1 | 0 | 1; mz: -1 | 0 | 1; rng: number } {
-  const [rng, byte] = rngByte(rng0);
-  if (byte >= params.holdWhenTargetAttacks) return { mx, mz, rng };
+function holdBack(cf: CFighter, tcf: CFighter, params: CAi, dx: number, mx: -1 | 0 | 1, mz: -1 | 0 | 1, hold0: 0 | 1 | 2, rng0: number): { mx: -1 | 0 | 1; mz: -1 | 0 | 1; hold: 1 | 2; rng: number } {
+  let rng = rng0, hold: 1 | 2;
+  if (hold0 === 0) {
+    let byte: number;
+    [rng, byte] = rngByte(rng);
+    hold = byte < params.holdWhenTargetAttacks ? 1 : 2;
+  } else hold = hold0;
+  if (hold === 2) return { mx, mz, hold, rng };
   const danger = reachOf(tcf) + bodyFront(cf) + params.reachPad.min * FP;
-  return { mx: abs(dx) <= danger ? ((-sign(dx)) as -1 | 0 | 1) : 0, mz: 0, rng };
+  return { mx: abs(dx) <= danger ? ((-sign(dx)) as -1 | 0 | 1) : 0, mz: 0, hold, rng };
 }
 
 /** One tick of thought. `tcf` is the TARGET's compiled fighter: the AI reads its swing and its reach */
@@ -82,8 +93,10 @@ export function thinkAi(self: FighterState, target: FighterState, cf: CFighter, 
   const reach = reachOf(cf);
   let mz = towardZ(dz, params);
   let mx = towardX(dx, reach, params);
+  // `hold` lives exactly as long as (approaching AND the target's swing is ahead); any other tick clears it
+  let hold: 0 | 1 | 2 = 0;
   if (params.holdWhenTargetAttacks > 0 && ai.mode === 0 && swinging(target, tcf)) {
-    ({ mx, mz, rng } = holdBack(cf, tcf, params, dx, mx, mz, rng));
+    ({ mx, mz, hold, rng } = holdBack(cf, tcf, params, dx, mx, mz, ai.hold, rng));
   }
   let cooldown = ai.cooldown > 0 ? ai.cooldown - 1 : 0;
   let modeT = ai.modeT;
@@ -93,7 +106,7 @@ export function thinkAi(self: FighterState, target: FighterState, cf: CFighter, 
     if (ai.mode === 0) {
       // first sight of the target in range: react after a short delay
       [rng, modeT] = rngRange(rng, params.reactTicks[0], params.reactTicks[1]);
-      return { input: { mx: 0, mz: 0, attack: false }, ai: { cooldown, mode: 1, modeT, wantMx: 0, wantMz: 0, wantAttack: false }, rng };
+      return { input: { mx: 0, mz: 0, attack: false }, ai: { cooldown, mode: 1, modeT, wantMx: 0, wantMz: 0, wantAttack: false, hold: 0 }, rng };
     }
     if (modeT > 0) modeT -= 1;
     if (modeT === 0) {
@@ -104,10 +117,10 @@ export function thinkAi(self: FighterState, target: FighterState, cf: CFighter, 
       if (byte < params.retreatChance) {
         let ticks: number;
         [rng, ticks] = rngRange(rng, params.retreatTicks[0], params.retreatTicks[1]);
-        return { input: { mx: 0, mz: 0, attack: true }, ai: { cooldown, mode: 2, modeT: ticks, wantMx: 0, wantMz: 0, wantAttack: true }, rng };
+        return { input: { mx: 0, mz: 0, attack: true }, ai: { cooldown, mode: 2, modeT: ticks, wantMx: 0, wantMz: 0, wantAttack: true, hold: 0 }, rng };
       }
     }
   }
   const mode = inRange ? (ai.mode === 1 ? 1 : 0) : 0;
-  return { input: { mx, mz, attack }, ai: { cooldown, mode, modeT: mode === 1 ? modeT : 0, wantMx: mx, wantMz: mz, wantAttack: attack }, rng };
+  return { input: { mx, mz, attack }, ai: { cooldown, mode, modeT: mode === 1 ? modeT : 0, wantMx: mx, wantMz: mz, wantAttack: attack, hold: mode === 0 ? hold : 0 }, rng };
 }

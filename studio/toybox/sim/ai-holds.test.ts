@@ -94,32 +94,70 @@ describe("holdWhenTargetAttacks", () => {
     expect(a.rng).toBe(1234);
   });
 
-  it("draws one rng byte per held tick, from the sim's rng - so a replay holds on the same ticks", () => {
+  it("draws its byte from the sim's rng - so a replay decides the same way", () => {
     const a = thinkAi(far, swingingRobot, teddy, robot, { ...params, holdWhenTargetAttacks: 255 }, freshAi(), 1234);
     expect(a.rng).not.toBe(1234);
     const again = thinkAi(far, swingingRobot, teddy, robot, { ...params, holdWhenTargetAttacks: 255 }, freshAi(), 1234);
     expect(again.rng).toBe(a.rng);
-    // in between: 128 holds roughly half the ticks over a long swing, never all, never none
-    let rng = 7, held = 0;
-    for (let i = 0; i < 400; i++) {
-      const th = thinkAi(far, swingingRobot, teddy, robot, { ...params, holdWhenTargetAttacks: 128 }, freshAi(), rng);
-      rng = th.rng;
-      if (th.input.mx === 0) held += 1;
-    }
-    expect(held).toBeGreaterThan(120);
-    expect(held).toBeLessThan(280);
   });
 
-  it("the measurement: a robot standing still and mashing attack for 6,000 ticks takes 0 hits at hold 0 and at least one at the file's value, on every one of three seeds", () => {
-    // measured 2026-09-12 at attackCooldownTicks 60: hold 0 -> 0,0,0,0,0 over five seeds; hold 200 -> 2,3,10,1,4.
+  // The flicker the operator saw on 2026-09-12: the decision was re-rolled EVERY tick of the
+  // target's swing, so at 160/256 an enemy walked on 38% of those ticks and stood on the rest,
+  // at random, one tick at a time - each 1-2 tick state restarting its clip at frame 0. Measured
+  // under the scripted hero: 210 of 260 enemy state changes fell inside the 18% of ticks the hero
+  // swings, and 149 of 248 walk/idle runs lasted one or two ticks. One decision per swing.
+  it("decides ONCE per swing: fed its own state back through a long swing it draws one byte on the first tick and none after, and holds every tick or walks every tick - never a mix", () => {
+    const p = { ...params, holdWhenTargetAttacks: 128 };
+    let heldSwings = 0, mixed = 0, drewLater = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const first = thinkAi(far, swingingRobot, teddy, robot, p, freshAi(), seed);
+      expect(first.rng).not.toBe(seed);
+      let rng = first.rng, ai = first.ai, held = first.input.mx === 0 ? 1 : 0;
+      for (let i = 1; i < 60; i++) {
+        const th = thinkAi(far, swingingRobot, teddy, robot, p, ai, rng);
+        if (th.rng !== rng) drewLater += 1;
+        rng = th.rng;
+        ai = th.ai;
+        if (th.input.mx === 0) held += 1;
+      }
+      if (held === 60) heldSwings += 1;
+      else if (held !== 0) mixed += 1;
+    }
+    expect(drewLater).toBe(0);
+    expect(mixed).toBe(0);
+    // and 128 holds roughly half the SWINGS - never all, never none
+    expect(heldSwings).toBeGreaterThan(8);
+    expect(heldSwings).toBeLessThan(32);
+  });
+
+  it("forgets the decision when the swing ends: a calm tick writes hold 0 and draws nothing; the next swing draws afresh", () => {
+    const p = { ...params, holdWhenTargetAttacks: 255 };
+    const a = thinkAi(far, swingingRobot, teddy, robot, p, freshAi(), 1234);
+    expect(a.ai.hold).toBe(1);
+    const calm = thinkAi(far, r, teddy, robot, p, a.ai, a.rng);
+    expect(calm.ai.hold).toBe(0);
+    expect(calm.rng).toBe(a.rng);
+    const again = thinkAi(far, swingingRobot, teddy, robot, p, calm.ai, calm.rng);
+    expect(again.rng).not.toBe(calm.rng);
+    expect(again.ai.hold).toBe(1);
+  });
+
+  it("the measurement: a robot standing still and mashing attack for 6,000 ticks takes 0 hits at hold 0 on every one of five seeds, and some at the file's value across them", () => {
+    // measured 2026-09-12 at attackCooldownTicks 60, per-tick hold: hold 0 -> 0,0,0,0,0 over five seeds; hold 200 -> 2,3,10,1,4.
     // At the old cooldown of 45 no hold value landed a hit - the teddy cannot cross the 27 px between the
     // robot's reach and its own inside a 25-tick recovery - which is why the match file moved to 60.
-    const seeds = [loaded.mode.seed, 1, 2];
+    // Re-measured the same day under the per-swing hold (the flicker fix): hold 200 -> 1,0,3,2,0 over the
+    // same five seeds, teddy swings 13/17/16/14/13. A held swing is now held WHOLE, so the teddy never creeps
+    // in during one, and the hits it lands come only from closing inside the robot's recovery - fewer, and
+    // no single hold value reads >= 1 on every seed (matrix 128..255, five seeds: seed 1 reads 0 at all of
+    // them). So the gate is the aggregate: some hits across five seeds at the file's value, none at 0.
+    const seeds = [loaded.mode.seed, 1, 2, 3, 4];
     const before = seeds.map((seed) => mashHits(withHold(0, seed), 6000));
     const after = seeds.map((seed) => mashHits(withHold(params.holdWhenTargetAttacks, seed), 6000));
-    console.log(`ai-holds: standing-mash hits taken by the robot over 6,000 ticks, seeds ${seeds.join("/")} - hold 0: ${before.join("/")}, hold ${params.holdWhenTargetAttacks} (teddy-cpu.json): ${after.join("/")}`);
-    expect(before).toEqual([0, 0, 0]);
-    for (const n of after) expect(n).toBeGreaterThanOrEqual(1);
+    const total = after.reduce((a, b) => a + b, 0);
+    console.log(`ai-holds: standing-mash hits taken by the robot over 6,000 ticks, seeds ${seeds.join("/")} - hold 0: ${before.join("/")}, hold ${params.holdWhenTargetAttacks} (teddy-cpu.json): ${after.join("/")} (total ${total})`);
+    expect(before).toEqual([0, 0, 0, 0, 0]);
+    expect(total).toBeGreaterThanOrEqual(3);
     expect(mashHits(data, 6000)).toBe(after[0]);
   });
 });

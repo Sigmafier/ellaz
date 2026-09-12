@@ -210,7 +210,8 @@ export interface FightData {
 export interface InputFrame { mx: -1 | 0 | 1; mz: -1 | 0 | 1; attack: boolean }
 export const NO_INPUT: InputFrame = { mx: 0, mz: 0, attack: false };
 
-export interface AiState { cooldown: number; mode: 0 | 1 | 2; modeT: number; wantMx: -1 | 0 | 1; wantMz: -1 | 0 | 1; wantAttack: boolean }
+/** `hold` is the approach decision for the target's CURRENT swing: 0 none (the target is calm, or this fighter is not approaching), 1 holding back through it, 2 walking through it. Decided once per swing, never per tick */
+export interface AiState { cooldown: number; mode: 0 | 1 | 2; modeT: number; wantMx: -1 | 0 | 1; wantMz: -1 | 0 | 1; wantAttack: boolean; hold: 0 | 1 | 2 }
 
 export interface FighterState {
   x: number; z: number; h: number;          // FP world px; h is height above the floor, >= 0

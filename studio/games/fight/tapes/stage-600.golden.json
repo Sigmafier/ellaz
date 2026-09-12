@@ -1,15 +1,15 @@
 {
   "tape": "stage-600",
   "ticks": 600,
-  "hash": "1be09f21",
-  "chain": "801d2ac4",
-  "eventHash": "c7532cf4",
+  "hash": "38c4cb3c",
+  "chain": "eaa3c2af",
+  "eventHash": "442ceea2",
   "hp": [
     110,
     0,
     20,
     -6,
-    -4,
+    8,
     14,
     20,
     14,
@@ -20,12 +20,12 @@
     14
   ],
   "winner": -1,
-  "hits": 7,
+  "hits": 6,
   "stage": {
     "wave": 0,
     "wphase": 0,
-    "coins": 1,
-    "xp": 10,
+    "coins": 0,
+    "xp": 0,
     "level": 2
   }
 }

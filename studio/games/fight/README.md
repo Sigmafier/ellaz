@@ -102,12 +102,24 @@ folders and a page, on the same engine.
   mash still takes 2/4/5 over three seeds (was 2/3/10: the teddy's landed hits
   refund too).
 - `ai/*.json` `holdWhenTargetAttacks` (teddy 200, slime 160, bat 120): 0-255
-  against one rng byte each tick the target's swing is still ahead - the odds
-  the AI steps out of the target's reach (its reach + this fighter's body
-  front + `reachPad.min`) or waits there instead of walking in. Only while
-  approaching; one already reacting in range swings through. 255 is too
-  careful (22 attacks, 0 landed at cooldown 60); 200 lands. Traced before it
-  was believed: a hold that stood in place sat 44 px inside a 56 px punch.
+  against one rng byte, drawn ONCE per swing of the target - the odds the AI
+  holds through that whole swing (steps out of the target's reach - its reach
+  + this fighter's body front + `reachPad.min` - or waits there) instead of
+  walking through it. Only while approaching; one already reacting in range
+  swings through. Traced before it was believed: a hold that stood in place
+  sat 44 px inside a 56 px punch. **It was per TICK when it first shipped,
+  and that was the flicker the operator saw on 2026-09-12**: at 160 an enemy
+  walked on 38% of a swing's ticks and stood on the rest, one tick at a time,
+  each 1-2 tick state restarting its clip at frame 0. Measured under the
+  scripted hero of `stage-completes.test.ts`: 210 of 260 enemy state changes
+  fell inside the 18% of ticks the hero swings, and 149 of 248 walk/idle runs
+  lasted one or two ticks; per swing, 29 of 80 and 0 runs under three ticks
+  (25 one-tick idles remain, the reach band's edge). The price: a held swing
+  is held whole, so the standing-mash measurement above fell from 2/4/5 to
+  1/0/3/2/0 over five seeds at 200 (teddy swings 13-17), and no hold value
+  reads a hit on every seed (matrix 128-255: seed 1 is 0 at all of them) -
+  `ai-holds.test.ts` now gates the aggregate over five seeds, and hold 0 still
+  reads 0 on every one.
 - The moves files' `cancelFrom`, damage, knock and stun are the studio's
   (`studio/art/characters/<id>/moves.ts`), exported and copied here.
 - `stage/toybox-quest.json`: every number from the demo the operator chose

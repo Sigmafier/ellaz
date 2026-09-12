@@ -30,6 +30,7 @@ function makeState(): FightState {
     wantMx: -1, // +1 -> 0
     wantMz: 0, // +1 -> 1
     wantAttack: false, // flips
+    hold: 0, // +1 -> 1, still a valid 0 | 1 | 2
   };
   const stage: StageState = {
     wave: 1,
@@ -177,7 +178,7 @@ describe("hashState discriminates EVERY hashed field", () => {
 
   it("giving the ai-less fighter an ai changes the hash", () => {
     const s = clone(makeState());
-    s.fighters[1].ai = { cooldown: 0, mode: 0, modeT: 0, wantMx: 0, wantMz: 0, wantAttack: false };
+    s.fighters[1].ai = { cooldown: 0, mode: 0, modeT: 0, wantMx: 0, wantMz: 0, wantAttack: false, hold: 0 };
     expect(hashState(s)).not.toBe(base);
   });
 
