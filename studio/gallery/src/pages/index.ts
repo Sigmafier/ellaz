@@ -8,7 +8,6 @@ import { PalettesMain } from "./palettes";
 import { TechniquesMain, TechniquesSide } from "./techniques";
 import { GamesMain } from "./games";
 import { LedgerMain } from "./ledger";
-import { NextGamesMain, NextGamesSide } from "./next-games";
 
 export interface PageProps { params: URLSearchParams }
 export interface Page { label: string; Side?: FC<PageProps>; Main: FC<PageProps> }
@@ -22,5 +21,4 @@ export const PAGES: Record<PageId, Page> = {
   techniques: { label: "Techniques", Side: TechniquesSide, Main: TechniquesMain },
   games: { label: "Games", Main: GamesMain },
   ledger: { label: "Ledger", Main: LedgerMain },
-  next: { label: "Next games", Side: NextGamesSide, Main: NextGamesMain },
 };
