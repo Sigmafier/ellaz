@@ -50,6 +50,8 @@ export class CanvasCell implements Cell {
   private ctx: CanvasRenderingContext2D | null = null;
   private view = { w: 0, h: 0 };
   private drawn = 0;
+  /** device px per game px: the backbuffer is the view times this, so a position can land on any device pixel */
+  private k = 1;
 
   async load(sets: readonly SpriteSetRef[]): Promise<void> {
     await Promise.all(sets.map(async (set) => {
@@ -74,13 +76,23 @@ export class CanvasCell implements Cell {
     this.canvas = canvas;
     this.ctx = ctx;
     this.view = view;
+    // the backbuffer is the view at the integer upscale, not the view upscaled by CSS: a sprite then
+    // sits on any device pixel, and a half-px move between two sim ticks is a move the display shows
     const fit = (): void => {
       const k = Math.max(1, Math.floor(Math.min(window.innerWidth / view.w, window.innerHeight / view.h)));
+      this.k = k;
+      canvas.width = view.w * k;
+      canvas.height = view.h * k;
       canvas.style.width = `${view.w * k}px`;
       canvas.style.height = `${view.h * k}px`;
     };
     fit();
     window.addEventListener("resize", fit);
+  }
+
+  /** a game-px coordinate on this canvas's grid: whole device pixels, so the art stays crisp */
+  private snap(v: number): number {
+    return Math.round(v * this.k) / this.k;
   }
 
   /** the harness reads the keyboard through shared/input; a cell may add its own later */
@@ -95,12 +107,12 @@ export class CanvasCell implements Cell {
 
   beginFrame(camX: number, shakeX: number, shakeY: number): void {
     const ctx = this.g();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.setTransform(this.k, 0, 0, this.k, 0, 0);
     ctx.globalAlpha = 1;
     ctx.fillStyle = CREAM;
     ctx.fillRect(0, 0, this.view.w, this.view.h);
     ctx.imageSmoothingEnabled = false;
-    ctx.translate(Math.round(shakeX - camX), Math.round(shakeY));
+    ctx.translate(this.snap(shakeX - camX), Math.round(shakeY));
   }
 
   drawArena(ops: readonly ArenaDrawOp[]): void {
@@ -116,8 +128,8 @@ export class CanvasCell implements Cell {
     const ctx = this.g();
     const rx = Math.max(1, Math.round(op.w / 2));
     const ry = Math.max(1, Math.round(op.h / 2));
-    const cx = Math.round(op.x);
-    const cy = Math.round(op.y);
+    const cx = this.snap(op.x);
+    const cy = this.snap(op.y);
     ctx.fillStyle = SHADOW;
     for (let dy = -ry; dy <= ry; dy++) {
       const hw = Math.round(rx * Math.sqrt(Math.max(0, 1 - (dy / (ry + 0.5)) ** 2)));
@@ -127,13 +139,13 @@ export class CanvasCell implements Cell {
 
   /** the coins: the shared painter's rects, in world space like the arena */
   drawProps(ops: readonly PropOp[]): void {
-    this.drawArena(propOps(ops));
+    this.drawArena(propOps(ops.map((p) => ({ ...p, x: this.snap(p.x), y: this.snap(p.y) }))));
   }
 
   drawSprite(op: SpriteOp): void {
     const sheet = this.sheets.get(op.set);
     if (!sheet) throw new Error(`canvas cell: no sprite set "${op.set}"`);
-    drawFrame(this.g(), sheet.img, sheet.atlas, sheet.manifest, op.frame, op.x, op.y, DRAW_SCALE, op.flip);
+    drawFrame(this.g(), sheet.img, sheet.atlas, sheet.manifest, op.frame, this.snap(op.x), this.snap(op.y), DRAW_SCALE, op.flip);
     this.drawn += 1;
   }
 
@@ -204,7 +216,7 @@ export class CanvasCell implements Cell {
     const ctx = this.g();
     // the HUD never shakes, but the boxes drawn after it do - so restore
     ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.setTransform(this.k, 0, 0, this.k, 0, 0);
     ctx.globalAlpha = 1;
     if (model.stage) { this.drawStage(model); ctx.restore(); return; }
     const w = 180;

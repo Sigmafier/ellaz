@@ -160,7 +160,9 @@ describe("viewOf", () => {
     expect(s.tick).toBe(8);
     const plan = viewOf(prev, s, 256, data);
     const f = s.fighters[0];
-    expect(spriteOf(plan, 0).x).toBe(toPx(f.x));
+    // the plan carries the FRACTION of a game px; a cell rounds to its own grid
+    expect(spriteOf(plan, 0).x).toBe(f.x / FP);
+    expect(Math.floor(spriteOf(plan, 0).x)).toBe(toPx(f.x));
     expect(spriteOf(plan, 0).frame).toBe(robot.states[f.st].frameNames[f.frame]);
     expect(f.x).toBeGreaterThan(prev.fighters[0].x);
   });
@@ -179,9 +181,11 @@ describe("viewOf", () => {
     const shift0 = spriteOf(viewOf(s, moved, 0, data), 0).x;
     expect(shift0 - still0).toBe(0);
 
-    // halfway is half a pixel, which floors to none - the proof that the view
-    // rounds and the sim does not
-    expect(spriteOf(viewOf(s, moved, 128, data), 0).x - still256).toBe(0);
+    // halfway is HALF A PIXEL, kept: the view no longer floors (2026-09-12) - on a 120 Hz display
+    // that half pixel is the frame between two sim ticks, and the cell rounds it to its own grid
+    // (a whole device pixel at an upscale of 2 or more; whole game px at 1)
+    expect(spriteOf(viewOf(s, moved, 128, data), 0).x - still256).toBe(0.5);
+    expect(spriteOf(viewOf(s, moved, 64, data), 0).x - still256).toBe(0.25);
     // and the fighter that did not move never moves, at any alpha
     for (const a of [0, 64, 128, 192, 256]) {
       expect(spriteOf(viewOf(s, moved, a, data), 1).x).toBe(spriteOf(viewOf(s, s, a, data), 1).x);

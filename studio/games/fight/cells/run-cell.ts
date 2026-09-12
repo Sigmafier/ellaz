@@ -115,7 +115,10 @@ export async function runCell(cell: Cell, opts: CellOptions): Promise<void> {
         cell.drawHud(plan.hud);
         if (plan.boxes.length) cell.drawBoxes(plan.boxes);
         cell.endFrame();
-        const key = plan.sprites.map((s) => `${s.frame}@${s.x},${s.y}`).join("|");
+        // distinct draws counts what reached the DEVICE pixels: the plan carries fractional px, the
+        // cell rounds to 1/k where k is its backbuffer over the view, so the key rounds the same way
+        const k = Math.max(1, Math.round(cell.stats().backbuffer[0] / loaded.arena.view.w));
+        const key = plan.sprites.map((s) => `${s.frame}@${Math.round(s.x * k)},${Math.round(s.y * k)}`).join("|");
         if (draws > 0 && n > 0) { if (key !== lastKey) distinct += 1; }
         if (n > 0) draws += 1;
         lastKey = key;

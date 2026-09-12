@@ -37,6 +37,16 @@ half drags to walk, right half taps to swing) through one poll per tick; a
 still be admitted by the tournament's own gate. A tape names its own mode, so
 `?tape=stage-600&fast=1` replays the stage golden without a `?mode=`.
 
+**Both pages draw at the display's integer upscale, not at 640x360 stretched
+by CSS** (since 2026-09-12). The draw plan carries the fraction of a game px
+(`viewOf` no longer floors the interpolation), and each cell rounds to its own
+grid - a whole device pixel at upscale `k`, so the art stays crisp while a
+half-px move between two sim ticks is a move the display shows. Measured with
+a rAF shim on the built pages, the stage-600 tape: distinct draws at an
+emulated 120 Hz went 88.5% -> 96.7% (render) and 89.1% -> 96.5% (canvas), the
+same figure the pages read at 60 Hz; the goldens did not move, because none of
+this touches the sim. `?stats=1` prints `distinctDraws` and the backbuffer.
+
 **Tuning loop**: edit a JSON under `data/`, rebuild, republish, reload. No
 port; nothing under `data/` needs a test to change, and everything under it is
 held by one (`data.test.ts`, `assert:fight`). A sim change moves a golden -

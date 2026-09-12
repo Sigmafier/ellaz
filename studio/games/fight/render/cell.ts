@@ -90,6 +90,8 @@ export class Phaser4Cell implements Cell {
   private drawn = 0;
   private order = 0;
   private textUsed = 0;
+  /** device px per game px: the Game is the view times this, the Graphics layers are scaled by it, and a sprite sits on any device pixel */
+  private k = 1;
 
   /**
    * The manifests are fetched here rather than through Phaser's loader: the
@@ -162,17 +164,25 @@ export class Phaser4Cell implements Cell {
     const game = this.game;
     if (!game) throw new Error("phaser4 cell: mount before load");
     this.view = view;
-    game.scale.resize(view.w, view.h);
     host.appendChild(this.parent);
     const canvas = game.canvas;
     canvas.style.cssText = "display:block;image-rendering:pixelated;touch-action:none;margin:0 auto";
+    // the Game is the view at the integer upscale, not the view upscaled by CSS: every draw below is
+    // scaled by k inside this cell, so a half-px move between two sim ticks reaches a device pixel
     const fit = (): void => {
       const k = Math.max(1, Math.floor(Math.min(window.innerWidth / view.w, window.innerHeight / view.h)));
+      this.k = k;
+      game.scale.resize(view.w * k, view.h * k);
       canvas.style.width = `${view.w * k}px`;
       canvas.style.height = `${view.h * k}px`;
     };
     fit();
     window.addEventListener("resize", fit);
+  }
+
+  /** a game-px coordinate on this cell's grid: whole device pixels, so the art stays crisp */
+  private snap(v: number): number {
+    return Math.round(v * this.k) / this.k;
   }
 
   /** the harness reads the keyboard through shared/input; a cell may add its own later */
@@ -197,10 +207,12 @@ export class Phaser4Cell implements Cell {
     for (const t of this.texts) t.setVisible(false);
     this.order = 0;
     this.textUsed = 0;
+    // every Graphics layer draws in game px and is scaled to device px here (k can change on a resize)
+    for (const g of [l.arena, l.shadow, l.props, l.fx, l.hud, l.boxes]) g.setScale(this.k);
     // the canvas arm translates the world by (shakeX - camX, shakeY); a camera
     // scroll of s moves the world by -s, so the sign flips here and nowhere else
     const cam = (this.scene as Phaser.Scene).cameras.main;
-    cam.setScroll(-Math.round(shakeX - camX), -Math.round(shakeY));
+    cam.setScroll(-Math.round((shakeX - camX) * this.k), -Math.round(shakeY * this.k));
   }
 
   drawArena(ops: readonly ArenaDrawOp[]): void {
@@ -216,8 +228,8 @@ export class Phaser4Cell implements Cell {
     const g = this.gfx().shadow;
     const rx = Math.max(1, Math.round(op.w / 2));
     const ry = Math.max(1, Math.round(op.h / 2));
-    const cx = Math.round(op.x);
-    const cy = Math.round(op.y);
+    const cx = this.snap(op.x);
+    const cy = this.snap(op.y);
     g.fillStyle(SHADOW, SHADOW_ALPHA);
     for (let dy = -ry; dy <= ry; dy++) {
       const hw = Math.round(rx * Math.sqrt(Math.max(0, 1 - (dy / (ry + 0.5)) ** 2)));
@@ -228,7 +240,7 @@ export class Phaser4Cell implements Cell {
   /** the coins: the shared painter's rects on their own band, in world space */
   drawProps(ops: readonly PropOp[]): void {
     const g = this.gfx().props;
-    for (const op of propOps(ops)) {
+    for (const op of propOps(ops.map((p) => ({ ...p, x: this.snap(p.x), y: this.snap(p.y) })))) {
       g.fillStyle(hex(op.color), 1);
       g.fillRect(op.x, op.y, op.w, op.h);
     }
@@ -250,8 +262,10 @@ export class Phaser4Cell implements Cell {
     // ALWAYS after setFrame: Phaser reads the atlas's own per-frame pivot when
     // it updates an origin, and the manifest is this cell's one source for it
     s.setOrigin(o.x, o.y);
-    s.setPosition(op.x, op.y);
-    s.setScale(op.flip ? -DRAW_SCALE : DRAW_SCALE, DRAW_SCALE);
+    // device px: the plan's fraction of a game px lands on a whole device pixel, and pixelArt's
+    // roundPixels then has nothing left to round
+    s.setPosition(Math.round(op.x * this.k), Math.round(op.y * this.k));
+    s.setScale((op.flip ? -DRAW_SCALE : DRAW_SCALE) * this.k, DRAW_SCALE * this.k);
     s.setDepth(BAND.sprite + this.order++);
     s.setVisible(true);
     this.drawn += 1;
@@ -364,7 +378,8 @@ export class Phaser4Cell implements Cell {
     const img = this.textAt(this.textUsed++);
     img.setTexture(key);
     img.setOrigin(0, 0);
-    img.setPosition(Math.round(x), Math.round(y));
+    img.setPosition(Math.round(x * this.k), Math.round(y * this.k));
+    img.setScale(this.k);
     img.setVisible(true);
   }
 
