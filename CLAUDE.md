@@ -33,6 +33,13 @@ and canvas adapters, and a gallery. Same independence as the poker
 table: its own `package.json`, tests, nine gates and `studio.yml`; nothing in
 `src/` or `holdem/` imports from it and nothing in it imports from them, and
 **root `npm test` runs none of its tests** - `cd studio && npm run build:check`.
+**Since 2026-09-12 it also holds the Toybox ENGINE** (`studio/toybox/`: a pure
+int32 sim, a data loader with one schema per data directory, two renderer
+cells, and the tape harness that admits a renderer only on three hashes) **and
+the games built on it** (`studio/games/<name>/`, each five folders and a page:
+the fight, and the crypt since 2026-09-13 - the second game cost the engine one
+data-gated rule and three painter kinds). Adding one is the **`add-a-toybox-game`
+skill**; the engine's contract is [`studio/toybox/README.md`](studio/toybox/README.md).
 Run the **`studio-workspace` skill** before touching it; the map is
 [`studio/README.md`](studio/README.md) and the log of what shipped, with the
 plan's parked position, is [`studio/docs/build-log.md`](studio/docs/build-log.md). **The gallery is a TOOL, so it is
