@@ -68,14 +68,11 @@ the hero's hits), and flies the coins. A fighter file may say `flying` +
 `hover` (the bat holds its height alive, drops when KO'd). Play it:
 `page/index.html?mode=stage`.
 
-**Crypt reuses all of it.** A room is a wave with a door: the same fixed
-roster with `wave` on each row, the same dormant predicate, the same camera
-(a room is a screen the camera locks to), the same pickups, the same stage
-HUD layout. What Crypt adds is data: a `rooms[]` shape where `go` walks
-through a door instead of scrolling, and a `door` prop the arena painter
-draws. Nothing in `toybox/sim/stage.ts` names a wave count except
-`data.stage.waves` - and Crypt is its own directory under `games/`, five
-folders and a page, on the same engine.
+**The crypt reuses all of it** - built 2026-09-12 as
+[`games/crypt/`](../crypt/README.md): a room is a wave, the go phase is a walk
+into a doorway, and the one engine rule it added (`door.x` in a stage file: the
+camera holds its room and cuts) is gated on a block this game's stage file does
+not carry, so both goldens here stayed byte-identical through it.
 
 ## Tuning that is data, not code
 

@@ -11,9 +11,9 @@ with both goldens byte-identical after every one of the seven commits.
 
 | directory | holds | imports |
 |---|---|---|
-| `sim/` | the sim: int32 in 1/256 px (`FP`), 60 ticks/s, seeded rng IN the state, name-sorted state table, FNV-1a over an ordered field list. Pure `step(state, inputs, data)`; `match.ts` is Versus, `stage.ts` + `pickups.ts` are the wave run; `compile.ts` turns a game's json into `FightData`. Twenty-one test files beside it, over the fight's data | nothing outside `sim/` - `no-studio-import.test.ts` holds it |
+| `sim/` | the sim: int32 in 1/256 px (`FP`), 60 ticks/s, seeded rng IN the state, name-sorted state table, FNV-1a over an ordered field list. Pure `step(state, inputs, data)`; `match.ts` is Versus, `stage.ts` + `pickups.ts` are the wave run (a stage naming a `door` cuts between rooms instead of scrolling); `compile.ts` turns a game's json into `FightData`. Twenty-one test files beside it, over both games' data | nothing outside `sim/` - `no-studio-import.test.ts` holds it |
 | `data/` | `load.ts` (`loadMode(modeId, gameRoot)` - the node loader, reads `<game>/data/` and `<game>/assets/`), `schemas/<kind>.schema.json` (one per data directory, NAMED after it), `data.test.ts` (every game's data against the schema for its kind) | `sim/` |
-| `cells/` | `run-cell.ts` (the one loop: it owns the data, the sim, the clock, the tape, the hash and the input; a cell owns the pixels), `contract.ts` (what a cell IS - no `update`, no `step`, no `dt`), `retime.ts`, `shared/` (arena painter, browser loader, fx, input, props), `canvas/` (the bar, zero engine bytes, `?game=`), `phaser/` (the Phaser 4 winner) | `sim/`, `../adapters/` |
+| `cells/` | `run-cell.ts` (the one loop: it owns the data, the sim, the clock, the tape, the hash and the input; a cell owns the pixels), `contract.ts` (what a cell IS - no `update`, no `step`, no `dt`), `retime.ts`, `shared/` (arena painter with six kinds - wall, planks, shelf, stone, flagstones, door - and its test; browser loader, fx, input, props), `canvas/` (the bar, zero engine bytes, `?game=`), `phaser/` (the Phaser 4 winner) | `sim/`, `../adapters/` |
 | `harness/` | `run-tape.mjs` (the admission gate), `assert-equal-work.mjs`, `bytes.mjs`, `sweep.mjs`, `write-golden.mjs`, `copy-sprites.mjs` - each takes `--game <name>` (fight by default) | `../scripts/lib/` |
 | `index.ts` | the node door: the sim's surface plus the loader | - |
 | `boundary.test.ts` | the gate on all of the above (below) | - |
@@ -24,6 +24,7 @@ cd studio
 npx vite build --config toybox/vite.config.ts        # -> studio/dist-toybox
 node toybox/harness/run-tape.mjs --game fight --tape versus-600   # every built cell + the game's page must ADMIT
 node toybox/harness/run-tape.mjs --game fight --tape stage-600
+node toybox/harness/run-tape.mjs --game crypt --tape crypt-600    # the second game, same gate
 node toybox/harness/run-tape.mjs --control                        # a bent golden must DISQUALIFY
 npm run assert:fight                                              # the tenth gate, over every games/*
 bash ~/.claude/scripts/hall-file.sh dist-toybox --title toybox-fight
@@ -44,10 +45,18 @@ directory; nothing under `toybox/` names a game.
 | `tournament/` (optional) | history: a compare page, defect logs, the raw rows `run-tape` appends to `tournament/data/raw-fight.jsonl` |
 | `README.md` | the game's own numbers and what they were measured against |
 
-The fight (`games/fight/`) is the one game today and the fixture the engine's
-tests run over; Crypt is next (a room is a wave with a door - the fixed
-roster, the dormant predicate, the camera, the pickups and the stage HUD all
-carry over; what Crypt adds is data).
+Two games today: the fight (`games/fight/`), the one the engine was pulled
+out of, and the crypt (`games/crypt/`, 2026-09-12), the first built ON it -
+the knight through three locked rooms joined by a door. The crypt cost the
+engine one rule and three art kinds, both generic: a stage file may name
+`door: { x }`, and while it does the go phase holds its room and CUTS to the
+next when the hero reaches the doorway instead of scrolling (`stage.ts`
+`followCamera`; the fight's stage file names none, so its goldens stayed
+byte-identical); and the arena painter knows `stone`, `flagstones` and `door`
+beside the toybox's `wall`, `planks` and `shelf`. Every engine test that walks
+`games/*` (`data.test.ts`, `golden-tape.test.ts`, `stage-completes.test.ts`,
+`assert:fight`) pins both games in its population line, so a broken walk cannot
+pass over one.
 
 ## The rules the gates hold
 
