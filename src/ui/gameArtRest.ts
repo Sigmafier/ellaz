@@ -551,4 +551,23 @@ export const REST: Record<string, Scene> = {
       <circle cx="46" cy="112" r="10"/><circle cx="150" cy="112" r="10"/>
       <circle cx="98" cy="22" r="10"/></g>
     <circle cx="98" cy="130" r="14" fill="${PAL.lagoon}" stroke="${I}" stroke-width="3.5"/>` },
+
+  /* Neon Survival. The card is the moment the game is made of: the ship in the
+     middle, already firing, with three shapes closing from three sides and two
+     gems left behind by ones that did not make it. Nothing is aimed and nothing
+     is held - the only decision on this card is where to stand. */
+  survivors: { a: "#2A2570", b: "#4A42B8", d: "circle", s: `
+    <g fill="${PAL.paper}" opacity=".9">
+      <circle cx="126" cy="60" r="4"/><circle cx="140" cy="50" r="4"/>
+      <circle cx="74" cy="90" r="4"/><circle cx="60" cy="100" r="4"/>
+      <circle cx="122" cy="104" r="4"/></g>
+    <path d="M52 32L68 58H36z" fill="${PAL.raspberry}" stroke="${I}" stroke-width="3.5"
+          stroke-linejoin="round"/>
+    <circle cx="158" cy="44" r="13" fill="${PAL.sunflower}" stroke="${I}" stroke-width="3.5"/>
+    <path d="M150 96L166 112L150 128L134 112z" fill="${PAL.orchid}" stroke="${I}"
+          stroke-width="3.5" stroke-linejoin="round"/>
+    <g fill="${PAL.jade}" stroke="${I}" stroke-width="2.5" stroke-linejoin="round">
+      <path d="M84 38L90 44L84 50L78 44z"/><path d="M118 122L124 128L118 134L112 128z"/></g>
+    <circle cx="100" cy="76" r="15" fill="${PAL.lagoon}" stroke="${I}" stroke-width="3.5"/>
+    <circle cx="100" cy="76" r="5" fill="${I}"/>` },
 };

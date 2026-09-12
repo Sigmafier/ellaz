@@ -162,6 +162,10 @@ describe("no game keeps a private pad", () => {
 
   it("finds the games that DO use it, so the check above is not passing by vacuum", () => {
     const users = files.filter((f) => f.src.includes("DirectionPad")).map((f) => f.file).sort();
-    expect(users).toEqual(["maze/MazeGame.tsx", "snake/SnakeGame.tsx"]);
+    expect(users).toEqual([
+      "maze/MazeGame.tsx",
+      "snake/SnakeGame.tsx",
+      "survivors/SurvivorsGame.tsx",
+    ]);
   });
 });

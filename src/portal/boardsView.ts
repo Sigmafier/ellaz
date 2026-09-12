@@ -40,7 +40,9 @@ export const BOARD_ORDER: readonly string[] = [
   "kids4",
   "kids6",
   "kids",
-  // The low rung, under four different names.
+  // The low rung, under four different names. `calm` is Neon Survival's, where
+  // the rung is how big the crowd is rather than how fast anything moves.
+  "calm",
   "short",
   "slow",
   "easy",
@@ -53,6 +55,9 @@ export const BOARD_ORDER: readonly string[] = [
   "fast",
   "hard",
   "expert",
+  // Neon Survival's top rung. Above `hard` rather than beside it: nothing else
+  // in the catalogue tightens on a clock the way its wave timer does.
+  "wild",
   // Math picks a TOPIC and an OPERATION rather than a difficulty. Neither is a
   // board id today (math records on `default`), but they are rungs a game
   // declares, so they are ordered here rather than left to sort by spelling if

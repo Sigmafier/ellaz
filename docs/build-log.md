@@ -4479,3 +4479,57 @@ verified by the listener's own cwd now.
 `scripts/repro/`**. It is not installed and was deliberately not installed. CLS was
 0.000 on all eight interleaved Lighthouse runs, both arms, which is a substitute for
 that row and not the row itself.
+
+## Neon Survival: the first action game (2026-09-12, uncommitted)
+
+Game 43, and the first one here where the danger moves on its own and the clock is the
+opponent. Your ship fires by itself at the nearest shape in range; you only choose where
+to stand. Popped shapes drop gems, gems buy a level, a level stops the clock and offers
+three upgrades from a capped set of seven. Three minutes survived wins the run.
+
+It is the second game on Phaser, which is the only reason it was affordable: the engine
+is already a lazy chunk snake pays for, so this cost its own code and nothing else.
+**First visit measured 56,591 B gz of a 56,800 ceiling WITH the game in the roster** -
+its own chunk is `game-survivors-*.js` at 15,165 B and a first visit never fetches it.
+251 pages emitted, four locales each.
+
+`logic.ts` holds the whole simulation with no DOM and no Phaser: 18 tests, and two
+planted defects (the mercy window, and a piercing bolt's already-hit list) were each
+watched turning them red before the green run was believed.
+
+### Four measurement traps, and three of them said "your game is broken"
+
+- **Do not QA this repo on `npm run dev`.** On `/mnt/c` it boots in 11 s, serves a cold
+  page in 26-50 s, and a dynamic `import()` of the game graph exceeds 200 s and wedges
+  the server. Three separate "the game is frozen" readings were all this. The control
+  settled it: `/games/snake/`, shipped for months, hung **identically** - and
+  `/games/<id>/` is not a dev route at all, those pages are build-time. `npm run preview`
+  serves the same page from `dist/` in **0.019 s**.
+- **A game that never gets a frame looks exactly like a frozen game.** In the
+  CDP-driven Chrome the clock sat at 3:00 with zero console errors; `requestAnimationFrame`
+  had fired **0 times in 3 seconds** and `document.hidden` was true. Phaser's loop is
+  rAF-driven, so nothing ran. The play harness now asserts frames FIRST and refuses to
+  report a run at all below 10 frames in 2 s.
+- **`<lastmod>` comes from `git log`, so an untracked file has no date.** The sitemap gate
+  failed at 204 dates for 208 URLs; the four without one are this game's four locales.
+  Proven with controls both ways - an untracked path returns empty, a tracked one returns
+  a real timestamp. It clears when the game is committed, and nothing else fixes it.
+- **A run labelled "Calm" must prove it was Calm.** The difficulty control is a single
+  cycling button, so the harness clicks and reads its own `aria-label` back until it says
+  the level asked for, and aborts otherwise. Assuming which way the cycle turns would have
+  reported a Normal run under the wrong name.
+
+### What it plays like, and what that measurement is worth
+
+Three full runs in a headed browser, every one ending at 0 of 3 hearts against a 180 s
+target: **61 s** (Normal, blind circle, first card taken), **68 s** (Normal, kiting,
+gun upgrades first), **101 s** (Calm, same policy). So the levels genuinely differ and
+`RULES` does what it claims - and the easiest one still ends a well-played run at 101 of
+180 s. Phone width came back clean in the same pass: **0 px horizontal overflow**, canvas
+359x478 at 390 px.
+
+The caveat belongs beside the number rather than under it: **the harness is a BLIND
+kiter.** It cannot see the shapes and a person can, so this bounds the difficulty, it does
+not settle it. Whether to ease the crowd is the operator's call and the constants are all
+named in `logic.ts` (`RULES` spawn interval, floor, tighten, speed; `KINDS` speed) waiting
+for it. Nothing was retuned to make the harness survive.

@@ -41,6 +41,7 @@ import { nonogram } from "./games/nonogram";
 import { onestroke } from "./games/onestroke";
 import { wordsearch } from "./games/wordsearch";
 import { untangle } from "./games/untangle";
+import { survivors } from "./games/survivors";
 
 export type { GameContent, GameCopy, FaqItem, Titled, Provenance, Locale, PageLocale } from "./types";
 
@@ -102,6 +103,7 @@ export const CONTENT: Record<string, GameContent> = {
   [onestroke.id]: onestroke,
   [wordsearch.id]: wordsearch,
   [untangle.id]: untangle,
+  [survivors.id]: survivors,
 };
 
 /** The ids that have prose today. */

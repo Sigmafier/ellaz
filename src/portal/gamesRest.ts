@@ -41,6 +41,7 @@ import { meta as nonogram } from "../games/nonogram/meta";
 import { meta as onestroke } from "../games/onestroke/meta";
 import { meta as wordsearch } from "../games/wordsearch/meta";
 import { meta as untangle } from "../games/untangle/meta";
+import { meta as survivors } from "../games/survivors/meta";
 
 /** The games below the fold. Fetched on idle; never part of a first visit. */
 export const REST: ReadonlyArray<GameMeta> = [
@@ -165,6 +166,15 @@ export const REST: ReadonlyArray<GameMeta> = [
   onestroke,
   wordsearch,
   untangle,
+
+  // Wave 12. `survivors` is the first ACTION game here - the first where the
+  // danger moves on its own and the clock is the opponent. It is also the second
+  // game on Phaser, which is the whole reason it was affordable: the engine is
+  // already a lazy chunk snake pays for, so this costs its own code and nothing
+  // else. You do not aim and you do not fire; the ship does that, and the only
+  // thing asked of a player is where to stand. Appended like every wave before,
+  // so its metadata and its card art both land in the lazy half by construction.
+  survivors,
 ];
 
 /**
@@ -207,4 +217,5 @@ export const REST_LOADERS: Record<string, () => Promise<{ default: GameModule }>
   onestroke: () => import("../games/onestroke/index"),
   wordsearch: () => import("../games/wordsearch/index"),
   untangle: () => import("../games/untangle/index"),
+  survivors: () => import("../games/survivors/index"),
 };
