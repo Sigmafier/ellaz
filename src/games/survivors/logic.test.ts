@@ -118,13 +118,18 @@ describe("being hit", () => {
 });
 
 describe("the clock", () => {
-  it("wins the run at three minutes", () => {
+  it("STOPS at three minutes without winning - that is when the golem arrives", () => {
+    // This test asserted `phase === "won"` here until 2026-09-12, and it was
+    // correct: reaching three minutes WAS the win. Task 7 moved the finish onto
+    // the golem, so the assertion is inverted deliberately rather than deleted.
+    // The clock reaching its end is still a real event worth pinning; it simply
+    // means something else now, and what it means is pinned in `boss.test.ts`.
     const s = newRun("normal");
     s.t = RUN_MS - 10;
     step(s, 16, STILL, rngFor(1));
-    expect(s.phase).toBe("won");
+    expect(s.phase).toBe("playing");
     expect(s.t).toBe(RUN_MS);
-    expect(s.events.some((e) => e.type === "won")).toBe(true);
+    expect(s.events.some((e) => e.type === "won")).toBe(false);
   });
 
   it("clamps a frame that took ten seconds", () => {

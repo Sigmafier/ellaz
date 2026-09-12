@@ -13,7 +13,7 @@ import { animKey, createStudioAnims, originFor, type PhaserAnimsLike } from "@sh
 import { burst as juiceBurst, haptic } from "@juice/index";
 import { CAST, CAST_KEYS, FOR_ENEMY, PLAYER, scaleFor, type CastKey, type Clip } from "./sprites";
 import {
-  ARENA, RUN_MS, TIER, WEAPONS, applyUpgrade, newRun, offerUpgrades, rngFor, step,
+  ARENA, KINDS, RUN_MS, TIER, WEAPONS, applyUpgrade, bossOf, newRun, offerUpgrades, rngFor, step,
   type EnemyKind, type LevelKey, type RunState, type UpgradeId, type WeaponId,
 } from "./logic";
 
@@ -49,6 +49,19 @@ export type SurvivorsStatus = {
   paused: boolean;
   /** The three upgrades on offer, or empty when nothing is being chosen. */
   offer: UpgradeId[];
+  /**
+   * The golem's health once it is on the board, and null for the first three
+   * minutes. The chrome swaps its countdown cell for this: after 3:00 the clock
+   * is pinned at zero and has nothing left to say, while this is the one number
+   * that decides how the run ends.
+   */
+  boss: { hp: number; maxHp: number } | null;
+  /**
+   * How many of each upgrade this run has taken, for the pips on the cards. A
+   * COPY rather than the run's own object: handing React the live record would
+   * mean a state object that mutates underneath it between renders.
+   */
+  taken: Record<UpgradeId, number>;
 };
 
 /** A mid-run ping every this many shapes. A nudge, not an achievement. */
@@ -82,6 +95,12 @@ const ENEMY_INK: Record<EnemyKind, number> = {
   runner: 0xff4d9d,
   orb: 0xffc24b,
   brute: 0xa56bff,
+  // Stone, and checked against the other six inks in this file rather than
+  // picked: it is the only cool grey among three saturated shapes (pink, amber,
+  // violet) and three weapons (ice, amber, magenta). It is the golem's death
+  // sparks AND its health bar, so the bar reads as belonging to the thing it
+  // measures.
+  golem: 0x9fb3d9,
 };
 
 /** Ground and grid at the bottom, the cast in the middle, shots and sparks on top. */
@@ -254,8 +273,11 @@ export class SurvivorsScene extends Phaser.Scene {
 
   /** Push the current status out. Called from `draw`, so it cannot go stale. */
   private publish() {
+    const boss = bossOf(this.run);
     this.onStatus?.({
       score: this.run.popped,
+      boss: boss ? { hp: boss.hp, maxHp: KINDS.golem.hp } : null,
+      taken: { ...this.run.up },
       timeLeft: Math.max(0, RUN_MS - this.run.t),
       hp: this.run.hp,
       maxHp: this.run.maxHp,
@@ -413,6 +435,14 @@ export class SurvivorsScene extends Phaser.Scene {
         // Android-Chrome, which is what makes it safe to fire unconditionally.
         haptic.fail();
         this.hurtUntil = this.time.now + HURT_MS;
+      } else if (e.type === "boss") {
+        // The arrival is the loudest thing in the run, and it is the only place
+        // `streak` is played: three minutes of the same handful of sounds, then
+        // one this game has never made before. The shake is longer and harder
+        // than the one a hit costs (160 ms at 0.008) so the two cannot be
+        // confused - this is the ground moving, not you being hurt.
+        this.ctx.audio.play("streak");
+        this.cameras.main.shake(420, 0.016);
       } else if (e.type === "levelup") {
         this.ctx.audio.play("success");
         // The one DOM effect in the arena, and it is here because a level-up is
@@ -657,6 +687,26 @@ export class SurvivorsScene extends Phaser.Scene {
     for (const s of this.sparks) {
       g.fillStyle(s.ink, Math.max(0, s.life / 320));
       g.fillCircle(s.x, s.y, 2.5);
+    }
+
+    // The golem's health, along the top of the arena. It is a LENGTH, not a
+    // colour code - the bar shortens, and nothing in it has to be read as red
+    // against green, which is a channel the operator cannot use and a sizeable
+    // fraction of players cannot either.
+    //
+    // Read through `bossOf` rather than from a number kept on the side, so the
+    // bar cannot disagree with the enemy it is drawing.
+    const boss = bossOf(this.run);
+    if (boss) {
+      const m = 16;
+      const w = ARENA.w - m * 2;
+      const p = Math.max(0, Math.min(1, boss.hp / KINDS.golem.hp));
+      g.fillStyle(INK.ground, 0.9);
+      g.fillRect(m - 3, 11, w + 6, 13);
+      g.fillStyle(INK.grid, 1);
+      g.fillRect(m, 14, w, 7);
+      g.fillStyle(ENEMY_INK.golem, 1);
+      g.fillRect(m, 14, w * p, 7);
     }
   }
 }

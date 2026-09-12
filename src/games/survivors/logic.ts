@@ -19,7 +19,15 @@ import { mulberry32 } from "@shared/rng";
 /** The arena, in logical units. The canvas is scaled to fit; these never change. */
 export const ARENA = { w: 420, h: 560 } as const;
 
-/** Survive this long and the run is WON. Three minutes, chosen to be a bus ride. */
+/**
+ * Survive this long and the GOLEM ARRIVES. Three minutes, chosen to be a bus
+ * ride.
+ *
+ * This used to be the win itself, and the sentence above used to say so. It is
+ * not any more: the clock stops here, the boss walks in, and the run is won by
+ * beating it. Corrected rather than left standing, because a comment that says
+ * a run is won at three minutes is a sentence the next reader will act on.
+ */
 export const RUN_MS = 180_000;
 
 export type LevelKey = "calm" | "normal" | "wild";
@@ -46,13 +54,50 @@ export const TIER: Record<LevelKey, "easy" | "medium" | "hard"> = {
   wild: "hard",
 };
 
-export type EnemyKind = "runner" | "orb" | "brute";
+export type EnemyKind = "runner" | "orb" | "brute" | "golem";
 
-/** Size, toughness, pace and worth of each kind. The scene draws from the same row. */
+/**
+ * The golem's health, and it is MEASURED rather than felt.
+ *
+ * The fight has to last long enough to be a finish and not so long that it is a
+ * chore, so the number is READ off the simulation rather than guessed.
+ * `boss.test.ts` measures time-to-kill and prints it; measured 2026-09-12 at
+ * 420 health, on `normal`:
+ *
+ *     representative loadout (rapid 3, power 2, spread 1)   18,400 ms
+ *     no upgrades at all                                    83,616 ms
+ *
+ * Both figures include the couple of seconds the golem spends walking in from
+ * outside the arena before it is inside `TARGET_RANGE`, and both are the FLOOR
+ * of the fight: the player stands still there, so the gun is on target every
+ * frame it can be. A real player dodges and loses shots doing it.
+ *
+ * The second arm is the one worth keeping - arriving at the golem having taken
+ * nothing costs 4.5x as long, which is the run's own argument for the upgrades.
+ *
+ * The test pins the WINDOW (6-40 s), not the number, so retuning a weapon moves
+ * the fight length rather than reding a file about something else.
+ */
+const BOSS_HP = 420;
+
+/**
+ * Size, toughness, pace and worth of each kind. The scene draws from the same row.
+ *
+ * The golem is NOT a shape the wave clock can send. `kindsAt` never returns it
+ * and `boss.test.ts` pins that in both directions, because a golem in the spawn
+ * pool would put a 420-health wall into a 40-second-old run and the only tell
+ * would be a player who cannot understand why they died.
+ */
 export const KINDS: Record<EnemyKind, { hp: number; r: number; speed: number; xp: number }> = {
   runner: { hp: 1, r: 9, speed: 62, xp: 1 },
   orb: { hp: 2, r: 12, speed: 44, xp: 2 },
   brute: { hp: 5, r: 17, speed: 30, xp: 4 },
+  // r 26 is a 52-unit circle under art drawn 61 units tall, so the golem hits
+  // slightly NARROWER than it looks - the forgiving direction, and deliberately
+  // the opposite way round from the brute/crab mismatch noted in `sprites.ts`.
+  // `xp: 0` because the run ends on the frame it dies: a gem it dropped would
+  // never be collected by anyone.
+  golem: { hp: BOSS_HP, r: 26, speed: 38, xp: 0 },
 };
 
 export type UpgradeId = "rapid" | "power" | "spread" | "swift" | "magnet" | "heart" | "pierce";
@@ -166,6 +211,8 @@ export type RunEvent =
   | { type: "shot"; weapon: WeaponId; x: number; y: number }
   | { type: "hurt" }
   | { type: "gem" }
+  /** The golem has arrived. Fires once a run, at three minutes, and never twice. */
+  | { type: "boss" }
   | { type: "levelup" }
   | { type: "won" }
   | { type: "over" };
@@ -195,6 +242,13 @@ export interface RunState {
   up: Record<UpgradeId, number>;
   /** How many shots this run has fired. Drives the weapon rotation, nothing else. */
   shots: number;
+  /**
+   * The golem's enemy id once it has arrived, and null for the first three
+   * minutes. An ID rather than a copy of its health: a second copy of a number
+   * the enemy list already holds is two records of one fact, and they drift the
+   * first time one of them is updated and the other is not. `bossOf` reads it.
+   */
+  boss: number | null;
   fireIn: number;
   spawnIn: number;
   nextId: number;
@@ -237,6 +291,7 @@ export function newRun(level: LevelKey): RunState {
     gems: [],
     up: { rapid: 0, power: 0, spread: 0, swift: 0, magnet: 0, heart: 0, pierce: 0 },
     shots: 0,
+    boss: null,
     fireIn: 0,
     spawnIn: RULES[level].spawnMs,
     nextId: 1,
@@ -292,6 +347,15 @@ export function nearestEnemy(s: RunState, fromX = s.x, fromY = s.y): Enemy | nul
   }
   return best;
 }
+
+/**
+ * The golem, while it is on the board, or null before it arrives and after it
+ * falls. DERIVED on demand rather than kept: the scene needs its health to draw
+ * a bar, and a `bossHp` field beside the enemy's own would be two records of one
+ * number, agreeing right up until one of them is updated and the other is not.
+ */
+export const bossOf = (s: RunState): Enemy | null =>
+  s.boss === null ? null : (s.enemies.find((e) => e.id === s.boss) ?? null);
 
 /** A point just outside the arena, on a random edge. */
 function edgePoint(rng: () => number): { x: number; y: number } {
@@ -386,11 +450,23 @@ export function step(
   const sec = dt / 1000;
 
   s.t += dt;
+  // THREE MINUTES IS NO LONGER THE END - it is when the thing the three minutes
+  // were building toward walks in. The clock is CLAMPED here rather than left
+  // running, so `RUN_MS - t` stays at zero and the chrome has one honest thing
+  // to show in that cell: the golem's health, instead of a countdown that has
+  // nothing left to count.
+  //
+  // It enters at the top edge, outside the arena, and walks in like every other
+  // shape. `s.boss === null` is what makes this fire once: without it a frame at
+  // t = RUN_MS would push a fresh golem sixty times a second.
   if (s.t >= RUN_MS) {
     s.t = RUN_MS;
-    s.phase = "won";
-    s.events.push({ type: "won" });
-    return s;
+    if (s.boss === null) {
+      const id = s.nextId++;
+      s.enemies.push({ id, kind: "golem", x: ARENA.w / 2, y: -34, hp: KINDS.golem.hp, flash: 0 });
+      s.boss = id;
+      s.events.push({ type: "boss" });
+    }
   }
   if (s.invuln > 0) s.invuln = Math.max(0, s.invuln - dt);
 
@@ -405,10 +481,17 @@ export function step(
     s.y = Math.min(ARENA.h - PLAYER_R, Math.max(PLAYER_R, s.y));
   }
 
-  s.spawnIn -= dt;
-  while (s.spawnIn <= 0) {
-    spawn(s, rng);
-    s.spawnIn += spawnEvery(s);
+  // The swarm stops the moment the golem is on the board. The finish is a duel,
+  // not a duel inside a crowd that is still tightening every second - by 3:00
+  // `spawnEvery` is at its floor, so leaving it on would mean a shape every 230
+  // ms for as long as the fight lasts. Whatever was already on the board stays
+  // and has to be dealt with; nothing new arrives behind it.
+  if (s.boss === null) {
+    s.spawnIn -= dt;
+    while (s.spawnIn <= 0) {
+      spawn(s, rng);
+      s.spawnIn += spawnEvery(s);
+    }
   }
 
   s.fireIn -= dt;
@@ -483,8 +566,17 @@ export function step(
     if (e.hp <= 0) continue;
     const r = KINDS[e.kind].r + PLAYER_R;
     if (dist2(s.x, s.y, e.x, e.y) > r * r) continue;
-    e.hp = 0;
-    s.events.push({ type: "pop", x: e.x, y: e.y, kind: e.kind });
+    // THE GOLEM IS THE ONE THING THAT DOES NOT DIE BY WALKING INTO YOU, and the
+    // exception is not a detail. Every other shape is spent reaching you, which
+    // is why a crowd arriving together costs one heart rather than all of them.
+    // Apply that to the boss and it kills itself on contact: the run would be
+    // WON by being hit, at full health, on the frame it touched you - the exact
+    // opposite of every other rule in this file. It costs a heart and keeps
+    // coming; `boss.test.ts` pins both halves.
+    if (e.id !== s.boss) {
+      e.hp = 0;
+      s.events.push({ type: "pop", x: e.x, y: e.y, kind: e.kind });
+    }
     if (s.invuln > 0) continue;
     s.hp -= 1;
     s.invuln = MERCY_MS;
@@ -516,7 +608,19 @@ export function step(
     (b) => b.life > 0 && b.x > -40 && b.x < ARENA.w + 40 && b.y > -40 && b.y < ARENA.h + 40,
   );
 
-  if (s.hp <= 0) {
+  // The run is won by beating the golem, and by nothing else. Checked after the
+  // dead have been filtered out, so "the boss is gone" is read off the board
+  // rather than off a health number somebody has to remember to update.
+  //
+  // A TIE GOES TO THE WIN. The two can land on one frame - a leftover shape
+  // reaching you as the golem falls - and the order below is the ruling: the
+  // golem is down, the player did the thing the run asked for, and this
+  // platform does not punish. The golem itself cannot be the shape that ties,
+  // because a dead enemy is skipped by the contact loop above.
+  if (s.boss !== null && !s.enemies.some((e) => e.id === s.boss)) {
+    s.phase = "won";
+    s.events.push({ type: "won" });
+  } else if (s.hp <= 0) {
     s.phase = "over";
     s.events.push({ type: "over" });
   }

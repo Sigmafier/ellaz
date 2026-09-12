@@ -14,7 +14,8 @@ import { useRememberedLevel } from "@shared/useRememberedLevel";
 // and the arena's size is needed to shape the box before Phaser exists.
 import type { SurvivorsScene, SurvivorsStatus } from "./SurvivorsScene";
 import type { LevelKey, UpgradeId } from "./logic";
-import { ARENA, RUN_MS } from "./logic";
+import { ARENA, RUN_MS, UPGRADE_CAP, UPGRADE_IDS } from "./logic";
+import { UPGRADE_ART } from "./upgradeArt";
 
 // The second Phaser game in the roster, wearing the same chrome as the other
 // forty-two. React owns the bar and the upgrade cards; Phaser owns the arena.
@@ -62,6 +63,10 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
     phase: "ready",
     paused: false,
     offer: [],
+    boss: null,
+    // Built from the id list rather than typed out, so an eighth upgrade cannot
+    // leave a hole here that only shows up as an empty pip row on one card.
+    taken: Object.fromEntries(UPGRADE_IDS.map((id) => [id, 0])) as Record<UpgradeId, number>,
   });
   const best = ctx.score?.best(status.level) ?? 0;
 
@@ -126,7 +131,9 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
       he: {
         ready: "הקישו כדי להתחיל",
         over: "נגמרו הלבבות - הקישו לשחק שוב",
-        won: "שרדתם שלוש דקות! הקישו לעוד סיבוב",
+        // The run no longer ends by surviving, so this no longer says it did.
+        won: "הגולם נפל! הקישו לעוד סיבוב",
+        golem: "גולם",
         hint: "גררו, חצים או כפתורים - היריות לבד",
         pick: "עלייה לדרגה",
         score: "צורות",
@@ -136,7 +143,8 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
       en: {
         ready: "Tap to start",
         over: "Out of hearts - tap to play again",
-        won: "You survived three minutes! Tap for another run",
+        won: "The golem is down! Tap for another run",
+        golem: "Golem",
         hint: "Drag, arrows or buttons - it shoots by itself",
         pick: "Level up",
         score: "Shapes",
@@ -146,7 +154,8 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
       es: {
         ready: "Toca para empezar",
         over: "Sin corazones - toca para jugar otra vez",
-        won: "¡Sobreviviste tres minutos! Toca para otra ronda",
+        won: "¡El gólem ha caído! Toca para otra ronda",
+        golem: "Gólem",
         hint: "Arrastra, flechas o botones - dispara solo",
         pick: "Subes de nivel",
         score: "Formas",
@@ -198,7 +207,14 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
       ctx={ctx}
       stats={[
         { icon: "bolt", label: T.score, value: status.score, record: Math.max(best, status.score) },
-        { icon: "clock", label: T.time, value: clock(status.timeLeft), compact: true, ltr: true },
+        // Once the golem is up the clock is pinned at zero and has nothing left
+        // to count, so this cell changes what it REPORTS rather than sitting at
+        // 0:00 through the whole finish. `flag` - the objective - out of the
+        // real icon set, never `clock`, which would leave the picture saying
+        // one thing while the number means another.
+        status.boss
+          ? { icon: "flag" as const, label: T.golem, value: status.boss.hp, compact: true, ltr: true }
+          : { icon: "clock" as const, label: T.time, value: clock(status.timeLeft), compact: true, ltr: true },
         { icon: "heart", label: T.hearts, value: `${status.hp}/${status.maxHp}`, compact: true, ltr: true },
       ]}
       levels={LEVEL_OPTIONS}
@@ -305,29 +321,86 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
             <b style={{ color: "#fff", fontSize: 18, fontFamily: "Fredoka, inherit" }}>
               {T.pick} {status.power}
             </b>
-            {status.offer.map((id: UpgradeId) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => sceneRef.current?.choose(id)}
-                style={{
-                  width: "100%",
-                  minHeight: 52,
-                  borderRadius: "var(--radius-2)",
-                  border: "2px solid #22e7ff",
-                  background: "rgba(34, 231, 255, 0.12)",
-                  color: "#fff",
-                  font: "inherit",
-                  fontSize: 16,
-                  fontWeight: 700,
-                  fontFamily: "Fredoka, inherit",
-                  cursor: "pointer",
-                  touchAction: "manipulation",
-                }}
-              >
-                {UP[id]}
-              </button>
-            ))}
+            {/* ILLUSTRATED, and each card still says three things rather than
+                one: a drawing, the words in the player's own language, and a pip
+                row for how many of this upgrade the run already holds. The
+                drawing is for the five-year-old who cannot read the words - it
+                never replaces them, and a player who reads the words loses
+                nothing by ignoring it.
+
+                CONTRAST, measured against the real composite rather than
+                eyeballed: the cover is rgba(11,13,31,0.86) over the arena's own
+                #0b0d1f, and this card's rgba(34,231,255,0.12) over that
+                resolves to rgb(14,39,58). White text and the white art read
+                15.33:1 on it, and the ice pips 13.99:1 - against floors of 4.5
+                for the words and 3.0 for a graphic. The control in that same
+                measurement (a mid-grey) comes back 2.22, so the arithmetic
+                discriminates instead of passing everything.
+
+                The row is NOT pinned `dir`: in Hebrew it should mirror, and the
+                drawing belongs on the side the reading starts from. */}
+            {status.offer.map((id: UpgradeId) => {
+              const held = status.taken[id];
+              const cap = UPGRADE_CAP[id];
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => sceneRef.current?.choose(id)}
+                  // The pips are a picture of the count, so the count is said
+                  // here too - a screen reader gets the number rather than
+                  // seven anonymous dots.
+                  aria-label={`${UP[id]} ${held}/${cap}`}
+                  style={{
+                    width: "100%",
+                    minHeight: 60,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "8px 12px",
+                    borderRadius: "var(--radius-2)",
+                    border: "2px solid #22e7ff",
+                    background: "rgba(34, 231, 255, 0.12)",
+                    color: "#fff",
+                    font: "inherit",
+                    fontFamily: "Fredoka, inherit",
+                    cursor: "pointer",
+                    touchAction: "manipulation",
+                  }}
+                >
+                  <span aria-hidden="true" style={{ display: "flex", flex: "0 0 auto" }}>
+                    {UPGRADE_ART[id]()}
+                  </span>
+                  <span
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "flex-start",
+                      gap: 5,
+                      minWidth: 0,
+                    }}
+                  >
+                    <span style={{ fontSize: 16, fontWeight: 700, textAlign: "start" }}>{UP[id]}</span>
+                    {/* One pip per level this upgrade allows, filled up to what
+                        the run holds. The cap is read from `UPGRADE_CAP`, so a
+                        retuned cap redraws the row instead of lying about it. */}
+                    <span aria-hidden="true" style={{ display: "flex", gap: 4 }}>
+                      {Array.from({ length: cap }, (_, i) => (
+                        <span
+                          key={i}
+                          style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: "50%",
+                            background: i < held ? "#d8fbff" : "rgba(216, 251, 255, 0.22)",
+                          }}
+                        />
+                      ))}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>

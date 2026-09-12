@@ -128,10 +128,12 @@ export const PLAYER: CastKey = "robot";
  * `orb` drifts and takes two hits (r 12) -> the SLIME at 23.
  * `brute` is the slow tough one (r 17) -> the CRAB at 30.
  *
- * The golem is deliberately absent: it is 61 units and it is the BOSS of task 7,
- * not a shape that wanders in at 55 seconds. It is loaded anyway so the boss
- * costs no second download later, and because a cast member nothing references
- * would be dropped from the chunk entirely.
+ * `golem` is the BOSS, added here 2026-09-12. It is in this table because the
+ * table is a `Record<EnemyKind, CastKey>` and `golem` is now an `EnemyKind` -
+ * which is the useful half: adding the kind to `logic.ts` broke THIS file at
+ * compile time and named it, rather than leaving a boss with no picture to find
+ * in a browser. Being in this table does NOT put it in the spawn pool; `kindsAt`
+ * decides that, it never returns `golem`, and `boss.test.ts` pins both halves.
  *
  * ONE MISMATCH WORTH WATCHING, measured rather than discovered in play: `brute`
  * collides at r 17, a 34-unit circle, against a crab drawn 30 units tall - so it
@@ -143,4 +145,5 @@ export const FOR_ENEMY: Record<EnemyKind, CastKey> = {
   runner: "bat",
   orb: "slime",
   brute: "crab",
+  golem: "golem",
 };
