@@ -292,3 +292,58 @@ with no recovery window.
 **Next.** The winner promoted to `games/fight/render/`, the Versus MVP playable
 from the hall with keyboard and touch, `distinctDraws` read at 100% on the
 operator's 120 Hz display.
+
+## Stage mode: side-scrolling waves on the fight core (2026-09-12)
+
+The operator chose side-scrolling waves for Stage and answered six questions
+before a line was written: a downed hero restarts the WAVE (coins, xp and
+level kept, no fail punishment), coins + xp only (no spring fist), three waves
+and a camera, tune by rebuild + hall page, Crypt as the next plan designed for
+now, and a FIXED roster with spawn timers. Plan:
+`~/.claude/plans/read-the-following-handoff-swift-wadler.md`.
+
+Eight tasks, eight commits, all by pathspec with the file count verified.
+The slime and the bat got their moves (a lunge, a swoop) and their sprite sets
+joined `games/fight/assets/` at 16 compared, 0 differ. The core learned the
+vocabulary with the hash ratchet watched red first: `FighterState.active`
+(dormant / live / on screen), a `stage` block (wave, phase, clock, camX, coins,
+xp, level) behind a presence byte, `pickups` folded count-then-each, and a
+fighter file may say `xp`, `flying`, `hover`. A mode file may name a `stage`
+file and `waves[]`; every spawn is one roster row from tick 0, dormant until
+its wave and delay, at most 31 because the hit mask is one bit per target.
+`core/stage.ts` wakes them at the screen's edge, follows the hero, holds
+everyone inside the screen, turns fight -> go -> clear and restarts a wave;
+`core/pickups.ts` pays a KO exactly once and spends xp on levels. Both cells
+take `camX`, draw coins as shared rects, and share ONE stage HUD layout.
+
+**Measured, not tuned by feel.** The bat's hover moved 30 -> 20 because the
+robot's punch rows (20-29 of 48) could not reach a body lifted 30. A scripted
+hero (`stage-completes.test.ts`) clears 3 of 3 waves at tick 3295 of a 9,000
+budget and ends with all twelve coins. `/deep-test` found one class - a
+level-up heal revived a downed hero mid-fade - fixed at the heal; six mutants
+killed by their named cells, the no-op survived. The parked defect (a robot
+standing still and mashing attack took 0 hits in 6,000 ticks) needed two
+traces: a hold-in-place teddy sat 44 px inside a 56 px punch; a step-out
+teddy was still hit at 64-66 px because its own hurt box begins 9 px ahead of
+its pivot; and with the hold right, cooldown 45 landed 0 at EVERY hold value.
+The matrix (standing mash, 6,000 ticks): cooldown 45 -> 0 / 0 / 0 at hold
+0 / 200 / 255; 60 -> 0 / 2 / 0; 75 -> 0 / 15 / 14. So `attackCooldownTicks`
+is 60 and `holdWhenTargetAttacks` 200, and five seeds read 2, 3, 10, 1, 4
+(hold 0: 0 on all five). The Versus golden moved once, in that commit, and
+says so.
+
+**Admission.** `tournament/tapes/stage-600.json` + its golden (2ec5dd5c /
+f0349eed / 225525c6, 7 hits, a slime and a bat KO'd, the hero at level 2);
+the golden test reads every tape on disk; the stage-only control is the
+spawn band, because a camera-divisor edit was measured NOT to move a 600-tick
+chain (the camera never unlocks). `assert:fight` checks a mode's stage file
+and its waves' names (tenth control watched firing); `run-tape --tape
+stage-600` ADMITS canvas and render, `versus-600` still both. Fight suite
+300 green. Hall: `files/20260912-125000-fight-stage/dist-fight/render/index.html?mode=stage&stats=1`.
+
+Accepted, on the record: a wave restart drops the coins on the floor (xp
+kept); dying refights the wave with its enemies respawned, so xp can be
+farmed; a trade on the last enemy is the hero's death. Open: the operator's
+own 120 Hz `?stats=1` reading and the wave-restart feel, both W8; Crypt is
+the next plan (a room is a wave with a door - README § What a mode file can
+say names what it reuses).
