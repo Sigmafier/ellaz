@@ -1,0 +1,615 @@
+{
+  "frames": {
+    "crab_idle_0000": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.8478260869565217
+      }
+    },
+    "crab_idle_0001": {
+      "frame": {
+        "x": 320,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.8478260869565217
+      }
+    },
+    "crab_idle_0002": {
+      "frame": {
+        "x": 640,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.8478260869565217
+      }
+    },
+    "crab_idle_0003": {
+      "frame": {
+        "x": 960,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.8478260869565217
+      }
+    },
+    "crab_walk_0000": {
+      "frame": {
+        "x": 1280,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.8478260869565217
+      }
+    },
+    "crab_walk_0001": {
+      "frame": {
+        "x": 0,
+        "y": 230,
+        "w": 320,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.8478260869565217
+      }
+    },
+    "crab_walk_0002": {
+      "frame": {
+        "x": 320,
+        "y": 230,
+        "w": 320,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.8478260869565217
+      }
+    },
+    "crab_walk_0003": {
+      "frame": {
+        "x": 640,
+        "y": 230,
+        "w": 320,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.8478260869565217
+      }
+    },
+    "crab_walk_0004": {
+      "frame": {
+        "x": 960,
+        "y": 230,
+        "w": 320,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.8478260869565217
+      }
+    },
+    "crab_walk_0005": {
+      "frame": {
+        "x": 1280,
+        "y": 230,
+        "w": 320,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.8478260869565217
+      }
+    },
+    "crab_attack_0000": {
+      "frame": {
+        "x": 0,
+        "y": 460,
+        "w": 320,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.8478260869565217
+      }
+    },
+    "crab_attack_0001": {
+      "frame": {
+        "x": 320,
+        "y": 460,
+        "w": 320,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.8478260869565217
+      }
+    },
+    "crab_attack_0002": {
+      "frame": {
+        "x": 640,
+        "y": 460,
+        "w": 320,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.8478260869565217
+      }
+    },
+    "crab_attack_0003": {
+      "frame": {
+        "x": 960,
+        "y": 460,
+        "w": 320,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.8478260869565217
+      }
+    },
+    "crab_attack_0004": {
+      "frame": {
+        "x": 1280,
+        "y": 460,
+        "w": 320,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.8478260869565217
+      }
+    },
+    "crab_attack_0005": {
+      "frame": {
+        "x": 0,
+        "y": 690,
+        "w": 320,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.8478260869565217
+      }
+    },
+    "crab_hurt_0000": {
+      "frame": {
+        "x": 320,
+        "y": 690,
+        "w": 320,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.8478260869565217
+      }
+    },
+    "crab_hurt_0001": {
+      "frame": {
+        "x": 640,
+        "y": 690,
+        "w": 320,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.8478260869565217
+      }
+    },
+    "crab_hurt_0002": {
+      "frame": {
+        "x": 960,
+        "y": 690,
+        "w": 320,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.8478260869565217
+      }
+    },
+    "crab_ko_0000": {
+      "frame": {
+        "x": 1280,
+        "y": 690,
+        "w": 320,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.8478260869565217
+      }
+    },
+    "crab_ko_0001": {
+      "frame": {
+        "x": 0,
+        "y": 920,
+        "w": 320,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.8478260869565217
+      }
+    },
+    "crab_ko_0002": {
+      "frame": {
+        "x": 320,
+        "y": 920,
+        "w": 320,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.8478260869565217
+      }
+    },
+    "crab_ko_0003": {
+      "frame": {
+        "x": 640,
+        "y": 920,
+        "w": 320,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.8478260869565217
+      }
+    },
+    "crab_ko_0004": {
+      "frame": {
+        "x": 960,
+        "y": 920,
+        "w": 320,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.8478260869565217
+      }
+    },
+    "crab_ko_0005": {
+      "frame": {
+        "x": 1280,
+        "y": 920,
+        "w": 320,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.8478260869565217
+      }
+    }
+  },
+  "meta": {
+    "app": "ellaz-studio",
+    "version": "1",
+    "image": "crab--snes16.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1600,
+      "h": 1150
+    },
+    "scale": "1"
+  }
+}
