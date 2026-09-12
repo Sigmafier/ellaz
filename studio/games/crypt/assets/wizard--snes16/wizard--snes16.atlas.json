@@ -1,0 +1,615 @@
+{
+  "frames": {
+    "wizard_idle_0000": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.78125
+      }
+    },
+    "wizard_idle_0001": {
+      "frame": {
+        "x": 1000,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.78125
+      }
+    },
+    "wizard_idle_0002": {
+      "frame": {
+        "x": 2000,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.78125
+      }
+    },
+    "wizard_idle_0003": {
+      "frame": {
+        "x": 3000,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.78125
+      }
+    },
+    "wizard_walk_0000": {
+      "frame": {
+        "x": 4000,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.78125
+      }
+    },
+    "wizard_walk_0001": {
+      "frame": {
+        "x": 0,
+        "y": 640,
+        "w": 1000,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.78125
+      }
+    },
+    "wizard_walk_0002": {
+      "frame": {
+        "x": 1000,
+        "y": 640,
+        "w": 1000,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.78125
+      }
+    },
+    "wizard_walk_0003": {
+      "frame": {
+        "x": 2000,
+        "y": 640,
+        "w": 1000,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.78125
+      }
+    },
+    "wizard_walk_0004": {
+      "frame": {
+        "x": 3000,
+        "y": 640,
+        "w": 1000,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.78125
+      }
+    },
+    "wizard_walk_0005": {
+      "frame": {
+        "x": 4000,
+        "y": 640,
+        "w": 1000,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.78125
+      }
+    },
+    "wizard_attack_0000": {
+      "frame": {
+        "x": 0,
+        "y": 1280,
+        "w": 1000,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.78125
+      }
+    },
+    "wizard_attack_0001": {
+      "frame": {
+        "x": 1000,
+        "y": 1280,
+        "w": 1000,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.78125
+      }
+    },
+    "wizard_attack_0002": {
+      "frame": {
+        "x": 2000,
+        "y": 1280,
+        "w": 1000,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.78125
+      }
+    },
+    "wizard_attack_0003": {
+      "frame": {
+        "x": 3000,
+        "y": 1280,
+        "w": 1000,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.78125
+      }
+    },
+    "wizard_attack_0004": {
+      "frame": {
+        "x": 4000,
+        "y": 1280,
+        "w": 1000,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.78125
+      }
+    },
+    "wizard_attack_0005": {
+      "frame": {
+        "x": 0,
+        "y": 1920,
+        "w": 1000,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.78125
+      }
+    },
+    "wizard_hurt_0000": {
+      "frame": {
+        "x": 1000,
+        "y": 1920,
+        "w": 1000,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.78125
+      }
+    },
+    "wizard_hurt_0001": {
+      "frame": {
+        "x": 2000,
+        "y": 1920,
+        "w": 1000,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.78125
+      }
+    },
+    "wizard_hurt_0002": {
+      "frame": {
+        "x": 3000,
+        "y": 1920,
+        "w": 1000,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.78125
+      }
+    },
+    "wizard_ko_0000": {
+      "frame": {
+        "x": 4000,
+        "y": 1920,
+        "w": 1000,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.78125
+      }
+    },
+    "wizard_ko_0001": {
+      "frame": {
+        "x": 0,
+        "y": 2560,
+        "w": 1000,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.78125
+      }
+    },
+    "wizard_ko_0002": {
+      "frame": {
+        "x": 1000,
+        "y": 2560,
+        "w": 1000,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.78125
+      }
+    },
+    "wizard_ko_0003": {
+      "frame": {
+        "x": 2000,
+        "y": 2560,
+        "w": 1000,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.78125
+      }
+    },
+    "wizard_ko_0004": {
+      "frame": {
+        "x": 3000,
+        "y": 2560,
+        "w": 1000,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.78125
+      }
+    },
+    "wizard_ko_0005": {
+      "frame": {
+        "x": 4000,
+        "y": 2560,
+        "w": 1000,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.78125
+      }
+    }
+  },
+  "meta": {
+    "app": "ellaz-studio",
+    "version": "1",
+    "image": "wizard--snes16.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 5000,
+      "h": 3200
+    },
+    "scale": "1"
+  }
+}

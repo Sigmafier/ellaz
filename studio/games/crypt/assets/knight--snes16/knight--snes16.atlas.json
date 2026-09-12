@@ -1,0 +1,615 @@
+{
+  "frames": {
+    "knight_idle_0000": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 690
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7971014492753623
+      }
+    },
+    "knight_idle_0001": {
+      "frame": {
+        "x": 1000,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 690
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7971014492753623
+      }
+    },
+    "knight_idle_0002": {
+      "frame": {
+        "x": 2000,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 690
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7971014492753623
+      }
+    },
+    "knight_idle_0003": {
+      "frame": {
+        "x": 3000,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 690
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7971014492753623
+      }
+    },
+    "knight_walk_0000": {
+      "frame": {
+        "x": 4000,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 690
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7971014492753623
+      }
+    },
+    "knight_walk_0001": {
+      "frame": {
+        "x": 0,
+        "y": 690,
+        "w": 1000,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 690
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7971014492753623
+      }
+    },
+    "knight_walk_0002": {
+      "frame": {
+        "x": 1000,
+        "y": 690,
+        "w": 1000,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 690
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7971014492753623
+      }
+    },
+    "knight_walk_0003": {
+      "frame": {
+        "x": 2000,
+        "y": 690,
+        "w": 1000,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 690
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7971014492753623
+      }
+    },
+    "knight_walk_0004": {
+      "frame": {
+        "x": 3000,
+        "y": 690,
+        "w": 1000,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 690
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7971014492753623
+      }
+    },
+    "knight_walk_0005": {
+      "frame": {
+        "x": 4000,
+        "y": 690,
+        "w": 1000,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 690
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7971014492753623
+      }
+    },
+    "knight_attack_0000": {
+      "frame": {
+        "x": 0,
+        "y": 1380,
+        "w": 1000,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 690
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7971014492753623
+      }
+    },
+    "knight_attack_0001": {
+      "frame": {
+        "x": 1000,
+        "y": 1380,
+        "w": 1000,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 690
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7971014492753623
+      }
+    },
+    "knight_attack_0002": {
+      "frame": {
+        "x": 2000,
+        "y": 1380,
+        "w": 1000,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 690
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7971014492753623
+      }
+    },
+    "knight_attack_0003": {
+      "frame": {
+        "x": 3000,
+        "y": 1380,
+        "w": 1000,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 690
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7971014492753623
+      }
+    },
+    "knight_attack_0004": {
+      "frame": {
+        "x": 4000,
+        "y": 1380,
+        "w": 1000,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 690
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7971014492753623
+      }
+    },
+    "knight_attack_0005": {
+      "frame": {
+        "x": 0,
+        "y": 2070,
+        "w": 1000,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 690
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7971014492753623
+      }
+    },
+    "knight_hurt_0000": {
+      "frame": {
+        "x": 1000,
+        "y": 2070,
+        "w": 1000,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 690
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7971014492753623
+      }
+    },
+    "knight_hurt_0001": {
+      "frame": {
+        "x": 2000,
+        "y": 2070,
+        "w": 1000,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 690
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7971014492753623
+      }
+    },
+    "knight_hurt_0002": {
+      "frame": {
+        "x": 3000,
+        "y": 2070,
+        "w": 1000,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 690
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7971014492753623
+      }
+    },
+    "knight_ko_0000": {
+      "frame": {
+        "x": 4000,
+        "y": 2070,
+        "w": 1000,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 690
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7971014492753623
+      }
+    },
+    "knight_ko_0001": {
+      "frame": {
+        "x": 0,
+        "y": 2760,
+        "w": 1000,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 690
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7971014492753623
+      }
+    },
+    "knight_ko_0002": {
+      "frame": {
+        "x": 1000,
+        "y": 2760,
+        "w": 1000,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 690
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7971014492753623
+      }
+    },
+    "knight_ko_0003": {
+      "frame": {
+        "x": 2000,
+        "y": 2760,
+        "w": 1000,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 690
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7971014492753623
+      }
+    },
+    "knight_ko_0004": {
+      "frame": {
+        "x": 3000,
+        "y": 2760,
+        "w": 1000,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 690
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7971014492753623
+      }
+    },
+    "knight_ko_0005": {
+      "frame": {
+        "x": 4000,
+        "y": 2760,
+        "w": 1000,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1000,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 1000,
+        "h": 690
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.7971014492753623
+      }
+    }
+  },
+  "meta": {
+    "app": "ellaz-studio",
+    "version": "1",
+    "image": "knight--snes16.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 5000,
+      "h": 3450
+    },
+    "scale": "1"
+  }
+}

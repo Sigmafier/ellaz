@@ -10,8 +10,8 @@ import { CHARACTERS } from "./index";
 const FIGHTERS = CHARACTERS.filter((c) => c.moves);
 
 describe("who fights", () => {
-  it("the robot, the teddy, the slime and the bat carry moves; nobody else does yet", () => {
-    expect(FIGHTERS.map((c) => c.id).sort()).toEqual(["bat", "robot", "slime", "teddy"]);
+  it("seven carry moves - the toybox's four and the crypt's knight, ninja and wizard; nobody else does yet", () => {
+    expect(FIGHTERS.map((c) => c.id).sort()).toEqual(["bat", "knight", "ninja", "robot", "slime", "teddy", "wizard"]);
   });
 });
 

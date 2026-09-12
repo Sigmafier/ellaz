@@ -28,6 +28,9 @@ import { robotMoves } from "./robot/moves";
 import { teddyMoves } from "./teddy/moves";
 import { slimeMoves } from "./slime/moves";
 import { batMoves } from "./bat/moves";
+import { knightMoves } from "./knight/moves";
+import { ninjaMoves } from "./ninja/moves";
+import { wizardMoves } from "./wizard/moves";
 import type { Moves } from "../../export/moves";
 
 export type Side = "hero" | "enemy";
@@ -77,9 +80,9 @@ export const PIXEL_CAST: { id: string; name: string; built: PixelRig; spec: Pixe
   { id: "slime", name: "Slime", built: slime32, spec: SLIME32_SPEC, role: "enemy", band: "kids", moves: slimeMoves },
   { id: "crab", name: "Crab", built: crab32, spec: CRAB32_SPEC, role: "enemy", band: "kids" },
   { id: "owl", name: "Owl King", built: owl64, spec: OWL64_SPEC, role: "boss", band: "kids" },
-  { id: "knight", name: "Knight", built: knight48, spec: KNIGHT48_SPEC, role: "hero", band: "teen" },
-  { id: "ninja", name: "Ninja", built: ninja48, spec: NINJA48_SPEC, role: "hero", band: "teen" },
-  { id: "wizard", name: "Wizard", built: wizard48, spec: WIZARD48_SPEC, role: "hero", band: "teen" },
+  { id: "knight", name: "Knight", built: knight48, spec: KNIGHT48_SPEC, role: "hero", band: "teen", moves: knightMoves },
+  { id: "ninja", name: "Ninja", built: ninja48, spec: NINJA48_SPEC, role: "hero", band: "teen", moves: ninjaMoves },
+  { id: "wizard", name: "Wizard", built: wizard48, spec: WIZARD48_SPEC, role: "hero", band: "teen", moves: wizardMoves },
   { id: "bat", name: "Bat", built: bat32, spec: BAT32_SPEC, role: "enemy", band: "teen", moves: batMoves },
   { id: "brawler", name: "Brawler", built: brawler48, spec: BRAWLER48_SPEC, role: "hero", band: "adult" },
   { id: "golem", name: "Golem", built: golem64, spec: GOLEM64_SPEC, role: "boss", band: "adult" },
