@@ -447,3 +447,76 @@ of PNG (robot 351 K, golem 479 K, bat 202 K, crab 181 K, slime 148 K) against
 a Showcase budget the operator ruled at **300 KB per game**. That is a real
 contradiction between a settled ruling and the art it names, recorded here so
 the rebuild cannot ship past it quietly.
+
+## Stage polish: a chain, corpses, 120 Hz motion, and a head in one piece (2026-09-12)
+
+The operator played the three waves ("the base is pretty awesome") and came
+back with three notes, then a fourth from the polished build. Each was
+MEASURED before it was laned, and each is one commit: `b010bd1`, `b9d7fe8`,
+`f716d00`, `bb650b3`. The plan is
+`~/.claude/plans/stage-polish-corpses-chain-smoothness.md`.
+
+**A fist that would not chain (`b010bd1`).** The obvious fix - lower
+`attackCooldownTicks` below 60 - was measured dead first: a standing masher
+takes 0 hits at every value 15/20/30/40/45 at both AI holds over three seeds,
+the exploit W5 closed. So the chain is a REFUND, not a shorter recovery:
+`match.landedCooldownTicks` (0) is what the attacker's cooldown becomes the
+tick a swing LANDS, handing the next swing to the moves file's `cancelFrom`;
+a whiff still pays 60. Gaps in `chain.test.ts` 64/64/184 -> 24/84/147 with
+the control at 60 unchanged; the standing mash now 2/4/5 (was 2/3/10 - the
+teddy's landed hits refund too). Both goldens moved and the commit says why.
+
+**Corpses that rode the camera (`b9d7fe8`).** `holdToScreen` clamped a KO'd
+body to the screen like the living, and nothing ever removed one. Now the
+clamp leaves `hp <= 0` alone, a held ko clip's `stT` keeps counting past its
+end (a living fighter knocked down still stands up at `downTicks`), and at
+`stage.corpseTicks` (90) past the clip the row goes `active 3` - gone: dormant
+AND spent, never respawned. No new hashed field. The stage golden's hash moved
+for exactly that; its event hash did not; Versus (no KO in its tape) was
+untouched.
+
+**Motion that stuttered at 120 Hz (`f716d00`).** `viewOf` floored the
+interpolation to whole game px and the 640x360 canvas was CSS-stretched, so a
+0.53 px/frame walk drew every second frame in place. The plan now carries the
+fraction (`pxF`), and each cell rounds to ITS grid - a whole device pixel at
+integer upscale `k`: the canvas backbuffer is `view x k` with the context
+scaled, and Phaser is scaled INSIDE the cell (Graphics layers x k, sprites
+and text in device px, camera zoom stays 1 because zoom moves the origin).
+Distinct draws at an emulated 120 Hz: 88.5% -> 96.7% (render), 89.1% -> 96.5%
+(canvas), equal to the 60 Hz figure; goldens byte-identical. The instrument is
+a rAF shim that hands EVERY caller the same synthetic timestamp per frame -
+its first version gave each of three rAF users its own increment and read 3x
+off. The clip-fps A/B (walk 10 vs 15) was ruled A: 10 stays.
+
+**A head cut in two (`bb650b3`).** The operator's screenshot of the robot's
+idle, frame 4 of 4: the visor rows one cell over, the chin rows not. The
+standard idle key tilts the head 0.03 rad and a pixel rig re-snaps every
+frame, so a rotation whose farthest cell moves under one cell cannot be shown
+- it only shears. Rule: **a pixel part never rotates by less than a cell.**
+`shapePixelPose(rig, unit)` drops any bone rotation whose reach (farthest
+corner of every part on the bone or under it, at rest) times the angle is
+under `unit`; every larger rotation keeps its pose. It runs at bake time
+through `PixelRig.bake()`, the one path. Swept over the roster: 79 bone-frames
+flattened across the twelve, 25 of 60 snes16 strips changed and 35 identical
+(the slime among them); the positive control asserts the RAW clips still carry
+the robot's idle tilt, and an identity shaper reds all 11 sweeps. The atlases
+did not change and neither golden moved - frames and boxes come from the
+moves files, not the pixels. Eyeballed on four before/after hall pages: the
+robot's visor, the owl's eye rings, the bat's wing root and the wizard's face
+whole; every arm and leg swing untouched.
+
+**Traps this arc cost.** Studio CI had never run on the fight tree, and its
+first run failed the typecheck on `Cannot find module 'phaser'`: locally the
+typecheck had found Phaser by walking up into the REPO ROOT's node_modules
+(the app's own copy), which CI never installs. `studio/tsconfig.json` pins
+`paths.phaser` to `games/fight/cells/node_modules/phaser` and `studio.yml`
+runs `npm ci` in that package too - the first fix (the install alone) was
+re-verified red on the target toolchain before the second landed. And the
+goal-drift gate stayed bound to the closed plan across the follow-on, so the
+polish plan's manifest is mirrored into it; `--declare` is refused by the
+bash self-protect.
+
+**Admission.** `run-tape --tape stage-600` and `--tape versus-600` ADMITTED on
+canvas + render after every rebuild; studio suite 41 files / 625 tests; ten
+gates ok, every control fired; `tsc` 0. Still open: the operator's own
+`?stats=1` distinct-draws figure at 120 Hz was never reported back.
