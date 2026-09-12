@@ -13,8 +13,8 @@ import { animKey, createStudioAnims, originFor, type PhaserAnimsLike } from "@sh
 import { burst as juiceBurst, haptic } from "@juice/index";
 import { CAST, CAST_KEYS, FOR_ENEMY, PLAYER, scaleFor, type CastKey, type Clip } from "./sprites";
 import {
-  ARENA, RUN_MS, TIER, applyUpgrade, newRun, offerUpgrades, rngFor, step,
-  type EnemyKind, type LevelKey, type RunState, type UpgradeId,
+  ARENA, RUN_MS, TIER, WEAPONS, applyUpgrade, newRun, offerUpgrades, rngFor, step,
+  type EnemyKind, type LevelKey, type RunState, type UpgradeId, type WeaponId,
 } from "./logic";
 
 // Phaser draws the arena and reads the input. Every rule is in `logic.ts`, so this
@@ -61,6 +61,22 @@ const INK = {
   gem: 0x6bff9e,
 } as const;
 
+/**
+ * One ink per weapon, and they are far apart on purpose: three weapons that
+ * differ only in shape are still hard to tell apart at speed on a phone, so
+ * colour carries the difference first and motion confirms it. Ice for the
+ * straight bolt, amber for the curving arc, magenta for the burst ring.
+ *
+ * They are NOT the enemy inks - a shot drawn in a shape's colour reads as that
+ * shape throwing it. Checked against ENEMY_INK above: none of these three is
+ * within reach of runner pink, orb amber-orange or brute violet at speed.
+ */
+const WEAPON_INK: Record<WeaponId, number> = {
+  bolt: 0xd8fbff,
+  arc: 0xffd166,
+  burst: 0xff5ce1,
+};
+
 /** Kept for the sparks a kill throws, which are still drawn rather than sprited. */
 const ENEMY_INK: Record<EnemyKind, number> = {
   runner: 0xff4d9d,
@@ -73,6 +89,18 @@ const DEPTH = { bg: 0, corpse: 5, enemy: 10, player: 20, fg: 30 } as const;
 
 /** How long the one-shot clips hold before the sprite goes back to idle/walk. */
 const ATTACK_MS = 260;
+
+/**
+ * The shortest gap between two shot sounds, in milliseconds.
+ *
+ * Measured against the cadence rather than picked: `fireEvery` starts at 620 ms
+ * and `rapid` at its cap of 6 takes it to 130 ms (620 * 0.86^6 = 237, floored at
+ * 130). At 130 ms a sound on every shot is roughly eight beeps a second. 260
+ * keeps every shot audible at the opening cadence - where the player is still
+ * learning that the weapon changed - and thins it to every other shot once the
+ * gun is fully upgraded, which is exactly when the screen is loud anyway.
+ */
+const SHOT_SFX_GAP_MS = 260;
 const HURT_MS = 380;
 /** A cap on KO sprites, so a wave dying together cannot pile up game objects. */
 const MAX_CORPSES = 12;
@@ -106,8 +134,14 @@ export class SurvivorsScene extends Phaser.Scene {
   /** When the ship's one-shot clips stop holding, in scene time. */
   private attackUntil = 0;
   private hurtUntil = 0;
-  /** Last frame's `fireIn`, so a shot can be SEEN without logic.ts announcing it. */
+  /**
+   * Last frame's `fireIn`. Kept, but no longer how a shot is detected: `logic.ts`
+   * now announces one with a `shot` event carrying WHICH weapon, which the
+   * inference could never have told us.
+   */
   private lastFireIn = 0;
+  /** Scene time the next shot may sound at. See the throttle in `consume`. */
+  private nextShotSfx = 0;
 
   /** Where a finger is holding, in arena units, or null when nothing is held. */
   private hold: { x: number; y: number } | null = null;
@@ -358,6 +392,20 @@ export class SurvivorsScene extends Phaser.Scene {
       if (e.type === "pop") {
         this.burst(e.x, e.y, ENEMY_INK[e.kind]);
         this.layCorpse(e.x, e.y, FOR_ENEMY[e.kind]);
+      } else if (e.type === "shot") {
+        // Each weapon has its own voice, from the nine real sfx names - a name
+        // that is not in that table is a silent no-op with nothing in the log.
+        //
+        // THROTTLED, and this is the whole reason the throttle exists: `rapid`
+        // takes the cadence to 130 ms, and a sound on every shot at that rate is
+        // a machine-gun of beeps that makes a child put the phone down. The
+        // weapon still always LOOKS different; it just does not always speak.
+        const now = this.time.now;
+        if (now >= this.nextShotSfx) {
+          this.ctx.audio.play(WEAPONS[e.weapon].sfx);
+          this.nextShotSfx = now + SHOT_SFX_GAP_MS;
+        }
+        this.attackUntil = now + ATTACK_MS;
       } else if (e.type === "hurt") {
         this.ctx.audio.play("fail");
         this.cameras.main.shake(160, 0.008);
@@ -566,8 +614,45 @@ export class SurvivorsScene extends Phaser.Scene {
       g.fillPath();
     }
 
-    g.fillStyle(INK.bolt, 1);
-    for (const b of this.run.bolts) g.fillCircle(b.x, b.y, 3.5);
+    // Three weapons, three MOTIONS and three SHAPES - never one shape at three
+    // sizes, which reads as one weapon with a zoom. The bolt is a hard streak
+    // along its own heading, the arc is a comet with a tail that curves because
+    // its velocity does, and a burst fragment is a square that spins and fades
+    // as it dies. Each is drawn in its own ink.
+    for (const b of this.run.bolts) {
+      const ink = WEAPON_INK[b.kind];
+      if (b.kind === "bolt") {
+        const sp = Math.hypot(b.vx, b.vy) || 1;
+        g.lineStyle(3, ink, 1);
+        g.lineBetween(b.x, b.y, b.x - (b.vx / sp) * 9, b.y - (b.vy / sp) * 9);
+      } else if (b.kind === "arc") {
+        const sp = Math.hypot(b.vx, b.vy) || 1;
+        // Three tail dots behind the head, fading. They trail the CURRENT
+        // heading, so the tail swings as the shot turns and the curve is legible.
+        for (let i = 3; i >= 1; i--) {
+          g.fillStyle(ink, 0.16 * i);
+          g.fillCircle(b.x - (b.vx / sp) * (i * 5), b.y - (b.vy / sp) * (i * 5), 3);
+        }
+        g.fillStyle(ink, 1);
+        g.fillCircle(b.x, b.y, 4);
+      } else {
+        const w = WEAPONS.burst;
+        const fade = Math.max(0, Math.min(1, b.life / w.life));
+        const spin = b.age / 90;
+        g.fillStyle(ink, 0.35 + 0.65 * fade);
+        // A square on its own rotation, so a ring of them tumbles outward.
+        const r = 4;
+        const c = Math.cos(spin) * r;
+        const s2 = Math.sin(spin) * r;
+        g.beginPath();
+        g.moveTo(b.x + c, b.y + s2);
+        g.lineTo(b.x - s2, b.y + c);
+        g.lineTo(b.x - c, b.y - s2);
+        g.lineTo(b.x + s2, b.y - c);
+        g.closePath();
+        g.fillPath();
+      }
+    }
 
     for (const s of this.sparks) {
       g.fillStyle(s.ink, Math.max(0, s.life / 320));

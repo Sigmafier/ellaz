@@ -7,8 +7,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "build:check": "npm run build && node scripts/assert-tier.mjs && node scripts/assert-first-visit.mjs && node scripts/assert-payload.mjs && node scripts/assert-pages.mjs && node scripts/assert-slope.mjs",
-    "assert:tier": "node scripts/assert-tier.mjs",
+    "build:check": "npm run build && TIER_REQUIREMENTS=1 node scripts/assert-tier.mjs && node scripts/assert-first-visit.mjs && node scripts/assert-payload.mjs && node scripts/assert-pages.mjs && node scripts/assert-slope.mjs",
+    "assert:tier": "TIER_REQUIREMENTS=1 node scripts/assert-tier.mjs",
     "assert:tier:control": "node scripts/assert-tier.mjs --control",
     "sprites:sync": "node scripts/sprites/sync-sprites.mjs",
     "sprites:check": "node scripts/sprites/sync-sprites.mjs --check",

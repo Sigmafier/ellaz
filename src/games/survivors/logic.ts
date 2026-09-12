@@ -80,8 +80,61 @@ export interface Enemy {
   flash: number;
 }
 
+export type WeaponId = "bolt" | "arc" | "burst";
+
+/**
+ * The three weapons, and every way they differ lives in this one row each.
+ *
+ * They fire in ROTATION off the single `fireIn` cadence rather than each owning
+ * a timer. That is a deliberate design choice and not a shortcut: three
+ * independent timers would mean a burst going off on the frame a test places a
+ * shape on the ship, and `fireIn` is what every collision test in
+ * `logic.test.ts` sets to hold the gun still. One clock keeps the gun
+ * suppressible by one field, and the player still sees all three inside two
+ * seconds because the rotation advances on every shot.
+ *
+ * `turn` is what makes the three MOTIONS different rather than one projectile
+ * at three speeds - the arc is the only one that steers after it leaves, and the
+ * burst is the only one that ignores the target and goes out as a ring. Colour
+ * and sound are the scene's to draw and play; they are named here so that one
+ * row is the whole answer to "what is this weapon".
+ */
+export const WEAPONS: Record<
+  WeaponId,
+  {
+    /** Units per second. */
+    speed: number;
+    /** Milliseconds before it expires on its own. */
+    life: number;
+    /** Radians per second it may steer toward its target. 0 never steers. */
+    turn: number;
+    /** How many go out per shot, before the spread upgrade adds more. */
+    count: number;
+    /** Extra damage over the base bolt. */
+    bonus: number;
+    /** Collision radius, so a fat burst fragment is not a pinpoint. */
+    r: number;
+    /** The sound the scene plays. One of the nine real sfx names - never invent one. */
+    sfx: "tap" | "flip" | "star";
+  }
+> = {
+  // Straight, fast, cheap. The one this game already had.
+  bolt: { speed: 330, life: 1500, turn: 0, count: 1, bonus: 0, r: 4, sfx: "tap" },
+  // Slower, and it CURVES - it keeps steering at the nearest shape after it has
+  // left, so it rounds corners the bolt drives past. Hits harder to pay for it.
+  arc: { speed: 205, life: 2200, turn: 3.4, count: 1, bonus: 1, r: 5, sfx: "flip" },
+  // A ring, thrown outward in every direction at once, dying quickly. It ignores
+  // the target entirely, which is what makes it the answer to being surrounded.
+  burst: { speed: 150, life: 520, turn: 0, count: 7, bonus: 0, r: 6, sfx: "star" },
+};
+
+/** The order the ship cycles through. Rotation index lives on the run. */
+export const WEAPON_ORDER: WeaponId[] = ["bolt", "arc", "burst"];
+
 export interface Bolt {
   id: number;
+  /** Which weapon threw this. The scene draws and sounds each one differently. */
+  kind: WeaponId;
   x: number;
   y: number;
   vx: number;
@@ -89,6 +142,8 @@ export interface Bolt {
   dmg: number;
   pierce: number;
   life: number;
+  /** Counted down for the trail the scene draws, so a curve leaves a comet. */
+  age: number;
   /** What this bolt has already touched, so passing through cannot hit twice. */
   hit: number[];
 }
@@ -107,6 +162,8 @@ export interface Gem {
  */
 export type RunEvent =
   | { type: "pop"; x: number; y: number; kind: EnemyKind }
+  /** A shot left the ship. Carries WHICH weapon, so the scene can sound it. */
+  | { type: "shot"; weapon: WeaponId; x: number; y: number }
   | { type: "hurt" }
   | { type: "gem" }
   | { type: "levelup" }
@@ -136,6 +193,8 @@ export interface RunState {
   bolts: Bolt[];
   gems: Gem[];
   up: Record<UpgradeId, number>;
+  /** How many shots this run has fired. Drives the weapon rotation, nothing else. */
+  shots: number;
   fireIn: number;
   spawnIn: number;
   nextId: number;
@@ -145,9 +204,9 @@ export interface RunState {
 
 const CAP_ENEMIES = 64;
 const CAP_BOLTS = 48;
-const BOLT_SPEED = 330;
-const BOLT_LIFE = 1500;
-const BOLT_R = 4;
+// The bolt's old speed, life and radius are not constants any more: they are the
+// `bolt` row of WEAPONS, beside the two weapons that differ from it. Keeping a
+// second copy here is how the row and the constant drift apart.
 const PLAYER_R = 11;
 const GEM_R = 16;
 /** How far your ship can see a target. Beyond it the shot is saved. */
@@ -177,6 +236,7 @@ export function newRun(level: LevelKey): RunState {
     bolts: [],
     gems: [],
     up: { rapid: 0, power: 0, spread: 0, swift: 0, magnet: 0, heart: 0, pierce: 0 },
+    shots: 0,
     fireIn: 0,
     spawnIn: RULES[level].spawnMs,
     nextId: 1,
@@ -210,11 +270,21 @@ export function kindsAt(s: RunState): EnemyKind[] {
 const dist2 = (ax: number, ay: number, bx: number, by: number) => (ax - bx) ** 2 + (ay - by) ** 2;
 
 /** Nearest shape within firing range, or null when the screen is clear. */
-export function nearestEnemy(s: RunState): Enemy | null {
+/**
+ * The nearest shape to a point, within sight of it.
+ *
+ * `fromX`/`fromY` DEFAULT to the ship, so every caller that asks "what is the
+ * gun pointing at" is unchanged. The arc passes its own position instead: a
+ * curving shot must steer at what is nearest to IT, not at what was nearest to
+ * the ship when it left, or two arcs fired a second apart both bend toward the
+ * same shape and the second one chases a corpse.
+ */
+export function nearestEnemy(s: RunState, fromX = s.x, fromY = s.y): Enemy | null {
   let best: Enemy | null = null;
   let bestD = TARGET_RANGE ** 2;
   for (const e of s.enemies) {
-    const d = dist2(s.x, s.y, e.x, e.y);
+    if (e.hp <= 0) continue;
+    const d = dist2(fromX, fromY, e.x, e.y);
     if (d < bestD) {
       bestD = d;
       best = e;
@@ -246,26 +316,46 @@ function spawn(s: RunState, rng: () => number) {
   s.enemies.push({ id: s.nextId++, kind, x: p.x, y: p.y, hp: KINDS[kind].hp, flash: 0 });
 }
 
+/** Which weapon this shot uses. Rotation, so all three are seen within seconds. */
+export const weaponAt = (shots: number): WeaponId =>
+  WEAPON_ORDER[((shots % WEAPON_ORDER.length) + WEAPON_ORDER.length) % WEAPON_ORDER.length];
+
 function fire(s: RunState) {
   const target = nearestEnemy(s);
+  // The burst does not aim, but it still holds its shot when the arena is empty:
+  // a ring thrown at nothing is noise and a wasted rotation slot.
   if (!target) return;
-  const a = Math.atan2(target.y - s.y, target.x - s.x);
-  const n = boltCount(s);
+
+  const id = weaponAt(s.shots);
+  const w = WEAPONS[id];
+  s.shots += 1;
+
+  const aim = Math.atan2(target.y - s.y, target.x - s.x);
+  // The spread upgrade widens every weapon, but the burst is already a full
+  // circle, so there it adds fragments to the ring instead of fanning it.
+  const n = w.count + (boltCount(s) - 1);
+
   for (let i = 0; i < n; i++) {
     if (s.bolts.length >= CAP_BOLTS) break;
-    const off = n === 1 ? 0 : (i - (n - 1) / 2) * SPREAD_RAD;
+    const a =
+      id === "burst"
+        ? aim + (i / n) * Math.PI * 2
+        : aim + (n === 1 ? 0 : (i - (n - 1) / 2) * SPREAD_RAD);
     s.bolts.push({
       id: s.nextId++,
+      kind: id,
       x: s.x,
       y: s.y,
-      vx: Math.cos(a + off) * BOLT_SPEED,
-      vy: Math.sin(a + off) * BOLT_SPEED,
-      dmg: boltDamage(s),
+      vx: Math.cos(a) * w.speed,
+      vy: Math.sin(a) * w.speed,
+      dmg: boltDamage(s) + w.bonus,
       pierce: s.up.pierce,
-      life: BOLT_LIFE,
+      life: w.life,
+      age: 0,
       hit: [],
     });
   }
+  s.events.push({ type: "shot", weapon: id, x: s.x, y: s.y });
 }
 
 function grantXp(s: RunState, value: number) {
@@ -337,9 +427,29 @@ export function step(
   }
 
   for (const b of s.bolts) {
+    // The arc is the only one that steers, and it steers by a capped turn rate
+    // rather than snapping to the target - a shot that turns instantly is a
+    // homing missile and never misses, which is not a weapon, it is an autowin.
+    const turn = WEAPONS[b.kind].turn;
+    if (turn > 0) {
+      const t = nearestEnemy(s, b.x, b.y);
+      if (t) {
+        const want = Math.atan2(t.y - b.y, t.x - b.x);
+        const have = Math.atan2(b.vy, b.vx);
+        // Wrapped into -PI..PI, or steering across the seam takes the long way
+        // round and the arc visibly loops the wrong direction.
+        let d = ((want - have + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+        const cap = turn * sec;
+        d = Math.max(-cap, Math.min(cap, d));
+        const sp = Math.hypot(b.vx, b.vy);
+        b.vx = Math.cos(have + d) * sp;
+        b.vy = Math.sin(have + d) * sp;
+      }
+    }
     b.x += b.vx * sec;
     b.y += b.vy * sec;
     b.life -= dt;
+    b.age += dt;
   }
 
   // Bolts against shapes. A bolt remembers what it has already touched, so one
@@ -348,7 +458,7 @@ export function step(
     if (b.life <= 0) continue;
     for (const e of s.enemies) {
       if (e.hp <= 0 || b.hit.includes(e.id)) continue;
-      const r = KINDS[e.kind].r + BOLT_R;
+      const r = KINDS[e.kind].r + WEAPONS[b.kind].r;
       if (dist2(b.x, b.y, e.x, e.y) > r * r) continue;
       e.hp -= b.dmg;
       e.flash = FLASH_MS;
