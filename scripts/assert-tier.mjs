@@ -204,11 +204,35 @@ for (const g of byBand.showcase) {
 function weightOf(id) {
   const assetsDir = join(DIST, "assets");
   if (!existsSync(assetsDir)) return null;
+  const names = readdirSync(assetsDir);
+  const own = names.filter((n) => n.startsWith(`game-${id}-`));
   let total = 0;
-  for (const name of readdirSync(assetsDir)) {
-    if (!name.startsWith(`game-${id}-`)) continue;
-    total += statSync(join(assetsDir, name)).size;
+  for (const n of own) total += statSync(join(assetsDir, n)).size;
+
+  // THE SHEETS ARE THE WHOLE POINT OF THIS BUDGET AND THIS FUNCTION COULD NOT SEE
+  // THEM. Vite emits an imported asset as `<name>-<hash>.png`, which does not
+  // start with `game-<id>-`, so counting that prefix alone measured the JS chunk
+  // and nothing else - and a showcase game's weight is mostly its art. It would
+  // have reported "spare" over a game carrying a megabyte of PNG. Found 2026-09-12
+  // while reading this file to build to it; same shape as
+  // `a-path-filter-is-a-hand-kept-mirror-of-an-import-graph.md`, a matcher whose
+  // population silently excludes the thing it exists to bound.
+  //
+  // So: every NON-JS asset this game's own chunks name, added on. JS is skipped
+  // deliberately - an imported chunk is shared with other games and is counted
+  // where it belongs, not billed twice to whoever imports it. A raster shared by
+  // two games would be counted for both, which is right for a budget (it asks
+  // what THIS game costs a player) and wrong for an allocation.
+  const referenced = new Set();
+  for (const n of own) {
+    if (!n.endsWith(".js")) continue;
+    const src = readFileSync(join(assetsDir, n), "utf8");
+    for (const other of names) {
+      if (other === n || other.endsWith(".js") || !src.includes(other)) continue;
+      referenced.add(other);
+    }
   }
+  for (const r of referenced) total += statSync(join(assetsDir, r)).size;
   return total;
 }
 

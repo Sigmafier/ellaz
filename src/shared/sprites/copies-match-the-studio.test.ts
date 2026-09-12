@@ -39,6 +39,12 @@ const COPIES = [
   { file: "manifest.ts", from: join(STUDIO_ADAPTERS, "manifest.ts") },
   { file: "player.ts", from: join(STUDIO_ADAPTERS, "canvas", "player.ts") },
   { file: "draw-frame.ts", from: join(STUDIO_ADAPTERS, "canvas", "draw-frame.ts") },
+  // The Phaser loader, added 2026-09-12 when `survivors` began drawing the cast.
+  // THIS LIST IS A HAND-KEPT MIRROR of the adapter set, which is the shape
+  // `a-path-filter-is-a-hand-kept-mirror-of-an-import-graph.md` collects: a copy
+  // missing from here is a copy with no drift gate at all, and nothing anywhere
+  // else would notice. Copy an adapter, add its row, in the same change.
+  { file: "load-atlas.ts", from: join(STUDIO_ADAPTERS, "phaser", "load-atlas.ts") },
 ];
 
 /**
@@ -92,8 +98,12 @@ describe("the copied studio adapters have not drifted", () => {
     // If this ever finds nothing, the normaliser above stopped doing anything -
     // and a normaliser that matches nothing makes every comparison above a
     // comparison of two unrelated strings that happen to agree.
-    const studioCanvas = COPIES.filter((c) => c.from.includes(`${"canvas"}/`));
-    expect(studioCanvas.length, "no canvas adapter in the list - the paths moved").toBeGreaterThan(0);
+    // Any adapter the studio keeps one directory BELOW the types - `canvas/` and
+    // `phaser/` both - is a file whose `"../manifest"` this test normalises. The
+    // filter said `canvas/` alone until 2026-09-12, so the Phaser loader would
+    // have been compared with a normaliser nothing proved was still live.
+    const studioCanvas = COPIES.filter((c) => /\/(canvas|phaser)\//.test(c.from));
+    expect(studioCanvas.length, "no nested adapter in the list - the paths moved").toBeGreaterThan(0);
     for (const c of studioCanvas) {
       expect(
         readFileSync(c.from, "utf8"),
