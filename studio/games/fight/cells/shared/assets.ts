@@ -3,7 +3,7 @@
 // `<root>/data` and find its sheets under `<root>/assets`. Throws naming the
 // URL that failed; a 404 here must never turn into an empty fight.
 
-import type { AiFile, ArenaFile, FighterFile, Manifest, MatchFile, ModeFile, MovesFile, StageFile } from "../../core/types";
+import type { AiFile, ArenaFile, FighterFile, Manifest, MatchFile, ModeFile, MovesFile, StageFile } from "../../../../toybox/sim/types";
 import type { SpriteSetRef } from "../contract";
 
 export interface LoadedFightHttp {

@@ -5,7 +5,7 @@
 // the sim, and a cell that drew every coin as a square would play the same
 // fight. Six spin widths, the demo's, read off `spin` from the draw plan.
 
-import type { PropOp } from "../../core/view";
+import type { PropOp } from "../../../../toybox/sim/view";
 import type { ArenaDrawOp } from "../contract";
 
 /** the demo's 8x8 coin; `.` is transparent */

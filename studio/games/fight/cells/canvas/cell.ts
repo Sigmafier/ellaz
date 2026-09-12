@@ -10,9 +10,9 @@
 
 import type { Atlas, Manifest } from "../../../../adapters/manifest";
 import { drawFrame } from "../../../../adapters/canvas/draw-frame";
-import { NO_INPUT } from "../../core/types";
-import type { InputFrame } from "../../core/types";
-import type { BoxOp, HudModel, PropOp, ShadowOp, SpriteOp } from "../../core/view";
+import { NO_INPUT } from "../../../../toybox/sim/types";
+import type { InputFrame } from "../../../../toybox/sim/types";
+import type { BoxOp, HudModel, PropOp, ShadowOp, SpriteOp } from "../../../../toybox/sim/view";
 import type { ArenaDrawOp, Cell, CellStats, FxOp, SpriteSetRef } from "../contract";
 import { propOps } from "../shared/props";
 import { drawText, textWidth } from "./font";

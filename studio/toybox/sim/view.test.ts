@@ -9,7 +9,7 @@
 // arithmetic drifts, every other assertion here still passes, because they all
 // read a single state where alpha cannot be observed at all.
 
-import { loadMode } from "../data/load";
+import { gameDir, loadMode } from "../data/load";
 import { compileFight } from "./compile";
 import { toPx } from "./fixed";
 import { createState } from "./match";
@@ -18,7 +18,7 @@ import { FP, NO_INPUT } from "./types";
 import type { FightState, FighterState, InputFrame } from "./types";
 import { lerp256, viewOf } from "./view";
 
-const data = compileFight(loadMode("versus"));
+const data = compileFight(loadMode("versus", gameDir("fight")));
 const robot = data.fighters[data.cast[0].fighter];
 const teddy = data.fighters[data.cast[1].fighter];
 

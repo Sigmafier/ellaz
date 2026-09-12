@@ -8,7 +8,7 @@
 // gone - which dormant() treats like 0 (not drawn, not hit, pushes nobody)
 // while spawnDue and the wave phase treat it as spent, not as not-yet.
 
-import { loadMode } from "../data/load";
+import { gameDir, loadMode } from "../data/load";
 import { compileFight } from "./compile";
 import { freshAi } from "./ai";
 import { dormant, spawnFighter } from "./fighter";
@@ -20,7 +20,7 @@ import { FP, NO_INPUT } from "./types";
 import type { FighterState, FightState, StageState } from "./types";
 import { viewOf } from "./view";
 
-const data = compileFight(loadMode("stage"));
+const data = compileFight(loadMode("stage", gameDir("fight")));
 const stage = data.stage!;
 const HERO = heroIndex(data);
 const idle = data.fighters.map(() => NO_INPUT);

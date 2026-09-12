@@ -7,7 +7,7 @@
 // Every rule has its negative control beside it, because a stage that never
 // spawns anything also passes "nothing is drawn".
 
-import { loadMode } from "../data/load";
+import { gameDir, loadMode } from "../data/load";
 import { compileFight } from "./compile";
 import { freshAi } from "./ai";
 import { dormant, spawnFighter } from "./fighter";
@@ -19,7 +19,7 @@ import { FP, NO_INPUT } from "./types";
 import type { FighterState, FightState, InputFrame, StageState } from "./types";
 import { viewOf } from "./view";
 
-const data = compileFight(loadMode("stage"));
+const data = compileFight(loadMode("stage", gameDir("fight")));
 const stage = data.stage!;
 const HERO = heroIndex(data);
 const W = data.arena.viewW;
@@ -308,7 +308,7 @@ describe("the hero going down restarts the wave and keeps what was earned", () =
 
 describe("Versus is untouched by any of this", () => {
   it("runs with no stage block and no camera, and the golden test pins the rest", () => {
-    const v = compileFight(loadMode("versus"));
+    const v = compileFight(loadMode("versus", gameDir("fight")));
     const s = step(createState(v), [NO_INPUT, NO_INPUT], v);
     expect(s.stage).toBeNull();
     expect(viewOf(s, s, 128, v).camX).toBe(0);

@@ -1,11 +1,16 @@
-// The node side of the fight. This file reads the disk so core/ never has to:
-// nothing under core/ imports fs, a DOM, or the studio, which is what lets the
+// The node side of the engine. This file reads the disk so sim/ never has to:
+// nothing under sim/ imports fs, a DOM, or the studio, which is what lets the
 // whole directory be `git mv`d into a game with its sibling imports intact.
 //
-// It returns PLAIN PARSED JSON - the raw file shapes from core/types.ts, not
-// the compiled ones. Compiling is core/compile.ts's job and it is pure, so a
+// It returns PLAIN PARSED JSON - the raw file shapes from sim/types.ts, not
+// the compiled ones. Compiling is sim/compile.ts's job and it is pure, so a
 // browser cell can fetch the same five files and compile them with no loader at
 // all. The split is deliberate: reading and converting are different failures.
+//
+// A GAME is a directory holding data/ (the json, by kind) and assets/ (the
+// sprite sets its fighters name); every caller says which game, because the
+// engine has no game of its own. `gameDir("fight")` resolves a game under
+// studio/games/ - the one convention the harness and the gates share.
 //
 // Every missing file throws NAMING THE PATH. A loader that returns undefined
 // for a file it could not open hands the mistake to whatever reads the result,
@@ -14,9 +19,15 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { AiFile, ArenaFile, FighterFile, Manifest, MatchFile, ModeFile, MovesFile, StageFile } from "../core/types";
+import type { AiFile, ArenaFile, FighterFile, Manifest, MatchFile, ModeFile, MovesFile, StageFile } from "../sim/types";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+
+/** where the games live: studio/games/<name>/ - each holds data/ and assets/ */
+export const GAMES = join(HERE, "..", "..", "games");
+
+/** a game's root directory by name; the caller passes this to loadMode */
+export const gameDir = (name: string): string => join(GAMES, name);
 
 export interface SpriteSet {
   manifest: Manifest;
@@ -76,11 +87,12 @@ function loadSets(fighters: FighterFile[], assetsRoot: string): Record<string, S
 }
 
 /**
- * Read a mode and everything it names. `root` is this directory by default;
- * the sprite sets are read from `<root>/../assets/<set>/`, so a caller pointing
- * `root` at a fixture tree gets that tree's assets too.
+ * Read a mode and everything it names from `<gameRoot>/data/`, with the sprite
+ * sets from `<gameRoot>/assets/<set>/`. A caller pointing `gameRoot` at a
+ * fixture tree gets that tree's data and assets, and nothing else's.
  */
-export function loadMode(modeId: string, root: string = HERE): LoadedFight {
+export function loadMode(modeId: string, gameRoot: string): LoadedFight {
+  const root = join(gameRoot, "data");
   const mode = readJson<ModeFile>(join(root, "modes", `${modeId}.json`), `mode "${modeId}"`);
   const arena = readJson<ArenaFile>(join(root, "arena", `${mode.arena}.json`), `arena "${mode.arena}" (named by mode "${modeId}")`);
   const match = readJson<MatchFile>(join(root, "match", `${mode.match}.json`), `match "${mode.match}" (named by mode "${modeId}")`);
@@ -96,5 +108,5 @@ export function loadMode(modeId: string, root: string = HERE): LoadedFight {
   const stage = mode.stage === undefined ? undefined
     : readJson<StageFile>(join(root, "stage", `${mode.stage}.json`), `stage "${mode.stage}" (named by mode "${modeId}")`);
 
-  return { mode, arena, match, fighters, ais, sets: loadSets(fighters, join(root, "..", "assets")), ...(stage ? { stage } : {}) };
+  return { mode, arena, match, fighters, ais, sets: loadSets(fighters, join(gameRoot, "assets")), ...(stage ? { stage } : {}) };
 }

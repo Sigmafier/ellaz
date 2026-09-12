@@ -12,7 +12,7 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: true,
-    include: ["art/**/*.test.ts", "export/**/*.test.ts", "adapters/**/*.test.ts", "gallery/src/**/*.test.ts", "games/**/*.test.ts"],
+    include: ["art/**/*.test.ts", "export/**/*.test.ts", "adapters/**/*.test.ts", "gallery/src/**/*.test.ts", "games/**/*.test.ts", "toybox/**/*.test.ts"],
   },
   resolve: {
     alias: {

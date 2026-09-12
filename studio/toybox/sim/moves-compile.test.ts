@@ -12,13 +12,13 @@
 // that makes every fighter move five times too fast - the whole class this
 // FP/scale layer exists to make impossible.
 
-import { loadMode } from "../data/load";
+import { gameDir, loadMode } from "../data/load";
 import { compileFight } from "./compile";
 import { floorDiv } from "./fixed";
 import { FP } from "./types";
 import type { CFighter, CState, FightData } from "./types";
 
-const input = loadMode("versus");
+const input = loadMode("versus", gameDir("fight"));
 const data: FightData = compileFight(input);
 
 const byId = (id: string): CFighter => {
@@ -139,7 +139,7 @@ describe("the unit conversions, computed here by hand from the files", () => {
   // a NEGATIVE odd conversion must floor toward -inf, not truncate: dy -20 at liftScale 61
   //   floor(-20 * 256 * 61 / 300) = floor(-1041.06) = -1042, trunc would give -1041
   it("floors a negative conversion toward -inf (the trap trunc would miss)", () => {
-    const raw = loadMode("versus");
+    const raw = loadMode("versus", gameDir("fight"));
     const odd = compileFight({ ...raw, match: { ...raw.match, liftScale: 61 } });
     const robot = odd.fighters.find((f) => f.id === "robot")!;
     const hit = robot.states.find((s) => s.name === "attack")!.frames[2].itr[0];

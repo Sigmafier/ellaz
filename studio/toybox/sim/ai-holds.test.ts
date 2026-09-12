@@ -6,7 +6,7 @@
 // 6,000 ticks of Versus took 0 hits. It takes some now, and the test prints
 // both numbers so the commit can quote them.
 
-import { loadMode } from "../data/load";
+import { gameDir, loadMode } from "../data/load";
 import { freshAi, reachOf, swinging, thinkAi } from "./ai";
 import { compileFight } from "./compile";
 import { createState } from "./match";
@@ -15,7 +15,7 @@ import { step } from "./step";
 import { FP, NO_INPUT } from "./types";
 import type { FightData, InputFrame } from "./types";
 
-const loaded = loadMode("versus");
+const loaded = loadMode("versus", gameDir("fight"));
 const data = compileFight(loaded);
 const robot = data.fighters[data.cast[0].fighter];
 const teddy = data.fighters[data.cast[1].fighter];

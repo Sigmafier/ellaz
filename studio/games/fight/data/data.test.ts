@@ -22,12 +22,14 @@ import { existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFil
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadMode } from "./load";
-import { compileFight } from "../core/compile";
-import type { AiFile, CastEntry, FighterFile, MatchFile, ModeFile } from "../core/types";
+import { loadMode } from "../../../toybox/data/load";
+import { compileFight } from "../../../toybox/sim/compile";
+import type { AiFile, CastEntry, FighterFile, MatchFile, ModeFile } from "../../../toybox/sim/types";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const ASSETS = join(HERE, "..", "assets");
+/** this game's root: the loader reads data/ and assets/ under it */
+const FIGHT = join(HERE, "..");
+const ASSETS = join(FIGHT, "assets");
 
 const schemaLib = await import(new URL("../../../scripts/lib/schema.mjs", import.meta.url).href);
 const check = (schema: unknown, value: unknown): string[] => schemaLib.validate(schema, value) as string[];
@@ -195,7 +197,7 @@ describe("the stage conditionals the validator subset cannot write", () => {
     expect(rows).toBe(13);
     expect(rows).toBeLessThanOrEqual(31);
     // and the compiler refuses one row over
-    const fat = JSON.parse(JSON.stringify(loadMode("stage")));
+    const fat = JSON.parse(JSON.stringify(loadMode("stage", FIGHT)));
     while (fat.mode.cast.length + fat.mode.waves.reduce((n: number, w: { spawns: unknown[] }) => n + w.spawns.length, 0) < 32) {
       fat.mode.waves[0].spawns.push({ ...fat.mode.waves[0].spawns[0] });
     }
@@ -207,14 +209,14 @@ describe("the stage conditionals the validator subset cannot write", () => {
       const ff = readJson(f.path) as unknown as FighterFile;
       if (ff.hover !== undefined) expect({ id: ff.id, flying: ff.flying }).toEqual({ id: ff.id, flying: true });
     }
-    const loaded = JSON.parse(JSON.stringify(loadMode("stage")));
+    const loaded = JSON.parse(JSON.stringify(loadMode("stage", FIGHT)));
     const slime = loaded.fighters.find((f: FighterFile) => f.id === "slime");
     slime.hover = 30;
     expect(() => compileFight(loaded)).toThrow(/"slime" has a hover height but does not fly/);
   });
 
   it("every spawn lane lies inside the arena's z band, and the camera lead inside one screen", () => {
-    const loaded = loadMode("stage");
+    const loaded = loadMode("stage", FIGHT);
     const st = loaded.stage!;
     expect(st.spawn.zMin).toBeGreaterThanOrEqual(loaded.arena.sim.zMin);
     expect(st.spawn.zMax).toBeLessThanOrEqual(loaded.arena.sim.zMax);
@@ -329,7 +331,7 @@ describe("every fighter's sprite set is on disk, with both halves", () => {
 
 describe("loadMode reads a mode and everything it names", () => {
   it("returns the whole set, parsed", () => {
-    const loaded = loadMode("versus");
+    const loaded = loadMode("versus", FIGHT);
     expect(loaded.mode.id).toBe("versus");
     expect(loaded.arena.id).toBe("playroom");
     expect(loaded.match.id).toBe("versus");
@@ -341,7 +343,7 @@ describe("loadMode reads a mode and everything it names", () => {
   });
 
   it("reads the stage mode: the waves' fighters and ais join the cast's, and the stage file rides along", () => {
-    const loaded = loadMode("stage");
+    const loaded = loadMode("stage", FIGHT);
     expect(loaded.arena.id).toBe("toybox");
     expect(loaded.fighters.map((f) => f.id)).toEqual(["robot", "slime", "bat", "teddy-boss"]);
     expect(loaded.ais.map((a) => a.id)).toEqual(["slime-cpu", "bat-cpu", "teddy-cpu"]);
@@ -355,20 +357,21 @@ describe("loadMode reads a mode and everything it names", () => {
   });
 
   it("a Versus load carries no stage, and compiles to none", () => {
-    const loaded = loadMode("versus");
+    const loaded = loadMode("versus", FIGHT);
     expect(loaded.stage).toBeUndefined();
     expect(compileFight(loaded).stage).toBeNull();
   });
 
   it("throws naming the mode when there is no such mode", () => {
-    expect(() => loadMode("no-such-mode")).toThrow(/no-such-mode/);
+    expect(() => loadMode("no-such-mode", FIGHT)).toThrow(/no-such-mode/);
   });
 
   it("throws naming the ARENA when a mode points at one that is not there", () => {
+    // a scratch GAME root: the loader reads <root>/data/modes, so the fixture is shaped like a game
     const root = mkdtempSync(join(tmpdir(), "fight-data-"));
-    mkdirSync(join(root, "modes"), { recursive: true });
+    mkdirSync(join(root, "data", "modes"), { recursive: true });
     const mode = { ...(readJson(join(HERE, "modes", "versus.json")) as object), id: "orphan", arena: "ghost-arena" };
-    writeFileSync(join(root, "modes", "orphan.json"), JSON.stringify(mode));
+    writeFileSync(join(root, "data", "modes", "orphan.json"), JSON.stringify(mode));
     expect(() => loadMode("orphan", root)).toThrow(/ghost-arena/);
   });
 });

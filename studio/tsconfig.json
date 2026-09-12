@@ -12,5 +12,5 @@
       "phaser": ["games/fight/cells/node_modules/phaser"]
     }
   },
-  "include": ["art", "export", "adapters", "gallery/src", "games", "vitest.config.ts"]
+  "include": ["art", "export", "adapters", "gallery/src", "games", "toybox", "vitest.config.ts"]
 }

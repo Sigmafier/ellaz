@@ -16,7 +16,7 @@
 // in every case that matters (all three follow a hit), and a fighter who has
 // never been hit spawns nothing rather than a burst at the origin.
 
-import type { FightEvent } from "../../core/types";
+import type { FightEvent } from "../../../../toybox/sim/types";
 import type { FxOp } from "../contract";
 
 /** the snes16 names this file draws with, as literals - a shared file may not import a sibling */

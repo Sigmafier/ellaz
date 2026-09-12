@@ -3,9 +3,8 @@
 // which proves no state lives anywhere but in FightState.
 
 import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { loadMode } from "../data/load";
+import { join } from "node:path";
+import { gameDir, loadMode } from "../data/load";
 import { compileFight } from "./compile";
 import { hashEvents, hashState } from "./hash";
 import { createState } from "./match";
@@ -13,9 +12,8 @@ import { step } from "./step";
 import { inputsAtTick, readTape } from "./tape";
 import type { FightData, FightState } from "./types";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-const tape = readTape(JSON.parse(readFileSync(join(HERE, "..", "tournament", "tapes", "versus-600.json"), "utf8")));
-const compile = (seed = tape.seed): FightData => { const raw = loadMode(tape.mode); return compileFight({ ...raw, mode: { ...raw.mode, seed } }); };
+const tape = readTape(JSON.parse(readFileSync(join(gameDir("fight"), "tapes", "versus-600.json"), "utf8")));
+const compile = (seed = tape.seed): FightData => { const raw = loadMode(tape.mode, gameDir("fight")); return compileFight({ ...raw, mode: { ...raw.mode, seed } }); };
 
 function run(data: FightData, from: FightState, ticks: number): FightState {
   let s = from;

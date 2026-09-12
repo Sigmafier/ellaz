@@ -2,14 +2,14 @@
 // arguments produce the same thought, and its randomness is the rng word it
 // hands back. A Math.random inside thinkAi breaks the first assertion.
 
-import { loadMode } from "../data/load";
+import { gameDir, loadMode } from "../data/load";
 import { freshAi, reachOf, thinkAi } from "./ai";
 import { compileFight } from "./compile";
 import { spawnAll } from "./match";
 import { seedRng } from "./rng";
 import { FP } from "./types";
 
-const data = compileFight(loadMode("versus"));
+const data = compileFight(loadMode("versus", gameDir("fight")));
 const cpu = data.cast.findIndex((c) => c.control === "ai");
 const player = data.cast.findIndex((c) => c.control === "player");
 

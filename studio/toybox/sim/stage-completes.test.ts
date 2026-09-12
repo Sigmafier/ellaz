@@ -4,7 +4,7 @@
 // every coin once the stage is clear. No human, no tape: if a wave's numbers
 // make the run unwinnable, this is where it shows.
 
-import { loadMode } from "../data/load";
+import { gameDir, loadMode } from "../data/load";
 import { reachOf } from "./ai";
 import { compileFight } from "./compile";
 import { abs, sign } from "./fixed";
@@ -14,7 +14,7 @@ import { step } from "./step";
 import { FP, NO_INPUT } from "./types";
 import type { FighterState, FightState, InputFrame } from "./types";
 
-const data = compileFight(loadMode("stage"));
+const data = compileFight(loadMode("stage", gameDir("fight")));
 const HERO = heroIndex(data);
 const heroCf = data.fighters[data.cast[HERO].fighter];
 const reach = reachOf(heroCf);

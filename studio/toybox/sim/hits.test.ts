@@ -2,7 +2,7 @@
 // box, inside the z band, once per target per swing. Damage, stun and fall
 // are the file's numbers; stagger / knockdown / ko are the match file's.
 
-import { loadMode } from "../data/load";
+import { gameDir, loadMode } from "../data/load";
 import { compileFight } from "./compile";
 import { applyHit, findHits } from "./hits";
 import { spawnAll } from "./match";
@@ -10,7 +10,7 @@ import { frameAt, stateIndex } from "./moves";
 import { FP } from "./types";
 import type { FightState } from "./types";
 
-const data = compileFight(loadMode("versus"));
+const data = compileFight(loadMode("versus", gameDir("fight")));
 const robot = data.fighters[data.cast[0].fighter];
 const teddy = data.fighters[data.cast[1].fighter];
 const attack = stateIndex(robot, "attack");

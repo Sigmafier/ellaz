@@ -4,7 +4,7 @@
 // hands each text run to the cell's baked-text pool.
 
 import type Phaser from "phaser";
-import type { HudModel } from "../core/view";
+import type { HudModel } from "../../../toybox/sim/view";
 import { stageHudOps } from "../cells/canvas/hud-stage";
 
 export type TextFn = (str: string, x: number, y: number, scale: number, color: string) => void;

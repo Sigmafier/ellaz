@@ -22,9 +22,9 @@
 import Phaser from "phaser";
 import type { Manifest } from "../../../adapters/manifest";
 import { loadStudioAtlas, originFor } from "../../../adapters/phaser/load-atlas";
-import { NO_INPUT } from "../core/types";
-import type { InputFrame } from "../core/types";
-import type { BoxOp, HudModel, PropOp, ShadowOp, SpriteOp } from "../core/view";
+import { NO_INPUT } from "../../../toybox/sim/types";
+import type { InputFrame } from "../../../toybox/sim/types";
+import type { BoxOp, HudModel, PropOp, ShadowOp, SpriteOp } from "../../../toybox/sim/view";
 import type { ArenaDrawOp, Cell, CellStats, FxOp, SpriteSetRef } from "../cells/contract";
 import { drawText, textWidth } from "../cells/canvas/font";
 import { propOps } from "../cells/shared/props";

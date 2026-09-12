@@ -9,14 +9,14 @@
 // of a mashing robot was >= 60 ticks, at every cooldown 15..60 the mash matrix
 // tried, because the recovery ran whether the fist hit or not.
 
-import { loadMode } from "../data/load";
+import { gameDir, loadMode } from "../data/load";
 import { compileFight } from "./compile";
 import { createState } from "./match";
 import { step } from "./step";
 import { NO_INPUT } from "./types";
 import type { FightData, FightState, InputFrame } from "./types";
 
-const loaded = loadMode("versus");
+const loaded = loadMode("versus", gameDir("fight"));
 
 /** the Versus data with the teddy walking straight in (hold 0) and the landed recovery set to `landed` */
 function withLanded(landed: number, hold = 0): FightData {

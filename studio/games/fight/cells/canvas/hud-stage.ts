@@ -5,7 +5,7 @@
 // ctx and the Phaser page with Graphics + baked text, and the two cannot
 // disagree about where anything is. Colours are the cells' own palette.
 
-import type { StageHud } from "../../core/view";
+import type { StageHud } from "../../../../toybox/sim/view";
 
 export interface HudRect { x: number; y: number; w: number; h: number; color: string }
 export interface HudText { text: string; x: number; y: number; scale: number; color: string }

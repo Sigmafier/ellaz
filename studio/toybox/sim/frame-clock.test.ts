@@ -11,12 +11,12 @@
 // frame index that creeps by one every few hundred ticks is invisible for the
 // first minute and then the fighter is animating a frame behind its own boxes.
 
-import { loadMode } from "../data/load";
+import { gameDir, loadMode } from "../data/load";
 import { compileFight } from "./compile";
 import { canCancel, frameAt, frameIndexAt, stateDone, stateIndex } from "./moves";
 import type { CFighter, CState, FightData } from "./types";
 
-const input = loadMode("versus");
+const input = loadMode("versus", gameDir("fight"));
 const data: FightData = compileFight(input);
 
 const byId = (d: FightData, id: string): CFighter => {

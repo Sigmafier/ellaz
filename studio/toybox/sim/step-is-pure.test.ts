@@ -3,16 +3,14 @@
 // about to draw. Deep-freeze both and run the whole tape; any write throws.
 
 import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { loadMode } from "../data/load";
+import { join } from "node:path";
+import { gameDir, loadMode } from "../data/load";
 import { compileFight } from "./compile";
 import { createState } from "./match";
 import { step } from "./step";
 import { inputsAtTick, readTape } from "./tape";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-const tape = readTape(JSON.parse(readFileSync(join(HERE, "..", "tournament", "tapes", "versus-600.json"), "utf8")));
+const tape = readTape(JSON.parse(readFileSync(join(gameDir("fight"), "tapes", "versus-600.json"), "utf8")));
 
 function deepFreeze<T>(o: T): T {
   if (o && typeof o === "object" && !Object.isFrozen(o)) { Object.freeze(o); for (const v of Object.values(o as object)) deepFreeze(v); }
@@ -21,7 +19,7 @@ function deepFreeze<T>(o: T): T {
 
 describe("step is pure", () => {
   it("never writes to state or data across 600 ticks", () => {
-    const data = compileFight(loadMode(tape.mode));
+    const data = compileFight(loadMode(tape.mode, gameDir("fight")));
     expect(Object.isFrozen(data)).toBe(true);
     let s = deepFreeze(createState(data));
     for (let t = 0; t < 600; t++) {
@@ -33,7 +31,7 @@ describe("step is pure", () => {
   });
 
   it("the control: a write to a frozen state throws under this test's freeze", () => {
-    const s = deepFreeze(createState(compileFight(loadMode(tape.mode))));
+    const s = deepFreeze(createState(compileFight(loadMode(tape.mode, gameDir("fight")))));
     expect(() => { (s.fighters[0] as { x: number }).x = 1; }).toThrow();
   });
 });

@@ -19,7 +19,7 @@ const STUDIO = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", ".."
 const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 if (isMain) {
-  const r = spawnSync("npx", ["vitest", "run", "games/fight/core/golden-tape.test.ts"], {
+  const r = spawnSync("npx", ["vitest", "run", "toybox/sim/golden-tape.test.ts"], {
     cwd: STUDIO,
     env: { ...process.env, WRITE_GOLDEN: "1" },
     stdio: "inherit",

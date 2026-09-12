@@ -46,7 +46,7 @@ function chunkOf(id: string): string | undefined {
   const path = id.split("\0").pop() ?? id;
   const pkg = ENGINES.find((e) => path.includes(`/node_modules/${e}/`));
   if (pkg) return `vendor-${pkg}`;
-  if (/\/games\/fight\/(core\/|cells\/(run-cell|retime|shared\/))/.test(path)) return "fight-core";
+  if (/\/toybox\/sim\/|\/games\/fight\/cells\/(run-cell|retime|shared\/)/.test(path)) return "fight-core";
   return undefined;
 }
 

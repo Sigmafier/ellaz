@@ -1,17 +1,17 @@
-// The golden tapes: every tape under the game's tapes/ replayed through the
-// core pins its state hash, its chain, its event hash, the hp values, the
-// winner and the hit count - one golden per tape, written BESIDE it as
-// <tape>.golden.json, and a stage tape also pins its wave, coins, xp and
-// level. Negative controls stand beside them, because a golden that proves
-// only "the code is the code" is not a gate: a truncating divide, a one-unit
-// gravity change and a one-unit friction change must each move a Versus
-// golden; a one-unit camera change must move the STAGE golden and leave
-// Versus untouched. Re-record with tools/write-golden.mjs, never by hand.
+// The golden tapes: every tape under every game's tapes/ (games/*/tapes/)
+// replayed through the sim pins its state hash, its chain, its event hash, the
+// hp values, the winner and the hit count - one golden per tape, written
+// BESIDE it as <tape>.golden.json, and a stage tape also pins its wave, coins,
+// xp and level. Negative controls stand beside them, on the fight game's
+// tapes, because a golden that proves only "the code is the code" is not a
+// gate: a truncating divide, a one-unit gravity change and a one-unit friction
+// change must each move a Versus golden; a one-unit camera change must move
+// the STAGE golden and leave Versus untouched. Re-record with the fight's
+// tools/write-golden.mjs, never by hand.
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { loadMode } from "../data/load";
+import { join } from "node:path";
+import { GAMES, gameDir, loadMode } from "../data/load";
 import { compileFight } from "./compile";
 import { chainOf, hashEvents, hashState } from "./hash";
 import { createState } from "./match";
@@ -20,9 +20,9 @@ import { inputsAtTick, readTape } from "./tape";
 import type { Tape } from "./tape";
 import type { FightData, FightEvent } from "./types";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-const TAPES = join(HERE, "..", "tapes");
-const GOLDENS = TAPES;
+/** every game with a tapes/ directory - the population, from the tree, never a hand-kept list */
+const games = readdirSync(GAMES).filter((g) => existsSync(join(GAMES, g, "tapes"))).sort();
+const tapesDir = (game: string): string => join(gameDir(game), "tapes");
 
 /**
  * hash: the terminal state · chain: every tick's state hash folded in order, so a
@@ -35,10 +35,10 @@ export interface Golden {
   stage?: { wave: number; wphase: number; coins: number; xp: number; level: number };
 }
 
-/** every tape on disk, by name - the population, never a hand-kept list; a golden sits beside its tape and is not one */
-const tapeNames = readdirSync(TAPES).filter((f) => f.endsWith(".json") && !f.endsWith(".golden.json")).map((f) => f.replace(/\.json$/, "")).sort();
-const readTapeFile = (name: string): Tape => readTape(JSON.parse(readFileSync(join(TAPES, `${name}.json`), "utf8")));
-const goldenPath = (name: string): string => join(GOLDENS, `${name}.golden.json`);
+/** every tape a game holds, by name; a golden sits beside its tape and is not one */
+const tapeNames = (game: string): string[] => readdirSync(tapesDir(game)).filter((f) => f.endsWith(".json") && !f.endsWith(".golden.json")).map((f) => f.replace(/\.json$/, "")).sort();
+const readTapeFile = (game: string, name: string): Tape => readTape(JSON.parse(readFileSync(join(tapesDir(game), `${name}.json`), "utf8")));
+const goldenPath = (game: string, name: string): string => join(tapesDir(game), `${name}.golden.json`);
 
 export function replay(data: FightData, tape: Tape, name: string, ticks = tape.ticks): Golden {
   let s = createState(data);
@@ -51,35 +51,39 @@ export function replay(data: FightData, tape: Tape, name: string, ticks = tape.t
 }
 
 describe("the tapes on disk", () => {
-  it("are the two the gates name, so nothing below runs over an empty list", () => {
-    expect(tapeNames).toEqual(["stage-600", "versus-600"]);
+  it("are the fight's two, so nothing below runs over an empty list", () => {
+    expect(Object.fromEntries(games.map((g) => [g, tapeNames(g)]))).toEqual({ fight: ["stage-600", "versus-600"] });
   });
 });
 
-for (const name of tapeNames) {
-  describe(`golden tape ${name}`, () => {
-    const tape = readTapeFile(name);
-    const data = compileFight(loadMode(tape.mode));
+for (const game of games) {
+  for (const name of tapeNames(game)) {
+    describe(`golden tape ${game}/${name}`, () => {
+      const tape = readTapeFile(game, name);
+      const data = compileFight(loadMode(tape.mode, gameDir(game)));
 
-    it("reproduces the committed golden (WRITE_GOLDEN=1 re-records it and prints old and new whole)", () => {
-      const now = replay(data, tape, name);
-      const file = goldenPath(name);
-      if (process.env.WRITE_GOLDEN === "1") {
-        const old = existsSync(file) ? readFileSync(file, "utf8").trim().replace(/\s+/g, " ") : "(none)";
-        writeFileSync(file, JSON.stringify(now, null, 2) + "\n");
-        console.log(`write-golden ${name}: old ${old}\nwrite-golden ${name}: new ${JSON.stringify(now)}`);
-      }
-      expect(existsSync(file)).toBe(true);
-      const golden = JSON.parse(readFileSync(file, "utf8")) as Golden;
-      expect(now).toEqual(golden);
+      it("reproduces the committed golden (WRITE_GOLDEN=1 re-records it and prints old and new whole)", () => {
+        const now = replay(data, tape, name);
+        const file = goldenPath(game, name);
+        if (process.env.WRITE_GOLDEN === "1") {
+          const old = existsSync(file) ? readFileSync(file, "utf8").trim().replace(/\s+/g, " ") : "(none)";
+          writeFileSync(file, JSON.stringify(now, null, 2) + "\n");
+          console.log(`write-golden ${game}/${name}: old ${old}\nwrite-golden ${game}/${name}: new ${JSON.stringify(now)}`);
+        }
+        expect(existsSync(file)).toBe(true);
+        const golden = JSON.parse(readFileSync(file, "utf8")) as Golden;
+        expect(now).toEqual(golden);
+      });
     });
-  });
+  }
 }
+
+const FIGHT = gameDir("fight");
 
 describe("the controls, on the Versus tape", () => {
   const name = "versus-600";
-  const tape = readTapeFile(name);
-  const data = compileFight(loadMode(tape.mode));
+  const tape = readTapeFile("fight", name);
+  const data = compileFight(loadMode(tape.mode, FIGHT));
 
   it("control: gravity one unit heavier moves the CHAIN (the flight the terminal state can forget)", () => {
     const heavier = JSON.parse(JSON.stringify(data)) as FightData;
@@ -109,7 +113,7 @@ describe("the controls, on the Versus tape", () => {
     const { createState: createT } = await import("./match");
     const { compileFight: compileT } = await import("./compile");
     const { hashState: hashT } = await import("./hash");
-    const dataT = compileT(loadMode(tape.mode));
+    const dataT = compileT(loadMode(tape.mode, FIGHT));
     let s = createT(dataT);
     for (let t = 0; t < tape.ticks; t++) s = stepT(s, inputsAtTick(tape, t, 2), dataT);
     vi.doUnmock("./fixed");
@@ -123,8 +127,8 @@ describe("the control that tells the two goldens apart", () => {
     // divisor edit was measured to leave the chain byte-identical (2e7dac5c) - a control that
     // cannot fire on the tape it guards is no control. Every stage tape spawns, so the lane
     // draw is exercised from tick 18
-    const versus = readTapeFile("versus-600"), stage = readTapeFile("stage-600");
-    const vData = compileFight(loadMode(versus.mode)), sData = compileFight(loadMode(stage.mode));
+    const versus = readTapeFile("fight", "versus-600"), stage = readTapeFile("fight", "stage-600");
+    const vData = compileFight(loadMode(versus.mode, FIGHT)), sData = compileFight(loadMode(stage.mode, FIGHT));
     const narrower = JSON.parse(JSON.stringify(sData)) as FightData;
     narrower.stage!.spawn.zMin += 1;
     expect(replay(narrower, stage, "stage-600").chain).not.toBe(replay(sData, stage, "stage-600").chain);
@@ -135,8 +139,8 @@ describe("the control that tells the two goldens apart", () => {
   });
 
   it("and the stage golden itself pins a wave machine that did something: hits landed, and a spawn in the purse's reach", () => {
-    const stage = readTapeFile("stage-600");
-    const g = replay(compileFight(loadMode(stage.mode)), stage, "stage-600");
+    const stage = readTapeFile("fight", "stage-600");
+    const g = replay(compileFight(loadMode(stage.mode, FIGHT)), stage, "stage-600");
     expect(g.stage).toBeDefined();
     expect(g.hits).toBeGreaterThan(0);
     expect(g.hp.length).toBe(13);

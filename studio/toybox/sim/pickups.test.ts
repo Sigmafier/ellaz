@@ -4,7 +4,7 @@
 // the pickup box and not one FP outside it; a level-up raises the max,
 // heals up to it, and adds to the hero's damage and to nobody else's.
 
-import { loadMode } from "../data/load";
+import { gameDir, loadMode } from "../data/load";
 import { compileFight } from "./compile";
 import { freshAi } from "./ai";
 import { spawnFighter } from "./fighter";
@@ -16,7 +16,7 @@ import { step } from "./step";
 import { FP, NO_INPUT } from "./types";
 import type { FighterState, FightState, PickupState, StageState } from "./types";
 
-const data = compileFight(loadMode("stage"));
+const data = compileFight(loadMode("stage", gameDir("fight")));
 const stage = data.stage!;
 const HERO = heroIndex(data);
 const heroCf = data.fighters[data.cast[HERO].fighter];

@@ -3,7 +3,7 @@
 // falls from the same height, so "never lands" cannot pass on a sim that
 // simply forgot gravity.
 
-import { loadMode } from "../data/load";
+import { gameDir, loadMode } from "../data/load";
 import { compileFight } from "./compile";
 import { freshAi } from "./ai";
 import { spawnFighter } from "./fighter";
@@ -12,7 +12,7 @@ import { step } from "./step";
 import { FP, NO_INPUT } from "./types";
 import type { FighterState, FightState } from "./types";
 
-const data = compileFight(loadMode("stage"));
+const data = compileFight(loadMode("stage", gameDir("fight")));
 const idle = data.fighters.map(() => NO_INPUT);
 const BAT = data.cast.findIndex((c) => data.fighters[c.fighter].id === "bat");
 const SLIME = data.cast.findIndex((c) => data.fighters[c.fighter].id === "slime");
