@@ -10,7 +10,7 @@
 // the hash over a fixed field list and the hit mask over a fixed bit per row.
 
 import { freshAi } from "./ai";
-import { spawnFighter } from "./fighter";
+import { dormant, spawnFighter } from "./fighter";
 import { abs, clamp, floorDiv, toFP } from "./fixed";
 import { rngRange } from "./rng";
 import type { CStage, FightData, FighterState, FightEvent, FightState, StageState, WavePhase } from "./types";
@@ -60,19 +60,28 @@ function followCamera(s: FightState, data: FightData, stage: CStage, hero: Fight
   return { ...st, camX };
 }
 
-/** the hero never leaves the screen; an enemy that has come in (active 2) never leaves it either, and one still walking in stays near it */
+/** the hero never leaves the screen; an enemy that has come in (active 2) never leaves it either, and one still walking in stays near it. A corpse is left where it fell */
 function holdToScreen(s: FightState, data: FightData, stage: CStage, heroI: number): FighterState[] {
   const camX = (s.stage as StageState).camX;
   const right = camX + data.arena.viewW;
   return s.fighters.map((f, i) => {
     if (i === heroI) return { ...f, x: clamp(f.x, camX + stage.screen.heroPad, right - stage.screen.heroPad) };
-    if (f.active === 0) return f;
+    if (dormant(f) || f.hp <= 0) return f;
     const inside = f.x > camX + stage.screen.enemyPad && f.x < right - stage.screen.enemyPad;
     const active = f.active === 2 || inside ? 2 : 1;
     const x = active === 2
       ? clamp(f.x, camX + stage.screen.enemyPad, right - stage.screen.enemyPad)
       : clamp(f.x, camX - stage.screen.outsidePad, right + stage.screen.outsidePad);
     return x === f.x && active === f.active ? f : { ...f, x, active };
+  });
+}
+
+/** a KO'd enemy whose ko clip ended corpseTicks ago is gone: active 3, which dormant() hides and the wave counts as spent. The hero never goes - it fades and restarts */
+function despawnCorpses(s: FightState, data: FightData, stage: CStage, heroI: number): FighterState[] {
+  return s.fighters.map((f, i) => {
+    if (i === heroI || dormant(f) || f.hp > 0) return f;
+    const st = data.fighters[data.cast[i].fighter].states[f.st];
+    return f.stT >= st.total + stage.corpseTicks ? { ...f, active: 3 } : f;
   });
 }
 
@@ -122,6 +131,7 @@ export function tickStage(s: FightState, data: FightData): FightState {
   next = spawnDue(next, data, stage);
   next = { ...next, stage: followCamera(next, data, stage, next.fighters[heroI]) };
   next = { ...next, fighters: holdToScreen(next, data, stage, heroI) };
+  next = { ...next, fighters: despawnCorpses(next, data, stage, heroI) };
   next = advancePhase(next, data, heroI, events);
   return { ...next, events };
 }

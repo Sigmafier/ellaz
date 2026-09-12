@@ -1,5 +1,6 @@
 {
   "id": "toybox-quest",
+  "corpseTicks": 90,
   "camera": { "lead": 280, "divisor": 12, "snap": 1 },
   "screen": { "heroPad": 20, "enemyPad": 12, "outsidePad": 60, "spawnPad": 30 },
   "spawn": { "zMin": 206, "zMax": 326 },

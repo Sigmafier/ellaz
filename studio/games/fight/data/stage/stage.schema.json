@@ -4,10 +4,11 @@
   "title": "Ellaz fight stage file",
   "description": "How a side-scrolling wave run FEELS, as opposed to what is in it (the mode file's waves) or where it happens (the arena). The camera follow, the screen that holds the hero and the enemies, where enemies spawn, the XP curve, what a level-up gives, and how a coin flies. Distances are VIEW PIXELS, rates are per second; compile.ts turns every one into FP and per-tick once. Ratios are num/den pairs because the sim never divides by a float.",
   "type": "object",
-  "required": ["id", "camera", "screen", "spawn", "xp", "levelUp", "coin"],
+  "required": ["id", "camera", "screen", "spawn", "xp", "levelUp", "coin", "corpseTicks"],
   "additionalProperties": false,
   "properties": {
     "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "must equal the file's basename" },
+    "corpseTicks": { "type": "integer", "minimum": 0, "description": "TICKS a KO'd enemy lies where it fell after its ko clip ends before it vanishes (the row goes active 3, gone). Added 2026-09-12 after the operator's first play: bodies had been clamped to the screen like the living and never left. The ko clips are 45 ticks (6 frames at 8 fps); 90 more is a beat and a half at 60 Hz." },
     "camera": {
       "type": "object",
       "required": ["lead", "divisor", "snap"],

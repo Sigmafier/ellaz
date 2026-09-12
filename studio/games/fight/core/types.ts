@@ -72,6 +72,8 @@ export interface StageFile {
     magnetDivisor: number;
     pickupX: number; pickupZ: number; pickupH: number;
   };
+  /** ticks a KO'd enemy lies where it fell after its ko clip ends, then it is gone */
+  corpseTicks: number;
 }
 
 export interface MatchFile {
@@ -189,6 +191,8 @@ export interface CStage {
     pickupX: number; pickupZ: number; pickupH: number;                            // FP
   };
   waves: number;
+  /** ticks a KO'd enemy lies where it fell after its ko clip ends, before the row goes `active 3` (gone) */
+  corpseTicks: number;
 }
 export interface FightData {
   seed: number;
@@ -224,7 +228,7 @@ export interface FighterState {
   hitsT: number;                            // ticks since the first recent hit
   hitMask: number;                          // which opposing fighters this attack has already hit
   cool: number;                             // ticks before another attack may START (match.attackCooldownTicks)
-  active: 0 | 1 | 2;                        // 0 dormant (a wave spawn not yet due: no input, no hits, no push, not drawn), 1 live, 2 live and inside the screen
+  active: 0 | 1 | 2 | 3;                    // 0 dormant (a wave spawn not yet due: no input, no hits, no push, not drawn), 1 live, 2 live and inside the screen, 3 gone (a corpse past stage.corpseTicks: dormant again, but spent - never respawned, never awaited)
   ai: AiState | null;
 }
 

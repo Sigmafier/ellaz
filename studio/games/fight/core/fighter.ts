@@ -14,9 +14,9 @@ import type { CArena, CFighter, CMatch, FighterState, FightEvent, InputFrame } f
 
 export interface FighterTick { f: FighterState; events: FightEvent[] }
 
-/** a wave spawn not yet due: it takes no input, lands no hit, pushes nobody and is not drawn. The ONE predicate every site reads */
+/** a wave spawn not yet due (active 0) or a corpse that has gone (active 3): it takes no input, lands no hit, pushes nobody and is not drawn. The ONE predicate every site reads */
 export function dormant(f: FighterState): boolean {
-  return f.active === 0;
+  return f.active === 0 || f.active === 3;
 }
 
 function enterState(f: FighterState, st: number): FighterState {
@@ -94,13 +94,17 @@ function tickTimers(f: FighterState, match: CMatch): FighterState {
   return { ...f, inv, cool, hits, hitsT };
 }
 
-/** the clip clock; a finished one-shot goes to `next`, or - the ko clip - to the floor */
+/**
+ * the clip clock; a finished one-shot goes to `next`, or - the ko clip - to the floor.
+ * A KO'd fighter's held clip keeps COUNTING stT past its end (the frame stays the last):
+ * that is the corpse timer stage.ts reads, with no field the hash does not already fold.
+ */
 function advanceClock(f: FighterState, cf: CFighter, match: CMatch): FighterState {
   const st = cf.states[f.st];
   const stT = f.stT + 1;
   if (!stateDone(st, stT)) return { ...f, stT, frame: frameIndexAt(st, stT) };
   if (st.next >= 0) return enterState({ ...f, stT }, st.next);
-  const held = { ...f, stT: st.total, frame: st.frames.length - 1 };
+  const held = { ...f, stT: f.hp <= 0 ? stT : st.total, frame: st.frames.length - 1 };
   return f.hp > 0 && f.down === 0 ? { ...held, down: match.downTicks } : held;
 }
 

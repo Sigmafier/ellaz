@@ -302,6 +302,7 @@ function compileStage(s: StageFile, waves: number): CStage {
       pickupX: toFP(c.pickupX), pickupZ: toFP(c.pickupZ), pickupH: toFP(c.pickupH),
     },
     waves,
+    corpseTicks: s.corpseTicks,
   };
 }
 

@@ -111,6 +111,15 @@ draws. Nothing in `core/stage.ts` names a wave count except `data.stage.waves`.
   is 20 (not the demo's 30: the robot's punch rows 20-29 of 48 could not
   reach a body lifted 30 - read off the moves files). `xp` 10 + 10/level,
   level-up +10 hp / heal 25 / +2 damage.
+- `stage/toybox-quest.json` `corpseTicks` (90): TICKS a KO'd enemy lies where it
+  fell after its ko clip (45 ticks) ends, then its row goes `active 3` - gone:
+  `dormant()` hides it and the wave counts it as spent, never respawns it.
+  Added 2026-09-12 after the operator's first play: `holdToScreen` had clamped
+  bodies to the screen like the living, so they slid along with the camera,
+  and nothing ever removed one. The timer is the held ko clip's `stT`, which
+  now keeps counting past the clip's end for a KO'd fighter (a living one
+  knocked down still stands up at `downTicks`) - no new hashed field; the
+  stage golden's hash moved for exactly that and its event hash did not.
 - Accepted, not defects: a wave restart drops the coins still on the floor
   (xp kept); dying refights the wave with its enemies respawned and xp kept,
   so xp can be farmed by dying; a trade on the last enemy counts as the
