@@ -1,0 +1,8 @@
+{
+  "id": "ninja",
+  "sprites": "ninja--snes16",
+  "hp": 24,
+  "speed": 84,
+  "zSpeed": 54,
+  "xp": 15
+}

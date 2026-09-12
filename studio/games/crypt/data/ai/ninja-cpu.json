@@ -1,0 +1,11 @@
+{
+  "id": "ninja-cpu",
+  "zTolerance": 5,
+  "cooldownTicks": [54, 96],
+  "reactTicks": [4, 12],
+  "retreatChance": 96,
+  "retreatTicks": [18, 40],
+  "retreatDistance": 90,
+  "reachPad": { "min": 4, "max": -8 },
+  "holdWhenTargetAttacks": 140
+}

@@ -80,8 +80,8 @@ const ASSETS = join(FIGHT, "assets");
 const FILES = corpusOf(FIGHT);
 
 describe("the games on disk", () => {
-  it("are the fight, so nothing below runs over an empty list", () => {
-    expect(games).toEqual(["fight"]);
+  it("are the crypt and the fight, so nothing below runs over an empty list", () => {
+    expect(games).toEqual(["crypt", "fight"]);
   });
 
   it("every schema names a kind some game holds, and every kind has a schema", () => {
@@ -232,9 +232,11 @@ describe("the stage conditionals the validator subset cannot write", () => {
     return out;
   }
 
-  it("every real mode satisfies it", () => {
+  it("every real mode of every game satisfies it", () => {
     expect(modes.length).toBe(2);
-    for (const f of modes) expect(stageViolations(readJson(f.path) as unknown as ModeFile)).toEqual([]);
+    for (const g of games) {
+      for (const f of corpusOf(gameDir(g)).filter((x) => x.name.startsWith("modes/"))) expect(stageViolations(readJson(f.path) as unknown as ModeFile)).toEqual([]);
+    }
   });
 
   it("fires on waves without a stage file, and on a stage file without waves", () => {
@@ -273,14 +275,46 @@ describe("the stage conditionals the validator subset cannot write", () => {
     expect(() => compileFight(loaded)).toThrow(/"slime" has a hover height but does not fly/);
   });
 
-  it("every spawn lane lies inside the arena's z band, and the camera lead inside one screen", () => {
-    const loaded = loadMode("stage", FIGHT);
-    const st = loaded.stage!;
-    expect(st.spawn.zMin).toBeGreaterThanOrEqual(loaded.arena.sim.zMin);
-    expect(st.spawn.zMax).toBeLessThanOrEqual(loaded.arena.sim.zMax);
-    expect(st.spawn.zMin).toBeLessThanOrEqual(st.spawn.zMax);
-    expect(st.camera.lead).toBeLessThan(loaded.arena.view.w);
-    expect(loaded.arena.world!.w).toBeGreaterThanOrEqual(loaded.arena.view.w * stage.waves!.length);
+  /** every mode of every game that names a stage file, loaded: the population the geometry below ranges over */
+  function stageModes(): { game: string; mode: string; loaded: ReturnType<typeof loadMode> }[] {
+    const out: { game: string; mode: string; loaded: ReturnType<typeof loadMode> }[] = [];
+    for (const g of games) {
+      for (const f of corpusOf(gameDir(g)).filter((x) => x.name.startsWith("modes/"))) {
+        const id = f.name.slice("modes/".length).replace(/\.json$/, "");
+        const loaded = loadMode(id, gameDir(g));
+        if (loaded.stage) out.push({ game: g, mode: id, loaded });
+      }
+    }
+    return out;
+  }
+
+  it("every spawn lane lies inside the arena's z band, the camera lead inside one screen, the world holds every wave, and a door is where the hero can reach", () => {
+    const all = stageModes();
+    expect(all.map((m) => `${m.game}/${m.mode}`)).toEqual(["crypt/crypt", "fight/stage"]);
+    for (const { game, mode, loaded } of all) {
+      const st = loaded.stage!;
+      const at = `${game}/${mode}`;
+      expect({ at, ok: st.spawn.zMin >= loaded.arena.sim.zMin }).toEqual({ at, ok: true });
+      expect({ at, ok: st.spawn.zMax <= loaded.arena.sim.zMax }).toEqual({ at, ok: true });
+      expect({ at, ok: st.spawn.zMin <= st.spawn.zMax }).toEqual({ at, ok: true });
+      expect({ at, ok: st.camera.lead < loaded.arena.view.w }).toEqual({ at, ok: true });
+      expect({ at, ok: loaded.arena.world!.w >= loaded.arena.view.w * loaded.mode.waves!.length }).toEqual({ at, ok: true });
+      if (st.door) expect({ at, door: st.door.x, reach: loaded.arena.view.w - st.screen.heroPad, ok: st.door.x <= loaded.arena.view.w - st.screen.heroPad }).toMatchObject({ at, ok: true });
+    }
+  });
+
+  it("the crypt's rooms are locked by a door and its left spawns walk in: the arena floor is below the spawn line", () => {
+    const crypt = loadMode("crypt", gameDir("crypt"));
+    expect(crypt.stage!.door).toEqual({ x: 560 });
+    // a spawn from the left appears at camX - spawnPad; the fight's floor of 20 clamps it inside the edge on its first tick (the parked pop)
+    expect(crypt.arena.sim.xMin).toBeLessThanOrEqual(-crypt.stage!.screen.spawnPad);
+    expect(crypt.arena.sim.xMax).toBeGreaterThanOrEqual(crypt.arena.world!.w + crypt.stage!.screen.spawnPad);
+    expect(crypt.mode.waves!.length).toBe(3);
+    expect(crypt.mode.waves!.map((w) => w.spawns.map((s) => s.fighter))).toEqual([
+      ["bat", "bat", "bat"],
+      ["ninja", "ninja", "bat"],
+      ["bat", "wizard-boss", "bat"],
+    ]);
   });
 });
 
@@ -371,15 +405,23 @@ describe("the match thresholds against the moves files they are measured from", 
   });
 });
 
-describe("every fighter's sprite set is on disk, with both halves", () => {
-  it("finds a manifest and a moves file for each", () => {
-    const fighters = FILES.filter((f) => f.name.startsWith("fighters/"));
-    expect(fighters.length).toBe(5);
-    for (const f of fighters) {
-      const set = (readJson(f.path) as unknown as FighterFile).sprites;
-      expect({ set, manifest: existsSync(join(ASSETS, set, `${set}.manifest.json`)) }).toEqual({ set, manifest: true });
-      expect({ set, moves: existsSync(join(ASSETS, set, `${set}.moves.json`)) }).toEqual({ set, moves: true });
+describe("every fighter's sprite set is on disk, with both halves, in its own game's assets", () => {
+  it("finds a manifest and a moves file for each, in every game", () => {
+    const seen: string[] = [];
+    for (const g of games) {
+      const assets = join(gameDir(g), "assets");
+      for (const f of corpusOf(gameDir(g)).filter((x) => x.name.startsWith("fighters/"))) {
+        const set = (readJson(f.path) as unknown as FighterFile).sprites;
+        seen.push(`${g}/${set}`);
+        expect({ set, manifest: existsSync(join(assets, set, `${set}.manifest.json`)) }).toEqual({ set, manifest: true });
+        expect({ set, moves: existsSync(join(assets, set, `${set}.moves.json`)) }).toEqual({ set, moves: true });
+      }
     }
+    // the population: the fight's five fighter files over four sets, the crypt's four over four
+    expect(seen.sort()).toEqual([
+      "crypt/bat--snes16", "crypt/knight--snes16", "crypt/ninja--snes16", "crypt/wizard--snes16",
+      "fight/bat--snes16", "fight/robot--snes16", "fight/slime--snes16", "fight/teddy--snes16", "fight/teddy--snes16",
+    ]);
   });
 
   it("and the same check can see an absence", () => {

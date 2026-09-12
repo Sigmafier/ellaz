@@ -1,0 +1,7 @@
+{
+  "id": "knight",
+  "sprites": "knight--snes16",
+  "hp": 100,
+  "speed": 90,
+  "zSpeed": 58
+}
