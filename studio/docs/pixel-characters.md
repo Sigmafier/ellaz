@@ -80,6 +80,22 @@ turned 25 degrees is crisp cells in the source palette and never a blended
 edge. A miss re-samples a quarter cell off, so a squashed body's rows never open
 a hairline. Nothing outside the palette can appear; the test asserts it.
 
+**A pixel part never rotates by less than a cell** (2026-09-12). The snap turns
+a rotation into a staircase; a big one reads as a pose, a tiny one only shears -
+the rows past the half-cell line step over, the rest stay, and the head reads as
+cut in two. The operator saw it on the robot's idle, frame 4 of 4: the standard
+idle key tilts the head 0.03 rad, which is 0.6 of a cell at the crown. So every
+pixel rig bakes through `shapePixelPose(rig, unit)`: a bone whose rotation
+would move its FARTHEST cell (children included - a torso tilt carries the
+head) by less than one `unit` gets that rotation dropped to zero on that frame;
+every larger one keeps it. `PixelRig.bake()` is the one path (the cast's
+`clips()` calls it), `reachOf` and `subCellTilts` are the measure, and
+`pixel-cast.test.ts` sweeps every character's every frame - with a positive
+control asserting the RAW clips still carry the robot's idle tilt, so the sweep
+cannot pass by the shaper being a no-op. Measured on the roster the day it
+landed: 79 bone-frames flattened across the twelve; the idle head bob (one
+cell, a translation) and every arm and leg swing untouched.
+
 ## What each character taught (worked examples)
 
 - **Knight (48).** The first. Cape behind, shield on the left arm, blade on the

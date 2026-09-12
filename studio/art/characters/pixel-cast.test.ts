@@ -3,10 +3,10 @@
 // for cell - which proves the cut lossless and every bone pivot right.
 
 import { describe, expect, it } from "vitest";
-import { bakeAll, bakePose, validateRig } from "../rig/rig";
+import { bakePose, poseAt, validateRig } from "../rig/rig";
 import { bounds } from "../scene-ops";
 import { CLIP_IDS } from "../rig/types";
-import { snapClips, snapOps, type PixelRigSpec } from "../techniques/pixel-parts";
+import { shapePixelPose, snapOps, subCellTilts, type PixelRigSpec } from "../techniques/pixel-parts";
 import { HEIGHT_BY_ROLE, PIXEL_CAST } from "./index";
 
 /** measured 2026-09-06 over 66 pairs of the twelve, boxed to 24: closest ninja/brawler 0.82, then robot/brawler 0.75, teddy/owl 0.74. A ratchet, not a target: a new character must land under the closest pair that already reads apart */
@@ -58,6 +58,29 @@ describe("the roster's silhouettes", () => {
   });
 });
 
+describe("no pixel part rotates by less than a cell (the robot's split idle head, 2026-09-12)", () => {
+  /** every (character, clip, frame, bone) whose raw interpolated pose carries a sub-cell tilt */
+  const raw = PIXEL_CAST.flatMap(({ id, built, spec }) =>
+    built.rig.clips.flatMap((clip) => Array.from({ length: clip.frames }, (_, i) =>
+      subCellTilts(built.rig, spec.unit, poseAt(clip, i)).map((bone) => `${id}/${clip.id}/${i}/${bone}`))).flat());
+
+  it("POSITIVE CONTROL: the raw clips DO carry sub-cell tilts, the robot's idle head among them", () => {
+    // the population, printed: the frames the shaper changes across the roster
+    console.log(`sub-cell tilts in the raw clips: ${raw.length} (bone-frames) over ${PIXEL_CAST.length} characters, e.g. ${raw.slice(0, 4).join(" · ")}`);
+    expect(raw.length).toBeGreaterThan(0);
+    expect(raw).toContain("robot/idle/2/head");
+  });
+
+  for (const { id, built, spec } of PIXEL_CAST) {
+    it(`${id}: every baked frame's pose has none`, () => {
+      const shape = shapePixelPose(built.rig, spec.unit);
+      for (const clip of built.rig.clips) for (let i = 0; i < clip.frames; i++) {
+        expect(subCellTilts(built.rig, spec.unit, shape(poseAt(clip, i))), `${id}/${clip.id}/${i}`).toEqual([]);
+      }
+    });
+  }
+});
+
 for (const { id, built, spec, role } of PIXEL_CAST) {
   describe(`${id} as pixel parts on the rig`, () => {
     const rig = built.rig;
@@ -82,7 +105,7 @@ for (const { id, built, spec, role } of PIXEL_CAST) {
     it("every snapped frame is on the grid and in the palette", () => {
       const U = spec.unit;
       const allowed = new Set(Object.values(spec.palette));
-      for (const c of snapClips(bakeAll(rig), U)) for (const f of c.frames) for (const o of f.ops) {
+      for (const c of built.bake()) for (const f of c.frames) for (const o of f.ops) {
         expect(o.k).toBe("r");
         if (o.k !== "r") continue;
         expect(Math.abs(o.x % U) + Math.abs(o.y % U), `${f.name} off-grid`).toBe(0);
@@ -91,7 +114,7 @@ for (const { id, built, spec, role } of PIXEL_CAST) {
       }
     });
     it("keeps its feet on the ground in every standing clip", () => {
-      for (const c of snapClips(bakeAll(rig), spec.unit)) {
+      for (const c of built.bake()) {
         if (c.id === "ko" || (c.id === "walk" && spec.hops)) continue;
         for (const f of c.frames) {
           const [, y, , h] = bounds(f.ops)!;

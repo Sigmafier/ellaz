@@ -97,10 +97,16 @@ export function bakePose(rig: Rig, pose: Pose, swaps: Record<string, Op[]> = {})
 
 export const frameName = (character: string, clip: string, i: number): string => `${character}_${clip}_${String(i).padStart(4, "0")}`;
 
-export function bakeClip(rig: Rig, clip: Clip): BakedClip {
+/**
+ * Bake one clip. `shape`, when given, rewrites every interpolated pose before
+ * it is baked - a pixel rig uses it to drop a rotation too small to move a
+ * whole cell (techniques/pixel-parts.ts), which is a fact about the RIG, not
+ * the clip, so it lives here and not in the keys.
+ */
+export function bakeClip(rig: Rig, clip: Clip, shape: (pose: Pose) => Pose = (p) => p): BakedClip {
   const frames: Frame[] = [];
   for (let i = 0; i < clip.frames; i++) {
-    const pose = poseAt(clip, i);
+    const pose = shape(poseAt(clip, i));
     const mats = worldMatrices(rig, pose);
     const sockets: Frame["sockets"] = {};
     for (const [name, s] of Object.entries(rig.sockets)) {
@@ -112,4 +118,4 @@ export function bakeClip(rig: Rig, clip: Clip): BakedClip {
   return { id: clip.id, fps: clip.fps, loop: clip.loop, frames };
 }
 
-export const bakeAll = (rig: Rig): BakedClip[] => rig.clips.map((c) => bakeClip(rig, c));
+export const bakeAll = (rig: Rig, shape?: (pose: Pose) => Pose): BakedClip[] => rig.clips.map((c) => bakeClip(rig, c, shape));

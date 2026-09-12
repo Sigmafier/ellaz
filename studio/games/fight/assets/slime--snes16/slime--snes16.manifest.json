@@ -179,8 +179,8 @@
   },
   "atlas": "slime--snes16.atlas.json",
   "built": {
-    "commit": "85fdf585bacb9f8b5736480a48ba8bede9bae3d1",
+    "commit": "f716d005821cd650b1177d7112f01832f57354c6",
     "dirty": true,
-    "at": "2026-09-12T08:58:12.807Z"
+    "at": "2026-09-12T11:21:02.255Z"
   }
 }

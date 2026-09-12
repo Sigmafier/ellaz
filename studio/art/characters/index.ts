@@ -9,9 +9,9 @@
 
 import type { Op } from "../scene-ops";
 import type { BakedClip, Rig } from "../rig/types";
-import { bakeAll, bakePose } from "../rig/rig";
+import { bakePose } from "../rig/rig";
 import { transformOp, translate } from "../rig/transform";
-import { snapClips, snapOps, type PixelRig, type PixelRigSpec } from "../techniques/pixel-parts";
+import { snapOps, type PixelRig, type PixelRigSpec } from "../techniques/pixel-parts";
 import { knight48, KNIGHT48_SPEC } from "./knight/rig48";
 import { robot48, ROBOT48_SPEC } from "./robot/rig48";
 import { teddy32, TEDDY32_SPEC } from "./teddy/rig32";
@@ -64,7 +64,7 @@ function pixelCharacter(id: string, name: string, role: Role, band: Band, built:
   return {
     id, name, side: role === "hero" ? "hero" : "enemy", role, band, technique: "pixel-parts", pixel: U, rig: built.rig,
     staticOps: () => snapOps(bakePose(built.rig, {}), U).map((o) => transformOp(o, translate(oc * U, orow * U))),
-    clips: () => snapClips(bakeAll(built.rig), U),
+    clips: () => built.bake(),
     ...(moves ? { moves } : {}),
   };
 }

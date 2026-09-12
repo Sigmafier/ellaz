@@ -12,7 +12,9 @@
 // export scale 1, and a whole number of cells at any other scale.
 
 import { R, type Fill, type Op } from "../scene-ops";
-import type { BakedClip, Clip } from "../rig/types";
+import type { BakedClip, Clip, Pose } from "../rig/types";
+import { bakeAll, worldMatrices } from "../rig/rig";
+import { apply } from "../rig/transform";
 
 /** rows and columns, inclusive, in the full grid */
 export type Region = [r0: number, r1: number, c0: number, c1: number];
@@ -114,6 +116,56 @@ export function snapOps(ops: Op[], unit: number): Op[] {
 export const snapClips = (clips: BakedClip[], unit: number): BakedClip[] =>
   clips.map((c) => ({ ...c, frames: c.frames.map((f) => ({ ...f, ops: snapOps(f.ops, unit) })) }));
 
+// ---------------------------------------------------------------------------
+// A pixel part never rotates by less than a cell. The snap turns a rotation
+// into a staircase; a big one reads as a pose, a tiny one only shears - the
+// rows past the half-cell line step over, the rest stay, and a head reads as
+// cut in two (the robot's idle, 0.03 rad, seen by the operator 2026-09-12).
+// So a rotation whose FARTHEST cell would move less than one cell is not a
+// rotation the grid can show, and it drops to zero at bake time. Reach is
+// measured at rest, from the bone's pivot to the farthest corner of every
+// part on the bone or on a bone under it - a torso tilt moves the head too.
+
+/** Distance in body units from `bone`'s rest pivot to the farthest corner of any part it carries, children included. */
+export function reachOf(rig: Rig, bone: string): number {
+  const mats = worldMatrices(rig, {});
+  const under = new Set<string>([bone]);
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const b of rig.bones) if (b.parent !== null && under.has(b.parent) && !under.has(b.id)) { under.add(b.id); grew = true; }
+  }
+  const [px, py] = apply(mats[bone], 0, 0);
+  let reach = 0;
+  for (const p of rig.parts) {
+    if (!under.has(p.bone)) continue;
+    for (const op of p.ops) {
+      const [x0, y0, x1, y1] = box(op);
+      for (const [x, y] of [[x0, y0], [x1, y0], [x0, y1], [x1, y1]] as const) {
+        const [wx, wy] = apply(mats[p.bone], x, y);
+        reach = Math.max(reach, Math.hypot(wx - px, wy - py));
+      }
+    }
+  }
+  return reach;
+}
+
+/** The bones of `pose` whose rotation moves their farthest cell by less than one `unit` - a tilt the grid can only shear. */
+export function subCellTilts(rig: Rig, unit: number, pose: Pose, reach: Record<string, number> = reachTable(rig)): string[] {
+  return Object.entries(pose).filter(([bone, d]) => (d.rot ?? 0) !== 0 && Math.abs(d.rot ?? 0) * (reach[bone] ?? 0) < unit).map(([bone]) => bone);
+}
+
+const reachTable = (rig: Rig): Record<string, number> => Object.fromEntries(rig.bones.map((b) => [b.id, reachOf(rig, b.id)]));
+
+/** The pose shaper a pixel rig bakes through: every sub-cell tilt becomes no tilt; every other delta is untouched. */
+export function shapePixelPose(rig: Rig, unit: number): (pose: Pose) => Pose {
+  const reach = reachTable(rig);
+  return (pose) => {
+    const flat = new Set(subCellTilts(rig, unit, pose, reach));
+    if (flat.size === 0) return pose;
+    return Object.fromEntries(Object.entries(pose).map(([bone, d]) => [bone, flat.has(bone) ? { ...d, rot: 0 } : d]));
+  };
+}
+
 /**
  * The standard clips are keyed in body units for a ~70-unit body; a pixel rig
  * scales their translations by `k` and, when `unit` is given, rounds each to a
@@ -172,6 +224,8 @@ export interface PixelRig {
   cells: Record<string, [number, number][]>;
   /** the same cells of one part read from another grid - a wince, closed eyes */
   swap(partId: string, grid: string[]): Op[];
+  /** every clip baked the pixel way: sub-cell tilts dropped, every frame snapped to the grid. The one thing an exporter needs */
+  bake(): BakedClip[];
 }
 
 export function buildPixelRig(spec: PixelRigSpec): PixelRig {
@@ -235,7 +289,12 @@ export function buildPixelRig(spec: PixelRigSpec): PixelRig {
     hitbox: [(spec.hitbox[0] - oc) * U, (spec.hitbox[1] - orow) * U, (spec.hitbox[2] - spec.hitbox[0] + 1) * U, (spec.hitbox[3] - spec.hitbox[1] + 1) * U],
     clips: spec.clips,
   };
-  return { rig, cells, swap: (partId, grid) => opsOf(partId, partBone[partId], grid) };
+  return {
+    rig,
+    cells,
+    swap: (partId, grid) => opsOf(partId, partBone[partId], grid),
+    bake: () => snapClips(bakeAll(rig, shapePixelPose(rig, U)), U),
+  };
 }
 
 /** A grid with some rows re-written: `edits` maps row index to a (col, text) splice. */
