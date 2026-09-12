@@ -520,3 +520,66 @@ bash self-protect.
 canvas + render after every rebuild; studio suite 41 files / 625 tests; ten
 gates ok, every control fired; `tsc` 0. Still open: the operator's own
 `?stats=1` distinct-draws figure at 120 Hz was never reported back.
+
+## The Toybox engine: the rules, the cells and the harness leave the fight game (2026-09-12)
+
+The operator's arc, confirmed after they played Stage: the MVP feel loop
+(done), then **the engine on its own**, then Crypt on it, then Toybox Brawl to
+the catalogue. Step two, in one afternoon: everything under `games/fight/`
+that was engine rather than game moved to `studio/toybox/`, in seven commits
+by pathspec (`9e9517e` T1, `50702ec` T2, `7bd66ce` T3, `ee14f50` T4,
+`9476153` T5, `1f58895` T6, `c969dfa` T7 docs), and the proof of a pure move
+is that both goldens - stage `1be09f21 / 801d2ac4 / c7532cf4`, versus
+`216303af / 3ddd21d5 / 002862ad` - are byte-identical to `ec7d454` after
+every one, with `run-tape` admitting canvas + page on both tapes after every
+rebuild. The plan: `~/.claude/plans/toybox-engine-extraction.md`.
+
+**The cut the operator ruled** (four `AskUserQuestion` rounds): the home is
+`studio/toybox/` inside the studio workspace, not a root package; rules +
+cells + harness are the engine, a game is data + sprites + tapes + page; the
+name is toybox. What that is on disk: `toybox/sim/` (the old `core/`, still
+sibling-only), `toybox/data/` (`loadMode(modeId, gameRoot)` - every caller
+passes the game's root, the engine has no game of its own; the six schemas
+at `schemas/<dir>.schema.json`, NAMED after the data directory so no table
+maps one to the other; `data.test.ts` walks `games/*/data` and refuses a game
+with no `modes/`), `toybox/cells/` (the loop, the contract, the canvas bar
+with `?game=`, `phaser/` = the promoted render cell), `toybox/harness/` (the
+four instruments and the two tools, each `--game <name>`, rows to the game's
+own `tournament/data/`), `toybox/index.ts` (the node door), `toybox/vite.config.ts`
+(root `studio/`, into `dist-toybox`: every cell page, every `games/*/page`,
+every compare page, read from disk), and Phaser's package beside it - the
+studio typecheck pins `paths.phaser` there and CI runs `npm ci` there. The
+fight keeps `data/`, `assets/`, `tapes/` (tape and golden beside each
+other), `page/` and its tournament history; `assert:fight` walks every
+`games/*` (11 controls). The gate the whole move was for is
+`toybox/boundary.test.ts`: nothing under `toybox/` imports a game, static,
+dynamic or by URL; a real `games/` import planted in a scratch copy reds
+naming the file, a comment naming the same path stays green.
+
+**Traps this arc cost.** (1) T1 was proven with the golden test alone and
+reded three sim suites that read the versus tape through a hand-built
+`join(HERE, "..", "tournament", "tapes", ...)` - split string segments that no
+grep for `tournament/tapes` saw; from T2 every task ran the WHOLE suite, and
+T2 repaired T1 before anything was pushed. (2) `git commit -- <pathspec>`
+takes only TRACKED files: `toybox/index.ts` was untracked at T2, so T2's
+message named a door that was not in it; it landed in T3 with `git add`.
+(3) The boundary test is in its own population - its first version wrote the
+planted `games/` imports out as literals and the gate caught itself on the
+first run; the controls are built from helpers now. (4) A local `build:check`
+is red on a THIRD session's untracked gallery page (`next-games.tsx`), so
+every tsc figure here is "0 outside gallery/" and the final verify runs on a
+`git archive HEAD` tree with both `node_modules` symlinked in. (5) The peer
+session (the sprite bridge) pushed the interleaved stack through T5 on a
+pinned sha it verified on an archive tree; two copiers now exist -
+`toybox/harness/copy-sprites.mjs` (dist-export -> `games/<g>/assets`) and
+`scripts/sprites/sync-sprites.mjs` (the exporter in a browser -> `src/games/<g>/sprites`,
+indexed PNG) - named in the toybox README as the one duplicate this
+extraction knowingly leaves; one wins when a game is promoted.
+
+**Admission.** After T7: suite 42 files / 637 tests (636 green, the third
+session's router edit); `vite build --config toybox/vite.config.ts` green;
+`run-tape --game fight` stage-600 2/2 + versus-600 2/2 ADMITTED on
+`dist-toybox`; `assert:fight` ok, 11 controls; boundary gate 8/8 with its
+mutation red; `copy-sprites --check` 20 compared 0 differ; the §9 grep for
+old engine paths outside history returns nothing. Next: Crypt, as
+`games/crypt/` - five folders and a page on the same engine.
