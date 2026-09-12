@@ -5,6 +5,7 @@
 // match file's thresholds. Nothing here is a literal.
 
 import { overlaps, worldBox } from "./collide";
+import { dormant } from "./fighter";
 import { frameAt } from "./moves";
 import { abs } from "./fixed";
 import { FP } from "./types";
@@ -27,11 +28,11 @@ function touches(hit: CHit, a: FighterState, t: FighterState, tf: CFighter): boo
 export function findHits(s: FightState, fighters: CFighter[], cast: { fighter: number; team: number }[], match: CMatch): Landed[] {
   const out: Landed[] = [];
   s.fighters.forEach((a, ai) => {
-    if (a.hp <= 0 || a.stun > 0 || a.down > 0) return;
+    if (a.hp <= 0 || a.stun > 0 || a.down > 0 || dormant(a)) return;
     const itr = frameAt(fighters[cast[ai].fighter], a.st, a.stT).itr;
     if (itr.length === 0) return;
     s.fighters.forEach((t, ti) => {
-      if (ti === ai || cast[ti].team === cast[ai].team || t.hp <= 0 || t.inv > 0 || t.down > 0) return;
+      if (ti === ai || cast[ti].team === cast[ai].team || t.hp <= 0 || t.inv > 0 || t.down > 0 || dormant(t)) return;
       if ((a.hitMask & (1 << ti)) !== 0 || !inBand(a, t, match)) return;
       const hit = itr.find((h) => touches(h, a, t, fighters[cast[ti].fighter]));
       if (hit) out.push({ attacker: ai, target: ti, hit });

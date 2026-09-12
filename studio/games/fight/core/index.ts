@@ -11,6 +11,7 @@ export { worldBox, overlaps, overlapX } from "./collide";
 export { createState, tickMatch } from "./match";
 export { step } from "./step";
 export { reachOf, thinkAi, freshAi } from "./ai";
-export { tickFighter, spawnFighter } from "./fighter";
+export { tickFighter, spawnFighter, dormant } from "./fighter";
+export { tickStage, heroIndex, heroMaxHp } from "./stage";
 export { findHits, applyHit, resolveHits } from "./hits";
 export { readTape, inputsAtTick } from "./tape";

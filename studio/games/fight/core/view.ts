@@ -7,6 +7,7 @@
 // grows downward); a fighter's feet sit at (x, z - h). Draw order is by z,
 // far (small z) first.
 
+import { dormant } from "./fighter";
 import { floorDiv, toPx } from "./fixed";
 import { frameIndexAt } from "./moves";
 import type { CFighter, FightData, FightState } from "./types";
@@ -15,7 +16,8 @@ export interface SpriteOp { set: string; frame: string; x: number; y: number; fl
 export interface ShadowOp { x: number; y: number; w: number; h: number; depth: number }
 export interface BoxOp { kind: "bdy" | "itr" | "push"; x: number; y: number; w: number; h: number; who: number }
 export interface HudModel { hp: number[]; maxHp: number[]; names: string[]; phase: number; winner: number; tick: number }
-export interface DrawPlan { sprites: SpriteOp[]; shadows: ShadowOp[]; boxes: BoxOp[]; hud: HudModel; shake: number }
+/** `camX` is the camera's left edge in world px, lerped like a fighter; 0 when the mode has no camera */
+export interface DrawPlan { sprites: SpriteOp[]; shadows: ShadowOp[]; boxes: BoxOp[]; hud: HudModel; shake: number; camX: number }
 
 /** blend two FP values by alpha256 in [0, 256]; exact at both ends */
 export function lerp256(a: number, b: number, alpha256: number): number {
@@ -41,6 +43,7 @@ function boxesOf(cf: CFighter, st: number, stT: number, x: number, y: number, fa
 export function viewOf(prev: FightState, next: FightState, alpha256: number, data: FightData, withBoxes = false): DrawPlan {
   const sprites: SpriteOp[] = [], shadows: ShadowOp[] = [], boxes: BoxOp[] = [];
   next.fighters.forEach((f, i) => {
+    if (dormant(f)) return;
     const p = prev.fighters[i] ?? f;
     const cf = data.fighters[data.cast[i].fighter];
     const same = p.st === f.st;
@@ -63,5 +66,6 @@ export function viewOf(prev: FightState, next: FightState, alpha256: number, dat
     winner: next.winner,
     tick: next.tick,
   };
-  return { sprites, shadows, boxes, hud, shake: next.shake };
+  const camX = next.stage ? toPx(lerp256(prev.stage ? prev.stage.camX : next.stage.camX, next.stage.camX, alpha256)) : 0;
+  return { sprites, shadows, boxes, hud, shake: next.shake, camX };
 }

@@ -161,6 +161,7 @@ const EVENT_CODE: Record<FightEvent["kind"], number> = {
   ko: 4,
   land: 5,
   phase: 6,
+  wave: 7,
 };
 
 const EFFECT_CODE: Record<HitEffect, number> = { none: 0, spark: 1, dust: 2, star: 3 };
@@ -190,6 +191,10 @@ export function hashEvents(events: readonly FightEvent[]): string {
         break;
       case "phase":
         pushU32(bytes, e.phase);
+        break;
+      case "wave":
+        pushU32(bytes, e.wave);
+        pushU32(bytes, e.wphase);
         break;
     }
   }

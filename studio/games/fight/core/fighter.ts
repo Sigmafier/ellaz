@@ -14,6 +14,11 @@ import type { CArena, CFighter, CMatch, FighterState, FightEvent, InputFrame } f
 
 export interface FighterTick { f: FighterState; events: FightEvent[] }
 
+/** a wave spawn not yet due: it takes no input, lands no hit, pushes nobody and is not drawn. The ONE predicate every site reads */
+export function dormant(f: FighterState): boolean {
+  return f.active === 0;
+}
+
 function enterState(f: FighterState, st: number): FighterState {
   return { ...f, st, stT: 0, frame: 0, hitMask: 0 };
 }
@@ -53,7 +58,14 @@ function fireImpulse(f: FighterState, cf: CFighter, prevSt: number, prevFrame: n
   return { ...f, vx: f.vx + fr.impulseX * f.face, vh: f.vh - fr.impulseY };
 }
 
-function move(f: FighterState, arena: CArena, match: CMatch, events: FightEvent[], who: number): FighterState {
+/** a flying fighter that is alive holds its hover height: no gravity, no landing, and a knock's lift is shed */
+function moveFlying(f: FighterState, cf: CFighter, arena: CArena, match: CMatch): FighterState {
+  const vx = floorDiv(f.vx * (match.friction - 1), match.friction);
+  return { ...f, x: clamp(f.x + f.vx, arena.xMin, arena.xMax), z: clamp(f.z + f.vz, arena.zMin, arena.zMax), h: cf.hover, vx, vz: 0, vh: 0 };
+}
+
+function move(f: FighterState, cf: CFighter, arena: CArena, match: CMatch, events: FightEvent[], who: number): FighterState {
+  if (cf.flying && f.hp > 0) return moveFlying(f, cf, arena, match);
   let { x, z, h, vx, vz, vh } = f;
   const airborne = h > 0 || vh > 0;
   if (airborne) { vh -= arena.gravity; h += vh; }
@@ -67,9 +79,9 @@ function move(f: FighterState, arena: CArena, match: CMatch, events: FightEvent[
   return { ...f, x: clamp(x, arena.xMin, arena.xMax), z: clamp(z, arena.zMin, arena.zMax), h, vx, vz, vh };
 }
 
-/** on the floor: lie for downTicks, then stand up invulnerable */
+/** on the floor: lie for downTicks, then stand up invulnerable. A flyer is never on the floor, so it counts down at its hover height */
 function tickDown(f: FighterState, cf: CFighter, match: CMatch): FighterState {
-  if (f.h > 0) return f;
+  if (f.h > 0 && !cf.flying) return f;
   if (f.down > 1) return { ...f, down: f.down - 1 };
   return { ...enterState(f, cf.initial), down: 0, inv: match.invTicks, fall: 0, hits: 0, hitsT: 0 };
 }
@@ -98,19 +110,19 @@ export function tickFighter(f0: FighterState, cf: CFighter, arena: CArena, match
   const prevSt = f.st, prevFrame = f.frame;
   if (f.down > 0) {
     f = tickDown(f, cf, match);
-    f = move(f, arena, match, events, who);
+    f = move(f, cf, arena, match, events, who);
     return { f: fireImpulse(f, cf, prevSt, prevFrame), events };
   }
   if (f.stun > 0) {
     f = { ...f, stun: f.stun - 1 };
-    return { f: move(f, arena, match, events, who), events };
+    return { f: move(f, cf, arena, match, events, who), events };
   }
   if (f.hp > 0) {
     const to = transition(f, cf, input);
     if (to >= 0) f = applyTransition(f, cf, match, to);
     f = walkVelocity(f, cf, input);
   }
-  f = move(f, arena, match, events, who);
+  f = move(f, cf, arena, match, events, who);
   f = advanceClock(f, cf, match);
   return { f: fireImpulse(f, cf, prevSt, prevFrame), events };
 }

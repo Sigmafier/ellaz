@@ -6,11 +6,12 @@
 
 import { thinkAi } from "./ai";
 import { overlapX, worldBox } from "./collide";
-import { tickFighter } from "./fighter";
+import { dormant, tickFighter } from "./fighter";
 import { resolveHits } from "./hits";
 import { tickMatch } from "./match";
 import { frameAt } from "./moves";
 import { floorDiv } from "./fixed";
+import { tickStage } from "./stage";
 import { FP, NO_INPUT } from "./types";
 import type { FightData, FighterState, FightEvent, FightState, InputFrame } from "./types";
 
@@ -20,8 +21,8 @@ function inputsFor(s: FightState, given: readonly InputFrame[], data: FightData)
   const inputs = s.fighters.map((f, i) => {
     const c = data.cast[i];
     if (c.control === "player") return given[i] ?? NO_INPUT;
-    if (!f.ai || f.hp <= 0) return NO_INPUT;
-    const target = s.fighters.findIndex((t, j) => j !== i && data.cast[j].team !== c.team && t.hp > 0);
+    if (!f.ai || f.hp <= 0 || dormant(f)) return NO_INPUT;
+    const target = s.fighters.findIndex((t, j) => j !== i && data.cast[j].team !== c.team && t.hp > 0 && !dormant(t));
     if (target < 0) return NO_INPUT;
     const thought = thinkAi(f, s.fighters[target], data.fighters[c.fighter], data.ais[c.ai], f.ai, rng);
     rng = thought.rng;
@@ -37,7 +38,7 @@ function separate(fighters: FighterState[], data: FightData): FighterState[] {
   for (let i = 0; i < out.length; i++) {
     for (let j = i + 1; j < out.length; j++) {
       const a = out[i], b = out[j];
-      if (a.h > 0 || b.h > 0 || a.hp <= 0 || b.hp <= 0 || a.down > 0 || b.down > 0) continue;
+      if (a.h > 0 || b.h > 0 || a.hp <= 0 || b.hp <= 0 || a.down > 0 || b.down > 0 || dormant(a) || dormant(b)) continue;
       const pa = frameAt(data.fighters[data.cast[i].fighter], a.st, a.stT).push;
       const pb = frameAt(data.fighters[data.cast[j].fighter], b.st, b.stT).push;
       if (!pa || !pb) continue;
@@ -61,6 +62,7 @@ export function step(state: FightState, given: readonly InputFrame[], data: Figh
   const { inputs, fighters, rng } = inputsFor(state, given, data);
   const events: FightEvent[] = [];
   const ticked = fighters.map((f, i) => {
+    if (dormant(f)) return f;
     const c = data.cast[i];
     const r = tickFighter(f, data.fighters[c.fighter], data.arena, data.match, inputs[i], i);
     events.push(...r.events);
@@ -69,5 +71,5 @@ export function step(state: FightState, given: readonly InputFrame[], data: Figh
   let next: FightState = { ...state, tick, rng, shake: state.shake > 0 ? state.shake - 1 : 0, fighters: ticked, events };
   next = resolveHits(next, data.fighters, data.cast, data.match);
   next = { ...next, fighters: separate(next.fighters, data) };
-  return tickMatch(next, data);
+  return data.stage ? tickStage(next, data) : tickMatch(next, data);
 }
