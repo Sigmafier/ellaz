@@ -3,10 +3,12 @@ import type { PageId } from "../router";
 import { StylesMain, StylesSide } from "./styles";
 import { CharactersMain, CharactersSide } from "./characters";
 import { SpritesMain, SpritesSide } from "./sprites";
+import { LookMain, LookSide } from "./look";
 import { PalettesMain } from "./palettes";
 import { TechniquesMain, TechniquesSide } from "./techniques";
 import { GamesMain } from "./games";
 import { LedgerMain } from "./ledger";
+import { NextGamesMain, NextGamesSide } from "./next-games";
 
 export interface PageProps { params: URLSearchParams }
 export interface Page { label: string; Side?: FC<PageProps>; Main: FC<PageProps> }
@@ -15,8 +17,10 @@ export const PAGES: Record<PageId, Page> = {
   styles: { label: "Styles", Side: StylesSide, Main: StylesMain },
   characters: { label: "Characters", Side: CharactersSide, Main: CharactersMain },
   sprites: { label: "Sprites", Side: SpritesSide, Main: SpritesMain },
+  look: { label: "Look demo", Side: LookSide, Main: LookMain },
   palettes: { label: "Palettes", Main: PalettesMain },
   techniques: { label: "Techniques", Side: TechniquesSide, Main: TechniquesMain },
   games: { label: "Games", Main: GamesMain },
   ledger: { label: "Ledger", Main: LedgerMain },
+  next: { label: "Next games", Side: NextGamesSide, Main: NextGamesMain },
 };

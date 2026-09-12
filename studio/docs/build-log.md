@@ -249,6 +249,48 @@ Open beside the plan:
 - `--on-brand on --brand` at 3.14:1 in the app's ShareSheet and Boards is a
   platform defect, pinned by a test, not the studio's.
 
+## Next games: a gallery of what to build next (2026-09-11, uncommitted)
+
+Plan: `~/.claude/plans/i-want-to-find-functional-wand.md`. The operator: *"the list we
+have is not good enough i want more options and a gallery i can choose from"* - too few
+rows, too many quiet puzzles, not enough for adults.
+
+**What it is.** A `Next games` page (`#/next`) with one card per candidate: the real
+game that inspired it, what you do, why it is fun, fun / thrill / reviews / trend dots,
+the evidence and its label, and Want / Maybe / No plus a note. Filters in the rail:
+picks, who it is for, kind of game, which list, sort.
+
+**Where the data comes from.** `scripts/games/pipeline.data.mjs` at the repo root stays
+the only authored source. `npm run games:write` renders `docs/games/*.md` and a
+byte-checked copy at `gallery/next-games/data.json`. `gallery/next-games-api.ts` serves
+it, the pictures and the picks on the dev and preview server only (loopback, own origin),
+and writes picks to `gallery/next-games/picks.json`. Not `public/`: the gallery build
+inlines everything into one HTML file.
+
+**Research.** Four Sonnet lanes (web portals, mobile stores, indie hits, arcade + adult
+classics) returned 87 rows; merged by mechanic into 55, then 3 declined on the operator's
+earlier ruling on tap-loop games (stack tower, hexagon fit, falling-sand Tetris) = 54 new,
+plus 20 still open from the old list. 46 of the 55 carried VERIFIED evidence; a checker
+re-fetched 10 random ones: 9 agreed, 1 named the wrong publisher (fixed). 8 old rows had
+already shipped - 6 by id, and `suika`/`unblock` as `fruit`/`parking`, which only the new
+title-words check could see (watched red first).
+
+**Pictures.** `scripts/capture-next-game-shots.mjs`: store gameplay screenshot, else
+og:image, else a page capture. Gitignored by `studio/.gitignore` (`shots/`) - other
+people's games, never committed. First run: 74 of 74 captured, and **9 rows shared 3
+identical pictures**: the portals lane had given category pages, so each card showed the
+portal's logo. Fixed at both ends: 13 links corrected (each page title checked, a made-up
+game returned 404 as the control), the gate refuses a shared or listing-page `refUrl`
+(controls 8, 9), and the capture script exits 3 on two identical pictures (watched red on
+the real defect). Final: 74 distinct, 74 decoded on the page.
+
+**Measured.** games:check 0 with 9 controls CAUGHT · studio build:check 0 (289 tests) ·
+page probe: 74 of 74 cards, adults filter 24, a Want click lands in picks.json and a
+second click clears it, 0 px overflow at 390 wide, no page errors · beetle mounted ·
+`verify-dev-url.sh` safe to hand over.
+
+**Next.** The operator picks; animated demos get built for the Wants only.
+
 ## The fight game: one pure sim, seven renderers, Phaser picked (2026-09-12)
 
 `studio/games/fight/` is the studio's first game scaffold. The sim is engine-free
@@ -347,3 +389,61 @@ farmed; a trade on the last enemy is the hero's death. Open: the operator's
 own 120 Hz `?stats=1` reading and the wave-restart feel, both W8; Crypt is
 the next plan (a room is a wave with a door - README § What a mode file can
 say names what it reuses).
+
+## The look demo: the Showcase bar at the size a game draws it (2026-09-12)
+
+The operator stopped a nine-task standard mid-plan - *"i want to see a simpe
+mvp demo of how it would look first so we ack the direction"* - so `#/look`
+puts the slime, the robot and the golem on the survivors arena's own ground
+(`#0b0d1f`, grid `#171a33` every 42 px) playing one clip on one beat. Almost
+none of it was new: `packInBrowser` + `ClipPlayer` + `drawFrame` already do
+this for one character on `#/sprites`, whose own comment calls it the canvas
+adapter's test scene. No export was run and no studio-to-game bridge was
+needed - the gallery packs in memory, and its dev server cannot reach
+`dist-export` at all (three URLs, all the SPA fallback, `text/html`, 550 B).
+
+**The size is the whole point, and it was measured before the page existed.**
+The exporter emits 980x660 frames for a character 48 authored pixels tall,
+because every authored pixel is a flat `unit * scale` block and `unit` is 5
+for the entire cast. So `k` is how many screen pixels one authored pixel
+becomes: k=1 is literally what a player sees, and 1, 2, 3, 4, 6, 8 all land
+the block on a whole number, so nothing in the picker resamples. At 6x the
+robot draws 288 px, the golem 366, the slime 138 - each exactly 6x its
+48 / 61 / 23. The page packs at scale 1 rather than the export's 2: identical
+authored pixels, a quarter of the sheet memory (three characters at scale 2
+is 43 million pixels of canvas).
+
+**`HEIGHT_BY_ROLE` is the role's GRID, not the drawn height.** The
+measurement's own control flagged the slime as 23 authored pixels against a
+nominal 32 and it was right to: the pixel grid is 32 string rows of which 23
+carry ink, and `origin: [20, 32]` agrees. Robot fills 48 of 48, golem 61 of
+64, and a slime is simply squat. Nothing to fix - but a check that reads
+`HEIGHT_BY_ROLE` as a promise about pixels will keep firing.
+
+**The trap that cost the most: on `/mnt/c` the vite dev server never saw the
+edits.** `look.tsx`, `router.ts` and `index.ts` were correct on disk,
+`tsc --noEmit` exited 0 and the suite was 599 green, while `localhost:5188`
+served an `index.ts` with no look import - stable ETag, and its own sourcemap
+`sourcesContent` decoded to the pre-edit file. curl read fresh because curl
+has no cache; the browser read a graph from before the edits and showed a
+stale error overlay quoting a comment already fixed. inotify does not fire on
+a Windows drive, which is why this repo already says not to QA on `npm run
+dev`. Restarting the server fixed it; the BUILD is the artifact to believe.
+Two hash-only navigations also silently reloaded nothing, and the renderer
+wedged three times on canvas-heavy pages.
+
+**Admission.** Verified on the built `dist-gallery/index.html` over `file://`,
+the same single file the shots script opens: route `look`, no page error, no
+console error, 61 frames in 1,000 ms, 17,864 ink pixels of 56,898 sampled.
+Both arms were then captured in ONE browser at 1280x900 @2x, because a pair
+captured two ways differs by the capture as much as by the art - BEFORE is a
+real run (clock 3:00 -> 2:52, 7 shapes, runners and gems on screen), and the
+harness refuses to write an arm that did not animate. The start needed a
+mouse click at the canvas centre; Playwright's actionability check times out
+on a constantly-redrawing canvas and the button role did not match.
+
+Open, and NOT this demo's to answer: the five snes16 sheets are **~1.36 MB**
+of PNG (robot 351 K, golem 479 K, bat 202 K, crab 181 K, slime 148 K) against
+a Showcase budget the operator ruled at **300 KB per game**. That is a real
+contradiction between a settled ruling and the art it names, recorded here so
+the rebuild cannot ship past it quietly.
