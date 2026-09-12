@@ -1,7 +1,5 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { artReady, artRevision, gameArt, hasArt, loadRestArt, subscribeArt } from "./gameArt";
-import { useCardStyle } from "./useCardStyle";
-import type { CardStyle } from "./cardStyle";
 
 /**
  * Does this card draw its scene right now?
@@ -12,9 +10,19 @@ import type { CardStyle } from "./cardStyle";
  * washing a picture that already has its own ground - mud - or an emoji sitting
  * on bare card stock with nothing behind it.
  *
- * Two ways to reach the emoji and they are different facts: the player asked
- * for icons, or this game has no scene yet. Same render either way, which means
- * everyone who uses the toggle is exercising the missing-art fallback too.
+ * THERE IS NO LONGER A PLAYER-FACING CHOICE HERE, and that is the point. This
+ * took a `CardStyle` until 2026-09-12: a chip in the rail flipped every card to
+ * the emoji and STORED it, so one accidental tap turned the drawings off for
+ * good. The operator hit it on their own site and could not find the way back -
+ * the chip sat among the CATEGORY filters and, once tapped, wore the same 🎨
+ * glyph as the real `Create` category with nothing on screen saying "undo". A
+ * preference nobody can reverse is a trap, not a preference, so the drawings
+ * are simply what a card shows.
+ *
+ * The emoji survives as the FALLBACK and only that: a game whose scene has not
+ * arrived yet, or one added later and not yet drawn. `ellaz:cards` in a
+ * player's storage is now read by nothing, so anyone stranded on the emoji by
+ * that chip gets their pictures back on the next load, with no migration.
  *
  * `hasArt` answers for the LAZY half as well, and that is load-bearing here
  * rather than a nicety. The home grid calls this once per card to choose
@@ -24,8 +32,8 @@ import type { CardStyle } from "./cardStyle";
  * shortly" keeps the branch fixed and lets `GameArt` swap only its own
  * contents, which is also one fewer layout change on the first screen.
  */
-export function showsArt(id: string, style: CardStyle): boolean {
-  return style === "art" && hasArt(id);
+export function showsArt(id: string): boolean {
+  return hasArt(id);
 }
 
 /**
@@ -60,8 +68,6 @@ export function GameArt({
   emoji: string;
   height: number | string;
 }) {
-  const [style] = useCardStyle();
-
   // Re-render when the lazy scenes arrive. `useSyncExternalStore` and not a
   // `useState` in an effect because every card on the grid subscribes to the
   // same one event, and this is the shape React gives for exactly that.
@@ -85,7 +91,7 @@ export function GameArt({
   // The emoji stands in for a scene that has not arrived YET as well as for one
   // that does not exist - the same render, which is why the below-the-fold
   // cards need no placeholder of their own.
-  if (!showsArt(id, style) || !artReady(id)) {
+  if (!showsArt(id) || !artReady(id)) {
     return (
       <span
         style={{

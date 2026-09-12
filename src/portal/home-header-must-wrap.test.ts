@@ -280,14 +280,22 @@ describe("the home bar the operator specified", () => {
     expect(daily, "the streak ladder itself was deleted").toMatch(/export function dueMilestone/);
   });
 
-  it("keeps the card-style toggle OUT of the bar", () => {
-    // It was not among the four the operator named, and it does not fit: stars
-    // plus four 48px icons is 299px of controls beside a 110px identity in a
-    // 350px box. It lives above the grid it restyles instead - deleted would
-    // have been a feature removed by inference.
-    const bar = HEADER.slice(HEADER.indexOf("<header"), HEADER.indexOf("</header>"));
-    expect(bar, "CardStyleToggle is back in the header").not.toMatch(/<CardStyleToggle/);
-    expect(HEADER, "CardStyleToggle was deleted rather than rehomed").toMatch(/<CardStyleToggle/);
+  it("has no card-style toggle at all - the drawings are not a preference", () => {
+    // THIS IS THE EXACT INVERSE OF THE ASSERTION IT REPLACES, deliberately.
+    // Until 2026-09-12 this pinned the toggle as "rehomed, not deleted", on the
+    // reasoning that deleting it would be a feature removed by inference. It was
+    // not removed by inference: the operator hit the trap on the live site and
+    // ruled. The chip sat at the end of the CATEGORY rail, one tap stored
+    // `emoji` permanently, and the way back wore the same palette glyph as the
+    // real Create category with nothing on screen offering an undo.
+    expect(HEADER, "the card-style toggle is back").not.toMatch(/CardStyleToggle/);
+    expect(HEADER, "the stored card-style preference is being read again").not.toMatch(
+      /useCardStyle/,
+    );
+    // THE POSITIVE CONTROL. Without it, deleting the whole game grid satisfies
+    // both assertions above - an absence gate passes hardest when there is
+    // nothing left for it to look at.
+    expect(HEADER, "the grid no longer draws the key art").toMatch(/<GameArt/);
   });
 
   it("shows COINS, and it is the STAR half that left - operator pick, arm P", () => {

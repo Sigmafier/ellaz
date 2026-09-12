@@ -23,8 +23,6 @@ import { openReport } from "./openReport";
 import { inkFor } from "@ui/ink";
 import { Icon } from "@ui/icons";
 import { GameArt, showsArt } from "@ui/gameArtView";
-import { useCardStyle } from "@ui/useCardStyle";
-import type { CardStyle } from "@ui/cardStyle";
 import { useTheme } from "@ui/useTheme";
 import { themeById } from "@ui/themes";
 import { attachShellJuice } from "@juice/index";
@@ -392,24 +390,21 @@ export function Home({
           </section>
         )}
 
-        {/* The grid's own controls, in one strip above the grid: WHICH games,
-            and HOW they are drawn.
+        {/* The grid's own filters, in one strip above the grid: WHICH games.
 
-            The card-style toggle used to sit in the header. It left when the
-            operator named that bar's four controls on 2026-08-24 and it was
-            not among them, and it does not fit anyway - stars plus four 48px
-            icons is 299px of controls beside a 110px identity in a 350px box.
-            It lands here rather than being deleted because this is its actual
-            subject: it restyles the cards below it and nothing else on the
-            screen. That keeps the header platform-level and this strip
-            grid-level, which is the split the whole pass is about. */}
+            It carried a card-style toggle as a trailing item until 2026-09-12 -
+            "and HOW they are drawn". That is deleted. A preference chip sitting
+            among category filters reads as one more category, and this one was
+            worse than that: a tap stored the emoji permanently, and the way back
+            wore the same palette glyph as the real `create` category with
+            nothing on screen offering an undo. The operator hit it on the live
+            site. This strip has one job now. */}
         <CategoryRail
           chips={chips}
           value={filter}
           onChange={setFilter}
           locale={locale}
           allLabel={t("allCategories")}
-          trailing={<CardStyleToggle locale={locale} onTap={tap} />}
         />
 
         <div
@@ -532,56 +527,6 @@ function ThemeToggle({ locale, onTap }: { locale: AppLocale; onTap: () => void }
       style={HEADER_PILL}
     >
       <Icon name={next.icon} />
-    </button>
-  );
-}
-
-/**
- * Drawn art, or the old emoji. Shows the style it will switch TO, same as the
- * theme pill beside it - a toggle that shows its current state leaves you
- * guessing what pressing it does.
- */
-function CardStyleToggle({ locale, onTap }: { locale: AppLocale; onTap: () => void }) {
-  const [style, setStyle] = useCardStyle();
-  const t = makeT(locale);
-  const next: CardStyle = style === "art" ? "emoji" : "art";
-  // These three were a he/en ternary on a screen that already speaks eleven
-  // languages, so an Arabic or Russian reader got two English words in the
-  // middle of their own home screen. Chrome belongs in the dictionary.
-  const label = next === "art" ? t("cardsPictures") : t("cardsIcons");
-  return (
-    <button
-      aria-label={`${t("cards")}: ${label}`}
-      onClick={() => {
-        onTap();
-        setStyle(next);
-      }}
-      // The RAIL item's shape, not the header pill's - it lives in that strip
-      // now, and a 48px round pill among 64px two-line cards reads as a stray
-      // control rather than as the last item in a row.
-      style={{
-        flex: "0 0 auto",
-        minWidth: "var(--tap-kids)",
-        minHeight: "var(--tap-kids)",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 2,
-        padding: "6px 10px",
-        border: "none",
-        borderRadius: "var(--radius-2)",
-        background: "var(--surface)",
-        color: "var(--text)",
-        boxShadow: "var(--shadow-1)",
-      }}
-    >
-      {/* The glyph is the destination too: a palette means "switch to the
-          drawings", a smiley means "switch back to the icons". */}
-      <span style={{ fontSize: 26, lineHeight: 1 }} aria-hidden="true">
-        {next === "art" ? "🎨" : "🙂"}
-      </span>
-      <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-dim)" }}>{label}</span>
     </button>
   );
 }
@@ -896,14 +841,12 @@ function CategoryRail({
   onChange,
   locale,
   allLabel,
-  trailing,
 }: {
   chips: typeof CATEGORY_ORDER;
   value: Filter;
   onChange: (f: Filter) => void;
   locale: AppLocale;
   allLabel: string;
-  trailing?: React.ReactNode;
 }) {
   const t = makeT(locale);
   const btn = (id: Filter, glyph: string, label: string) => {
@@ -953,13 +896,6 @@ function CategoryRail({
     >
       {btn(ALL, "🎲", allLabel)}
       {chips.map((c) => btn(c.category, c.glyph, t(c.titleKey)))}
-      {/* INSIDE the scroller, not beside it. Sitting it next to the rail as a
-          flex sibling narrows the scroll region and parks a 48px pill over the
-          rail's own scrolling edge - measured on the artifact at 390px, the
-          last chip renders half-hidden behind it with nothing overflowing
-          anywhere for a width check to find. In here it is one more item in a
-          strip of grid controls: which games, then how they are drawn. */}
-      {trailing}
     </div>
   );
 }
@@ -1090,7 +1026,6 @@ function GameCard({
   t: (k: string) => string;
 }) {
   const { meta } = entry;
-  const [cardStyle] = useCardStyle();
   const prefetch = () => void entry.load().catch(() => {});
   return (
     <a
@@ -1180,7 +1115,7 @@ function GameCard({
           sit behind the emoji is gone here - two backgrounds fighting under one
           picture is just mud. A game with no art still gets the wash, because
           an emoji on bare card stock is what the tint existed to rescue. */}
-      {showsArt(meta.id, cardStyle) ? (
+      {showsArt(meta.id) ? (
         <span style={{ flex: 1, minHeight: 0, overflow: "hidden" }} aria-hidden="true">
           <GameArt id={meta.id} emoji={meta.emoji} height="100%" />
         </span>

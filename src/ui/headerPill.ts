@@ -18,10 +18,6 @@ import type { CSSProperties } from "react";
  * looks a bit odd". Sharing the object makes it unrepresentable rather than
  * merely fixed, and `header-pills-are-one-shape.test.ts` refuses a fourth copy.
  *
- * Deliberately NOT the card-style toggle: that one lives in the icon rail and
- * is a 64px two-line card. A 48px round pill among those reads as a stray
- * control, which is a different decision and not a drifted one.
- *
  * A plain object rather than a class, because these three are React inline
  * styles today and a class would need `global.css` to own a name that the
  * emitted document pages also carry - two owners for one shape.

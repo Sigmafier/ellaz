@@ -131,21 +131,18 @@ describe("every round control in the home bar", () => {
     }
   });
 
-  it("does NOT claim the card-style toggle, which is a rail item", () => {
-    // A 48px round pill among 64px two-line cards reads as a stray control.
-    // That is a decision, not a drift, and the note in headerPill.ts says so -
-    // without this the next reader "finishes the job" and moves it over.
-    const at = HOME.indexOf("function CardStyleToggle");
-    expect(at, "CardStyleToggle is gone").toBeGreaterThan(-1);
-    const body = HOME.slice(at, at + 1400);
-    expect(body, "CardStyleToggle was folded into the header pill").not.toMatch(
-      /style=\{HEADER_PILL\}/,
-    );
-    expect(body, "the CardStyleToggle slice is empty - the matcher moved").toMatch(
-      /flexDirection:\s*"column"/,
-    );
-    expect(PILL, "headerPill.ts lost the note saying why the rail item is excluded").toMatch(
-      /card-style toggle/,
-    );
+  it("no longer has a card-style toggle to exclude", () => {
+    // Deleted 2026-09-12 on the operator's ruling, so the exclusion this used to
+    // pin has nothing left to exclude, and the note in headerPill.ts went with
+    // it - a comment explaining why an absent thing is absent is how a file
+    // starts describing a tree that no longer exists.
+    expect(HOME, "CardStyleToggle is back").not.toMatch(/CardStyleToggle/);
+    expect(
+      PILL,
+      "headerPill.ts still explains an excluded toggle that no longer exists",
+    ).not.toMatch(/card-style toggle/);
+    // THE POSITIVE CONTROL: the three real pills must still be here, or both
+    // assertions above pass just as well over a deleted header.
+    expect(HOME, "the header pills are gone").toMatch(/HEADER_PILL/);
   });
 });
