@@ -24,21 +24,21 @@ import { validate } from "./lib/schema.mjs";
 
 const STUDIO = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
 const FIGHT = join(STUDIO, "games", "fight");
+// the engine's schemas, one per kind directory and named after it (toybox/data/schemas/fighters.schema.json holds data/fighters/*.json)
+const SCHEMAS = join(STUDIO, "toybox", "data", "schemas");
 const readJson = (p) => JSON.parse(readFileSync(p, "utf8"));
 const HEX8 = /^[0-9a-f]{8}$/;
 
-/** every json under data/<kind>/ against data/<kind>/<kind>.schema.json */
+/** every json under data/<kind>/ against the engine's schemas/<kind>.schema.json */
 function checkSchemas(root) {
   const out = [];
   const dataDir = join(root, "data");
-  // data/ also holds load.ts and its test beside the kind directories
   for (const kind of readdirSync(dataDir).filter((k) => statSync(join(dataDir, k)).isDirectory())) {
     const dir = join(dataDir, kind);
-    const files = readdirSync(dir).filter((f) => f.endsWith(".json"));
-    const schemaFile = files.find((f) => f.endsWith(".schema.json"));
-    if (!schemaFile) { out.push(`data/${kind}: no schema file`); continue; }
-    const schema = readJson(join(dir, schemaFile));
-    for (const f of files) if (f !== schemaFile) out.push(...validate(schema, readJson(join(dir, f))).map((v) => `data/${kind}/${f} ${v}`));
+    const schemaFile = join(SCHEMAS, `${kind}.schema.json`);
+    if (!existsSync(schemaFile)) { out.push(`data/${kind}: no schema - ${schemaFile} is missing`); continue; }
+    const schema = readJson(schemaFile);
+    for (const f of readdirSync(dir).filter((x) => x.endsWith(".json") && !x.endsWith(".schema.json"))) out.push(...validate(schema, readJson(join(dir, f))).map((v) => `data/${kind}/${f} ${v}`));
   }
   return out;
 }

@@ -1,4 +1,12 @@
-// The five data files against the five schemas beside them.
+// Every game's data files against the engine's schemas - the population is
+// games/*/data/, walked from the tree, never a hand-kept list.
+//
+// The schemas live here, under schemas/, one per KIND directory and named
+// after it (data/fighters/*.json is held to schemas/fighters.schema.json), so
+// there is no table mapping a directory to its schema that could go stale. A
+// game with no data/modes/ is refused - a game is what its modes say it is -
+// and a kind directory with no schema is refused too, both watched failing on
+// scratch trees below.
 //
 // The schemas are checked with the studio's OWN validator, scripts/lib/schema.mjs
 // - the same sixty-line subset assert-manifest-schema.mjs uses - so there is one
@@ -17,44 +25,90 @@
 // And one thing no schema can express at all: that a fighter's `sprites` names
 // a sprite set that EXISTS on disk. A schema validates a string; only the
 // filesystem knows whether that string is a directory.
+//
+// The invariants below that name numbers (the roster cap, the fall threshold
+// against the moves files, tickRate 60) are the ENGINE's; the values they are
+// measured on are the fight's, the one game today.
 
 import { existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadMode } from "../../../toybox/data/load";
-import { compileFight } from "../../../toybox/sim/compile";
-import type { AiFile, CastEntry, FighterFile, MatchFile, ModeFile } from "../../../toybox/sim/types";
+import { GAMES, gameDir, loadMode } from "./load";
+import { compileFight } from "../sim/compile";
+import type { AiFile, CastEntry, FighterFile, MatchFile, ModeFile } from "../sim/types";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-/** this game's root: the loader reads data/ and assets/ under it */
-const FIGHT = join(HERE, "..");
-const ASSETS = join(FIGHT, "assets");
+const SCHEMAS = join(HERE, "schemas");
 
-const schemaLib = await import(new URL("../../../scripts/lib/schema.mjs", import.meta.url).href);
+const schemaLib = await import(new URL("../../scripts/lib/schema.mjs", import.meta.url).href);
 const check = (schema: unknown, value: unknown): string[] => schemaLib.validate(schema, value) as string[];
 
 const readJson = (path: string): Record<string, unknown> => JSON.parse(readFileSync(path, "utf8"));
 
-/** every data file in this tree, paired with the schema sitting beside it */
-function corpus(): { name: string; path: string; schemaPath: string }[] {
-  const out: { name: string; path: string; schemaPath: string }[] = [];
-  for (const dir of readdirSync(HERE, { withFileTypes: true })) {
+/** every game under studio/games/ that carries a data/ directory */
+function gamesWithData(): string[] {
+  return readdirSync(GAMES).filter((g) => existsSync(join(GAMES, g, "data"))).sort();
+}
+
+interface DataFile { name: string; path: string; schemaPath: string }
+
+/**
+ * every data file of one game, paired with the engine schema for its kind.
+ * Throws on a game with no modes/ and on a kind with no schema: an empty
+ * corpus must never read as a clean one.
+ */
+function corpusOf(gameRoot: string): DataFile[] {
+  const dataDir = join(gameRoot, "data");
+  if (!existsSync(join(dataDir, "modes"))) throw new Error(`${gameRoot} has no data/modes/ - a game is what its modes say it is`);
+  const out: DataFile[] = [];
+  for (const dir of readdirSync(dataDir, { withFileTypes: true })) {
     if (!dir.isDirectory()) continue;
-    const files = readdirSync(join(HERE, dir.name)).filter((f) => f.endsWith(".json"));
-    const schemas = files.filter((f) => f.endsWith(".schema.json"));
-    if (schemas.length !== 1) throw new Error(`data/${dir.name}/ holds ${schemas.length} schemas, expected exactly 1`);
-    for (const f of files.filter((x) => !x.endsWith(".schema.json"))) {
-      out.push({ name: `${dir.name}/${f}`, path: join(HERE, dir.name, f), schemaPath: join(HERE, dir.name, schemas[0]) });
+    const schemaPath = join(SCHEMAS, `${dir.name}.schema.json`);
+    if (!existsSync(schemaPath)) throw new Error(`data/${dir.name}/ has no schema - toybox/data/schemas/${dir.name}.schema.json is missing`);
+    for (const f of readdirSync(join(dataDir, dir.name)).filter((x) => x.endsWith(".json") && !x.endsWith(".schema.json"))) {
+      out.push({ name: `${dir.name}/${f}`, path: join(dataDir, dir.name, f), schemaPath });
     }
   }
   return out;
 }
 
-const FILES = corpus();
+const games = gamesWithData();
+const FIGHT = gameDir("fight");
+const FIGHT_DATA = join(FIGHT, "data");
+const ASSETS = join(FIGHT, "assets");
+const FILES = corpusOf(FIGHT);
 
-describe("every data file validates against the schema beside it", () => {
-  it("found the whole corpus, so nothing below passes over an empty list", () => {
+describe("the games on disk", () => {
+  it("are the fight, so nothing below runs over an empty list", () => {
+    expect(games).toEqual(["fight"]);
+  });
+
+  it("every schema names a kind some game holds, and every kind has a schema", () => {
+    const schemas = readdirSync(SCHEMAS).filter((f) => f.endsWith(".schema.json")).map((f) => f.replace(/\.schema\.json$/, "")).sort();
+    const kinds = new Set<string>();
+    for (const g of games) for (const d of readdirSync(join(gameDir(g), "data"), { withFileTypes: true })) if (d.isDirectory()) kinds.add(d.name);
+    expect(schemas).toEqual([...kinds].sort());
+    expect(schemas).toEqual(["ai", "arena", "fighters", "match", "modes", "stage"]);
+  });
+
+  it("refuses a game with no modes/ - the control for the walk", () => {
+    const root = mkdtempSync(join(tmpdir(), "toybox-game-"));
+    mkdirSync(join(root, "data", "ai"), { recursive: true });
+    expect(() => corpusOf(root)).toThrow(/no data\/modes/);
+  });
+
+  it("refuses a kind directory with no schema - the other control", () => {
+    const root = mkdtempSync(join(tmpdir(), "toybox-game-"));
+    mkdirSync(join(root, "data", "modes"), { recursive: true });
+    mkdirSync(join(root, "data", "weather"), { recursive: true });
+    writeFileSync(join(root, "data", "weather", "rain.json"), "{}");
+    expect(() => corpusOf(root)).toThrow(/weather\.schema\.json is missing/);
+  });
+});
+
+describe("every data file validates against the engine schema for its kind", () => {
+  it("found the fight's whole corpus, so nothing below passes over an empty list", () => {
     expect(FILES.map((f) => f.name).sort()).toEqual([
       "ai/bat-cpu.json",
       "ai/slime-cpu.json",
@@ -73,15 +127,17 @@ describe("every data file validates against the schema beside it", () => {
     ]);
   });
 
-  for (const f of FILES) {
-    it(`${f.name} is clean`, () => {
-      expect(check(readJson(f.schemaPath), readJson(f.path))).toEqual([]);
-    });
+  for (const g of games) {
+    for (const f of corpusOf(gameDir(g))) {
+      it(`${g}: ${f.name} is clean`, () => {
+        expect(check(readJson(f.schemaPath), readJson(f.path))).toEqual([]);
+      });
+    }
   }
 
   it("names every file's id after the file", () => {
-    for (const f of FILES) {
-      expect(readJson(f.path).id).toBe(f.name.split("/")[1].replace(/\.json$/, ""));
+    for (const g of games) {
+      for (const f of corpusOf(gameDir(g))) expect(readJson(f.path).id).toBe(f.name.split("/")[1].replace(/\.json$/, ""));
     }
   });
 });
@@ -132,9 +188,11 @@ describe("the conditional the validator subset cannot write", () => {
     });
   }
 
-  it("every real mode satisfies it", () => {
+  it("every real mode of every game satisfies it", () => {
     expect(modes.length).toBeGreaterThan(0);
-    for (const f of modes) expect(aiViolations(readJson(f.path) as unknown as ModeFile)).toEqual([]);
+    for (const g of games) {
+      for (const f of corpusOf(gameDir(g)).filter((x) => x.name.startsWith("modes/"))) expect(aiViolations(readJson(f.path) as unknown as ModeFile)).toEqual([]);
+    }
   });
 
   const versus = modes.find((f) => f.name === "modes/versus.json")!;
@@ -259,8 +317,8 @@ describe("every tick field is a whole number of ticks", () => {
     }
   });
 
-  it("keeps the match's tickRate at the rate the core is built for", () => {
-    const match = readJson(join(HERE, "match", "versus.json")) as unknown as MatchFile;
+  it("keeps the match's tickRate at the rate the sim is built for", () => {
+    const match = readJson(join(FIGHT_DATA, "match", "versus.json")) as unknown as MatchFile;
     expect(match.tickRate).toBe(60);
   });
 });
@@ -271,7 +329,7 @@ describe("every tick field is a whole number of ticks", () => {
 // another directory. A reason that lives only in a schema description is a
 // sentence; these are the two that a change can actually break.
 describe("the match thresholds against the moves files they are measured from", () => {
-  const match = readJson(join(HERE, "match", "versus.json")) as unknown as MatchFile;
+  const match = readJson(join(FIGHT_DATA, "match", "versus.json")) as unknown as MatchFile;
 
   /** every `fall` any authored hit carries, across every DISTINCT sprite set a fighter names (the teddy boss shares the teddy's) */
   function authoredFalls(): number[] {
@@ -368,9 +426,9 @@ describe("loadMode reads a mode and everything it names", () => {
 
   it("throws naming the ARENA when a mode points at one that is not there", () => {
     // a scratch GAME root: the loader reads <root>/data/modes, so the fixture is shaped like a game
-    const root = mkdtempSync(join(tmpdir(), "fight-data-"));
+    const root = mkdtempSync(join(tmpdir(), "toybox-game-"));
     mkdirSync(join(root, "data", "modes"), { recursive: true });
-    const mode = { ...(readJson(join(HERE, "modes", "versus.json")) as object), id: "orphan", arena: "ghost-arena" };
+    const mode = { ...(readJson(join(FIGHT_DATA, "modes", "versus.json")) as object), id: "orphan", arena: "ghost-arena" };
     writeFileSync(join(root, "data", "modes", "orphan.json"), JSON.stringify(mode));
     expect(() => loadMode("orphan", root)).toThrow(/ghost-arena/);
   });
