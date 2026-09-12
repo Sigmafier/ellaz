@@ -3,7 +3,7 @@
 // `<root>/data` and find its sheets under `<root>/assets`. Throws naming the
 // URL that failed; a 404 here must never turn into an empty fight.
 
-import type { AiFile, ArenaFile, FighterFile, Manifest, MatchFile, ModeFile, MovesFile } from "../../core/types";
+import type { AiFile, ArenaFile, FighterFile, Manifest, MatchFile, ModeFile, MovesFile, StageFile } from "../../core/types";
 import type { SpriteSetRef } from "../contract";
 
 export interface LoadedFightHttp {
@@ -13,6 +13,8 @@ export interface LoadedFightHttp {
   fighters: FighterFile[];
   ais: AiFile[];
   sets: Record<string, { manifest: Manifest; moves: MovesFile }>;
+  /** the stage file, when the mode names one */
+  stage?: StageFile;
 }
 
 async function json<T>(url: string): Promise<T> {
@@ -32,9 +34,15 @@ export function spriteRefs(root: string, sets: string[]): SpriteSetRef[] {
 
 export async function loadFightHttp(root: string, modeId: string): Promise<LoadedFightHttp> {
   const mode = await json<ModeFile>(`${root}/data/modes/${modeId}.json`);
-  const [arena, match] = await Promise.all([json<ArenaFile>(`${root}/data/arena/${mode.arena}.json`), json<MatchFile>(`${root}/data/match/${mode.match}.json`)]);
-  const fighterIds = [...new Set(mode.cast.map((c) => c.fighter))];
-  const aiIds = [...new Set(mode.cast.filter((c) => c.control === "ai").map((c) => c.ai as string))];
+  const [arena, match, stage] = await Promise.all([
+    json<ArenaFile>(`${root}/data/arena/${mode.arena}.json`),
+    json<MatchFile>(`${root}/data/match/${mode.match}.json`),
+    mode.stage === undefined ? Promise.resolve(undefined) : json<StageFile>(`${root}/data/stage/${mode.stage}.json`),
+  ]);
+  // the roster is the cast plus every wave's spawns, the same walk data/load.ts makes on disk
+  const rows: { fighter: string; ai?: string }[] = [...mode.cast, ...(mode.waves ?? []).flatMap((w) => w.spawns)];
+  const fighterIds = [...new Set(rows.map((c) => c.fighter))];
+  const aiIds = [...new Set(rows.filter((c) => c.ai !== undefined).map((c) => c.ai as string))];
   const fighters = await Promise.all(fighterIds.map((id) => json<FighterFile>(`${root}/data/fighters/${id}.json`)));
   const ais = await Promise.all(aiIds.map((id) => json<AiFile>(`${root}/data/ai/${id}.json`)));
   const setNames = [...new Set(fighters.map((f) => f.sprites))];
@@ -46,5 +54,5 @@ export async function loadFightHttp(root: string, modeId: string): Promise<Loade
     ]);
     sets[name] = { manifest, moves };
   }));
-  return { mode, arena, match, fighters, ais, sets };
+  return { mode, arena, match, fighters, ais, sets, ...(stage ? { stage } : {}) };
 }

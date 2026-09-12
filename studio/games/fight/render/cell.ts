@@ -24,9 +24,11 @@ import type { Manifest } from "../../../adapters/manifest";
 import { loadStudioAtlas, originFor } from "../../../adapters/phaser/load-atlas";
 import { NO_INPUT } from "../core/types";
 import type { InputFrame } from "../core/types";
-import type { BoxOp, HudModel, ShadowOp, SpriteOp } from "../core/view";
+import type { BoxOp, HudModel, PropOp, ShadowOp, SpriteOp } from "../core/view";
 import type { ArenaDrawOp, Cell, CellStats, FxOp, SpriteSetRef } from "../cells/contract";
 import { drawText, textWidth } from "../cells/canvas/font";
+import { propOps } from "../cells/shared/props";
+import { drawStageHud } from "./hud-stage";
 
 const DRAW_SCALE = 1 / 5;
 const INK = 0x1a1230;
@@ -41,8 +43,8 @@ const BAR = [
 ];
 const BOX_COLOR: Record<BoxOp["kind"], number> = { bdy: 0x2ec08a, itr: 0xff3b30, push: 0x4a8cff };
 
-/** one band per harness call, so the display list cannot drift out of draw order */
-const BAND = { arena: 0, shadow: 1, sprite: 10, fx: 100, hud: 200, text: 201, boxes: 300 };
+/** one band per harness call, so the display list cannot drift out of draw order; props sit under every sprite */
+const BAND = { arena: 0, shadow: 1, props: 2, sprite: 10, fx: 100, hud: 200, text: 201, boxes: 300 };
 
 /** the size the Game boots at; `mount` resizes it to whatever the arena file says */
 const BOOT = { w: 640, h: 360 };
@@ -50,6 +52,7 @@ const BOOT = { w: 640, h: 360 };
 interface Layers {
   arena: Phaser.GameObjects.Graphics;
   shadow: Phaser.GameObjects.Graphics;
+  props: Phaser.GameObjects.Graphics;
   fx: Phaser.GameObjects.Graphics;
   hud: Phaser.GameObjects.Graphics;
   boxes: Phaser.GameObjects.Graphics;
@@ -147,6 +150,7 @@ export class Phaser4Cell implements Cell {
     this.layers = {
       arena: layer(BAND.arena),
       shadow: layer(BAND.shadow),
+      props: layer(BAND.props),
       fx: layer(BAND.fx),
       // the HUD never shakes; the camera carries the shake, so the HUD opts out
       hud: layer(BAND.hud, true),
@@ -185,6 +189,7 @@ export class Phaser4Cell implements Cell {
     const l = this.gfx();
     l.arena.clear();
     l.shadow.clear();
+    l.props.clear();
     l.fx.clear();
     l.hud.clear();
     l.boxes.clear();
@@ -217,6 +222,15 @@ export class Phaser4Cell implements Cell {
     for (let dy = -ry; dy <= ry; dy++) {
       const hw = Math.round(rx * Math.sqrt(Math.max(0, 1 - (dy / (ry + 0.5)) ** 2)));
       if (hw > 0) g.fillRect(cx - hw, cy + dy, hw * 2, 1);
+    }
+  }
+
+  /** the coins: the shared painter's rects on their own band, in world space */
+  drawProps(ops: readonly PropOp[]): void {
+    const g = this.gfx().props;
+    for (const op of propOps(ops)) {
+      g.fillStyle(hex(op.color), 1);
+      g.fillRect(op.x, op.y, op.w, op.h);
     }
   }
 
@@ -301,6 +315,7 @@ export class Phaser4Cell implements Cell {
   }
 
   drawHud(model: HudModel): void {
+    if (drawStageHud(this.gfx().hud, (s, x, y, k, c) => this.text(s, x, y, k, c), model, this.view)) return;
     const w = 180;
     const h = 12;
     model.hp.forEach((hp, side) => {

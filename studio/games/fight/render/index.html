@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>fight - versus</title>
+    <title>fight</title>
     <style>
       html, body { margin: 0; height: 100%; background: #fff6d8; font: 14px/1.4 system-ui, sans-serif; color: #4a3320; }
       body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; overflow: hidden; }
@@ -16,8 +16,10 @@
   <body>
     <div id="stage"></div>
     <p id="help">
+      <span id="help-mode"></span>
       <kbd>arrows</kbd> or <kbd>WASD</kbd> walk, <kbd>space</kbd> swings.
       On a phone: drag the left half to walk, tap the right half to swing.
+      <a href="?mode=stage">stage</a> - <a href="?mode=versus">versus</a>
     </p>
     <p id="stats" hidden></p>
     <script type="module" src="./main.ts"></script>

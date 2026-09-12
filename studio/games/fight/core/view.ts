@@ -10,14 +10,38 @@
 import { dormant } from "./fighter";
 import { floorDiv, toPx } from "./fixed";
 import { frameIndexAt } from "./moves";
-import type { CFighter, FightData, FightState } from "./types";
+import { xpToNext } from "./pickups";
+import { heroIndex, heroMaxHp } from "./stage";
+import type { CFighter, FightData, FightState, PickupState } from "./types";
 
 export interface SpriteOp { set: string; frame: string; x: number; y: number; flip: boolean; depth: number; who: number }
 export interface ShadowOp { x: number; y: number; w: number; h: number; depth: number }
 export interface BoxOp { kind: "bdy" | "itr" | "push"; x: number; y: number; w: number; h: number; who: number }
-export interface HudModel { hp: number[]; maxHp: number[]; names: string[]; phase: number; winner: number; tick: number }
+/** a coin on the floor or in the air: screen px at its centre-bottom, and which of six spin widths it shows */
+export interface PropOp { kind: "coin"; x: number; y: number; spin: number; depth: number }
+/** what a stage HUD shows; `hero` is the roster row the hp bar belongs to */
+export interface StageHud { wave: number; waves: number; wphase: number; waveT: number; coins: number; xp: number; xpNeed: number; level: number; hero: number }
+export interface HudModel { hp: number[]; maxHp: number[]; names: string[]; phase: number; winner: number; tick: number; stage: StageHud | null }
 /** `camX` is the camera's left edge in world px, lerped like a fighter; 0 when the mode has no camera */
-export interface DrawPlan { sprites: SpriteOp[]; shadows: ShadowOp[]; boxes: BoxOp[]; hud: HudModel; shake: number; camX: number }
+export interface DrawPlan { sprites: SpriteOp[]; shadows: ShadowOp[]; props: PropOp[]; boxes: BoxOp[]; hud: HudModel; shake: number; camX: number }
+
+/** the coin's six spin widths cycle ten times a second: one phase per six ticks */
+const SPIN_TICKS = 6;
+const SPIN_PHASES = 6;
+
+function propOf(p: PickupState, prev: PickupState | undefined, alpha256: number): PropOp {
+  const q = prev ?? p;
+  const x = toPx(lerp256(q.x, p.x, alpha256));
+  const z = toPx(lerp256(q.z, p.z, alpha256));
+  const h = toPx(lerp256(q.h, p.h, alpha256));
+  return { kind: "coin", x, y: z - h, spin: floorDiv(p.age, SPIN_TICKS) % SPIN_PHASES, depth: z };
+}
+
+function stageHud(next: FightState, data: FightData): StageHud | null {
+  if (!next.stage || !data.stage) return null;
+  const s = next.stage;
+  return { wave: s.wave, waves: data.stage.waves, wphase: s.wphase, waveT: s.waveT, coins: s.coins, xp: s.xp, xpNeed: xpToNext(data.stage, s.level), level: s.level, hero: heroIndex(data) };
+}
 
 /** blend two FP values by alpha256 in [0, 256]; exact at both ends */
 export function lerp256(a: number, b: number, alpha256: number): number {
@@ -58,14 +82,21 @@ export function viewOf(prev: FightState, next: FightState, alpha256: number, dat
   });
   sprites.sort((a, b) => a.depth - b.depth);
   shadows.sort((a, b) => a.depth - b.depth);
+  // a coin's previous position is the same index of the previous tick's list when nothing was
+  // collected in between; a collected coin shifts the rest, and those draw at their new spot for one frame
+  const sameCoins = prev.pickups.length === next.pickups.length;
+  const props = next.pickups.map((p, i) => propOf(p, sameCoins ? prev.pickups[i] : undefined, alpha256));
+  props.sort((a, b) => a.depth - b.depth);
+  const stage = stageHud(next, data);
   const hud: HudModel = {
     hp: next.fighters.map((f) => Math.max(0, f.hp)),
-    maxHp: next.fighters.map((_, i) => data.fighters[data.cast[i].fighter].hp),
+    maxHp: next.fighters.map((_, i) => (stage && i === stage.hero ? heroMaxHp(data, next.stage!.level) : data.fighters[data.cast[i].fighter].hp)),
     names: next.fighters.map((_, i) => data.fighters[data.cast[i].fighter].id),
     phase: next.phase,
     winner: next.winner,
     tick: next.tick,
+    stage,
   };
   const camX = next.stage ? toPx(lerp256(prev.stage ? prev.stage.camX : next.stage.camX, next.stage.camX, alpha256)) : 0;
-  return { sprites, shadows, boxes, hud, shake: next.shake, camX };
+  return { sprites, shadows, props, boxes, hud, shake: next.shake, camX };
 }

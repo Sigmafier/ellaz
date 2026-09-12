@@ -116,10 +116,16 @@ function onEvent(w: World, ev: FightEvent, toScreen: (x: number, z: number, h: n
     dots(w, ground, 3, 18, DUST);
     return;
   }
+  if (ev.kind === "coin") {
+    // a coin taken: a small gold ring where it lay
+    const at = toScreen(ev.x, ev.z, 0);
+    ring(w, at.x, at.y - 6, 10, YELLOW, 260);
+    return;
+  }
   const who = ev.kind === "land" ? ev.who : ev.kind === "knockdown" || ev.kind === "ko" ? ev.target : -1;
   const at = w.feet.get(who);
-  // "block" and "phase" draw nothing: neither carries a position, and a phase
-  // change is the HUD's job to show, not a puff of dust. Neither does anything
+  // "block", "phase", "wave" and "levelup" draw nothing: none carries a position, and a
+  // phase change is the HUD's job to show, not a puff of dust. Neither does anything
   // for a fighter nobody has hit yet - a burst at (0, 0) is worse than none.
   if (at === undefined) return;
   if (ev.kind === "knockdown") { ring(w, at.x, at.y, 26, DUST_PALE, 420); dots(w, at, 6, 30, DUST); }

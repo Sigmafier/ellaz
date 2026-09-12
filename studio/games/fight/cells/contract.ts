@@ -6,7 +6,7 @@
 // structural guarantee that seven arms run one program.
 
 import type { InputFrame } from "../core/types";
-import type { BoxOp, HudModel, ShadowOp, SpriteOp } from "../core/view";
+import type { BoxOp, HudModel, PropOp, ShadowOp, SpriteOp } from "../core/view";
 
 /** where a sprite set's four files live, as URLs the cell can fetch or hand to its loader */
 export interface SpriteSetRef { name: string; png: string; atlas: string; manifest: string }
@@ -37,6 +37,8 @@ export interface Cell {
   beginFrame(camX: number, shakeX: number, shakeY: number): void;
   drawArena(ops: readonly ArenaDrawOp[]): void;
   drawShadow(op: ShadowOp): void;
+  /** the coins, as the flat rects shared/props.ts hands over; above the shadows, below the sprites */
+  drawProps(ops: readonly PropOp[]): void;
   /** draw `frame` of `set` with its pivot at (x, y), flipped when asked; nearest-neighbour, one draw scale */
   drawSprite(op: SpriteOp): void;
   drawFx(ops: readonly FxOp[]): void;

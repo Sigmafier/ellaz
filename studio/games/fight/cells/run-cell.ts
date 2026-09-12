@@ -8,7 +8,11 @@
 //   __fightHash / __fightChain / __fightEventHash   the golden triple, live
 //   __fightDone     true once a tape run reached its length
 //   __fightStats    { stepsPerFrame, distinctDraws, drawn, backbuffer, dpr, samples, ttffMs, refresh }
+//   __fightStage    the stage block { wave, wphase, waveT, camX, coins, xp, level } of a stage mode, else null
 //   __fightError    a message when load or a frame threw (also printed on the page)
+//
+// The mode: `opts.mode`, unless a tape is given - a tape names its own mode, and
+// replaying a stage tape against the Versus data would be a different sim.
 
 import { compileFight } from "../core/compile";
 import { chainOf, hashEvents, hashState } from "../core/hash";
@@ -37,6 +41,7 @@ function publish(live: Live): void {
   w.__fightChain = chainOf(live.ticks);
   w.__fightEventHash = hashEvents(live.events);
   w.__fightDone = live.done;
+  w.__fightStage = live.next.stage;
 }
 
 function fail(err: unknown): void {
@@ -68,15 +73,16 @@ function advance(live: Live, n: number, read: (side: number) => InputFrame): voi
 
 export async function runCell(cell: Cell, opts: CellOptions): Promise<void> {
   try {
-    const loaded = await loadFightHttp(opts.root, opts.mode);
+    const tape = opts.tape ? readTape(await (await fetch(`${opts.root}/tournament/tapes/${opts.tape}.json`)).json()) : null;
+    const loaded = await loadFightHttp(opts.root, tape ? tape.mode : opts.mode);
     const data = compileFight(loaded);
     const refs = spriteRefs(opts.root, Object.keys(loaded.sets));
     await cell.load(refs);
     const host = document.getElementById("stage") ?? document.body;
     cell.mount(host, loaded.arena.view);
-    const tape = opts.tape ? readTape(await (await fetch(`${opts.root}/tournament/tapes/${opts.tape}.json`)).json()) : null;
     const live: Live = { data, prev: createState(data), next: createState(data), tape, ticks: [], events: [], done: false };
-    const arena = arenaOps(loaded.arena.art, loaded.arena.view);
+    // the painter spans the whole room, not one screen: a stage's camera scrolls through it
+    const arena = arenaOps(loaded.arena.art, { w: loaded.arena.world?.w ?? loaded.arena.view.w, h: loaded.arena.view.h });
     const fx = createFx();
     // a live run reads the keyboard AND the touch surface; whichever is moving wins the axis, and
     // either can swing. A tape run reads neither - the hash measures the sim, not the hands
@@ -100,9 +106,10 @@ export async function runCell(cell: Cell, opts: CellOptions): Promise<void> {
         // display rate (a 120 Hz panel used to spawn every burst twice, fast mode dropped 59 of 60)
         for (; fxFed < live.events.length; fxFed++) fx.onEvent(live.events[fxFed], toScreen);
         const shake = plan.shake > 0 ? [((live.next.tick * 7) % 5) - 2, ((live.next.tick * 3) % 3) - 1] : [0, 0];
-        cell.beginFrame(0, shake[0], shake[1]);
+        cell.beginFrame(plan.camX, shake[0], shake[1]);
         cell.drawArena(arena);
         for (const s of plan.shadows) cell.drawShadow(s);
+        cell.drawProps(plan.props);
         for (const s of plan.sprites) { cell.drawSprite(s); drawn += 1; }
         cell.drawFx(fx.frame(now));
         cell.drawHud(plan.hud);

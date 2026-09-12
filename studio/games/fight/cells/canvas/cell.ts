@@ -12,9 +12,11 @@ import type { Atlas, Manifest } from "../../../../adapters/manifest";
 import { drawFrame } from "../../../../adapters/canvas/draw-frame";
 import { NO_INPUT } from "../../core/types";
 import type { InputFrame } from "../../core/types";
-import type { BoxOp, HudModel, ShadowOp, SpriteOp } from "../../core/view";
+import type { BoxOp, HudModel, PropOp, ShadowOp, SpriteOp } from "../../core/view";
 import type { ArenaDrawOp, Cell, CellStats, FxOp, SpriteSetRef } from "../contract";
+import { propOps } from "../shared/props";
 import { drawText, textWidth } from "./font";
+import { stageHudOps } from "./hud-stage";
 
 const DRAW_SCALE = 1 / 5;
 const INK = "#1a1230";
@@ -123,6 +125,11 @@ export class CanvasCell implements Cell {
     }
   }
 
+  /** the coins: the shared painter's rects, in world space like the arena */
+  drawProps(ops: readonly PropOp[]): void {
+    this.drawArena(propOps(ops));
+  }
+
   drawSprite(op: SpriteOp): void {
     const sheet = this.sheets.get(op.set);
     if (!sheet) throw new Error(`canvas cell: no sprite set "${op.set}"`);
@@ -199,6 +206,7 @@ export class CanvasCell implements Cell {
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
+    if (model.stage) { this.drawStage(model); ctx.restore(); return; }
     const w = 180;
     const h = 12;
     model.hp.forEach((hp, side) => {
@@ -211,6 +219,15 @@ export class CanvasCell implements Cell {
     });
     if (model.phase >= 2) this.drawKo(model);
     ctx.restore();
+  }
+
+  /** the stage HUD: the shared layout's rects and text runs, in screen space */
+  private drawStage(model: HudModel): void {
+    const s = model.stage!;
+    const ctx = this.g();
+    const ops = stageHudOps(s, model.hp[s.hero] ?? 0, model.maxHp[s.hero] ?? 1, model.names[s.hero] ?? "", this.view);
+    for (const r of ops.rects) { ctx.fillStyle = r.color; ctx.fillRect(r.x, r.y, r.w, r.h); }
+    for (const t of ops.texts) drawText(ctx, t.text, t.x, t.y, t.scale, t.color);
   }
 
   private drawKo(model: HudModel): void {
