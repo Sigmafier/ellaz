@@ -1,0 +1,38 @@
+{
+  "id": "shelf-2",
+  "arena": "shelf",
+  "match": "versus",
+  "seed": 20260917,
+  "stage": "toybox-quest",
+  "cast": [
+    { "fighter": "robot", "control": "player", "team": 0, "x": 120, "z": 268, "face": 1 }
+  ],
+  "waves": [
+    {
+      "spawns": [
+        { "fighter": "ninja", "ai": "ninja-cpu", "team": 1, "side": 1, "delayTicks": 18 },
+        { "fighter": "ninja", "ai": "ninja-cpu", "team": 1, "side": -1, "delayTicks": 96 },
+        { "fighter": "bat", "ai": "bat-cpu", "team": 1, "side": 1, "delayTicks": 168 },
+        { "fighter": "slime", "ai": "slime-cpu", "team": 1, "side": -1, "delayTicks": 228 }
+      ]
+    },
+    {
+      "spawns": [
+        { "fighter": "bat", "ai": "bat-cpu", "team": 1, "side": 1, "delayTicks": 18 },
+        { "fighter": "bat", "ai": "bat-cpu", "team": 1, "side": -1, "delayTicks": 60 },
+        { "fighter": "ninja", "ai": "ninja-cpu", "team": 1, "side": 1, "delayTicks": 126 },
+        { "fighter": "ninja", "ai": "ninja-cpu", "team": 1, "side": -1, "delayTicks": 192 },
+        { "fighter": "slime", "ai": "slime-cpu", "team": 1, "side": 1, "delayTicks": 252 }
+      ]
+    },
+    {
+      "spawns": [
+        { "fighter": "slime", "ai": "slime-cpu", "team": 1, "side": -1, "delayTicks": 18 },
+        { "fighter": "teddy-boss", "ai": "teddy-cpu", "team": 1, "side": 1, "delayTicks": 84 },
+        { "fighter": "ninja", "ai": "ninja-cpu", "team": 1, "side": -1, "delayTicks": 156 },
+        { "fighter": "bat", "ai": "bat-cpu", "team": 1, "side": 1, "delayTicks": 228 },
+        { "fighter": "ninja", "ai": "ninja-cpu", "team": 1, "side": 1, "delayTicks": 300 }
+      ]
+    }
+  ]
+}

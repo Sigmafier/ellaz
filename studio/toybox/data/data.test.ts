@@ -127,17 +127,27 @@ describe("every data file validates against the engine schema for its kind", () 
   it("found the fight's whole corpus, so nothing below passes over an empty list", () => {
     expect(FILES.map((f) => f.name).sort()).toEqual([
       "ai/bat-cpu.json",
+      "ai/ninja-cpu.json",
       "ai/slime-cpu.json",
       "ai/teddy-cpu.json",
+      "ai/wizard-cpu.json",
       "arena/playroom.json",
+      "arena/shelf.json",
       "arena/toybox.json",
       "fighters/bat.json",
+      "fighters/ninja.json",
       "fighters/robot.json",
       "fighters/slime.json",
       "fighters/teddy-boss.json",
       "fighters/teddy.json",
+      "fighters/wizard-boss.json",
       "match/versus.json",
+      "modes/shelf-1.json",
+      "modes/shelf-2.json",
+      "modes/shelf-boss.json",
       "modes/stage.json",
+      "modes/toybox-2.json",
+      "modes/toybox-3.json",
       "modes/versus.json",
       "stage/toybox-quest.json",
     ]);
@@ -249,7 +259,8 @@ describe("the stage conditionals the validator subset cannot write", () => {
   }
 
   it("every real mode of every game satisfies it", () => {
-    expect(modes.length).toBe(2);
+    // versus, stage, and the campaign's five (2026-09-13: toybox-2, toybox-3, shelf-1, shelf-2, shelf-boss)
+    expect(modes.length).toBe(7);
     for (const g of games) {
       for (const f of fightModeFiles(g)) expect(stageViolations(readJson(f.path) as unknown as ModeFile)).toEqual([]);
     }
@@ -306,7 +317,7 @@ describe("the stage conditionals the validator subset cannot write", () => {
 
   it("every spawn lane lies inside the arena's z band, the camera lead inside one screen, the world holds every wave, and a door is where the hero can reach", () => {
     const all = stageModes();
-    expect(all.map((m) => `${m.game}/${m.mode}`)).toEqual(["crypt/crypt", "fight/stage"]);
+    expect(all.map((m) => `${m.game}/${m.mode}`)).toEqual(["crypt/crypt", "fight/shelf-1", "fight/shelf-2", "fight/shelf-boss", "fight/stage", "fight/toybox-2", "fight/toybox-3"]);
     for (const { game, mode, loaded } of all) {
       const st = loaded.stage!;
       const at = `${game}/${mode}`;
@@ -648,7 +659,8 @@ describe("every tick field is a whole number of ticks", () => {
 
   it("holds for every match, ai, stage and mode file", () => {
     const timed = FILES.filter((f) => /^(match|ai|stage|modes)\//.test(f.name));
-    expect(timed.length).toBe(7);
+    // one match, five ais, one stage file, seven modes
+    expect(timed.length).toBe(14);
     for (const f of timed) expect(ints(readJson(f.path), f.name)).toEqual([]);
   });
 
@@ -697,8 +709,8 @@ describe("the match thresholds against the moves files they are measured from", 
 
   it("keeps fallThreshold above what hitsToKnockdown-1 of the heaviest hit accumulates", () => {
     const falls = authoredFalls();
-    // the population: the bat's 8, the slime's 10, the teddy's 12 and the robot's 20, each on two active frames
-    expect(falls.sort((a, b) => a - b)).toEqual([8, 8, 10, 10, 12, 12, 20, 20]);
+    // the population: the bat's 8, the slime's 10, the teddy's 12, the ninja's 14, the robot's and the wizard's 20, each on two active frames
+    expect(falls.sort((a, b) => a - b)).toEqual([8, 8, 10, 10, 12, 12, 14, 14, 20, 20, 20, 20]);
     // below this, `fall` knocks a fighter down a hit EARLY and hitsToKnockdown
     // stops meaning anything - the two thresholds would be fighting each other
     const heaviest = Math.max(...falls);
@@ -732,10 +744,10 @@ describe("every fighter's sprite set is on disk, with both halves, in its own ga
         expect({ set, moves: existsSync(join(assets, set, `${set}.moves.json`)) }).toEqual({ set, moves: true });
       }
     }
-    // the population: the fight's five fighter files over four sets, the crypt's four over four
+    // the population: the fight's seven fighter files over six sets (the ninja and the wizard joined for the shelf world, 2026-09-13), the crypt's four over four
     expect(seen.sort()).toEqual([
       "crypt/bat--snes16", "crypt/knight--snes16", "crypt/ninja--snes16", "crypt/wizard--snes16",
-      "fight/bat--snes16", "fight/robot--snes16", "fight/slime--snes16", "fight/teddy--snes16", "fight/teddy--snes16",
+      "fight/bat--snes16", "fight/ninja--snes16", "fight/robot--snes16", "fight/slime--snes16", "fight/teddy--snes16", "fight/teddy--snes16", "fight/wizard--snes16",
     ]);
   });
 

@@ -1,0 +1,8 @@
+{
+  "id": "wizard-boss",
+  "sprites": "wizard--snes16",
+  "hp": 60,
+  "speed": 56,
+  "zSpeed": 40,
+  "xp": 30
+}

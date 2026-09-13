@@ -51,8 +51,12 @@ const MODES = stageModes();
 const FIGHT = gameDir("fight");
 
 describe("createState without a carry", () => {
-  it("walks the crypt's stage and the fight's, so the identity below is asserted over something", () => {
-    expect(MODES).toEqual([{ game: "crypt", mode: "crypt" }, { game: "fight", mode: "stage" }]);
+  it("walks the crypt's stage and the fight's six, so the identity below is asserted over something", () => {
+    expect(MODES).toEqual([
+      { game: "crypt", mode: "crypt" },
+      { game: "fight", mode: "shelf-1" }, { game: "fight", mode: "shelf-2" }, { game: "fight", mode: "shelf-boss" },
+      { game: "fight", mode: "stage" }, { game: "fight", mode: "toybox-2" }, { game: "fight", mode: "toybox-3" },
+    ]);
   });
 
   for (const { game, mode } of MODES) {
