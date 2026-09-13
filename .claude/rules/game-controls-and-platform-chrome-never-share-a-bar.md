@@ -44,10 +44,45 @@ on the built artifact, restart alone wrapped 25 of 33 games onto two lines, and
 with restart out but pause still in, blocks was the last one wrapping. With both
 out it is 0 of 33.
 
+**NARROWED 2026-09-13, by operator ruling, in the change that first needed it.**
+A SHOWCASE game has a third place, and it is neither bar: an ENTRANCE SCREEN
+drawn over its own arena, holding the title, the difficulty, the action button
+and whatever else that game's chrome owns. The operator's words were *"maybe the
+buttons instead of being down should be on some kind of load screen or entrance
+to the game"*, and they picked it off four arms rendered over the live game.
+
+It does not weaken the law, because it does not put a game control anywhere a
+platform control lives. It is the game's own surface, it exists only inside the
+game, and it costs both bars nothing. What it buys is the thing the width split
+above was rationing in the first place:
+
+```
+                   BEFORE (three rows under the arena)   AFTER (entrance)
+  arena @1536x639            234px                            359px   +53%
+  chrome reserved            183px                             16px
+  frame fills its box         87%                               95%
+  rows under the arena          3                                 0
+  arena @390x844            359px                            359px   unchanged
+```
+
+The phone number is the one worth reading twice: it does NOT move, and that is
+correct rather than disappointing. A phone board is `min(92vw, ...)` and the vw
+term binds, so the chrome term is never consulted there - only the desktop
+branch reads it. The phone gains a cleaner screen and loses no board.
+
+**Two things this is NOT.** It is not a loading screen - the taste ledger
+already rules out a difficulty picker on a poster before the game exists, and a
+spinner in an empty box while the chunk downloads; this is drawn by the game
+after it has mounted. And it is not a licence for the other 42: it is selected
+by `meta.tier === "showcase"`, the same band the arcade HUD uses, and
+`arcade-entrance-covers-the-arena.test.ts` pins the four ways it can regress
+without looking broken.
+
 **The test, and it is one question:** *would this control still make sense on
 the World screen or the Boards?* Yes → platform. No → game. Then, for a game
 control: *is it a button or a number?* Button → the utility row. Number, or the
-difficulty toggle → the panel.
+difficulty toggle → the panel. And for a showcase game: *is there a moment when
+nothing is being steered?* If so, that is where its own controls belong.
 
 Sound and full screen pass that test — muting is global and the API is the
 browser's, so both are platform even though a player reaches for them while

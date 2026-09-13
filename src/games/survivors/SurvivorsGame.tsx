@@ -165,43 +165,53 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
   const T = textFor(
     {
       he: {
-        ready: "הקישו כדי להתחיל",
-        over: "נגמרו הלבבות - הקישו לשחק שוב",
-        // The run no longer ends by surviving, so this no longer says it did.
-        won: "הגולם נפל! הקישו לעוד סיבוב",
         golem: "גולם",
         stick: "מקל",
         stickTap: "איפה שנוגעים",
         stickCorner: "בפינה",
         hint: "גררו, חצים או כפתורים - היריות לבד",
+        // The entrance screen's words. `title` is a SECOND copy of the name the
+        // page's own h1 carries, and that is a real duplication - the renderer
+        // cannot reach `meta.ts` without making the game's meta a static import
+        // of the chunk. Written down rather than hidden: if the game is renamed,
+        // both move.
+        title: "הישרדות ניאון",
+        play: "שחקו",
+        playAgain: "שחקו שוב",
+        lost: "נגמרו הלבבות",
+        beat: "הגולם נפל!",
         pick: "עלייה לדרגה",
         score: "צורות",
         time: "נשאר",
         hearts: "לבבות",
       },
       en: {
-        ready: "Tap to start",
-        over: "Out of hearts - tap to play again",
-        won: "The golem is down! Tap for another run",
         golem: "Golem",
         stick: "Stick",
         stickTap: "Where I tap",
         stickCorner: "Corner",
         hint: "Drag, arrows or buttons - it shoots by itself",
+        title: "Neon Survival",
+        play: "Play",
+        playAgain: "Play again",
+        lost: "Out of hearts",
+        beat: "The golem is down!",
         pick: "Level up",
         score: "Shapes",
         time: "Left",
         hearts: "Hearts",
       },
       es: {
-        ready: "Toca para empezar",
-        over: "Sin corazones - toca para jugar otra vez",
-        won: "¡El gólem ha caído! Toca para otra ronda",
         golem: "Gólem",
         stick: "Palanca",
         stickTap: "Donde toco",
         stickCorner: "Esquina",
         hint: "Arrastra, flechas o botones - dispara solo",
+        title: "Supervivencia Neón",
+        play: "Jugar",
+        playAgain: "Jugar otra vez",
+        lost: "Sin corazones",
+        beat: "¡El gólem ha caído!",
         pick: "Subes de nivel",
         score: "Formas",
         time: "Queda",
@@ -293,95 +303,109 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
       onPaused={
         status.phase === "playing" ? (next) => sceneRef.current?.setPaused(next) : undefined
       }
-      footer={
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
-          {/* The strip says four things and only three of them are INSTRUCTIONS.
-              While playing it merely describes the controls, so it stops being a
-              button - not a disabled one, which this platform reserves for the
-              genuinely impossible, but simply not a control. Same handler as a
-              tap on the arena, never a second copy of the logic. */}
-          {asking ? (
-            <button
-              type="button"
-              onClick={() => sceneRef.current?.startFromChrome()}
-              style={{
-                background: "var(--surface)",
-                borderRadius: "var(--radius-2)",
-                boxShadow: "var(--shadow-1)",
-                border: "none",
-                cursor: "pointer",
-                font: "inherit",
-                color: "inherit",
-                padding: "10px 12px",
-                minHeight: 44,
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                textAlign: "center",
-                touchAction: "manipulation",
-              }}
-            >
-              <b style={{ fontSize: 17, fontFamily: "Fredoka, inherit" }}>
-                {status.phase === "won" ? T.won : status.phase === "over" ? T.over : T.ready}
-              </b>
-            </button>
-          ) : (
-            <div
-              style={{
-                padding: "10px 12px",
-                minHeight: 44,
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                textAlign: "center",
-                color: "var(--muted)",
-              }}
-            >
-              <span style={{ fontSize: 15, fontFamily: "Fredoka, inherit" }}>{T.hint}</span>
-            </div>
-          )}
-
-          {/* The stick's style, and it lives HERE rather than as a site-wide
-              setting because the operator ruled it belongs to this game's own
-              chrome - it is the only game with a stick, and a platform-wide
-              preference for one game is a setting nobody can find. */}
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
-            <span style={{ fontSize: 13, color: "var(--muted)" }}>{T.stick}</span>
-            {(["tap", "corner"] as StickStyle[]).map((s) => (
-              <button
-                key={s}
-                type="button"
-                aria-pressed={stickStyle === s}
-                onClick={() => {
-                  setStickStyle(s);
-                  // Persisted from the HANDLER, never from a state updater -
-                  // React may run an updater twice, and the house rule keeps
-                  // every side effect on this side of that line.
-                  ctx.storage.set(STICK_KEY, s);
-                  sceneRef.current?.setStickStyle(s);
-                }}
-                style={{
-                  minHeight: 44,
-                  padding: "8px 14px",
-                  borderRadius: "var(--radius-2)",
-                  border: stickStyle === s ? "2px solid var(--brand-strong)" : "2px solid var(--line)",
-                  background: stickStyle === s ? "var(--brand-fill)" : "var(--surface)",
-                  color: stickStyle === s ? "var(--on-brand)" : "inherit",
-                  font: "inherit",
-                  fontSize: 14,
-                  fontWeight: 700,
-                  fontFamily: "Fredoka, inherit",
-                  cursor: "pointer",
-                  touchAction: "manipulation",
-                }}
-              >
-                {s === "tap" ? T.stickTap : T.stickCorner}
-              </button>
-            ))}
-          </div>
-        </div>
+      entrance={
+        /*
+         * THE THREE ROWS THAT USED TO HANG UNDER THE ARENA, MOVED ONTO IT.
+         * The operator, 2026-09-13: *"maybe the buttons instead of being down
+         * should be on some kind of load screen or entrance to the game"* -
+         * then picked this shape off four rendered over the live game.
+         *
+         * `choosing` is in the condition and it is load-bearing: the upgrade
+         * picker is its own cover, drawn DURING a live run, and two covers on
+         * one arena would stack. The run is not "asking" then either, but the
+         * guard says so explicitly rather than relying on that.
+         *
+         * NOT A LOADING SCREEN, which is the other reading of what was asked.
+         * The taste ledger already rules out a difficulty picker on the poster
+         * before the game exists, and a spinner in an empty box while the chunk
+         * downloads. This is drawn by the game, after it has mounted, so it
+         * conflicts with neither.
+         */
+        asking && !choosing
+          ? {
+              title: T.title,
+              // What used to be a strip UNDER the arena WHILE playing, where it
+              // cost the board height on every frame of the run and told the
+              // player how to play at the one moment they were already playing.
+              // On the entrance it costs nothing and arrives before it is
+              // needed.
+              tagline: T.hint,
+              action: status.phase === "ready" ? T.play : T.playAgain,
+              result:
+                status.phase === "won" ? T.beat : status.phase === "over" ? T.lost : undefined,
+              onAction: () => sceneRef.current?.startFromChrome(),
+              extra: (
+                /* The stick's style, still this game's own chrome rather than a
+                   site-wide setting - the operator ruled that, and moving the
+                   row onto the entrance does not re-open it. */
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                    justifyContent: "center",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 13,
+                      // NOT --muted, which this file used to read and which is
+                      // declared nowhere - a game is not scanned by the token
+                      // test, so it resolved to nothing and inherited instead.
+                      // The cover is dark under both themes, so the ink is the
+                      // same one the HUD uses.
+                      color: "var(--on-brand)",
+                      opacity: 0.72,
+                    }}
+                  >
+                    {T.stick}
+                  </span>
+                  {(["tap", "corner"] as StickStyle[]).map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      aria-pressed={stickStyle === s}
+                      onClick={() => {
+                        setStickStyle(s);
+                        // Persisted from the HANDLER, never from a state updater -
+                        // React may run an updater twice, and the house rule keeps
+                        // every side effect on this side of that line.
+                        ctx.storage.set(STICK_KEY, s);
+                        sceneRef.current?.setStickStyle(s);
+                      }}
+                      style={{
+                        minHeight: 44,
+                        padding: "8px 14px",
+                        borderRadius: "var(--radius-2)",
+                        border:
+                          stickStyle === s
+                            ? "2px solid var(--brand-strong)"
+                            : "2px solid var(--line)",
+                        // --brand-strong, not --brand-fill: night's fill is a
+                        // GRADIENT and no ink clears 4.5:1 across it, which the
+                        // contrast rule measured rather than guessed.
+                        background: stickStyle === s ? "var(--brand-strong)" : "var(--surface)",
+                        // WAS `inherit`, and that was a real defect the moment
+                        // this moved: the cover sets a light ink, so an
+                        // unselected pill would have drawn white text on its
+                        // cream fill. Name the ink that belongs on the fill.
+                        color: stickStyle === s ? "var(--on-brand)" : "var(--text)",
+                        font: "inherit",
+                        fontSize: 14,
+                        fontWeight: 700,
+                        fontFamily: "Fredoka, inherit",
+                        cursor: "pointer",
+                        touchAction: "manipulation",
+                      }}
+                    >
+                      {s === "tap" ? T.stickTap : T.stickCorner}
+                    </button>
+                  ))}
+                </div>
+              ),
+            }
+          : null
       }
     >
       <div
@@ -400,7 +424,23 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
           // about is correct exactly until that layout changes, which is why
           // the gate asserts this number against the rendered one rather than
           // trusting it - see a-threshold-tuned-against-todays-tree-goes-stale.md.
-          ...boardVars({ vw: 92, vh: 58, cap: 420, chrome: 183, ratio: ARENA.w / ARENA.h }),
+          // chrome 16, MEASURED by the board gate on the built artifact
+          // 2026-09-13, and it replaces 183 - which was itself measured, in the
+          // same way, against a panel that still carried a difficulty row, a
+          // start strip and a stick row. All three are on the entrance screen
+          // now, so the only height left under the board is the panel's own
+          // `padding: "8px 0"`.
+          //
+          // I FIRST WROTE 60 HERE AND THE GATE REFUSED IT. That number came
+          // from the mock rather than from a render, and it was wrong by 44px -
+          // which the board then reserved and did not use, leaving the frame at
+          // 87% of its box against a 90% floor. Worth leaving on the record: a
+          // constant inferred from a picture is an estimate wearing a
+          // measurement's clothes, and the only reason it cost nothing is that
+          // the gate reads the RENDERED gap and refuses a declaration more than
+          // 8px from it. That check is this repo's own
+          // a-threshold-tuned-against-todays-tree-goes-stale.md, doing its job.
+          ...boardVars({ vw: 92, vh: 58, cap: 420, chrome: 16, ratio: ARENA.w / ARENA.h }),
         }}
       >
         <div
@@ -429,7 +469,10 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
               justifyContent: "center",
               padding: 16,
               borderRadius: 14,
-              background: "rgba(11, 13, 31, 0.86)",
+              // The same cover the entrance uses, now from the one token rather
+              // than a second copy of the same rgba. Byte-identical value, so
+              // every contrast figure measured below still stands.
+              background: "var(--stage-cover)",
             }}
           >
             <b style={{ color: "#fff", fontSize: 18, fontFamily: "Fredoka, inherit" }}>

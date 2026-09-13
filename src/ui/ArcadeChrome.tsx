@@ -70,6 +70,52 @@ export type ArcadeHud = {
 };
 
 /**
+ * The entrance screen: what a showcase game shows INSTEAD of a row of buttons
+ * under its arena.
+ *
+ * The operator, 2026-09-13: *"maybe the buttons instead of being down should be
+ * on some kind of load screen or entrance to the game"* - then picked this shape
+ * off four rendered over the live game. It is not decoration. The three rows it
+ * replaces were RESERVING HEIGHT, and a board on a desktop is sized from the
+ * height its chrome leaves it, so deleting them measured **234px -> 326px of
+ * arena, +39%**, on their own 1536x639 window.
+ *
+ * WHY THE HUD GOES AWAY WHILE THIS IS UP. The arcade HUD already owns all four
+ * corners - hearts, score, pips, clock - so an entrance card has nowhere to put
+ * a control without landing on a number; that collision is what sank the
+ * alternative in its first render. And every one of those numbers is
+ * meaningless before a run starts: zero score, full hearts, a clock at its
+ * start. Hiding them is what makes this read as a title screen rather than as a
+ * pause cover.
+ *
+ * IT ACCEPTS POINTERS, WHICH IS THE OPPOSITE OF THE HUD. The HUD refuses them
+ * because the arena underneath is steered by touch. This is the one surface
+ * here a player must actually press, and it only exists while nothing is being
+ * steered - so the two never contend.
+ */
+export type ArcadeEntrance = {
+  /** The game's name, already localised. Drawn large. */
+  title: string;
+  /** One quiet line under the title. */
+  tagline?: string;
+  /**
+   * The button's word - "Play" on a first visit, "Play again" once a run has
+   * ended. The GAME chooses it, because only the game knows which it is, and a
+   * component that guessed would be a component that has to know what a run is.
+   */
+  action: string;
+  /** What just happened, drawn above the button. Absent before the first run. */
+  result?: string;
+  onAction: () => void;
+  /**
+   * The game's own extra control, drawn small under the button - survivors puts
+   * its stick choice here. A `ReactNode` rather than a shape, so this file
+   * never learns what a stick is.
+   */
+  extra?: ReactNode;
+};
+
+/**
  * The HUD's ink.
  *
  * The stage is dark under BOTH themes - `--doc-stage` is the same colour in
@@ -86,6 +132,7 @@ const DIM = 0.72;
 export function ArcadeChrome<T extends string>({
   ctx,
   hud,
+  entrance,
   levels,
   level,
   onLevel,
@@ -97,6 +144,12 @@ export function ArcadeChrome<T extends string>({
 }: {
   ctx: GameContext;
   hud: ArcadeHud;
+  /**
+   * The entrance screen, or null while the game is actually running. When it is
+   * present the difficulty moves ONTO it, so the panel below the arena is
+   * empty and the board gets that height back.
+   */
+  entrance?: ArcadeEntrance | null;
   levels?: readonly DifficultyOption<T>[];
   level?: T;
   onLevel?: (next: T) => void;
@@ -208,6 +261,11 @@ export function ArcadeChrome<T extends string>({
             position: "absolute",
             inset: 0,
             pointerEvents: "none",
+            // Out of the way while the entrance is up. Not tidiness: this HUD
+            // owns all four corners, so a card drawn over it collides with a
+            // number wherever it puts a control - and every number here is
+            // meaningless before a run starts anyway.
+            display: entrance ? "none" : undefined,
             color: INK,
             fontWeight: 800,
             containerType: "inline-size",
@@ -308,14 +366,108 @@ export function ArcadeChrome<T extends string>({
             </div>
           )}
         </div>
+
+        {/* THE ENTRANCE. It ACCEPTS pointers, unlike the HUD above it - this is
+            the one surface here a player presses, and it exists only while
+            nothing is being steered, so the two never contend for a touch.
+
+            The difficulty is drawn INSIDE it rather than under the arena, which
+            is the whole of the change: a row under the arena reserves height on
+            every frame of the run, and this costs height on no frame at all. */}
+        {entrance && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "var(--space-3)",
+              padding: "var(--space-4)",
+              borderRadius: 14,
+              background: "var(--stage-cover)",
+              color: INK,
+              textAlign: "center",
+              containerType: "inline-size",
+            }}
+          >
+            <div style={{ fontSize: "clamp(18px, 5.2cqw, 34px)", fontWeight: 800, lineHeight: 1.1 }}>
+              {entrance.title}
+            </div>
+            {entrance.tagline && (
+              <div style={{ fontSize: "clamp(11px, 2.4cqw, 15px)", opacity: DIM, lineHeight: 1.3 }}>
+                {entrance.tagline}
+              </div>
+            )}
+            {/* What just happened, in the one colour the HUD already uses for a
+                number that matters. Absent, not empty, before the first run. */}
+            {entrance.result && (
+              <div style={{ fontSize: "clamp(12px, 2.8cqw, 18px)", color: "var(--yellow)" }}>
+                {entrance.result}
+              </div>
+            )}
+
+            {/* The HOUSE component, not a second row of pills drawn here.
+                game-difficulty-and-juice-convention.md is explicit that a level
+                row is `DifficultySelector` and never a hand-rolled one, and the
+                fact that it has moved onto a dark cover does not make this the
+                place to fork it. Its contrast ON that cover is measured rather
+                than assumed - see the probe. */}
+            {levels && level && onLevel && (
+              <DifficultySelector
+                options={levels}
+                value={level}
+                onChange={onLevel}
+                locale={ctx.locale}
+              />
+            )}
+
+            <button
+              type="button"
+              onClick={entrance.onAction}
+              style={{
+                border: "none",
+                borderRadius: "var(--radius-pill)",
+                // --brand-strong, never --brand-fill. The repo settled this on
+                // 2026-09-02 by measuring rendered pixels: --on-brand reads
+                // 3.14:1 on the bright pink and 5.87:1 on the raspberry, and
+                // night's --brand-fill is a GRADIENT no ink clears at all.
+                // Darken the fill, never the ink.
+                background: "var(--brand-strong)",
+                color: "var(--on-brand)",
+                font: "inherit",
+                fontWeight: 800,
+                fontSize: "clamp(15px, 3.4cqw, 21px)",
+                minHeight: 52,
+                padding: "0 var(--space-5)",
+                cursor: "pointer",
+                touchAction: "manipulation",
+              }}
+            >
+              {entrance.action}
+            </button>
+
+            {entrance.extra}
+          </div>
+        )}
       </div>
 
-      {/* The difficulty is a GAME control and stays with the game, under the
-          arena rather than in the platform header. `DifficultySelector` is the
-          house component for a level row - see
-          game-difficulty-and-juice-convention.md - so this is not a second
-          implementation of one. */}
-      {levels && level && onLevel && (
+      {/* The difficulty is a GAME control and stays with the game - but when
+          the game USES an entrance it lives ON it, and never here.
+
+          `entrance === undefined`, NOT `!entrance`, and the difference is a bug
+          I shipped for twenty minutes. `!entrance` is true while a run is LIVE
+          (the game passes null then), so the row came back under the arena the
+          moment you pressed Play - the exact row this change removed, at the
+          exact moment the board is sized as though nothing were there. The
+          board gate could not see it because it never presses Play; the probe
+          caught it by counting the panel's children mid-run.
+
+          So the two states mean different things and are read differently:
+            undefined -> this game has no entrance at all; draw the row here.
+            null      -> this game HAS one and is mid-run; draw nothing. */}
+      {entrance === undefined && levels && level && onLevel && (
         <DifficultySelector options={levels} value={level} onChange={onLevel} locale={ctx.locale} />
       )}
 
@@ -324,7 +476,17 @@ export function ArcadeChrome<T extends string>({
       {/* Restart, only when nobody else drew one. A standalone bundle has no
           emitted utility row, and a published artifact quietly missing its
           restart button is a defect no byte-level gate in this repo can see. */}
-      {ownRestart && (
+      {/* ...and never for a game that has an entrance at all, for the same
+          height reason as the row above: anything drawn here mid-run breaks the
+          `chrome` the board was sized from. The entrance's own button is the
+          restart on the one screen a player wants it, so this is not a control
+          lost - except in one case, stated rather than hidden: a SHOWCASE game
+          shipped as a standalone bundle would have no mid-run restart, because
+          a standalone has no utility row either. No showcase game ships
+          standalone today (survivors is not in the roster), so nothing is
+          broken now; the day one does, it needs its own answer rather than this
+          button quietly re-stealing the arena's height. */}
+      {ownRestart && entrance === undefined && (
         <button
           type="button"
           onClick={onRestart}

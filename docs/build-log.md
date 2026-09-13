@@ -4533,3 +4533,91 @@ kiter.** It cannot see the shapes and a person can, so this bounds the difficult
 not settle it. Whether to ease the crowd is the operator's call and the constants are all
 named in `logic.ts` (`RULES` spawn interval, floor, tighten, speed; `KINDS` speed) waiting
 for it. Nothing was retuned to make the harness survive.
+
+---
+
+## The entrance screen: a showcase game's controls stop hanging under it (2026-09-13)
+
+The operator, looking at survivors on their own 1536x639 window: *"maybe the buttons
+instead of being down should be on some kind of load screen or entrance to the game.
+suggest how we do this"*.
+
+They were describing something visible in the screenshot. The arena was a **234px** strip
+in a field of cream, and two of its three control rows — the start strip and the stick
+toggle — were **below the fold**, under the consent bar. Four answers were rendered over
+the LIVE game before any code was written (`mockups`-free; the patch lived in page context
+and died with the browser), and the operator picked the cover card.
+
+### What it bought, measured on the built artifact
+
+| survivors | before | after |
+|---|---|---|
+| arena @ 1536x639 | 234px, 87% of its box | **359px, 95%** |
+| arena @ 1536x695 | 368px | **401px** |
+| arena @ 1920x1080 | 657px | **684px**, 97% |
+| arena @ 390x844 | 359px | **359px — unchanged** |
+| rows under the arena | 3 | **0** |
+| declared `chrome` | 183px | **16px** |
+
+The phone number is the one worth reading twice. It does not move, and that is correct:
+a phone board is `min(92vw, …)` and the **vw term binds**, so the chrome term is never
+consulted there — only the desktop branch reads it. The phone gains a cleaner screen and
+loses no board. The first mock run's control reported this as "SAME — the patch did
+nothing", which was the control being wrong about which question it was asking.
+
+Board gate **0 of 16**. `build:check` exit 0, first visit **56,417 B gz of 56,800**
+(383 spare), slope 32.6 of 45. Suite 4,894 passed, one red — the peer's untracked
+`lettercross/lang.ts`, named in full and not ours.
+
+### Contrast, measured on the composite rather than the CSS
+
+Moving the difficulty and stick pills from a cream panel onto a dark cover is exactly the
+change that strands ink, so it was measured on the rendered page with every background
+composited **from the arena floor up** — the pills have their own fills, so reading
+ink-against-cover would have scored a pair that is not on screen. **9 of 9 texts clear
+their floor**, worst 5.34 (the selected difficulty pill, against 4.5).
+
+One defect was caught in the writing rather than after: the stick pills carried
+`color: "inherit"`, which on the cover resolves to the light ink — white text on a cream
+fill. Named explicitly now.
+
+### Four things it cost, and each was caught by a different instrument
+
+- **The gate refused my first number.** I declared `chrome: 60` from the mock rather than
+  from a render; the rendered gap is **16px**, so the board reserved 44px it never used
+  and sat at 87% against a 90% floor. A constant inferred from a picture is an estimate
+  wearing a measurement's clothes — the board gate's staleness check is what stopped it.
+- **A real bug shipped for twenty minutes.** The below-arena difficulty was guarded with
+  `!entrance` — true while a run is LIVE, because the game passes `null` then. So the row
+  came back under the arena the instant you pressed Play, at the exact moment the board is
+  sized as though nothing were there. **The board gate is structurally blind to it**: it
+  measures the ready screen and never presses Play. The browser probe found it by counting
+  the panel's children mid-run. Fixed to `entrance === undefined`, which is what the
+  undefined/null distinction is for, and pinned by a test that fires on the truthiness
+  form *specifically*, because reverting to `!entrance` reads as a tidy-up.
+- **My own control was wrong.** The contrast probe's negative control was mid-grey
+  `#808080`, expected to fail on the cover. It reads **4.87 and passes** — and the
+  arithmetic was correct all along: mid-grey fails on a *mid* ground, not on a near-black
+  one. Replaced with a near-ground `#2a2f55` (1.5, fails) and white (19.24, passes), so it
+  discriminates in both directions. Until that swap, "0 under their floor" had nothing
+  standing behind it.
+- **`--muted` is declared nowhere.** This file read `var(--muted)` twice and
+  `src/games/**` is not scanned by `token-hygiene.test.ts`, so it resolved to nothing and
+  silently inherited. Both reads are gone with the row that held them; `snake` still has
+  one, untouched — a pre-existing finding, not this change's to fix.
+
+### Where the law moved, and why it moved here
+
+`game-controls-and-platform-chrome-never-share-a-bar.md` said a game control is either a
+button (utility row) or a number (game panel). A showcase game now has a third place, and
+the rule was **narrowed in the same change that needed it** rather than afterwards — the
+same way the `DirectionPad` law was narrowed when the stick moved onto the arena. It is
+not a loading poster: the taste ledger already rules out a difficulty picker on a poster
+before the game exists, and a spinner in an empty box while the chunk downloads. This is
+drawn by the game, after it has mounted.
+
+Selected by `meta.tier === "showcase"`, never by a game id — the same band the arcade HUD
+uses. `arcade-entrance-covers-the-arena.test.ts` (14 tests) pins the four regressions that
+would leave a page still looking plausible: the HUD drawn under the cover, the difficulty
+drawn twice, a restart beside a "Play again" that already restarts, and a cover that
+refuses pointers the way the HUD must.
