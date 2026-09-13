@@ -4845,3 +4845,21 @@ the gun's ring on the player's position at 60 seconds while its caption was comp
 `range >= w/2`, which is a fact about a ship in the MIDDLE - so on B the caption claimed full
 coverage while the drawn ring visibly stopped short of the right wall. The ring is drawn from
 the arena's centre now and labelled as such, and everything is clipped to the floor.
+
+
+### The showcase bar: Survivors clears it (2026-09-13)
+
+**Ruled by the operator after playing it, not inferred.** The live dev page was handed over
+at `http://localhost:5180/games/survivors/`, proven reachable from Windows first and loaded
+headlessly beforehand at both shapes so a broken page could not be what they judged:
+
+| viewport | canvas | page errors |
+|---|---|---|
+| 1536x639 | 853x479 (landscape arena, entrance screen up) | 0 |
+| 390x844 | 359x478 (portrait arena, unchanged) | 0 |
+
+Asked through the question tool with three answers - clears it, not yet, not played - and the
+answer was **clears the bar**. So Survivors stands as the reference showcase game: the entrance
+screen, the landscape PC arena, the on-arena stick and the golem fight are what a later
+`tier: "showcase"` game is measured against. The headless check proves it mounted; the verdict
+on how it plays is the operator's alone.
