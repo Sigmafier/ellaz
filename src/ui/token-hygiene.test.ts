@@ -128,10 +128,45 @@ const BENCH_TOKENS = new Set([
   "--gc-row-min",
 ]);
 
+/**
+ * The board's six, set per BOARD ELEMENT by `boardVars()` in `src/ui/boardSize.ts`
+ * and read by `.ellaz-board` in `global.css`.
+ *
+ * Same shape as the bench's above and exempt for the same reason: they are
+ * declared in TypeScript rather than in the token file, because each board
+ * passes its OWN numbers - a global declaration would be a default that is
+ * wrong for all 42 games. Declaring them in `tokens.css` would also put six
+ * dead custom properties in the first visit a child downloads.
+ *
+ * Listed BY NAME, never as a `--b-` prefix, for the reason the bench's comment
+ * gives: a typo must still read as an orphan, and a prefix exemption waves one
+ * through. `boardSize.ts` is the single writer, and
+ * `game-panel-clears-widest-board.test.ts` reads these same names out of the
+ * game tree - so a rename that misses one fails there.
+ */
+const BOARD_TOKENS = new Set([
+  "--b-vw", "--b-vh", "--b-cap", "--b-chrome", "--b-ratio", "--b-cap-pc",
+]);
+
 export const COLOUR_LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\([0-9 ,.%/]+\)|["'](white|black)["']/;
 
 describe("every var() resolves", () => {
-  const declared = declaredTokens(TOKENS);
+  /*
+   * `tokens.css` is not the only place this app declares a token. The screen
+   * chrome's three - `--hh`, `--uh`, `--oh` - are declared by the stylesheet
+   * `src/build/layout.ts` emits into every document, and nothing in `src/ui`
+   * had ever read one until the board sizing policy needed the height the
+   * stage box is actually given.
+   *
+   * They are picked up from that file rather than hand-listed as exemptions,
+   * which is the stronger of the two fixes: an exemption would make `--hh` and
+   * a typo of it equally acceptable forever, while reading the real
+   * declarations keeps a misspelling an orphan.
+   */
+  const declared = new Set([
+    ...declaredTokens(TOKENS),
+    ...declaredTokens(readFileSync(join(ROOT, "build/layout.ts"), "utf8")),
+  ]);
 
   it("reads a real token file", () => {
     expect(declared.size).toBeGreaterThan(30);
@@ -159,6 +194,8 @@ describe("every var() resolves", () => {
         // `--gc-` prefix on purpose: a typo must still read as an orphan, and
         // a prefix exemption would wave one through.
         if (BENCH_TOKENS.has(name)) continue;
+        // The board's six, set per element by boardVars() - see above.
+        if (BOARD_TOKENS.has(name)) continue;
         orphans.push(`${rel}: var(${name})`);
       }
     }

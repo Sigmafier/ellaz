@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { textFor } from "@i18n/index";
 import { formatScore, type GameContext, type RewardTier, type SessionSpec } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
+import { BOARD_CLASS, boardVars } from "@ui/boardSize";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { burst } from "@juice/index";
 import { useGameSession, useGameTimer, useRememberedLevel, winMoment } from "@shared/index";
@@ -298,11 +299,17 @@ export function Sudoku({ ctx }: { ctx: GameContext }) {
       <div
         dir="ltr"
         ref={boardRef}
-        className="ellaz-play-surface"
+        className={`ellaz-play-surface ${BOARD_CLASS}`}
         style={{
           display: "grid",
           gridTemplateColumns: `repeat(${n}, 1fr)`,
-          width: "min(94vw, 44vh, 440px)",
+          // Explicit ROWS, like every other grid board here. Without them a cell
+          // whose content is taller than its share stretches its row and the
+          // square board deforms - which is exactly what happened once the
+          // desktop branch started handing this board a 236px width.
+          gridTemplateRows: `repeat(${n}, 1fr)`,
+          // chrome 259 measured 2026-09-13 - the bar plus the number pad.
+          ...boardVars({ vw: 94, vh: 44, cap: 440, chrome: 259 }),
           aspectRatio: "1",
           background: "#20244a",
           border: "3px solid #6c5ce7",
@@ -338,6 +345,15 @@ export function Sudoku({ ctx }: { ctx: GameContext }) {
                   padding: 0,
                   aspectRatio: "1",
                   lineHeight: 1,
+                  // A grid item's automatic minimum size is its CONTENT, so a
+                  // 26px digit gave every cell a 26px floor - invisible while
+                  // the board was always wider than 9 x 26, and the reason this
+                  // board came out 267px tall inside a 236px square at
+                  // 1536x639. `min-height: 0` is the house convention for a
+                  // spatial grid here (rtl-spatial-grid-dir-ltr.md); sudoku was
+                  // the one board that never carried it.
+                  minHeight: 0,
+                  overflow: "hidden",
                 }}
               >
                 {glyph(v)}

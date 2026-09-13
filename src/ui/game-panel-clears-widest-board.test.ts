@@ -68,6 +68,24 @@ export function pxCeilings(src: string): number[] {
       if (cols) out.push(per * cols);
     }
   }
+  /*
+   * A board sized through `boardVars({ ... })` declares its ceilings as FIELDS,
+   * not as a `min()` - so without this branch every game the sizing sweep
+   * converts would leave this gate's population in silence, and a gate whose
+   * scope narrows as the tree changes reports green about boards it can no
+   * longer see. (`a-path-filter-is-a-hand-kept-mirror-of-an-import-graph.md`;
+   * the sweep is precisely the change that would have caused it.)
+   *
+   * `capPc` is the desktop ceiling and is usually omitted, defaulting to
+   * `PANEL_USABLE` - which the test below pins to the panel's own arithmetic, so
+   * the default can never be the thing that overflows.
+   */
+  for (const m of src.matchAll(/\bboardVars\(\{([^}]*)\}\)/g)) {
+    for (const field of ["cap", "capPc"]) {
+      const hit = m[1].match(new RegExp(`\\b${field}\\s*:\\s*(\\d+(?:\\.\\d+)?)`));
+      if (hit) out.push(parseFloat(hit[1]));
+    }
+  }
   return out;
 }
 
@@ -155,6 +173,24 @@ describe("the desktop game panel clears the widest board", () => {
     expect(
       tooWide.map((s) => `${s.file} asks for ${s.widest}px, panel leaves ${usable}px`),
     ).toEqual([]);
+  });
+
+  it("the desktop ceiling in boardSize.ts IS the panel's own arithmetic", () => {
+    // `boardVars` defaults `capPc` to PANEL_USABLE, so that one number decides
+    // how wide every swept board may grow on a desktop. Re-deriving it by hand
+    // from the panel cap is what makes it a number two files can disagree
+    // about; this is the assertion that stops them drifting apart.
+    const src = readFileSync(join(ROOT, "ui", "boardSize.ts"), "utf8");
+    const declared = Number(src.match(/PANEL_USABLE\s*=\s*(\d+)/)?.[1]);
+    expect(declared).toBe(panelCap(CSS)! - PANEL_PADDING);
+  });
+
+  it("reads the ceilings of a board sized through boardVars", () => {
+    // Non-vacuity for the branch above: at least one real game must declare
+    // this way, or the extractor is dead code that passes by never matching.
+    expect(sources.filter((s) => s.src.includes("boardVars(")).length).toBeGreaterThan(0);
+    expect(pxCeilings(`...boardVars({ vw: 94, vh: 44, cap: 440, chrome: 259 })`)).toEqual([440]);
+    expect(pxCeilings(`...boardVars({ vw: 92, vh: 58, cap: 420, chrome: 292, capPc: 900 })`)).toEqual([420, 900]);
   });
 
   it("knows what the widest board actually is", () => {

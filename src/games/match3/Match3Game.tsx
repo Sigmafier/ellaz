@@ -3,6 +3,7 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import type { GameContext, SessionSpec } from "@sdk/index";
 import type { Locale } from "@i18n/index";
 import { GameChrome } from "@ui/GameChrome";
+import { BOARD_CLASS, boardVars } from "@ui/boardSize";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { burst, haptic, prefersReducedMotion, shake } from "@juice/index";
 import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
@@ -1035,7 +1036,7 @@ export function Match3Game({ ctx }: { ctx: GameContext }) {
     >
       <div
         ref={boardRef}
-        className="ellaz-play-surface"
+        className={`ellaz-play-surface ${BOARD_CLASS}`}
         // The gesture is read on the BOARD rather than per cell: one listener
         // that finds which gem a pointer started on, instead of 64 that each
         // have to agree about what a swipe is.
@@ -1049,13 +1050,14 @@ export function Match3Game({ ctx }: { ctx: GameContext }) {
         dir="ltr"
         style={{
           position: "relative",
-          // Sized against the VIEWPORT, not this container, like every board
-          // here. 92vw is 359px on a 390px phone, which leaves ~55px cells on
-          // the 6x6 board and ~41px on the 8x8 one. 54vh rather than 60 because
-          // this game carries a goal bar under the board. The 480px cap sits
-          // well under what the 700px desktop panel leaves, so nothing grows a
-          // scrollbar inside it (game-panel-clears-widest-board.test.ts).
-          width: "min(92vw, 54vh, 480px)",
+          // The phone arm is the three terms this board always had: 92vw is
+          // 359px on a 390px phone, which leaves ~55px cells on the 6x6 board
+          // and ~41px on the 8x8 one, and 54vh rather than 60 because this game
+          // carries a goal bar under the board. On a desktop those terms lose to
+          // the room the stage box has minus this game's own 294px of chrome -
+          // measured 2026-09-13, when 54vh OVERFLOWED the box at 1536x639 and
+          // fitStage was scaling the whole frame to 0.79. See boardSize.ts.
+          ...boardVars({ vw: 92, vh: 54, cap: 480, chrome: 294 }),
           aspectRatio: "1",
           boxSizing: "border-box",
           display: "grid",

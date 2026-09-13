@@ -3,6 +3,7 @@ import type { GameContext, RewardTier, SessionSpec } from "@sdk/index";
 import { textFor, type Locale } from "@i18n/index";
 import { Button } from "@ui/components";
 import { GameChrome } from "@ui/GameChrome";
+import { BOARD_CLASS, boardVars } from "@ui/boardSize";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { shake, haptic } from "@juice/index";
 import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
@@ -355,11 +356,13 @@ export function Game2048({ ctx, skin }: { ctx: GameContext; skin?: TileSkin }) {
     >
       <div
         ref={boardRef}
-        className="ellaz-play-surface"
+        className={`ellaz-play-surface ${BOARD_CLASS}`}
         dir="ltr"
         style={{
           position: "relative",
-          width: "min(88vw, 48vh, 420px)",
+          // chrome 187 measured 2026-09-13 - the lightest of the four, which is
+          // why this board was the emptiest on a big screen: 63% of its box.
+          ...boardVars({ vw: 88, vh: 48, cap: 420, chrome: 187 }),
           aspectRatio: "1",
           background: skin ? skin.boardBg : "#bbada0",
           borderRadius: 14,

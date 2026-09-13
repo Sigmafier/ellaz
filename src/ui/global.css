@@ -525,6 +525,44 @@ body.app-shell h3,
   }
 }
 
+/* THE BOARD SIZING POLICY, in the one place the comment above asked for.
+ *
+ * A game declares six numbers as custom properties (`src/ui/boardSize.ts`) and
+ * this rule decides what a screen does with them. The width is NOT inline in the
+ * game, and that is the mechanism rather than a style preference: an inline
+ * width beats every stylesheet rule, so a media query could never have reached
+ * the 39 hand-rolled expressions this replaces.
+ *
+ * PHONE - byte-identical to what each game shipped: the same three terms, the
+ * same order. Gated per game at 390px (survivors 359, match3 359, sudoku 367,
+ * 2048 343) so "not harming mobile" is an equality rather than an intention.
+ *
+ * DESKTOP - the board takes the height the stage box really has, minus what
+ * this game's own rows cost, and derives its width from its own ratio. The
+ * 24px is fitStage's 16px gutter plus slack, so the safety valve stays unfired
+ * rather than shrinking a board that is merely exact.
+ *
+ * Measured 2026-09-13, the four proving games, before -> after:
+ *   1536x639   survivors 267px below the fold -> fits, frame 95% of the box
+ *              match3 scaled 0.79, sudoku 0.93 -> both 1.0
+ *   1920x1080  2048 filled 63% of its box -> 91%; sudoku 73% -> 97%
+ */
+.ellaz-board {
+  width: min(var(--b-vw), var(--b-vh), var(--b-cap));
+}
+@media (min-width: 900px) {
+  .ellaz-board {
+    width: min(
+      var(--b-vw),
+      calc(
+        (100dvh - var(--hh) - var(--uh) - var(--oh) - var(--b-chrome) - 24px) *
+          var(--b-ratio)
+      ),
+      var(--b-cap-pc)
+    );
+  }
+}
+
 /* The home wordmark's tagline. HIDDEN on a phone, and in the document either
  * way - the same trick the emitted screen name uses, and for the same reason:
  * responsive hiding is not cloaking, while not rendering it at all would take

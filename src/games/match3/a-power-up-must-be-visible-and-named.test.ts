@@ -476,7 +476,14 @@ describe("a power-up that fires draws the shape it cleared", () => {
     // nothing but looking at it would show that.
     const pad = /const BOARD_PAD = (\d+);/.exec(GAME)?.[1];
     expect(pad, "no BOARD_PAD constant").toBeDefined();
-    const boardStyle = GAME.slice(GAME.indexOf('width: "min(92vw'), GAME.indexOf("touchAction"));
+    // Anchored on `ref={boardRef}` rather than on the board's WIDTH literal.
+    // The width moved into `boardVars({ ... })` when board sizing became one
+    // policy instead of 39 expressions, and `indexOf` returns -1 for a string
+    // that is gone - so `slice(-1, n)` handed this assertion an EMPTY string
+    // and it failed claiming the padding disagreed, which was never the
+    // defect. An anchor that can vanish turns a real gate into a wrong answer.
+    const boardStyle = GAME.slice(GAME.indexOf("ref={boardRef}"), GAME.indexOf("touchAction"));
+    expect(boardStyle.length, "the board's style block was not found at all").toBeGreaterThan(80);
     expect(boardStyle, "the board's own padding disagrees with BOARD_PAD").toContain(`padding: ${pad},`);
   });
 });

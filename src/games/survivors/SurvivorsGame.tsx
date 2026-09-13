@@ -2,6 +2,7 @@ import { textFor } from "@i18n/index";
 import { useEffect, useRef, useState } from "react";
 import type { GameContext } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
+import { BOARD_CLASS, boardVars } from "@ui/boardSize";
 // NO `DirectionPad` HERE, and that is the point of this game's control.
 // `CLAUDE.md` used to say every game ships the four-arrow pad and never the
 // stick alone; the operator ruled on 2026-09-13 that the steering moves ONTO the
@@ -359,7 +360,15 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
         </div>
       }
     >
-      <div style={{ position: "relative", width: "min(92vw, 58vh, 420px)" }}>
+      <div
+        className={BOARD_CLASS}
+        style={{
+          position: "relative",
+          // The arena is 420 x 560, so its width is three quarters of whatever
+          // height the desktop branch hands it. chrome 292 measured 2026-09-13.
+          ...boardVars({ vw: 92, vh: 58, cap: 420, chrome: 292, ratio: ARENA.w / ARENA.h }),
+        }}
+      >
         <div
           ref={hostRef}
           style={{
