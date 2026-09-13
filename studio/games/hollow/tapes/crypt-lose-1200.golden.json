@@ -1,0 +1,23 @@
+{
+  "tape": "crypt-lose-1200",
+  "ticks": 1200,
+  "hash": "dc43c25e",
+  "chain": "ae5c58a5",
+  "eventHash": "faa4f3ff",
+  "hp": [
+    0,
+    30,
+    30,
+    30,
+    30,
+    20,
+    20
+  ],
+  "winner": 1,
+  "hits": 26,
+  "dungeon": {
+    "phase": 3,
+    "coins": 0,
+    "alive": 6
+  }
+}

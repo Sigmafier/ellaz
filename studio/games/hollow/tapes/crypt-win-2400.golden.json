@@ -1,0 +1,23 @@
+{
+  "tape": "crypt-win-2400",
+  "ticks": 2400,
+  "hash": "026e6be3",
+  "chain": "22fc2f13",
+  "eventHash": "bfbcc988",
+  "hp": [
+    100,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "winner": 0,
+  "hits": 19,
+  "dungeon": {
+    "phase": 2,
+    "coins": 6,
+    "alive": 0
+  }
+}

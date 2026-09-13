@@ -147,9 +147,40 @@ function checkAssets(assets, game) {
   return [`copy-sprites --check exit ${r.status}: ${(r.stdout + r.stderr).trim().split("\n").filter((l) => /DIFF|compared|exist|export/.test(l)).join(" | ")}`];
 }
 
+/**
+ * The HAND-MADE sets: not export sets, so copy-sprites cannot hold them; each
+ * has a generator under tools/ with a reproduce.sh that re-emits into scratch
+ * and diffs against its committed output. A game whose assets/ carries one of
+ * these runs that gate, and where the generator's output lives under the tool
+ * (the facings' out/), the game's copy is compared to it file by file too.
+ * A registry, because a generator cannot be found from a png.
+ */
+const HAND_MADE = {
+  "knight-facings": { tool: join(STUDIO, "tools", "facings-painter"), source: join(STUDIO, "tools", "facings-painter", "out") },
+  "crypt-room": { tool: join(STUDIO, "tools", "room-painter"), source: null },
+};
+
+function checkHandMade(assets) {
+  const out = [];
+  for (const [set, { tool, source }] of Object.entries(HAND_MADE)) {
+    const dir = join(assets, set);
+    if (!existsSync(dir)) continue;
+    const r = spawnSync("bash", [join(tool, "reproduce.sh")], { encoding: "utf8" });
+    if (r.status !== 0) out.push(`${set}: ${tool}/reproduce.sh exit ${r.status}: ${(r.stdout + r.stderr).trim().split("\n").slice(-2).join(" | ")}`);
+    if (source) {
+      for (const f of readdirSync(source)) {
+        const mine = join(dir, f);
+        if (!existsSync(mine)) { out.push(`${set}: assets/${set}/${f} is missing (the generator emits it)`); continue; }
+        if (!readFileSync(mine).equals(readFileSync(join(source, f)))) out.push(`${set}: assets/${set}/${f} differs from ${source}/${f}`);
+      }
+    }
+  }
+  return out;
+}
+
 /** one game's tree against itself; `game` names it for copy-sprites, `root` may be a scratch copy */
 export function scanFight(root = FIGHT, assets = join(root, "assets"), game = "fight") {
-  return [...checkSchemas(root), ...checkRefs(root, assets), ...checkGolden(root), ...checkAssets(assets, game)];
+  return [...checkSchemas(root), ...checkRefs(root, assets), ...checkGolden(root), ...checkAssets(assets, game), ...checkHandMade(assets)];
 }
 
 /**
@@ -199,6 +230,18 @@ function controls() {
     rmSync(dir, { recursive: true, force: true });
     return out;
   };
+  // the dungeon game's data in a scratch copy, run through checkRefs alone, with its assets real or a scratch copy of them
+  const HOLLOW = join(GAMES, "hollow");
+  const hollowRefs = (fn, withAssets = false) => {
+    const dir = mkdtempSync(join(tmpdir(), "assert-fight-hollow-"));
+    cpSync(join(HOLLOW, "data"), join(dir, "data"), { recursive: true });
+    let assets = join(HOLLOW, "assets");
+    if (withAssets) { cpSync(assets, join(dir, "assets"), { recursive: true }); assets = join(dir, "assets"); }
+    fn(dir, assets);
+    const out = checkRefs(dir, assets);
+    rmSync(dir, { recursive: true, force: true });
+    return out;
+  };
   // a games root holding one directory with data/ but no modes/ - the walk must name it, not skip it
   const gamesRootWithAModelessGame = () => {
     const dir = mkdtempSync(join(tmpdir(), "assert-fight-games-"));
@@ -223,6 +266,13 @@ function controls() {
     { name: "the turn game's refs as committed (checkRefs alone)", expect: "PASS", run: () => emberRefs(() => {}) },
     { name: "a turn battle placement naming a unit that does not exist", expect: "FIRE", run: () => emberRefs((d) => edit(d, "data/battles/meadow.json", (b) => { b.placements[2].unit = "ghost"; })) },
     { name: "a turn mode naming rules that do not exist", expect: "FIRE", run: () => emberRefs((d) => edit(d, "data/modes/meadow.json", (m) => { m.rules = "moon"; })) },
+    { name: "the dungeon game's refs as committed (checkRefs alone)", expect: "PASS", run: () => hollowRefs(() => {}) },
+    { name: "a room spawn naming an actor that does not exist", expect: "FIRE", run: () => hollowRefs((d) => edit(d, "data/rooms/crypt.json", (r) => { r.spawns[2].actor = "ghost"; })) },
+    { name: "a dungeon mode naming a room that does not exist", expect: "FIRE", run: () => hollowRefs((d) => edit(d, "data/modes/crypt.json", (m) => { m.room = "moon"; })) },
+    { name: "a room whose scenery set has lost its manifest", expect: "FIRE", run: () => hollowRefs((_d, a) => unlinkSync(join(a, "crypt-room", "crypt-room.manifest.json")), true) },
+    { name: "a knight whose facings set is not in assets", expect: "FIRE", run: () => hollowRefs((d) => edit(d, "data/actors/knight.json", (k) => { k.facings = "knight-ghost"; })) },
+    { name: "the hand-made sets as committed (the two reproduce.sh, the facings copy)", expect: "PASS", run: () => checkHandMade(join(HOLLOW, "assets")) },
+    { name: "a facings copy one byte off its generator's output", expect: "FIRE", run: () => { const dir = mkdtempSync(join(tmpdir(), "assert-fight-hand-")); cpSync(join(HOLLOW, "assets"), join(dir, "assets"), { recursive: true }); const p = join(dir, "assets", "knight-facings", "knight-facings.png"); const b = readFileSync(p); b[Math.floor(b.length / 2)] ^= 0xff; writeFileSync(p, b); const out = checkHandMade(join(dir, "assets")); rmSync(dir, { recursive: true, force: true }); return out; } },
   ];
 }
 
