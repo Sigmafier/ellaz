@@ -60,7 +60,8 @@ const readTapeFile = (game: string, name: string): Tape => readTape(JSON.parse(r
 const goldenPath = (game: string, name: string): string => join(tapesDir(game), `${name}.golden.json`);
 
 export function replay(data: FightData, tape: Tape, name: string, ticks = tape.ticks): Golden {
-  let s = createState(data);
+  // a tape's carry (a mid-campaign stage's purse) seeds the create; absent, the create is the one every older golden was recorded through
+  let s = createState(data, tape.carry);
   const all: FightEvent[] = [];
   const perTick: string[] = [];
   for (let t = 0; t < ticks; t++) { s = step(s, inputsAtTick(tape, t, s.fighters.length), data); all.push(...s.events); perTick.push(hashState(s)); }

@@ -241,6 +241,8 @@ export type Phase = 0 | 1 | 2 | 3;         // 0 intro, 1 fight, 2 ko fade, 3 ove
 export type WavePhase = 0 | 1 | 2 | 3;     // 0 fight, 1 go (the camera unlocks to the next screen), 2 clear (the last wave is down), 3 fade (the hero is down; the wave restarts)
 /** the wave machine's whole state; integers so it hashes */
 export interface StageState { wave: number; wphase: WavePhase; waveT: number; camX: number; coins: number; xp: number; level: number }
+/** what a campaign hands the next stage: the purse a cleared stage ended with; three non-negative integers, level >= 1 (2026-09-13, the campaign layer) */
+export interface Carry { coins: number; xp: number; level: number }
 /** a coin on the floor or in the air; FP */
 export interface PickupState { x: number; z: number; h: number; vx: number; vh: number; age: number }
 export interface FightState {
