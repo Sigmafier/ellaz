@@ -1,8 +1,8 @@
 # The fight game
 
 A game on the Toybox engine ([`studio/toybox/`](../../toybox/README.md)):
-every number in a file here, two recorded matches with their goldens beside
-them, a page, and the history of the seven-arm tournament that picked the
+every number in a file here, four recorded runs with their goldens beside
+them, a campaign of three levels and a boss, a page, and the history of the seven-arm tournament that picked the
 renderer. The verdict and its evidence:
 [`docs/engine-tournament/fight-2026-09/`](../../../docs/engine-tournament/fight-2026-09/VERDICT.md)
 (Phaser 4). The rules, the cells and the harness are the engine's, not this
@@ -12,10 +12,10 @@ directory's - since 2026-09-12 nothing under `games/fight/` is engine.
 
 | directory | holds |
 |---|---|
-| `data/` | every gameplay number: `arena/`, `match/`, `ai/`, `fighters/`, `modes/`, `stage/` - each file held to the engine's schema for its directory (`toybox/data/schemas/<dir>.schema.json`) |
-| `assets/` | the four sprite sets the fighters bind (png + atlas + manifest + moves), COPIED from `dist-export` by `node toybox/harness/copy-sprites.mjs --game fight` and byte-checked by its `--check` |
-| `tapes/` | `versus-600.json` and `stage-600.json`, each with its `.golden.json` beside it - the admission instruments |
-| `page/` | the game page: `index.html` + `main.ts`, which runs the engine's Phaser cell on the one harness with live input; `?mode=stage` or `?mode=versus`, `?tape=<name>&fast=1` replays a golden, `?stats=1` prints the harness instruments under the stage |
+| `data/` | every gameplay number: `arena/` (playroom, toybox, shelf), `match/`, `ai/` (six), `fighters/` (eight), `modes/` (eight), `stage/`, `campaign/brawl.json` - each file held to the engine's schema for its directory (`toybox/data/schemas/<dir>.schema.json`) |
+| `assets/` | the six sprite sets the fighters bind (robot, teddy, slime, bat, and the ninja and wizard copied for the shelf) (png + atlas + manifest + moves), COPIED from `dist-export` by `node toybox/harness/copy-sprites.mjs --game fight` and byte-checked by its `--check` |
+| `tapes/` | `versus-600`, `stage-600`, `shelf-boss-900` (a stage started mid-campaign, with a carry) and `toybox-boss-1400` (the boss level, recorded from the scripted hero), each with its `.golden.json` beside it - the admission instruments |
+| `page/` | the game page: `index.html` + `main.ts`, which runs the engine's Phaser cell on the one harness with live input; `?campaign=brawl` (the whole game), `?mode=<mode>` (one mode alone), `?tape=<name>&fast=1` replays a golden, `?stats=1` prints the harness instruments under the stage |
 | `tournament/` | history: the compare page (`compare/`), the seven defect logs (`defects/`), every instrument row ever appended (`data/raw-fight.jsonl`) |
 
 ## Running it
@@ -73,6 +73,53 @@ the hero's hits), and flies the coins. A fighter file may say `flying` +
 into a doorway, and the one engine rule it added (`door.x` in a stage file: the
 camera holds its room and cuts) is gated on a block this game's stage file does
 not carry, so both goldens here stayed byte-identical through it.
+
+## Toybox Brawl, the campaign (2026-09-13)
+
+`page/index.html?campaign=brawl` is the whole game: a title, a level pick, three
+levels and a boss, TRY AGAIN on a loss and VICTORY at the end. The layer is the
+engine's ([`toybox/README.md`](../../toybox/README.md) § A campaign); what is
+this game's is one file and its levels.
+
+| level | mode | what it holds | the scripted hero clears it at |
+|---|---|---|---|
+| LEVEL 1 | `stage` | three waves of slimes and bats, the teddy boss in the last | tick 2711 |
+| LEVEL 2 | `toybox-2` | more bats, a teddy boss in the last wave | tick 2773 |
+| LEVEL 3 | `toybox-3` | two teddy bosses in the last wave | tick 3084 |
+| BOSS | `toybox-boss` | a warm-up wave (two slimes, a bat), then the TEDDY KING | tick 1857 |
+
+(ticks of 9,000, each level played fresh by `stage-completes.test.ts`.)
+
+- **The Teddy King** (`fighters/teddy-king.json`): the teddy's sprites drawn at
+  `drawScale` 2, 600 hp, speed 64, xp 80, `boss: true`, on its own
+  `ai/teddy-king-cpu.json` (cooldown 30-54 against the teddy's 42-78, react 4-10,
+  retreat chance 24 against 64, hold 90 against 200). Its body and strike boxes
+  are doubled with its picture; its knockback is not.
+- **How hard it is, measured, and not yet ruled.** The scripted hero, carrying the
+  purse the first three levels earn (27 coins, level 9, 180 hp), beat it in about
+  eleven seconds without taking a hit: it swings on the first frame of every
+  recovery window, which keeps the King in its hurt state. A hero who only walks
+  to the boss screen and swings every third of a second fell from 180 to 92 hp in
+  45 seconds while the King went from 600 to 340. A thumb sits between the two;
+  the operator's play rules the numbers.
+- **The purse carries.** A headless drive of the BUILT page: title, a locked BOSS
+  wiggles, LEVEL 1 played idle until the robot fell (tick 2746) and TRY AGAIN
+  showed with the save unchanged, RETRY, then four levels with the purse carried
+  0 coins / level 1, 7 / 5, 14 / 7, 25 / 9, BOSS CLEAR, FINISH, VICTORY, and a
+  reload reading "4 of 4 levels cleared". Zero page errors.
+- **The boss tape** (`tapes/toybox-boss-1400.json`) is recorded from the scripted
+  hero, never hand-typed, with that real purse as its carry. Its golden
+  `e8744cd4 / 5c19f7e5 / df26c38b` pins the King at 106 of 600 after 22 hits; the
+  control in `golden-tape.test.ts` draws the King at 1 instead of 2 and the chain
+  moves, while the seven older goldens stay their committed selves.
+- **The shelf is parked, not deleted.** Brawl had two worlds of three (B1-B5, the
+  same day); the operator ruled one world in every game, so the shelf's world left
+  `brawl.json`. `arena/shelf.json`, `modes/shelf-{1,2,boss}.json`, the ninja and the
+  wizard boss and `tapes/shelf-boss-900` stay, played by `?mode=shelf-1` and gated
+  like every other mode.
+- **The boss bar is a third of the view.** At two fifths it reached x 192 on this
+  640 px view, touching the robot's bar (it ends at 194 with its border); seen on
+  the built page, pinned in `hud-boss.test.ts`.
 
 ## Tuning that is data, not code
 
