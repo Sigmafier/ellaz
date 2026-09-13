@@ -5,7 +5,7 @@
 // ellipse's half-width per row, every coordinate scaled by the art block's
 // rational first and rounded once. Drawing only - nothing here reaches a sim.
 
-import type { ArenaDrawOp } from "../contract";
+import type { RectArenaOp } from "../contract";
 
 /** the art block's rational, scene units -> view px (Ember's field is drawn at 480 x 300 and shown at 5/2) */
 export interface Scale { num: number; den: number }
@@ -14,15 +14,15 @@ export const UNIT: Scale = { num: 1, den: 1 };
 const sc = (v: number, s: Scale): number => (v * s.num) / s.den;
 
 /** a filled rectangle, scaled, its edges rounded so neighbours meet without a seam */
-export function fillRect(x: number, y: number, w: number, h: number, color: string, s: Scale): ArenaDrawOp {
+export function fillRect(x: number, y: number, w: number, h: number, color: string, s: Scale): RectArenaOp {
   const x0 = Math.round(sc(x, s)), y0 = Math.round(sc(y, s));
   return { kind: "rect", x: x0, y: y0, w: Math.round(sc(x + w, s)) - x0, h: Math.round(sc(y + h, s)) - y0, color };
 }
 
 /** a filled polygon as rows: the spans between the edges crossing each row's centre, even-odd */
-export function polyRows(points: readonly (readonly [number, number])[], color: string, s: Scale): ArenaDrawOp[] {
+export function polyRows(points: readonly (readonly [number, number])[], color: string, s: Scale): RectArenaOp[] {
   const pts = points.map(([x, y]) => [sc(x, s), sc(y, s)] as const);
-  const out: ArenaDrawOp[] = [];
+  const out: RectArenaOp[] = [];
   if (pts.length < 3) return out;
   const y0 = Math.floor(Math.min(...pts.map((p) => p[1]))), y1 = Math.ceil(Math.max(...pts.map((p) => p[1])));
   for (let y = y0; y < y1; y++) {
@@ -42,9 +42,9 @@ export function polyRows(points: readonly (readonly [number, number])[], color: 
 }
 
 /** a filled ellipse as rows, symmetric about both axes */
-export function ellipseRows(cx: number, cy: number, rx: number, ry: number, color: string, s: Scale): ArenaDrawOp[] {
+export function ellipseRows(cx: number, cy: number, rx: number, ry: number, color: string, s: Scale): RectArenaOp[] {
   const x = sc(cx, s), y = sc(cy, s), a = sc(rx, s), b = sc(ry, s);
-  const out: ArenaDrawOp[] = [];
+  const out: RectArenaOp[] = [];
   if (a <= 0 || b <= 0) return out;
   for (let row = Math.round(y - b); row < Math.round(y + b); row++) {
     const dy = row + 0.5 - y;

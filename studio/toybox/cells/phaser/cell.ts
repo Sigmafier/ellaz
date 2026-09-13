@@ -28,7 +28,7 @@ import type { BoxOp, HudModel, PropOp, ShadowOp, SpriteOp } from "../../sim/view
 import type { ArenaDrawOp, Cell, CellStats, FxOp, SpriteSetRef } from "../contract";
 import { drawText, textWidth } from "../canvas/font";
 import { propOps } from "../shared/props";
-import { drawStageHud, drawTurnHud } from "./hud-stage";
+import { drawDungeonHud, drawStageHud, drawTurnHud } from "./hud-stage";
 
 const DRAW_SCALE = 1 / 5;
 const INK = 0x1a1230;
@@ -97,6 +97,8 @@ export class Phaser4Cell implements Cell {
   private readonly parent = document.createElement("div");
   private readonly origins = new Map<string, { x: number; y: number }>();
   private readonly sprites = new Map<number, Phaser.GameObjects.Sprite>();
+  /** one retained Image per arena frame op (a dungeon room's picture), keyed by set and frame */
+  private readonly frames = new Map<string, Phaser.GameObjects.Image>();
   private readonly texts: Phaser.GameObjects.Image[] = [];
   private view = { w: 0, h: 0 };
   private drawn = 0;
@@ -216,6 +218,7 @@ export class Phaser4Cell implements Cell {
     l.hud.clear();
     l.boxes.clear();
     for (const s of this.sprites.values()) s.setVisible(false);
+    for (const f of this.frames.values()) f.setVisible(false);
     for (const t of this.texts) t.setVisible(false);
     this.order = 0;
     this.textUsed = 0;
@@ -227,13 +230,30 @@ export class Phaser4Cell implements Cell {
     cam.setScroll(-Math.round((shakeX - camX) * this.k), -Math.round(shakeY * this.k));
   }
 
+  /** flat rects on the arena layer, or a whole frame of a loaded set as a retained Image on the same band, by its top-left */
   drawArena(ops: readonly ArenaDrawOp[]): void {
     const g = this.gfx().arena;
     for (const op of ops) {
+      if (op.kind === "frame") { this.drawFrame(op.set, op.frame, op.x, op.y); continue; }
       const [n, a] = colour(op.color);
       g.fillStyle(n, a);
       g.fillRect(op.x, op.y, op.w, op.h);
     }
+  }
+
+  private drawFrame(set: string, frame: string, x: number, y: number): void {
+    const scene = this.scene;
+    if (!scene) throw new Error("phaser4 cell: drawArena before mount");
+    if (!this.origins.has(set)) throw new Error(`phaser4 cell: no sprite set "${set}" for the arena frame`);
+    const key = `${set}|${frame}`;
+    let img = this.frames.get(key);
+    if (!img) {
+      img = scene.add.image(0, 0, set, frame).setOrigin(0, 0).setDepth(BAND.arena);
+      this.frames.set(key, img);
+    }
+    img.setPosition(Math.round(x * this.k), Math.round(y * this.k));
+    img.setScale(DRAW_SCALE * this.k);
+    img.setVisible(true);
   }
 
   /** a pixel ellipse: rows of fillRect, so it lands on the same grid as the sprites */
@@ -344,6 +364,7 @@ export class Phaser4Cell implements Cell {
 
   drawHud(model: HudModel): void {
     const text = (s: string, x: number, y: number, k: number, c: string): void => this.text(s, x, y, k, c);
+    if (drawDungeonHud(this.gfx().hud, text, model, this.view)) return;
     if (drawTurnHud(this.gfx().hud, text, model, this.view)) return;
     if (drawStageHud(this.gfx().hud, text, model, this.view)) return;
     const w = 180;

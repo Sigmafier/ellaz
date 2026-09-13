@@ -13,7 +13,10 @@ import type { BoxOp, DrawPlan, HudModel, PropOp, ShadowOp, SpriteOp } from "../s
 export interface SpriteSetRef { name: string; png: string; atlas: string; manifest: string }
 
 /** the arena's art, already interpreted into flat rectangles by shared/arena.ts */
-export interface ArenaDrawOp { kind: "rect"; x: number; y: number; w: number; h: number; color: string }
+export interface RectArenaOp { kind: "rect"; x: number; y: number; w: number; h: number; color: string }
+/** a whole painted frame of a loaded set with its TOP-LEFT at (x, y), at the cell's one draw scale: a dungeon room's picture, drawn under everything (2026-09-13, the third kind) */
+export interface FrameArenaOp { kind: "frame"; set: string; frame: string; x: number; y: number }
+export type ArenaDrawOp = RectArenaOp | FrameArenaOp;
 
 /** a particle this frame, from shared/fx.ts's own little sim (never the core's rng) */
 export interface FxOp { kind: "dot" | "star" | "ring"; x: number; y: number; r: number; color: string; alpha: number }
@@ -55,8 +58,8 @@ export interface InputPoll<I> {
   detach(): void;
 }
 
-/** the two halves of an arena file a cell page reads: the box the cell mounts at and the art the painter interprets */
-export interface ArenaForCell { view: { w: number; h: number }; world?: { w: number }; art: unknown }
+/** the two halves of an arena file a cell page reads: the box the cell mounts at and the art the painter interprets; a kind whose picture is not the painter's (a dungeon room's frame) hands the loop its own `ops` instead */
+export interface ArenaForCell { view: { w: number; h: number }; world?: { w: number }; art: unknown; ops?: ArenaDrawOp[] }
 
 /**
  * One KIND of simulation the harness can drive - the fight's (cells/kinds/fight.ts)

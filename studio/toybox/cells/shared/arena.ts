@@ -13,7 +13,7 @@
 // measuring the arena instead of the fighters. Playroom lands at roughly 240
 // rects, all opaque, all from the table below.
 
-import type { ArenaDrawOp } from "../contract";
+import type { RectArenaOp } from "../contract";
 import { ellipseRows, fillRect, polyRows, UNIT } from "./shapes";
 import type { Scale } from "./shapes";
 
@@ -97,7 +97,7 @@ function lcg(seed: number): () => number {
 }
 
 /** push a rect, clipped to the view; a zero or negative span is dropped rather than emitted */
-function rect(ops: ArenaDrawOp[], view: View, x: number, y: number, w: number, h: number, color: string): void {
+function rect(ops: RectArenaOp[], view: View, x: number, y: number, w: number, h: number, color: string): void {
   let x0 = Math.round(x), y0 = Math.round(y);
   let w0 = Math.round(w), h0 = Math.round(h);
   if (x0 < 0) { w0 += x0; x0 = 0; }
@@ -111,7 +111,7 @@ function rect(ops: ArenaDrawOp[], view: View, x: number, y: number, w: number, h
 // ---- the three kinds playroom uses ------------------------------------------
 
 /** a flat wallpaper band: the light ground, then a darker stripe every `stripe` px, then the skirting */
-function wall(b: Dict, view: View, ops: ArenaDrawOp[]): void {
+function wall(b: Dict, view: View, ops: RectArenaOp[]): void {
   const y = num(b, "y", 0);
   const h = num(b, "h", 0);
   const stripe = Math.max(2, Math.round(num(b, "stripe", 40)));
@@ -134,7 +134,7 @@ function wall(b: Dict, view: View, ops: ArenaDrawOp[]): void {
  * The short seams between boards are offset by the band's own seed, which is
  * why two cells drawing the same arena draw the same floor.
  */
-function planks(b: Dict, view: View, ops: ArenaDrawOp[]): void {
+function planks(b: Dict, view: View, ops: RectArenaOp[]): void {
   const top = num(b, "y", 0);
   const bottom = top + num(b, "h", view.h - top);
   const rnd = lcg(num(b, "seed", 1));
@@ -169,7 +169,7 @@ function planks(b: Dict, view: View, ops: ArenaDrawOp[]): void {
 }
 
 /** a board across the back wall with two brackets, and the toy blocks standing on top of it */
-function shelf(p: Dict, view: View, ops: ArenaDrawOp[]): void {
+function shelf(p: Dict, view: View, ops: RectArenaOp[]): void {
   const x = num(p, "x", 0);
   const y = num(p, "y", 0);
   const w = num(p, "w", 0);
@@ -197,7 +197,7 @@ function shelf(p: Dict, view: View, ops: ArenaDrawOp[]): void {
 // ---- the three kinds the crypt uses ------------------------------------------
 
 /** a wall of stone blocks: mortar behind, one course per row, every other course offset half a block, a few blocks lighter or darker than the rest */
-function stone(b: Dict, view: View, ops: ArenaDrawOp[]): void {
+function stone(b: Dict, view: View, ops: RectArenaOp[]): void {
   const y = num(b, "y", 0);
   const h = num(b, "h", 0);
   const rowH = Math.max(4, Math.round(num(b, "rowH", 18)));
@@ -224,7 +224,7 @@ function stone(b: Dict, view: View, ops: ArenaDrawOp[]): void {
 }
 
 /** a floor of stone slabs in perspective, the planks' shape: each row `rowGrow` px taller than the one behind it, the slab seams offset by the band's seed */
-function flagstones(b: Dict, view: View, ops: ArenaDrawOp[]): void {
+function flagstones(b: Dict, view: View, ops: RectArenaOp[]): void {
   const top = num(b, "y", 0);
   const bottom = top + num(b, "h", view.h - top);
   const rnd = lcg(num(b, "seed", 1));
@@ -252,7 +252,7 @@ function flagstones(b: Dict, view: View, ops: ArenaDrawOp[]): void {
 }
 
 /** an archway in the back wall: a stone frame around a dark opening whose top is stepped into an arch; the opening reaches the prop's foot, which the file puts on the floor line */
-function door(p: Dict, view: View, ops: ArenaDrawOp[]): void {
+function door(p: Dict, view: View, ops: RectArenaOp[]): void {
   const x = num(p, "x", 0);
   const y = num(p, "y", 0);
   const w = num(p, "w", 0);
@@ -289,24 +289,24 @@ function pointList(item: Dict): [number, number][] {
 }
 
 /** a flat rectangle in scene units */
-function fill(p: Dict, view: View, ops: ArenaDrawOp[], s: Scale): void {
+function fill(p: Dict, view: View, ops: RectArenaOp[], s: Scale): void {
   const r = fillRect(num(p, "x", 0), num(p, "y", 0), num(p, "w", 0), num(p, "h", 0), colorLit(p, PALETTE.pink), s);
   rect(ops, view, r.x, r.y, r.w, r.h, r.color);
 }
 
 /** a filled polygon in scene units, scan-converted to rows by shapes.ts */
-function poly(p: Dict, view: View, ops: ArenaDrawOp[], s: Scale): void {
+function poly(p: Dict, view: View, ops: RectArenaOp[], s: Scale): void {
   for (const r of polyRows(pointList(p), colorLit(p, PALETTE.pink), s)) rect(ops, view, r.x, r.y, r.w, r.h, r.color);
 }
 
 /** a filled ellipse in scene units: centre and radii */
-function ellipse(p: Dict, view: View, ops: ArenaDrawOp[], s: Scale): void {
+function ellipse(p: Dict, view: View, ops: RectArenaOp[], s: Scale): void {
   for (const r of ellipseRows(num(p, "cx", 0), num(p, "cy", 0), num(p, "rx", 0), num(p, "ry", 0), colorLit(p, PALETTE.pink), s)) rect(ops, view, r.x, r.y, r.w, r.h, r.color);
 }
 
 // ---- the entry point --------------------------------------------------------
 
-function paint(item: Dict, view: View, ops: ArenaDrawOp[], scale: Scale): void {
+function paint(item: Dict, view: View, ops: RectArenaOp[], scale: Scale): void {
   const kind = str(item, "kind") ?? "";
   if (kind === "wall") wall(item, view, ops);
   else if (kind === "planks") planks(item, view, ops);
@@ -331,8 +331,8 @@ function scaleOf(art: Dict): Scale {
 }
 
 /** the arena file's `art` block as rectangles, back to front */
-export function arenaOps(art: unknown, view: { w: number; h: number }): ArenaDrawOp[] {
-  const ops: ArenaDrawOp[] = [];
+export function arenaOps(art: unknown, view: { w: number; h: number }): RectArenaOp[] {
+  const ops: RectArenaOp[] = [];
   if (!isDict(art)) {
     console.warn("fight/arena: the art block is not an object; drawing nothing behind the fight");
     return ops;

@@ -23,6 +23,7 @@ import { chainOf } from "../sim/hash";
 import { readTape } from "../sim/tape";
 import type { Tape } from "../sim/tape";
 import type { Cell, CellOptions, InputPoll, SimKind } from "./contract";
+import { dungeonKind } from "./kinds/dungeon";
 import { fightKind } from "./kinds/fight";
 import { turnKind } from "./kinds/turn";
 import { createClock, detectRefresh } from "./retime";
@@ -73,8 +74,9 @@ function advance<L, D, S, I, E extends { kind: string }>(kind: Kind<L, D, S, I, 
 
 /**
  * The kind a mode file names: none is the fight's (its files predate the second
- * kind), "turn" the turn's. So a page that passes no kind plays whatever its
- * game's mode says, and the engine's canvas cell can be pointed at any game.
+ * kind), "turn" the turn's, "dungeon" the dungeon's. So a page that passes no
+ * kind plays whatever its game's mode says, and the engine's canvas cell can be
+ * pointed at any game.
  */
 async function kindOfMode<L, D, S, I, E extends { kind: string }>(root: string, mode: string): Promise<Kind<L, D, S, I, E>> {
   const r = await fetch(`${root}/data/modes/${mode}.json`);
@@ -82,6 +84,7 @@ async function kindOfMode<L, D, S, I, E extends { kind: string }>(root: string, 
   const kind = ((await r.json()) as { kind?: unknown }).kind;
   if (kind === undefined) return fightKind as unknown as Kind<L, D, S, I, E>;
   if (kind === "turn") return turnKind as unknown as Kind<L, D, S, I, E>;
+  if (kind === "dungeon") return dungeonKind as unknown as Kind<L, D, S, I, E>;
   throw new Error(`run-cell: mode "${mode}" names an unknown kind ${JSON.stringify(kind)}`);
 }
 
@@ -98,8 +101,9 @@ export async function runCell<L, D, S, I, E extends { kind: string }>(cell: Cell
     const room = kind.arena(loaded);
     cell.mount(host, room.view);
     const live: Live<D, S, I, E> = { data, prev: kind.create(data), next: kind.create(data), tape, ticks: [], events: [], done: false };
-    // the painter spans the whole room, not one screen: a stage's camera scrolls through it
-    const arena = arenaOps(room.art, { w: room.world?.w ?? room.view.w, h: room.view.h });
+    // the painter spans the whole room, not one screen: a stage's camera scrolls through it; a kind
+    // whose picture is a painted frame (the dungeon) hands over its own ops and the painter is not asked
+    const arena = room.ops ?? arenaOps(room.art, { w: room.world?.w ?? room.view.w, h: room.view.h });
     const fx = createFx();
     // a tape run reads no hands - the hash measures the sim, not the player
     const poll = tape ? null : kind.attachInput(host, data);

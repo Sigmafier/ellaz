@@ -441,7 +441,7 @@ export const ACT_INPUT_SWING = 2;
 export const ACT_INPUT_RESTART = 3;
 export const NO_DUNGEON_INPUT: DungeonInput = { dx: 0, dy: 0, act: 0, x: 0, y: 0 };
 
-/** `hit` carries the fight's fields so one fx module serves every kind; `z` is the world y and `h` the height in view px */
+/** `hit` and `coin` carry the fight's fields so one fx module serves every kind: x and z are SCREEN px in FP (the loop's fx floor them by 256) and h the height above the feet in FP px - hits.ts's screenFP projects the world point once */
 export type DungeonEvent =
   | { kind: "hit"; attacker: number; target: number; x: number; z: number; h: number; damage: number; effect: "none" }
   | { kind: "ko"; target: number }

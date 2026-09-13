@@ -55,11 +55,12 @@ function bobOf(ca: CActor, a: ActorState, tick: number): number {
   return (tri * 2 - 1) * ca.bobPx;
 }
 
-function frameOf(ca: CActor, a: ActorState): { frame: string; flip: boolean } {
+/** the frame to show and the set it lives in: the side set for every foe and for a knight facing left, right or fallen; a knight's facings set for down and up. Measured on the built page 2026-09-13: a set picked by the frame NAME's prefix asked the facings set for "knight_walk_0000" (frames are named after the character, sets after the export), and Phaser warned on every frame */
+function frameOf(ca: CActor, a: ActorState): { frame: string; flip: boolean; set: string } {
   const clip = ca.kind === KIND_KNIGHT ? knightClip(ca, a) : { ...ca.clips[clipOfState(a.state)], side: true };
   const n = clip.frames.length, k = floorDiv(a.stateT, clip.ticksPerFrame);
   const idx = clip.loop ? k - floorDiv(k, n) * n : Math.min(k, n - 1);
-  return { frame: clip.frames[idx], flip: clip.side && a.face === FACE_LEFT };
+  return { frame: clip.frames[idx], flip: clip.side && a.face === FACE_LEFT, set: clip.side || ca.facings === null ? ca.set : ca.facings };
 }
 
 function shadowOf(ca: CActor, x: number, y: number, altPx: number, depth: number): ShadowOp {
@@ -131,8 +132,8 @@ export function viewDungeon(prev: DungeonState, next: DungeonState, alpha256: nu
     const sp = toScreen(data.room, fx, fy);
     const altPx = falt / TILE + bobOf(ca, a, next.tick);
     const depth = fx + fy + (ca.flying ? FLY_DEPTH_LIFT : 0);
-    const { frame, flip } = frameOf(ca, a);
-    sprites.push({ set: frame.startsWith(ca.set) || ca.facings === null ? ca.set : ca.facings, frame, x: sp.x, y: sp.y - altPx, flip, depth, who: i });
+    const { frame, flip, set } = frameOf(ca, a);
+    sprites.push({ set, frame, x: sp.x, y: sp.y - altPx, flip, depth, who: i });
     shadows.push(shadowOf(ca, sp.x, sp.y, toPx(falt), depth - 1));
     feet.push({ x: sp.x, y: sp.y - altPx });
   });

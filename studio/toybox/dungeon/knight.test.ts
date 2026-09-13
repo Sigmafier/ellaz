@@ -11,6 +11,7 @@ import { facingOf } from "./knight";
 import { createState } from "./room";
 import { stepDungeon } from "./step";
 import { inputsAtDungeon } from "./tape";
+import { viewDungeon } from "./view";
 import { ACT_INPUT_CLICK, ACT_INPUT_SWING, FACE_DOWN, FACE_LEFT, FACE_RIGHT, FACE_UP, NO_DUNGEON_INPUT, ST_ATTACK, ST_GONE, ST_IDLE, ST_WALK, TILE } from "./types";
 import type { DungeonData, DungeonInput, DungeonState } from "./types";
 
@@ -165,6 +166,26 @@ describe("Space", () => {
     expect(s.actors[SLIME3].hp).toBe(data.actors[1].hp);
     s = run(s, 1);
     expect(s.actors[SLIME3].hp).toBeLessThan(data.actors[1].hp);
+  });
+});
+
+describe("the view names the set a frame lives in", () => {
+  it("a knight facing down draws from the facings set, facing right from the side set, and every foe from its side set", () => {
+    const s = alone();
+    s.actors[SLIME3].state = ST_IDLE;
+    const down = viewDungeon(s, s, 256, data).sprites.find((sp) => sp.who === HERO)!;
+    expect(down.set).toBe("knight-facings");
+    expect(down.frame.startsWith("knight-facings_idle_down_")).toBe(true);
+    const r = stepDungeon(s, input({ dx: 1, dy: -1 }), data);
+    const right = viewDungeon(r, r, 256, data).sprites.find((sp) => sp.who === HERO)!;
+    expect(right.set).toBe("knight--snes16");
+    expect(right.frame.startsWith("knight_walk_")).toBe(true);
+    expect(right.flip).toBe(false);
+    const l = stepDungeon(s, input({ dx: -1, dy: 1 }), data);
+    expect(viewDungeon(l, l, 256, data).sprites.find((sp) => sp.who === HERO)!.flip).toBe(true);
+    const slime = viewDungeon(s, s, 256, data).sprites.find((sp) => sp.who === SLIME3)!;
+    expect(slime.set).toBe("slime--snes16");
+    expect(slime.frame.startsWith("slime_idle_")).toBe(true);
   });
 });
 

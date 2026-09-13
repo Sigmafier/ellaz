@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Ember Hollow Crypt</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #1f1224; font: 14px/1.4 system-ui, sans-serif; color: #e8c9a8; }
+      body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; overflow: hidden; }
+      #stage { line-height: 0; touch-action: none; }
+      #help { margin: 0; padding: 0 16px; text-align: center; max-width: 720px; }
+      #stats { margin: 0; padding: 0 16px; font-variant-numeric: tabular-nums; color: #b8a0a8; }
+      #help kbd { background: #4a2848; border-radius: 4px; padding: 0 5px; color: #ffc93c; }
+      #help a { color: #ffc93c; }
+    </style>
+  </head>
+  <body>
+    <div id="stage"></div>
+    <p id="help">
+      <span id="help-mode"></span>
+      <b>Click</b> a tile to walk, <b>click</b> an enemy to strike, <kbd>WASD</kbd> or the arrows to move, <kbd>space</kbd> to swing, <kbd>R</kbd> to restart.
+      <a href="?mode=crypt">the crypt</a> - <a href="../../ember/page/index.html?mode=meadow">the meadow</a> - <a href="../../crypt/page/index.html?mode=crypt">the rooms</a> - <a href="../../fight/page/index.html?mode=stage">the fight</a>
+    </p>
+    <p id="stats" hidden></p>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

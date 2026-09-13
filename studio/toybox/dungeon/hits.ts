@@ -11,8 +11,8 @@
 import { floorDiv } from "../sim/fixed";
 import { rngByte } from "../sim/rng";
 import { dist } from "./grid";
-import { KIND_KNIGHT, ST_GONE, ST_HURT, ST_KO } from "./types";
-import type { ActorState, CActor, DungeonData, DungeonState } from "./types";
+import { KIND_KNIGHT, ST_GONE, ST_HURT, ST_KO, TILE } from "./types";
+import type { ActorState, CActor, CRoom, DungeonData, DungeonState } from "./types";
 
 /** the facing as a direction in world axes, unnormalised: down (1, 1), up (-1, -1), left (-1, 1), right (1, -1) */
 export const FACE_VEC: readonly (readonly [number, number])[] = [[1, 1], [-1, -1], [-1, 1], [1, -1]];
@@ -22,6 +22,11 @@ const CENTI = 100;
 
 export const alive = (a: ActorState): boolean => a.state !== ST_KO && a.state !== ST_GONE;
 export const actorOf = (data: DungeonData, i: number): CActor => data.actors[data.cast[i].actor];
+
+/** a world point as screen px in FP: what an event carries, so the loop's fx land where the cell drew the body (the fight's events carry screen px the same way) */
+export function screenFP(room: CRoom, x: number, y: number): { x: number; y: number } {
+  return { x: room.ox * TILE + floorDiv((x - y) * room.tileW, 2), y: room.oy * TILE + floorDiv((x + y) * room.tileH, 2) };
+}
 
 /** hp down, thrown away from (fromX, fromY), a float and a flash, hurt or ko, the events */
 export function hurt(s: DungeonState, data: DungeonData, attacker: number, target: number, dmg: number, fromX: number, fromY: number): void {
@@ -34,7 +39,8 @@ export function hurt(s: DungeonState, data: DungeonData, attacker: number, targe
   a.vx = floorDiv(dx * ca.knockSpeed, d);
   a.vy = floorDiv(dy * ca.knockSpeed, d);
   s.floats.push({ x: a.x, y: a.y, z: ca.tall, value: dmg, t: data.rules.floatTicks });
-  s.events.push({ kind: "hit", attacker, target, x: a.x, z: a.y, h: floorDiv(ca.tall, 2), damage: dmg, effect: "none" });
+  const at = screenFP(data.room, a.x, a.y);
+  s.events.push({ kind: "hit", attacker, target, x: at.x, z: at.y, h: a.alt + floorDiv(ca.tall * TILE, 2), damage: dmg, effect: "none" });
   if (a.hp <= 0) {
     a.state = ST_KO; a.stateT = 0; a.path = []; a.target = -1; a.goalX = -1; a.goalY = -1;
     s.events.push({ kind: "ko", target });

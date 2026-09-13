@@ -6,7 +6,7 @@
 import { gameDir, loadDungeonMode } from "../data/load";
 import { compileDungeon } from "./compile";
 import { centre, dist, isBlocked, tileOf } from "./grid";
-import { hurt } from "./hits";
+import { hurt, screenFP } from "./hits";
 import { anyFoeAlive, createState } from "./room";
 import { stepDungeon } from "./step";
 import { ACT_INPUT_RESTART, BANNER_DEFEAT, BANNER_DOOR, BANNER_VICTORY, NO_DUNGEON_INPUT, PHASE_DOOR, PHASE_FIGHT, PHASE_LOST, PHASE_WON, ST_GONE, ST_IDLE } from "./types";
@@ -57,7 +57,10 @@ describe("coins", () => {
     let s = run(near, 1);
     expect(s.coins).toBe(3);
     expect(s.drops).toEqual([]);
-    expect(s.events.filter((e) => e.kind === "coin")).toEqual([{ kind: "coin", x: near.drops[0].x, z: near.drops[0].y, coins: 3 }]);
+    // the event carries the coin's SCREEN point in FP, for the loop's fx
+    const at = screenFP(data.room, near.drops[0].x, near.drops[0].y);
+    expect(s.events.filter((e) => e.kind === "coin")).toEqual([{ kind: "coin", x: at.x, z: at.y, coins: 3 }]);
+    expect(at.y).toBeGreaterThan(data.room.oy * 256);
     const far = only();
     far.drops.push({ x: far.actors[HERO].x + data.rules.pickup, y: far.actors[HERO].y, value: 3, t: data.rules.pickupDelayTicks });
     s = run(far, 1);

@@ -9,14 +9,14 @@
 
 import { describe, expect, it, vi } from "vitest";
 import { arenaOps, PALETTE } from "./arena";
-import type { ArenaDrawOp } from "../contract";
+import type { RectArenaOp } from "../contract";
 
 const VIEW = { w: 640, h: 360 };
-const paint = (item: Record<string, unknown>, view = VIEW): ArenaDrawOp[] =>
+const paint = (item: Record<string, unknown>, view = VIEW): RectArenaOp[] =>
   arenaOps({ palette: "snes16", bands: [item], props: [] }, view);
-const inside = (o: ArenaDrawOp, x: number, y: number, w: number, h: number) =>
+const inside = (o: RectArenaOp, x: number, y: number, w: number, h: number) =>
   o.x >= x && o.y >= y && o.x + o.w <= x + w && o.y + o.h <= y + h;
-const colorsOf = (ops: ArenaDrawOp[]) => new Set(ops.map((o) => o.color));
+const colorsOf = (ops: RectArenaOp[]) => new Set(ops.map((o) => o.color));
 
 const STONE = { kind: "stone", y: 0, h: 150, seed: 5, rowH: 18, colors: ["stoneLight", "stone", "stoneDark", "stoneLine"] };
 const FLAGS = { kind: "flagstones", y: 157, h: 203, seed: 7, rowH: 16, rowGrow: 3, colors: ["flag", "flagLine", "flagLight"] };
@@ -26,7 +26,7 @@ const POLY = { kind: "poly", points: [[100, 100], [200, 40], [300, 100], [300, 1
 const ELLIPSE = { kind: "ellipse", cx: 320, cy: 180, rx: 60, ry: 20, color: "#c9a35a" };
 
 /** is view px (x, y) covered by any op */
-const covers = (ops: ArenaDrawOp[], x: number, y: number): boolean => ops.some((o) => x >= o.x && x < o.x + o.w && y >= o.y && y < o.y + o.h);
+const covers = (ops: RectArenaOp[], x: number, y: number): boolean => ops.some((o) => x >= o.x && x < o.x + o.w && y >= o.y && y < o.y + o.h);
 
 describe("the three scene-unit kinds Ember's field uses: fill, poly, ellipse (2026-09-13)", () => {
   it("a fill is one rect, verbatim colour, at the art block's scale", () => {

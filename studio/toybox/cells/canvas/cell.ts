@@ -14,6 +14,7 @@ import { NO_INPUT } from "../../sim/types";
 import type { InputFrame } from "../../sim/types";
 import type { BoxOp, HudModel, PropOp, ShadowOp, SpriteOp } from "../../sim/view";
 import type { ArenaDrawOp, Cell, CellStats, FxOp, SpriteSetRef } from "../contract";
+import { dungeonHudOps } from "../shared/hud-dungeon";
 import { turnHudOps } from "../shared/hud-turn";
 import { propOps } from "../shared/props";
 import { drawText, textWidth } from "./font";
@@ -116,9 +117,18 @@ export class CanvasCell implements Cell {
     ctx.translate(this.snap(shakeX - camX), Math.round(shakeY));
   }
 
+  /** flat rects, or a whole frame of a loaded set by its top-left at the one draw scale (a dungeon room) */
   drawArena(ops: readonly ArenaDrawOp[]): void {
     const ctx = this.g();
     for (const op of ops) {
+      if (op.kind === "frame") {
+        const sheet = this.sheets.get(op.set);
+        if (!sheet) throw new Error(`canvas cell: no sprite set "${op.set}" for the arena frame`);
+        const f = sheet.atlas.frames[op.frame];
+        if (!f) throw new Error(`canvas cell: set "${op.set}" has no frame "${op.frame}"`);
+        ctx.drawImage(sheet.img, f.frame.x, f.frame.y, f.frame.w, f.frame.h, op.x, op.y, f.frame.w * DRAW_SCALE, f.frame.h * DRAW_SCALE);
+        continue;
+      }
       ctx.fillStyle = op.color;
       ctx.fillRect(op.x, op.y, op.w, op.h);
     }
@@ -219,6 +229,7 @@ export class CanvasCell implements Cell {
     ctx.save();
     ctx.setTransform(this.k, 0, 0, this.k, 0, 0);
     ctx.globalAlpha = 1;
+    if (model.dungeon) { this.drawOps(dungeonHudOps(model.dungeon, this.view)); ctx.restore(); return; }
     if (model.turn) { this.drawOps(turnHudOps(model.turn, this.view)); ctx.restore(); return; }
     if (model.stage) { this.drawStage(model); ctx.restore(); return; }
     const w = 180;

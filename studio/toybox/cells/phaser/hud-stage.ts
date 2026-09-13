@@ -7,6 +7,7 @@ import type Phaser from "phaser";
 import type { HudModel } from "../../sim/view";
 import { stageHudOps } from "../canvas/hud-stage";
 import type { StageHudOps } from "../canvas/hud-stage";
+import { dungeonHudOps } from "../shared/hud-dungeon";
 import { turnHudOps } from "../shared/hud-turn";
 
 export type TextFn = (str: string, x: number, y: number, scale: number, color: string) => void;
@@ -33,6 +34,13 @@ export function drawStageHud(g: Phaser.GameObjects.Graphics, text: TextFn, model
   const s = model.stage;
   if (!s) return false;
   drawOps(g, text, stageHudOps(s, model.hp[s.hero] ?? 0, model.maxHp[s.hero] ?? 1, model.names[s.hero] ?? "", view));
+  return true;
+}
+
+/** draw the dungeon HUD (cells/shared/hud-dungeon.ts's layout); returns false when the model carries no dungeon block */
+export function drawDungeonHud(g: Phaser.GameObjects.Graphics, text: TextFn, model: HudModel, view: { w: number; h: number }): boolean {
+  if (!model.dungeon) return false;
+  drawOps(g, text, dungeonHudOps(model.dungeon, view));
   return true;
 }
 

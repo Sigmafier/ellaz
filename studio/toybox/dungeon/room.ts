@@ -5,7 +5,7 @@
 // step.ts clones first.
 
 import { dist } from "./grid";
-import { alive } from "./hits";
+import { alive, screenFP } from "./hits";
 import { knightTile } from "./knight";
 import { BANNER_DEFEAT, BANNER_DOOR, BANNER_NONE, BANNER_VICTORY, KIND_BAT, PHASE_DOOR, PHASE_FIGHT, PHASE_LOST, PHASE_WON, ST_FLY, ST_IDLE } from "./types";
 import type { ActorState, DungeonData, DungeonState } from "./types";
@@ -57,7 +57,8 @@ function tickDrops(s: DungeonState, data: DungeonData): void {
     d.t += 1;
     if (alive(k) && d.t > rules.pickupDelayTicks && dist(d.x - k.x, d.y - k.y) < rules.pickup) {
       s.coins += d.value;
-      s.events.push({ kind: "coin", x: d.x, z: d.y, coins: d.value });
+      const at = screenFP(data.room, d.x, d.y);
+      s.events.push({ kind: "coin", x: at.x, z: at.y, coins: d.value });
       continue;
     }
     kept.push(d);
