@@ -738,3 +738,166 @@ the scripted hero               crypt 3 of 3 rooms at tick 1863 (cut at 639 and 
 The fight's own left-spawn pop (a wave-1 spawn at x -30 clamped to the arena
 floor 20) stays parked: the crypt avoids it by data, its floor at -40. Hall:
 `20260912-223734-toybox-crypt`; the operator plays three rooms next.
+
+## Ember Hollow: a second kind of simulation on the one loop (2026-09-13)
+
+The operator liked the four MVPs and asked for whole games; the first step was
+proving the engine could run something that is not a fight. Ember Hollow is a
+turn battle on an 8x4 grid: the knight and the wizard against a slime and two
+bats on a painted meadow, every foe showing where it will walk and whom it will
+strike before the turn ends. Plan `ember-hollow-on-the-toybox-engine.md`, five
+tasks, the fight's and the crypt's goldens printed identical after every one.
+
+**The seam came first and moved nothing.** `SimKind` in `cells/contract.ts` is
+what a kind supplies - `load`, `compile`, `create`, `step`, `hashState`, `view`,
+`attachInput`, `publish` - and `run-cell.ts` keeps the clock, the tape, the hash
+chain and the draw order. The fight became `cells/kinds/fight.ts` and its three
+goldens printed identical (E1 `358e666`), which is the proof the seam is clean.
+A mode file's `kind` picks the sim; absent is the fight's, so no older file changed.
+
+```
+toybox/turn/          9 modules, 10 test files, 113 tests at E2
+battle-completes      VICTORY at tick 1012 (turn 5, 16 hits, the knight on 1 hp); a waiting party is DEFEATED
+meadow-1200 golden    8d4ae281 / a31fda87 / 65252f79, walkTicks +1 moves it and nothing else
+run-tape              8 of 8 ADMITTED on the built tree
+```
+
+**Three things this one taught.**
+
+- **A battle is not an arena.** The fight's arena schema is a z-band a fighter
+  walks in; the battle file carries its own view and art, so Ember has no
+  `arena/` directory. The deviation is written in the plan's checkpoint, not hidden.
+- **The first headless run threw on a colour.** The Phaser cell's colour reader
+  took `#rrggbb` only, and the fire's shadow is `rgba(...)`. Found by loading the
+  built page, not by any test.
+- **The drift gate refused a shared helper** (`turn/script.ts` was not in the
+  manifest), so three tests carry an eight-line script each. On the record rather
+  than worked around.
+
+Hall `20260913-111843-toybox-ember`. The operator has not yet played it to
+VICTORY and DEFEAT.
+
+## Ember Hollow Crypt: a third kind, a room played with clicks (2026-09-13)
+
+The dungeon sketch of 2026-09-11 became the fourth game: the knight in an
+isometric stone room, walking where you click and swinging with Space, against
+four slimes that hop and bite and two bats that hover, swoop and retreat. Clear
+the room, the door opens, walk out and it is won. Plan
+`ember-hollow-crypt-dungeon-kind.md`, four build tasks, the four older goldens
+identical through each.
+
+```
+toybox/dungeon/       12 modules, 12 test files, 184 cells at D2
+room-completes        DOOR at 533, WON at 619 (knight on 92 hp); a knight who does nothing is LOST at 1332
+goldens               win 026e6be3 / 22fc2f13 / bfbcc988 · lose dc43c25e / ae5c58a5 / faa4f3ff
+room painter          tools/room-painter, reproduce.sh 3 of 3 identical, --control reads DIFF; png 77,766 B (the plan guessed 1 MB)
+run-tape              12 of 12 ADMITTED; a headless drive of seven steps, zero errors, distinct draws 93-96%
+```
+
+**Three things this one taught.**
+
+- **Measure the behaviour before writing the test.** A knight standing still for
+  6,000 ticks left both slimes stuck forever: a looping clip was clamped at its
+  last frame instead of wrapped, so a slime waiting for its hop frame never saw it.
+  The measurement found it; the test came after.
+- **Two defects lived only on the built page.** The hit and coin events were in
+  world units where the fx wanted screen px, and the sprite set was read from the
+  frame name instead of the clip reader. Both cells looked right in every unit test.
+- **A painted room is a generator, committed.** The sketch's canvas painter was
+  ported onto integer arrays under `studio/tools/room-painter/` with a
+  byte-identity check, so the room is reproducible, not a picture painted once.
+
+Deep-test report `~/.claude/reports/deep-test-ellaz-dungeon-sim-2026-09-13.md`.
+Hall `20260913-125655-toybox-hollow`. Not yet played by the operator.
+
+## Toybox Brawl as a campaign: worlds of stages, a save, one canvas at a time (2026-09-13)
+
+Five rounds of questions settled what "an entire game" means: one campaign per
+game, Brawl first, the hall first, the campaign layer plus one new world of three
+stages ending in a boss. Plan `toybox-brawl-campaign.md`, five build commits.
+
+- **B1 `432886f`, the carry.** `createState(data, carry?)` seeds a stage's coins,
+  xp, level and the hero's hp; a tape may carry one. The first identity test
+  called `createState` twice and compared - and SURVIVED a planted change to the
+  carry-less path, because both sides moved together. Rewritten against a state
+  composed by hand, it reds on the same mutant.
+- **B2 `7c2ede3`, a run that ends.** `Cell.unmount` on both cells, `until` and
+  `carry` on the run options, `runCell` returning `{ stop, done }`.
+- **B3 `0ff6889`, the layer.** `campaign/flow.ts` (a pure reducer), `save.ts` (one
+  versioned localStorage key, a wrong version discarded, never migrated), the
+  campaign schema and loader, the gate's campaign checks.
+- **B4 `3979a8d`, the shelf.** An arena, five stage modes, the ninja and the wizard
+  boss copied from the crypt; the scripted hero cleared seven of seven stages on
+  the first run with no retune.
+- **B5 `44302a5`, the page.** `campaign/shell.ts`, `?campaign=brawl`, the
+  `shelf-boss-900` carry tape (`d1ca8a75 / a08ac5c7 / a5340dd7`), run-tape 14 of 14,
+  a headless drive of two stages with the purse carried and ONE canvas at a time.
+
+```
+the stage machine's tick order    the hero's hp is read before the wave's foes, so a stage cannot
+                                  clear on the tick the hero falls - the campaign's `until` cannot fire there
+all three panels showed at once   `.campaign-panel { display: flex }` beats the `hidden` attribute's UA rule;
+                                  `.campaign-panel[hidden] { display: none; }` - seen only in the shots
+a stale wait                      the previous run's window fields persist until the next run publishes, so a
+                                  wait on `__fightStage` passed on the old stage's cleared state
+```
+
+Played by nobody yet: the operator's next message changed the scope.
+
+## Three levels and a boss, in every game (2026-09-13 and 14)
+
+The operator looked at the campaign and set the MVP in their own words: *"close a
+circle of 3 levels and a boss and make sure it works end to end, in all games."*
+Two rounds of questions, eight rulings: a SEPARATE boss level after three levels;
+one world in every game (the shelf parked, not deleted); bosses are existing
+characters drawn bigger, much tougher, with a boss bar; one game at a time, each
+played before the next; a lost level is TRY AGAIN on the same level; Brawl and the
+Crypt carry coins and level, Ember and the Hollow carry nothing; new levels reuse
+each game's art; a level pick where locked levels wiggle. Plan
+`three-levels-and-a-boss-in-every-toybox-game.md`.
+
+**L0 `aa8ecdd`, the layer for all three kinds (31 files).** The pick lists levels;
+a level opens when the one before it is cleared; `stageLost` shows TRY AGAIN and
+changes nothing in the save; the save records cleared levels (`SAVE_VERSION` 2).
+`SimKind.outcome(state)` reads won or lost off each kind's own state - the fight's
+wave phase, the turn and dungeon `PHASE_WON` / `PHASE_LOST` - and only the fight has
+`purse`. `loadCampaign` and the gate take one kind per campaign. `drawScale` (1-4)
+and `boss` on fighter, unit and actor files: a sprite `size` in the view, a shared
+boss bar, and a fighter's boxes growing with its picture while its knockback does
+not. Nine planted defects killed by name, the comment-only control survived.
+
+**L1 `586036e`, Brawl (19 files).** `brawl.json` is stage, toybox-2, toybox-3,
+toybox-boss. The boss level is a warm-up wave, then the Teddy King: the teddy's
+sprites at `drawScale` 2, 600 hp, its own fiercer AI.
+
+```
+seven older goldens                printed IDENTICAL through L0 and L1
+toybox-boss-1400 (new)             e8744cd4 / 5c19f7e5 / df26c38b - the King at 106 of 600, 22 hits;
+                                   drawn at 1 instead of 2, the chain moves
+run-tape                           8 tapes x 2 cells, 16 of 16 ADMITTED
+suite                              74 files, 1,174 of 1,175 (the red one is a peer's gallery router test)
+headless drive of the built page   title -> a locked BOSS wiggles -> LEVEL 1 idle until the robot falls ->
+                                   TRY AGAIN, save unchanged, no canvas -> RETRY -> 4 levels, purse
+                                   0/1 -> 7/5 -> 14/7 -> 25/9 -> BOSS CLEAR -> VICTORY -> reload "4 of 4"
+```
+
+**Four things this one taught.**
+
+- **A frame-perfect scripted hero cannot tell you a boss is hard.** It swings on the
+  first frame of every recovery window and kept a 600 hp King in its hurt state for
+  eleven seconds without taking a hit. A crude sloppy player - swing every 20 ticks,
+  never dodge - fell from 180 to 92 hp in 45 seconds against it. Both numbers are
+  reported; the operator's play rules the tuning.
+- **Record a boss tape, never type it.** The boss is seconds of exact input away.
+  The tape came from the completes policy through `vite-node`, carrying the purse
+  the first three levels really end with (27 coins, level 9).
+- **The boss bar touched the hero's bar**, at two fifths of a 640 px view. The
+  screenshot showed it; a test now pins the clearance. At a third it sits clear.
+- **A test written after the typecheck is a typecheck nobody ran.** The L0
+  draw-scale test was committed with a literal type error, because tsc ran before
+  the file existed; the L1 run caught it, along with a gate control still indexing
+  the removed second world.
+
+Hall `20260913-182512-brawl-three-levels-and-a-boss`. Parked where it stands: the
+operator plays Brawl to VICTORY, then the Crypt (L2), Ember (L3) and the Hollow (L4)
+each get three levels and a boss.
