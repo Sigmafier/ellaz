@@ -11,7 +11,14 @@
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { GAMES, gameDir, loadMode } from "../data/load";
+import { GAMES, gameDir, loadMode, loadTurnMode, readModeKind } from "../data/load";
+import { createState as createTurn } from "../turn/battle";
+import { compileTurn } from "../turn/compile";
+import { hashTurnEvents, hashTurnState } from "../turn/hash";
+import { stepTurn } from "../turn/step";
+import { inputsAtTurn } from "../turn/tape";
+import { PHASE_LOST, PHASE_WON } from "../turn/types";
+import type { TurnData, TurnEvent, TurnInput } from "../turn/types";
 import { compileFight } from "./compile";
 import { chainOf, hashEvents, hashState } from "./hash";
 import { createState } from "./match";
@@ -33,6 +40,8 @@ const tapesDir = (game: string): string => join(gameDir(game), "tapes");
 export interface Golden {
   tape: string; ticks: number; hash: string; chain: string; eventHash: string; hp: number[]; winner: number; hits: number;
   stage?: { wave: number; wphase: number; coins: number; xp: number; level: number };
+  /** a turn tape also pins where the battle stood: the turn, the phase, the selection */
+  turn?: { turn: number; phase: number; sel: number };
 }
 
 /** every tape a game holds, by name; a golden sits beside its tape and is not one */
@@ -50,20 +59,34 @@ export function replay(data: FightData, tape: Tape, name: string, ticks = tape.t
   return g;
 }
 
+/** the turn kind's replay, the same triple over the turn machine; winner is 0 for VICTORY, 1 for DEFEAT, -1 while the battle runs */
+export function replayTurn(data: TurnData, tape: Tape<TurnInput>, name: string, ticks = tape.ticks): Golden {
+  let s = createTurn(data);
+  const all: TurnEvent[] = [];
+  const perTick: string[] = [];
+  for (let t = 0; t < ticks; t++) { s = stepTurn(s, inputsAtTurn(tape, t, 1), data); all.push(...s.events); perTick.push(hashTurnState(s)); }
+  const winner = s.phase === PHASE_WON ? 0 : s.phase === PHASE_LOST ? 1 : -1;
+  return { tape: name, ticks, hash: hashTurnState(s), chain: chainOf(perTick), eventHash: hashTurnEvents(all), hp: s.units.map((u) => u.hp), winner, hits: all.filter((e) => e.kind === "hit").length, turn: { turn: s.turn, phase: s.phase, sel: s.sel } };
+}
+
+/** one tape replayed through whichever sim its mode names */
+function replayAny(game: string, name: string): Golden {
+  const tape = readTapeFile(game, name);
+  if (readModeKind(tape.mode, gameDir(game)) === "turn") return replayTurn(compileTurn(loadTurnMode(tape.mode, gameDir(game))), tape as unknown as Tape<TurnInput>, name);
+  return replay(compileFight(loadMode(tape.mode, gameDir(game))), tape, name);
+}
+
 describe("the tapes on disk", () => {
-  it("are the crypt's one and the fight's two, so nothing below runs over an empty list", () => {
-    expect(Object.fromEntries(games.map((g) => [g, tapeNames(g)]))).toEqual({ crypt: ["crypt-600"], fight: ["stage-600", "versus-600"] });
+  it("are the crypt's one, ember's one and the fight's two, so nothing below runs over an empty list", () => {
+    expect(Object.fromEntries(games.map((g) => [g, tapeNames(g)]))).toEqual({ crypt: ["crypt-600"], ember: ["meadow-1200"], fight: ["stage-600", "versus-600"] });
   });
 });
 
 for (const game of games) {
   for (const name of tapeNames(game)) {
     describe(`golden tape ${game}/${name}`, () => {
-      const tape = readTapeFile(game, name);
-      const data = compileFight(loadMode(tape.mode, gameDir(game)));
-
       it("reproduces the committed golden (WRITE_GOLDEN=1 re-records it and prints old and new whole)", () => {
-        const now = replay(data, tape, name);
+        const now = replayAny(game, name);
         const file = goldenPath(game, name);
         if (process.env.WRITE_GOLDEN === "1") {
           const old = existsSync(file) ? readFileSync(file, "utf8").trim().replace(/\s+/g, " ") : "(none)";
@@ -144,5 +167,31 @@ describe("the control that tells the two goldens apart", () => {
     expect(g.stage).toBeDefined();
     expect(g.hits).toBeGreaterThan(0);
     expect(g.hp.length).toBe(13);
+  });
+});
+
+describe("the control that tells the turn golden from the fight's", () => {
+  const EMBER = gameDir("ember");
+
+  it("walkTicks one longer moves the MEADOW chain, and the three fight and crypt goldens stay exactly their committed selves", () => {
+    const tape = readTapeFile("ember", "meadow-1200") as unknown as Tape<TurnInput>;
+    const data = compileTurn(loadTurnMode(tape.mode, EMBER));
+    const slower: TurnData = { ...data, rules: { ...data.rules, walkTicks: data.rules.walkTicks + 1 } };
+    expect(replayTurn(slower, tape, "meadow-1200").chain).not.toBe(replayTurn(data, tape, "meadow-1200").chain);
+    // the fight's sim never reads a rules file: its goldens are what the files say, whatever the turn's rules do
+    for (const [game, name] of [["crypt", "crypt-600"], ["fight", "stage-600"], ["fight", "versus-600"]] as const) {
+      const golden = JSON.parse(readFileSync(goldenPath(game, name), "utf8")) as Golden;
+      expect(replayAny(game, name)).toEqual(golden);
+    }
+  });
+
+  it("the meadow golden pins a battle that did something: two turns played, a hero's strike landed, the enemies struck back", () => {
+    const g = replayAny("ember", "meadow-1200");
+    expect(g.turn).toBeDefined();
+    expect(g.turn!.turn).toBeGreaterThanOrEqual(3);
+    expect(g.hits).toBeGreaterThan(2);
+    expect(g.hp.length).toBe(5);
+    expect(g.hp[2]).toBeLessThan(14);
+    expect(g.winner).toBe(-1);
   });
 });

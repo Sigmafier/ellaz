@@ -1,0 +1,21 @@
+{
+  "tape": "meadow-1200",
+  "ticks": 1200,
+  "hash": "8d4ae281",
+  "chain": "a31fda87",
+  "eventHash": "65252f79",
+  "hp": [
+    17,
+    18,
+    7,
+    9,
+    9
+  ],
+  "winner": -1,
+  "hits": 5,
+  "turn": {
+    "turn": 3,
+    "phase": 0,
+    "sel": -1
+  }
+}
