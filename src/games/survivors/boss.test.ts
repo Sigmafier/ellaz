@@ -17,8 +17,8 @@
 //     230 ms, which is `spawnEvery` at its floor by three minutes.
 import { describe, expect, it } from "vitest";
 import {
-  ARENA, KINDS, RUN_MS, applyUpgrade, bossOf, kindsAt, newRun, rngFor, step,
-  type Enemy, type EnemyKind, type RunState, type UpgradeId,
+  ARENA, ARENA_WIDE, KINDS, RUN_MS, applyUpgrade, bossOf, kindsAt, newRun, rngFor, step,
+  type Arena, type Enemy, type EnemyKind, type RunState, type UpgradeId,
 } from "./logic";
 
 const STILL = { dx: 0, dy: 0 };
@@ -34,9 +34,19 @@ function place(s: RunState, kind: EnemyKind, x: number, y: number): Enemy {
   return e;
 }
 
-/** A run standing at three minutes with the golem already on the board. */
-function atTheGolem(up: Partial<Record<UpgradeId, number>> = {}): RunState {
-  const s = newRun("normal");
+/**
+ * A run standing at three minutes with the golem already on the board.
+ *
+ * `arena` DEFAULTS to the portrait floor, the same way `newRun` does and for the
+ * same reason: every assertion in this file that does not care about shape keeps
+ * reading exactly what it read before, so a red here means a real regression
+ * rather than a signature churn.
+ */
+function atTheGolem(
+  up: Partial<Record<UpgradeId, number>> = {},
+  arena: Arena = ARENA,
+): RunState {
+  const s = newRun("normal", arena);
   for (const [id, n] of Object.entries(up)) {
     for (let i = 0; i < (n ?? 0); i++) applyUpgrade(s, id as UpgradeId);
   }
@@ -222,5 +232,37 @@ describe("the fight is a fight, measured rather than felt", () => {
     expect(g.y).toBeLessThan(0);
     expect(g.x).toBeGreaterThan(0);
     expect(g.x).toBeLessThan(ARENA.w);
+
+    // The same on the landscape floor, which is a different arrival: it enters
+    // at that arena's own middle, not at a number baked in when there was only
+    // one shape.
+    const w = atTheGolem({}, ARENA_WIDE);
+    const gw = bossOf(w)!;
+    expect(gw.y).toBeLessThan(0);
+    expect(gw.x).toBeGreaterThan(0);
+    expect(gw.x).toBeLessThan(ARENA_WIDE.w);
+  });
+
+  it("is still a fight on the LANDSCAPE arena, and shorter for a reason", () => {
+    // WHY THIS EXISTS. The fight above is measured on the portrait floor only.
+    // Once a PC plays on a 648x364 arena, a portrait-only figure is a number
+    // wearing no label - and it went stale silently the day the landscape ruling
+    // landed, with this file still green. So both shapes are measured here.
+    const wide = msToKill(atTheGolem({ rapid: 3, power: 2, spread: 1 }, ARENA_WIDE));
+    const portrait = msToKill(atTheGolem({ rapid: 3, power: 2, spread: 1 }));
+    console.log(`golem time-to-kill: landscape ${wide} ms, portrait ${portrait} ms`);
+
+    // The same WINDOW the portrait arm is held to. A landscape fight that fell
+    // out of it would be a different game, not a different layout.
+    expect(wide).toBeGreaterThan(6_000);
+    expect(wide).toBeLessThan(40_000);
+
+    // Shorter is EXPECTED and is geometry, not tuning: the golem enters at the
+    // top edge, `TARGET_RANGE` is 240, and this arena is only 364 tall, so it is
+    // inside the gun's reach almost as soon as it appears. What is pinned is
+    // that it is shorter by a LITTLE - a landscape fight at half the length
+    // would mean the boss had stopped being the finish the run is built toward.
+    expect(wide).toBeLessThan(portrait);
+    expect(wide).toBeGreaterThan(portrait * 0.7);
   });
 });

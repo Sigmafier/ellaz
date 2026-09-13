@@ -101,16 +101,25 @@ export type EnemyKind = "runner" | "orb" | "brute" | "golem";
  *
  * The fight has to last long enough to be a finish and not so long that it is a
  * chore, so the number is READ off the simulation rather than guessed.
- * `boss.test.ts` measures time-to-kill and prints it; measured 2026-09-12 at
- * 420 health, on `normal`:
+ * `boss.test.ts` measures time-to-kill and prints it. Measured at 420 health on
+ * `normal`, for BOTH arenas - a single figure here would be a portrait figure
+ * wearing no label, which is exactly what went stale when the landscape ruling
+ * landed. Re-taken 2026-09-13; the portrait column is unchanged from 2026-09-12,
+ * which is what proves the re-measurement is reading the same simulation:
  *
- *     representative loadout (rapid 3, power 2, spread 1)   18,400 ms
- *     no upgrades at all                                    83,616 ms
+ *                                              portrait     landscape
+ *     representative loadout (rapid 3/2/1)     18,400 ms     16,000 ms   -13%
+ *     no upgrades at all                       83,616 ms     81,120 ms    -3%
  *
- * Both figures include the couple of seconds the golem spends walking in from
- * outside the arena before it is inside `TARGET_RANGE`, and both are the FLOOR
- * of the fight: the player stands still there, so the gun is on target every
- * frame it can be. A real player dodges and loses shots doing it.
+ * The landscape fight is shorter for a reason that is GEOMETRY rather than
+ * tuning, and it is not a difficulty change anybody chose: the golem walks in at
+ * the top edge, `TARGET_RANGE` is 240, and the landscape arena is only 364 tall,
+ * so it is inside the gun's reach almost as soon as it appears. A 560-tall floor
+ * makes it walk first.
+ *
+ * Every figure includes the seconds the golem spends walking in, and every one
+ * is the FLOOR of the fight: the player stands still there, so the gun is on
+ * target every frame it can be. A real player dodges and loses shots doing it.
  *
  * The second arm is the one worth keeping - arriving at the golem having taken
  * nothing costs 4.5x as long, which is the run's own argument for the upgrades.

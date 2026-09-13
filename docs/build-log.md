@@ -4717,3 +4717,101 @@ but those two figures are now portrait-arena figures and the landscape ones have
 taken. Sight lines are no longer symmetric either: the arena is 648 wide against a
 240-unit `TARGET_RANGE`, so the gun cannot cover the full width from the middle, while
 the full height is now inside it.
+
+**Re-taken the same day - see the next section.** This paragraph is left standing rather
+than rewritten, because it is the statement of what was owed and the next section is the
+payment; editing it away would leave no record that the debt existed.
+
+---
+
+## The landscape arena, measured rather than assumed (2026-09-13)
+
+The section above named a debt: two golem figures and three death measurements that had
+become portrait-arena numbers wearing no label. This pays it, and the headline is not the
+one I expected.
+
+**The landscape arena is consistently HARDER, and the golem is slightly EASIER.**
+
+### The golem, both arenas
+
+The player stands still, so this is the FLOOR of the fight rather than the fight:
+
+```
+                                          portrait     landscape
+  representative loadout (rapid 3/2/1)    18,400 ms     16,000 ms    -13%
+  no upgrades at all                      83,616 ms     81,120 ms     -3%
+```
+
+Both landscape arms sit inside the same 6-40 s window the portrait arm is held to, so the
+boss is still the finish the run is built toward. The fight is shorter for a reason that is
+**geometry rather than tuning, and nobody chose it**: the golem walks in at the top edge,
+`TARGET_RANGE` is 240, and the landscape arena is only 364 tall - so it is inside the gun's
+reach almost as soon as it appears, where a 560-tall floor makes it walk first.
+
+It is pinned now rather than written down. `boss.test.ts` measures BOTH shapes, and
+`atTheGolem` takes an arena defaulting to portrait - the same discipline `newRun` uses, so
+every assertion that does not care about shape reads what it always read. **The directional
+assertion was watched going RED on a planted 648x1400 arena** (29,600 ms, "expected 29600 to
+be less than 18400") before the green was believed.
+
+### The three death measurements
+
+The browser harness that produced 61 s / 68 s / 101 s did not survive, so it was rebuilt
+over `logic.ts` in node. That is a change of instrument and it is a deliberate one: the
+browser gave **one run per arm**, this gives 40 seeded runs per cell and can run the
+portrait arena as a control in the same pass.
+
+```
+  normal, circle, first card    portrait  56.3s -> landscape  47.7s   -15%
+  normal, kite,   gun first     portrait  81.0s -> landscape  71.9s   -11%
+  calm,   kite,   gun first     portrait 180.0s -> landscape 180.0s    +0%
+  wild,   kite,   gun first     portrait  39.1s -> landscape  27.3s   -30%
+```
+
+Wild is hit hardest and calm is untouched, which fits the cause: the arena is 648 wide
+against a 240-unit sight line, so the gun cannot cover the width from the middle and more
+shapes arrive unshot. On calm the crowd is small enough that it does not matter.
+
+**The policies are BLIND and that is load-bearing.** Movement is a function of the clock and
+the arena only; nothing reads `s.enemies`. A node harness that could see the shapes would be
+a strictly better player than the browser one, would survive longer, and its numbers would
+not compare with the three on record.
+
+**Validated, not asserted.** All **3/3** recorded browser readings fall inside this
+harness's portrait distribution (61 s between median and q3; 68 s between q1 and median;
+101 s in the bottom quartile of a cell whose min is 81.9 s). They were n=1 draws, so a
+differing median is expected - a reading outside the whole observed range would have meant a
+different player. The level ladder wild < normal < calm holds on **both** arenas, and an
+immortal run reaches the golem, so a low number is the player dying rather than the harness
+failing to drive three minutes.
+
+### A control failed first, and it was the right kind of failure
+
+The first version asserted "moving beats standing still". It came out **false** - standing
+still ran 80.9 s against the wide circle's 56.3 s - and the run was reported as BROKEN
+INSTRUMENT rather than written up.
+
+It was the wrong control. "Moving helps" is a **prediction about the game** smuggled in as a
+property of the instrument, and the game disagreed. The diagnostic settled why in one pass:
+
+```
+  standing in the middle    80.9s    159 popped     6 upgrades
+  circling wide (0.34)      56.3s     48 popped     4 upgrades
+  camped in a corner        74.6s    112 popped     4 upgrades
+  orbiting tight  (0.16)   115.6s    210 popped    11 upgrades
+```
+
+The wide orbit runs out into the spawn stream and never returns to the kill sites, so it
+collects no gems and never upgrades. Stillness is not strong - **the middle** is. The
+controls are now two properties the instrument must have (the level ladder, and that an
+immortal run reaches three minutes), and the still-vs-circle comparison is reported as a
+finding instead.
+
+### What this does NOT settle
+
+Whether the landscape arena should be made easier to compensate. It is 11-30% harder on
+every level but calm, which is a real change and not a rounding error - but a blind orbiting
+harness is not a person, and the numbers bound the difficulty rather than settle it. That
+ruling is still the operator's, and the constants are all named in `logic.ts` (`RULES`
+spawn interval, floor, tighten, speed; `KINDS` speed, and now the arena's own width against
+`TARGET_RANGE`). **Nothing was retuned to make these numbers nicer.**
