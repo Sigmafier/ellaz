@@ -5,7 +5,7 @@
 // the sim, and a cell that drew every coin as a square would play the same
 // fight. Six spin widths, the demo's, read off `spin` from the draw plan.
 
-import type { PropOp } from "../../sim/view";
+import type { CoinProp, PropOp } from "../../sim/view";
 import type { ArenaDrawOp } from "../contract";
 
 /** the demo's 8x8 coin; `.` is transparent */
@@ -18,7 +18,7 @@ const COIN_H = 8;
 const PX = 2;
 
 /** one coin as rects: `op.x` is its centre, `op.y` its bottom edge, both in world px */
-export function coinOps(op: PropOp): ArenaDrawOp[] {
+export function coinOps(op: CoinProp): ArenaDrawOp[] {
   const w = SPIN_W[op.spin % SPIN_W.length];
   const ops: ArenaDrawOp[] = [];
   const left = op.x - w;
@@ -41,9 +41,12 @@ export function coinOps(op: PropOp): ArenaDrawOp[] {
   return ops;
 }
 
-/** every coin in the plan, back to front, as rects */
+/** every prop in the plan, back to front, as rects: a coin through its pixel map, a rect (a turn grid's slabs and chevrons) as itself */
 export function propOps(props: readonly PropOp[]): ArenaDrawOp[] {
   const out: ArenaDrawOp[] = [];
-  for (const p of props) out.push(...coinOps(p));
+  for (const p of props) {
+    if (p.kind === "rect") out.push({ kind: "rect", x: p.x, y: p.y, w: p.w, h: p.h, color: p.color });
+    else out.push(...coinOps(p));
+  }
   return out;
 }

@@ -30,10 +30,31 @@ export interface SpriteOp { set: string; frame: string; x: number; y: number; fl
 export interface ShadowOp { x: number; y: number; w: number; h: number; depth: number }
 export interface BoxOp { kind: "bdy" | "itr" | "push"; x: number; y: number; w: number; h: number; who: number }
 /** a coin on the floor or in the air: screen px at its centre-bottom, and which of six spin widths it shows */
-export interface PropOp { kind: "coin"; x: number; y: number; spin: number; depth: number }
+export interface CoinProp { kind: "coin"; x: number; y: number; spin: number; depth: number }
+/** a flat rectangle a sim kind lays under its sprites (a turn grid's tiles, chevrons and target box); `color` is any CSS color */
+export interface RectProp { kind: "rect"; x: number; y: number; w: number; h: number; color: string; depth: number }
+export type PropOp = CoinProp | RectProp;
+
+/** what the turn kind's HUD shows, in view px: the party panel, the log, the banner, bars over heads, floats and strike labels. A cell lays it out (cells/shared/hud-turn.ts) */
+export interface TurnHud {
+  turn: number;
+  phase: number;
+  banner: number;
+  bannerT: number;
+  log: { kind: number; a: number; b: number; n: number };
+  /** every unit's name, by index, for the log */
+  names: string[];
+  party: { name: string; hp: number; maxHp: number; acted: boolean; active: boolean; dead: boolean }[];
+  /** an hp bar over each standing unit: the feet's screen x, y (hover included) and how tall the unit is */
+  bars: { x: number; y: number; tall: number; hp: number; maxHp: number; team: number }[];
+  floats: { x: number; y: number; value: number }[];
+  /** "-atk" over a target a foe will strike: the target tile's centre x, its y, the target's height */
+  strikeLabels: { x: number; y: number; tall: number; atk: number }[];
+  showEndTurn: boolean;
+}
 /** what a stage HUD shows; `hero` is the roster row the hp bar belongs to */
 export interface StageHud { wave: number; waves: number; wphase: number; waveT: number; coins: number; xp: number; xpNeed: number; level: number; hero: number }
-export interface HudModel { hp: number[]; maxHp: number[]; names: string[]; phase: number; winner: number; tick: number; stage: StageHud | null }
+export interface HudModel { hp: number[]; maxHp: number[]; names: string[]; phase: number; winner: number; tick: number; stage: StageHud | null; turn: TurnHud | null }
 /** `camX` is the camera's left edge in world px, lerped like a fighter; 0 when the mode has no camera */
 export interface DrawPlan { sprites: SpriteOp[]; shadows: ShadowOp[]; props: PropOp[]; boxes: BoxOp[]; hud: HudModel; shake: number; camX: number }
 
@@ -115,6 +136,7 @@ export function viewOf(prev: FightState, next: FightState, alpha256: number, dat
     winner: next.winner,
     tick: next.tick,
     stage,
+    turn: null,
   };
   const camX = next.stage ? toPx(lerp256(prev.stage ? prev.stage.camX : next.stage.camX, next.stage.camX, alpha256)) : 0;
   return { sprites, shadows, props, boxes, hud, shake: next.shake, camX };
