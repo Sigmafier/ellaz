@@ -42,6 +42,7 @@ export const fightKind: SimKind<LoadedFightHttp, FightData, FightState, InputFra
   compile: compileFight,
   sets: (loaded) => Object.keys(loaded.sets),
   arena: (loaded) => loaded.arena,
+  // the fight is the kind with a purse: a carry seeds a stage mode's coins, xp and level (sim/match.ts)
   create: createState,
   step,
   hashState,

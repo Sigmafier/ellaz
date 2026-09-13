@@ -54,6 +54,8 @@ export class CanvasCell implements Cell {
   private drawn = 0;
   /** device px per game px: the backbuffer is the view times this, so a position can land on any device pixel */
   private k = 1;
+  /** the resize listener mount added, held so unmount can remove it */
+  private fit: (() => void) | null = null;
 
   async load(sets: readonly SpriteSetRef[]): Promise<void> {
     await Promise.all(sets.map(async (set) => {
@@ -90,6 +92,15 @@ export class CanvasCell implements Cell {
     };
     fit();
     window.addEventListener("resize", fit);
+    this.fit = fit;
+  }
+
+  unmount(): void {
+    if (this.fit) window.removeEventListener("resize", this.fit);
+    this.fit = null;
+    this.canvas?.remove();
+    this.canvas = null;
+    this.ctx = null;
   }
 
   /** a game-px coordinate on this canvas's grid: whole device pixels, so the art stays crisp */

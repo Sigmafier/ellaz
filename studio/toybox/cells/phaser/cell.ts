@@ -106,6 +106,8 @@ export class Phaser4Cell implements Cell {
   private textUsed = 0;
   /** device px per game px: the Game is the view times this, the Graphics layers are scaled by it, and a sprite sits on any device pixel */
   private k = 1;
+  /** the resize listener mount added, held so unmount can remove it */
+  private fit: (() => void) | null = null;
 
   /**
    * The manifests are fetched here rather than through Phaser's loader: the
@@ -192,6 +194,21 @@ export class Phaser4Cell implements Cell {
     };
     fit();
     window.addEventListener("resize", fit);
+    this.fit = fit;
+  }
+
+  /** the Game destroyed with its canvas, the parent out of the DOM, the listener gone; a second mount needs a fresh cell */
+  unmount(): void {
+    if (this.fit) window.removeEventListener("resize", this.fit);
+    this.fit = null;
+    this.game?.destroy(true);
+    this.game = null;
+    this.scene = null;
+    this.layers = null;
+    this.sprites.clear();
+    this.frames.clear();
+    this.texts.length = 0;
+    this.parent.remove();
   }
 
   /** a game-px coordinate on this cell's grid: whole device pixels, so the art stays crisp */

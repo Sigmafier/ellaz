@@ -61,7 +61,8 @@ export const dungeonKind: SimKind<LoadedDungeon, DungeonData, DungeonState, Dung
     props = propSprites(loaded, art);
     return { view: loaded.room.view, art, ops: roomOps(loaded, art) };
   },
-  create: createState,
+  // a room's coins are its own; a campaign handing a carry over has the wrong kind
+  create: (data, carry) => { if (carry) throw new Error("dungeon kind: a carry was handed to a room, which has no purse to seed"); return createState(data); },
   step: stepDungeon,
   hashState: hashDungeonState,
   hashEvents: hashDungeonEvents,

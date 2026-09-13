@@ -21,7 +21,8 @@ export const turnKind: SimKind<LoadedTurn, TurnData, TurnState, TurnInput, TurnE
   compile: compileTurn,
   sets: (loaded) => Object.keys(loaded.sets),
   arena: (loaded) => ({ view: loaded.battle.view, art: loaded.battle.art }),
-  create: createState,
+  // a turn battle has no purse to carry between stages; a campaign handing one over has the wrong kind
+  create: (data, carry) => { if (carry) throw new Error("turn kind: a carry was handed to a turn battle, which has no purse to seed"); return createState(data); },
   step: stepTurn,
   hashState: hashTurnState,
   hashEvents: hashTurnEvents,

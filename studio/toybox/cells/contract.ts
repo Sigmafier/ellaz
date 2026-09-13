@@ -6,7 +6,7 @@
 // structural guarantee that seven arms run one program.
 
 import type { Tape } from "../sim/tape";
-import type { InputFrame } from "../sim/types";
+import type { Carry, InputFrame } from "../sim/types";
 import type { BoxOp, DrawPlan, HudModel, PropOp, ShadowOp, SpriteOp } from "../sim/view";
 
 /** where a sprite set's four files live, as URLs the cell can fetch or hand to its loader */
@@ -36,6 +36,8 @@ export interface Cell {
   load(sets: SpriteSetRef[]): Promise<void>;
   /** attach the engine's canvas to `host` at the logical view size; the harness sizes the CSS */
   mount(host: HTMLElement, view: { w: number; h: number }): void;
+  /** the inverse of mount: the canvas out of the DOM, the engine destroyed, every listener mount added removed - so a campaign can run a fresh cell per stage and the page holds ONE canvas (2026-09-13) */
+  unmount(): void;
   /** the buttons this side is holding right now (keyboard, touch); bypassed during a tape run */
   readInput(side: number): InputFrame;
   beginFrame(camX: number, shakeX: number, shakeY: number): void;
@@ -80,7 +82,8 @@ export interface SimKind<L, D, S, I, E extends { kind: string }> {
   /** the sprite set names the cell must load before the first frame */
   sets(loaded: L): string[];
   arena(loaded: L): ArenaForCell;
-  create(data: D): S;
+  /** the fresh state; a `carry` (a campaign's purse from the stage before) seeds it where the kind has a purse - the fight - and is refused by a kind that has none */
+  create(data: D, carry?: Carry): S;
   step(state: S, inputs: readonly I[], data: D): S;
   hashState(state: S): string;
   hashEvents(events: readonly E[]): string;
@@ -110,4 +113,14 @@ export interface CellOptions<L = unknown, D = unknown, S = unknown, I = unknown,
   ticks?: number;
   /** the simulation to run; absent means the fight's */
   kind?: SimKind<L, D, S, I, E>;
+  /** a campaign's purse from the stage before, handed to the kind's create; a tape's own carry wins when a tape is given */
+  carry?: Carry;
+  /** a live run ends on the first state this holds for (a stage's clear): the frame resolves the handle's `done` with that state and schedules no more; absent, a live run never ends */
+  until?(state: S): boolean;
+}
+
+/** what runCell hands back: `done` settles with the terminal state when `until` held (never for a run without one), `stop` cancels the next frame, detaches the input and unmounts the cell */
+export interface RunHandle<S = unknown> {
+  stop(): void;
+  done: Promise<S>;
 }
