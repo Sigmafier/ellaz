@@ -2,7 +2,13 @@ import { textFor } from "@i18n/index";
 import { useEffect, useRef, useState } from "react";
 import type { GameContext } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
-import { DirectionPad } from "@ui/DirectionPad";
+// NO `DirectionPad` HERE, and that is the point of this game's control.
+// `CLAUDE.md` used to say every game ships the four-arrow pad and never the
+// stick alone; the operator ruled on 2026-09-13 that the steering moves ONTO the
+// arena for showcase-tier games, and the law was amended in the same change
+// rather than quietly broken. The pad still ships in `maze`, the one kids-band
+// game that imports it, which is exactly the band the amended law still binds.
+import type { StickStyle } from "./stick";
 import type { DifficultyOption } from "@ui/DifficultySelector";
 // The MODULE, not the `@shared/index` barrel - the same call snake makes, and for
 // the same reason: pulling the barrel in for one hook drags the rest along.
@@ -30,6 +36,13 @@ const LEVEL_OPTIONS: DifficultyOption<LevelKey>[] = [
   { id: "wild", label: { he: "פראי", en: "Wild", es: "Salvaje" } },
 ];
 
+/**
+ * Where this device remembers the player's stick. A named constant because the
+ * key is PERSISTED: renaming it silently forgets every player's choice, which is
+ * the same forever-property the shop item ids and the name pool carry.
+ */
+const STICK_KEY = "stickStyle";
+
 const clock = (ms: number) => {
   const s = Math.ceil(ms / 1000);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -40,7 +53,7 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
   // Typed as the half the chrome actually calls, rather than the whole scene.
   const sceneRef = useRef<Pick<
     SurvivorsScene,
-    "setLevel" | "setPaused" | "restartFromChrome" | "startFromChrome" | "steer" | "choose"
+    "setLevel" | "setPaused" | "restartFromChrome" | "startFromChrome" | "setStickStyle" | "choose"
   > | null>(null);
 
   const [level, setLevel] = useRememberedLevel(
@@ -50,6 +63,20 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
   );
   const levelRef = useRef(level);
   levelRef.current = level;
+
+  // The stick the player prefers, remembered on this device.
+  //
+  // VALIDATED ON THE WAY IN, never trusted. A stored value is the one input this
+  // app does not generate itself: a previous build wrote it, a browser may have
+  // truncated it, and a person can hand-edit it. An unrecognised `"joystick"`
+  // would flow straight into the chrome and leave the toggle showing a style the
+  // scene is not using - so anything that is not one of the two real styles
+  // reads as "never chosen", which is the same answer as a first visit and needs
+  // no second code path. Same discipline `session.ts` applies to a snapshot.
+  const [stickStyle, setStickStyle] = useState<StickStyle>(() => {
+    const saved = ctx.storage.get<string>(STICK_KEY, "tap");
+    return saved === "corner" || saved === "tap" ? saved : "tap";
+  });
 
   const [status, setStatus] = useState<SurvivorsStatus>({
     score: 0,
@@ -134,6 +161,9 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
         // The run no longer ends by surviving, so this no longer says it did.
         won: "הגולם נפל! הקישו לעוד סיבוב",
         golem: "גולם",
+        stick: "מקל",
+        stickTap: "איפה שנוגעים",
+        stickCorner: "בפינה",
         hint: "גררו, חצים או כפתורים - היריות לבד",
         pick: "עלייה לדרגה",
         score: "צורות",
@@ -145,6 +175,9 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
         over: "Out of hearts - tap to play again",
         won: "The golem is down! Tap for another run",
         golem: "Golem",
+        stick: "Stick",
+        stickTap: "Where I tap",
+        stickCorner: "Corner",
         hint: "Drag, arrows or buttons - it shoots by itself",
         pick: "Level up",
         score: "Shapes",
@@ -156,6 +189,9 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
         over: "Sin corazones - toca para jugar otra vez",
         won: "¡El gólem ha caído! Toca para otra ronda",
         golem: "Gólem",
+        stick: "Palanca",
+        stickTap: "Donde toco",
+        stickCorner: "Esquina",
         hint: "Arrastra, flechas o botones - dispara solo",
         pick: "Subes de nivel",
         score: "Formas",
@@ -282,9 +318,44 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
             </div>
           )}
 
-          {/* Tap steering, for a player with no keyboard who would rather not
-              drag. Tapping the same arrow again stops the ship. */}
-          <DirectionPad onDir={(d) => sceneRef.current?.steer(d)} />
+          {/* The stick's style, and it lives HERE rather than as a site-wide
+              setting because the operator ruled it belongs to this game's own
+              chrome - it is the only game with a stick, and a platform-wide
+              preference for one game is a setting nobody can find. */}
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
+            <span style={{ fontSize: 13, color: "var(--muted)" }}>{T.stick}</span>
+            {(["tap", "corner"] as StickStyle[]).map((s) => (
+              <button
+                key={s}
+                type="button"
+                aria-pressed={stickStyle === s}
+                onClick={() => {
+                  setStickStyle(s);
+                  // Persisted from the HANDLER, never from a state updater -
+                  // React may run an updater twice, and the house rule keeps
+                  // every side effect on this side of that line.
+                  ctx.storage.set(STICK_KEY, s);
+                  sceneRef.current?.setStickStyle(s);
+                }}
+                style={{
+                  minHeight: 44,
+                  padding: "8px 14px",
+                  borderRadius: "var(--radius-2)",
+                  border: stickStyle === s ? "2px solid var(--brand-strong)" : "2px solid var(--line)",
+                  background: stickStyle === s ? "var(--brand-fill)" : "var(--surface)",
+                  color: stickStyle === s ? "var(--on-brand)" : "inherit",
+                  font: "inherit",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  fontFamily: "Fredoka, inherit",
+                  cursor: "pointer",
+                  touchAction: "manipulation",
+                }}
+              >
+                {s === "tap" ? T.stickTap : T.stickCorner}
+              </button>
+            ))}
+          </div>
         </div>
       }
     >

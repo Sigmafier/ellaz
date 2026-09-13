@@ -12,6 +12,15 @@ import { animKey, createStudioAnims, originFor, type PhaserAnimsLike } from "@sh
 // phone, which is why the cheap in-canvas sparks below still do every pop.
 import { burst as juiceBurst, haptic } from "@juice/index";
 import { CAST, CAST_KEYS, FOR_ENEMY, PLAYER, scaleFor, type CastKey, type Clip } from "./sprites";
+// ALIASED, and not for tidiness: `@shared/sprites/load-atlas` already exports an
+// `originFor` and this file imports it for the sprite PIVOT. Two functions of
+// that name in one module is a duplicate identifier, and the two mean entirely
+// different things - one is where a character's feet are, the other is where a
+// joystick is born.
+import {
+  STICK_RADIUS, knobAt, originFor as stickOriginFor, stickVector,
+  type Stick, type StickStyle,
+} from "./stick";
 import {
   ARENA, KINDS, RUN_MS, TIER, WEAPONS, applyUpgrade, bossOf, newRun, offerUpgrades, rngFor, step,
   type EnemyKind, type LevelKey, type RunState, type UpgradeId, type WeaponId,
@@ -162,12 +171,20 @@ export class SurvivorsScene extends Phaser.Scene {
   /** Scene time the next shot may sound at. See the throttle in `consume`. */
   private nextShotSfx = 0;
 
-  /** Where a finger is holding, in arena units, or null when nothing is held. */
-  private hold: { x: number; y: number } | null = null;
+  /**
+   * The live joystick, or null when no thumb is down.
+   *
+   * This REPLACED a `hold` point, and the difference is the whole control: a
+   * hold steers the ship TOWARD an absolute spot, so the ship stops the moment
+   * it arrives and the thumb has to keep moving to keep the ship moving. A stick
+   * steers by a vector FROM its origin, so a thumb that stays put keeps walking.
+   * They are different games to play, and the second is what a joystick is.
+   */
+  private stick: Stick | null = null;
+  /** Which stick this player chose. Their own setting, on this game's chrome. */
+  private stickStyle: StickStyle = "tap";
   /** Keys currently down. */
   private keys = new Set<string>();
-  /** The pad's persistent direction, for a player who would rather tap than drag. */
-  private padDir: { dx: number; dy: number } | null = null;
 
   private onStatus?: (s: SurvivorsStatus) => void;
   /**
@@ -233,17 +250,31 @@ export class SurvivorsScene extends Phaser.Scene {
     this.ship = this.spriteFor(PLAYER, this.run.x, this.run.y, DEPTH.player);
     this.ship.play(animKey(PLAYER, "idle"));
 
+    // A thumb down BORNS the stick. For the tap style that is wherever the thumb
+    // landed; for the corner style the origin is fixed and the touch only says
+    // where the knob starts. One `originFor` decides, so the two styles cannot
+    // drift into two different controls.
     this.input.on("pointerdown", (p: Phaser.Input.Pointer) => {
       if (this.paused) return;
       if (this.phase !== "playing") return void this.startFromChrome();
-      this.hold = { x: p.worldX, y: p.worldY };
+      const o = stickOriginFor(this.stickStyle, p.worldX, p.worldY, ARENA);
+      this.stick = { ox: o.ox, oy: o.oy, px: p.worldX, py: p.worldY };
     });
     this.input.on("pointermove", (p: Phaser.Input.Pointer) => {
       if (this.paused) return;
-      if (p.isDown && this.phase === "playing") this.hold = { x: p.worldX, y: p.worldY };
+      if (p.isDown && this.phase === "playing" && this.stick) {
+        this.stick.px = p.worldX;
+        this.stick.py = p.worldY;
+      }
     });
     this.input.on("pointerup", () => {
-      this.hold = null;
+      this.stick = null;
+    });
+    // A thumb that leaves the canvas mid-drag never sends `pointerup` here, and
+    // the ship would then walk forever in the last direction held. Phaser emits
+    // this when the pointer leaves the game surface, which is the only tell.
+    this.input.on("gameout", () => {
+      this.stick = null;
     });
 
     const kb = this.input.keyboard;
@@ -300,7 +331,7 @@ export class SurvivorsScene extends Phaser.Scene {
     // would otherwise still be held when it lifts, and the ship sets off alone.
     if (next) {
       this.keys.clear();
-      this.hold = null;
+      this.stick = null;
     }
     this.publish();
   }
@@ -343,9 +374,8 @@ export class SurvivorsScene extends Phaser.Scene {
     this.offer = [];
     this.nextMilestone = MILESTONE_EVERY;
     this.sparks.length = 0;
-    this.hold = null;
+    this.stick = null;
     this.keys.clear();
-    this.padDir = null;
     // Every sprite the last run owned goes with it. A mob left behind would be
     // drawn forever at the place its enemy died, with nothing to move it.
     for (const s of this.mobs.values()) s.destroy();
@@ -361,24 +391,26 @@ export class SurvivorsScene extends Phaser.Scene {
     this.publish();
   }
 
-  /** The pad steers persistently; tapping the same arrow again stops the ship. */
-  steer(dir: "up" | "down" | "left" | "right") {
-    if (this.paused) return;
-    if (this.phase !== "playing") return void this.startFromChrome();
-    const v = { up: { dx: 0, dy: -1 }, down: { dx: 0, dy: 1 }, left: { dx: -1, dy: 0 }, right: { dx: 1, dy: 0 } }[dir];
-    const same = this.padDir && this.padDir.dx === v.dx && this.padDir.dy === v.dy;
-    this.padDir = same ? null : v;
+  /**
+   * The player's choice of stick, from this game's own chrome.
+   *
+   * Changing it drops any live stick rather than moving it: a thumb that is
+   * mid-drag when the style flips would otherwise find its origin teleported to
+   * the corner, and the ship would bolt in whatever direction that implied.
+   */
+  setStickStyle(next: StickStyle) {
+    if (this.stickStyle === next) return;
+    this.stickStyle = next;
+    this.stick = null;
+    this.publish();
   }
 
-  /** A finger beats the keys, and the keys beat the pad's standing order. */
+  /** A thumb beats the keys; with neither, the ship holds still. */
   private inputVector(): { dx: number; dy: number } {
-    if (this.hold) {
-      const dx = this.hold.x - this.run.x;
-      const dy = this.hold.y - this.run.y;
-      // A finger resting on the ship is a finger asking it to stay put.
-      if (Math.hypot(dx, dy) > 6) return { dx, dy };
-      return { dx: 0, dy: 0 };
-    }
+    // The stick's own deadzone decides "not moving", so a thumb resting still
+    // is a request to stand still rather than a drift - the same judgement the
+    // old hold-point made with its 6 units, now made in one place.
+    if (this.stick) return stickVector(this.stick);
     let dx = 0;
     let dy = 0;
     const k = this.keys;
@@ -386,8 +418,7 @@ export class SurvivorsScene extends Phaser.Scene {
     if (k.has("arrowright") || k.has("d")) dx += 1;
     if (k.has("arrowup") || k.has("w")) dy -= 1;
     if (k.has("arrowdown") || k.has("s")) dy += 1;
-    if (dx !== 0 || dy !== 0) return { dx, dy };
-    return this.padDir ?? { dx: 0, dy: 0 };
+    return { dx, dy };
   }
 
   update(_time: number, delta: number) {
@@ -687,6 +718,19 @@ export class SurvivorsScene extends Phaser.Scene {
     for (const s of this.sparks) {
       g.fillStyle(s.ink, Math.max(0, s.life / 320));
       g.fillCircle(s.x, s.y, 2.5);
+    }
+
+    // The joystick, drawn where the thumb put it. Only while a thumb is down -
+    // a ring sitting on an untouched screen is furniture, and this game's whole
+    // point is that the arena is the control now.
+    if (this.stick) {
+      const k = knobAt(this.stick);
+      g.lineStyle(2, INK.bolt, 0.35);
+      g.strokeCircle(this.stick.ox, this.stick.oy, STICK_RADIUS);
+      g.fillStyle(INK.bolt, 0.14);
+      g.fillCircle(this.stick.ox, this.stick.oy, STICK_RADIUS);
+      g.fillStyle(INK.bolt, 0.8);
+      g.fillCircle(k.x, k.y, 13);
     }
 
     // The golem's health, along the top of the arena. It is a LENGTH, not a

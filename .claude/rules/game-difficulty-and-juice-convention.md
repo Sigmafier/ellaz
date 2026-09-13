@@ -27,8 +27,24 @@ success with **juice**. Follow the established pattern so every game feels consi
   `page` chunk, so a re-export would make the shell import from it. Pass `repeatMs`
   only where a direction is a STEP and holding should walk (maze, 260 ms); a game
   that steers once and keeps going (snake) passes nothing. The four arrows are
-  `<button>`s and the stick is `aria-hidden` — **never ship the stick alone**, or
-  the game stops being tap-completable.
+  `<button>`s and the stick is `aria-hidden` — **in an `ageBand: "kids"` game,
+  never ship the stick alone**, or the game stops being tap-completable.
+
+  **NARROWED 2026-09-13, by operator ruling, in the change that first broke it.**
+  It used to read "never ship the stick alone" of every game. `survivors` now
+  puts its steering ON the arena — a stick born where the thumb lands, a
+  fixed-corner alternative toggled from the game's own chrome, the pad gone, and
+  arrows/WASD still live on desktop. The conflict was surfaced BEFORE the code
+  was written rather than discovered after, because a law edited quietly to fit
+  the code it was meant to constrain is worse than no law at all.
+
+  Measured at the time of narrowing, so the exemption is not an empty one: three
+  games import the pad — `maze` (`ageBand: "kids"`), `snake` and `survivors`
+  (both `"all"`). The kids band the rule still binds therefore has a real member,
+  and `src/ui/DirectionPad.tsx` is NOT deleted. The remaining question this does
+  not answer: `snake` is `"all"` and keeps its pad, which is fine, but nothing
+  yet says whether an `"all"` game SHOULD have one - that is a judgement per
+  game, not a rule.
 - **Juice on win**: call **`winMoment(ctx, {...})`** from `@shared`. It owns the
   confetti now, along with the reward grant, the sound, the haptic and the coin
   flight to the wallet chip, in that order. **Do not call `celebrate()` directly
