@@ -1,0 +1,29 @@
+{
+  "id": "slime",
+  "sprites": "slime--snes16",
+  "hp": 30,
+  "radius": 30,
+  "tall": 62,
+  "bar": 52,
+  "knockback": { "speed": 300, "decay": { "num": 85, "den": 100 } },
+  "coins": 3,
+  "slime": {
+    "aggro": 400,
+    "speed": 230,
+    "hopFrom": 1,
+    "hopTo": 4,
+    "repathTicks": 30,
+    "biteAt": 130,
+    "biteReach": 145,
+    "lungeSpeed": 160,
+    "lungeFrom": 1,
+    "lungeTo": 2,
+    "lungeStop": 90,
+    "strikeFrame": 3,
+    "dmg": 4,
+    "cooldownTicks": 90,
+    "pauseTicks": 30,
+    "hurtPauseTicks": 18,
+    "walkAt": 120
+  }
+}

@@ -21,6 +21,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { AiFile, ArenaFile, FighterFile, Manifest, MatchFile, ModeFile, MovesFile, StageFile } from "../sim/types";
 import type { BattleFile, LoadedTurn, RulesFile, TurnModeFile, UnitFile } from "../turn/types";
+import type { ActorFile, DungeonModeFile, DungeonRulesFile, LoadedDungeon, RoomFile } from "../dungeon/types";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -96,7 +97,7 @@ export function loadMode(modeId: string, gameRoot: string): LoadedFight {
   const root = join(gameRoot, "data");
   const mode = readJson<ModeFile & { kind?: unknown }>(join(root, "modes", `${modeId}.json`), `mode "${modeId}"`);
   // a mode file that names a kind is not a fight's: reading its arena would throw about a path, not about the kind
-  if (mode.kind !== undefined) throw new Error(`fight: mode "${modeId}" is a ${JSON.stringify(mode.kind)} mode, not a fight - readModeKind first, then loadTurnMode`);
+  if (mode.kind !== undefined) throw new Error(`fight: mode "${modeId}" is a ${JSON.stringify(mode.kind)} mode, not a fight - readModeKind first, then loadTurnMode or loadDungeonMode`);
   const arena = readJson<ArenaFile>(join(root, "arena", `${mode.arena}.json`), `arena "${mode.arena}" (named by mode "${modeId}")`);
   const match = readJson<MatchFile>(join(root, "match", `${mode.match}.json`), `match "${mode.match}" (named by mode "${modeId}")`);
 
@@ -114,15 +115,16 @@ export function loadMode(modeId: string, gameRoot: string): LoadedFight {
   return { mode, arena, match, fighters, ais, sets: loadSets(fighters, join(gameRoot, "assets")), ...(stage ? { stage } : {}) };
 }
 
-/** the two kinds of simulation a mode file can name: `kind` absent is the fight's (its files predate the second kind) */
-export type ModeKind = "fight" | "turn";
+/** the three kinds of simulation a mode file can name: `kind` absent is the fight's (its files predate the second kind) */
+export type ModeKind = "fight" | "turn" | "dungeon";
 
 /** which sim a mode belongs to, from the one field that says so; an unknown kind throws naming it */
 export function readModeKind(modeId: string, gameRoot: string): ModeKind {
   const mode = readJson<{ kind?: unknown }>(join(gameRoot, "data", "modes", `${modeId}.json`), `mode "${modeId}"`);
   if (mode.kind === undefined) return "fight";
   if (mode.kind === "turn") return "turn";
-  throw new Error(`mode "${modeId}" names an unknown kind ${JSON.stringify(mode.kind)} (fight modes name none; turn modes name "turn")`);
+  if (mode.kind === "dungeon") return "dungeon";
+  throw new Error(`mode "${modeId}" names an unknown kind ${JSON.stringify(mode.kind)} (fight modes name none; turn modes name "turn"; dungeon modes name "dungeon")`);
 }
 
 /**
@@ -146,4 +148,30 @@ export function loadTurnMode(modeId: string, gameRoot: string): LoadedTurn {
     sets[u.sprites] = { manifest: readJson<Manifest>(join(dir, `${u.sprites}.manifest.json`), `sprite manifest for "${u.sprites}"`) };
   }
   return { mode, battle, rules, units, sets };
+}
+
+/**
+ * Read a DUNGEON mode and everything it names: the room, the rules, one file
+ * per distinct actor the start and the spawns name (the hero first), and one
+ * manifest per set - a side-view `sprites` set for every actor and the
+ * `facings` set a knight adds. Like a turn unit, an actor needs no moves file:
+ * a strike is a rule, not a hitbox.
+ */
+export function loadDungeonMode(modeId: string, gameRoot: string): LoadedDungeon {
+  const root = join(gameRoot, "data");
+  const mode = readJson<DungeonModeFile>(join(root, "modes", `${modeId}.json`), `mode "${modeId}"`);
+  if (mode.kind !== "dungeon") throw new Error(`dungeon: mode "${modeId}" is not a dungeon mode (kind ${JSON.stringify(mode.kind)})`);
+  const room = readJson<RoomFile>(join(root, "rooms", `${mode.room}.json`), `room "${mode.room}" (named by mode "${modeId}")`);
+  const rules = readJson<DungeonRulesFile>(join(root, "dungeon", `${mode.dungeon}.json`), `dungeon rules "${mode.dungeon}" (named by mode "${modeId}")`);
+  const actors = distinct([room.start, ...room.spawns], (p) => p.actor).map((id) =>
+    readJson<ActorFile>(join(root, "actors", `${id}.json`), `actor "${id}" (named by room "${mode.room}")`),
+  );
+  const sets: LoadedDungeon["sets"] = {};
+  for (const a of actors) {
+    for (const set of [a.sprites, ...(a.facings ? [a.facings] : [])]) {
+      if (sets[set]) continue;
+      sets[set] = { manifest: readJson<Manifest>(join(gameRoot, "assets", set, `${set}.manifest.json`), `sprite manifest for "${set}"`) };
+    }
+  }
+  return { mode, room, rules, actors, sets };
 }

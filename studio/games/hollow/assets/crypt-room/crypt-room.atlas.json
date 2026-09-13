@@ -1,0 +1,133 @@
+{
+  "frames": {
+    "crypt-room_room_0000": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 3200,
+        "h": 2220
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 3200,
+        "h": 2220
+      },
+      "sourceSize": {
+        "w": 3200,
+        "h": 2220
+      },
+      "pivot": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    "crypt-room_pillar_0000": {
+      "frame": {
+        "x": 0,
+        "y": 2220,
+        "w": 480,
+        "h": 960
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 480,
+        "h": 960
+      },
+      "sourceSize": {
+        "w": 480,
+        "h": 960
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.9166666666666666
+      }
+    },
+    "crypt-room_crate_0000": {
+      "frame": {
+        "x": 480,
+        "y": 2220,
+        "w": 480,
+        "h": 960
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 480,
+        "h": 960
+      },
+      "sourceSize": {
+        "w": 480,
+        "h": 960
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.9166666666666666
+      }
+    },
+    "crypt-room_crates_0000": {
+      "frame": {
+        "x": 960,
+        "y": 2220,
+        "w": 480,
+        "h": 960
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 480,
+        "h": 960
+      },
+      "sourceSize": {
+        "w": 480,
+        "h": 960
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.9166666666666666
+      }
+    },
+    "crypt-room_crystal_0000": {
+      "frame": {
+        "x": 1440,
+        "y": 2220,
+        "w": 480,
+        "h": 960
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 480,
+        "h": 960
+      },
+      "sourceSize": {
+        "w": 480,
+        "h": 960
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.9166666666666666
+      }
+    }
+  },
+  "meta": {
+    "image": "crypt-room.png",
+    "size": {
+      "w": 3200,
+      "h": 3180
+    },
+    "scale": "1",
+    "note": "the crypt room and its props, painted by tools/room-painter/paint.mjs"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "character": "crypt-room",
+  "style": "snes16",
+  "scale": 2,
+  "frameSize": {
+    "w": 480,
+    "h": 960
+  },
+  "pivot": {
+    "x": 240,
+    "y": 880
+  },
+  "animations": {
+    "room": {
+      "fps": 1,
+      "loop": false,
+      "frames": [
+        "crypt-room_room_0000"
+      ]
+    },
+    "pillar": {
+      "fps": 1,
+      "loop": false,
+      "frames": [
+        "crypt-room_pillar_0000"
+      ]
+    },
+    "crate": {
+      "fps": 1,
+      "loop": false,
+      "frames": [
+        "crypt-room_crate_0000"
+      ]
+    },
+    "crates": {
+      "fps": 1,
+      "loop": false,
+      "frames": [
+        "crypt-room_crates_0000"
+      ]
+    },
+    "crystal": {
+      "fps": 1,
+      "loop": false,
+      "frames": [
+        "crypt-room_crystal_0000"
+      ]
+    }
+  },
+  "sockets": {},
+  "hitbox": {
+    "x": 0,
+    "y": 0,
+    "w": 480,
+    "h": 960
+  },
+  "atlas": "crypt-room.atlas.json"
+}

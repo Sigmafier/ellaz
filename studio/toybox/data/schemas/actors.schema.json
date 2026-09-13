@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ellaz.fun/studio/toybox/actors.schema.json",
+  "title": "Ellaz dungeon actor file",
+  "description": "What an actor of a dungeon room IS: its body, its picture, its hp, how a hit throws it, and ONE behaviour block for its kind - `knight` (the hero the player drives), `slime` (hops and bites) or `bat` (hovers, swoops, retreats). Lengths are CENTI-TILES (100 = one tile), speeds centi-tiles per second, times ticks at the rules file's tickRate, heights view px; compile.ts turns each into FP or per-tick once, rounding a speed to the nearest FP per tick (2.8 tiles/s is 12). What the validator subset cannot write, data.test.ts asserts: exactly one behaviour block; `hover` REQUIRES `flying`; `facings` only with a `knight` block; `speed` REQUIRED with a `knight` block; dmgMin <= dmgMax.",
+  "type": "object",
+  "required": ["id", "sprites", "hp", "radius", "tall", "bar", "knockback"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "must equal the file's basename" },
+    "sprites": { "type": "string", "pattern": "^[a-z0-9]+--[a-z0-9]+$", "description": "the side-view set: a directory under ../assets/ holding <set>.png, .atlas.json, .manifest.json and .moves.json (an export set; copy-sprites holds it byte-identical to dist-export)" },
+    "facings": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "a knight's front/back set under ../assets/ (png, atlas, manifest - no moves file) with idle_down, idle_up, walk_down, walk_up, attack_down, attack_up; the side set draws left, right and the ko" },
+    "hp": { "type": "integer", "exclusiveMinimum": 0 },
+    "speed": { "type": "integer", "exclusiveMinimum": 0, "description": "a knight's walk, centi-tiles per second; a foe's speeds sit in its block" },
+    "radius": { "type": "integer", "exclusiveMinimum": 0, "description": "the body's half-width in centi-tiles: the walls and props stop a body this wide" },
+    "tall": { "type": "integer", "minimum": 0, "description": "view px above the feet where a damage float starts" },
+    "bar": { "type": "integer", "minimum": 0, "description": "view px above the feet where the hp bar sits" },
+    "flying": { "type": "boolean", "description": "drawn `hover` px above its tile; a flier's shadow shrinks with its height" },
+    "hover": { "type": "integer", "minimum": 0, "description": "view px; REQUIRES `flying`" },
+    "bobPx": { "type": "integer", "minimum": 0, "description": "cosmetic: a flier bobs this many px up and down ..." },
+    "bobTicks": { "type": "integer", "exclusiveMinimum": 0, "description": "... over this many ticks, as a triangle wave in the view" },
+    "knockback": {
+      "type": "object",
+      "required": ["speed", "decay"],
+      "additionalProperties": false,
+      "description": "a hit throws the body away from the hitter at `speed`, and every tick the throw keeps `decay` of itself (exp(-12/60) is 82/100, exp(-10/60) is 85/100)",
+      "properties": {
+        "speed": { "type": "integer", "minimum": 0 },
+        "decay": { "$ref": "#/$defs/ratio" }
+      }
+    },
+    "coins": { "type": "integer", "minimum": 0, "description": "the coins a fallen foe's body drops; absent means none" },
+    "knight": {
+      "type": "object",
+      "required": ["mp", "mpCost", "mpRegen", "hpRegen", "reach", "pointBlank", "cone", "dmgMin", "dmgMax", "approach", "repathTicks"],
+      "additionalProperties": false,
+      "properties": {
+        "mp": { "type": "integer", "minimum": 0 },
+        "mpCost": { "type": "integer", "minimum": 0, "description": "a swing spends this; an empty orb still swings" },
+        "mpRegen": { "$ref": "#/$defs/regen" },
+        "hpRegen": {
+          "type": "object",
+          "required": ["amount", "everyTicks", "afterTicks"],
+          "additionalProperties": false,
+          "properties": {
+            "amount": { "type": "integer", "minimum": 0 },
+            "everyTicks": { "type": "integer", "exclusiveMinimum": 0 },
+            "afterTicks": { "type": "integer", "minimum": 0, "description": "ticks unhurt before the regen begins; a hit resets the count" }
+          }
+        },
+        "reach": { "type": "integer", "exclusiveMinimum": 0, "description": "the strike lands on a foe closer than this ..." },
+        "pointBlank": { "type": "integer", "minimum": 0, "description": "... in front of the knight (the dot product of the facing and the direction to the foe, times 100, above `cone`) or closer than this on any side" },
+        "cone": { "type": "integer", "minimum": -100, "description": "hundredths of the dot product; 25 is a cone about 150 degrees wide" },
+        "dmgMin": { "type": "integer", "minimum": 0 },
+        "dmgMax": { "type": "integer", "minimum": 0, "description": "the roll is dmgMin + one rng byte scaled into [0, dmgMax - dmgMin]" },
+        "approach": { "type": "integer", "exclusiveMinimum": 0, "description": "a targeted foe closer than this is struck; farther, the knight walks the path to it" },
+        "repathTicks": { "type": "integer", "exclusiveMinimum": 0, "description": "the path to a moving target is re-planned this often" }
+      }
+    },
+    "slime": {
+      "type": "object",
+      "required": ["aggro", "speed", "hopFrom", "hopTo", "repathTicks", "biteAt", "biteReach", "lungeSpeed", "lungeFrom", "lungeTo", "lungeStop", "strikeFrame", "dmg", "cooldownTicks", "pauseTicks", "hurtPauseTicks", "walkAt"],
+      "additionalProperties": false,
+      "properties": {
+        "aggro": { "type": "integer", "exclusiveMinimum": 0, "description": "the knight closer than this wakes it" },
+        "speed": { "type": "integer", "exclusiveMinimum": 0, "description": "the hop, centi-tiles/s, applied only on walk frames hopFrom..hopTo (the airborne ones)" },
+        "hopFrom": { "type": "integer", "minimum": 0 },
+        "hopTo": { "type": "integer", "minimum": 0 },
+        "repathTicks": { "type": "integer", "exclusiveMinimum": 0, "description": "when the straight line to the knight is blocked, the path round is re-planned this often" },
+        "biteAt": { "type": "integer", "exclusiveMinimum": 0, "description": "a bite begins when the knight is closer than this and the cooldown is over" },
+        "biteReach": { "type": "integer", "exclusiveMinimum": 0, "description": "on the strike frame the bite lands within this" },
+        "lungeSpeed": { "type": "integer", "minimum": 0, "description": "on attack frames lungeFrom..lungeTo the slime lunges at the knight while farther than lungeStop" },
+        "lungeFrom": { "type": "integer", "minimum": 0 },
+        "lungeTo": { "type": "integer", "minimum": 0 },
+        "lungeStop": { "type": "integer", "minimum": 0 },
+        "strikeFrame": { "type": "integer", "minimum": 0, "description": "the attack frame on which the bite lands" },
+        "dmg": { "type": "integer", "minimum": 0 },
+        "cooldownTicks": { "type": "integer", "minimum": 0, "description": "after a bite lands, no bite for this long" },
+        "pauseTicks": { "type": "integer", "minimum": 0, "description": "after the attack clip ends, no move for this long" },
+        "hurtPauseTicks": { "type": "integer", "minimum": 0, "description": "after the hurt clip ends, no move for this long" },
+        "walkAt": { "type": "integer", "exclusiveMinimum": 0, "description": "it walks while the knight is at least this far (a little under biteAt, so it does not flicker between the two)" }
+      }
+    },
+    "bat": {
+      "type": "object",
+      "required": ["aggro", "speed", "closeNum", "closeDen", "everyTicks", "range", "beyond", "swoopSpeed", "swoopAlt", "swoopAltDiv", "hit", "stop", "dmg", "cooldownTicks", "retreatSpeed", "retreatTicks", "retreatAlt", "retreatAltDiv", "edgePad", "hurtPauseTicks"],
+      "additionalProperties": false,
+      "properties": {
+        "aggro": { "type": "integer", "exclusiveMinimum": 0 },
+        "speed": { "type": "integer", "exclusiveMinimum": 0, "description": "flies straight at the knight at most this fast, slowing as it closes: min(speed, gap * closeNum / closeDen)" },
+        "closeNum": { "type": "integer", "minimum": 0 },
+        "closeDen": { "type": "integer", "exclusiveMinimum": 0 },
+        "everyTicks": { "type": "integer", "exclusiveMinimum": 0, "description": "a swoop comes this often while aggroed" },
+        "range": { "type": "integer", "exclusiveMinimum": 0, "description": "... and only when the knight is closer than this" },
+        "beyond": { "type": "integer", "minimum": 0, "description": "the swoop aims this far past the knight" },
+        "swoopSpeed": { "type": "integer", "exclusiveMinimum": 0 },
+        "swoopAlt": { "type": "integer", "minimum": 0, "description": "view px: the swoop drops toward this height ..." },
+        "swoopAltDiv": { "type": "integer", "exclusiveMinimum": 0, "description": "... closing 1/this of the gap each tick" },
+        "hit": { "type": "integer", "exclusiveMinimum": 0, "description": "while swooping, the knight within this takes dmg (if the cooldown is over) and the bat retreats" },
+        "stop": { "type": "integer", "minimum": 0, "description": "a swoop that reaches within this of its aim retreats without a hit" },
+        "dmg": { "type": "integer", "minimum": 0 },
+        "cooldownTicks": { "type": "integer", "minimum": 0 },
+        "retreatSpeed": { "type": "integer", "minimum": 0 },
+        "retreatTicks": { "type": "integer", "exclusiveMinimum": 0 },
+        "retreatAlt": { "type": "integer", "minimum": 0, "description": "view px the retreat climbs toward, 1/retreatAltDiv of the gap per tick" },
+        "retreatAltDiv": { "type": "integer", "exclusiveMinimum": 0 },
+        "edgePad": { "type": "integer", "minimum": 0, "description": "centi-tiles a bat keeps from the room's edge (it flies over props, never over the walls)" },
+        "hurtPauseTicks": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "$defs": {
+    "ratio": {
+      "type": "object",
+      "required": ["num", "den"],
+      "additionalProperties": false,
+      "properties": {
+        "num": { "type": "integer", "minimum": 0 },
+        "den": { "type": "integer", "exclusiveMinimum": 0 }
+      }
+    },
+    "regen": {
+      "type": "object",
+      "required": ["amount", "everyTicks"],
+      "additionalProperties": false,
+      "properties": {
+        "amount": { "type": "integer", "minimum": 0 },
+        "everyTicks": { "type": "integer", "exclusiveMinimum": 0 }
+      }
+    }
+  }
+}

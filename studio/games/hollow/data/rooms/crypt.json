@@ -1,0 +1,38 @@
+{
+  "id": "crypt",
+  "view": { "w": 640, "h": 444 },
+  "grid": { "n": 12, "ox": 320, "oy": 108, "tileW": 48, "tileH": 24 },
+  "blocked": [
+    { "i": 3, "j": 7 },
+    { "i": 7, "j": 3 },
+    { "i": 1, "j": 10 },
+    { "i": 2, "j": 10 },
+    { "i": 10, "j": 1 }
+  ],
+  "door": [
+    { "i": 5, "j": 0 },
+    { "i": 6, "j": 0 },
+    { "i": 7, "j": 0 }
+  ],
+  "start": { "actor": "knight", "x": 550, "y": 750, "face": "down" },
+  "spawns": [
+    { "actor": "slime", "x": 250, "y": 300, "wait": 36 },
+    { "actor": "slime", "x": 950, "y": 650, "wait": 58 },
+    { "actor": "slime", "x": 650, "y": 1050, "wait": 80 },
+    { "actor": "slime", "x": 1050, "y": 950, "wait": 43 },
+    { "actor": "bat", "x": 550, "y": 250, "wait": 148 },
+    { "actor": "bat", "x": 250, "y": 850, "wait": 192 }
+  ],
+  "art": {
+    "scenery": "crypt-room",
+    "room": "room",
+    "props": [
+      { "kind": "pillar", "i": 3, "j": 7 },
+      { "kind": "pillar", "i": 7, "j": 3 },
+      { "kind": "crates", "i": 1, "j": 10 },
+      { "kind": "crate", "i": 2, "j": 10 },
+      { "kind": "crystal", "i": 10, "j": 1 }
+    ],
+    "void": "#2e1a2c"
+  }
+}

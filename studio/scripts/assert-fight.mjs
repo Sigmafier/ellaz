@@ -71,7 +71,31 @@ function checkTurnRefs(root, assets, m, out) {
   for (const u of units) checkSet(assets, "unit", u.id, u.sprites, ["png", "atlas.json", "manifest.json"], out);
 }
 
-/** fighters name real sets with moves; modes name real arenas, matches, ais, fighters - or, for a turn mode, a battle, rules and units */
+/**
+ * A DUNGEON mode names a room and a rules file that exist; the room's start and
+ * every spawn name an actor that exists; every actor's side set has its four
+ * files and a knight's facings set its three; the room's scenery set (the
+ * picture the cells draw, hand-made like the facings) has its three too.
+ */
+function checkDungeonRefs(root, assets, m, out) {
+  const rooms = idsOf(root, "rooms"), rules = idsOf(root, "dungeon"), actors = idsOf(root, "actors");
+  if (!has(rooms, m.room)) out.push(`mode "${m.id}" names room "${m.room}", which does not exist`);
+  if (!has(rules, m.dungeon)) out.push(`mode "${m.id}" names dungeon rules "${m.dungeon}", which does not exist`);
+  const room = rooms.find((r) => r.id === m.room);
+  if (room?.start && !has(actors, room.start.actor)) out.push(`room "${room.id}" starts actor "${room.start.actor}", which does not exist`);
+  (room?.spawns ?? []).forEach((s, i) => {
+    if (!has(actors, s.actor)) out.push(`room "${room.id}" spawn ${i} names actor "${s.actor}", which does not exist`);
+  });
+  for (const a of actors) {
+    checkSet(assets, "actor", a.id, a.sprites, ["png", "atlas.json", "manifest.json", "moves.json"], out);
+    if (a.facings !== undefined) checkSet(assets, "actor", a.id, a.facings, ["png", "atlas.json", "manifest.json"], out);
+  }
+  const scenery = room?.art?.scenery;
+  if (typeof scenery === "string") checkSet(assets, "room", room.id, scenery, ["png", "atlas.json", "manifest.json"], out);
+  else if (room) out.push(`room "${room.id}" names no art.scenery set`);
+}
+
+/** fighters name real sets with moves; modes name real arenas, matches, ais, fighters - or, for a turn mode, a battle, rules and units; or, for a dungeon mode, a room, rules, actors and scenery */
 function checkRefs(root, assets) {
   const out = [];
   const fighters = idsOf(root, "fighters"), arenas = idsOf(root, "arena"), matches = idsOf(root, "match"), ais = idsOf(root, "ai");
@@ -79,6 +103,7 @@ function checkRefs(root, assets) {
   const stages = idsOf(root, "stage");
   for (const m of idsOf(root, "modes")) {
     if (m.kind === "turn") { checkTurnRefs(root, assets, m, out); continue; }
+    if (m.kind === "dungeon") { checkDungeonRefs(root, assets, m, out); continue; }
     if (m.kind !== undefined) { out.push(`mode "${m.id}" names an unknown kind ${JSON.stringify(m.kind)}`); continue; }
     if (!has(arenas, m.arena)) out.push(`mode "${m.id}" names arena "${m.arena}", which does not exist`);
     if (!has(matches, m.match)) out.push(`mode "${m.id}" names match "${m.match}", which does not exist`);

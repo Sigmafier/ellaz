@@ -1,0 +1,24 @@
+{
+  "id": "knight",
+  "sprites": "knight--snes16",
+  "facings": "knight-facings",
+  "hp": 100,
+  "speed": 280,
+  "radius": 26,
+  "tall": 104,
+  "bar": 90,
+  "knockback": { "speed": 300, "decay": { "num": 82, "den": 100 } },
+  "knight": {
+    "mp": 60,
+    "mpCost": 10,
+    "mpRegen": { "amount": 2, "everyTicks": 15 },
+    "hpRegen": { "amount": 1, "everyTicks": 15, "afterTicks": 180 },
+    "reach": 155,
+    "pointBlank": 40,
+    "cone": 25,
+    "dmgMin": 10,
+    "dmgMax": 15,
+    "approach": 115,
+    "repathTicks": 18
+  }
+}

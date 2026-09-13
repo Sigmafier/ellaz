@@ -2,10 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ellaz.fun/studio/toybox/mode.schema.json",
   "title": "Ellaz mode file",
-  "description": "The one file a game names, in one of two shapes, told apart by `kind`: a FIGHT mode (no `kind` - the fight's and the crypt's files predate the second kind and stay as they are) points at an arena, a match ruleset and a cast, and a STAGE mode adds `stage` and `waves`; a TURN mode (`kind: \"turn\"`) points at a battle and a rules file. `seed` lives here and not in code so a replay is a mode file plus an input log. Exactly one branch must be clean: scripts/lib/schema.mjs's oneOf reports the errors of the branch whose `kind` matches, whole.",
+  "description": "The one file a game names, in one of three shapes, told apart by `kind`: a FIGHT mode (no `kind` - the fight's and the crypt's files predate the second kind and stay as they are) points at an arena, a match ruleset and a cast, and a STAGE mode adds `stage` and `waves`; a TURN mode (`kind: \"turn\"`) points at a battle and a rules file; a DUNGEON mode (`kind: \"dungeon\"`) points at a room and a dungeon rules file. `seed` lives here and not in code so a replay is a mode file plus an input log. Exactly one branch must be clean: scripts/lib/schema.mjs's oneOf reports the errors of the branch whose `kind` matches, whole.",
   "oneOf": [
     { "$ref": "#/$defs/fightMode" },
-    { "$ref": "#/$defs/turnMode" }
+    { "$ref": "#/$defs/turnMode" },
+    { "$ref": "#/$defs/dungeonMode" }
   ],
   "$defs": {
     "fightMode": {
@@ -34,6 +35,19 @@
         "battle": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "a basename under ../battles/" },
         "rules": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "a basename under ../rules/" },
         "seed": { "type": "integer", "minimum": 0, "description": "carried in the state; the turn machine draws nothing from it today" }
+      }
+    },
+    "dungeonMode": {
+      "type": "object",
+      "required": ["id", "kind", "room", "dungeon", "seed"],
+      "additionalProperties": false,
+      "description": "a dungeon room: the room file holds the grid, the props, the door, the hero's start and the spawns; the dungeon file every timing and distance the actors do not own",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "must equal the file's basename" },
+        "kind": { "type": "string", "pattern": "^dungeon$" },
+        "room": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "a basename under ../rooms/" },
+        "dungeon": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "a basename under ../dungeon/" },
+        "seed": { "type": "integer", "minimum": 0, "description": "the whole state of the sim's rng: the knight's damage roll draws from it" }
       }
     },
     "wave": {

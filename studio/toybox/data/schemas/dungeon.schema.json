@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ellaz.fun/studio/toybox/dungeon.schema.json",
+  "title": "Ellaz dungeon rules file",
+  "description": "Every timing and distance of a dungeon room that belongs to no one actor: when the foes wake, how a click and a swing choose their target, how paths are straightened, how bodies keep apart, how coins fall and are taken, and how long the banners and the cosmetics last. Times are TICKS at `tickRate` (the sketch these came from, 2026-09-11, waited in seconds: 0.3 s is 18 ticks), lengths CENTI-TILES (100 = one tile), rises view px. Ratios are num/den pairs because the sim never divides by a float.",
+  "type": "object",
+  "required": ["id", "tickRate", "aggroStartTicks", "swingSeek", "clickRadius", "lineStep", "facing", "separate", "drop", "doorBannerTicks", "fadeTicks", "flashTicks", "floatTicks", "floatRise", "markerTicks"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "must equal the file's basename" },
+    "tickRate": { "type": "integer", "exclusiveMinimum": 0, "description": "ticks per second; the engine steps at 60" },
+    "aggroStartTicks": { "type": "integer", "minimum": 0, "description": "the foes ignore the knight for this long after the room begins" },
+    "swingSeek": { "type": "integer", "exclusiveMinimum": 0, "description": "Space swings at the nearest live foe within this, turning to face it; none in reach, the swing goes straight ahead" },
+    "clickRadius": { "type": "integer", "exclusiveMinimum": 0, "description": "a click within this of a live foe's ground point (a flier's hover compensated) targets it; within this of a coin walks to the coin; else the tile" },
+    "lineStep": { "type": "integer", "exclusiveMinimum": 0, "description": "a straight line is called clear when the body fits at every point sampled this far apart along it; a path drops its next waypoint while the line to the one after is clear" },
+    "facing": { "$ref": "#/$defs/ratio", "description": "a screen-space direction reads as up or down when |dy| > |dx| * num / den, else left or right" },
+    "separate": {
+      "type": "object",
+      "required": ["foes", "foesPush", "hero", "heroPush"],
+      "additionalProperties": false,
+      "description": "ground foes closer than `foes` push apart by their gap times `foesPush`; a ground foe closer than `hero` to the knight is pushed off by the gap times `heroPush`",
+      "properties": {
+        "foes": { "type": "integer", "exclusiveMinimum": 0 },
+        "foesPush": { "$ref": "#/$defs/ratio" },
+        "hero": { "type": "integer", "exclusiveMinimum": 0 },
+        "heroPush": { "$ref": "#/$defs/ratio" }
+      }
+    },
+    "drop": {
+      "type": "object",
+      "required": ["beyond", "radius", "pickup", "pickupDelayTicks"],
+      "additionalProperties": false,
+      "description": "a fallen foe's coins land `beyond` past its body away from the knight, as a body `radius` wide that a prop stops; the knight takes a coin within `pickup` once it has lain `pickupDelayTicks`",
+      "properties": {
+        "beyond": { "type": "integer", "minimum": 0 },
+        "radius": { "type": "integer", "minimum": 0 },
+        "pickup": { "type": "integer", "exclusiveMinimum": 0 },
+        "pickupDelayTicks": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "doorBannerTicks": { "type": "integer", "exclusiveMinimum": 0, "description": "THE DOOR OPENS stays up this long; VICTORY and DEFEAT stay" },
+    "fadeTicks": { "type": "integer", "exclusiveMinimum": 0, "description": "a fallen foe fades out over this long after its ko clip ends, then is gone" },
+    "flashTicks": { "type": "integer", "minimum": 0, "description": "cosmetic: a hit body flashes for this long" },
+    "floatTicks": { "type": "integer", "exclusiveMinimum": 0, "description": "cosmetic: a damage float's life ..." },
+    "floatRise": { "type": "integer", "minimum": 0, "description": "... and the view px it climbs over it" },
+    "markerTicks": { "type": "integer", "exclusiveMinimum": 0, "description": "cosmetic: the gold diamond a click leaves on its tile lives this long" }
+  },
+  "$defs": {
+    "ratio": {
+      "type": "object",
+      "required": ["num", "den"],
+      "additionalProperties": false,
+      "properties": {
+        "num": { "type": "integer", "minimum": 0 },
+        "den": { "type": "integer", "exclusiveMinimum": 0 }
+      }
+    }
+  }
+}

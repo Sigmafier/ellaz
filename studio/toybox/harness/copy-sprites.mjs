@@ -25,12 +25,15 @@ const FILES = { sheet: "png", atlas: "atlas.json", manifest: "manifest.json", mo
 const N_FILES = Object.keys(FILES).length;
 const baseName = (setName, kind) => `${setName}.${FILES[kind]}`;
 
-/** Sets named by <game>/data/fighters/*.json (a fight game) and/or
- * <game>/data/units/*.json (a turn game), or (both dirs absent - a concurrent
+/** Sets named by <game>/data/fighters/*.json (a fight game), <game>/data/units/
+ * *.json (a turn game) and/or <game>/data/actors/*.json (a dungeon game) - the
+ * `sprites` field of each, which is always an export set; a dungeon actor's
+ * `facings` and a room's scenery are hand-made sets with their own
+ * reproduce.sh and are NOT this tool's. Or (every dir absent - a concurrent
  * lane's WIP) whatever sets already have a committed assets/ dir.
  * Returns { sets, source } so the caller can say where the list came from. */
 function defaultSets(dataDir, assetsDir) {
-  const kinds = ["fighters", "units"].filter((k) => existsSync(join(dataDir, k)));
+  const kinds = ["fighters", "units", "actors"].filter((k) => existsSync(join(dataDir, k)));
   if (kinds.length) {
     // the schemas live with the engine (toybox/data/schemas), so every json here names a set; one without `sprites` is an error, not a skip
     const sets = [];
@@ -44,7 +47,7 @@ function defaultSets(dataDir, assetsDir) {
     return { sets, source: `${dataDir}/{${kinds.join(",")}} (${sets.length} sets)` };
   }
   const sets = existsSync(assetsDir) ? readdirSync(assetsDir).filter((d) => existsSync(join(assetsDir, d))) : [];
-  return { sets, source: `${assetsDir} (fighters and units data absent - fallback to existing asset dirs)` };
+  return { sets, source: `${assetsDir} (fighters, units and actors data absent - fallback to existing asset dirs)` };
 }
 
 /** Locate a set's export row, or throw naming it. */

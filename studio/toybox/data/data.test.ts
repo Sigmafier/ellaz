@@ -34,10 +34,11 @@ import { existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFil
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { GAMES, gameDir, loadMode, loadTurnMode, readModeKind } from "./load";
+import { GAMES, gameDir, loadDungeonMode, loadMode, loadTurnMode, readModeKind } from "./load";
 import { compileFight } from "../sim/compile";
 import type { AiFile, CastEntry, FighterFile, MatchFile, ModeFile } from "../sim/types";
 import type { BattleFile, UnitFile } from "../turn/types";
+import type { ActorFile, RoomFile } from "../dungeon/types";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SCHEMAS = join(HERE, "schemas");
@@ -82,19 +83,21 @@ function fightModeFiles(g: string): DataFile[] {
 const games = gamesWithData();
 const FIGHT = gameDir("fight");
 const EMBER = gameDir("ember");
+const HOLLOW = gameDir("hollow");
 const FIGHT_DATA = join(FIGHT, "data");
 const ASSETS = join(FIGHT, "assets");
 const FILES = corpusOf(FIGHT);
 
 describe("the games on disk", () => {
-  it("are the crypt, ember and the fight, so nothing below runs over an empty list", () => {
-    expect(games).toEqual(["crypt", "ember", "fight"]);
+  it("are the crypt, ember, the fight and the hollow, so nothing below runs over an empty list", () => {
+    expect(games).toEqual(["crypt", "ember", "fight", "hollow"]);
   });
 
-  it("two are the fight's kind and one is the turn's, read off the one field that says so", () => {
+  it("two are the fight's kind, one the turn's and one the dungeon's, read off the one field that says so", () => {
     expect(readModeKind("versus", FIGHT)).toBe("fight");
     expect(readModeKind("crypt", gameDir("crypt"))).toBe("fight");
     expect(readModeKind("meadow", EMBER)).toBe("turn");
+    expect(readModeKind("crypt", HOLLOW)).toBe("dungeon");
   });
 
   it("every schema names a kind some game holds, and every kind has a schema", () => {
@@ -102,7 +105,7 @@ describe("the games on disk", () => {
     const kinds = new Set<string>();
     for (const g of games) for (const d of readdirSync(join(gameDir(g), "data"), { withFileTypes: true })) if (d.isDirectory()) kinds.add(d.name);
     expect(schemas).toEqual([...kinds].sort());
-    expect(schemas).toEqual(["ai", "arena", "battles", "fighters", "match", "modes", "rules", "stage", "units"]);
+    expect(schemas).toEqual(["actors", "ai", "arena", "battles", "dungeon", "fighters", "match", "modes", "rooms", "rules", "stage", "units"]);
   });
 
   it("refuses a game with no modes/ - the control for the walk", () => {
@@ -364,7 +367,7 @@ describe("the turn kind: what the validator subset cannot write, and the loader"
 
   it("a mode naming a kind no branch knows is refused naming the branches", () => {
     const bad = { ...(readJson(join(EMBER, "data", "modes", "meadow.json")) as object), kind: "dance" };
-    expect(check(modes, bad).join("\n")).toMatch(/kind "dance" matches no oneOf branch \(branch 0 \(no kind\), turn\)/);
+    expect(check(modes, bad).join("\n")).toMatch(/kind "dance" matches no oneOf branch \(branch 0 \(no kind\), turn, dungeon\)/);
   });
 
   it("a fight mode with no kind and a defect is held to the kind-less branch", () => {
@@ -453,6 +456,180 @@ describe("the turn kind: what the validator subset cannot write, and the loader"
     mkdirSync(join(root, "data", "modes"), { recursive: true });
     writeFileSync(join(root, "data", "modes", "odd.json"), JSON.stringify({ id: "odd", kind: "dance" }));
     expect(() => readModeKind("odd", root)).toThrow(/unknown kind "dance"/);
+  });
+});
+
+describe("the dungeon kind: what the validator subset cannot write, and the loader", () => {
+  const HOLLOW_FILES = corpusOf(HOLLOW);
+  const modes = readJson(join(SCHEMAS, "modes.schema.json"));
+  const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v));
+
+  it("found the hollow's whole corpus, so nothing below passes over an empty list", () => {
+    expect(HOLLOW_FILES.map((f) => f.name).sort()).toEqual([
+      "actors/bat.json",
+      "actors/knight.json",
+      "actors/slime.json",
+      "dungeon/crypt.json",
+      "modes/crypt.json",
+      "rooms/crypt.json",
+    ]);
+  });
+
+  it("a dungeon mode missing its room is refused naming the room, and not another branch's complaints", () => {
+    const bad = { ...(readJson(join(HOLLOW, "data", "modes", "crypt.json")) as object) } as Record<string, unknown>;
+    delete bad.room;
+    expect(check(modes, bad)).toEqual(['$: missing required "room"']);
+  });
+
+  const room = readJson(join(HOLLOW, "data", "rooms", "crypt.json")) as unknown as RoomFile;
+  const inGrid = (t: { i: number; j: number }): boolean => t.i >= 0 && t.j >= 0 && t.i < room.grid.n && t.j < room.grid.n;
+  const isBlocked = (r: RoomFile, i: number, j: number): boolean => r.blocked.some((b) => b.i === i && b.j === j);
+  const tileOf = (p: { x: number; y: number }): { i: number; j: number } => ({ i: Math.floor(p.x / 100), j: Math.floor(p.y / 100) });
+
+  /** every tile on the grid; the door and the start off the props; every spawn on the grid and off the props; every prop on a blocked tile */
+  function roomViolations(r: RoomFile): string[] {
+    const out: string[] = [];
+    r.blocked.forEach((t, i) => { if (!inGrid(t)) out.push(`blocked ${i} (${t.i}, ${t.j}) is off the ${r.grid.n}x${r.grid.n} grid`); });
+    r.door.forEach((t, i) => {
+      if (!inGrid(t)) out.push(`door ${i} (${t.i}, ${t.j}) is off the grid`);
+      if (isBlocked(r, t.i, t.j)) out.push(`door ${i} (${t.i}, ${t.j}) is a blocked tile`);
+    });
+    const s = tileOf(r.start);
+    if (!inGrid(s)) out.push(`start (${r.start.x}, ${r.start.y}) is off the grid`);
+    if (isBlocked(r, s.i, s.j)) out.push(`start (${r.start.x}, ${r.start.y}) stands on blocked tile (${s.i}, ${s.j})`);
+    r.spawns.forEach((p, i) => {
+      const t = tileOf(p);
+      if (!inGrid(t)) out.push(`spawn ${i} (${p.actor}) at (${p.x}, ${p.y}) is off the grid`);
+      if (isBlocked(r, t.i, t.j)) out.push(`spawn ${i} (${p.actor}) at (${p.x}, ${p.y}) stands on blocked tile (${t.i}, ${t.j})`);
+    });
+    const props = (r.art as { props: { kind: string; i: number; j: number }[] }).props;
+    props.forEach((p, i) => { if (!isBlocked(r, p.i, p.j)) out.push(`prop ${i} (${p.kind}) at (${p.i}, ${p.j}) stands on a tile that is not blocked`); });
+    return out;
+  }
+
+  it("the crypt's five props, three door tiles, the start and six spawns are where a room needs them", () => {
+    expect(roomViolations(room)).toEqual([]);
+    expect(room.blocked.length).toBe(5);
+    expect(room.door.length).toBe(3);
+    expect(room.spawns.length).toBe(6);
+    expect(room.spawns.map((s) => s.actor)).toEqual(["slime", "slime", "slime", "slime", "bat", "bat"]);
+  });
+
+  it("fires on a door tile off the grid, a spawn on a prop, a start on a prop, and a prop on an open tile", () => {
+    const off = clone(room); off.door[0].i = room.grid.n;
+    expect(roomViolations(off)).toEqual([`door 0 (${room.grid.n}, ${room.door[0].j}) is off the grid`]);
+    const onProp = clone(room); onProp.spawns[1] = { ...onProp.spawns[1], x: room.blocked[0].i * 100 + 50, y: room.blocked[0].j * 100 + 50 };
+    expect(roomViolations(onProp)).toEqual([`spawn 1 (slime) at (${room.blocked[0].i * 100 + 50}, ${room.blocked[0].j * 100 + 50}) stands on blocked tile (${room.blocked[0].i}, ${room.blocked[0].j})`]);
+    const start = clone(room); start.start = { ...start.start, x: room.blocked[1].i * 100 + 50, y: room.blocked[1].j * 100 + 50 };
+    expect(roomViolations(start).join("\n")).toMatch(/^start .* stands on blocked tile/);
+    const loose = clone(room); (loose.art as { props: { i: number; j: number }[] }).props[0].i = room.door[0].i; (loose.art as { props: { i: number; j: number }[] }).props[0].j = room.door[0].j;
+    expect(roomViolations(loose).join("\n")).toMatch(/^prop 0 .* is not blocked/);
+  });
+
+  const actors = HOLLOW_FILES.filter((f) => f.name.startsWith("actors/")).map((f) => readJson(f.path) as unknown as ActorFile);
+
+  /** one behaviour block; hover needs flying; facings and speed belong to a knight; the roll's range is ordered */
+  function actorViolations(a: ActorFile): string[] {
+    const out: string[] = [];
+    const blocks = (["knight", "slime", "bat"] as const).filter((k) => a[k] !== undefined);
+    if (blocks.length !== 1) out.push(`actor "${a.id}" carries ${blocks.length} behaviour blocks (${blocks.join(", ") || "none"}), expected exactly one`);
+    if (a.hover !== undefined && a.flying !== true) out.push(`actor "${a.id}" has a hover height but does not fly`);
+    if (a.facings !== undefined && a.knight === undefined) out.push(`actor "${a.id}" names facings but is not a knight`);
+    if (a.knight !== undefined && a.speed === undefined) out.push(`actor "${a.id}" is a knight with no speed`);
+    if (a.knight !== undefined && a.knight.dmgMin > a.knight.dmgMax) out.push(`actor "${a.id}" rolls dmgMin ${a.knight.dmgMin} above dmgMax ${a.knight.dmgMax}`);
+    return out;
+  }
+
+  it("the knight, the slime and the bat each carry one block, and only the bat flies", () => {
+    expect(actors.map((a) => a.id).sort()).toEqual(["bat", "knight", "slime"]);
+    for (const a of actors) expect({ id: a.id, bad: actorViolations(a) }).toEqual({ id: a.id, bad: [] });
+    expect(actors.filter((a) => a.flying).map((a) => a.id)).toEqual(["bat"]);
+    expect(actors.find((a) => a.id === "knight")!.facings).toBe("knight-facings");
+  });
+
+  it("fires on two blocks, a grounded hover, facings on a slime, a knight with no speed, and an inverted roll", () => {
+    const knight = actors.find((a) => a.id === "knight")!, slime = actors.find((a) => a.id === "slime")!;
+    const two = clone(slime); two.bat = clone(actors.find((a) => a.id === "bat")!.bat);
+    expect(actorViolations(two)).toEqual(['actor "slime" carries 2 behaviour blocks (slime, bat), expected exactly one']);
+    const grounded = clone(slime); grounded.hover = 30;
+    expect(actorViolations(grounded)).toEqual(['actor "slime" has a hover height but does not fly']);
+    const faced = clone(slime); faced.facings = "knight-facings";
+    expect(actorViolations(faced)).toEqual(['actor "slime" names facings but is not a knight']);
+    const slow = clone(knight); delete slow.speed;
+    expect(actorViolations(slow)).toEqual(['actor "knight" is a knight with no speed']);
+    const inverted = clone(knight); inverted.knight!.dmgMin = inverted.knight!.dmgMax + 1;
+    expect(actorViolations(inverted).join("\n")).toMatch(/rolls dmgMin/);
+  });
+
+  it("every set the room needs is on disk in the hollow's assets: four files for a side set, three for the facings and the scenery", () => {
+    const assets = join(HOLLOW, "assets");
+    const present = (set: string, ext: string): boolean => existsSync(join(assets, set, `${set}.${ext}`));
+    const seen: string[] = [];
+    for (const a of actors) {
+      seen.push(a.sprites);
+      for (const ext of ["png", "atlas.json", "manifest.json", "moves.json"]) expect({ set: a.sprites, ext, ok: present(a.sprites, ext) }).toEqual({ set: a.sprites, ext, ok: true });
+      if (a.facings) {
+        seen.push(a.facings);
+        for (const ext of ["png", "atlas.json", "manifest.json"]) expect({ set: a.facings, ext, ok: present(a.facings, ext) }).toEqual({ set: a.facings, ext, ok: true });
+      }
+    }
+    const scenery = (room.art as { scenery: string }).scenery;
+    seen.push(scenery);
+    for (const ext of ["png", "atlas.json", "manifest.json"]) expect({ set: scenery, ext, ok: present(scenery, ext) }).toEqual({ set: scenery, ext, ok: true });
+    expect(seen.sort()).toEqual(["bat--snes16", "crypt-room", "knight--snes16", "knight-facings", "slime--snes16"]);
+    expect(present("ghost--snes16", "png")).toBe(false);
+  });
+
+  it("the scenery set carries the room clip and one clip per prop the room places, each of exactly one frame", () => {
+    const art = room.art as { scenery: string; room: string; props: { kind: string }[] };
+    const manifest = readJson(join(HOLLOW, "assets", art.scenery, `${art.scenery}.manifest.json`)) as unknown as { animations: Record<string, { frames: string[] }> };
+    const atlas = readJson(join(HOLLOW, "assets", art.scenery, `${art.scenery}.atlas.json`)) as unknown as { frames: Record<string, { frame: { w: number; h: number } }> };
+    const clips = new Set([art.room, ...art.props.map((p) => p.kind)]);
+    expect([...clips].sort()).toEqual(["crate", "crates", "crystal", "pillar", "room"]);
+    for (const clip of clips) {
+      expect({ clip, frames: manifest.animations[clip]?.frames.length }).toEqual({ clip, frames: 1 });
+      expect({ clip, inAtlas: manifest.animations[clip].frames[0] in atlas.frames }).toEqual({ clip, inAtlas: true });
+    }
+    // the room frame is the whole picture at 10 px per art cell: 320 x 222 cells, the view at 2 px per cell
+    expect(atlas.frames[manifest.animations[art.room].frames[0]].frame).toMatchObject({ w: room.view.w * 5, h: room.view.h * 5 });
+  });
+
+  it("every timing in the rules file is a whole number of ticks at the engine's rate, and every number in every hollow file is an integer", () => {
+    const rules = readJson(join(HOLLOW, "data", "dungeon", "crypt.json"));
+    expect(rules.tickRate).toBe(60);
+    const walk = (v: unknown, path: string, out: string[]): string[] => {
+      if (typeof v === "number") { if (!Number.isInteger(v)) out.push(`${path} = ${v}`); }
+      else if (Array.isArray(v)) v.forEach((x, i) => walk(x, `${path}[${i}]`, out));
+      else if (v !== null && typeof v === "object") for (const [k, x] of Object.entries(v as Record<string, unknown>)) walk(x, `${path}.${k}`, out);
+      return out;
+    };
+    for (const f of HOLLOW_FILES) expect({ file: f.name, floats: walk(readJson(f.path), "$", []) }).toEqual({ file: f.name, floats: [] });
+    expect(walk({ a: 1.5 }, "$", [])).toEqual(["$.a = 1.5"]);
+  });
+
+  it("loadDungeonMode reads the room, the rules, the actors with the hero first, and one manifest per set the actors name", () => {
+    const loaded = loadDungeonMode("crypt", HOLLOW);
+    expect(loaded.mode.kind).toBe("dungeon");
+    expect(loaded.room.id).toBe("crypt");
+    expect(loaded.rules.id).toBe("crypt");
+    expect(loaded.actors.map((a) => a.id)).toEqual(["knight", "slime", "bat"]);
+    expect(Object.keys(loaded.sets).sort()).toEqual(["bat--snes16", "knight--snes16", "knight-facings", "slime--snes16"]);
+    expect(Object.keys(loaded.sets["knight-facings"].manifest.animations).sort()).toEqual(["attack_down", "attack_up", "idle_down", "idle_up", "walk_down", "walk_up"]);
+    expect(Object.keys(loaded.sets["slime--snes16"].manifest.animations).sort()).toEqual(["attack", "hurt", "idle", "ko", "walk"]);
+  });
+
+  it("loadMode and loadTurnMode refuse a dungeon mode, and loadDungeonMode refuses the other two kinds", () => {
+    expect(() => loadMode("crypt", HOLLOW)).toThrow(/"crypt" is a "dungeon" mode, not a fight/);
+    expect(() => loadTurnMode("crypt", HOLLOW)).toThrow(/"crypt" is not a turn mode/);
+    expect(() => loadDungeonMode("versus", FIGHT)).toThrow(/"versus" is not a dungeon mode/);
+    expect(() => loadDungeonMode("meadow", EMBER)).toThrow(/"meadow" is not a dungeon mode/);
+  });
+
+  it("throws naming the ROOM when a mode points at one that is not there", () => {
+    const root = mkdtempSync(join(tmpdir(), "toybox-game-"));
+    mkdirSync(join(root, "data", "modes"), { recursive: true });
+    writeFileSync(join(root, "data", "modes", "orphan.json"), JSON.stringify({ id: "orphan", kind: "dungeon", room: "ghost-room", dungeon: "crypt", seed: 1 }));
+    expect(() => loadDungeonMode("orphan", root)).toThrow(/ghost-room/);
   });
 });
 

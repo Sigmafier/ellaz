@@ -1,0 +1,17 @@
+{
+  "id": "crypt",
+  "tickRate": 60,
+  "aggroStartTicks": 72,
+  "swingSeek": 170,
+  "clickRadius": 70,
+  "lineStep": 10,
+  "facing": { "num": 3, "den": 5 },
+  "separate": { "foes": 125, "foesPush": { "num": 3, "den": 10 }, "hero": 100, "heroPush": { "num": 1, "den": 2 } },
+  "drop": { "beyond": 45, "radius": 20, "pickup": 55, "pickupDelayTicks": 30 },
+  "doorBannerTicks": 90,
+  "fadeTicks": 36,
+  "flashTicks": 8,
+  "floatTicks": 54,
+  "floatRise": 30,
+  "markerTicks": 54
+}
