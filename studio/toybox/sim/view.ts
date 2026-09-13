@@ -54,7 +54,14 @@ export interface TurnHud {
 }
 /** what a stage HUD shows; `hero` is the roster row the hp bar belongs to */
 export interface StageHud { wave: number; waves: number; wphase: number; waveT: number; coins: number; xp: number; xpNeed: number; level: number; hero: number }
-export interface HudModel { hp: number[]; maxHp: number[]; names: string[]; phase: number; winner: number; tick: number; stage: StageHud | null; turn: TurnHud | null }
+/** what the dungeon kind's HUD shows, in view px: the two orbs' levels, the coin plate, the banner, bars over hurt foes, floats. A cell lays it out (cells/shared/hud-dungeon.ts) */
+export interface DungeonHud {
+  hp: number; maxHp: number; mp: number; maxMp: number; coins: number; phase: number; banner: number; bannerT: number;
+  /** an hp bar over a hurt, standing foe: its feet's screen x, y (hover included) and how high the bar sits */
+  bars: { x: number; y: number; bar: number; hp: number; maxHp: number }[];
+  floats: { x: number; y: number; value: number }[];
+}
+export interface HudModel { hp: number[]; maxHp: number[]; names: string[]; phase: number; winner: number; tick: number; stage: StageHud | null; turn: TurnHud | null; dungeon: DungeonHud | null }
 /** `camX` is the camera's left edge in world px, lerped like a fighter; 0 when the mode has no camera */
 export interface DrawPlan { sprites: SpriteOp[]; shadows: ShadowOp[]; props: PropOp[]; boxes: BoxOp[]; hud: HudModel; shake: number; camX: number }
 
@@ -137,6 +144,7 @@ export function viewOf(prev: FightState, next: FightState, alpha256: number, dat
     tick: next.tick,
     stage,
     turn: null,
+    dungeon: null,
   };
   const camX = next.stage ? toPx(lerp256(prev.stage ? prev.stage.camX : next.stage.camX, next.stage.camX, alpha256)) : 0;
   return { sprites, shadows, props, boxes, hud, shake: next.shake, camX };

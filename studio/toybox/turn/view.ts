@@ -139,6 +139,7 @@ export function viewTurn(prev: TurnState, next: TurnState, alpha256: number, dat
     tick: next.tick,
     stage: null,
     turn: turnHud(data, next, feet),
+    dungeon: null,
   };
   return { sprites, shadows, props, boxes: [], hud, shake: 0, camX: 0 };
 }

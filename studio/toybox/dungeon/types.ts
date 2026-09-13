@@ -1,8 +1,8 @@
-// The dungeon kind's vocabulary, first half: the raw files (what a game
-// writes) and what the loader hands the compiler. A real-time isometric room
-// on an n x n tile grid: a knight the player clicks and steers, slimes that hop
-// and bite, bats that swoop; clear the room and the door opens, walk out and
-// the room is won.
+// The dungeon kind's vocabulary: the raw files (what a game writes), the
+// compiled data (what step reads, frozen, every geometry in FP) and the state
+// (what the hash covers). A real-time isometric room on an n x n tile grid: a
+// knight the player clicks and steers, slimes that hop and bite, bats that
+// swoop; clear the room and the door opens, walk out and the room is won.
 //
 // The same rules as the fight's and the turn's sims: integers only, no DOM, no
 // clock, no Math.random. Every number that tunes play is a field of a room, an
@@ -12,8 +12,8 @@
 // float: lengths and positions are CENTI-TILES (100 = one tile, 250 = the
 // centre of tile 2 on that axis), speeds are centi-tiles per second, times are
 // ticks at `tickRate`, and view-space heights (a hover, a float's rise) are view
-// px. compile.ts turns every one into FP tile units (256 = one tile) or FP per
-// tick, once. The compiled data and the state arrive with the sim (D2).
+// px. compile.ts turns every one into FP TILE units (256 = one tile) or FP per
+// tick, once; a height stays in view px, a bat's altitude in FP px.
 
 // ---- the raw files -----------------------------------------------------------
 
@@ -211,3 +211,239 @@ export interface LoadedDungeon {
   /** keyed by a set's name: every `sprites` and every `facings` the actors name */
   sets: Record<string, { manifest: ClipSheet }>;
 }
+
+// ---- compiled ----------------------------------------------------------------
+
+/** one tile is 256 FP; the fight's FP, restated so this directory imports only the four sim helpers */
+export const TILE = 256;
+
+/** the five side-view clips every actor set carries, by index */
+export const CLIPS = ["idle", "walk", "attack", "hurt", "ko"] as const;
+export const CLIP_IDLE = 0;
+export const CLIP_WALK = 1;
+export const CLIP_ATTACK = 2;
+export const CLIP_HURT = 3;
+export const CLIP_KO = 4;
+
+/** the six clips a knight's facings set carries, by index: idle, walk, attack, each down then up */
+export const FACE_CLIPS = ["idle_down", "idle_up", "walk_down", "walk_up", "attack_down", "attack_up"] as const;
+
+/** actor kinds */
+export const KIND_KNIGHT = 0;
+export const KIND_SLIME = 1;
+export const KIND_BAT = 2;
+
+export interface CClip { frames: readonly string[]; ticksPerFrame: number; loop: boolean }
+
+export interface CKnight {
+  mp: number; mpCost: number; mpRegenAmount: number; mpRegenEvery: number;
+  hpRegenAmount: number; hpRegenEvery: number; hpRegenAfter: number;
+  /** FP */
+  reach: number; pointBlank: number;
+  /** hundredths of the dot product */
+  cone: number;
+  dmgMin: number; dmgMax: number;
+  /** FP */
+  approach: number;
+  repathTicks: number;
+}
+
+export interface CSlime {
+  aggro: number; speed: number; hopFrom: number; hopTo: number; repathTicks: number;
+  biteAt: number; biteReach: number; lungeSpeed: number; lungeFrom: number; lungeTo: number; lungeStop: number; strikeFrame: number;
+  dmg: number; cooldownTicks: number; pauseTicks: number; hurtPauseTicks: number; walkAt: number;
+}
+
+export interface CBat {
+  aggro: number; speed: number; closeNum: number; closeDen: number;
+  everyTicks: number; range: number; beyond: number; swoopSpeed: number;
+  /** FP px */
+  swoopAlt: number; swoopAltDiv: number;
+  hit: number; stop: number; dmg: number; cooldownTicks: number;
+  retreatSpeed: number; retreatTicks: number;
+  /** FP px */
+  retreatAlt: number; retreatAltDiv: number;
+  edgePad: number; hurtPauseTicks: number;
+}
+
+/** one actor file, compiled: its numbers in FP and ticks, its clips, its one behaviour block */
+export interface CActor {
+  id: string;
+  set: string;
+  facings: string | null;
+  kind: number;
+  hp: number;
+  /** FP per tick (a knight's walk) */
+  speed: number;
+  /** FP */
+  radius: number;
+  /** view px */
+  tall: number;
+  bar: number;
+  flying: boolean;
+  /** FP px */
+  hover: number;
+  bobPx: number;
+  bobTicks: number;
+  /** FP per tick, and the per-tick keep as num/den */
+  knockSpeed: number;
+  knockNum: number;
+  knockDen: number;
+  coins: number;
+  clips: readonly CClip[];
+  /** a knight's six, else null */
+  faceClips: readonly CClip[] | null;
+  knight: CKnight | null;
+  slime: CSlime | null;
+  bat: CBat | null;
+}
+
+/** who stands where when the room begins: index 0 is the hero */
+export interface CCast { actor: number; x: number; y: number; wait: number }
+
+/** the grid in tiles and FP; `blocked` is one flag per tile, index i * n + j; `door` the threshold tiles as indices */
+export interface CRoom {
+  n: number;
+  blocked: readonly boolean[];
+  door: readonly number[];
+  /** FP */
+  startX: number;
+  startY: number;
+  startFace: number;
+  /** view px */
+  ox: number;
+  oy: number;
+  tileW: number;
+  tileH: number;
+}
+
+export interface CRules {
+  tickRate: number;
+  aggroStartTicks: number;
+  /** FP */
+  swingSeek: number; clickRadius: number; lineStep: number;
+  facingNum: number; facingDen: number;
+  sepFoes: number; sepFoesNum: number; sepFoesDen: number; sepHero: number; sepHeroNum: number; sepHeroDen: number;
+  dropBeyond: number; dropRadius: number; pickup: number; pickupDelayTicks: number;
+  doorBannerTicks: number; fadeTicks: number; flashTicks: number; floatTicks: number; floatRise: number; markerTicks: number;
+}
+
+export interface DungeonData {
+  rules: CRules;
+  room: CRoom;
+  /** one per DISTINCT actor file; a cast row points into it */
+  actors: readonly CActor[];
+  cast: readonly CCast[];
+  view: { w: number; h: number };
+  seed: number;
+}
+
+// ---- state -------------------------------------------------------------------
+
+/** phases */
+export const PHASE_FIGHT = 0;
+export const PHASE_DOOR = 1;
+export const PHASE_WON = 2;
+export const PHASE_LOST = 3;
+
+/** what an actor is doing; a foe never walks the knight's states and the knight never flies */
+export const ST_IDLE = 0;
+export const ST_WALK = 1;
+export const ST_ATTACK = 2;
+export const ST_HURT = 3;
+export const ST_KO = 4;
+export const ST_FLY = 5;
+export const ST_SWOOP = 6;
+export const ST_RETREAT = 7;
+/** a fallen foe whose fade has ended: never drawn, never hit, never counted */
+export const ST_GONE = 8;
+
+/** facings, in the order the knight's face clips pair them: down and up read the facings set, left and right the side set flipped */
+export const FACE_DOWN = 0;
+export const FACE_UP = 1;
+export const FACE_LEFT = 2;
+export const FACE_RIGHT = 3;
+
+/** banners */
+export const BANNER_NONE = 0;
+export const BANNER_DOOR = 1;
+export const BANNER_VICTORY = 2;
+export const BANNER_DEFEAT = 3;
+
+export interface ActorState {
+  /** FP tile units */
+  x: number;
+  y: number;
+  /** the knockback velocity, FP per tick */
+  vx: number;
+  vy: number;
+  hp: number;
+  mp: number;
+  face: number;
+  state: number;
+  /** ticks in the current state: the clip's clock */
+  stateT: number;
+  /** ticks until the next attack may come */
+  cd: number;
+  /** ticks a foe stands still after a bite or a hurt */
+  pause: number;
+  /** ticks since last hurt */
+  since: number;
+  /** a bat: ticks until its next swoop */
+  swoopT: number;
+  /** a bat: altitude in FP px */
+  alt: number;
+  /** a bat's swoop aim, FP */
+  aimX: number;
+  aimY: number;
+  /** the knight's targeted foe (a cast index), -1 none */
+  target: number;
+  /** ticks until the path to the target is re-planned */
+  repath: number;
+  /** the strike of the current attack has landed (1) */
+  struck: number;
+  /** a fallen foe has dropped its coins (1) */
+  dropped: number;
+  /** cosmetic: ticks of hit flash left */
+  flash: number;
+  /** a final walk past the path's end (a coin), FP; -1 none */
+  goalX: number;
+  goalY: number;
+  /** the tiles still to walk, as indices, the next first */
+  path: number[];
+}
+
+export interface DropState { x: number; y: number; value: number; t: number }
+export interface FloatState { x: number; y: number; z: number; value: number; t: number }
+export interface MarkerState { i: number; j: number; t: number }
+
+export interface DungeonState {
+  tick: number;
+  rng: number;
+  phase: number;
+  /** the banner's countdown */
+  bannerT: number;
+  banner: number;
+  coins: number;
+  actors: ActorState[];
+  drops: DropState[];
+  floats: FloatState[];
+  markers: MarkerState[];
+  /** produced this tick, consumed by the cell, never hashed into hashState */
+  events: DungeonEvent[];
+}
+
+/** one tick's input: held direction in world axes, and one act - a click at FP world (x, y), a swing, a restart */
+export interface DungeonInput { dx: number; dy: number; act: number; x: number; y: number }
+export const ACT_INPUT_NONE = 0;
+export const ACT_INPUT_CLICK = 1;
+export const ACT_INPUT_SWING = 2;
+export const ACT_INPUT_RESTART = 3;
+export const NO_DUNGEON_INPUT: DungeonInput = { dx: 0, dy: 0, act: 0, x: 0, y: 0 };
+
+/** `hit` carries the fight's fields so one fx module serves every kind; `z` is the world y and `h` the height in view px */
+export type DungeonEvent =
+  | { kind: "hit"; attacker: number; target: number; x: number; z: number; h: number; damage: number; effect: "none" }
+  | { kind: "ko"; target: number }
+  | { kind: "coin"; x: number; z: number; coins: number }
+  | { kind: "phase"; phase: number };
