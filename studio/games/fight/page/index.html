@@ -11,15 +11,28 @@
       #help { margin: 0; padding: 0 16px; text-align: center; max-width: 640px; }
       #stats { margin: 0; padding: 0 16px; font-variant-numeric: tabular-nums; color: #7a5a3a; }
       #help kbd { background: #ffe9a8; border-radius: 4px; padding: 0 5px; }
+      /* the campaign shell's three panels: the title, the pick, the card - hidden until the shell shows one */
+      /* an author `display` beats the `hidden` attribute's UA rule, so the hidden state is spelled out - measured 2026-09-13: all three panels showed at once */
+      .campaign-panel[hidden] { display: none; }
+      .campaign-panel { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 24px 16px; width: min(92vw, 480px); box-sizing: border-box; background: #ffe9a8; border-radius: 16px; text-align: center; }
+      .campaign-title { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: 0.04em; color: #4a3320; }
+      .campaign-line { margin: 0; color: #7a5a3a; }
+      .campaign-btn { min-width: 220px; min-height: 48px; padding: 10px 24px; border: 0; border-radius: 12px; background: #c2185b; color: #ffffff; font: inherit; font-size: 18px; font-weight: 700; cursor: pointer; }
+      .campaign-btn-quiet { background: #ffffff; color: #4a3320; font-weight: 600; }
+      .campaign-wiggle { animation: campaign-wiggle 320ms ease-out; }
+      @keyframes campaign-wiggle { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 50% { transform: translateX(6px); } 75% { transform: translateX(-4px); } }
     </style>
   </head>
   <body>
     <div id="stage"></div>
+    <section id="campaign-title" class="campaign-panel" hidden></section>
+    <section id="campaign-pick" class="campaign-panel" hidden></section>
+    <section id="campaign-card" class="campaign-panel" hidden></section>
     <p id="help">
       <span id="help-mode"></span>
       <kbd>arrows</kbd> or <kbd>WASD</kbd> walk, <kbd>space</kbd> swings.
       On a phone: drag the left half to walk, tap the right half to swing.
-      <a href="?mode=stage">stage</a> - <a href="?mode=versus">versus</a>
+      <a href="?campaign=brawl">campaign</a> - <a href="?mode=stage">stage</a> - <a href="?mode=versus">versus</a>
     </p>
     <p id="stats" hidden></p>
     <script type="module" src="./main.ts"></script>

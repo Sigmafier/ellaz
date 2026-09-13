@@ -1,0 +1,33 @@
+{
+  "mode": "shelf-boss",
+  "seed": 20260918,
+  "ticks": 900,
+  "carry": { "coins": 41, "xp": 30, "level": 4 },
+  "note": "the campaign admission tape (2026-09-13): the shelf's boss stage started MID-CAMPAIGN, with a carry - the purse a run of the two worlds' first five stages could end with - so the hero is created at level 4 with the hp that level earns. A row [tick, [hero input]] holds until the next row; the thirteen wave spawns are CPU rows and take none. 900 ticks = 15 s at 60: walk right for four seconds to meet wave 1's bat and ninja, a punch at the start of every recovery window (attackCooldownTicks 60), a lane change at ten seconds, then punches again until the tape ends. Wave 1 is the whole tape; the wizard boss is wave 3 and no 900-tick tape reaches it (stage-completes clears wave 1 of this stage at tick 620).",
+  "frames": [
+    [0,   [{ "mx": 1,  "mz": 0,  "attack": false }]],
+    [240, [{ "mx": 0,  "mz": 0,  "attack": true }]],
+    [250, [{ "mx": 1,  "mz": 0,  "attack": false }]],
+    [254, [{ "mx": 0,  "mz": 0,  "attack": false }]],
+    [310, [{ "mx": 0,  "mz": 0,  "attack": true }]],
+    [314, [{ "mx": 1,  "mz": 0,  "attack": false }]],
+    [370, [{ "mx": 0,  "mz": 0,  "attack": true }]],
+    [374, [{ "mx": 1,  "mz": 0,  "attack": false }]],
+    [430, [{ "mx": 0,  "mz": 0,  "attack": true }]],
+    [434, [{ "mx": 1,  "mz": 0,  "attack": false }]],
+    [490, [{ "mx": 0,  "mz": 0,  "attack": true }]],
+    [494, [{ "mx": 1,  "mz": 0,  "attack": false }]],
+    [550, [{ "mx": 0,  "mz": 0,  "attack": true }]],
+    [554, [{ "mx": 1,  "mz": 0,  "attack": false }]],
+    [600, [{ "mx": 0,  "mz": -1, "attack": false }]],
+    [624, [{ "mx": 1,  "mz": 0,  "attack": false }]],
+    [670, [{ "mx": 0,  "mz": 0,  "attack": true }]],
+    [674, [{ "mx": 1,  "mz": 0,  "attack": false }]],
+    [730, [{ "mx": 0,  "mz": 0,  "attack": true }]],
+    [734, [{ "mx": -1, "mz": 0,  "attack": false }]],
+    [790, [{ "mx": 0,  "mz": 0,  "attack": true }]],
+    [794, [{ "mx": 1,  "mz": 0,  "attack": false }]],
+    [850, [{ "mx": 0,  "mz": 0,  "attack": true }]],
+    [854, [{ "mx": 0,  "mz": 0,  "attack": false }]]
+  ]
+}

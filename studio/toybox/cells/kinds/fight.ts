@@ -53,5 +53,7 @@ export const fightKind: SimKind<LoadedFightHttp, FightData, FightState, InputFra
   inputsAt: inputsAtTick,
   view: viewOf,
   attachInput: (host) => attachBoth(host),
-  publish: (s) => ({ __fightStage: s.stage }),
+  // __fightFighters: each row's position, hp, facing, cooldown and wakefulness - what a headless
+  // probe driving the keyboard needs to play a stage (the campaign probe, 2026-09-13); no data, no rng
+  publish: (s) => ({ __fightStage: s.stage, __fightFighters: s.fighters.map((f) => ({ x: f.x, z: f.z, hp: f.hp, face: f.face, cool: f.cool, active: f.active })) }),
 };

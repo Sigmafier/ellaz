@@ -103,8 +103,8 @@ function replayAny(game: string, name: string): Golden {
 }
 
 describe("the tapes on disk", () => {
-  it("are the crypt's one, ember's one, the fight's two and the hollow's two, so nothing below runs over an empty list", () => {
-    expect(Object.fromEntries(games.map((g) => [g, tapeNames(g)]))).toEqual({ crypt: ["crypt-600"], ember: ["meadow-1200"], fight: ["stage-600", "versus-600"], hollow: ["crypt-lose-1200", "crypt-win-2400"] });
+  it("are the crypt's one, ember's one, the fight's three (the campaign's carry tape joined 2026-09-13) and the hollow's two, so nothing below runs over an empty list", () => {
+    expect(Object.fromEntries(games.map((g) => [g, tapeNames(g)]))).toEqual({ crypt: ["crypt-600"], ember: ["meadow-1200"], fight: ["shelf-boss-900", "stage-600", "versus-600"], hollow: ["crypt-lose-1200", "crypt-win-2400"] });
   });
 });
 
@@ -193,6 +193,30 @@ describe("the control that tells the two goldens apart", () => {
     expect(g.stage).toBeDefined();
     expect(g.hits).toBeGreaterThan(0);
     expect(g.hp.length).toBe(13);
+  });
+});
+
+describe("the control that tells the carry tape from the six older goldens (2026-09-13)", () => {
+  it("the carry's level one higher moves the shelf-boss chain, and the six older goldens stay exactly their committed selves", () => {
+    const tape = readTapeFile("fight", "shelf-boss-900");
+    expect(tape.carry).toEqual({ coins: 41, xp: 30, level: 4 });
+    const data = compileFight(loadMode(tape.mode, FIGHT));
+    const higher: Tape = { ...tape, carry: { ...tape.carry!, level: tape.carry!.level + 1 } };
+    expect(replay(data, higher, "shelf-boss-900").chain).not.toBe(replay(data, tape, "shelf-boss-900").chain);
+    // the six older tapes carry nothing, so createState(data, undefined) is the create they were recorded through
+    for (const [game, name] of [["crypt", "crypt-600"], ["ember", "meadow-1200"], ["fight", "stage-600"], ["fight", "versus-600"], ["hollow", "crypt-lose-1200"], ["hollow", "crypt-win-2400"]] as const) {
+      expect(readTapeFile(game, name).carry).toBeUndefined();
+      const golden = JSON.parse(readFileSync(goldenPath(game, name), "utf8")) as Golden;
+      expect(replayAny(game, name)).toEqual(golden);
+    }
+  });
+
+  it("the carry golden pins a stage started mid-campaign: level 4 from the first tick, hits landed, the purse above the carry's", () => {
+    const g = replayAny("fight", "shelf-boss-900");
+    expect(g.stage).toBeDefined();
+    expect(g.stage!.level).toBeGreaterThanOrEqual(4);
+    expect(g.hits).toBeGreaterThan(0);
+    expect(g.hp.length).toBe(14);
   });
 });
 

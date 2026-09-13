@@ -1,0 +1,32 @@
+{
+  "tape": "shelf-boss-900",
+  "ticks": 900,
+  "hash": "d1ca8a75",
+  "chain": "a08ac5c7",
+  "eventHash": "a5340dd7",
+  "hp": [
+    124,
+    -2,
+    6,
+    -12,
+    -10,
+    24,
+    14,
+    60,
+    14,
+    24,
+    60,
+    14,
+    24,
+    20
+  ],
+  "winner": -1,
+  "hits": 9,
+  "stage": {
+    "wave": 0,
+    "wphase": 0,
+    "coins": 44,
+    "xp": 15,
+    "level": 5
+  }
+}
