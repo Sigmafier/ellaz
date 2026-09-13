@@ -54,7 +54,7 @@ interface World {
 }
 
 export interface Fx {
-  onEvent(ev: FightEvent, toScreen: (x: number, z: number, h: number) => Point): void;
+  onEvent(ev: AnyEvent, toScreen: (x: number, z: number, h: number) => Point): void;
   frame(nowMs: number): FxOp[];
 }
 
@@ -106,7 +106,13 @@ function dots(w: World, at: Point, n: number, spread: number, color: string): vo
 
 // ---- the two calls the harness makes ----------------------------------------
 
-function onEvent(w: World, ev: FightEvent, toScreen: (x: number, z: number, h: number) => Point): void {
+/** any sim kind's event: fx reads the fight shapes below by `kind` and draws nothing for a kind it does not know */
+export interface AnyEvent { kind: string }
+
+function onEvent(w: World, raw: AnyEvent, toScreen: (x: number, z: number, h: number) => Point): void {
+  // the seam: a turn kind's "hit" and "ko" carry the fight's fields (that is the contract that lets one fx serve two
+  // kinds); its other kinds fall through to the bottom of this function and draw nothing
+  const ev = raw as FightEvent;
   if (ev.kind === "hit") {
     const at = toScreen(ev.x, ev.z, ev.h);
     const ground = toScreen(ev.x, ev.z, 0);

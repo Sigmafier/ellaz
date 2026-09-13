@@ -7,10 +7,11 @@
 import { NO_INPUT } from "./types";
 import type { InputFrame } from "./types";
 
-export interface Tape { mode: string; seed: number; ticks: number; frames: [number, InputFrame[]][] }
+/** a tape is shaped by the sim kind that plays it: `I` is one player's input for one tick (the fight's InputFrame when unsaid) */
+export interface Tape<I = InputFrame> { mode: string; seed: number; ticks: number; frames: [number, I[]][] }
 
-export function readTape(raw: unknown): Tape {
-  const t = raw as Tape;
+export function readTape<I = InputFrame>(raw: unknown): Tape<I> {
+  const t = raw as Tape<I>;
   if (!t || typeof t.mode !== "string" || !Number.isInteger(t.seed) || !Number.isInteger(t.ticks) || !Array.isArray(t.frames)) {
     throw new Error("tape: expected { mode, seed, ticks, frames: [[tick, inputs[]], ...] }");
   }
