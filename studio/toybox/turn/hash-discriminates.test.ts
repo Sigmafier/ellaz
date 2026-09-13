@@ -77,6 +77,22 @@ describe("hashTurnState", () => {
     });
   }
 
+  it("the path COUNT is part of the state: a state whose byte stream would match with one path entry shifted into the next unit's scalars hashes differently", () => {
+    // deep-test 2026-09-13: dropping the count fold SURVIVED the three cells above, because the entries
+    // that follow still differ. This is the collision the count prevents: unit 0's second path entry
+    // becomes unit 1's first scalar, every scalar of unit 1 shifts one word, and its last scalar becomes
+    // a one-entry path. Without the count the two streams are byte-identical.
+    const s = makeState();
+    const u1 = s.units[1];
+    const scalars = HASHED_UNIT_FIELDS.map((k) => read(u1, k));
+    const shifted = clone(s);
+    shifted.units[0].path = [s.units[0].path[0]];
+    const moved = [s.units[0].path[1], ...scalars.slice(0, -1)];
+    HASHED_UNIT_FIELDS.forEach((k, i) => write(shifted.units[1], k, moved[i]));
+    shifted.units[1].path = [scalars[scalars.length - 1]];
+    expect(hashTurnState(shifted)).not.toBe(base);
+  });
+
   it("the float count and the unit order are part of the state", () => {
     const more = clone(makeState()); more.floats.push({ ...more.floats[0] });
     const none = clone(makeState()); none.floats = [];
