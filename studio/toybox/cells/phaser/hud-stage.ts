@@ -6,6 +6,8 @@
 import type Phaser from "phaser";
 import type { HudModel } from "../../sim/view";
 import { stageHudOps } from "../canvas/hud-stage";
+import type { StageHudOps } from "../canvas/hud-stage";
+import { turnHudOps } from "../shared/hud-turn";
 
 export type TextFn = (str: string, x: number, y: number, scale: number, color: string) => void;
 
@@ -18,15 +20,25 @@ function hex(css: string): number {
   return n;
 }
 
-/** draw the stage HUD; returns false when the model carries no stage, so the caller draws the Versus bars instead */
-export function drawStageHud(g: Phaser.GameObjects.Graphics, text: TextFn, model: HudModel, view: { w: number; h: number }): boolean {
-  const s = model.stage;
-  if (!s) return false;
-  const ops = stageHudOps(s, model.hp[s.hero] ?? 0, model.maxHp[s.hero] ?? 1, model.names[s.hero] ?? "", view);
+function drawOps(g: Phaser.GameObjects.Graphics, text: TextFn, ops: StageHudOps): void {
   for (const r of ops.rects) {
     g.fillStyle(hex(r.color), 1);
     g.fillRect(r.x, r.y, r.w, r.h);
   }
   for (const t of ops.texts) text(t.text, t.x, t.y, t.scale, t.color);
+}
+
+/** draw the stage HUD; returns false when the model carries no stage, so the caller draws the Versus bars instead */
+export function drawStageHud(g: Phaser.GameObjects.Graphics, text: TextFn, model: HudModel, view: { w: number; h: number }): boolean {
+  const s = model.stage;
+  if (!s) return false;
+  drawOps(g, text, stageHudOps(s, model.hp[s.hero] ?? 0, model.maxHp[s.hero] ?? 1, model.names[s.hero] ?? "", view));
+  return true;
+}
+
+/** draw the turn HUD (cells/shared/hud-turn.ts's layout); returns false when the model carries no turn block */
+export function drawTurnHud(g: Phaser.GameObjects.Graphics, text: TextFn, model: HudModel, view: { w: number; h: number }): boolean {
+  if (!model.turn) return false;
+  drawOps(g, text, turnHudOps(model.turn, view));
   return true;
 }

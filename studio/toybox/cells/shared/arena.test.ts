@@ -21,6 +21,55 @@ const colorsOf = (ops: ArenaDrawOp[]) => new Set(ops.map((o) => o.color));
 const STONE = { kind: "stone", y: 0, h: 150, seed: 5, rowH: 18, colors: ["stoneLight", "stone", "stoneDark", "stoneLine"] };
 const FLAGS = { kind: "flagstones", y: 157, h: 203, seed: 7, rowH: 16, rowGrow: 3, colors: ["flag", "flagLine", "flagLight"] };
 const DOOR = { kind: "door", x: 525, y: 34, w: 70, h: 123 };
+const FILL = { kind: "fill", x: 10, y: 20, w: 100, h: 50, color: "#bfe6ff" };
+const POLY = { kind: "poly", points: [[100, 100], [200, 40], [300, 100], [300, 140], [100, 140]], color: "#8fbf6a" };
+const ELLIPSE = { kind: "ellipse", cx: 320, cy: 180, rx: 60, ry: 20, color: "#c9a35a" };
+
+/** is view px (x, y) covered by any op */
+const covers = (ops: ArenaDrawOp[], x: number, y: number): boolean => ops.some((o) => x >= o.x && x < o.x + o.w && y >= o.y && y < o.y + o.h);
+
+describe("the three scene-unit kinds Ember's field uses: fill, poly, ellipse (2026-09-13)", () => {
+  it("a fill is one rect, verbatim colour, at the art block's scale", () => {
+    expect(paint(FILL)).toEqual([{ kind: "rect", x: 10, y: 20, w: 100, h: 50, color: "#bfe6ff" }]);
+    const scaled = arenaOps({ scale: { num: 5, den: 2 }, bands: [FILL], props: [] }, { w: 1200, h: 750 });
+    expect(scaled).toEqual([{ kind: "rect", x: 25, y: 50, w: 250, h: 125, color: "#bfe6ff" }]);
+  });
+
+  it("a poly fills its inside and not its outside, as 1 px rows inside its bounding box", () => {
+    const ops = paint(POLY);
+    expect(ops.length).toBe(100);
+    for (const o of ops) expect({ h: o.h, inside: inside(o, 100, 40, 200, 100) }).toEqual({ h: 1, inside: true });
+    // the roof's peak, the flat body, and the two corners the roof leaves empty
+    expect(covers(ops, 200, 45)).toBe(true);
+    expect(covers(ops, 150, 120)).toBe(true);
+    expect(covers(ops, 105, 45)).toBe(false);
+    expect(covers(ops, 295, 45)).toBe(false);
+    expect(covers(ops, 200, 150)).toBe(false);
+  });
+
+  it("an ellipse is symmetric about both axes and never wider than its radii", () => {
+    const ops = paint(ELLIPSE);
+    expect(ops.length).toBe(40);
+    for (const o of ops) expect(inside(o, 260, 160, 120, 40)).toBe(true);
+    const rowAt = (y: number) => ops.find((o) => o.y === y)!;
+    for (let dy = 0; dy < 20; dy++) {
+      const above = rowAt(179 - dy), below = rowAt(180 + dy);
+      expect({ dy, w: above.w, x: above.x }).toEqual({ dy, w: below.w, x: below.x });
+      expect(320 - above.x).toBe(above.x + above.w - 320);
+    }
+    expect(rowAt(179).w).toBeGreaterThan(rowAt(160).w);
+  });
+
+  it("the same input paints the same rows twice, and a palette name still resolves", () => {
+    expect(paint(POLY)).toEqual(paint(POLY));
+    expect(paint({ ...FILL, color: "green" })[0].color).toBe(PALETTE.green);
+  });
+
+  it("a poly with fewer than three points and an ellipse with no radius draw nothing", () => {
+    expect(paint({ kind: "poly", points: [[0, 0], [10, 0]], color: "#000" })).toEqual([]);
+    expect(paint({ kind: "ellipse", cx: 10, cy: 10, rx: 0, ry: 5, color: "#000" })).toEqual([]);
+  });
+});
 
 describe("stone: a wall of blocks with mortar lines", () => {
   const ops = paint(STONE);
@@ -122,7 +171,7 @@ describe("the painter's edges", () => {
       { kind: "wall", y: 0, h: 150, stripe: 40, colors: ["wallLight", "wallStripe"] },
       { kind: "planks", y: 157, h: 203, seed: 11, rowH: 16, rowGrow: 3, colors: ["floor", "floorLine", "floorLight"] },
       { kind: "shelf", x: 40, y: 104, w: 250, blocks: [{ x: 60, w: 24, h: 26, color: "pink" }] },
-      STONE, FLAGS, DOOR,
+      STONE, FLAGS, DOOR, FILL, POLY, ELLIPSE,
     ];
     for (const k of kinds) {
       const ops = arenaOps({ palette: "snes16", bands: [k], props: [] }, VIEW);

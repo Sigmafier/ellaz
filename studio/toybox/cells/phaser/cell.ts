@@ -28,7 +28,7 @@ import type { BoxOp, HudModel, PropOp, ShadowOp, SpriteOp } from "../../sim/view
 import type { ArenaDrawOp, Cell, CellStats, FxOp, SpriteSetRef } from "../contract";
 import { drawText, textWidth } from "../canvas/font";
 import { propOps } from "../shared/props";
-import { drawStageHud } from "./hud-stage";
+import { drawStageHud, drawTurnHud } from "./hud-stage";
 
 const DRAW_SCALE = 1 / 5;
 const INK = 0x1a1230;
@@ -58,18 +58,30 @@ interface Layers {
   boxes: Phaser.GameObjects.Graphics;
 }
 
-const hexCache = new Map<string, number>();
+const colourCache = new Map<string, readonly [number, number]>();
 
-/** "#rrggbb" as the integer Phaser's Graphics wants; cached, because the arena is ~240 rects a frame */
-function hex(css: string): number {
-  const hit = hexCache.get(css);
+/**
+ * A CSS colour as the integer and alpha Phaser's Graphics wants: "#rrggbb",
+ * "rgb(r, g, b)" or "rgba(r, g, b, a)" - the three forms the arena files and
+ * the turn view's translucent slabs write (the canvas cell hands any of them to
+ * fillStyle and never had to ask). Cached, because the arena is ~240 rects a
+ * frame; anything else throws naming the colour rather than drawing pink.
+ */
+function colour(css: string): readonly [number, number] {
+  const hit = colourCache.get(css);
   if (hit !== undefined) return hit;
-  const m = /^#([0-9a-f]{6})$/i.exec(css);
-  if (!m) throw new Error(`phaser4 cell: cannot read colour "${css}"`);
-  const n = parseInt(m[1], 16);
-  hexCache.set(css, n);
-  return n;
+  let out: readonly [number, number] | null = null;
+  const h = /^#([0-9a-f]{6})$/i.exec(css);
+  if (h) out = [parseInt(h[1], 16), 1];
+  const rgb = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([0-9.]+)\s*)?\)$/i.exec(css);
+  if (rgb) out = [(Number(rgb[1]) << 16) | (Number(rgb[2]) << 8) | Number(rgb[3]), rgb[4] === undefined ? 1 : Number(rgb[4])];
+  if (!out) throw new Error(`phaser4 cell: cannot read colour "${css}"`);
+  colourCache.set(css, out);
+  return out;
 }
+
+/** the integer half of `colour`, for fx that carry their own alpha */
+const hex = (css: string): number => colour(css)[0];
 
 async function json<T>(url: string): Promise<T> {
   const r = await fetch(url);
@@ -218,7 +230,8 @@ export class Phaser4Cell implements Cell {
   drawArena(ops: readonly ArenaDrawOp[]): void {
     const g = this.gfx().arena;
     for (const op of ops) {
-      g.fillStyle(hex(op.color), 1);
+      const [n, a] = colour(op.color);
+      g.fillStyle(n, a);
       g.fillRect(op.x, op.y, op.w, op.h);
     }
   }
@@ -241,7 +254,8 @@ export class Phaser4Cell implements Cell {
   drawProps(ops: readonly PropOp[]): void {
     const g = this.gfx().props;
     for (const op of propOps(ops.map((p) => ({ ...p, x: this.snap(p.x), y: this.snap(p.y) })))) {
-      g.fillStyle(hex(op.color), 1);
+      const [n, a] = colour(op.color);
+      g.fillStyle(n, a);
       g.fillRect(op.x, op.y, op.w, op.h);
     }
   }
@@ -329,7 +343,9 @@ export class Phaser4Cell implements Cell {
   }
 
   drawHud(model: HudModel): void {
-    if (drawStageHud(this.gfx().hud, (s, x, y, k, c) => this.text(s, x, y, k, c), model, this.view)) return;
+    const text = (s: string, x: number, y: number, k: number, c: string): void => this.text(s, x, y, k, c);
+    if (drawTurnHud(this.gfx().hud, text, model, this.view)) return;
+    if (drawStageHud(this.gfx().hud, text, model, this.view)) return;
     const w = 180;
     const h = 12;
     model.hp.forEach((hp, side) => {

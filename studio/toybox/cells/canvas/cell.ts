@@ -14,6 +14,7 @@ import { NO_INPUT } from "../../sim/types";
 import type { InputFrame } from "../../sim/types";
 import type { BoxOp, HudModel, PropOp, ShadowOp, SpriteOp } from "../../sim/view";
 import type { ArenaDrawOp, Cell, CellStats, FxOp, SpriteSetRef } from "../contract";
+import { turnHudOps } from "../shared/hud-turn";
 import { propOps } from "../shared/props";
 import { drawText, textWidth } from "./font";
 import { stageHudOps } from "./hud-stage";
@@ -218,6 +219,7 @@ export class CanvasCell implements Cell {
     ctx.save();
     ctx.setTransform(this.k, 0, 0, this.k, 0, 0);
     ctx.globalAlpha = 1;
+    if (model.turn) { this.drawOps(turnHudOps(model.turn, this.view)); ctx.restore(); return; }
     if (model.stage) { this.drawStage(model); ctx.restore(); return; }
     const w = 180;
     const h = 12;
@@ -236,8 +238,12 @@ export class CanvasCell implements Cell {
   /** the stage HUD: the shared layout's rects and text runs, in screen space */
   private drawStage(model: HudModel): void {
     const s = model.stage!;
+    this.drawOps(stageHudOps(s, model.hp[s.hero] ?? 0, model.maxHp[s.hero] ?? 1, model.names[s.hero] ?? "", this.view));
+  }
+
+  /** a shared layout's rects and text runs (the stage's or the turn's), in screen space */
+  private drawOps(ops: { rects: readonly { x: number; y: number; w: number; h: number; color: string }[]; texts: readonly { text: string; x: number; y: number; scale: number; color: string }[] }): void {
     const ctx = this.g();
-    const ops = stageHudOps(s, model.hp[s.hero] ?? 0, model.maxHp[s.hero] ?? 1, model.names[s.hero] ?? "", this.view);
     for (const r of ops.rects) { ctx.fillStyle = r.color; ctx.fillRect(r.x, r.y, r.w, r.h); }
     for (const t of ops.texts) drawText(ctx, t.text, t.x, t.y, t.scale, t.color);
   }

@@ -14,6 +14,8 @@
 // rects, all opaque, all from the table below.
 
 import type { ArenaDrawOp } from "../contract";
+import { ellipseRows, fillRect, polyRows, UNIT } from "./shapes";
+import type { Scale } from "./shapes";
 
 /** snes16, the palette the demos painted with, plus the three names playroom's props ask for and the crypt's nine */
 export const PALETTE: Record<string, string> = {
@@ -269,9 +271,42 @@ function door(p: Dict, view: View, ops: ArenaDrawOp[]): void {
   rect(ops, view, x, y + h - 3, w, 3, PALETTE.stoneDark);
 }
 
+// ---- the three generic kinds Ember's field uses (2026-09-13) --------------------
+
+/** a colour as the item wrote it: a literal (#hex, rgb/rgba) verbatim, anything else a palette name */
+function colorLit(item: Dict, fallback: string): string {
+  const c = str(item, "color");
+  if (c === undefined) return fallback;
+  if (c.startsWith("#") || c.startsWith("rgb")) return c;
+  return colorOf(c, fallback);
+}
+
+/** every scene-unit pair in `points`, kept only when both halves are numbers */
+function pointList(item: Dict): [number, number][] {
+  const v = item.points;
+  if (!Array.isArray(v)) return [];
+  return v.filter((p): p is [number, number] => Array.isArray(p) && p.length === 2 && typeof p[0] === "number" && typeof p[1] === "number");
+}
+
+/** a flat rectangle in scene units */
+function fill(p: Dict, view: View, ops: ArenaDrawOp[], s: Scale): void {
+  const r = fillRect(num(p, "x", 0), num(p, "y", 0), num(p, "w", 0), num(p, "h", 0), colorLit(p, PALETTE.pink), s);
+  rect(ops, view, r.x, r.y, r.w, r.h, r.color);
+}
+
+/** a filled polygon in scene units, scan-converted to rows by shapes.ts */
+function poly(p: Dict, view: View, ops: ArenaDrawOp[], s: Scale): void {
+  for (const r of polyRows(pointList(p), colorLit(p, PALETTE.pink), s)) rect(ops, view, r.x, r.y, r.w, r.h, r.color);
+}
+
+/** a filled ellipse in scene units: centre and radii */
+function ellipse(p: Dict, view: View, ops: ArenaDrawOp[], s: Scale): void {
+  for (const r of ellipseRows(num(p, "cx", 0), num(p, "cy", 0), num(p, "rx", 0), num(p, "ry", 0), colorLit(p, PALETTE.pink), s)) rect(ops, view, r.x, r.y, r.w, r.h, r.color);
+}
+
 // ---- the entry point --------------------------------------------------------
 
-function paint(item: Dict, view: View, ops: ArenaDrawOp[]): void {
+function paint(item: Dict, view: View, ops: ArenaDrawOp[], scale: Scale): void {
   const kind = str(item, "kind") ?? "";
   if (kind === "wall") wall(item, view, ops);
   else if (kind === "planks") planks(item, view, ops);
@@ -279,9 +314,20 @@ function paint(item: Dict, view: View, ops: ArenaDrawOp[]): void {
   else if (kind === "stone") stone(item, view, ops);
   else if (kind === "flagstones") flagstones(item, view, ops);
   else if (kind === "door") door(item, view, ops);
+  else if (kind === "fill") fill(item, view, ops, scale);
+  else if (kind === "poly") poly(item, view, ops, scale);
+  else if (kind === "ellipse") ellipse(item, view, ops, scale);
   // Never a throw. A cell that refuses to draw because one prop was mistyped
   // has taken the whole fight down over a decoration nobody is measuring.
   else console.warn(`fight/arena: skipping art of unknown kind "${kind}"`);
+}
+
+/** the art block's `scale` rational, applied to the three scene-unit kinds only; the view-px kinds ignore it. Absent means 1/1 */
+function scaleOf(art: Dict): Scale {
+  const s = art.scale;
+  if (!isDict(s)) return UNIT;
+  const den = num(s, "den", 1);
+  return { num: num(s, "num", 1), den: den > 0 ? den : 1 };
 }
 
 /** the arena file's `art` block as rectangles, back to front */
@@ -291,7 +337,8 @@ export function arenaOps(art: unknown, view: { w: number; h: number }): ArenaDra
     console.warn("fight/arena: the art block is not an object; drawing nothing behind the fight");
     return ops;
   }
-  for (const band of dictList(art, "bands")) paint(band, view, ops);
-  for (const prop of dictList(art, "props")) paint(prop, view, ops);
+  const scale = scaleOf(art);
+  for (const band of dictList(art, "bands")) paint(band, view, ops, scale);
+  for (const prop of dictList(art, "props")) paint(prop, view, ops, scale);
   return ops;
 }

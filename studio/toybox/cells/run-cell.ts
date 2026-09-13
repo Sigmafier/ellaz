@@ -24,6 +24,7 @@ import { readTape } from "../sim/tape";
 import type { Tape } from "../sim/tape";
 import type { Cell, CellOptions, InputPoll, SimKind } from "./contract";
 import { fightKind } from "./kinds/fight";
+import { turnKind } from "./kinds/turn";
 import { createClock, detectRefresh } from "./retime";
 import { arenaOps } from "./shared/arena";
 import { spriteRefs } from "./shared/assets";
@@ -70,11 +71,26 @@ function advance<L, D, S, I, E extends { kind: string }>(kind: Kind<L, D, S, I, 
   }
 }
 
+/**
+ * The kind a mode file names: none is the fight's (its files predate the second
+ * kind), "turn" the turn's. So a page that passes no kind plays whatever its
+ * game's mode says, and the engine's canvas cell can be pointed at any game.
+ */
+async function kindOfMode<L, D, S, I, E extends { kind: string }>(root: string, mode: string): Promise<Kind<L, D, S, I, E>> {
+  const r = await fetch(`${root}/data/modes/${mode}.json`);
+  if (!r.ok) throw new Error(`run-cell: ${r.status} fetching the mode file for "${mode}"`);
+  const kind = ((await r.json()) as { kind?: unknown }).kind;
+  if (kind === undefined) return fightKind as unknown as Kind<L, D, S, I, E>;
+  if (kind === "turn") return turnKind as unknown as Kind<L, D, S, I, E>;
+  throw new Error(`run-cell: mode "${mode}" names an unknown kind ${JSON.stringify(kind)}`);
+}
+
 export async function runCell<L, D, S, I, E extends { kind: string }>(cell: Cell, opts: CellOptions<L, D, S, I, E>): Promise<void> {
   try {
-    const kind = (opts.kind ?? fightKind) as Kind<L, D, S, I, E>;
     const tape = opts.tape ? readTape<I>(await (await fetch(`${opts.root}/tapes/${opts.tape}.json`)).json()) : null;
-    const loaded = await kind.load(opts.root, tape ? tape.mode : opts.mode);
+    const mode = tape ? tape.mode : opts.mode;
+    const kind = opts.kind ?? await kindOfMode<L, D, S, I, E>(opts.root, mode);
+    const loaded = await kind.load(opts.root, mode);
     const data = kind.compile(loaded);
     const refs = spriteRefs(opts.root, kind.sets(loaded));
     await cell.load(refs);
