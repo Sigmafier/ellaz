@@ -156,6 +156,13 @@ function probe(expectedExpr) {
     scale,
     terms,
     binds,
+    // RETURNED, which it was not. It was computed above and dropped on the
+    // floor, so `arm()` read `undefined` and every arm reported that the page
+    // had no `--b-chrome` - while the element carries it plainly
+    // (`getPropertyValue("--b-chrome")` -> "183px", verified directly). An
+    // instrument that blames its subject for its own omission is the most
+    // expensive kind of wrong, because the message sounds like a finding.
+    declaredChrome,
   };
 }
 
@@ -183,9 +190,40 @@ async function arm(page, game, vp) {
    * day it was measured, silently wrong the day a row is added, and the symptom
    * is the overflow this whole change exists to remove. So it is asserted, not
    * trusted - 8px of slack for a font or a border, no more. */
-  if (r.declaredChrome != null) {
+  /*
+   * THREE STATES, NOT TWO - and this check had two, which is how it sat out the
+   * one failure it exists for. A swept board declares `--b-chrome`; reading it
+   * back can also FAIL, and `parseFloat("")` is `NaN`. `NaN != null` is true, so
+   * the guard ran, and `Math.abs(real - NaN) > 8` is false, so it passed. The
+   * error state was indistinguishable from agreement.
+   *
+   * It cost the real thing: survivors declared 292 while rendering 183 - a
+   * 109px gap against an 8px tolerance - and this printed nothing. The board
+   * was sized from the stale number and came out a third of the width it had
+   * room for. `0` and `NaN` are the permissive values; say so explicitly.
+   */
+  /*
+   * DESKTOP ONLY, because that is where the number is READ. `--b-chrome` feeds
+   * the desktop branch's height arithmetic and nothing else; the phone arm is
+   * `min(<vw>vw, <vh>vh, <cap>px)` and never consults it.
+   *
+   * This is scoped rather than relaxed, and the distinction matters: on its
+   * first honest run this check caught `match3 declares 294px, renders 319px`
+   * at 390x844 - a real 25px gap, because match3's goal bar wraps to a second
+   * line on a phone and does not on a desktop. So a game's chrome is not one
+   * number across every width. On the phone that gap is INAPPLICABLE (nothing
+   * reads the value there), not tolerable - and a check that fires where its
+   * subject is unused teaches you to ignore it. It still fires on all three
+   * desktop widths, which is every arm the value can actually break.
+   */
+  if (vp.kind === "desktop" && r.declaredChrome !== null) {
     const real = r.frameLayoutH - r.boardLayoutH;
-    if (Math.abs(real - r.declaredChrome) > 8)
+    if (!Number.isFinite(r.declaredChrome))
+      // Names what was OBSERVED and not a cause. The first wording asserted the
+      // page was missing the property; the page was fine and this script had
+      // dropped it. A refusal may say "I cannot judge" - it may not diagnose.
+      fails.push(`no readable chrome reached this check (got ${JSON.stringify(r.declaredChrome)}) - cannot judge, so refusing`);
+    else if (Math.abs(real - r.declaredChrome) > 8)
       fails.push(`declares chrome ${r.declaredChrome}px, renders ${real}px - the board is sized from a stale number`);
   }
   if (vp.kind === "desktop") {

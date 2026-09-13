@@ -1,8 +1,13 @@
 import { textFor } from "@i18n/index";
 import { useEffect, useRef, useState } from "react";
 import type { GameContext } from "@sdk/index";
-import { GameChrome } from "@ui/GameChrome";
+// The ARCADE chrome, because this game declares `tier: "showcase"` - the band
+// the operator picked when asked who gets dedicated game controls. The shared
+// `GameChrome` is what the other 42 wear; `arcade-chrome-is-tier-not-id.test.ts`
+// pins that this correspondence is the BAND's and never this game's name.
+import { ArcadeChrome } from "@ui/ArcadeChrome";
 import { BOARD_CLASS, boardVars } from "@ui/boardSize";
+import { WEAPON_ORDER, weaponAt } from "./logic";
 // NO `DirectionPad` HERE, and that is the point of this game's control.
 // `CLAUDE.md` used to say every game ships the four-arrow pad and never the
 // stick alone; the operator ruled on 2026-09-13 that the steering moves ONTO the
@@ -82,6 +87,9 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
   const [status, setStatus] = useState<SurvivorsStatus>({
     score: 0,
     timeLeft: RUN_MS,
+    // The rotation starts at the first weapon, so a HUD drawn before the scene
+    // has published anything shows the same pip the first shot will use.
+    shots: 0,
     hp: 3,
     maxHp: 3,
     power: 1,
@@ -240,20 +248,36 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
   const choosing = status.offer.length > 0;
 
   return (
-    <GameChrome
+    <ArcadeChrome
       ctx={ctx}
-      stats={[
-        { icon: "bolt", label: T.score, value: status.score, record: Math.max(best, status.score) },
-        // Once the golem is up the clock is pinned at zero and has nothing left
-        // to count, so this cell changes what it REPORTS rather than sitting at
-        // 0:00 through the whole finish. `flag` - the objective - out of the
-        // real icon set, never `clock`, which would leave the picture saying
-        // one thing while the number means another.
-        status.boss
-          ? { icon: "flag" as const, label: T.golem, value: status.boss.hp, compact: true, ltr: true }
-          : { icon: "clock" as const, label: T.time, value: clock(status.timeLeft), compact: true, ltr: true },
-        { icon: "heart", label: T.hearts, value: `${status.hp}/${status.maxHp}`, compact: true, ltr: true },
-      ]}
+      // The same four numbers the three grey cards used to carry, drawn ON the
+      // arena instead of above it. Two of them change shape rather than value:
+      //
+      // - HEARTS was `3/3` in a card and is a BAR here, which is the reading a
+      //   thumb can take without leaving the fight.
+      // - The CLOCK and the GOLEM are no longer one cell that swaps what it
+      //   reports. The old card had to choose, because there was one slot; the
+      //   arena has room for both, so the clock keeps counting and the golem's
+      //   bar simply appears when it arrives.
+      //
+      // The pips are the one genuinely new reading, and they come from the
+      // simulation's own rotation - `weaponAt(shots)` is what decides which
+      // weapon fires next, so the HUD reads that rather than keeping a second
+      // count that could disagree with it.
+      hud={{
+        hearts: { now: status.hp, max: status.maxHp },
+        score: status.score,
+        // The same reading the grey bar's record slot carried - `best` is the
+        // stored record and the live score can already have passed it, so the
+        // larger of the two is what a player should see.
+        best: Math.max(best, status.score),
+        clock: clock(status.timeLeft),
+        weapons: WEAPON_ORDER.map((id) => ({ id, on: id === weaponAt(status.shots) })),
+        boss: status.boss
+          ? { now: status.boss.hp, max: status.boss.maxHp, label: T.golem }
+          : null,
+        labels: { hearts: T.hearts, score: T.score },
+      }}
       levels={LEVEL_OPTIONS}
       level={status.level}
       // Reachable mid-run. The scene treats it as a fresh run at that level.
@@ -365,8 +389,18 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
         style={{
           position: "relative",
           // The arena is 420 x 560, so its width is three quarters of whatever
-          // height the desktop branch hands it. chrome 292 measured 2026-09-13.
-          ...boardVars({ vw: 92, vh: 58, cap: 420, chrome: 292, ratio: ARENA.w / ARENA.h }),
+          // height the desktop branch hands it.
+          //
+          // chrome 183, MEASURED 2026-09-13 on the built artifact with the
+          // arcade HUD in place, and it replaces 292 - which was measured the
+          // same day against the shared grey bar. The HUD moved the three stat
+          // cards ONTO the arena, so 109px of rows stopped existing; the board
+          // went on reserving them and came out 152px wide at 1536x639 where it
+          // had room for 234. A constant measured against the layout it is
+          // about is correct exactly until that layout changes, which is why
+          // the gate asserts this number against the rendered one rather than
+          // trusting it - see a-threshold-tuned-against-todays-tree-goes-stale.md.
+          ...boardVars({ vw: 92, vh: 58, cap: 420, chrome: 183, ratio: ARENA.w / ARENA.h }),
         }}
       >
         <div
@@ -484,6 +518,6 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
           </div>
         )}
       </div>
-    </GameChrome>
+    </ArcadeChrome>
   );
 }

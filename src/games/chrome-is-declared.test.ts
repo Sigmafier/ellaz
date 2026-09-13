@@ -46,11 +46,29 @@ function borrowedDirs(sources: string[]): string[] {
   return [...out];
 }
 
+/**
+ * EITHER chrome component counts, and the widening is the point rather than a
+ * loosening.
+ *
+ * What this gate protects is that a game declaring `ownsChrome` actually draws
+ * a bar - because when it does not, `GameHost` hides its own and the player has
+ * no way home. A showcase game wearing `<ArcadeChrome>` draws one; it simply
+ * draws a different one. Keying on the single name `GameChrome` would have
+ * turned that into a build failure for doing the thing the arcade HUD exists to
+ * do, and the temptation then is to weaken the assertion instead of the
+ * matcher - which would stop catching a game that renders NEITHER, the only
+ * case that ever mattered.
+ *
+ * Named exactly, never as a `Chrome` suffix: a typo must still read as no
+ * chrome at all, and a prefix match would wave one through.
+ */
+const CHROME_COMPONENTS = /<(GameChrome|ArcadeChrome)\b/;
+
 function usesGameChrome(dir: string, seen = new Set<string>()): boolean {
   if (seen.has(dir)) return false;
   seen.add(dir);
   const sources = sourcesOf(dir);
-  if (sources.some((s) => /<GameChrome\b/.test(s))) return true;
+  if (sources.some((s) => CHROME_COMPONENTS.test(s))) return true;
   return borrowedDirs(sources).some((d) => usesGameChrome(d, seen));
 }
 
@@ -77,9 +95,9 @@ describe("a game's chrome is declared in exactly one place", () => {
       expect(
         used,
         declared
-          ? `${id} declares ownsChrome but no renderer under src/games/${DIR_OF[id]}/ renders <GameChrome>. ` +
-              `GameHost will hide its bar, so the player has no way home.`
-          : `${id} renders <GameChrome> but its meta does not declare ownsChrome: true. ` +
+          ? `${id} declares ownsChrome but no renderer under src/games/${DIR_OF[id]}/ renders ` +
+              `<GameChrome> or <ArcadeChrome>. GameHost will hide its bar, so the player has no way home.`
+          : `${id} renders a chrome component but its meta does not declare ownsChrome: true. ` +
               `The host bar draws as well, so the screen gets two mute buttons.`,
       ).toBe(declared);
     },

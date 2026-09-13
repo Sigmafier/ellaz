@@ -47,6 +47,16 @@ export type SurvivorsStatus = {
   hp: number;
   maxHp: number;
   power: number;
+  /**
+   * How many shots this run has fired.
+   *
+   * Published for ONE reason: `weaponAt(shots)` is what decides which of the
+   * three weapons goes out next, and the arcade HUD draws that as pips. It is
+   * the rotation's only source, so the HUD reads the same number the simulation
+   * rotates on rather than keeping a second count that can disagree with it -
+   * the same argument the `boss` field's own comment makes about health.
+   */
+  shots: number;
   xp: number;
   need: number;
   level: LevelKey;
@@ -313,6 +323,7 @@ export class SurvivorsScene extends Phaser.Scene {
       hp: this.run.hp,
       maxHp: this.run.maxHp,
       power: this.run.power,
+      shots: this.run.shots,
       xp: this.run.xp,
       need: this.run.need,
       level: this.selectedLevel,

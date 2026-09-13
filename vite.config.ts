@@ -699,8 +699,23 @@ export default defineConfig({
           // `GameChrome` and `PageApp`, both of which are on this side. Left to
           // the `src/ui/` catch-all below it went to the SHELL, and the payload
           // gate reded 81 B over the ceiling naming it.
-          if (/\/src\/ui\/(GameChrome|DirectionPad)\.tsx$/.test(path)) return "page";
+          // `ArcadeChrome` is the showcase band's HUD and joined this list on
+          // 2026-09-13, AFTER being left off it and measured: the first visit
+          // went to 78,871 B gz against a 56,800 ceiling - 139%, over by 22,071
+          // - and survivors stopped mounting at all with `ReferenceError:
+          // Cannot access 'cn' before initialization`. That second symptom is
+          // the sharper lesson: a module the catch-all pins to the SHELL while
+          // a game chunk imports it is a cross-chunk cycle, so the miss does not
+          // merely cost bytes, it can stop the game running. Only
+          // `SurvivorsGame.tsx` imports it, and nothing in the shell does.
+          if (/\/src\/ui\/(GameChrome|ArcadeChrome|DirectionPad)\.tsx$/.test(path)) return "page";
           if (/\/src\/ui\/gameTools\.ts$/.test(path)) return "page";
+          // `boardSize.ts` is the one place board sizing is decided. Its only
+          // importers are the four game renderers that have been swept onto it
+          // (measured, not assumed: zero shell importers), so the catch-all was
+          // shipping the desktop sizing policy to every child before they had
+          // chosen a game. Same trap as `GameChrome.tsx` above.
+          if (/\/src\/ui\/boardSize\.ts$/.test(path)) return "page";
 
           // The card art below the fold. It lives under `src/ui/`, so the
           // catch-all further down would claim it for the shell - which is
