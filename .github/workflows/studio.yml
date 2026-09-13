@@ -83,6 +83,23 @@ jobs:
       - name: Export sheets, atlases, manifests, palettes
         run: npm run export
 
+      # assert:fight re-runs studio/tools/facings-painter/reproduce.sh, which
+      # paints the knight's facings with Pillow and diffs the PNG byte for byte.
+      # Its default interpreter is a venv on the author's machine, so CI read
+      # "has no Pillow" and the gates went red (runs 34769485318, 34789224965,
+      # 2026-09-13). Pinned to the version the committed PNG was emitted with:
+      # a fresh venv of pillow 12.3.0 on Python 3.14 re-emitted all three files
+      # identical and the one-colour control still FIRED (measured 2026-09-14).
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Pillow for the facings generator
+        run: |
+          set -euo pipefail
+          python -m pip install "pillow==12.3.0"
+          echo "PY=$(command -v python)" >> "$GITHUB_ENV"
+
       # Every gate reads a different artifact; a green one says nothing
       # about what another would find.
       - name: The nine gates
