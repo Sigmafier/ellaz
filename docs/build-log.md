@@ -4621,3 +4621,99 @@ uses. `arcade-entrance-covers-the-arena.test.ts` (14 tests) pins the four regres
 would leave a page still looking plausible: the HUD drawn under the cover, the difficulty
 drawn twice, a restart beside a "Play again" that already restarts, and a cover that
 refuses pointers the way the HUD must.
+
+## The arena goes landscape on a PC (2026-09-13)
+
+The operator ruled it off a drawn mock at their own 1536x695: *"make it landscape on
+PC"*. It supersedes the earlier "scale it up only" reading, and it is a bigger change
+than a rectangle - a wider arena shows more battlefield, so it changes what the player
+can see.
+
+### What moved
+
+| | before | after |
+|---|---|---|
+| arena, phone | 420 x 560 | **420 x 560, unchanged** |
+| arena, desktop | 420 x 560 | **648 x 364** |
+| board @ 1536x639 | 359px | **853px** |
+| board @ 1920x1080 | 565px | **1638px** |
+| board @ 390x844 | 359px | **359px, byte-identical** |
+| showcase panel cap | 700px | **1680px** |
+
+Board gate **0 of 16 arms**, slope 33.0 of 45, first visit 56,438 B gz of 56,800, suite
+4,910 passing (the one red is the peer's untracked `lettercross/lang.ts`).
+
+### The same AREA, not the same height
+
+`ARENA_WIDE` is 648 x 364 - 235,872 square units against the portrait arena's 235,200,
+a 0.3% difference. The alternative was the same HEIGHT, 996 x 560, which is **137% more
+floor**. Enemies arrive at a rate the CLOCK sets rather than a rate per unit of floor, so
+that would have roughly halved the crowd a player has to deal with: a much easier game,
+handed out silently under the name of a layout change. `arena-is-a-run-property.test.ts`
+asserts the areas stay within 5% of each other, so retuning the difficulty stays a
+deliberate act rather than a side effect of moving a rectangle.
+
+### The arena is a property of the RUN
+
+`ARENA` was a module constant and every part of the simulation read it directly. Two
+shapes cannot coexist that way, and the failure is not a crash: leave any ONE of the old
+reads behind and the game still boots, still draws, still plays - with the canvas the new
+shape and the floor underneath it the old one. Enemies walk in from a curtain down the
+middle of the screen, or the ship stops dead 420 units from the left with a third of the
+arena it can never reach.
+
+So `RunState` carries `arena`, `newRun(level, arena = ARENA)` defaults to the phone's
+floor - which is what kept all 50 existing survivors tests honest and unchanged - and the
+component hands the shape to Phaser and to the scene. The pin asserts `ARENA` appears in
+`logic.ts` exactly twice and is dereferenced never, and it drives the WIDE arena
+specifically: a test that passed on both shapes could not have caught the bug it exists
+for.
+
+### The half nobody had costed: a 700px panel
+
+`capPc` defaults to `PANEL_USABLE` (684), because `.ellaz-game-panel` caps at 700 above
+900px of viewport. That is a READING width - right for a document page carrying a board,
+and wrong for a landscape game. Measured at 1920x1080, a 16:9 board held to 684px draws
+**684 x 384 = 263k square px, against the portrait board's 565 x 753 = 425k**. Shipping
+the ruling inside the existing panel would have been a **38% cut in visible battlefield
+sold as an improvement**.
+
+Raising the shared cap was the alternative and it is worse: the other 42 games would get
+a 1680px column for a 640px board, and the cap exists precisely because an unbounded
+panel once rendered a difficulty toggle 1193px wide. So the showcase band gets its own,
+put on by `ArcadeChrome` - the same population that wears the HUD, selected on
+`meta.tier === "showcase"` and never on an id. `game-panel-clears-widest-board.test.ts`
+was AMENDED rather than weakened: it now reads each game's band out of its own `meta.ts`
+and checks it against the ceiling that band actually gets, with the simple band's 684
+unchanged and a non-vacuity assertion that the showcase set is neither empty nor
+everybody.
+
+### Three defects of mine, each caught by an instrument rather than by reading
+
+- **`capPc: 1440` was a guess from one viewport.** Derived from the 1536x639 arm, it
+  bound before the window did at 1920x1080 and the frame filled 85% against a 90% floor.
+  The height term there resolves to `(960 - 16 - 24) x 1.7802 = 1638`, so the ceiling had
+  to clear 1638 to stop being the thing that decides the size. 1680. Same shape as the
+  `chrome: 60` already on this record: a constant inferred from a picture rather than a
+  render.
+- **My spawn test measured my own sampler.** I hand-rolled a "sweeping" rng as
+  `(n++ % 97) / 97`, but `rng` is called only on spawn frames, three times each - so
+  across ~20 spawns it never sampled above 0.6, and `edgePoint`'s `Math.floor(rng() * 4)`
+  could therefore never select case 3, the right edge. It reported a widest enemy at 315
+  and blamed the arena. Replaced with the game's own seeded `rngFor` over ~60 spawns,
+  where the chance of never drawing that edge is `(3/4)^60`. A portrait CONTROL now runs
+  the identical loop and must come out under the same line, so the threshold cannot be
+  one every arena clears.
+- **A stray `*/` broke the build.** The comment I extended already closed before the
+  selector, so nine lines of prose sat as bare CSS and left the media query unclosed.
+  Tests and typecheck were both green over it; only the build could see it.
+
+### What this invalidates
+
+The golem timings and the three death measurements (61 s, 68 s, 101 s) were taken on the
+portrait arena and do not describe this one. `boss.test.ts` pins a WINDOW rather than a
+number and still passes (18,400 ms with a representative loadout, 83,616 ms with none),
+but those two figures are now portrait-arena figures and the landscape ones have not been
+taken. Sight lines are no longer symmetric either: the arena is 648 wide against a
+240-unit `TARGET_RANGE`, so the gun cannot cover the full width from the middle, while
+the full height is now inside it.

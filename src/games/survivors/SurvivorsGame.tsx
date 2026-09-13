@@ -26,7 +26,7 @@ import { useRememberedLevel } from "@shared/useRememberedLevel";
 // and the arena's size is needed to shape the box before Phaser exists.
 import type { SurvivorsScene, SurvivorsStatus } from "./SurvivorsScene";
 import type { LevelKey, UpgradeId } from "./logic";
-import { ARENA, RUN_MS, UPGRADE_CAP, UPGRADE_IDS } from "./logic";
+import { ARENA, ARENA_WIDE, RUN_MS, UPGRADE_CAP, UPGRADE_IDS, type Arena } from "./logic";
 import { UPGRADE_ART } from "./upgradeArt";
 
 // The second Phaser game in the roster, wearing the same chrome as the other
@@ -106,6 +106,35 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
   });
   const best = ctx.score?.best(status.level) ?? 0;
 
+  /**
+   * PORTRAIT ON A PHONE, LANDSCAPE ON A PC - decided once, at mount.
+   *
+   * WHY THIS IS JAVASCRIPT AND NOT A MEDIA QUERY, given that the board's SIZE is
+   * pure CSS: a media query can change how big a box is drawn, and cannot change
+   * how many units of floor the simulation has. The arena's shape is a rule of
+   * the game - it decides where enemies enter, where the ship may stand and what
+   * the player can see - so it has to be a value the simulation is handed.
+   *
+   * 900px IS NOT A NUMBER CHOSEN HERE. It is the breakpoint `.ellaz-board`'s own
+   * desktop branch uses in `global.css`, quoted rather than re-decided: two
+   * numbers would be two answers, and a window between them would size the box
+   * from one shape and play on the other.
+   *
+   * READ ONCE, and the consequence is stated rather than hidden. Dragging a
+   * window across 900px mid-session does NOT reshape a run - the canvas is sized
+   * from this at boot and a live run would otherwise change its rules underneath
+   * the player. The inline `aspectRatio` below comes from this same value, so
+   * the box and the simulation can never disagree about the shape; the only cost
+   * is that a resized window keeps the arena it opened with until the next
+   * mount. Re-shaping on the fly would mean restarting the run, which is a worse
+   * answer to a rarer problem.
+   */
+  const [arena] = useState<Arena>(() =>
+    typeof window !== "undefined" && window.matchMedia("(min-width: 900px)").matches
+      ? ARENA_WIDE
+      : ARENA,
+  );
+
   useEffect(() => {
     let game: { destroy: (removeCanvas: boolean) => void } | null = null;
     let cancelled = false;
@@ -124,8 +153,8 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
       const g = new Phaser.Game({
         type: Phaser.AUTO,
         parent: host,
-        width: ARENA.w,
-        height: ARENA.h,
+        width: arena.w,
+        height: arena.h,
         backgroundColor: "#0b0d1f",
         scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
         // So a bug report from this game can carry a picture of the arena. WebGL
@@ -137,6 +166,9 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
       game = g;
       g.scene.start("survivors", {
         ctx,
+        // The scene sizes its floor from this. Passed rather than imported by
+        // the scene, because only this component knows how big the screen is.
+        arena,
         onStatus: (s: SurvivorsStatus) => {
           if (!cancelled) setStatus(s);
         },
@@ -157,7 +189,10 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
       sceneRef.current = null;
       game?.destroy(true);
     };
-  }, [ctx]);
+    // `arena` comes from a `useState` that is never set, so it is referentially
+    // stable for the life of the mount: listing it is correctness, and it can
+    // never reboot Phaser.
+  }, [ctx, arena]);
 
   // This game's own words. A locale RECORD, so promoting a language reds this
   // block by name instead of leaving the game speaking English inside a page
@@ -440,14 +475,42 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
           // the gate reads the RENDERED gap and refuses a declaration more than
           // 8px from it. That check is this repo's own
           // a-threshold-tuned-against-todays-tree-goes-stale.md, doing its job.
-          ...boardVars({ vw: 92, vh: 58, cap: 420, chrome: 16, ratio: ARENA.w / ARENA.h }),
+          //
+          // `capPc: 1664` IS THE LANDSCAPE ARENA'S OTHER HALF, and without it
+          // the ruling makes the game WORSE rather than better. The default
+          // ceiling is `PANEL_USABLE` (684), which is the 700px reading-width
+          // panel every other game lives in. A landscape board pinned at 684
+          // measures 684 x 384 = 263k sq px at 1920x1080, against today's
+          // portrait 565 x 753 = 425k - so capping it would have shipped a
+          // 38% SMALLER game under the name of a bigger one. 1664 is the
+          // showcase panel's own arithmetic (1680 - 8px of padding each side),
+          // and 1680 is MEASURED: I first wrote 1440 here, derived from the
+          // 1536x639 arm alone, and the board gate refused it - at 1920x1080
+          // the ceiling bound before the window did and the frame filled 85%
+          // against a 90% floor. A ceiling that decides the size is not a
+          // ceiling. Written as a literal because
+          // `game-panel-clears-widest-board.test.ts`
+          // reads this field with a regex that can only see digits - a named
+          // constant here would make the ceiling invisible to the one gate that
+          // checks it, which is this repo's own
+          // a-diagnostic-that-truncates-what-it-compares.md.
+          ...boardVars({
+            vw: 92,
+            vh: 58,
+            cap: 420,
+            chrome: 16,
+            ratio: arena.w / arena.h,
+            capPc: 1664,
+          }),
         }}
       >
         <div
           ref={hostRef}
           style={{
             width: "100%",
-            aspectRatio: `${ARENA.w} / ${ARENA.h}`,
+            // The SAME value the simulation was handed, so the drawn box and the
+            // floor being played on cannot disagree about their shape.
+            aspectRatio: `${arena.w} / ${arena.h}`,
             borderRadius: 14,
             overflow: "hidden",
             // The arena owns the gesture: no scroll, no pinch under a finger

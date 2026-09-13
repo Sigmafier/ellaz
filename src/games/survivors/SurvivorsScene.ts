@@ -23,7 +23,7 @@ import {
 } from "./stick";
 import {
   ARENA, KINDS, RUN_MS, TIER, WEAPONS, applyUpgrade, bossOf, newRun, offerUpgrades, rngFor, step,
-  type EnemyKind, type LevelKey, type RunState, type UpgradeId, type WeaponId,
+  type Arena, type EnemyKind, type LevelKey, type RunState, type UpgradeId, type WeaponId,
 } from "./logic";
 
 // Phaser draws the arena and reads the input. Every rule is in `logic.ts`, so this
@@ -148,6 +148,16 @@ type Spark = { x: number; y: number; vx: number; vy: number; life: number; ink: 
 export class SurvivorsScene extends Phaser.Scene {
   private ctx!: GameContext;
   private run!: RunState;
+  /**
+   * The floor this scene draws and plays on.
+   *
+   * Handed in by the component, which is the only party that knows how much
+   * room the screen has. It DEFAULTS to the phone's portrait arena so a caller
+   * that says nothing gets what this game has always had, and it is read once:
+   * the canvas is sized from it at boot, so a scene cannot change shape under a
+   * run that is already going.
+   */
+  private arena: Arena = ARENA;
   private phase: Phase = "ready";
   /**
    * NOT a fourth phase. A phase is where the run is; a pause is a lid over
@@ -210,10 +220,13 @@ export class SurvivorsScene extends Phaser.Scene {
 
   init(data: {
     ctx: GameContext;
+    /** Portrait on a phone, landscape on a desktop. The component decides. */
+    arena?: Arena;
     onStatus?: (s: SurvivorsStatus) => void;
     onReady?: (scene: SurvivorsScene) => void;
   }) {
     this.ctx = data.ctx;
+    this.arena = data.arena ?? ARENA;
     this.onStatus = data.onStatus;
     this.onReady = data.onReady;
   }
@@ -232,7 +245,7 @@ export class SurvivorsScene extends Phaser.Scene {
 
   create() {
     this.rng = rngFor(Date.now() >>> 0);
-    this.run = newRun(this.selectedLevel);
+    this.run = newRun(this.selectedLevel, this.arena);
 
     // NEAREST, per texture, and this is the whole reason the art survives. Every
     // authored pixel is a 5x5 block on the sheet and is drawn at 0.2, so one
@@ -267,7 +280,7 @@ export class SurvivorsScene extends Phaser.Scene {
     this.input.on("pointerdown", (p: Phaser.Input.Pointer) => {
       if (this.paused) return;
       if (this.phase !== "playing") return void this.startFromChrome();
-      const o = stickOriginFor(this.stickStyle, p.worldX, p.worldY, ARENA);
+      const o = stickOriginFor(this.stickStyle, p.worldX, p.worldY, this.arena);
       this.stick = { ox: o.ox, oy: o.oy, px: p.worldX, py: p.worldY };
     });
     this.input.on("pointermove", (p: Phaser.Input.Pointer) => {
@@ -377,7 +390,7 @@ export class SurvivorsScene extends Phaser.Scene {
   }
 
   private restart() {
-    this.run = newRun(this.selectedLevel);
+    this.run = newRun(this.selectedLevel, this.arena);
     this.phase = "ready";
     // A new run is never a paused one: restarting from behind the cover would
     // otherwise leave a lid over a ready screen nobody can read or reach.
@@ -552,7 +565,7 @@ export class SurvivorsScene extends Phaser.Scene {
   private screenPoint(x: number, y: number): { x: number; y: number } {
     const c = this.game.canvas?.getBoundingClientRect();
     if (!c) return { x: 0, y: 0 };
-    return { x: c.left + (x / ARENA.w) * c.width, y: c.top + (y / ARENA.h) * c.height };
+    return { x: c.left + (x / this.arena.w) * c.width, y: c.top + (y / this.arena.h) * c.height };
   }
 
   /** Where the coins should fly from: the ship, in viewport pixels. */
@@ -664,10 +677,13 @@ export class SurvivorsScene extends Phaser.Scene {
     const g = this.bg;
     g.clear();
     g.fillStyle(INK.ground, 1);
-    g.fillRect(0, 0, ARENA.w, ARENA.h);
+    g.fillRect(0, 0, this.arena.w, this.arena.h);
     g.lineStyle(1, INK.grid, 1);
-    for (let x = 42; x < ARENA.w; x += 42) g.lineBetween(x, 0, x, ARENA.h);
-    for (let y = 42; y < ARENA.h; y += 42) g.lineBetween(0, y, ARENA.w, y);
+    // The grid pitch stays 42 units on both arenas rather than scaling with the
+    // floor: it is a sense of SPEED, and a cell that grew with the arena would
+    // make the wide floor read as the same room seen from further away.
+    for (let x = 42; x < this.arena.w; x += 42) g.lineBetween(x, 0, x, this.arena.h);
+    for (let y = 42; y < this.arena.h; y += 42) g.lineBetween(0, y, this.arena.w, y);
   }
 
   /** Everything that is still a primitive: the shots, the gems and the sparks. */
@@ -754,7 +770,7 @@ export class SurvivorsScene extends Phaser.Scene {
     const boss = bossOf(this.run);
     if (boss) {
       const m = 16;
-      const w = ARENA.w - m * 2;
+      const w = this.arena.w - m * 2;
       const p = Math.max(0, Math.min(1, boss.hp / KINDS.golem.hp));
       g.fillStyle(INK.ground, 0.9);
       g.fillRect(m - 3, 11, w + 6, 13);

@@ -523,6 +523,39 @@ body.app-shell h3,
   .ellaz-game-panel {
     max-width: 700px;
   }
+
+  /* A SHOWCASE game's panel, and the reason there are two numbers rather than
+     one raised number.
+
+     700px is a READING width - right for a document page that happens to carry
+     a board, and wrong for a game whose arena is LANDSCAPE. The operator ruled
+     the landscape arena on 2026-09-13; measured at 1920x1080, holding a 16:9
+     board to the 684px that panel leaves draws 684 x 384, against the 565 x 753
+     the portrait board drew. Keeping one cap would have shipped 38% LESS
+     battlefield under the name of a bigger game.
+
+     Raising the shared cap instead was the alternative and it is worse: every
+     one of the other 42 games would get a 1440px column for a 640px board, and
+     the cap exists precisely because an unbounded panel rendered a difficulty
+     toggle 1193px wide.
+
+     It is a BAND and not a game - the class is put on by `ArcadeChrome`, which
+     is selected on `meta.tier === "showcase"`, so the panel widens for the same
+     population that wears the arcade HUD. The two numbers are held to their own
+     boards by `game-panel-clears-widest-board.test.ts`, per band.
+
+     1680 IS MEASURED, AND MY FIRST GUESS WAS 1440. The board gate refused it:
+     at 1920x1080 the ceiling bound before the height term did and the frame
+     filled 85% of its box against a 90% floor. The height term there resolves
+     to (960 - 16 chrome - 24 gutter) x 1.7802 = 1638, so a ceiling under that
+     is the thing deciding the size - which is the whole defect this rule
+     exists to remove. 1680 clears 1638 with room, so the WINDOW decides and
+     the cap goes back to being a ceiling rather than a target. Same shape as
+     the `chrome: 60` this repo already has on the record: a constant inferred
+     from one viewport is an estimate wearing a measurement's clothes. */
+  .ellaz-game-panel.ellaz-panel-wide {
+    max-width: 1680px;
+  }
 }
 
 /* THE BOARD SIZING POLICY, in the one place the comment above asked for.

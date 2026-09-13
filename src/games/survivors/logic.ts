@@ -16,8 +16,48 @@
 
 import { mulberry32 } from "@shared/rng";
 
-/** The arena, in logical units. The canvas is scaled to fit; these never change. */
-export const ARENA = { w: 420, h: 560 } as const;
+/** A battlefield, in logical units. The canvas is scaled to fit it. */
+export type Arena = { readonly w: number; readonly h: number };
+
+/**
+ * The PHONE arena. Portrait, because a phone is.
+ *
+ * It is still exported under its old name and is still the DEFAULT of `newRun`,
+ * so every existing test and every caller that does not care reads exactly what
+ * it read before.
+ */
+export const ARENA: Arena = { w: 420, h: 560 };
+
+/**
+ * The DESKTOP arena. Landscape, because a desktop window is.
+ *
+ * Operator ruling 2026-09-13, picked off a drawn mock at their own 1536x695:
+ * *"make it landscape on PC"*. It supersedes the earlier "scale it up only"
+ * reading, and it is a bigger change than it looks - a wider arena shows more
+ * battlefield, so it changes what the player can SEE and therefore how hard the
+ * run is. Every timing measured against the portrait arena is invalidated by it.
+ *
+ * THE SAME AREA, NOT THE SAME HEIGHT, and that is a deliberate conservative
+ * choice rather than an arithmetic accident:
+ *
+ *     portrait    420 x 560  = 235,200 sq units
+ *     same AREA   648 x 364  = 235,872   (+0.3%)   <- this
+ *     same HEIGHT 996 x 560  = 557,760   (+137%)
+ *
+ * Enemies arrive at a rate the clock sets, not a rate per unit of floor, so
+ * doubling the floor would roughly halve the crowd a player has to deal with -
+ * a much easier game, handed out silently under the name of a layout change.
+ * Holding the area constant keeps the density it was tuned at, and leaves the
+ * difficulty question a separate, deliberate one. 16:9 because that is the
+ * shape of the window it is filling.
+ *
+ * WHAT IT DOES CHANGE, stated rather than hidden: the arena is 648 wide against
+ * a 240-unit `TARGET_RANGE`, so the gun can no longer cover the full width from
+ * the middle, while the full HEIGHT (364) is now inside it. Sight lines are not
+ * symmetric any more. That is a real difficulty change in both directions and
+ * it is exactly what `boss.test.ts`'s re-measurement has to confirm.
+ */
+export const ARENA_WIDE: Arena = { w: 648, h: 364 };
 
 /**
  * Survive this long and the GOLEM ARRIVES. Three minutes, chosen to be a bus
@@ -219,6 +259,17 @@ export type RunEvent =
 
 export interface RunState {
   level: LevelKey;
+  /**
+   * The floor this run is being played on.
+   *
+   * ON THE RUN rather than read from the module, and that is the whole shape of
+   * the landscape change. A module constant is one arena for every player, so a
+   * desktop could not have a wider one without a phone having it too - and the
+   * phone is the platform that cannot afford it. Carrying it here means `step`
+   * is still a pure function of what it is handed, the same seed still plays the
+   * same run, and a test can drive either shape without touching a global.
+   */
+  arena: Arena;
   /** Milliseconds survived. The clock, and the only thing that ends a run well. */
   t: number;
   phase: "playing" | "won" | "over";
@@ -271,9 +322,18 @@ const MERCY_MS = 900;
 const FLASH_MS = 90;
 const SPREAD_RAD = 0.16;
 
-export function newRun(level: LevelKey): RunState {
+/**
+ * A fresh run on `arena`, which DEFAULTS to the phone's portrait floor.
+ *
+ * The default is what keeps every existing caller and all four test files
+ * unchanged: a test that does not care about shape gets the shape it has always
+ * had, so a red in `logic.test.ts` after this change means a real regression
+ * rather than a signature churn.
+ */
+export function newRun(level: LevelKey, arena: Arena = ARENA): RunState {
   return {
     level,
+    arena,
     t: 0,
     phase: "playing",
     hp: 3,
@@ -284,8 +344,8 @@ export function newRun(level: LevelKey): RunState {
     power: 1,
     popped: 0,
     choosing: false,
-    x: ARENA.w / 2,
-    y: ARENA.h / 2,
+    x: arena.w / 2,
+    y: arena.h / 2,
     enemies: [],
     bolts: [],
     gems: [],
@@ -358,17 +418,17 @@ export const bossOf = (s: RunState): Enemy | null =>
   s.boss === null ? null : (s.enemies.find((e) => e.id === s.boss) ?? null);
 
 /** A point just outside the arena, on a random edge. */
-function edgePoint(rng: () => number): { x: number; y: number } {
+function edgePoint(rng: () => number, arena: Arena): { x: number; y: number } {
   const m = 26;
   switch (Math.floor(rng() * 4)) {
     case 0:
-      return { x: rng() * ARENA.w, y: -m };
+      return { x: rng() * arena.w, y: -m };
     case 1:
-      return { x: rng() * ARENA.w, y: ARENA.h + m };
+      return { x: rng() * arena.w, y: arena.h + m };
     case 2:
-      return { x: -m, y: rng() * ARENA.h };
+      return { x: -m, y: rng() * arena.h };
     default:
-      return { x: ARENA.w + m, y: rng() * ARENA.h };
+      return { x: arena.w + m, y: rng() * arena.h };
   }
 }
 
@@ -376,7 +436,7 @@ function spawn(s: RunState, rng: () => number) {
   if (s.enemies.length >= CAP_ENEMIES) return;
   const kinds = kindsAt(s);
   const kind = kinds[Math.floor(rng() * kinds.length)];
-  const p = edgePoint(rng);
+  const p = edgePoint(rng, s.arena);
   s.enemies.push({ id: s.nextId++, kind, x: p.x, y: p.y, hp: KINDS[kind].hp, flash: 0 });
 }
 
@@ -463,7 +523,7 @@ export function step(
     s.t = RUN_MS;
     if (s.boss === null) {
       const id = s.nextId++;
-      s.enemies.push({ id, kind: "golem", x: ARENA.w / 2, y: -34, hp: KINDS.golem.hp, flash: 0 });
+      s.enemies.push({ id, kind: "golem", x: s.arena.w / 2, y: -34, hp: KINDS.golem.hp, flash: 0 });
       s.boss = id;
       s.events.push({ type: "boss" });
     }
@@ -477,8 +537,8 @@ export function step(
     const v = playerSpeed(s) * sec;
     s.x += (input.dx / len) * v;
     s.y += (input.dy / len) * v;
-    s.x = Math.min(ARENA.w - PLAYER_R, Math.max(PLAYER_R, s.x));
-    s.y = Math.min(ARENA.h - PLAYER_R, Math.max(PLAYER_R, s.y));
+    s.x = Math.min(s.arena.w - PLAYER_R, Math.max(PLAYER_R, s.x));
+    s.y = Math.min(s.arena.h - PLAYER_R, Math.max(PLAYER_R, s.y));
   }
 
   // The swarm stops the moment the golem is on the board. The finish is a duel,
@@ -605,7 +665,7 @@ export function step(
 
   s.enemies = s.enemies.filter((e) => e.hp > 0);
   s.bolts = s.bolts.filter(
-    (b) => b.life > 0 && b.x > -40 && b.x < ARENA.w + 40 && b.y > -40 && b.y < ARENA.h + 40,
+    (b) => b.life > 0 && b.x > -40 && b.x < s.arena.w + 40 && b.y > -40 && b.y < s.arena.h + 40,
   );
 
   // The run is won by beating the golem, and by nothing else. Checked after the

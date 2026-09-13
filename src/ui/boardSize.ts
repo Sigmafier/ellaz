@@ -76,6 +76,24 @@ export type BoardSize = {
 export const PANEL_USABLE = 684;
 
 /**
+ * The same arithmetic for a SHOWCASE game's wider panel: 1680 - 8px either side.
+ *
+ * A second ceiling exists because 700px is a READING width. It is the right cap
+ * for a document page with a board on it, and it is the wrong cap for a game
+ * whose arena is landscape: measured 2026-09-13 at 1920x1080, a 16:9 board held
+ * to 684px draws 684 x 384, while the portrait board it replaces drew 565 x 753
+ * - so the landscape ruling inside a 700px panel would have been a 38% cut in
+ * visible battlefield sold as an improvement.
+ *
+ * IT IS A BAND, NEVER A GAME. The wider panel is worn by whatever renders
+ * `ArcadeChrome`, which is selected on `meta.tier === "showcase"` - so this is
+ * the same population as the HUD and the entrance screen, not a survivors
+ * exemption. `game-panel-clears-widest-board.test.ts` checks each game against
+ * the ceiling its own band actually gets.
+ */
+export const PANEL_USABLE_WIDE = 1664;
+
+/**
  * The custom properties a board declares. Spread into the element's `style`,
  * and put `BOARD_CLASS` on its className - both, or the width comes from
  * nowhere.

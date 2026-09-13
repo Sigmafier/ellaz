@@ -54,7 +54,12 @@ const CONTROL = process.argv.includes("--control");
  *  sizing changes, this gate must say so rather than quietly measure something
  *  else. One canvas game, two DOM boards, one fixed grid. */
 const GAMES = [
-  { id: "survivors", path: "/games/survivors/", expr: "min(92vw, 58vh, 420px)", phone: 359, chrome: 292 },
+  // `chrome` here is DOCUMENTATION and nothing reads it - the live check uses
+  // `--b-chrome` off the rendered element. It is corrected rather than deleted
+  // because a stale number sitting beside a live one is read as the live one:
+  // survivors went 292 -> 183 when the arcade HUD landed and 183 -> 16 when the
+  // entrance screen took the last three rows off the panel.
+  { id: "survivors", path: "/games/survivors/", expr: "min(92vw, 58vh, 420px)", phone: 359, chrome: 16 },
   { id: "match3", path: "/games/match3/", expr: "min(92vw, 54vh, 480px)", phone: 359, chrome: 294 },
   { id: "sudoku", path: "/games/sudoku/", expr: "min(94vw, 44vh, 440px)", phone: 367, chrome: 259 },
   { id: "2048", path: "/games/2048/", expr: "min(88vw, 48vh, 420px)", phone: 343, chrome: 187 },
