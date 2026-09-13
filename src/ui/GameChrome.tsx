@@ -228,6 +228,20 @@ function padSlots(stats: ChromeStat[], hasLevel: boolean): (ChromeStat | null)[]
   return out;
 }
 
+/**
+ * One track per cell. A standard row is three cells and gets `COLS` unchanged,
+ * so 40 of 43 games render exactly what they rendered before.
+ *
+ * A row past the standard - padSlots never truncates - gets a narrow track for
+ * each extra cell instead of a second LINE. Measured 2026-09-13 on match3, the
+ * only game passing four (difficulty, score, round, moves): three tracks put the
+ * fourth cell on its own line, 120px of row; four tracks hold it at one 56px
+ * line with nothing clipped at 360, 390 and 1536 wide.
+ */
+function colsFor(cells: number): string {
+  return cells <= CELLS ? COLS : `${COLS.slice(0, -1)}${" minmax(0,0.9fr)".repeat(cells - CELLS)})`;
+}
+
 export function GameChrome<T extends string>({
   ctx,
   stats,
@@ -241,7 +255,7 @@ export function GameChrome<T extends string>({
   children,
 }: {
   ctx: GameContext;
-  /** Up to three. Four wrap and the row stops reading as one line. */
+  /** Two is the standard. More still render on one line - each extra cell gets a narrow track. */
   stats: ChromeStat[];
   levels?: ChromeLevel<T>[];
   level?: T;
@@ -275,6 +289,7 @@ export function GameChrome<T extends string>({
   const t = ctx.t;
   const i = levels && level ? levels.findIndex((l) => l.id === level) : -1;
   const current = i >= 0 && levels ? levels[i] : undefined;
+  const cells = (levels && current && onLevel ? 1 : 0) + padSlots(stats, Boolean(levels && current)).length;
 
   // Restart is a GAME control and it is NOT drawn here - it is drawn by the
   // page, in the utility row above the board, and this hands it the handler.
@@ -476,7 +491,7 @@ export function GameChrome<T extends string>({
             flex: "1 1 var(--gc-row-min, 280px)",
             minWidth: 0,
             display: "grid",
-            gridTemplateColumns: COLS,
+            gridTemplateColumns: colsFor(cells),
             alignItems: "center",
             gap: GAP,
           }}

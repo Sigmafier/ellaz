@@ -83,7 +83,24 @@ describe("the row is three fixed tracks, so it cannot wrap", () => {
     // different row shapes across 33 games; tracks make every game's row the
     // same row by construction. Pinning the old floors here would now be
     // pinning a mechanism the component no longer uses.
-    expect(SRC).toMatch(/display: "grid",\s*\n\s*gridTemplateColumns: COLS,/);
+    expect(SRC).toMatch(/display: "grid",\s*\n\s*gridTemplateColumns: colsFor\(cells\),/);
+  });
+
+  it("gives a row past the standard one track per cell, and leaves the standard row alone", () => {
+    // match3 passes four cells. In three tracks the fourth took a second LINE
+    // (row 120px, measured 2026-09-13); the fix is a track per cell. Run the
+    // real function rather than grepping it: the question is what it RETURNS.
+    const cols = /const COLS = ("var\(--gc-cols, [^"]*\)");/.exec(SRC)![1];
+    const body = /function colsFor\(cells: number\): string \{\n([\s\S]*?)\n\}/.exec(SRC);
+    expect(body, "colsFor is gone - a four-cell row wraps to two lines again").toBeTruthy();
+    const colsFor = new Function("COLS", "CELLS", "cells", body![1]) as (c: string, n: number, k: number) => string;
+    const tracks = (s: string) => s.match(/minmax\(/g)?.length;
+
+    for (const k of [0, 1, 2, 3]) expect(colsFor(JSON.parse(cols), 3, k), `${k} cells`).toBe(JSON.parse(cols));
+    expect(tracks(colsFor(JSON.parse(cols), 3, 4))).toBe(4);
+    expect(tracks(colsFor(JSON.parse(cols), 3, 5))).toBe(5);
+    // Still one --gc-cols read, so a bench style can override the whole row.
+    expect(colsFor(JSON.parse(cols), 3, 4).match(/var\(--gc-cols/g)?.length).toBe(1);
   });
 
   it("declares exactly three tracks", () => {
