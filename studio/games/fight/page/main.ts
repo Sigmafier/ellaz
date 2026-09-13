@@ -40,7 +40,7 @@ const mode = q.get("mode") ?? "versus";
 document.title = campaign ? `fight - ${campaign}` : `fight - ${mode}`;
 const help = document.getElementById("help-mode");
 if (help) {
-  help.textContent = campaign ? "Campaign: clear every stage of a world to open the next. Coins and levels carry from stage to stage and are saved on this device."
+  help.textContent = campaign ? "Campaign: three levels and a boss. Clear a level to open the next; lose one and try it again. Coins and levels carry from level to level and are saved on this device."
     : mode === "stage" ? "Stage: clear each wave, then walk right when GO shows. Coins and levels are kept when a wave restarts." : "Versus: one match, best of one.";
 }
 

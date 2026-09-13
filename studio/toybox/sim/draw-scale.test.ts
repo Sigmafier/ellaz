@@ -55,7 +55,7 @@ describe("a fighter drawn big", () => {
     expect(plan.sprites.every((sp) => sp.size === undefined)).toBe(true);
     expect(plan.hud.boss).toBeUndefined();
     const i = d.cast.findIndex((c) => d.fighters[c.fighter].id === "teddy-boss");
-    const awake = { ...s, fighters: s.fighters.map((f, j) => (j === i ? { ...f, active: 1 } : f)) };
+    const awake = { ...s, fighters: s.fighters.map((f, j) => (j === i ? { ...f, active: 1 as const } : f)) };
     const woke = viewOf(awake, awake, 0, d);
     expect(woke.sprites.find((sp) => sp.who === i)?.size).toBe(2);
     expect(woke.hud.boss).toEqual({ name: "TEDDY BOSS", hp: teddy(d).hp, maxHp: teddy(d).hp });

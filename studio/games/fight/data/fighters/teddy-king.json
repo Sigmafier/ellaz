@@ -1,0 +1,10 @@
+{
+  "id": "teddy-king",
+  "sprites": "teddy--snes16",
+  "hp": 600,
+  "speed": 64,
+  "zSpeed": 44,
+  "xp": 80,
+  "drawScale": 2,
+  "boss": true
+}

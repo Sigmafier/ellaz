@@ -1,0 +1,11 @@
+{
+  "id": "teddy-king-cpu",
+  "zTolerance": 5,
+  "cooldownTicks": [30, 54],
+  "reactTicks": [4, 10],
+  "retreatChance": 24,
+  "retreatTicks": [18, 36],
+  "retreatDistance": 60,
+  "reachPad": { "min": 4, "max": -8 },
+  "holdWhenTargetAttacks": 90
+}

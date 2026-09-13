@@ -130,6 +130,7 @@ describe("every data file validates against the engine schema for its kind", () 
       "ai/ninja-cpu.json",
       "ai/slime-cpu.json",
       "ai/teddy-cpu.json",
+      "ai/teddy-king-cpu.json",
       "ai/wizard-cpu.json",
       "arena/playroom.json",
       "arena/shelf.json",
@@ -140,6 +141,7 @@ describe("every data file validates against the engine schema for its kind", () 
       "fighters/robot.json",
       "fighters/slime.json",
       "fighters/teddy-boss.json",
+      "fighters/teddy-king.json",
       "fighters/teddy.json",
       "fighters/wizard-boss.json",
       "match/versus.json",
@@ -149,6 +151,7 @@ describe("every data file validates against the engine schema for its kind", () 
       "modes/stage.json",
       "modes/toybox-2.json",
       "modes/toybox-3.json",
+      "modes/toybox-boss.json",
       "modes/versus.json",
       "stage/toybox-quest.json",
     ]);
@@ -260,8 +263,8 @@ describe("the stage conditionals the validator subset cannot write", () => {
   }
 
   it("every real mode of every game satisfies it", () => {
-    // versus, stage, and the campaign's five (2026-09-13: toybox-2, toybox-3, shelf-1, shelf-2, shelf-boss)
-    expect(modes.length).toBe(7);
+    // versus, stage, the shelf's three (parked) and the toybox run's three (2026-09-13: toybox-2, toybox-3, toybox-boss)
+    expect(modes.length).toBe(8);
     for (const g of games) {
       for (const f of fightModeFiles(g)) expect(stageViolations(readJson(f.path) as unknown as ModeFile)).toEqual([]);
     }
@@ -318,7 +321,7 @@ describe("the stage conditionals the validator subset cannot write", () => {
 
   it("every spawn lane lies inside the arena's z band, the camera lead inside one screen, the world holds every wave, and a door is where the hero can reach", () => {
     const all = stageModes();
-    expect(all.map((m) => `${m.game}/${m.mode}`)).toEqual(["crypt/crypt", "fight/shelf-1", "fight/shelf-2", "fight/shelf-boss", "fight/stage", "fight/toybox-2", "fight/toybox-3"]);
+    expect(all.map((m) => `${m.game}/${m.mode}`)).toEqual(["crypt/crypt", "fight/shelf-1", "fight/shelf-2", "fight/shelf-boss", "fight/stage", "fight/toybox-2", "fight/toybox-3", "fight/toybox-boss"]);
     for (const { game, mode, loaded } of all) {
       const st = loaded.stage!;
       const at = `${game}/${mode}`;
@@ -346,9 +349,9 @@ describe("the stage conditionals the validator subset cannot write", () => {
       return root;
     }
 
-    it("brawl is two worlds of three stages, and every stage resolves to a stage mode", () => {
+    it("brawl is one world of three levels and a boss level (the shelf parked, 2026-09-13), and every level resolves to a stage mode", () => {
       const c = loadCampaign("brawl", FIGHT);
-      expect(c.worlds.map((w) => [w.id, w.stages])).toEqual([["toybox", ["stage", "toybox-2", "toybox-3"]], ["shelf", ["shelf-1", "shelf-2", "shelf-boss"]]]);
+      expect(c.worlds.map((w) => [w.id, w.stages])).toEqual([["toybox", ["stage", "toybox-2", "toybox-3", "toybox-boss"]]]);
       for (const w of c.worlds) for (const s of w.stages) expect({ stage: s, hasStage: loadMode(s, FIGHT).stage !== undefined }).toEqual({ stage: s, hasStage: true });
     });
 
@@ -361,8 +364,8 @@ describe("the stage conditionals the validator subset cannot write", () => {
     });
 
     it("control: a world naming Versus is refused naming the world and the stage - a match has no waves to clear", () => {
-      const root = scratchCampaign((c) => { c.worlds[1].stages[1] = "versus"; });
-      expect(() => loadCampaign("brawl", root)).toThrow(/world "shelf" names stage "versus", which names no stage file/);
+      const root = scratchCampaign((c) => { c.worlds[0].stages[1] = "versus"; });
+      expect(() => loadCampaign("brawl", root)).toThrow(/world "toybox" names stage "versus", which names no stage file/);
     });
 
     it("control: a world naming a mode that does not exist is refused naming it", () => {
@@ -729,8 +732,8 @@ describe("every tick field is a whole number of ticks", () => {
 
   it("holds for every match, ai, stage and mode file", () => {
     const timed = FILES.filter((f) => /^(match|ai|stage|modes)\//.test(f.name));
-    // one match, five ais, one stage file, seven modes
-    expect(timed.length).toBe(14);
+    // one match, six ais (the teddy king's joined, 2026-09-13), one stage file, eight modes
+    expect(timed.length).toBe(16);
     for (const f of timed) expect(ints(readJson(f.path), f.name)).toEqual([]);
   });
 
@@ -814,10 +817,10 @@ describe("every fighter's sprite set is on disk, with both halves, in its own ga
         expect({ set, moves: existsSync(join(assets, set, `${set}.moves.json`)) }).toEqual({ set, moves: true });
       }
     }
-    // the population: the fight's seven fighter files over six sets (the ninja and the wizard joined for the shelf world, 2026-09-13), the crypt's four over four
+    // the population: the fight's eight fighter files over six sets (the ninja and the wizard joined for the shelf world, the teddy king for the toybox boss level, 2026-09-13), the crypt's four over four
     expect(seen.sort()).toEqual([
       "crypt/bat--snes16", "crypt/knight--snes16", "crypt/ninja--snes16", "crypt/wizard--snes16",
-      "fight/bat--snes16", "fight/ninja--snes16", "fight/robot--snes16", "fight/slime--snes16", "fight/teddy--snes16", "fight/teddy--snes16", "fight/wizard--snes16",
+      "fight/bat--snes16", "fight/ninja--snes16", "fight/robot--snes16", "fight/slime--snes16", "fight/teddy--snes16", "fight/teddy--snes16", "fight/teddy--snes16", "fight/wizard--snes16",
     ]);
   });
 

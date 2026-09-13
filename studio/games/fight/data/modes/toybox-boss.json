@@ -1,0 +1,26 @@
+{
+  "id": "toybox-boss",
+  "arena": "toybox",
+  "match": "versus",
+  "seed": 20260919,
+  "stage": "toybox-quest",
+  "cast": [
+    { "fighter": "robot", "control": "player", "team": 0, "x": 120, "z": 268, "face": 1 }
+  ],
+  "waves": [
+    {
+      "spawns": [
+        { "fighter": "slime", "ai": "slime-cpu", "team": 1, "side": 1, "delayTicks": 24 },
+        { "fighter": "bat", "ai": "bat-cpu", "team": 1, "side": -1, "delayTicks": 90 },
+        { "fighter": "slime", "ai": "slime-cpu", "team": 1, "side": 1, "delayTicks": 150 }
+      ]
+    },
+    {
+      "spawns": [
+        { "fighter": "teddy-king", "ai": "teddy-king-cpu", "team": 1, "side": 1, "delayTicks": 30 },
+        { "fighter": "bat", "ai": "bat-cpu", "team": 1, "side": -1, "delayTicks": 360 },
+        { "fighter": "slime", "ai": "slime-cpu", "team": 1, "side": -1, "delayTicks": 600 }
+      ]
+    }
+  ]
+}

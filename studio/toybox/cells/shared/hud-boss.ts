@@ -10,8 +10,8 @@ import type { StageHudOps } from "../canvas/hud-stage";
 
 const INK = "#1a1230", BACK = "#5a3a3a", FILL = "#e02e48", LIT = "#ff6a6a", CREAM = "#fff4dc";
 const GLYPH_W = 6, GLYPH_H = 7;
-/** the bar is this share of the view's width, never wider than MAX_W; it sits BAR_Y from the top */
-const SHARE_NUM = 2, SHARE_DEN = 5, MAX_W = 360, BAR_Y = 12, BAR_H = 10, NAME_GAP = 5, PLATE = 3;
+/** the bar is this share of the view's width, never wider than MAX_W; it sits BAR_Y from the top. A third, not two fifths: on the fight's 640 view two fifths reached x 192, touching the hero's bar (it ends at 194 with its border; measured on the built page 2026-09-13) */
+const SHARE_NUM = 1, SHARE_DEN = 3, MAX_W = 360, BAR_Y = 12, BAR_H = 10, NAME_GAP = 5, PLATE = 3;
 
 export function bossHudOps(boss: BossHud, view: { w: number; h: number }): StageHudOps {
   const out: StageHudOps = { rects: [], texts: [] };

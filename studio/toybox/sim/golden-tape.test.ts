@@ -104,7 +104,7 @@ function replayAny(game: string, name: string): Golden {
 
 describe("the tapes on disk", () => {
   it("are the crypt's one, ember's one, the fight's three (the campaign's carry tape joined 2026-09-13) and the hollow's two, so nothing below runs over an empty list", () => {
-    expect(Object.fromEntries(games.map((g) => [g, tapeNames(g)]))).toEqual({ crypt: ["crypt-600"], ember: ["meadow-1200"], fight: ["shelf-boss-900", "stage-600", "versus-600"], hollow: ["crypt-lose-1200", "crypt-win-2400"] });
+    expect(Object.fromEntries(games.map((g) => [g, tapeNames(g)]))).toEqual({ crypt: ["crypt-600"], ember: ["meadow-1200"], fight: ["shelf-boss-900", "stage-600", "toybox-boss-1400", "versus-600"], hollow: ["crypt-lose-1200", "crypt-win-2400"] });
   });
 });
 
@@ -217,6 +217,31 @@ describe("the control that tells the carry tape from the six older goldens (2026
     expect(g.stage!.level).toBeGreaterThanOrEqual(4);
     expect(g.hits).toBeGreaterThan(0);
     expect(g.hp.length).toBe(14);
+  });
+});
+
+describe("the control that tells the boss golden's big king from a small one (2026-09-13, three levels and a boss)", () => {
+  it("the king drawn at 1 instead of 2 moves the toybox-boss chain, and the seven older goldens stay exactly their committed selves", () => {
+    const tape = readTapeFile("fight", "toybox-boss-1400");
+    const loaded = loadMode(tape.mode, FIGHT);
+    expect(loaded.fighters.find((f) => f.id === "teddy-king")?.drawScale).toBe(2);
+    const small = { ...loaded, fighters: loaded.fighters.map((f) => (f.id === "teddy-king" ? { ...f, drawScale: 1 } : f)) };
+    expect(replay(compileFight(small), tape, "toybox-boss-1400").chain).not.toBe(replay(compileFight(loaded), tape, "toybox-boss-1400").chain);
+    // no older tape's mode names a fighter with a drawScale, so the key cannot have reached them
+    for (const [game, name] of [["crypt", "crypt-600"], ["ember", "meadow-1200"], ["fight", "shelf-boss-900"], ["fight", "stage-600"], ["fight", "versus-600"], ["hollow", "crypt-lose-1200"], ["hollow", "crypt-win-2400"]] as const) {
+      const golden = JSON.parse(readFileSync(goldenPath(game, name), "utf8")) as Golden;
+      expect(replayAny(game, name)).toEqual(golden);
+    }
+  });
+
+  it("the boss golden pins a king that was fought: it stands below its 600 hp with the hero still up, at level 9 from the carry", () => {
+    const g = replayAny("fight", "toybox-boss-1400");
+    const data = compileFight(loadMode("toybox-boss", FIGHT));
+    const king = data.cast.findIndex((c) => data.fighters[c.fighter].id === "teddy-king");
+    expect(g.hp[king]).toBeGreaterThan(0);
+    expect(g.hp[king]).toBeLessThan(600);
+    expect(g.hp[0]).toBeGreaterThan(0);
+    expect(g.stage!.level).toBe(9);
   });
 });
 

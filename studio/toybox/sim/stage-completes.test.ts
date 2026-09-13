@@ -68,11 +68,12 @@ function policyFor(data: FightData): (s: FightState) => InputFrame {
 const MODES = stageModes();
 
 describe("every stage mode on disk is completable by a scripted hero", () => {
-  it("found the crypt and the fight's six (the stage and the campaign's five), so nothing below runs over an empty list", () => {
+  it("found the crypt and the fight's seven (the stage, the shelf's three, toybox-2, toybox-3 and the toybox boss level), so nothing below runs over an empty list", () => {
     expect(MODES).toEqual([
       { game: "crypt", mode: "crypt" },
       { game: "fight", mode: "shelf-1" }, { game: "fight", mode: "shelf-2" }, { game: "fight", mode: "shelf-boss" },
       { game: "fight", mode: "stage" }, { game: "fight", mode: "toybox-2" }, { game: "fight", mode: "toybox-3" },
+      { game: "fight", mode: "toybox-boss" },
     ]);
   });
 

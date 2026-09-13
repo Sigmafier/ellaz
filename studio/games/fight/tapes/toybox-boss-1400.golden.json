@@ -1,0 +1,25 @@
+{
+  "tape": "toybox-boss-1400",
+  "ticks": 1400,
+  "hash": "e8744cd4",
+  "chain": "5c19f7e5",
+  "eventHash": "df26c38b",
+  "hp": [
+    180,
+    -6,
+    -12,
+    -6,
+    106,
+    14,
+    20
+  ],
+  "winner": -1,
+  "hits": 22,
+  "stage": {
+    "wave": 1,
+    "wphase": 0,
+    "coins": 29,
+    "xp": 80,
+    "level": 9
+  }
+}
