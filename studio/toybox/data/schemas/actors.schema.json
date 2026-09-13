@@ -17,6 +17,8 @@
     "bar": { "type": "integer", "minimum": 0, "description": "view px above the feet where the hp bar sits" },
     "flying": { "type": "boolean", "description": "drawn `hover` px above its tile; a flier's shadow shrinks with its height" },
     "hover": { "type": "integer", "minimum": 0, "description": "view px; REQUIRES `flying`" },
+    "drawScale": { "type": "integer", "minimum": 1, "description": "whole multiples of the cell's one draw scale a boss is drawn at (1 to 4); absent is 1; the subset has no maximum, so compile.ts refuses one above 4" },
+    "boss": { "type": "boolean", "description": "a level's boss: the HUD draws its bar top-centre while it stands" },
     "bobPx": { "type": "integer", "minimum": 0, "description": "cosmetic: a flier bobs this many px up and down ..." },
     "bobTicks": { "type": "integer", "exclusiveMinimum": 0, "description": "... over this many ticks, as a triangle wave in the view" },
     "knockback": {

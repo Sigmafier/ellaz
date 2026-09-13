@@ -67,6 +67,9 @@ export interface CompileInput {
   stage?: StageFile;
 }
 
+/** the largest whole multiple of the draw scale a fighter file may ask for (the schema subset has no maximum) */
+export const MAX_DRAW_SCALE = 4;
+
 /** the hit mask is one bit per target in an int32, so a roster is at most this many rows */
 export const ROSTER_CAP = 31;
 
@@ -127,12 +130,13 @@ function hit(h: MovesHit, pivot: Point, s: Scale, knockScale: number, liftScale:
   };
 }
 
-function frame(f: MovesFrame, pivot: Point, s: Scale, knockScale: number, liftScale: number): CFrame {
+/** `bs` is the box scale: the draw scale times a big fighter's size, so its boxes cover what is drawn; velocities keep `s` */
+function frame(f: MovesFrame, pivot: Point, s: Scale, bs: Scale, knockScale: number, liftScale: number): CFrame {
   const imp = f.impulse;
   return {
-    bdy: (f.bdy ?? []).map((r) => box(r, pivot, s)),
-    itr: (f.itr ?? []).map((h) => hit(h, pivot, s, knockScale, liftScale)),
-    push: f.push ? box(f.push, pivot, s) : null,
+    bdy: (f.bdy ?? []).map((r) => box(r, pivot, bs)),
+    itr: (f.itr ?? []).map((h) => ({ ...hit(h, pivot, s, knockScale, liftScale), box: box(h.box, pivot, bs) })),
+    push: f.push ? box(f.push, pivot, bs) : null,
     impulseX: imp ? vel(imp.dx, s, knockScale) : 0,
     impulseY: imp ? vel(imp.dy, s, liftScale) : 0,
   };
@@ -177,6 +181,7 @@ function compileState(
   setName: string,
   fighterId: string,
   s: Scale,
+  bs: Scale,
   knockScale: number,
   liftScale: number,
 ): CState {
@@ -200,15 +205,18 @@ function compileState(
     onStop: stateRef(names, on[STOP], where),
     onAttack: stateRef(names, on[ATTACK], where),
     cancelFrom: st.cancelFrom ?? -1,
-    frames: st.frames.map((f) => frame(f, pivot, s, knockScale, liftScale)),
+    frames: st.frames.map((f) => frame(f, pivot, s, bs, knockScale, liftScale)),
   };
 }
 
 function compileFighter(f: FighterFile, sets: Record<string, SpriteSet>, s: Scale, knockScale: number, liftScale: number): CFighter {
   const set = sets[f.sprites];
   if (!set) fail(`fighter "${f.id}" names sprite set "${f.sprites}", which was not loaded`);
+  const size = f.drawScale ?? 1;
+  if (!Number.isInteger(size) || size < 1 || size > MAX_DRAW_SCALE) fail(`fighter "${f.id}" is drawn at ${size}, outside 1..${MAX_DRAW_SCALE}`);
+  const bs: Scale = { num: s.num * size, den: s.den };
   const names = Object.keys(set.moves.states).sort();
-  const states = names.map((n) => compileState(n, set.moves.states[n], names, set, f.sprites, f.id, s, knockScale, liftScale));
+  const states = names.map((n) => compileState(n, set.moves.states[n], names, set, f.sprites, f.id, s, bs, knockScale, liftScale));
   const pick = (target: string, what: string): number => {
     const i = names.indexOf(target);
     if (i < 0) fail(`fighter "${f.id}" names ${what} state "${target}", which its moves file does not define`);
@@ -224,6 +232,8 @@ function compileFighter(f: FighterFile, sets: Record<string, SpriteSet>, s: Scal
     xp: f.xp ?? 0,
     flying: f.flying ?? false,
     hover: toFP(f.hover ?? 0),
+    size,
+    boss: f.boss ?? false,
     initial: pick(set.moves.initial, "initial"),
     hurt: pick(set.moves.onHit.light, "onHit.light"),
     ko: pick(set.moves.onHit.heavy, "onHit.heavy"),

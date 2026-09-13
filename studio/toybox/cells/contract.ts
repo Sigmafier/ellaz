@@ -63,6 +63,9 @@ export interface InputPoll<I> {
 /** the two halves of an arena file a cell page reads: the box the cell mounts at and the art the painter interprets; a kind whose picture is not the painter's (a dungeon room's frame) hands the loop its own `ops` instead */
 export interface ArenaForCell { view: { w: number; h: number }; world?: { w: number }; art: unknown; ops?: ArenaDrawOp[] }
 
+/** a campaign level's end as a kind reads it off its own state (2026-09-13, three levels and a boss) */
+export type Outcome = "won" | "lost" | null;
+
 /**
  * One KIND of simulation the harness can drive - the fight's (cells/kinds/fight.ts)
  * or a turn machine's. The loop in run-cell.ts owns the clock, the tape, the
@@ -96,6 +99,10 @@ export interface SimKind<L, D, S, I, E extends { kind: string }> {
   view(prev: S, next: S, alpha256: number, data: D, boxes: boolean): DrawPlan;
   /** the live sources for a run with no tape, merged into one poll */
   attachInput(host: HTMLElement, data: D): InputPoll<I>;
+  /** how a campaign level ended on this state: "won", "lost", or null while it is still being played (a Versus match, which no campaign names, is always null) */
+  outcome(state: S): Outcome;
+  /** the purse a won level hands the next one; absent on a kind that has none, so the campaign never hands it a carry */
+  purse?(state: S): Carry;
   /** extra window fields a page or a headless probe reads (the fight's `__fightStage`) */
   publish(state: S): Record<string, unknown>;
 }

@@ -15,7 +15,7 @@ function memory(): Storage & { map: Map<string, string> } {
 describe("the save", () => {
   it("round-trips through a storage", () => {
     const s = memory();
-    const save = { ...freshSave(), cleared: ["toybox"], purse: { coins: 9, xp: 30, level: 2 }, best: { stage: 900 } };
+    const save = { ...freshSave(), cleared: ["toybox"], levels: ["stage", "toybox-2"], purse: { coins: 9, xp: 30, level: 2 }, best: { stage: 900 } };
     store("brawl", save, s);
     expect(load("brawl", s)).toEqual(save);
     expect(JSON.parse(s.map.get("toybox:campaign:brawl")!).version).toBe(SAVE_VERSION);
@@ -40,6 +40,9 @@ describe("the save", () => {
     s.map.set("toybox:campaign:brawl", "{not json");
     expect(load("brawl", s)).toEqual(freshSave());
     s.map.set("toybox:campaign:brawl", JSON.stringify({ version: SAVE_VERSION, cleared: "toybox" }));
+    expect(load("brawl", s)).toEqual(freshSave());
+    // a version-1 record (no levels) is not a save of this shape, and is discarded rather than migrated
+    s.map.set("toybox:campaign:brawl", JSON.stringify({ version: SAVE_VERSION, cleared: [], purse: { coins: 1, xp: 1, level: 1 }, best: {} }));
     expect(load("brawl", s)).toEqual(freshSave());
   });
 

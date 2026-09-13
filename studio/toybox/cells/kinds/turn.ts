@@ -10,6 +10,7 @@ import { hashTurnEvents, hashTurnState } from "../../turn/hash";
 import { stepTurn } from "../../turn/step";
 import { inputsAtTurn } from "../../turn/tape";
 import { viewTurn } from "../../turn/view";
+import { PHASE_LOST, PHASE_WON } from "../../turn/types";
 import type { LoadedTurn, TurnData, TurnEvent, TurnInput, TurnState } from "../../turn/types";
 import type { SimKind } from "../contract";
 import { loadTurnHttp } from "../shared/assets-turn";
@@ -32,5 +33,6 @@ export const turnKind: SimKind<LoadedTurn, TurnData, TurnState, TurnInput, TurnE
   inputsAt: inputsAtTurn,
   view: viewTurn,
   attachInput: attachPointer,
+  outcome: (s) => (s.phase === PHASE_WON ? "won" : s.phase === PHASE_LOST ? "lost" : null),
   publish: (s) => ({ __fightTurn: { turn: s.turn, phase: s.phase, sel: s.sel, hp: s.units.map((u) => u.hp) } }),
 };

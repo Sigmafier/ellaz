@@ -28,7 +28,7 @@ import type { BoxOp, HudModel, PropOp, ShadowOp, SpriteOp } from "../../sim/view
 import type { ArenaDrawOp, Cell, CellStats, FxOp, SpriteSetRef } from "../contract";
 import { drawText, textWidth } from "../canvas/font";
 import { propOps } from "../shared/props";
-import { drawDungeonHud, drawStageHud, drawTurnHud } from "./hud-stage";
+import { drawBossHud, drawDungeonHud, drawStageHud, drawTurnHud } from "./hud-stage";
 
 const DRAW_SCALE = 1 / 5;
 const INK = 0x1a1230;
@@ -316,7 +316,8 @@ export class Phaser4Cell implements Cell {
     // device px: the plan's fraction of a game px lands on a whole device pixel, and pixelArt's
     // roundPixels then has nothing left to round
     s.setPosition(Math.round(op.x * this.k), Math.round(op.y * this.k));
-    s.setScale((op.flip ? -DRAW_SCALE : DRAW_SCALE) * this.k, DRAW_SCALE * this.k);
+    const scale = DRAW_SCALE * (op.size ?? 1);
+    s.setScale((op.flip ? -scale : scale) * this.k, scale * this.k);
     s.setDepth(BAND.sprite + this.order++);
     s.setVisible(true);
     this.drawn += 1;
@@ -380,6 +381,11 @@ export class Phaser4Cell implements Cell {
   }
 
   drawHud(model: HudModel): void {
+    this.drawKindHud(model);
+    if (model.boss) drawBossHud(this.gfx().hud, (s, x, y, k, c) => this.text(s, x, y, k, c), model.boss, this.view);
+  }
+
+  private drawKindHud(model: HudModel): void {
     const text = (s: string, x: number, y: number, k: number, c: string): void => this.text(s, x, y, k, c);
     if (drawDungeonHud(this.gfx().hud, text, model, this.view)) return;
     if (drawTurnHud(this.gfx().hud, text, model, this.view)) return;

@@ -42,10 +42,12 @@ function compileUnits(loaded: LoadedTurn, grid: CGrid): CUnit[] {
     if (taken[idx]) throw new Error(`turn: battle "${loaded.battle.id}" placement ${i} (${p.unit}) shares tile (${p.c}, ${p.r}) with an earlier placement`);
     taken[idx] = true;
     if (file.hover !== undefined && !file.flying) throw new Error(`turn: unit "${file.id}" has a hover height but does not fly`);
+    const size = file.drawScale ?? 1;
+    if (!Number.isInteger(size) || size < 1 || size > 4) throw new Error(`turn: unit "${file.id}" is drawn at ${size}, outside 1..4`);
     return Object.freeze({
       id: file.id, set: file.sprites, team: file.team, name: file.name,
       hp: file.hp, atk: file.atk, move: file.move, range: file.range, tall: file.tall,
-      hover: file.flying ? file.hover ?? 0 : 0, flying: !!file.flying,
+      hover: file.flying ? file.hover ?? 0 : 0, flying: !!file.flying, size, boss: !!file.boss,
       clips: Object.freeze(compileClips(loaded, file)),
       c: p.c, r: p.r,
     });

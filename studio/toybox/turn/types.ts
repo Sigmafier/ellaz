@@ -28,6 +28,10 @@ export interface UnitFile {
   /** drawn `hover` px above its tile; a flying unit's float and bar rise with it */
   flying?: boolean;
   hover?: number;
+  /** whole multiples of the cell's draw scale (a boss drawn big); absent is 1 */
+  drawScale?: number;
+  /** the HUD draws this unit's bar top-centre while it stands */
+  boss?: boolean;
 }
 
 /** a battle: a grid placed on a painted field, and who starts where */
@@ -114,6 +118,8 @@ export interface CUnit {
   tall: number;
   hover: number;
   flying: boolean;
+  size: number;
+  boss: boolean;
   clips: readonly CClip[];
   c: number;
   r: number;

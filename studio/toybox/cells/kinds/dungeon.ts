@@ -14,7 +14,7 @@ import { alive } from "../../dungeon/hits";
 import { createState } from "../../dungeon/room";
 import { stepDungeon } from "../../dungeon/step";
 import { inputsAtDungeon } from "../../dungeon/tape";
-import { TILE } from "../../dungeon/types";
+import { PHASE_LOST, PHASE_WON, TILE } from "../../dungeon/types";
 import type { DungeonData, DungeonEvent, DungeonInput, DungeonState, LoadedDungeon } from "../../dungeon/types";
 import { viewDungeon } from "../../dungeon/view";
 import type { SpriteOp } from "../../sim/view";
@@ -76,6 +76,7 @@ export const dungeonKind: SimKind<LoadedDungeon, DungeonData, DungeonState, Dung
     return plan;
   },
   attachInput: attachDungeonPointer,
+  outcome: (s) => (s.phase === PHASE_WON ? "won" : s.phase === PHASE_LOST ? "lost" : null),
   publish: (s) => ({
     __fightDungeon: {
       phase: s.phase, coins: s.coins, hp: s.actors[0].hp, mp: s.actors[0].mp,

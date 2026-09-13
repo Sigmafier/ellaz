@@ -19,6 +19,7 @@ import { turnHudOps } from "../shared/hud-turn";
 import { propOps } from "../shared/props";
 import { drawText, textWidth } from "./font";
 import { stageHudOps } from "./hud-stage";
+import { bossHudOps } from "../shared/hud-boss";
 
 const DRAW_SCALE = 1 / 5;
 const INK = "#1a1230";
@@ -167,7 +168,7 @@ export class CanvasCell implements Cell {
   drawSprite(op: SpriteOp): void {
     const sheet = this.sheets.get(op.set);
     if (!sheet) throw new Error(`canvas cell: no sprite set "${op.set}"`);
-    drawFrame(this.g(), sheet.img, sheet.atlas, sheet.manifest, op.frame, this.snap(op.x), this.snap(op.y), DRAW_SCALE, op.flip);
+    drawFrame(this.g(), sheet.img, sheet.atlas, sheet.manifest, op.frame, this.snap(op.x), this.snap(op.y), DRAW_SCALE * (op.size ?? 1), op.flip);
     this.drawn += 1;
   }
 
@@ -235,6 +236,16 @@ export class CanvasCell implements Cell {
   }
 
   drawHud(model: HudModel): void {
+    this.drawKindHud(model);
+    if (!model.boss) return;
+    const ctx = this.g();
+    ctx.save();
+    ctx.setTransform(this.k, 0, 0, this.k, 0, 0);
+    this.drawOps(bossHudOps(model.boss, this.view));
+    ctx.restore();
+  }
+
+  private drawKindHud(model: HudModel): void {
     const ctx = this.g();
     // the HUD never shakes, but the boxes drawn after it do - so restore
     ctx.save();

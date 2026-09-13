@@ -16,7 +16,7 @@
 
 import { floorDiv, toPx } from "../sim/fixed";
 import { lerp256 } from "../sim/view";
-import type { DrawPlan, DungeonHud, HudModel, PropOp, RectProp, ShadowOp, SpriteOp } from "../sim/view";
+import type { BossHud, DrawPlan, DungeonHud, HudModel, PropOp, RectProp, ShadowOp, SpriteOp } from "../sim/view";
 import { clipOfState } from "./foes";
 import { tileI, tileJ } from "./grid";
 import { alive } from "./hits";
@@ -118,6 +118,14 @@ function dungeonHud(data: DungeonData, s: DungeonState, feet: { x: number; y: nu
   return { hp: k.hp, maxHp: ck.hp, mp: k.mp, maxMp: ck.knight ? ck.knight.mp : 0, coins: s.coins, phase: s.phase, banner: s.banner, bannerT: s.bannerT, bars, floats };
 }
 
+/** the first boss standing as the HUD's boss bar; nothing when there is none */
+function dungeonBoss(data: DungeonData, next: DungeonState): { boss?: BossHud } {
+  const i = next.actors.findIndex((a, j) => data.actors[data.cast[j].actor].boss && alive(a));
+  if (i < 0) return {};
+  const ca = data.actors[data.cast[i].actor];
+  return { boss: { name: ca.id.replace(/-/g, " ").toUpperCase(), hp: next.actors[i].hp, maxHp: ca.hp } };
+}
+
 export function viewDungeon(prev: DungeonState, next: DungeonState, alpha256: number, data: DungeonData, withBoxes = false): DrawPlan {
   void withBoxes;
   const sprites: SpriteOp[] = [], shadows: ShadowOp[] = [], feet: { x: number; y: number }[] = [];
@@ -133,7 +141,7 @@ export function viewDungeon(prev: DungeonState, next: DungeonState, alpha256: nu
     const altPx = falt / TILE + bobOf(ca, a, next.tick);
     const depth = fx + fy + (ca.flying ? FLY_DEPTH_LIFT : 0);
     const { frame, flip, set } = frameOf(ca, a);
-    sprites.push({ set, frame, x: sp.x, y: sp.y - altPx, flip, depth, who: i });
+    sprites.push({ set, frame, x: sp.x, y: sp.y - altPx, flip, depth, who: i, ...(ca.size > 1 ? { size: ca.size } : {}) });
     shadows.push(shadowOf(ca, sp.x, sp.y, toPx(falt), depth - 1));
     feet.push({ x: sp.x, y: sp.y - altPx });
   });
@@ -151,6 +159,7 @@ export function viewDungeon(prev: DungeonState, next: DungeonState, alpha256: nu
     stage: null,
     turn: null,
     dungeon: dungeonHud(data, next, feet),
+    ...dungeonBoss(data, next),
   };
   return { sprites, shadows, props, boxes: [], hud, shake: 0, camX: 0 };
 }

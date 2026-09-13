@@ -331,7 +331,7 @@ describe("the stage conditionals the validator subset cannot write", () => {
     }
   });
 
-  describe("the campaign kind (2026-09-13): a campaign's stages are fight modes naming a stage file", () => {
+  describe("the campaign kind (2026-09-13): a campaign's levels are modes of ONE kind that load whole", () => {
     const CAMPAIGN_SCHEMA = readJson(join(SCHEMAS, "campaign.schema.json"));
     const brawl = readJson(join(FIGHT_DATA, "campaign", "brawl.json"));
 
@@ -370,10 +370,24 @@ describe("the stage conditionals the validator subset cannot write", () => {
       expect(() => loadCampaign("brawl", root)).toThrow(/world "toybox" names stage "attic": fight: no mode "attic"/);
     });
 
-    it("control: a world naming a turn mode is refused as the wrong kind", () => {
-      const root = scratchCampaign((c) => { c.worlds[0].stages[0] = "meadow"; });
+    it("control: a fight campaign naming a turn mode is refused as a second kind", () => {
+      const root = scratchCampaign((c) => { c.worlds[0].stages[1] = "meadow"; });
       cpSync(join(EMBER, "data", "modes", "meadow.json"), join(root, "data", "modes", "meadow.json"));
-      expect(() => loadCampaign("brawl", root)).toThrow(/names stage "meadow", a turn mode/);
+      expect(() => loadCampaign("brawl", root)).toThrow(/names stage "meadow", a turn mode in a fight campaign/);
+    });
+
+    it("a campaign of turn battles loads (control: one naming a missing battle file is refused naming the level)", () => {
+      const root = mkdtempSync(join(tmpdir(), "toybox-campaign-turn-"));
+      cpSync(join(EMBER, "data"), join(root, "data"), { recursive: true });
+      cpSync(join(EMBER, "assets"), join(root, "assets"), { recursive: true });
+      mkdirSync(join(root, "data", "campaign"), { recursive: true });
+      const write = (stages: string[]) => writeFileSync(join(root, "data", "campaign", "t.json"), JSON.stringify({ id: "t", worlds: [{ id: "meadow", name: "Meadow", stages }] }));
+      write(["meadow", "meadow"]);
+      expect(loadCampaign("t", root).worlds[0].stages).toEqual(["meadow", "meadow"]);
+      const mode = JSON.parse(readFileSync(join(root, "data", "modes", "meadow.json"), "utf8"));
+      writeFileSync(join(root, "data", "modes", "meadow-2.json"), JSON.stringify({ ...mode, id: "meadow-2", battle: "nowhere" }));
+      write(["meadow", "meadow-2"]);
+      expect(() => loadCampaign("t", root)).toThrow(/world "meadow" names stage "meadow-2": .*nowhere/);
     });
 
     it("control: the schema refuses a world with no stages, a stray key, and a campaign with no worlds", () => {

@@ -118,22 +118,40 @@ export function loadMode(modeId: string, gameRoot: string): LoadedFight {
 
 /**
  * Read a CAMPAIGN file (`<gameRoot>/data/campaign/<id>.json`) and prove every
- * stage it names is a fight mode naming a stage file: a world naming a Versus
- * mode, a turn mode or a mode that does not exist throws naming the world and
- * the stage - a campaign that reaches the page with a stage the sim cannot
- * clear would show a card that never comes.
+ * level it names loads as ONE kind of mode: the first level's kind is the
+ * campaign's, a level of another kind throws, a fight level must name a stage
+ * file (a Versus match has no waves to clear), and a turn battle or a dungeon
+ * room must load whole. Every refusal names the world and the level - a
+ * campaign that reaches the page with a level the sim cannot end would show a
+ * card that never comes. (Fight-only until 2026-09-13; any kind since three
+ * levels and a boss reached every game.)
  */
 export function loadCampaign(campaignId: string, gameRoot: string): CampaignFile {
   const c = readJson<CampaignFile>(join(gameRoot, "data", "campaign", `${campaignId}.json`), `campaign "${campaignId}"`);
+  let campaignKind: ModeKind | undefined;
   for (const w of c.worlds) {
     for (const stage of w.stages) {
+      const where = `campaign "${campaignId}" world "${w.id}" names stage "${stage}"`;
       let kind: ModeKind;
-      try { kind = readModeKind(stage, gameRoot); } catch (err) { throw new Error(`campaign "${campaignId}" world "${w.id}" names stage "${stage}": ${(err as Error).message}`); }
-      if (kind !== "fight") throw new Error(`campaign "${campaignId}" world "${w.id}" names stage "${stage}", a ${kind} mode - a campaign's stages are fight modes with a stage file`);
-      if (!loadMode(stage, gameRoot).stage) throw new Error(`campaign "${campaignId}" world "${w.id}" names stage "${stage}", which names no stage file - a Versus match has no waves to clear`);
+      try { kind = readModeKind(stage, gameRoot); } catch (err) { throw new Error(`${where}: ${(err as Error).message}`); }
+      campaignKind ??= kind;
+      if (kind !== campaignKind) throw new Error(`${where}, a ${kind} mode in a ${campaignKind} campaign - one campaign plays one kind`);
+      checkLevel(where, kind, stage, gameRoot);
     }
   }
   return c;
+}
+
+/** a level loads whole for its kind; a fight level must name a stage file */
+function checkLevel(where: string, kind: ModeKind, stage: string, gameRoot: string): void {
+  try {
+    if (kind === "turn") { loadTurnMode(stage, gameRoot); return; }
+    if (kind === "dungeon") { loadDungeonMode(stage, gameRoot); return; }
+    if (loadMode(stage, gameRoot).stage) return;
+  } catch (err) {
+    throw new Error(`${where}: ${(err as Error).message}`);
+  }
+  throw new Error(`${where}, which names no stage file - a Versus match has no waves to clear`);
 }
 
 /** the three kinds of simulation a mode file can name: `kind` absent is the fight's (its files predate the second kind) */

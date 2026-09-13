@@ -4,9 +4,10 @@
 // hands each text run to the cell's baked-text pool.
 
 import type Phaser from "phaser";
-import type { HudModel } from "../../sim/view";
+import type { BossHud, HudModel } from "../../sim/view";
 import { stageHudOps } from "../canvas/hud-stage";
 import type { StageHudOps } from "../canvas/hud-stage";
+import { bossHudOps } from "../shared/hud-boss";
 import { dungeonHudOps } from "../shared/hud-dungeon";
 import { turnHudOps } from "../shared/hud-turn";
 
@@ -49,4 +50,9 @@ export function drawTurnHud(g: Phaser.GameObjects.Graphics, text: TextFn, model:
   if (!model.turn) return false;
   drawOps(g, text, turnHudOps(model.turn, view));
   return true;
+}
+
+/** draw a level's boss bar over whichever HUD the kind drew (cells/shared/hud-boss.ts's layout) */
+export function drawBossHud(g: Phaser.GameObjects.Graphics, text: TextFn, boss: BossHud, view: { w: number; h: number }): void {
+  drawOps(g, text, bossHudOps(boss, view));
 }

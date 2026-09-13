@@ -149,6 +149,10 @@ export interface ActorFile {
   hover?: number;
   bobPx?: number;
   bobTicks?: number;
+  /** whole multiples of the cell's draw scale (a boss drawn big; its `radius` is its own); absent is 1 */
+  drawScale?: number;
+  /** the HUD draws this actor's bar top-centre while it stands */
+  boss?: boolean;
   /** a hit pushes the body away at `speed` centi-tiles/s, decaying by `decay` per tick */
   knockback: { speed: number; decay: Ratio };
   /** the coins a foe's body drops; absent means none (a knight) */
@@ -281,6 +285,8 @@ export interface CActor {
   tall: number;
   bar: number;
   flying: boolean;
+  size: number;
+  boss: boolean;
   /** FP px */
   hover: number;
   bobPx: number;

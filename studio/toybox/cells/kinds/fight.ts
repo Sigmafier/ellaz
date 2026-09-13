@@ -53,6 +53,12 @@ export const fightKind: SimKind<LoadedFightHttp, FightData, FightState, InputFra
   inputsAt: inputsAtTick,
   view: viewOf,
   attachInput: (host) => attachBoth(host),
+  // wphase 2 is a cleared stage; 3 is the hero down (the fade before the sim restarts the wave), which a campaign reads as a lost level
+  outcome: (s) => (s.stage?.wphase === 2 ? "won" : s.stage?.wphase === 3 ? "lost" : null),
+  purse: (s) => {
+    if (!s.stage) throw new Error("fight kind: a purse was asked of a mode with no stage block");
+    return { coins: s.stage.coins, xp: s.stage.xp, level: s.stage.level };
+  },
   // __fightFighters: each row's position, hp, facing, cooldown and wakefulness - what a headless
   // probe driving the keyboard needs to play a stage (the campaign probe, 2026-09-13); no data, no rng
   publish: (s) => ({ __fightStage: s.stage, __fightFighters: s.fighters.map((f) => ({ x: f.x, z: f.z, hp: f.hp, face: f.face, cool: f.cool, active: f.active })) }),

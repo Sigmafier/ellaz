@@ -98,6 +98,7 @@ function compileActor(loaded: LoadedDungeon, a: ActorFile): CActor {
   const blocks = [a.knight, a.slime, a.bat].filter((b) => b !== undefined).length;
   if (blocks !== 1) throw new Error(`dungeon: actor "${a.id}" carries ${blocks} behaviour blocks, expected exactly one of knight, slime, bat`);
   if (a.hover !== undefined && !a.flying) throw new Error(`dungeon: actor "${a.id}" has a hover height but does not fly`);
+  if (a.drawScale !== undefined && (!Number.isInteger(a.drawScale) || a.drawScale < 1 || a.drawScale > 4)) throw new Error(`dungeon: actor "${a.id}" is drawn at ${a.drawScale}, outside 1..4`);
   if (a.facings !== undefined && !a.knight) throw new Error(`dungeon: actor "${a.id}" names facings but is not a knight`);
   if (a.knight && a.speed === undefined) throw new Error(`dungeon: actor "${a.id}" is a knight with no speed`);
   if (a.knight && a.knight.dmgMin > a.knight.dmgMax) throw new Error(`dungeon: actor "${a.id}" rolls dmgMin ${a.knight.dmgMin} above dmgMax ${a.knight.dmgMax}`);
@@ -105,7 +106,7 @@ function compileActor(loaded: LoadedDungeon, a: ActorFile): CActor {
     id: a.id, set: a.sprites, facings: a.facings ?? null,
     kind: a.knight ? KIND_KNIGHT : a.slime ? KIND_SLIME : KIND_BAT,
     hp: a.hp, speed: a.speed === undefined ? 0 : perTick(a.speed, rate), radius: len(a.radius), tall: a.tall, bar: a.bar,
-    flying: !!a.flying, hover: a.flying ? pxFP(a.hover ?? 0) : 0, bobPx: a.bobPx ?? 0, bobTicks: a.bobTicks ?? 1,
+    flying: !!a.flying, size: a.drawScale ?? 1, boss: !!a.boss, hover: a.flying ? pxFP(a.hover ?? 0) : 0, bobPx: a.bobPx ?? 0, bobTicks: a.bobTicks ?? 1,
     knockSpeed: perTick(a.knockback.speed, rate), knockNum: a.knockback.decay.num, knockDen: a.knockback.decay.den,
     coins: a.coins ?? 0,
     clips: Object.freeze(compileClips(loaded, a, a.sprites, CLIPS)),

@@ -18,11 +18,12 @@ const keyOf = (campaignId: string): string => `toybox:campaign:${campaignId}`;
 
 const whole = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= 0;
 
-/** the shape check: version, cleared as strings, a purse of three whole numbers with level >= 1, bests as whole numbers */
+/** the shape check: version, cleared worlds and cleared levels as strings, a purse of three whole numbers with level >= 1, bests as whole numbers */
 function isSave(raw: unknown): raw is Save {
   const s = raw as Save;
   if (!s || typeof s !== "object" || s.version !== SAVE_VERSION) return false;
-  if (!Array.isArray(s.cleared) || !s.cleared.every((c) => typeof c === "string")) return false;
+  const strings = (xs: unknown): boolean => Array.isArray(xs) && xs.every((c) => typeof c === "string");
+  if (!strings(s.cleared) || !strings(s.levels)) return false;
   const p = s.purse;
   if (!p || typeof p !== "object" || !whole(p.coins) || !whole(p.xp) || !whole(p.level) || p.level < 1) return false;
   if (!s.best || typeof s.best !== "object" || Array.isArray(s.best) || !Object.values(s.best).every(whole)) return false;
@@ -39,7 +40,7 @@ export function load(campaignId: string, storage: Storage = browserStorage()): S
     const text = storage.getItem(keyOf(campaignId));
     if (text === null) return freshSave();
     const raw: unknown = JSON.parse(text);
-    return isSave(raw) ? { version: raw.version, cleared: [...raw.cleared], purse: { ...raw.purse }, best: { ...raw.best } } : freshSave();
+    return isSave(raw) ? { version: raw.version, cleared: [...raw.cleared], levels: [...raw.levels], purse: { ...raw.purse }, best: { ...raw.best } } : freshSave();
   } catch {
     return freshSave();
   }

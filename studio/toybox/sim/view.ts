@@ -26,7 +26,10 @@ import type { CFighter, FightData, FightState, PickupState } from "./types";
 /** FP -> game px keeping the fraction; a cell rounds to its grid */
 const pxF = (v: number): number => v / FP;
 
-export interface SpriteOp { set: string; frame: string; x: number; y: number; flip: boolean; depth: number; who: number }
+/** `size` is a whole multiple of the cell's draw scale, present only above 1 (a boss drawn big; 2026-09-13) */
+export interface SpriteOp { set: string; frame: string; x: number; y: number; flip: boolean; depth: number; who: number; size?: number }
+/** a level's boss while it stands: the bar a cell lays out top-centre (cells/shared/hud-boss.ts) */
+export interface BossHud { name: string; hp: number; maxHp: number }
 export interface ShadowOp { x: number; y: number; w: number; h: number; depth: number }
 export interface BoxOp { kind: "bdy" | "itr" | "push"; x: number; y: number; w: number; h: number; who: number }
 /** a coin on the floor or in the air: screen px at its centre-bottom, and which of six spin widths it shows */
@@ -61,7 +64,7 @@ export interface DungeonHud {
   bars: { x: number; y: number; bar: number; hp: number; maxHp: number }[];
   floats: { x: number; y: number; value: number }[];
 }
-export interface HudModel { hp: number[]; maxHp: number[]; names: string[]; phase: number; winner: number; tick: number; stage: StageHud | null; turn: TurnHud | null; dungeon: DungeonHud | null }
+export interface HudModel { hp: number[]; maxHp: number[]; names: string[]; phase: number; winner: number; tick: number; stage: StageHud | null; turn: TurnHud | null; dungeon: DungeonHud | null; boss?: BossHud }
 /** `camX` is the camera's left edge in world px, lerped like a fighter; 0 when the mode has no camera */
 export interface DrawPlan { sprites: SpriteOp[]; shadows: ShadowOp[]; props: PropOp[]; boxes: BoxOp[]; hud: HudModel; shake: number; camX: number }
 
@@ -76,6 +79,14 @@ function propOf(p: PickupState, prev: PickupState | undefined, alpha256: number)
   const z = pxF(fz);
   const h = pxF(lerp256(q.h, p.h, alpha256));
   return { kind: "coin", x, y: z - h, spin: floorDiv(p.age, SPIN_TICKS) % SPIN_PHASES, depth: toPx(fz) };
+}
+
+/** the first boss standing - awake and above 0 hp - as the HUD's boss bar; nothing when there is none */
+function fightBoss(next: FightState, data: FightData): { boss?: BossHud } {
+  const i = next.fighters.findIndex((f, j) => data.fighters[data.cast[j].fighter].boss && !dormant(f) && f.hp > 0);
+  if (i < 0) return {};
+  const cf = data.fighters[data.cast[i].fighter];
+  return { boss: { name: cf.id.replace(/-/g, " ").toUpperCase(), hp: next.fighters[i].hp, maxHp: cf.hp } };
 }
 
 function stageHud(next: FightState, data: FightData): StageHud | null {
@@ -122,9 +133,9 @@ export function viewOf(prev: FightState, next: FightState, alpha256: number, dat
     const x = pxF(fx), z = pxF(fz), h = pxF(fh);
     const y = z - h;
     const zi = toPx(fz), hi = toPx(fh);
-    sprites.push({ set: cf.set, frame: frameNameOf(cf, f.st, f.frame), x, y, flip: f.face === -1, depth: zi, who: i });
+    sprites.push({ set: cf.set, frame: frameNameOf(cf, f.st, f.frame), x, y, flip: f.face === -1, depth: zi, who: i, ...(cf.size > 1 ? { size: cf.size } : {}) });
     const shrink = Math.max(8, 24 - floorDiv(hi, 4));
-    shadows.push({ x, y: z, w: shrink * 2, h: floorDiv(shrink, 2), depth: zi - 1 });
+    shadows.push({ x, y: z, w: shrink * 2 * cf.size, h: floorDiv(shrink, 2) * cf.size, depth: zi - 1 });
     if (withBoxes) boxes.push(...boxesOf(cf, f.st, f.stT, toPx(fx), zi - hi, f.face, i));
   });
   sprites.sort((a, b) => a.depth - b.depth);
@@ -145,6 +156,7 @@ export function viewOf(prev: FightState, next: FightState, alpha256: number, dat
     stage,
     turn: null,
     dungeon: null,
+    ...fightBoss(next, data),
   };
   const camX = next.stage ? toPx(lerp256(prev.stage ? prev.stage.camX : next.stage.camX, next.stage.camX, alpha256)) : 0;
   return { sprites, shadows, props, boxes, hud, shake: next.shake, camX };

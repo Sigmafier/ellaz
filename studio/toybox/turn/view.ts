@@ -11,7 +11,7 @@
 
 import { floorDiv, toPx } from "../sim/fixed";
 import { lerp256 } from "../sim/view";
-import type { DrawPlan, HudModel, RectProp, ShadowOp, SpriteOp, TurnHud } from "../sim/view";
+import type { BossHud, DrawPlan, HudModel, RectProp, ShadowOp, SpriteOp, TurnHud } from "../sim/view";
 import { colOf, inGrid, reachable, rowOf, targetsFrom, tileX, tileY } from "./grid";
 import { BANNER_NONE, PHASE_ANIM, PHASE_LOST, PHASE_PLAYER, PHASE_WON } from "./types";
 import type { TurnData, TurnState } from "./types";
@@ -123,7 +123,7 @@ export function viewTurn(prev: TurnState, next: TurnState, alpha256: number, dat
     const cl = cu.clips[u.clip];
     const frame = cl.frames[Math.min(floorDiv(u.clipT, cl.ticksPerFrame), cl.frames.length - 1)];
     const zi = toPx(fy);
-    sprites.push({ set: cu.set, frame, x, y, flip: u.face === -1, depth: zi, who: i });
+    sprites.push({ set: cu.set, frame, x, y, flip: u.face === -1, depth: zi, who: i, ...(cu.size > 1 ? { size: cu.size } : {}) });
     shadows.push({ x, y: z, w: cu.flying ? SHADOW_FLY_W : SHADOW_W, h: cu.flying ? SHADOW_FLY_H : SHADOW_H, depth: zi - 1 });
     feet.push({ x, y });
   });
@@ -140,8 +140,15 @@ export function viewTurn(prev: TurnState, next: TurnState, alpha256: number, dat
     stage: null,
     turn: turnHud(data, next, feet),
     dungeon: null,
+    ...turnBoss(data, next),
   };
   return { sprites, shadows, props, boxes: [], hud, shake: 0, camX: 0 };
+}
+
+/** the first boss standing as the HUD's boss bar; nothing when there is none */
+function turnBoss(data: TurnData, next: TurnState): { boss?: BossHud } {
+  const i = data.units.findIndex((u, j) => u.boss && next.units[j].hp > 0);
+  return i < 0 ? {} : { boss: { name: data.units[i].name, hp: next.units[i].hp, maxHp: data.units[i].hp } };
 }
 
 /** the tile under a view-px point, the way the demo read a click: columns by floor, rows by the nearest feet line */

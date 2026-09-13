@@ -127,7 +127,7 @@ export interface AiFile {
  * `xp` is what a stage pays for the KO; `flying` keeps the fighter at `hover` view px above
  * the floor (no gravity while alive) - a bat.
  */
-export interface FighterFile { id: string; sprites: string; hp: number; speed: number; zSpeed: number; xp?: number; flying?: boolean; hover?: number }
+export interface FighterFile { id: string; sprites: string; hp: number; speed: number; zSpeed: number; xp?: number; flying?: boolean; hover?: number; drawScale?: number; boss?: boolean }
 
 export interface CastEntry { fighter: string; control: "player" | "ai"; ai?: string; team: number; x: number; z: number; face: 1 | -1 }
 /** one enemy of a wave: it spawns `delayTicks` after the wave starts, off the `side` edge of the screen, facing in */
@@ -165,6 +165,8 @@ export interface CFighter {
   xp: number;                // paid on its KO in a stage; 0 for a hero
   flying: boolean;
   hover: number;             // FP above the floor while flying and alive
+  size: number;              // whole multiples of the draw scale its picture AND its boxes use; 1 for everyone but a big boss
+  boss: boolean;             // the HUD draws its bar while it stands
   initial: number;
   hurt: number;              // onHit.light
   ko: number;                // onHit.heavy
