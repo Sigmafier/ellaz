@@ -1,0 +1,49 @@
+{
+  "id": "meadow",
+  "view": { "w": 1200, "h": 750 },
+  "grid": { "cols": 8, "rows": 4, "tileW": 120, "tileH": 78, "x": 120, "y": 478 },
+  "blocked": [{ "c": 5, "r": 0 }],
+  "placements": [
+    { "unit": "knight", "c": 1, "r": 2 },
+    { "unit": "wizard", "c": 0, "r": 1 },
+    { "unit": "slime", "c": 6, "r": 1 },
+    { "unit": "bat", "c": 7, "r": 2 },
+    { "unit": "bat", "c": 5, "r": 3 }
+  ],
+  "art": {
+    "palette": "snes16",
+    "scale": { "num": 5, "den": 2 },
+    "bands": [
+      { "kind": "fill", "x": 0, "y": 0, "w": 480, "h": 300, "color": "#bfe6ff" },
+      { "kind": "ellipse", "cx": 400, "cy": 50, "rx": 26, "ry": 26, "color": "#fff4c2" },
+      { "kind": "poly", "points": [[0, 150], [60, 110], [130, 140], [210, 100], [300, 140], [380, 105], [480, 140], [480, 180], [0, 180]], "color": "#8fbf6a" },
+      { "kind": "poly", "points": [[0, 190], [80, 150], [170, 185], [250, 145], [340, 180], [420, 150], [480, 185], [480, 220], [0, 220]], "color": "#5f9a44" },
+      { "kind": "fill", "x": 330, "y": 96, "w": 60, "h": 50, "color": "#8a8f9a" },
+      { "kind": "fill", "x": 330, "y": 86, "w": 10, "h": 12, "color": "#8a8f9a" },
+      { "kind": "fill", "x": 346, "y": 86, "w": 10, "h": 12, "color": "#8a8f9a" },
+      { "kind": "fill", "x": 362, "y": 86, "w": 10, "h": 12, "color": "#8a8f9a" },
+      { "kind": "fill", "x": 378, "y": 86, "w": 10, "h": 12, "color": "#8a8f9a" },
+      { "kind": "fill", "x": 352, "y": 126, "w": 16, "h": 20, "color": "#3a3f4a" },
+      { "kind": "ellipse", "cx": 360, "cy": 126, "rx": 8, "ry": 8, "color": "#3a3f4a" },
+      { "kind": "fill", "x": 37, "y": 170, "w": 6, "h": 22, "color": "#5c3a18" },
+      { "kind": "poly", "points": [[22, 172], [40, 134], [58, 172]], "color": "#2d6b1b" },
+      { "kind": "poly", "points": [[26, 158], [40, 124], [54, 158]], "color": "#3f8a2a" },
+      { "kind": "fill", "x": 87, "y": 180, "w": 6, "h": 22, "color": "#5c3a18" },
+      { "kind": "poly", "points": [[72, 182], [90, 144], [108, 182]], "color": "#2d6b1b" },
+      { "kind": "poly", "points": [[76, 168], [90, 134], [104, 168]], "color": "#3f8a2a" },
+      { "kind": "fill", "x": 437, "y": 180, "w": 6, "h": 22, "color": "#5c3a18" },
+      { "kind": "poly", "points": [[422, 182], [440, 144], [458, 182]], "color": "#2d6b1b" },
+      { "kind": "poly", "points": [[426, 168], [440, 134], [454, 168]], "color": "#3f8a2a" },
+      { "kind": "fill", "x": 0, "y": 190, "w": 480, "h": 110, "color": "#6cbf4a" },
+      { "kind": "fill", "x": 0, "y": 190, "w": 480, "h": 6, "color": "#8ee06a" },
+      { "kind": "ellipse", "cx": 240, "cy": 290, "rx": 140, "ry": 16, "color": "#c9a35a" }
+    ],
+    "props": [
+      { "kind": "ellipse", "cx": 312, "cy": 190, "rx": 12, "ry": 3, "color": "rgba(0,0,0,0.25)" },
+      { "kind": "fill", "x": 309, "y": 159, "w": 6, "h": 30, "color": "#5c3a18" },
+      { "kind": "fill", "x": 298, "y": 183, "w": 28, "h": 6, "color": "#3e2a12" },
+      { "kind": "poly", "points": [[312, 163], [301, 143], [307, 131], [312, 121], [318, 131], [323, 143]], "color": "#ff7a1a" },
+      { "kind": "poly", "points": [[312, 159], [306, 145], [312, 133], [318, 145]], "color": "#ffd23f" }
+    ]
+  }
+}

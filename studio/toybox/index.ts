@@ -9,5 +9,5 @@
 // engine knows where games LIVE (`gameDir`) and nothing about any one of them.
 
 export * from "./sim/index";
-export { GAMES, gameDir, loadMode } from "./data/load";
-export type { LoadedFight, SpriteSet } from "./data/load";
+export { GAMES, gameDir, loadMode, loadTurnMode, readModeKind } from "./data/load";
+export type { LoadedFight, ModeKind, SpriteSet } from "./data/load";

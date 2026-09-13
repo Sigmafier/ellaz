@@ -1,0 +1,11 @@
+{
+  "id": "wizard",
+  "sprites": "wizard--snes16",
+  "team": 0,
+  "name": "WIZARD",
+  "hp": 18,
+  "atk": 6,
+  "move": 2,
+  "range": 3,
+  "tall": 150
+}

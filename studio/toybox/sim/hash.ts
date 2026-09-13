@@ -109,8 +109,8 @@ export function fnv1a(bytes: Iterable<number>): number {
   return h >>> 0;
 }
 
-/** four bytes of a value's uint32 two's complement, least significant first */
-function pushU32(out: number[], v: number | boolean): void {
+/** four bytes of a value's uint32 two's complement, least significant first. Exported so a second sim kind folds its bytes the same way (turn/hash.ts) */
+export function pushU32(out: number[], v: number | boolean): void {
   let u = (typeof v === "boolean" ? (v ? 1 : 0) : v) >>> 0;
   for (let i = 0; i < 4; i++) {
     out.push(u % 256);
@@ -118,7 +118,7 @@ function pushU32(out: number[], v: number | boolean): void {
   }
 }
 
-function hex8(h: number): string {
+export function hex8(h: number): string {
   return (h >>> 0).toString(16).padStart(8, "0");
 }
 

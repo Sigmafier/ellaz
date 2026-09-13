@@ -10,7 +10,7 @@
 
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { GAMES, gameDir, loadMode } from "../data/load";
+import { GAMES, gameDir, loadMode, readModeKind } from "../data/load";
 import { reachOf } from "./ai";
 import { compileFight } from "./compile";
 import { abs, sign } from "./fixed";
@@ -31,6 +31,8 @@ function stageModes(): { game: string; mode: string }[] {
     if (!existsSync(modes)) continue;
     for (const f of readdirSync(modes).filter((x) => x.endsWith(".json")).sort()) {
       const id = f.replace(/\.json$/, "");
+      // a turn mode has no waves to clear; its completability KPI is turn/battle-completes.test.ts
+      if (readModeKind(id, gameDir(g)) !== "fight") continue;
       if (loadMode(id, gameDir(g)).stage) out.push({ game: g, mode: id });
     }
   }

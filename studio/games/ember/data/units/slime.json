@@ -1,0 +1,11 @@
+{
+  "id": "slime",
+  "sprites": "slime--snes16",
+  "team": 1,
+  "name": "SLIME",
+  "hp": 14,
+  "atk": 4,
+  "move": 2,
+  "range": 1,
+  "tall": 64
+}

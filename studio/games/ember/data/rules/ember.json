@@ -1,0 +1,13 @@
+{
+  "id": "ember",
+  "tickRate": 60,
+  "walkTicks": 12,
+  "strikeWindupTicks": 15,
+  "strikeRecoverTicks": 24,
+  "enemyBannerTicks": 36,
+  "betweenTicks": 9,
+  "turnBannerTicks": 60,
+  "firstBannerTicks": 72,
+  "floatTicks": 54,
+  "floatRise": 40
+}

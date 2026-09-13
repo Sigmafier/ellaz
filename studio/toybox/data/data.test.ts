@@ -34,9 +34,10 @@ import { existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFil
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { GAMES, gameDir, loadMode } from "./load";
+import { GAMES, gameDir, loadMode, loadTurnMode, readModeKind } from "./load";
 import { compileFight } from "../sim/compile";
 import type { AiFile, CastEntry, FighterFile, MatchFile, ModeFile } from "../sim/types";
+import type { BattleFile, UnitFile } from "../turn/types";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SCHEMAS = join(HERE, "schemas");
@@ -73,15 +74,27 @@ function corpusOf(gameRoot: string): DataFile[] {
   return out;
 }
 
+/** a game's mode files of the FIGHT kind: the cast and stage conditionals below are the fight's, and a turn mode has no cast to hold them to */
+function fightModeFiles(g: string): DataFile[] {
+  return corpusOf(gameDir(g)).filter((x) => x.name.startsWith("modes/") && readModeKind(x.name.slice("modes/".length).replace(/\.json$/, ""), gameDir(g)) === "fight");
+}
+
 const games = gamesWithData();
 const FIGHT = gameDir("fight");
+const EMBER = gameDir("ember");
 const FIGHT_DATA = join(FIGHT, "data");
 const ASSETS = join(FIGHT, "assets");
 const FILES = corpusOf(FIGHT);
 
 describe("the games on disk", () => {
-  it("are the crypt and the fight, so nothing below runs over an empty list", () => {
-    expect(games).toEqual(["crypt", "fight"]);
+  it("are the crypt, ember and the fight, so nothing below runs over an empty list", () => {
+    expect(games).toEqual(["crypt", "ember", "fight"]);
+  });
+
+  it("two are the fight's kind and one is the turn's, read off the one field that says so", () => {
+    expect(readModeKind("versus", FIGHT)).toBe("fight");
+    expect(readModeKind("crypt", gameDir("crypt"))).toBe("fight");
+    expect(readModeKind("meadow", EMBER)).toBe("turn");
   });
 
   it("every schema names a kind some game holds, and every kind has a schema", () => {
@@ -89,7 +102,7 @@ describe("the games on disk", () => {
     const kinds = new Set<string>();
     for (const g of games) for (const d of readdirSync(join(gameDir(g), "data"), { withFileTypes: true })) if (d.isDirectory()) kinds.add(d.name);
     expect(schemas).toEqual([...kinds].sort());
-    expect(schemas).toEqual(["ai", "arena", "fighters", "match", "modes", "stage"]);
+    expect(schemas).toEqual(["ai", "arena", "battles", "fighters", "match", "modes", "rules", "stage", "units"]);
   });
 
   it("refuses a game with no modes/ - the control for the walk", () => {
@@ -191,7 +204,7 @@ describe("the conditional the validator subset cannot write", () => {
   it("every real mode of every game satisfies it", () => {
     expect(modes.length).toBeGreaterThan(0);
     for (const g of games) {
-      for (const f of corpusOf(gameDir(g)).filter((x) => x.name.startsWith("modes/"))) expect(aiViolations(readJson(f.path) as unknown as ModeFile)).toEqual([]);
+      for (const f of fightModeFiles(g)) expect(aiViolations(readJson(f.path) as unknown as ModeFile)).toEqual([]);
     }
   });
 
@@ -235,7 +248,7 @@ describe("the stage conditionals the validator subset cannot write", () => {
   it("every real mode of every game satisfies it", () => {
     expect(modes.length).toBe(2);
     for (const g of games) {
-      for (const f of corpusOf(gameDir(g)).filter((x) => x.name.startsWith("modes/"))) expect(stageViolations(readJson(f.path) as unknown as ModeFile)).toEqual([]);
+      for (const f of fightModeFiles(g)) expect(stageViolations(readJson(f.path) as unknown as ModeFile)).toEqual([]);
     }
   });
 
@@ -279,7 +292,7 @@ describe("the stage conditionals the validator subset cannot write", () => {
   function stageModes(): { game: string; mode: string; loaded: ReturnType<typeof loadMode> }[] {
     const out: { game: string; mode: string; loaded: ReturnType<typeof loadMode> }[] = [];
     for (const g of games) {
-      for (const f of corpusOf(gameDir(g)).filter((x) => x.name.startsWith("modes/"))) {
+      for (const f of fightModeFiles(g)) {
         const id = f.name.slice("modes/".length).replace(/\.json$/, "");
         const loaded = loadMode(id, gameDir(g));
         if (loaded.stage) out.push({ game: g, mode: id, loaded });
@@ -315,6 +328,131 @@ describe("the stage conditionals the validator subset cannot write", () => {
       ["ninja", "ninja", "bat"],
       ["bat", "wizard-boss", "bat"],
     ]);
+  });
+});
+
+describe("the turn kind: what the validator subset cannot write, and the loader", () => {
+  const EMBER_FILES = corpusOf(EMBER);
+  const modes = readJson(join(SCHEMAS, "modes.schema.json"));
+
+  it("found ember's whole corpus, so nothing below passes over an empty list", () => {
+    expect(EMBER_FILES.map((f) => f.name).sort()).toEqual([
+      "battles/meadow.json",
+      "modes/meadow.json",
+      "rules/ember.json",
+      "units/bat.json",
+      "units/knight.json",
+      "units/slime.json",
+      "units/wizard.json",
+    ]);
+  });
+
+  it("a fight mode with a stray `kind` is held to the turn branch and refused by it, whole", () => {
+    const bad = { ...(readJson(join(FIGHT_DATA, "modes", "versus.json")) as object), kind: "turn" };
+    const errs = check(modes, bad);
+    expect(errs.join("\n")).toMatch(/missing required "battle"/);
+    expect(errs.join("\n")).toMatch(/unexpected key "arena"/);
+    expect(errs.join("\n")).not.toMatch(/missing required "cast"/);
+  });
+
+  it("a turn mode missing its rules is refused naming the rules, and not the fight branch's complaints", () => {
+    const bad = { ...(readJson(join(EMBER, "data", "modes", "meadow.json")) as object) } as Record<string, unknown>;
+    delete bad.rules;
+    const errs = check(modes, bad);
+    expect(errs).toEqual(['$: missing required "rules"']);
+  });
+
+  it("a mode naming a kind no branch knows is refused naming the branches", () => {
+    const bad = { ...(readJson(join(EMBER, "data", "modes", "meadow.json")) as object), kind: "dance" };
+    expect(check(modes, bad).join("\n")).toMatch(/kind "dance" matches no oneOf branch \(branch 0 \(no kind\), turn\)/);
+  });
+
+  it("a fight mode with no kind and a defect is held to the kind-less branch", () => {
+    const bad = { ...(readJson(join(FIGHT_DATA, "modes", "versus.json")) as object) } as Record<string, unknown>;
+    delete bad.arena;
+    expect(check(modes, bad)).toEqual(['$: missing required "arena"']);
+  });
+
+  it("a value clean under two branches is refused: exactly one must fit", () => {
+    const twin = { oneOf: [{ type: "object" }, { type: "object", properties: { x: { type: "integer" } } }] };
+    expect(check(twin, { x: 1 })).toEqual(["$: matches 2 of 2 oneOf branches, expected exactly one"]);
+    expect(check(twin, { x: 1.5 })).toEqual([]);
+  });
+
+  /** every placement on the grid, off the blocked tiles, alone on its tile */
+  function placementViolations(b: BattleFile): string[] {
+    const out: string[] = [];
+    const seen = new Set<string>();
+    b.placements.forEach((p, i) => {
+      const key = `${p.c},${p.r}`;
+      if (p.c >= b.grid.cols || p.r >= b.grid.rows) out.push(`placement ${i} (${p.unit}) at (${p.c}, ${p.r}) is off the ${b.grid.cols}x${b.grid.rows} grid`);
+      if (b.blocked.some((t) => t.c === p.c && t.r === p.r)) out.push(`placement ${i} (${p.unit}) stands on blocked tile (${p.c}, ${p.r})`);
+      if (seen.has(key)) out.push(`placement ${i} (${p.unit}) shares tile (${p.c}, ${p.r})`);
+      seen.add(key);
+    });
+    return out;
+  }
+
+  const meadow = readJson(join(EMBER, "data", "battles", "meadow.json")) as unknown as BattleFile;
+
+  it("the meadow's five placements are on the grid, off the fire, one per tile", () => {
+    expect(placementViolations(meadow)).toEqual([]);
+    expect(meadow.placements.length).toBe(5);
+  });
+
+  it("fires on a placement off the grid, on the fire, and on a shared tile", () => {
+    const off = JSON.parse(JSON.stringify(meadow)) as BattleFile; off.placements[0].c = 8;
+    expect(placementViolations(off)).toEqual(["placement 0 (knight) at (8, 2) is off the 8x4 grid"]);
+    const fire = JSON.parse(JSON.stringify(meadow)) as BattleFile; fire.placements[1] = { unit: "wizard", c: 5, r: 0 };
+    expect(placementViolations(fire)).toEqual(["placement 1 (wizard) stands on blocked tile (5, 0)"]);
+    const twin = JSON.parse(JSON.stringify(meadow)) as BattleFile; twin.placements[4] = { ...twin.placements[3] };
+    expect(placementViolations(twin)).toEqual(["placement 4 (bat) shares tile (7, 2)"]);
+  });
+
+  it("a hover height requires flying: the bat has both, and nothing else hovers", () => {
+    const units = EMBER_FILES.filter((f) => f.name.startsWith("units/")).map((f) => readJson(f.path) as unknown as UnitFile);
+    expect(units.length).toBe(4);
+    for (const u of units) if (u.hover !== undefined) expect({ id: u.id, flying: u.flying }).toEqual({ id: u.id, flying: true });
+    expect(units.filter((u) => u.flying).map((u) => u.id)).toEqual(["bat"]);
+  });
+
+  it("every unit's sprite set is on disk in ember's assets with its manifest and sheet", () => {
+    const seen: string[] = [];
+    for (const f of EMBER_FILES.filter((x) => x.name.startsWith("units/"))) {
+      const set = (readJson(f.path) as unknown as UnitFile).sprites;
+      seen.push(set);
+      expect({ set, manifest: existsSync(join(EMBER, "assets", set, `${set}.manifest.json`)) }).toEqual({ set, manifest: true });
+      expect({ set, png: existsSync(join(EMBER, "assets", set, `${set}.png`)) }).toEqual({ set, png: true });
+    }
+    expect(seen.sort()).toEqual(["bat--snes16", "knight--snes16", "slime--snes16", "wizard--snes16"]);
+  });
+
+  it("every timing in the rules file is a whole number of ticks at the engine's rate", () => {
+    const rules = readJson(join(EMBER, "data", "rules", "ember.json"));
+    expect(rules.tickRate).toBe(60);
+    for (const [k, v] of Object.entries(rules)) if (typeof v === "number") expect({ k, int: Number.isInteger(v) }).toEqual({ k, int: true });
+  });
+
+  it("loadTurnMode reads the battle, the rules, the units in first-appearance order, and one manifest per set", () => {
+    const loaded = loadTurnMode("meadow", EMBER);
+    expect(loaded.mode.kind).toBe("turn");
+    expect(loaded.battle.id).toBe("meadow");
+    expect(loaded.rules.id).toBe("ember");
+    expect(loaded.units.map((u) => u.id)).toEqual(["knight", "wizard", "slime", "bat"]);
+    expect(Object.keys(loaded.sets).sort()).toEqual(["bat--snes16", "knight--snes16", "slime--snes16", "wizard--snes16"]);
+    expect(Object.keys(loaded.sets["bat--snes16"].manifest.animations).sort()).toEqual(["attack", "hurt", "idle", "ko", "walk"]);
+  });
+
+  it("loadMode refuses a turn mode naming its kind, and loadTurnMode refuses a fight mode", () => {
+    expect(() => loadMode("meadow", EMBER)).toThrow(/"meadow" is a "turn" mode, not a fight/);
+    expect(() => loadTurnMode("versus", FIGHT)).toThrow(/"versus" is not a turn mode/);
+  });
+
+  it("readModeKind throws naming an unknown kind", () => {
+    const root = mkdtempSync(join(tmpdir(), "toybox-game-"));
+    mkdirSync(join(root, "data", "modes"), { recursive: true });
+    writeFileSync(join(root, "data", "modes", "odd.json"), JSON.stringify({ id: "odd", kind: "dance" }));
+    expect(() => readModeKind("odd", root)).toThrow(/unknown kind "dance"/);
   });
 });
 

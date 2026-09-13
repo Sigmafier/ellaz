@@ -1,0 +1,11 @@
+{
+  "id": "knight",
+  "sprites": "knight--snes16",
+  "team": 0,
+  "name": "KNIGHT",
+  "hp": 30,
+  "atk": 7,
+  "move": 3,
+  "range": 1,
+  "tall": 150
+}

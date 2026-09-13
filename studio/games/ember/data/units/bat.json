@@ -1,0 +1,13 @@
+{
+  "id": "bat",
+  "sprites": "bat--snes16",
+  "team": 1,
+  "name": "BAT",
+  "hp": 9,
+  "atk": 3,
+  "move": 4,
+  "range": 1,
+  "tall": 110,
+  "flying": true,
+  "hover": 40
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ellaz.fun/studio/toybox/rules.schema.json",
+  "title": "Ellaz turn rules file",
+  "description": "Every timing of the turn machine, in TICKS at `tickRate`. The demo these came from (2026-09-13) waited in seconds; at 60 ticks a second 0.2 s is 12 ticks. Nothing here is a pixel except `floatRise`, the height a damage float climbs over its life.",
+  "type": "object",
+  "required": ["id", "tickRate", "walkTicks", "strikeWindupTicks", "strikeRecoverTicks", "enemyBannerTicks", "betweenTicks", "turnBannerTicks", "firstBannerTicks", "floatTicks", "floatRise"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "must equal the file's basename" },
+    "tickRate": { "type": "integer", "exclusiveMinimum": 0, "description": "ticks per second; the engine steps at 60" },
+    "walkTicks": { "type": "integer", "exclusiveMinimum": 0, "description": "one tile of a walk" },
+    "strikeWindupTicks": { "type": "integer", "exclusiveMinimum": 0, "description": "from the swing to the damage landing" },
+    "strikeRecoverTicks": { "type": "integer", "exclusiveMinimum": 0, "description": "from the damage to the striker settling" },
+    "enemyBannerTicks": { "type": "integer", "exclusiveMinimum": 0, "description": "the pause after ENEMY TURN shows before the first enemy acts" },
+    "betweenTicks": { "type": "integer", "minimum": 0, "description": "between one enemy's action and the next" },
+    "turnBannerTicks": { "type": "integer", "exclusiveMinimum": 0, "description": "how long YOUR TURN and ENEMY TURN stay up" },
+    "firstBannerTicks": { "type": "integer", "exclusiveMinimum": 0, "description": "the first YOUR TURN of a battle" },
+    "floatTicks": { "type": "integer", "exclusiveMinimum": 0, "description": "a damage float's life" },
+    "floatRise": { "type": "integer", "minimum": 0, "description": "view px a float climbs over its life" }
+  }
+}

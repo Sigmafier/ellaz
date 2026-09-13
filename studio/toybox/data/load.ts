@@ -20,6 +20,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { AiFile, ArenaFile, FighterFile, Manifest, MatchFile, ModeFile, MovesFile, StageFile } from "../sim/types";
+import type { BattleFile, LoadedTurn, RulesFile, TurnModeFile, UnitFile } from "../turn/types";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -93,7 +94,9 @@ function loadSets(fighters: FighterFile[], assetsRoot: string): Record<string, S
  */
 export function loadMode(modeId: string, gameRoot: string): LoadedFight {
   const root = join(gameRoot, "data");
-  const mode = readJson<ModeFile>(join(root, "modes", `${modeId}.json`), `mode "${modeId}"`);
+  const mode = readJson<ModeFile & { kind?: unknown }>(join(root, "modes", `${modeId}.json`), `mode "${modeId}"`);
+  // a mode file that names a kind is not a fight's: reading its arena would throw about a path, not about the kind
+  if (mode.kind !== undefined) throw new Error(`fight: mode "${modeId}" is a ${JSON.stringify(mode.kind)} mode, not a fight - readModeKind first, then loadTurnMode`);
   const arena = readJson<ArenaFile>(join(root, "arena", `${mode.arena}.json`), `arena "${mode.arena}" (named by mode "${modeId}")`);
   const match = readJson<MatchFile>(join(root, "match", `${mode.match}.json`), `match "${mode.match}" (named by mode "${modeId}")`);
 
@@ -109,4 +112,38 @@ export function loadMode(modeId: string, gameRoot: string): LoadedFight {
     : readJson<StageFile>(join(root, "stage", `${mode.stage}.json`), `stage "${mode.stage}" (named by mode "${modeId}")`);
 
   return { mode, arena, match, fighters, ais, sets: loadSets(fighters, join(gameRoot, "assets")), ...(stage ? { stage } : {}) };
+}
+
+/** the two kinds of simulation a mode file can name: `kind` absent is the fight's (its files predate the second kind) */
+export type ModeKind = "fight" | "turn";
+
+/** which sim a mode belongs to, from the one field that says so; an unknown kind throws naming it */
+export function readModeKind(modeId: string, gameRoot: string): ModeKind {
+  const mode = readJson<{ kind?: unknown }>(join(gameRoot, "data", "modes", `${modeId}.json`), `mode "${modeId}"`);
+  if (mode.kind === undefined) return "fight";
+  if (mode.kind === "turn") return "turn";
+  throw new Error(`mode "${modeId}" names an unknown kind ${JSON.stringify(mode.kind)} (fight modes name none; turn modes name "turn")`);
+}
+
+/**
+ * Read a TURN mode and everything it names: the battle, the rules, one file per
+ * distinct unit the placements name, and each unit's sprite manifest (a turn
+ * unit has no moves file: a strike is a rule, not a hitbox).
+ */
+export function loadTurnMode(modeId: string, gameRoot: string): LoadedTurn {
+  const root = join(gameRoot, "data");
+  const mode = readJson<TurnModeFile>(join(root, "modes", `${modeId}.json`), `mode "${modeId}"`);
+  if (mode.kind !== "turn") throw new Error(`turn: mode "${modeId}" is not a turn mode (kind ${JSON.stringify(mode.kind)})`);
+  const battle = readJson<BattleFile>(join(root, "battles", `${mode.battle}.json`), `battle "${mode.battle}" (named by mode "${modeId}")`);
+  const rules = readJson<RulesFile>(join(root, "rules", `${mode.rules}.json`), `rules "${mode.rules}" (named by mode "${modeId}")`);
+  const units = distinct(battle.placements, (p) => p.unit).map((id) =>
+    readJson<UnitFile>(join(root, "units", `${id}.json`), `unit "${id}" (named by battle "${mode.battle}")`),
+  );
+  const sets: LoadedTurn["sets"] = {};
+  for (const u of units) {
+    if (sets[u.sprites]) continue;
+    const dir = join(gameRoot, "assets", u.sprites);
+    sets[u.sprites] = { manifest: readJson<Manifest>(join(dir, `${u.sprites}.manifest.json`), `sprite manifest for "${u.sprites}"`) };
+  }
+  return { mode, battle, rules, units, sets };
 }

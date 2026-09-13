@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ellaz.fun/studio/toybox/units.schema.json",
+  "title": "Ellaz turn unit file",
+  "description": "What a unit of a turn battle IS: its side, its hp and attack, how many tiles it walks in a turn, how far it strikes, and where its hp bar sits. Its picture is the sprite set's manifest; a turn unit needs no moves file - it has no hitboxes, a strike is a rule. `hover` REQUIRES `flying`; the validator subset has no if/then, so data.test.ts asserts it.",
+  "type": "object",
+  "required": ["id", "sprites", "team", "name", "hp", "atk", "move", "range", "tall"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "must equal the file's basename" },
+    "sprites": { "type": "string", "pattern": "^[a-z0-9]+--[a-z0-9]+$", "description": "a directory under ../assets/ holding <set>.manifest.json with the five clips idle, walk, attack, hurt, ko" },
+    "team": { "type": "integer", "minimum": 0, "description": "0 is the party the player commands" },
+    "name": { "type": "string", "pattern": "^[A-Z0-9 ]+$", "description": "as the panel and the log print it" },
+    "hp": { "type": "integer", "exclusiveMinimum": 0 },
+    "atk": { "type": "integer", "exclusiveMinimum": 0, "description": "damage per strike; the target's hp floors at 0" },
+    "move": { "type": "integer", "minimum": 0, "description": "tiles per turn, manhattan, through allies and never through foes" },
+    "range": { "type": "integer", "exclusiveMinimum": 0, "description": "manhattan reach of a strike" },
+    "tall": { "type": "integer", "exclusiveMinimum": 0, "description": "view px above the feet where the hp bar and the damage float sit" },
+    "flying": { "type": "boolean", "description": "drawn `hover` px above its tile" },
+    "hover": { "type": "integer", "minimum": 0, "description": "view px; REQUIRES `flying`" }
+  }
+}

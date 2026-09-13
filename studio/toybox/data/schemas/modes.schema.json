@@ -1,21 +1,41 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ellaz.fun/studio/fight/mode.schema.json",
-  "title": "Ellaz fight mode file",
-  "description": "The one file a game names. It points at an arena, a match ruleset and a cast; data/load.ts opens everything it names and compile.ts refuses any name that was not loaded. `seed` lives here and not in code so a replay is a mode file plus an input log, and nothing else. A STAGE mode adds `stage` (its tuning file) and `waves` (its level design): every wave's spawns join the cast as one fixed roster, dormant until their wave and delay - at most 31 rows in all, because the hit mask is one bit per target. `stage` and `waves` come together or not at all; the validator subset cannot write that conditional, so data.test.ts and compile.ts both assert it.",
-  "type": "object",
-  "required": ["id", "arena", "match", "seed", "cast"],
-  "additionalProperties": false,
-  "properties": {
-    "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "must equal the file's basename" },
-    "arena": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "a basename under ../arena/" },
-    "match": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "a basename under ../match/" },
-    "seed": { "type": "integer", "minimum": 0, "description": "the whole state of the sim's rng; uint32" },
-    "cast": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/castEntry" } },
-    "stage": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "a basename under ../stage/; present iff `waves` is" },
-    "waves": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/wave" }, "description": "the level design, in play order" }
-  },
+  "$id": "https://ellaz.fun/studio/toybox/mode.schema.json",
+  "title": "Ellaz mode file",
+  "description": "The one file a game names, in one of two shapes, told apart by `kind`: a FIGHT mode (no `kind` - the fight's and the crypt's files predate the second kind and stay as they are) points at an arena, a match ruleset and a cast, and a STAGE mode adds `stage` and `waves`; a TURN mode (`kind: \"turn\"`) points at a battle and a rules file. `seed` lives here and not in code so a replay is a mode file plus an input log. Exactly one branch must be clean: scripts/lib/schema.mjs's oneOf reports the errors of the branch whose `kind` matches, whole.",
+  "oneOf": [
+    { "$ref": "#/$defs/fightMode" },
+    { "$ref": "#/$defs/turnMode" }
+  ],
   "$defs": {
+    "fightMode": {
+      "type": "object",
+      "required": ["id", "arena", "match", "seed", "cast"],
+      "additionalProperties": false,
+      "description": "A STAGE mode adds `stage` (its tuning file) and `waves` (its level design): every wave's spawns join the cast as one fixed roster, dormant until their wave and delay - at most 31 rows in all, because the hit mask is one bit per target. `stage` and `waves` come together or not at all; the validator subset cannot write that conditional, so data.test.ts and compile.ts both assert it.",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "must equal the file's basename" },
+        "arena": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "a basename under ../arena/" },
+        "match": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "a basename under ../match/" },
+        "seed": { "type": "integer", "minimum": 0, "description": "the whole state of the sim's rng; uint32" },
+        "cast": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/castEntry" } },
+        "stage": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "a basename under ../stage/; present iff `waves` is" },
+        "waves": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/wave" }, "description": "the level design, in play order" }
+      }
+    },
+    "turnMode": {
+      "type": "object",
+      "required": ["id", "kind", "battle", "rules", "seed"],
+      "additionalProperties": false,
+      "description": "a turn battle: the battle file holds the grid, the field and the placements; the rules file every timing",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "must equal the file's basename" },
+        "kind": { "type": "string", "pattern": "^turn$" },
+        "battle": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "a basename under ../battles/" },
+        "rules": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "a basename under ../rules/" },
+        "seed": { "type": "integer", "minimum": 0, "description": "carried in the state; the turn machine draws nothing from it today" }
+      }
+    },
     "wave": {
       "type": "object",
       "required": ["spawns"],
@@ -41,7 +61,7 @@
       "type": "object",
       "required": ["fighter", "control", "team", "x", "z", "face"],
       "additionalProperties": false,
-      "description": "`ai` is REQUIRED when control is \"ai\" and FORBIDDEN otherwise. The validator subset (scripts/lib/schema.mjs) has no if/then and no oneOf, so that conditional cannot be written here and is asserted by data.test.ts instead - watched failing in both directions before it was believed.",
+      "description": "`ai` is REQUIRED when control is \"ai\" and FORBIDDEN otherwise. The validator subset (scripts/lib/schema.mjs) has no if/then, so that conditional cannot be written here and is asserted by data.test.ts instead - watched failing in both directions before it was believed.",
       "properties": {
         "fighter": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "a basename under ../fighters/" },
         "control": { "type": "string", "pattern": "^(player|ai)$" },

@@ -25,23 +25,26 @@ const FILES = { sheet: "png", atlas: "atlas.json", manifest: "manifest.json", mo
 const N_FILES = Object.keys(FILES).length;
 const baseName = (setName, kind) => `${setName}.${FILES[kind]}`;
 
-/** Sets named by <game>/data/fighters/*.json, or (that dir being absent - a
- * concurrent lane's WIP) whatever sets already have a committed assets/ dir.
+/** Sets named by <game>/data/fighters/*.json (a fight game) and/or
+ * <game>/data/units/*.json (a turn game), or (both dirs absent - a concurrent
+ * lane's WIP) whatever sets already have a committed assets/ dir.
  * Returns { sets, source } so the caller can say where the list came from. */
-function defaultSets(fightersDir, assetsDir) {
-  if (existsSync(fightersDir)) {
-    // the schemas live with the engine (toybox/data/schemas), so every json here is a fighter; one without `sprites` is an error, not a skip
-    const sets = readdirSync(fightersDir)
-      .filter((f) => f.endsWith(".json") && !f.endsWith(".schema.json"))
-      .map((f) => {
-        const s = JSON.parse(readFileSync(join(fightersDir, f), "utf8")).sprites;
-        if (typeof s !== "string") throw new Error(`copy-sprites: ${f} names no sprites set`);
-        return s;
-      });
-    return { sets, source: `${fightersDir} (${sets.length} fighter files)` };
+function defaultSets(dataDir, assetsDir) {
+  const kinds = ["fighters", "units"].filter((k) => existsSync(join(dataDir, k)));
+  if (kinds.length) {
+    // the schemas live with the engine (toybox/data/schemas), so every json here names a set; one without `sprites` is an error, not a skip
+    const sets = [];
+    for (const kind of kinds) {
+      for (const f of readdirSync(join(dataDir, kind)).filter((x) => x.endsWith(".json") && !x.endsWith(".schema.json"))) {
+        const s = JSON.parse(readFileSync(join(dataDir, kind, f), "utf8")).sprites;
+        if (typeof s !== "string") throw new Error(`copy-sprites: ${kind}/${f} names no sprites set`);
+        if (!sets.includes(s)) sets.push(s);
+      }
+    }
+    return { sets, source: `${dataDir}/{${kinds.join(",")}} (${sets.length} sets)` };
   }
   const sets = existsSync(assetsDir) ? readdirSync(assetsDir).filter((d) => existsSync(join(assetsDir, d))) : [];
-  return { sets, source: `${assetsDir} (fighters data absent - fallback to existing asset dirs)` };
+  return { sets, source: `${assetsDir} (fighters and units data absent - fallback to existing asset dirs)` };
 }
 
 /** Locate a set's export row, or throw naming it. */
@@ -191,14 +194,14 @@ if (isMain) {
   const game = flags.game ?? DEFAULT_GAME;
   const gameDir = gameDirOf(game);
   if (!existsSync(gameDir)) { console.error(`copy-sprites: no such game: ${gameDir}`); process.exit(2); }
-  const fightersDir = join(gameDir, "data", "fighters");
+  const dataDir = join(gameDir, "data");
   const assetsDir = flags.assets ? resolve(flags.assets) : join(gameDir, "assets");
   if (!existsSync(DEFAULT_EXPORT)) { console.error("copy-sprites: run `npm run export` first"); process.exit(3); }
   const ex = readExport();
 
   let sets = positional;
   if (sets.length === 0) {
-    const d = defaultSets(fightersDir, join(gameDir, "assets"));
+    const d = defaultSets(dataDir, join(gameDir, "assets"));
     sets = d.sets;
     console.log(`copy-sprites: sets from ${d.source}`);
   }

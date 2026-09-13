@@ -47,21 +47,39 @@ function checkSchemas(root) {
   return out;
 }
 
-const idsOf = (root, kind) => readdirSync(join(root, "data", kind)).filter((f) => f.endsWith(".json") && !f.endsWith(".schema.json")).map((f) => readJson(join(root, "data", kind, f)));
+/** every json of one kind directory, parsed; a kind the game does not carry is an empty list, and a mode naming into it reads as a missing name */
+const idsOf = (root, kind) => (existsSync(join(root, "data", kind)) ? readdirSync(join(root, "data", kind)).filter((f) => f.endsWith(".json") && !f.endsWith(".schema.json")).map((f) => readJson(join(root, "data", kind, f))) : []);
 
-/** fighters name real sets with moves; modes name real arenas, matches, ais, fighters */
+const has = (list, id) => list.some((x) => x.id === id);
+
+/** a set's files under assets/, for a fighter (four files) or a turn unit (three: a strike is a rule, not a hitbox) */
+function checkSet(assets, what, id, set, exts, out) {
+  for (const ext of exts) {
+    if (!existsSync(join(assets, set, `${set}.${ext}`))) out.push(`${what} "${id}" names set "${set}" but assets/${set}/${set}.${ext} is missing`);
+  }
+}
+
+/** a TURN mode names a battle and rules that exist; every placement names a unit that exists; every unit a set with its sheet and manifest */
+function checkTurnRefs(root, assets, m, out) {
+  const battles = idsOf(root, "battles"), rules = idsOf(root, "rules"), units = idsOf(root, "units");
+  if (!has(battles, m.battle)) out.push(`mode "${m.id}" names battle "${m.battle}", which does not exist`);
+  if (!has(rules, m.rules)) out.push(`mode "${m.id}" names rules "${m.rules}", which does not exist`);
+  const battle = battles.find((b) => b.id === m.battle);
+  (battle?.placements ?? []).forEach((p, i) => {
+    if (!has(units, p.unit)) out.push(`battle "${battle.id}" placement ${i} names unit "${p.unit}", which does not exist`);
+  });
+  for (const u of units) checkSet(assets, "unit", u.id, u.sprites, ["png", "atlas.json", "manifest.json"], out);
+}
+
+/** fighters name real sets with moves; modes name real arenas, matches, ais, fighters - or, for a turn mode, a battle, rules and units */
 function checkRefs(root, assets) {
   const out = [];
   const fighters = idsOf(root, "fighters"), arenas = idsOf(root, "arena"), matches = idsOf(root, "match"), ais = idsOf(root, "ai");
-  for (const f of fighters) {
-    const dir = join(assets, f.sprites);
-    for (const ext of ["png", "atlas.json", "manifest.json", "moves.json"]) {
-      if (!existsSync(join(dir, `${f.sprites}.${ext}`))) out.push(`fighter "${f.id}" names set "${f.sprites}" but assets/${f.sprites}/${f.sprites}.${ext} is missing`);
-    }
-  }
-  const has = (list, id) => list.some((x) => x.id === id);
-  const stages = existsSync(join(root, "data", "stage")) ? idsOf(root, "stage") : [];
+  for (const f of fighters) checkSet(assets, "fighter", f.id, f.sprites, ["png", "atlas.json", "manifest.json", "moves.json"], out);
+  const stages = idsOf(root, "stage");
   for (const m of idsOf(root, "modes")) {
+    if (m.kind === "turn") { checkTurnRefs(root, assets, m, out); continue; }
+    if (m.kind !== undefined) { out.push(`mode "${m.id}" names an unknown kind ${JSON.stringify(m.kind)}`); continue; }
     if (!has(arenas, m.arena)) out.push(`mode "${m.id}" names arena "${m.arena}", which does not exist`);
     if (!has(matches, m.match)) out.push(`mode "${m.id}" names match "${m.match}", which does not exist`);
     for (const c of m.cast ?? []) {
@@ -146,6 +164,16 @@ function controls() {
   };
   const edit = (dir, rel, fn) => { const p = join(dir, rel); const j = readJson(p); fn(j); writeFileSync(p, JSON.stringify(j, null, 2)); };
   const copyAssets = (dir) => { cpSync(join(FIGHT, "assets"), join(dir, "assets"), { recursive: true }); return join(dir, "assets"); };
+  // the turn game's data in a scratch copy, run through checkRefs alone: the one check a placement can fail
+  const EMBER = join(GAMES, "ember");
+  const emberRefs = (fn) => {
+    const dir = mkdtempSync(join(tmpdir(), "assert-fight-ember-"));
+    cpSync(join(EMBER, "data"), join(dir, "data"), { recursive: true });
+    fn(dir);
+    const out = checkRefs(dir, join(EMBER, "assets"));
+    rmSync(dir, { recursive: true, force: true });
+    return out;
+  };
   // a games root holding one directory with data/ but no modes/ - the walk must name it, not skip it
   const gamesRootWithAModelessGame = () => {
     const dir = mkdtempSync(join(tmpdir(), "assert-fight-games-"));
@@ -167,6 +195,9 @@ function controls() {
     { name: "a golden hash one digit short", expect: "FIRE", run: () => scratch((d) => edit(d, "tapes/versus-600.golden.json", (g) => { g.chain = g.chain.slice(1); })) },
     { name: "a wave spawn naming a fighter that does not exist", expect: "FIRE", run: () => scratch((d) => edit(d, "data/modes/stage.json", (m) => { m.waves[1].spawns[2].fighter = "ghost"; })) },
     { name: "one byte flipped in a committed sheet", expect: "FIRE", run: () => scratch((d) => { const a = copyAssets(d); const p = join(a, "robot--snes16", "robot--snes16.png"); const b = readFileSync(p); b[Math.floor(b.length / 2)] ^= 0xff; writeFileSync(p, b); return a; }) },
+    { name: "the turn game's refs as committed (checkRefs alone)", expect: "PASS", run: () => emberRefs(() => {}) },
+    { name: "a turn battle placement naming a unit that does not exist", expect: "FIRE", run: () => emberRefs((d) => edit(d, "data/battles/meadow.json", (b) => { b.placements[2].unit = "ghost"; })) },
+    { name: "a turn mode naming rules that do not exist", expect: "FIRE", run: () => emberRefs((d) => edit(d, "data/modes/meadow.json", (m) => { m.rules = "moon"; })) },
   ];
 }
 

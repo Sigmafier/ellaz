@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ellaz.fun/studio/toybox/battles.schema.json",
+  "title": "Ellaz turn battle file",
+  "description": "A battle is a grid placed on a painted field, and who starts where. It carries the field too (`view` and `art`), because a turn battle's field is not the fight's arena: the fight's arena schema is a z-band with gravity, and a grid has neither, so one file per battle holds the picture and the placements together - a second battle is one more file. `view`, `grid` and every c/r are VIEW PIXELS and tiles; compile.ts turns the grid into FP once. `art` is the loose object: only a cell opens it. What the subset cannot write, data.test.ts asserts: every placement on the grid and off the blocked tiles, no two on one tile, every `unit` a file on disk.",
+  "type": "object",
+  "required": ["id", "view", "grid", "blocked", "placements", "art"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "must equal the file's basename" },
+    "view": {
+      "type": "object",
+      "required": ["w", "h"],
+      "additionalProperties": false,
+      "properties": {
+        "w": { "type": "integer", "exclusiveMinimum": 0 },
+        "h": { "type": "integer", "exclusiveMinimum": 0 }
+      }
+    },
+    "grid": {
+      "type": "object",
+      "required": ["cols", "rows", "tileW", "tileH", "x", "y"],
+      "additionalProperties": false,
+      "description": "tile (c, r) has its bottom-centre at (x + c * tileW + tileW / 2, y + r * tileH), in view px; a unit stands there",
+      "properties": {
+        "cols": { "type": "integer", "exclusiveMinimum": 0 },
+        "rows": { "type": "integer", "exclusiveMinimum": 0 },
+        "tileW": { "type": "integer", "exclusiveMinimum": 0 },
+        "tileH": { "type": "integer", "exclusiveMinimum": 0 },
+        "x": { "type": "integer", "minimum": 0 },
+        "y": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "blocked": { "type": "array", "items": { "$ref": "#/$defs/tile" }, "description": "tiles nobody may stand on or walk through" },
+    "placements": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/placement" } },
+    "art": { "type": "object", "description": "the field's picture, for the cells; the sim never opens it" }
+  },
+  "$defs": {
+    "tile": {
+      "type": "object",
+      "required": ["c", "r"],
+      "additionalProperties": false,
+      "properties": {
+        "c": { "type": "integer", "minimum": 0 },
+        "r": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "placement": {
+      "type": "object",
+      "required": ["unit", "c", "r"],
+      "additionalProperties": false,
+      "properties": {
+        "unit": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "a basename under ../units/" },
+        "c": { "type": "integer", "minimum": 0 },
+        "r": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}
