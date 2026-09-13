@@ -37,7 +37,13 @@ export type ChromeSpec = {
   /** Floor under the level toggle, so a fourth word cannot be clipped. */
   /** Floor under a full-size stat card. */
   statMinWidth: number;
-  /** Corner of the panel's surfaces. A CSS length, because it is a token. */
+  /**
+   * Corner of the panel's surfaces. A CSS length, because it is a token.
+   *
+   * RECORD ONLY since 2026-09-14: the panel paints no surface of its own any
+   * more (the operator ruled the slab off), so `--gc-radius` is written and
+   * nothing reads it. Kept so a stored variant still parses; it moves nothing.
+   */
   radius: string;
   /** Whether a game's record shares its live value's card or gets its own. */
   statShape: "merged" | "split";

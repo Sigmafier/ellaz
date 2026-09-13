@@ -29,6 +29,7 @@ const HERE = fileURLToPath(new URL(".", import.meta.url));
 const LOGIC = readFileSync(HERE + "logic.ts", "utf8");
 const GAME = readFileSync(HERE + "SurvivorsGame.tsx", "utf8");
 const CSS = readFileSync(HERE + "../../ui/global.css", "utf8");
+const BOARD_SIZE = readFileSync(HERE + "../../ui/boardSize.ts", "utf8");
 
 /**
  * A run that cannot die, for the tests that are about WHERE THE FLOOR ENDS.
@@ -246,7 +247,12 @@ describe("the box that is drawn and the floor that is played agree", () => {
      * and the symptom is a squashed or letterboxed arena on exactly one range
      * of window widths - the hardest kind of bug to be shown.
      */
-    expect(GAME).toContain('window.matchMedia("(min-width: 900px)")');
+    // The read moved into `@ui/boardSize` (2026-09-14) so every wide arena
+    // shares one breakpoint. Assert the game uses it AND that it still names
+    // the stylesheet's number - either half alone passes on a split answer.
+    expect(GAME).toMatch(/useState<Arena>\(\(\) => \(isPcArena\(\) \? ARENA_WIDE : ARENA\)\)/);
+    expect(BOARD_SIZE).toContain("export const PC_MIN_WIDTH = 900;");
+    expect(BOARD_SIZE).toContain("window.matchMedia(`(min-width: ${PC_MIN_WIDTH}px)`)");
     expect(CSS).toContain("@media (min-width: 900px)");
   });
 });

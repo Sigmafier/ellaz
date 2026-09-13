@@ -9,6 +9,7 @@ import {
 import type { GameContext } from "@sdk/index";
 import { type DifficultyOption } from "@ui/index";
 import { GameChrome } from "@ui/GameChrome";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { burst, haptic, shake } from "@juice/index";
 import {
   PLAY_SURFACE_STYLE,
@@ -40,11 +41,23 @@ import {
 // did — structural, not occasional, and it reads as input lag.
 // See `.claude/rules/fixed-timestep-must-match-display.md`.
 
-const SURFACE_W = "min(94vw, 520px)";
-const SURFACE_H = "min(56vh, 440px)";
+/**
+ * The water, on both shapes (2026-09-14, operator: every game has a PC version).
+ *
+ * PHONE - byte-identical: `min(94vw, 520px)` wide by `min(56vh, 440px)` tall.
+ * PC - LANDSCAPE, 16:9, sized by `.ellaz-board` from the height the page really
+ * has. Nothing about the round changes with the shape: the lane count is
+ * `LANES` either way, lanes are placed by percentage, and a bubble's rise is a
+ * DURATION over whatever height the water has, so a wider arena is the same
+ * game drawn bigger rather than an easier one.
+ */
+const PC_RATIO = 16 / 9;
 /** The `max(64px, …)` floor holds every bubble above the age-5 target on a small
- *  phone; the `min()` lets it grow on a tablet without four lanes colliding. */
-const BUBBLE = "max(64px, min(19vw, 11vh, 96px))";
+ *  phone; the `min()` lets it grow on a tablet without four lanes colliding.
+ *  On a PC the bubble follows the WATER (`cqh`), holding the phone's share of
+ *  its height, so a big arena does not float four specks. */
+const BUBBLE_PHONE = "max(64px, min(19vw, 11vh, 96px))";
+const BUBBLE_PC = "max(64px, 17cqh)";
 
 const DIFF_OPTIONS: DifficultyOption<Difficulty>[] = [
   { id: "easy", label: { he: "קל", en: "Easy", es: "Fácil" } },
@@ -94,7 +107,7 @@ function BubbleDefs() {
 }
 
 /** Original art: a translucent sphere, a rim, a lit highlight, and the character. */
-function Bubble({ char }: { char: string }) {
+function Bubble({ char, size }: { char: string; size: string }) {
   return (
     <>
       <svg
@@ -131,7 +144,7 @@ function Bubble({ char }: { char: string }) {
           inset: 0,
           display: "grid",
           placeItems: "center",
-          fontSize: `calc(0.44 * ${BUBBLE})`,
+          fontSize: `calc(0.44 * ${size})`,
           fontWeight: 800,
           lineHeight: 1,
           color: "#0b2f4d",
@@ -178,6 +191,9 @@ export function BubblesGame({ ctx }: { ctx: GameContext }) {
   const surfaceRef = useRef<HTMLDivElement | null>(null);
   const skinsRef = useRef(new Map<number, HTMLElement>());
   const mounted = useRef(false);
+  // Read ONCE: the shape is a property of the run, never a live media query.
+  const [pc] = useState(isPcArena);
+  const BUBBLE = pc ? BUBBLE_PC : BUBBLE_PHONE;
 
   useEffect(() => {
     if (mounted.current) return;
@@ -392,10 +408,13 @@ export function BubblesGame({ ctx }: { ctx: GameContext }) {
         // when the bubble it was on is caught or floats away.
         tabIndex={-1}
         onPointerDown={onPointerDown}
+        className={BOARD_CLASS}
         style={{
           ...PLAY_SURFACE_STYLE,
-          width: SURFACE_W,
-          height: SURFACE_H,
+          ...boardVars({ vw: 94, cap: 520, h: { vh: 56, cap: 440 }, chrome: 260, ratio: PC_RATIO }),
+          // The bubbles size against the water on a PC, so the water is their
+          // container. Never on a phone, where nothing reads a container unit.
+          ...(pc ? { containerType: "size" as const } : {}),
           borderRadius: 24,
           background: "linear-gradient(180deg, #0a2a4d 0%, #0d4f7a 58%, #14709a 100%)",
           boxShadow: "var(--shadow-2)",
@@ -447,7 +466,7 @@ export function BubblesGame({ ctx }: { ctx: GameContext }) {
               }}
               style={{ position: "absolute", inset: 0 }}
             >
-              <Bubble char={p.kind} />
+              <Bubble char={p.kind} size={BUBBLE} />
             </div>
           </button>
         ))}

@@ -100,7 +100,6 @@ const TAP_CSS = `var(--gc-tap, ${TAP}px)`;
 const TAP_GLYPH = `calc(${TAP_CSS} * 0.52)`;
 /** Past this many levels the dots become a "3/12" counter. See the toggle. */
 const DOT_MAX = 5;
-const SURFACE_RADIUS = "var(--gc-radius, var(--radius-3))";
 
 /**
  * The panel row, as CSS the Design Bench can turn.
@@ -385,7 +384,11 @@ export function GameChrome<T extends string>({
         flexDirection: "column",
         height: "100%",
         minHeight: 0,
-        background: "var(--surface-2)",
+        // NO GROUND OF ITS OWN (operator, 2026-09-14: "the ellaz-game-panel
+        // background looks strange ... make the games part of the pages"). It
+        // painted `--surface-2` - #262b52 on a #0f1226 night page - so every
+        // game sat on a slab a shade off the page around it. The cards inside
+        // carry their own fill; the panel is layout only.
         // NO horizontal padding. Measured on the artifact at 390px: this 8 plus
         // the head's 12 spent 40px - 10.3% of a phone - before a card started,
         // and the panel is edge-to-edge on a phone anyway (`.box` drops its
@@ -410,8 +413,6 @@ export function GameChrome<T extends string>({
           flexDirection: "column",
           gap: "var(--gc-head-gap, 9px)",
           padding: "var(--gc-head-pad, 10px 10px 8px)",
-          background: "var(--bg)",
-          borderRadius: `${SURFACE_RADIUS} ${SURFACE_RADIUS} 0 0`,
         }}
       >
         {/* ONE row, and everything in it is a GAME control: pause, the
@@ -704,8 +705,6 @@ export function GameChrome<T extends string>({
           // than against this box - so a second 12px each side is 24px the
           // board never budgeted for, and it is the board that loses.
           padding: "9px 0 12px",
-          background: "var(--bg)",
-          borderRadius: footer ? undefined : `0 0 ${SURFACE_RADIUS} ${SURFACE_RADIUS}`,
         }}
       >
         {children}
@@ -780,8 +779,6 @@ export function GameChrome<T extends string>({
           style={{
             flex: "0 0 auto",
             padding: "0 12px 14px",
-            background: "var(--bg)",
-            borderRadius: `0 0 ${SURFACE_RADIUS} ${SURFACE_RADIUS}`,
           }}
         >
           {footer}

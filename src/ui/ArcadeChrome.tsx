@@ -229,12 +229,11 @@ export function ArcadeChrome<T extends string>({
 
   return (
     <div
-      /* `ellaz-panel-wide` is what lets a LANDSCAPE arena be landscape. The
-         shared panel caps at 700px, which is a reading width; a 16:9 board held
-         to that is smaller than the portrait board it replaced. It rides on THIS
-         component rather than on a game id, so it widens for exactly the band
-         that wears this HUD - see the rule in `global.css`. */
-      className="ellaz-game-panel ellaz-panel-wide"
+      /* One panel class for every game since 2026-09-14: the 700px reading
+         width moved onto GameChrome's row, so the panel itself is 1680px for
+         everyone and the showcase-only `ellaz-panel-wide` is gone. See the
+         rule in `global.css`. */
+      className="ellaz-game-panel"
       style={{
         display: "flex",
         flexDirection: "column",
@@ -243,7 +242,7 @@ export function ArcadeChrome<T extends string>({
         width: "100%",
         boxSizing: "border-box",
         padding: "8px 0",
-        background: "var(--surface-2)",
+        // No ground of its own - the same ruling as GameChrome's panel.
         alignItems: "center",
         justifyContent: "center",
         gap: 10,

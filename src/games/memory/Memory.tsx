@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { textFor } from "@i18n/index";
 import type { GameContext, SessionSpec } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { burst, haptic } from "@juice/index";
 import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
@@ -311,6 +312,9 @@ export function Memory({ ctx }: { ctx: GameContext }) {
   );
 
   const cols = LEVELS[levelIdx].cols;
+  const rows = Math.ceil((LEVELS[levelIdx].pairs * 2) / cols);
+  // Read once, for the card face only - the grid's size is the stylesheet's.
+  const [pc] = useState(isPcArena);
   // This game's own words. A locale RECORD, so promoting a language reds
   // this block by name instead of leaving the game speaking English
   // inside a page that is not.
@@ -410,12 +414,16 @@ export function Memory({ ctx }: { ctx: GameContext }) {
     >
       <div
         ref={gridRef}
+        className={BOARD_CLASS}
         style={{
           display: "grid",
           gridTemplateColumns: `repeat(${cols}, 1fr)`,
           gap: 12,
-          // cap by height too so the grid fits landscape without scrolling
-          width: "min(92vw, 56vh, 460px)",
+          // Phone: `min(92vw, 56vh, 460px)`, as it always was. PC: the height
+          // the page has, times the grid's own shape (cols over rows - the 12px
+          // gaps make it a hair off, which the 24px slack absorbs).
+          ...boardVars({ vw: 92, vh: 56, cap: 460, chrome: 257, ratio: cols / rows }),
+          ...(pc ? { containerType: "inline-size" as const } : {}),
         }}
       >
         {state.cards.map((card, i) => {
@@ -440,7 +448,9 @@ export function Memory({ ctx }: { ctx: GameContext }) {
                 minHeight: 64,
                 border: "none",
                 borderRadius: 16,
-                fontSize: "clamp(28px, 8vw, 52px)",
+                // On a PC the face follows the CARD (a share of the grid's
+                // width per column), or a big card holds a small emoji.
+                fontSize: pc ? `calc(${52 / cols}cqw)` : "clamp(28px, 8vw, 52px)",
                 display: "grid",
                 placeItems: "center",
                 background: faceUp

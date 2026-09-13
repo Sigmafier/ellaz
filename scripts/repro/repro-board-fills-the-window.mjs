@@ -45,6 +45,8 @@
  * first run after a fix cannot be told from a gate that never fires.
  */
 import { chromium } from "file:///mnt/c/Users/ytr_o/OneDrive/Desktop/ellaz/studio/node_modules/playwright-core/index.mjs";
+import { readdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 const BASE = argOf("--base") ?? "http://localhost:5180";
 const CONTROL = process.argv.includes("--control");
@@ -53,17 +55,43 @@ const CONTROL = process.argv.includes("--control");
  *  The expression is asserted, not just used to find the element: if a game's
  *  sizing changes, this gate must say so rather than quietly measure something
  *  else. One canvas game, two DOM boards, one fixed grid. */
-const GAMES = [
+const PROVEN = [
   // `chrome` here is DOCUMENTATION and nothing reads it - the live check uses
   // `--b-chrome` off the rendered element. It is corrected rather than deleted
   // because a stale number sitting beside a live one is read as the live one:
   // survivors went 292 -> 183 when the arcade HUD landed and 183 -> 16 when the
   // entrance screen took the last three rows off the panel.
   { id: "survivors", path: "/games/survivors/", expr: "min(92vw, 58vh, 420px)", phone: 359, chrome: 16 },
-  { id: "match3", path: "/games/match3/", expr: "min(92vw, 54vh, 480px)", phone: 359, chrome: 294 },
+  { id: "match3", path: "/games/match3/", expr: "min(92vw, 54vh, 480px)", phone: 359, chrome: 230 },
   { id: "sudoku", path: "/games/sudoku/", expr: "min(94vw, 44vh, 440px)", phone: 367, chrome: 259 },
   { id: "2048", path: "/games/2048/", expr: "min(88vw, 48vh, 420px)", phone: 343, chrome: 187 },
 ];
+
+/* EVERY GAME, read off the tree - never a hand list (2026-09-14).
+ *
+ * The four above were the proving population when the policy landed; the other
+ * 39 were outside it, so this gate said nothing about the games that were still
+ * a fixed box on a PC. The population is now every `src/games/<dir>/meta.ts`,
+ * so a game added tomorrow is measured without anyone remembering to list it.
+ *
+ * An unswept game has no `.ellaz-board` and no single width expression to find,
+ * so its phone arm is checked by the FRAME's layout size against a baseline
+ * recorded from the tree before the sweep (`--record`). That is a coarser
+ * equality than a board width, and it is the one that exists for all 43. */
+const GAMES_DIR = fileURLToPath(new URL("../../src/games/", import.meta.url));
+const BASELINE_FILE = fileURLToPath(new URL("./board-phone-baseline.json", import.meta.url));
+const RECORD = process.argv.includes("--record");
+const ONLY = argOf("--only")?.split(",");
+const baseline = existsSync(BASELINE_FILE) ? JSON.parse(readFileSync(BASELINE_FILE, "utf8")) : {};
+const ids = readdirSync(GAMES_DIR, { withFileTypes: true })
+  .filter((d) => d.isDirectory() && existsSync(`${GAMES_DIR}${d.name}/meta.ts`))
+  .map((d) => readFileSync(`${GAMES_DIR}${d.name}/meta.ts`, "utf8").match(/^\s*id:\s*"([^"]+)"/m)?.[1])
+  .filter(Boolean)
+  .sort();
+if (ids.length < 40) throw new Error(`read only ${ids.length} game ids from ${GAMES_DIR} - refusing to measure a partial population`);
+const GAMES = ids
+  .map((id) => PROVEN.find((g) => g.id === id) ?? { id, path: `/games/${id}/`, expr: null, phone: null })
+  .filter((g) => !ONLY || ONLY.includes(g.id));
 
 const VIEWPORTS = [
   { name: "phone 390x844", w: 390, h: 844, kind: "phone" },
@@ -96,6 +124,8 @@ function probe(expectedExpr) {
   let declaredChrome = null;
   if (board) {
     declaredChrome = Math.round(parseFloat(getComputedStyle(board).getPropertyValue("--b-chrome")));
+  } else if (!expectedExpr) {
+    return { unswept: true, frameLayoutW: frame.offsetWidth, frameLayoutH: frame.offsetHeight };
   } else {
     const candidates = [...frame.querySelectorAll("[style*='min(']")].map((el) => ({
       el,
@@ -122,7 +152,7 @@ function probe(expectedExpr) {
     p.style.width = v;
     return Math.round(parseFloat(getComputedStyle(p).width));
   };
-  const m = norm(expectedExpr).match(/min\(([\d.]+)vw,\s*([\d.]+)vh,\s*([\d.]+)px\)/);
+  const m = norm(expectedExpr ?? "").match(/min\(([\d.]+)vw,\s*([\d.]+)vh,\s*([\d.]+)px\)/);
   const terms = m
     ? { vw: term(`${m[1]}vw`), vh: term(`${m[2]}vh`), cap: Number(m[3]) }
     : { vw: NaN, vh: NaN, cap: NaN };
@@ -152,6 +182,7 @@ function probe(expectedExpr) {
   q.remove();
 
   return {
+    frameLayoutW: frame.offsetWidth,
     boardLayoutW: board.offsetWidth, // the LAYOUT box - immune to the transform
     boardLayoutH: board.offsetHeight,
     boardRectW: Math.round(board.getBoundingClientRect().width), // post-transform
@@ -178,6 +209,13 @@ async function arm(page, game, vp) {
 
   let r = await page.evaluate(probe, game.expr);
   if (r.error) return { ...r, game: game.id, vp: vp.name };
+  const sig = `${r.frameLayoutW}x${r.frameLayoutH}`;
+  if (r.unswept) {
+    const fails = [];
+    if (vp.kind === "desktop") fails.push("not on the PC sizing policy - no .ellaz-board, so a PC gets the phone's fixed box");
+    else if (!RECORD && baseline[game.id] && baseline[game.id] !== sig) fails.push(`phone frame moved: ${baseline[game.id]} -> ${sig}`);
+    return { ...r, game: game.id, vp: vp.name, kind: vp.kind, sig, fails };
+  }
 
   // Two reads 400ms apart must agree, or the page is still settling and every
   // number below belongs to a moment that no longer exists.
@@ -241,12 +279,14 @@ async function arm(page, game, vp) {
      * valve is touched a game hanging off the bottom of the screen reads green.
      * My own control passed at 150% before this line existed. */
     if (fill > 1) fails.push(`frame overflows its box by ${r.frameLayoutH - r.boxH}px (fills ${(fill * 100).toFixed(0)}%)`);
+  } else if (!RECORD && baseline[game.id] && baseline[game.id] !== sig) {
+    fails.push(`phone frame moved: ${baseline[game.id]} -> ${sig}`);
   } else if (game.phone === null) {
-    fails.push(`phone baseline unset - today's tree says ${r.boardLayoutW}`);
+    if (!baseline[game.id]) fails.push(`phone baseline unset - today's tree says frame ${sig}, board ${r.boardLayoutW}`);
   } else if (r.boardLayoutW !== game.phone) {
     fails.push(`phone board moved: ${game.phone} -> ${r.boardLayoutW}`);
   }
-  return { ...r, game: game.id, vp: vp.name, kind: vp.kind, fill, fails };
+  return { ...r, game: game.id, vp: vp.name, kind: vp.kind, sig, fill, fails };
 }
 
 const browser = await chromium.launch();
@@ -268,7 +308,7 @@ const control = [];
  * this cell disagreed about how to find a board. A broken control is a finding,
  * reported as a failed cell; it is not a reason to have measured nothing. */
 if (CONTROL) try {
-  const g = GAMES[0];
+  const g = PROVEN[0];
   await page.setViewportSize({ width: 1536, height: 639 });
   await page.goto(BASE + g.path, { waitUntil: "load" });
   await page.waitForTimeout(1800);
@@ -349,6 +389,10 @@ for (const r of rows) {
     console.log(`  ${r.game.padEnd(11)} ${r.vp.padEnd(16)} ERROR ${r.error}${r.saw ? " saw " + JSON.stringify(r.saw) : ""}`);
     continue;
   }
+  if (r.unswept) {
+    console.log(`  ${r.game.padEnd(11)} ${r.vp.padEnd(16)} UNSWEPT frame ${r.sig}`);
+    continue;
+  }
   console.log(
     `  ${r.game.padEnd(11)} ${r.vp.padEnd(16)} ${r.binds.padEnd(6)} ` +
       `${String(r.boardLayoutW).padStart(7)} ${String(r.boardRectW).padStart(6)} ` +
@@ -358,6 +402,14 @@ for (const r of rows) {
       (r.released ? "  RELEASED - page scrolls" : ""),
   );
 }
+
+if (RECORD) {
+  const phone = Object.fromEntries(rows.filter((r) => r.kind === "phone" && r.sig).map((r) => [r.game, r.sig]));
+  writeFileSync(BASELINE_FILE, JSON.stringify({ ...baseline, ...phone }, null, 2) + "\n");
+  console.log(`\nrecorded ${Object.keys(phone).length} phone frame baselines -> ${BASELINE_FILE}`);
+}
+const swept = new Set(rows.filter((r) => !r.unswept && !r.error).map((r) => r.game));
+console.log(`on the PC policy: ${swept.size} of ${GAMES.length} games`);
 
 const bad = rows.filter((r) => r.error || (r.fails && r.fails.length));
 console.log(`\nfailures: ${bad.length} of ${rows.length} arms`);

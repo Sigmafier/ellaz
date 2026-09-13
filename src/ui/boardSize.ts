@@ -45,8 +45,12 @@ export const BOARD_CLASS = "ellaz-board";
 export type BoardSize = {
   /** Share of the viewport WIDTH, on a phone. Unchanged from today. */
   vw: number;
-  /** Share of the viewport HEIGHT, on a phone. Unchanged from today. */
-  vh: number;
+  /**
+   * Share of the viewport HEIGHT, on a phone. Unchanged from today. Omitted by
+   * an arena whose phone width had no height term (bubbles: `min(94vw, 520px)`)
+   * - its height is `h` instead.
+   */
+  vh?: number;
   /** The phone ceiling, px. Unchanged from today. */
   cap: number;
   /**
@@ -65,33 +69,58 @@ export type BoardSize = {
    */
   ratio?: number;
   /**
-   * The desktop ceiling, px. Defaults to what the 700px game panel leaves after
-   * its own 8px padding either side - `game-panel-clears-widest-board.test.ts`
+   * The desktop ceiling, px. Defaults to what the 1680px game panel leaves
+   * after its own 8px padding either side - `game-panel-clears-widest-board.test.ts`
    * is the gate that holds those two numbers together.
    */
   capPc?: number;
+  /**
+   * A board whose phone HEIGHT is its own expression rather than its width
+   * times a ratio - an arena like bubbles, `min(94vw, 520px)` by
+   * `min(56vh, 440px)`. On a phone the height is exactly that expression, as
+   * before. On a PC it is `auto`, so the `aspect-ratio` the board carries
+   * (`ratio`) derives it from the width the policy chose.
+   *
+   * Omitted for every board whose height already follows its width.
+   */
+  h?: { vh: number; cap: number };
 };
 
-/** The panel is capped at 700 on a desktop and spends 8px each side. */
-export const PANEL_USABLE = 684;
+/**
+ * What the desktop game panel leaves a board: 1680 - 8px either side.
+ *
+ * ONE CEILING FOR EVERY GAME since 2026-09-14. It used to be 684 - the 700px
+ * panel, which was really a reading width for the controls row - with 1664 as
+ * a showcase-only exemption for survivors' landscape arena. The operator ruled
+ * that every game has a PC version, so the 700px cap moved onto the row
+ * (`global.css`) and every board gets the stage.
+ *
+ * A square board cannot use it and does not need to: the desktop arm sizes
+ * from the height the box really has, so at 1920x1080 a ratio-1 board is
+ * bounded near 650px by the window. Only a landscape arena reaches this
+ * number, and 1680 is the one measured for that case on 2026-09-13 - a ceiling
+ * under the 1638 the height term resolves to decided the size instead of the
+ * window. `game-panel-clears-widest-board.test.ts` pins it to the CSS.
+ */
+export const PANEL_USABLE = 1664;
+
+/** The `min-width` every desktop arm in this repo keys on. Quoted, not chosen. */
+export const PC_MIN_WIDTH = 900;
 
 /**
- * The same arithmetic for a SHOWCASE game's wider panel: 1680 - 8px either side.
+ * Is this run a PC run? Read ONCE, at mount, by a game whose arena SHAPE
+ * changes on a PC - never as a live media query.
  *
- * A second ceiling exists because 700px is a READING width. It is the right cap
- * for a document page with a board on it, and it is the wrong cap for a game
- * whose arena is landscape: measured 2026-09-13 at 1920x1080, a 16:9 board held
- * to 684px draws 684 x 384, while the portrait board it replaces drew 565 x 753
- * - so the landscape ruling inside a 700px panel would have been a 38% cut in
- * visible battlefield sold as an improvement.
- *
- * IT IS A BAND, NEVER A GAME. The wider panel is worn by whatever renders
- * `ArcadeChrome`, which is selected on `meta.tier === "showcase"` - so this is
- * the same population as the HUD and the entrance screen, not a survivors
- * exemption. `game-panel-clears-widest-board.test.ts` checks each game against
- * the ceiling its own band actually gets.
+ * Hoisted out of survivors (2026-09-13) when a second game needed it. The
+ * shape is a simulation rule - where things spawn, how far a lane runs - not a
+ * CSS box, so a window resized mid-run must not reshape a live run. The 900px
+ * is `.ellaz-board`'s own breakpoint, so CSS and simulation give one answer.
  */
-export const PANEL_USABLE_WIDE = 1664;
+export function isPcArena(): boolean {
+  return typeof window !== "undefined" && typeof window.matchMedia === "function"
+    ? window.matchMedia(`(min-width: ${PC_MIN_WIDTH}px)`).matches
+    : false;
+}
 
 /**
  * The custom properties a board declares. Spread into the element's `style`,
@@ -101,10 +130,13 @@ export const PANEL_USABLE_WIDE = 1664;
 export function boardVars(s: BoardSize): CSSProperties {
   return {
     "--b-vw": `${s.vw}vw`,
-    "--b-vh": `${s.vh}vh`,
+    // A term that can never bind, for a width that never had a height term -
+    // so the phone arm stays the two-term expression it always was.
+    "--b-vh": s.vh === undefined ? "100000px" : `${s.vh}vh`,
     "--b-cap": `${s.cap}px`,
     "--b-chrome": `${s.chrome}px`,
     "--b-ratio": String(s.ratio ?? 1),
     "--b-cap-pc": `${s.capPc ?? PANEL_USABLE}px`,
+    ...(s.h ? { "--b-h": `min(${s.h.vh}vh, ${s.h.cap}px)`, aspectRatio: String(s.ratio ?? 1) } : {}),
   } as CSSProperties;
 }

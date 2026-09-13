@@ -6,7 +6,7 @@ import type { GameContext } from "@sdk/index";
 // `GameChrome` is what the other 42 wear; `arcade-chrome-is-tier-not-id.test.ts`
 // pins that this correspondence is the BAND's and never this game's name.
 import { ArcadeChrome } from "@ui/ArcadeChrome";
-import { BOARD_CLASS, boardVars } from "@ui/boardSize";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { WEAPON_ORDER, weaponAt } from "./logic";
 // NO `DirectionPad` HERE, and that is the point of this game's control.
 // `CLAUDE.md` used to say every game ships the four-arrow pad and never the
@@ -129,11 +129,9 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
    * mount. Re-shaping on the fly would mean restarting the run, which is a worse
    * answer to a rarer problem.
    */
-  const [arena] = useState<Arena>(() =>
-    typeof window !== "undefined" && window.matchMedia("(min-width: 900px)").matches
-      ? ARENA_WIDE
-      : ARENA,
-  );
+  // The read itself lives in `@ui/boardSize` since 2026-09-14, when a second
+  // game needed the same answer - one breakpoint, one function.
+  const [arena] = useState<Arena>(() => (isPcArena() ? ARENA_WIDE : ARENA));
 
   useEffect(() => {
     let game: { destroy: (removeCanvas: boolean) => void } | null = null;

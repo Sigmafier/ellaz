@@ -146,6 +146,9 @@ const BENCH_TOKENS = new Set([
  */
 const BOARD_TOKENS = new Set([
   "--b-vw", "--b-vh", "--b-cap", "--b-chrome", "--b-ratio", "--b-cap-pc",
+  // An arena's own phone height (2026-09-14, bubbles). Unset on every other
+  // board, where `height: var(--b-h, auto)` reads its fallback.
+  "--b-h",
 ]);
 
 export const COLOUR_LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\([0-9 ,.%/]+\)|["'](white|black)["']/;

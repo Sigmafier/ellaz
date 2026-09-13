@@ -1054,10 +1054,13 @@ export function Match3Game({ ctx }: { ctx: GameContext }) {
           // 359px on a 390px phone, which leaves ~55px cells on the 6x6 board
           // and ~41px on the 8x8 one, and 54vh rather than 60 because this game
           // carries a goal bar under the board. On a desktop those terms lose to
-          // the room the stage box has minus this game's own 294px of chrome -
+          // the room the stage box has minus this game's own 230px of chrome -
           // measured 2026-09-13, when 54vh OVERFLOWED the box at 1536x639 and
           // fitStage was scaling the whole frame to 0.79. See boardSize.ts.
-          ...boardVars({ vw: 92, vh: 54, cap: 480, chrome: 294 }),
+          // 294 -> 230 on 2026-09-14: the stat row went to one line in 3212fc7
+          // (two lines, 120px -> one, 56px) and this number was not moved with
+          // it, so the board reserved 64px it never used - fill 83% at 1536x639.
+          ...boardVars({ vw: 92, vh: 54, cap: 480, chrome: 230 }),
           aspectRatio: "1",
           boxSizing: "border-box",
           display: "grid",

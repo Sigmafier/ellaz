@@ -324,7 +324,9 @@ body[data-page="game"] .stage .box,body[data-page="world"] .stage .box{
    reads as the page not having started yet. Flex-start moves that slack under
    the board, where the footer already lives. The ROOM keeps center: it is a
    composed scene rather than a control panel with a board under it. */
-body[data-page="game"] .stage .box{justify-content:flex-start}
+/* No stage ground under a GAME (operator, 2026-09-14): the game is part of
+   the page, not a panel on a darker band. The room keeps its scene. */
+body[data-page="game"] .stage .box{justify-content:flex-start;background:transparent}
 /* THE ROOM'S 0.28 LAYOUT SHIFT, and it is the price of the center above.
    Before React mounts, #game-frame is content-sized and EMPTY, so it is 0px
    tall and centring puts it in the middle of a 740px box - measured on the live

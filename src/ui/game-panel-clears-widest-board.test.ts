@@ -6,8 +6,11 @@ import { join } from "node:path";
 /**
  * The desktop panel cap must stay wider than the widest board any game asks for.
  *
- * `.ellaz-game-panel` caps the game panel at 700px above 900px of viewport,
- * which is what stopped the difficulty toggle rendering 1193px wide. A cap is a
+ * `.ellaz-game-panel` caps the game panel at 1680px above 900px of viewport,
+ * and its ROW (`.gc-head`, the footer) at 700px - the row cap is what stopped
+ * the difficulty toggle rendering 1193px wide. Until 2026-09-14 the 700px sat on
+ * the whole panel and capped every board with it; the operator ruled every game
+ * gets a PC version, so it moved to the only thing it was ever measured for. A cap is a
  * promise about OTHER people's code though: it is correct only for as long as
  * no game asks for more room than it leaves, and the game that breaks it will
  * be written months from now by someone who has never read that CSS.
@@ -80,11 +83,19 @@ export function pxCeilings(src: string): number[] {
    * `PANEL_USABLE` - which the test below pins to the panel's own arithmetic, so
    * the default can never be the thing that overflows.
    */
-  for (const m of src.matchAll(/\bboardVars\(\{([^}]*)\}\)/g)) {
-    for (const field of ["cap", "capPc"]) {
-      const hit = m[1].match(new RegExp(`\\b${field}\\s*:\\s*(\\d+(?:\\.\\d+)?)`));
-      if (hit) out.push(parseFloat(hit[1]));
+  // Balanced, not `[^}]*`: an arena passes a NESTED `h: { vh, cap }`, and a
+  // matcher stopping at the first `}` does not match the call at all - the
+  // board would leave this gate's population in silence (2026-09-14, bubbles).
+  // Every px-bearing field is read, the nested phone height's cap included.
+  for (const m of src.matchAll(/\bboardVars\(/g)) {
+    let depth = 1;
+    let i = m.index + m[0].length;
+    for (; i < src.length && depth > 0; i++) {
+      if (src[i] === "(") depth++;
+      else if (src[i] === ")") depth--;
     }
+    const call = src.slice(m.index, i);
+    for (const hit of call.matchAll(/\b(?:cap|capPc)\s*:\s*(\d+(?:\.\d+)?)/g)) out.push(parseFloat(hit[1]));
   }
   return out;
 }
@@ -135,44 +146,15 @@ export function panelCap(css: string): number | null {
 }
 
 /**
- * The `max-width` on a SHOWCASE game's panel.
+ * The `max-width` on the panel's ROW - the controls and numbers.
  *
- * There are two caps because 700px is a READING width - right for a document
- * page carrying a board, wrong for a game whose arena is LANDSCAPE. Measured
- * 2026-09-13 at 1920x1080: a 16:9 board held to the 684px the shared panel
- * leaves draws 684 x 384, against the 565 x 753 the portrait board drew. One
- * cap would have shipped 38% LESS battlefield under the name of a bigger game.
- *
- * The selector is deliberately the COMPOUND one, so `panelCap` above still
- * matches only the base rule and the two numbers cannot be read for each other.
+ * A separate number from the panel's, and read separately: the row is a reading
+ * width and the panel is a stage. The selector is the child combinator, so
+ * `panelCap` above (which wants `.ellaz-game-panel {`) can never read it.
  */
-export function panelCapWide(css: string): number | null {
-  const rule = css.match(/\.ellaz-game-panel\.ellaz-panel-wide\s*\{[^}]*?max-width:\s*(\d+)px/);
+export function rowCap(css: string): number | null {
+  const rule = css.match(/\.ellaz-game-panel\s*>\s*\.gc-head\s*,[^{]*\{[^}]*?max-width:\s*(\d+)px/);
   return rule ? parseInt(rule[1], 10) : null;
-}
-
-/**
- * The game directories whose `meta.ts` declares the showcase band.
- *
- * Read from the TREE rather than from a list here, for the reason the coverage
- * test gives: a hand-kept list of showcase games is a mirror of a field, and it
- * goes stale the first time a second game is promoted. The wider panel rides on
- * `ArcadeChrome`, which is selected on this same field - so this is the same
- * population by construction rather than by coincidence.
- */
-function showcaseDirs(): Set<string> {
-  const dir = join(ROOT, "games");
-  const out = new Set<string>();
-  for (const name of readdirSync(dir)) {
-    let meta: string;
-    try {
-      meta = readFileSync(join(dir, name, "meta.ts"), "utf8");
-    } catch {
-      continue; // not a game directory
-    }
-    if (/\btier:\s*"showcase"/.test(meta)) out.add(name);
-  }
-  return out;
 }
 
 describe("the desktop game panel clears the widest board", () => {
@@ -204,44 +186,26 @@ describe("the desktop game panel clears the widest board", () => {
     expect(panelCap(CSS)).toBeGreaterThan(0);
   });
 
-  it("leaves room for every board in the tree, at ITS OWN band's cap", () => {
+  it("leaves room for every board in the tree", () => {
     /*
-     * AMENDED 2026-09-13, not weakened. It used to compare every game against
-     * one number; there are two panels now, so it compares every game against
-     * the one it actually gets. The simple band's ceiling is UNCHANGED at 684,
-     * which is the half that matters - a showcase exemption must not become a
-     * way for any of the other 42 games to grow.
+     * AMENDED 2026-09-14. There were two bands - a 684px ceiling for 42 games
+     * and 1664px for the showcase one. The 700px was a READING width for the
+     * row, so it moved onto the row, and every game gets the stage. What this
+     * still refuses is a board asking for more than the stage leaves.
      */
     const usable = panelCap(CSS)! - PANEL_PADDING;
-    const usableWide = panelCapWide(CSS)! - PANEL_PADDING;
-    const showcase = showcaseDirs();
-
     const tooWide = sources
-      .map((s) => {
-        const band = showcase.has(s.file.split("/")[0]) ? "showcase" : "simple";
-        return {
-          file: s.file,
-          band,
-          room: band === "showcase" ? usableWide : usable,
-          widest: Math.max(0, ...pxCeilings(s.src)),
-        };
-      })
-      .filter((s) => s.widest > s.room);
-
-    expect(
-      tooWide.map((s) => `${s.file} (${s.band}) asks for ${s.widest}px, panel leaves ${s.room}px`),
-    ).toEqual([]);
+      .map((s) => ({ file: s.file, widest: Math.max(0, ...pxCeilings(s.src)) }))
+      .filter((s) => s.widest > usable);
+    expect(tooWide.map((s) => `${s.file} asks for ${s.widest}px, panel leaves ${usable}px`)).toEqual([]);
   });
 
-  it("the showcase band is real, and is not everybody", () => {
-    // Non-vacuity in BOTH directions. An empty showcase set would make the
-    // branch above dead code that passes by never matching; a showcase set
-    // containing every game would make the wider cap the effective cap for the
-    // whole roster, which is precisely what this gate exists to prevent.
-    const showcase = showcaseDirs();
-    expect(showcase.size).toBeGreaterThan(0);
-    expect(showcase.size).toBeLessThan(5);
-    expect([...showcase]).toContain("survivors");
+  it("the row keeps its reading width while the panel is a stage", () => {
+    // The whole reason the 700px existed: an uncapped row rendered a
+    // difficulty toggle 1193px wide. Moving the cap must not DROP it - and a
+    // row cap as wide as the panel would be the same drop wearing a number.
+    expect(rowCap(CSS)).toBe(700);
+    expect(rowCap(CSS)!).toBeLessThan(panelCap(CSS)!);
   });
 
   it("the desktop ceiling in boardSize.ts IS the panel's own arithmetic", () => {
@@ -252,15 +216,6 @@ describe("the desktop game panel clears the widest board", () => {
     const src = readFileSync(join(ROOT, "ui", "boardSize.ts"), "utf8");
     const declared = Number(src.match(/PANEL_USABLE\s*=\s*(\d+)/)?.[1]);
     expect(declared).toBe(panelCap(CSS)! - PANEL_PADDING);
-
-    // The same assertion for the showcase panel. Anchored on the FULL name, or
-    // `PANEL_USABLE` matches inside `PANEL_USABLE_WIDE` and the two arms both
-    // read whichever declaration came first - a check that cannot tell its two
-    // subjects apart is the family `a-diagnostic-that-truncates-what-it-compares`
-    // collects, and this file has one of those in its own history.
-    const declaredWide = Number(src.match(/PANEL_USABLE_WIDE\s*=\s*(\d+)/)?.[1]);
-    expect(declaredWide).toBe(panelCapWide(CSS)! - PANEL_PADDING);
-    expect(declaredWide).toBeGreaterThan(declared);
   });
 
   it("reads the ceilings of a board sized through boardVars", () => {
@@ -269,28 +224,18 @@ describe("the desktop game panel clears the widest board", () => {
     expect(sources.filter((s) => s.src.includes("boardVars(")).length).toBeGreaterThan(0);
     expect(pxCeilings(`...boardVars({ vw: 94, vh: 44, cap: 440, chrome: 259 })`)).toEqual([440]);
     expect(pxCeilings(`...boardVars({ vw: 92, vh: 58, cap: 420, chrome: 292, capPc: 900 })`)).toEqual([420, 900]);
+    // An arena's nested phone height: the call must still be SEEN, and both
+    // caps read. The old `[^}]*` matcher returned [] here.
+    expect(pxCeilings(`...boardVars({ vw: 94, cap: 520, h: { vh: 56, cap: 440 }, chrome: 260 })`)).toEqual([520, 440]);
   });
 
   it("knows what the widest board actually is", () => {
     // Pins the headroom, so shrinking the cap toward the widest board is a
-    // visible diff rather than a quiet erosion of the margin.
-    const showcase = showcaseDirs();
-    const widestOf = (want: boolean) =>
-      Math.max(
-        ...sources
-          .filter((s) => showcase.has(s.file.split("/")[0]) === want)
-          .flatMap((s) => pxCeilings(s.src)),
-      );
-
-    // The SIMPLE band's headroom is unchanged, and that is the number worth
-    // watching: the whole risk of a second cap is that it quietly becomes the
-    // first one.
-    expect(widestOf(false)).toBe(640); // bees and finddiff
-    expect(panelCap(CSS)! - PANEL_PADDING).toBeGreaterThanOrEqual(widestOf(false));
-
-    // And the showcase band's, which is the landscape arena's desktop ceiling.
-    expect(widestOf(true)).toBe(1664);
-    expect(panelCapWide(CSS)! - PANEL_PADDING).toBeGreaterThanOrEqual(widestOf(true));
+    // visible diff rather than a quiet erosion of the margin. 1664 is
+    // survivors' landscape arena, the one board that declares the stage.
+    const widest = Math.max(...sources.flatMap((s) => pxCeilings(s.src)));
+    expect(widest).toBe(1664);
+    expect(panelCap(CSS)! - PANEL_PADDING).toBeGreaterThanOrEqual(widest);
   });
 
   describe("the extractor fires on the shapes that exist", () => {
@@ -331,18 +276,15 @@ describe("the desktop game panel clears the widest board", () => {
       expect(panelCap(".something-else { max-width: 700px; }")).toBeNull();
     });
 
-    it("reads the two caps SEPARATELY, and neither matcher answers for the other", () => {
-      // The failure this exists for: `\.ellaz-game-panel\s*\{` must not match
-      // the compound selector, or the base cap silently reports 1440 and every
-      // one of the other 42 games is measured against a panel it never gets.
+    it("reads the panel cap and the row cap SEPARATELY", () => {
+      // `\.ellaz-game-panel\s*\{` must not match the row's child selector, or
+      // the panel reports 700 and every board is measured against the row.
       const both =
-        ".ellaz-game-panel { max-width: 700px; } .ellaz-game-panel.ellaz-panel-wide { max-width: 1440px; }";
-      expect(panelCap(both)).toBe(700);
-      expect(panelCapWide(both)).toBe(1440);
-      // And the wide matcher must not answer on a stylesheet that has no wide
-      // rule at all - `null`, so a missing rule reads as missing rather than as
-      // whatever the base rule happens to say.
-      expect(panelCapWide(".ellaz-game-panel { max-width: 700px; }")).toBeNull();
+        ".ellaz-game-panel { max-width: 1680px; } .ellaz-game-panel > .gc-head, .ellaz-game-panel > .ellaz-game-footer { max-width: 700px; }";
+      expect(panelCap(both)).toBe(1680);
+      expect(rowCap(both)).toBe(700);
+      // And no row rule reads as missing, not as the panel's number.
+      expect(rowCap(".ellaz-game-panel { max-width: 1680px; }")).toBeNull();
     });
   });
 
@@ -350,7 +292,7 @@ describe("the desktop game panel clears the widest board", () => {
     // The negative control. Without it the suite above passes because nothing
     // is oversized today, which proves the games are fine and says nothing at
     // all about whether this check can see one that is not.
-    const planted = `width: "min(94vw, 60vh, 900px)"`;
+    const planted = `width: "min(94vw, 60vh, 1700px)"`;
     const usable = panelCap(CSS)! - PANEL_PADDING;
     expect(Math.max(...pxCeilings(planted))).toBeGreaterThan(usable);
   });
