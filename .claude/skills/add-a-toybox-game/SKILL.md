@@ -72,8 +72,9 @@ no grep saw, and a single-file run missed them.
    `.campaign-panel[hidden] { display: none; }` (an author `display: flex` beats the
    hidden attribute). Prove it three ways: the kind's completes test clears every
    level (widen its population line), one boss tape RECORDED from that scripted
-   player with a control that moves its chain when the boss is drawn small, and a
-   headless drive of the BUILT page: title, a locked level wiggles, one level lost
+   player (`npx vite-node toybox/harness/record-tape.ts --game <g> --mode <boss> --ticks <n> --after <l1,l2,l3> --write`,
+   then `--check`) with a control that moves its chain when the boss is drawn small, and a
+   headless drive of the BUILT page (`node toybox/harness/drive-campaign.mjs --game <g> --campaign <id>`): title, a locked level wiggles, one level lost
    on purpose -> TRY AGAIN with the save unchanged, RETRY, four levels, VICTORY,
    reload. Then the operator plays it before the next game starts.
 
@@ -88,6 +89,7 @@ peer holds the working copy, and the memory.
 | Writing the tape, then running the whole suite before `write-golden` | `golden-tape.test.ts` asserts a golden EXISTS for every tape, so the suite read red and the C5 commit was refused twice | tape, `write-golden`, suite - in that order |
 | Trusting the population pins to be generic | "the games are the fight", "the tapes are the fight's two", the fighter-set list: four tests red the moment a second game existed | widen each line with the new name; never loosen it to `length > 0` |
 | Ending the wall band at the fight's 150 px with the floor at 157 | the built page showed a pale seam: the cell's clear colour between two bands | bands meet edge to edge; shoot the BUILT page headlessly (`shot-crypt.mjs` recipe: `routeDisk` + `cellUrl("page", ..., game)` from `run-tape.mjs`) |
+| A CLI guarded by `process.argv[1]` matching the script's name | vite-node REMOVES the script path from argv, so `--check` printed nothing and exited 0 on both the real tape and the control | gate `main()` on `!process.env.VITEST`, and watch the control exit non-zero before trusting a zero |
 | Building the King's hp to feel tough against the scripted hero | the frame-perfect policy swings on every recovery window and stunlocks any boss; it beat a 600 hp king without a scratch | measure a sloppy player too (swing every 20 ticks, never dodge), report both, and let the operator's play rule the number |
 | Hand-typing a boss tape long enough to reach the boss | the boss is the last wave, seconds of exact input away | record the tape from the completes policy (`vite-node` against the sim), carrying the purse the earlier levels really end with |
 | Waiting on `__fightStage` right after NEXT | the previous run's window fields persist until the new run publishes, so the wait passed on the OLD level's cleared state | wait on `screen === "stage" && wphase === 0 && __fightTicks < 200 && one canvas` |

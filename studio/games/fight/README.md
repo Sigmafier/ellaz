@@ -98,17 +98,20 @@ this game's is one file and its levels.
 - **How hard it is, measured, and not yet ruled.** The scripted hero, carrying the
   purse the first three levels earn (27 coins, level 9, 180 hp), beat it in about
   eleven seconds without taking a hit: it swings on the first frame of every
-  recovery window, which keeps the King in its hurt state. A hero who only walks
+  recovery window, which most likely keeps the King in its hurt state (inferred,
+  not measured frame by frame). The rule on reading this:
+  `.claude/rules/a-perfect-bot-proves-a-level-can-be-won-not-how-hard-it-is.md`. A hero who only walks
   to the boss screen and swings every third of a second fell from 180 to 92 hp in
   45 seconds while the King went from 600 to 340. A thumb sits between the two;
   the operator's play rules the numbers.
-- **The purse carries.** A headless drive of the BUILT page: title, a locked BOSS
+- **The purse carries.** `node toybox/harness/drive-campaign.mjs --game fight --campaign brawl`, a headless drive of the BUILT page: title, a locked BOSS
   wiggles, LEVEL 1 played idle until the robot fell (tick 2746) and TRY AGAIN
   showed with the save unchanged, RETRY, then four levels with the purse carried
   0 coins / level 1, 7 / 5, 14 / 7, 25 / 9, BOSS CLEAR, FINISH, VICTORY, and a
   reload reading "4 of 4 levels cleared". Zero page errors.
 - **The boss tape** (`tapes/toybox-boss-1400.json`) is recorded from the scripted
-  hero, never hand-typed, with that real purse as its carry. Its golden
+  hero by `toybox/harness/record-tape.ts`, never hand-typed (`--check` re-records it:
+  IDENTICAL; `record-tape.test.ts` holds it), with that real purse as its carry. Its golden
   `e8744cd4 / 5c19f7e5 / df26c38b` pins the King at 106 of 600 after 22 hits; the
   control in `golden-tape.test.ts` draws the King at 1 instead of 2 and the chain
   moves, while the seven older goldens stay their committed selves.

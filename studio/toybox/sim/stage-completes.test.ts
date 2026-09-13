@@ -11,16 +11,13 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { GAMES, gameDir, loadMode, readModeKind } from "../data/load";
-import { reachOf } from "./ai";
 import { compileFight } from "./compile";
-import { abs, sign } from "./fixed";
 import { createState } from "./match";
+import { policyFor } from "./scripted-hero";
 import { heroIndex } from "./stage";
 import { step } from "./step";
-import { FP, NO_INPUT } from "./types";
-import type { FightData, FighterState, FightState, InputFrame } from "./types";
+import { NO_INPUT } from "./types";
 
-const LANE = 3 * FP;
 const BUDGET = 9000;
 
 /** every (game, mode) whose mode names a stage file */
@@ -37,32 +34,6 @@ function stageModes(): { game: string; mode: string }[] {
     }
   }
   return out;
-}
-
-/** the policy for one game's data: line up the lane, close to reach, face it, swing when the cooldown allows; walk right when the way is open */
-function policyFor(data: FightData): (s: FightState) => InputFrame {
-  const HERO = heroIndex(data);
-  const reach = reachOf(data.fighters[data.cast[HERO].fighter]);
-  const nearestFoe = (s: FightState): FighterState | null => {
-    let best: FighterState | null = null, bestD = 0;
-    s.fighters.forEach((f, i) => {
-      if (i === HERO || f.active === 0 || f.hp <= 0 || data.cast[i].team === data.cast[HERO].team) return;
-      const d = abs(f.x - s.fighters[HERO].x) + abs(f.z - s.fighters[HERO].z);
-      if (!best || d < bestD) { best = f; bestD = d; }
-    });
-    return best;
-  };
-  return (s) => {
-    const hero = s.fighters[HERO];
-    const foe = nearestFoe(s);
-    if (!foe) return s.stage!.wphase === 1 ? { mx: 1, mz: 0, attack: false } : NO_INPUT;
-    const dx = foe.x - hero.x, dz = foe.z - hero.z;
-    const mz = abs(dz) > LANE ? sign(dz) : 0;
-    const far = abs(dx) > reach - 6 * FP;
-    const mx = far ? sign(dx) : sign(dx) !== hero.face ? sign(dx) : 0;
-    const attack = !far && abs(dz) <= data.match.hitZBand * FP && hero.cool === 0 && sign(dx) === hero.face;
-    return { mx, mz, attack };
-  };
 }
 
 const MODES = stageModes();
