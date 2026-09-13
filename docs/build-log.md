@@ -4863,3 +4863,47 @@ answer was **clears the bar**. So Survivors stands as the reference showcase gam
 screen, the landscape PC arena, the on-arena stick and the golem fight are what a later
 `tier: "showcase"` game is measured against. The headless check proves it mounted; the verdict
 on how it plays is the operator's alone.
+
+
+## Survivors goes live, and what shipping 30 commits from a shared tree caught (2026-09-13/14)
+
+**Match-3's chrome row.** Match-3 is the only game passing four cells (difficulty, score,
+round, moves); in three grid tracks the fourth took a line of its own. `colsFor()` in
+`GameChrome.tsx` gives each cell past the standard three a narrow track; a three-cell row
+still gets `COLS` byte for byte. Swept on the built site at 390px, all 43 games:
+
+| | lines | row height | games changed |
+|---|---|---|---|
+| before | 2 | 120px | - |
+| after | 1 | 56px | 1 of 43 (match3) |
+
+Nothing clipped at 360, 390 or 1536. The new test runs the real function and went red on a
+planted `return COLS`. **The first "after" sweep read 43 of 43 unchanged** - `localhost:5180`
+was `vite preview` of a `dist/` built before the edit. One `npm run build` later the same
+sweep showed exactly match3 moving. Operator approved the before/after.
+
+**Proving the commits, not the tree.** Before pushing, HEAD was extracted with
+`git archive` into a clean folder (node_modules symlinked) and gated there. The working
+tree's suite had 1 red - a peer's untracked `lettercross/lang.ts` - while the snapshot
+passed **4813 of 4813** and `build:check` (slope 31.6 B gz per game). The snapshot's
+**studio** `build:check` found a red the tree could not show: `75d4323` added
+`--stage-cover` to `src/ui/tokens.css` and left `studio/gallery/src/tokens.css`, its
+byte copy, behind. Fixed with the `cp` the gate prints, re-proved green on a second
+snapshot, then pushed: `8d7952d..72fae7e`, 30 commits, most of them other sessions' studio
+work.
+
+**The deploy.** GitHub Pages green first time. Hostinger's upload failed on the host alone -
+`cd: Fatal error: max-retries exceeded` three times, every earlier step green - and passed
+on the one re-run the runbook allows, with `assert-live` confirming the live HTML serves
+`index-CwZhVJH8.js`. Live Survivors in a fresh browser, service workers blocked:
+
+| 1536x639 | arena | state |
+|---|---|---|
+| before the deploy | 371x494 portrait, stats in a row above | old |
+| after | 853x479 landscape, HUD on the arena | Play pressed, run at 2:54, 0 page errors |
+
+Phone 390x844 stays 359px wide, as designed.
+
+**Parked, not ours:** studio CI went red on the same push - `assert-fight` runs a
+knight-facings `reproduce.sh` needing Pillow, which the runner's python lacks. Green on this
+machine because its venv has it. The operator parked it; the site deploys are unaffected.

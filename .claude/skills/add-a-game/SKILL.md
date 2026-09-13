@@ -55,6 +55,41 @@ Evidence, measurements and the full prose for every step:
   from `studio/dist-export` through an adapter, never by importing `studio/`. Run the
   `studio-workspace` skill before touching that side.
 
+## A showcase game (`tier: "showcase"`)
+
+Survivors is the reference, ruled to clear the bar by the operator on 2026-09-13.
+A game declaring `tier: "showcase"` in `meta.ts` takes on all of this:
+
+1. **The requirements, enforced.** `build:check` runs `TIER_REQUIREMENTS=1
+   node scripts/assert-tier.mjs`: real studio sprites, the five clips, hit effects,
+   2+ weapons that look different, under the showcase byte budget. A missing one reds
+   the build; it is not advice.
+2. **`ArcadeChrome` from `@ui`, never `GameChrome`.** Selected by tier, never by game
+   id (`arcade-chrome-is-tier-not-id.test.ts`). It carries `ellaz-panel-wide` (1680px),
+   because a 16:9 board inside the 700px reading panel is SMALLER than a portrait one.
+3. **Controls on an ENTRANCE screen over the arena** (`ArcadeEntrance`): title,
+   difficulty, Play, the game's own extra. HUD hidden while it is up; drawn after mount,
+   never as a loading poster (`arcade-entrance-covers-the-arena.test.ts`).
+4. **The arena shape is a property of the RUN.** Two shapes of the same AREA
+   (survivors: `ARENA` 420x560, `ARENA_WIDE` 648x364), picked once at mount off
+   `matchMedia("(min-width: 900px)")` - the query the board CSS uses - and passed INTO
+   the sim (`newRun(level, arena)`). A media query resizes a box; it cannot change how
+   much floor the game has.
+5. **Every tuned number is measured on BOTH arenas.** Shape moves difficulty even at
+   equal area: survivors' landscape measured 11-30% harder (a 240-unit gun reach no
+   longer spans a 324 half-width) and its golem fight 13% shorter. Pin both arms in a
+   test and write the table beside the constant.
+
+### Failed attempts (2026-09-13)
+
+| Tried | Why it failed | Do instead |
+|---|---|---|
+| Raise the px cap to grow the PC board | `58vh` bound first at 1536x639: 0px moved | move the vh term too, or reshape the arena |
+| One arena constant plus a CSS media query | the sim still had 420x560 of floor | pass the arena into `newRun` |
+| Control "moving beats standing still" | a prediction about the game, and false (80.9 vs 56.3 s) | controls are instrument properties: the level ladder, an immortal run reaching 3:00 |
+| Caption computed from the arena centre, ring drawn at the player | the picture refuted its own caption | draw what the sentence measures; clip to the floor |
+| Difficulty options described in prose | operator: "i dont see. eyeball me the options" | render each arm, one per card, on the Visual Hall |
+
 ## Before you call it done
 
 `npm test` · `npm run build:check` · then read the rule for whatever the game does:

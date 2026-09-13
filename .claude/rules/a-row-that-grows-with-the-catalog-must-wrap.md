@@ -36,6 +36,16 @@ narrow viewports, which is where most children actually play.
 | 2026-08-07 | The boards' game picker, one `DifficultySelector` per game | **1,410px on a 390px phone - 15 of 20 games unreachable** |
 | 2026-08-07 | The boards' difficulty row, `DifficultySelector` handed `game.boards` | six sudoku levels: **`Expert` rendered as `Exper`**, both `Animals N×N` cut - and the row reported no overflow at all |
 | 2026-08-30 | The game chrome row, snake standalone **while playing** | two navs leave the grid **227px of a 355px wrapper**; `Normal` rendered `N...` - identically at column ratios 1.8, 2.2 and 2.6 |
+| 2026-09-13 | The chrome row, match3 - the only game passing FOUR cells | a 4th cell in 3 grid tracks took **a second line: row 120px, board pushed down** |
+
+**The match3 row is the case where wrapping was the defect, not the cure.** The row's grid
+already wrapped a 4th cell onto a line of its own - nothing clipped, nothing overflowed,
+and a whole line of chrome sat between the numbers and the board. The fix was one track
+per cell past the standard three (`colsFor()` in `GameChrome.tsx`), measured on the built
+site: 43 games swept at 390px, only match3 changed, **2 lines / 120px -> 1 line / 56px**,
+nothing clipped at 360, 390 or 1536. A three-cell row still gets `COLS` byte for byte.
+Wrap when the set is open-ended; give each cell a track when the count is fixed per game
+and every cell fits.
 
 **The fourth is the one that says the count need not grow at all.** The chrome row has
 carried exactly three cells since it became a grid, and it still overflowed - because the

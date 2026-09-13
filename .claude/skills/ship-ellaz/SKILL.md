@@ -31,6 +31,40 @@ npm run build:check
 BASE_PATH=/ellaz/ npx vite build --outDir dist-ellaz && DIST_DIR=dist-ellaz npm run assert:pages
 ```
 
+## Prove the COMMITS, not the working tree, before a push
+
+This tree always holds other sessions' uncommitted files, so a green `build:check`
+here says nothing about what CI will build. Extract HEAD and gate that:
+
+```bash
+H=$(git rev-parse --short HEAD); SNAP=<scratchpad>/snap-$H     # fresh dir, never rm an old one
+mkdir "$SNAP" && git archive HEAD | tar -x -C "$SNAP"
+ln -s "$PWD/node_modules" "$SNAP/node_modules"
+ln -s "$PWD/studio/node_modules" "$SNAP/studio/node_modules"
+(cd "$SNAP" && npm run build:check && npx vitest run)           # ellaz
+(cd "$SNAP/studio" && npm run build:check)                      # studio - a push carries its commits too
+```
+
+Measured 2026-09-13: the tree's suite had 1 red (a peer's untracked file) and the
+snapshot was 4813/4813. The snapshot's studio check found a red the tree could not
+see: `src/ui/tokens.css` had grown `--stage-cover` and `studio/gallery/src/tokens.css`,
+its byte copy, had not. **A change to `src/ui/tokens.css` is two changes**, and root
+`build:check` never runs the parity gate.
+
+Also read what a push will publish - `git log --oneline origin/main..HEAD` - because a
+push from this tree ships every session's commits, not only yours.
+
+## Know what the local server is serving
+
+`localhost:5180` is sometimes `vite dev` and sometimes **`vite preview` of an old
+`dist/`**. A preview shows no source edit until `npm run build`, so a before/after
+taken against it reads "nothing changed" (2026-09-13: 43 of 43 games unchanged, the
+fix untouched). Check before measuring:
+
+```bash
+tr '\0' ' ' < /proc/$(ss -ltnp | grep -oP ':5180\b.*pid=\K\d+' | head -1)/cmdline
+```
+
 ## A green checkmark is not proof it deployed
 
 Both deploy jobs SKIP with a warning when their secrets are absent. Check the upload
@@ -42,7 +76,11 @@ curl -s https://ellaz.fun/ | grep -oE 'assets/index-[A-Za-z0-9_-]+\.js'
 ```
 
 A red deploy here is often just the host: **one re-run, and a SECOND failure is what
-changes the diagnosis.** Runs QUEUED with zero jobs means Actions is disabled on the
+changes the diagnosis.** The host's signature is the upload step alone failing with
+`cd: Fatal error: max-retries exceeded` three times, every step before it green
+(2026-09-13) - re-run with `gh run rerun <id> --failed`. Before the push, screenshot the
+live page in a fresh browser context (`serviceWorkers: "block"`) so the operator gets
+a real before/after once it lands. Runs QUEUED with zero jobs means Actions is disabled on the
 repository — a different fault from a blocked action.
 
 Runbook: [`docs/deploy.md`](../../../docs/deploy.md). The outage that taught each of these:
