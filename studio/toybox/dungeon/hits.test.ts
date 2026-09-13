@@ -123,6 +123,22 @@ describe("a hit", () => {
   });
 });
 
+describe("edge: a swing on the tick a foe dies", () => {
+  it("a foe felled mid-bite never lands the bite, and a strike on a body that just fell hits nothing", () => {
+    const s = foeAt(200, 0);
+    const slime = s.actors[SLIME3];
+    slime.state = 2; slime.stateT = 14; slime.struck = 0; slime.hp = 1; // the bite lands next tick
+    // the knight's strike this tick fells it first
+    strike(s, data, HERO);
+    expect(slime.hp).toBe(0);
+    expect(slime.state).toBe(ST_KO);
+    const n = s.events.length;
+    strike(s, data, HERO);
+    expect(s.events.length).toBe(n);
+    expect(s.actors[HERO].hp).toBe(100);
+  });
+});
+
 describe("TILE", () => {
   it("is the fight's FP, 256, so one tile is one fight px times 256", () => {
     expect(TILE).toBe(256);

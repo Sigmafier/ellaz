@@ -10,6 +10,7 @@ import { hurt } from "./hits";
 import { facingOf } from "./knight";
 import { createState } from "./room";
 import { stepDungeon } from "./step";
+import { inputsAtDungeon } from "./tape";
 import { ACT_INPUT_CLICK, ACT_INPUT_SWING, FACE_DOWN, FACE_LEFT, FACE_RIGHT, FACE_UP, NO_DUNGEON_INPUT, ST_ATTACK, ST_GONE, ST_IDLE, ST_WALK, TILE } from "./types";
 import type { DungeonData, DungeonInput, DungeonState } from "./types";
 
@@ -164,6 +165,19 @@ describe("Space", () => {
     expect(s.actors[SLIME3].hp).toBe(data.actors[1].hp);
     s = run(s, 1);
     expect(s.actors[SLIME3].hp).toBeLessThan(data.actors[1].hp);
+  });
+});
+
+describe("a tape", () => {
+  it("holds a row's direction until the next row and fires its act on the row's own tick only", () => {
+    const tape = { mode: "crypt", seed: 1, ticks: 20, frames: [[3, [{ dx: 1, dy: 0, act: ACT_INPUT_CLICK, x: 500, y: 600 }]], [8, [{ dx: 0, dy: -1, act: ACT_INPUT_SWING, x: 0, y: 0 }]]] as [number, DungeonInput[]][] };
+    expect(inputsAtDungeon(tape, 2, 1)).toEqual([NO_DUNGEON_INPUT]);
+    expect(inputsAtDungeon(tape, 3, 1)).toEqual([{ dx: 1, dy: 0, act: ACT_INPUT_CLICK, x: 500, y: 600 }]);
+    expect(inputsAtDungeon(tape, 4, 1)).toEqual([{ dx: 1, dy: 0, act: 0, x: 0, y: 0 }]);
+    expect(inputsAtDungeon(tape, 7, 1)).toEqual([{ dx: 1, dy: 0, act: 0, x: 0, y: 0 }]);
+    expect(inputsAtDungeon(tape, 8, 1)).toEqual([{ dx: 0, dy: -1, act: ACT_INPUT_SWING, x: 0, y: 0 }]);
+    expect(inputsAtDungeon(tape, 9, 1)).toEqual([{ dx: 0, dy: -1, act: 0, x: 0, y: 0 }]);
+    expect(inputsAtDungeon(tape, 9, 2)).toEqual([{ dx: 0, dy: -1, act: 0, x: 0, y: 0 }, NO_DUNGEON_INPUT]);
   });
 });
 

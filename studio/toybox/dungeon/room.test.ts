@@ -13,7 +13,7 @@ import { ACT_INPUT_RESTART, BANNER_DEFEAT, BANNER_DOOR, BANNER_VICTORY, NO_DUNGE
 import type { DungeonState } from "./types";
 
 const data = compileDungeon(loadDungeonMode("crypt", gameDir("hollow")));
-const HERO = 0, SLIME3 = 3;
+const HERO = 0, SLIME1 = 1, SLIME3 = 3;
 const koTotal = data.actors[1].clips[4].frames.length * data.actors[1].clips[4].ticksPerFrame;
 
 function run(s: DungeonState, ticks: number): DungeonState {
@@ -123,6 +123,60 @@ describe("the phases", () => {
     expect(s.actors[HERO].x).toBe(s0.actors[HERO].x);
     expect(s.actors[HERO].stateT).toBe(30);
     expect(s.events).toEqual([]);
+  });
+
+  // the five edges the plan named for /deep-test (2026-09-13), each with what could go wrong beside what did
+  it("edge: a click on a threshold tile while the fight is on walks there and wins nothing", () => {
+    const s0 = only(SLIME3);
+    let s = stepDungeon(s0, [{ ...NO_DUNGEON_INPUT, act: 1, x: centre(6), y: centre(0) }], data);
+    expect(s.actors[HERO].path.length).toBeGreaterThan(0);
+    s = run(s, 400);
+    expect([tileOf(s.actors[HERO].x), tileOf(s.actors[HERO].y)]).toEqual([6, 0]);
+    expect(s.phase).toBe(PHASE_FIGHT);
+    expect(anyFoeAlive(s)).toBe(true);
+  });
+
+  it("edge: the knight killed on the tick a foe falls loses the room - LOST, and no door event is fired", () => {
+    // the bat's swoop lands on the knight the same tick the knight's strike fells the slime. The plan's edge was
+    // "the knight dying on the tick the door opens"; /deep-test 2026-09-13 found it UNREACHABLE by construction:
+    // the knight acts first in a tick and a felled foe never bites, so the LAST foe's fall and the knight's death
+    // cannot share a tick (a second foe alive keeps the door shut). tickPhase still reads the fallen knight before
+    // the empty room, as defence in depth; mutant M11 (the two reads swapped) survives this cell for that reason
+    const s0 = only(SLIME3, 6);
+    const k = s0.actors[HERO], slime = s0.actors[SLIME3], bat = s0.actors[6];
+    k.hp = 1; k.state = 2; k.stateT = 14; k.struck = 0; k.face = 0; // mid-swing, the strike frame next tick
+    slime.hp = 1; slime.x = k.x + 100; slime.y = k.y + 100;
+    // the bat BEHIND the knight, past point-blank and outside his cone, inside its own hit radius - staged in front
+    // it took the knight's strike first and never landed its swoop (the first version of this cell, 2026-09-13)
+    bat.state = 6; bat.aimX = k.x; bat.aimY = k.y; bat.x = k.x - 150; bat.y = k.y - 60; bat.cd = 0; bat.alt = 0;
+    const s = run(s0, 1);
+    expect(s.actors[SLIME3].hp).toBe(0);
+    expect(s.actors[HERO].hp).toBe(0);
+    expect(s.phase).toBe(PHASE_LOST);
+    expect(s.events.filter((e) => e.kind === "phase").map((e) => (e as { phase: number }).phase)).toEqual([PHASE_LOST]);
+  });
+
+  it("edge: a foe felled against the wall drops its coins inside the room, on the floor", () => {
+    const s0 = only(SLIME3);
+    // the slime hard against the x = 0 wall, the knight inward: away from him is into the wall
+    s0.actors[SLIME3].x = data.actors[1].radius + 1; s0.actors[SLIME3].y = centre(5);
+    s0.actors[HERO].x = centre(2); s0.actors[HERO].y = centre(5);
+    hurt(s0, data, HERO, SLIME3, 30, s0.actors[HERO].x, s0.actors[HERO].y);
+    const s = run(s0, koTotal + 1);
+    expect(s.drops.length).toBe(1);
+    expect(s.drops[0].x).toBeGreaterThanOrEqual(0);
+    expect(isBlocked(data.room, tileOf(s.drops[0].x), tileOf(s.drops[0].y))).toBe(false);
+  });
+
+  it("edge: two slimes on one point are pushed apart, stay integers, and both keep walking at the knight", () => {
+    const s0 = only(SLIME1, SLIME3);
+    s0.actors[SLIME1].x = s0.actors[SLIME3].x; s0.actors[SLIME1].y = s0.actors[SLIME3].y;
+    s0.tick = data.rules.aggroStartTicks;
+    const s = run(s0, 120);
+    const a = s.actors[SLIME1], b = s.actors[SLIME3];
+    expect(a.x === b.x && a.y === b.y).toBe(false);
+    expect([a.x, a.y, b.x, b.y].every(Number.isInteger)).toBe(true);
+    expect(dist(a.x - s.actors[HERO].x, a.y - s.actors[HERO].y)).toBeLessThan(dist(s0.actors[SLIME3].x - s0.actors[HERO].x, s0.actors[SLIME3].y - s0.actors[HERO].y));
   });
 
   it("a restart from any phase is the room again, with the tick kept", () => {
