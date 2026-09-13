@@ -22,6 +22,7 @@ import { fileURLToPath } from "node:url";
 import type { AiFile, ArenaFile, FighterFile, Manifest, MatchFile, ModeFile, MovesFile, StageFile } from "../sim/types";
 import type { BattleFile, LoadedTurn, RulesFile, TurnModeFile, UnitFile } from "../turn/types";
 import type { ActorFile, DungeonModeFile, DungeonRulesFile, LoadedDungeon, RoomFile } from "../dungeon/types";
+import type { CampaignFile } from "../campaign/flow";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -113,6 +114,26 @@ export function loadMode(modeId: string, gameRoot: string): LoadedFight {
     : readJson<StageFile>(join(root, "stage", `${mode.stage}.json`), `stage "${mode.stage}" (named by mode "${modeId}")`);
 
   return { mode, arena, match, fighters, ais, sets: loadSets(fighters, join(gameRoot, "assets")), ...(stage ? { stage } : {}) };
+}
+
+/**
+ * Read a CAMPAIGN file (`<gameRoot>/data/campaign/<id>.json`) and prove every
+ * stage it names is a fight mode naming a stage file: a world naming a Versus
+ * mode, a turn mode or a mode that does not exist throws naming the world and
+ * the stage - a campaign that reaches the page with a stage the sim cannot
+ * clear would show a card that never comes.
+ */
+export function loadCampaign(campaignId: string, gameRoot: string): CampaignFile {
+  const c = readJson<CampaignFile>(join(gameRoot, "data", "campaign", `${campaignId}.json`), `campaign "${campaignId}"`);
+  for (const w of c.worlds) {
+    for (const stage of w.stages) {
+      let kind: ModeKind;
+      try { kind = readModeKind(stage, gameRoot); } catch (err) { throw new Error(`campaign "${campaignId}" world "${w.id}" names stage "${stage}": ${(err as Error).message}`); }
+      if (kind !== "fight") throw new Error(`campaign "${campaignId}" world "${w.id}" names stage "${stage}", a ${kind} mode - a campaign's stages are fight modes with a stage file`);
+      if (!loadMode(stage, gameRoot).stage) throw new Error(`campaign "${campaignId}" world "${w.id}" names stage "${stage}", which names no stage file - a Versus match has no waves to clear`);
+    }
+  }
+  return c;
 }
 
 /** the three kinds of simulation a mode file can name: `kind` absent is the fight's (its files predate the second kind) */

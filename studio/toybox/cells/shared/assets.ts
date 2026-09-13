@@ -3,6 +3,7 @@
 // `<root>/data` and find its sheets under `<root>/assets`. Throws naming the
 // URL that failed; a 404 here must never turn into an empty fight.
 
+import type { CampaignFile } from "../../campaign/flow";
 import type { AiFile, ArenaFile, FighterFile, Manifest, MatchFile, ModeFile, MovesFile, StageFile } from "../../sim/types";
 import type { SpriteSetRef } from "../contract";
 
@@ -30,6 +31,13 @@ export function spriteRefs(root: string, sets: string[]): SpriteSetRef[] {
     atlas: `${root}/assets/${name}/${name}.atlas.json`,
     manifest: `${root}/assets/${name}/${name}.manifest.json`,
   }));
+}
+
+/** the browser twin of data/load.ts loadCampaign: the file as fetched; each stage's mode is loaded when it is played, and the disk gate has already proven every one resolves */
+export async function loadCampaignHttp(root: string, campaignId: string): Promise<CampaignFile> {
+  const c = await json<CampaignFile>(`${root}/data/campaign/${campaignId}.json`);
+  if (!Array.isArray(c.worlds) || c.worlds.length === 0) throw new Error(`campaign "${campaignId}" names no worlds`);
+  return c;
 }
 
 export async function loadFightHttp(root: string, modeId: string): Promise<LoadedFightHttp> {

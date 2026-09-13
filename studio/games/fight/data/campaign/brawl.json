@@ -1,0 +1,7 @@
+{
+  "id": "brawl",
+  "worlds": [
+    { "id": "toybox", "name": "The Toybox", "stages": ["stage", "toybox-2", "toybox-3"] },
+    { "id": "shelf", "name": "The Shelf", "stages": ["shelf-1", "shelf-2", "shelf-boss"] }
+  ]
+}

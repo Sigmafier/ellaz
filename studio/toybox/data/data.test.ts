@@ -30,11 +30,11 @@
 // against the moves files, tickRate 60) are the ENGINE's; the values they are
 // measured on are the fight's, the one game today.
 
-import { existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { GAMES, gameDir, loadDungeonMode, loadMode, loadTurnMode, readModeKind } from "./load";
+import { GAMES, gameDir, loadCampaign, loadDungeonMode, loadMode, loadTurnMode, readModeKind } from "./load";
 import { compileFight } from "../sim/compile";
 import type { AiFile, CastEntry, FighterFile, MatchFile, ModeFile } from "../sim/types";
 import type { BattleFile, UnitFile } from "../turn/types";
@@ -105,7 +105,7 @@ describe("the games on disk", () => {
     const kinds = new Set<string>();
     for (const g of games) for (const d of readdirSync(join(gameDir(g), "data"), { withFileTypes: true })) if (d.isDirectory()) kinds.add(d.name);
     expect(schemas).toEqual([...kinds].sort());
-    expect(schemas).toEqual(["actors", "ai", "arena", "battles", "dungeon", "fighters", "match", "modes", "rooms", "rules", "stage", "units"]);
+    expect(schemas).toEqual(["actors", "ai", "arena", "battles", "campaign", "dungeon", "fighters", "match", "modes", "rooms", "rules", "stage", "units"]);
   });
 
   it("refuses a game with no modes/ - the control for the walk", () => {
@@ -134,6 +134,7 @@ describe("every data file validates against the engine schema for its kind", () 
       "arena/playroom.json",
       "arena/shelf.json",
       "arena/toybox.json",
+      "campaign/brawl.json",
       "fighters/bat.json",
       "fighters/ninja.json",
       "fighters/robot.json",
@@ -328,6 +329,61 @@ describe("the stage conditionals the validator subset cannot write", () => {
       expect({ at, ok: loaded.arena.world!.w >= loaded.arena.view.w * loaded.mode.waves!.length }).toEqual({ at, ok: true });
       if (st.door) expect({ at, door: st.door.x, reach: loaded.arena.view.w - st.screen.heroPad, ok: st.door.x <= loaded.arena.view.w - st.screen.heroPad }).toMatchObject({ at, ok: true });
     }
+  });
+
+  describe("the campaign kind (2026-09-13): a campaign's stages are fight modes naming a stage file", () => {
+    const CAMPAIGN_SCHEMA = readJson(join(SCHEMAS, "campaign.schema.json"));
+    const brawl = readJson(join(FIGHT_DATA, "campaign", "brawl.json"));
+
+    /** a scratch copy of the fight's data/ with the campaign file rewritten by `fn`; loadCampaign reads it as a game root */
+    function scratchCampaign(fn: (c: { id: string; worlds: { id: string; name: string; stages: string[] }[] }) => void): string {
+      const root = mkdtempSync(join(tmpdir(), "toybox-campaign-"));
+      cpSync(FIGHT_DATA, join(root, "data"), { recursive: true });
+      cpSync(ASSETS, join(root, "assets"), { recursive: true });
+      const c = JSON.parse(JSON.stringify(brawl)) as { id: string; worlds: { id: string; name: string; stages: string[] }[] };
+      fn(c);
+      writeFileSync(join(root, "data", "campaign", "brawl.json"), JSON.stringify(c));
+      return root;
+    }
+
+    it("brawl is two worlds of three stages, and every stage resolves to a stage mode", () => {
+      const c = loadCampaign("brawl", FIGHT);
+      expect(c.worlds.map((w) => [w.id, w.stages])).toEqual([["toybox", ["stage", "toybox-2", "toybox-3"]], ["shelf", ["shelf-1", "shelf-2", "shelf-boss"]]]);
+      for (const w of c.worlds) for (const s of w.stages) expect({ stage: s, hasStage: loadMode(s, FIGHT).stage !== undefined }).toEqual({ stage: s, hasStage: true });
+    });
+
+    it("every campaign of every game loads", () => {
+      for (const g of games) {
+        const dir = join(gameDir(g), "data", "campaign");
+        if (!existsSync(dir)) continue;
+        for (const f of readdirSync(dir)) expect(() => loadCampaign(f.replace(/\.json$/, ""), gameDir(g))).not.toThrow();
+      }
+    });
+
+    it("control: a world naming Versus is refused naming the world and the stage - a match has no waves to clear", () => {
+      const root = scratchCampaign((c) => { c.worlds[1].stages[1] = "versus"; });
+      expect(() => loadCampaign("brawl", root)).toThrow(/world "shelf" names stage "versus", which names no stage file/);
+    });
+
+    it("control: a world naming a mode that does not exist is refused naming it", () => {
+      const root = scratchCampaign((c) => { c.worlds[0].stages.push("attic"); });
+      expect(() => loadCampaign("brawl", root)).toThrow(/world "toybox" names stage "attic": fight: no mode "attic"/);
+    });
+
+    it("control: a world naming a turn mode is refused as the wrong kind", () => {
+      const root = scratchCampaign((c) => { c.worlds[0].stages[0] = "meadow"; });
+      cpSync(join(EMBER, "data", "modes", "meadow.json"), join(root, "data", "modes", "meadow.json"));
+      expect(() => loadCampaign("brawl", root)).toThrow(/names stage "meadow", a turn mode/);
+    });
+
+    it("control: the schema refuses a world with no stages, a stray key, and a campaign with no worlds", () => {
+      const noStages = JSON.parse(JSON.stringify(brawl)); noStages.worlds[0].stages = [];
+      expect(check(CAMPAIGN_SCHEMA, noStages)).not.toEqual([]);
+      const stray = JSON.parse(JSON.stringify(brawl)); stray.worlds[0].boss = "teddy";
+      expect(check(CAMPAIGN_SCHEMA, stray)).not.toEqual([]);
+      expect(check(CAMPAIGN_SCHEMA, { id: "brawl", worlds: [] })).not.toEqual([]);
+      expect(check(CAMPAIGN_SCHEMA, brawl)).toEqual([]);
+    });
   });
 
   it("the crypt's rooms are locked by a door and its left spawns walk in: the arena floor is below the spawn line", () => {

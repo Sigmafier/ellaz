@@ -121,6 +121,23 @@ function checkRefs(root, assets) {
   return out;
 }
 
+/** a CAMPAIGN (data/campaign/*.json, 2026-09-13) names worlds of stages; every stage is a FIGHT mode that names a stage file - a Versus match, a turn or dungeon mode, or a mode that does not exist is a stage no run could clear */
+function checkCampaignRefs(root) {
+  const out = [];
+  const modes = idsOf(root, "modes");
+  for (const c of idsOf(root, "campaign")) {
+    for (const w of c.worlds ?? []) {
+      for (const s of w.stages ?? []) {
+        const m = modes.find((x) => x.id === s);
+        if (!m) { out.push(`campaign "${c.id}" world "${w.id}" names stage "${s}", which does not exist`); continue; }
+        if (m.kind !== undefined) { out.push(`campaign "${c.id}" world "${w.id}" names stage "${s}", a ${JSON.stringify(m.kind)} mode, not a fight`); continue; }
+        if (m.stage === undefined) out.push(`campaign "${c.id}" world "${w.id}" names stage "${s}", which names no stage file - a match has no waves to clear`);
+      }
+    }
+  }
+  return out;
+}
+
 /** the golden pins the tape it names, tick for tick, with whole hashes - both live in the game's tapes/ */
 function checkGolden(root) {
   const out = [];
@@ -180,7 +197,7 @@ function checkHandMade(assets) {
 
 /** one game's tree against itself; `game` names it for copy-sprites, `root` may be a scratch copy */
 export function scanFight(root = FIGHT, assets = join(root, "assets"), game = "fight") {
-  return [...checkSchemas(root), ...checkRefs(root, assets), ...checkGolden(root), ...checkAssets(assets, game), ...checkHandMade(assets)];
+  return [...checkSchemas(root), ...checkRefs(root, assets), ...checkCampaignRefs(root), ...checkGolden(root), ...checkAssets(assets, game), ...checkHandMade(assets)];
 }
 
 /**
@@ -263,6 +280,8 @@ function controls() {
     { name: "a golden hash one digit short", expect: "FIRE", run: () => scratch((d) => edit(d, "tapes/versus-600.golden.json", (g) => { g.chain = g.chain.slice(1); })) },
     { name: "a wave spawn naming a fighter that does not exist", expect: "FIRE", run: () => scratch((d) => edit(d, "data/modes/stage.json", (m) => { m.waves[1].spawns[2].fighter = "ghost"; })) },
     { name: "one byte flipped in a committed sheet", expect: "FIRE", run: () => scratch((d) => { const a = copyAssets(d); const p = join(a, "robot--snes16", "robot--snes16.png"); const b = readFileSync(p); b[Math.floor(b.length / 2)] ^= 0xff; writeFileSync(p, b); return a; }) },
+    { name: "a campaign world naming a mode that does not exist", expect: "FIRE", run: () => scratch((d) => edit(d, "data/campaign/brawl.json", (c) => { c.worlds[1].stages.push("attic"); })) },
+    { name: "a campaign world naming Versus, which names no stage file", expect: "FIRE", run: () => scratch((d) => edit(d, "data/campaign/brawl.json", (c) => { c.worlds[0].stages[1] = "versus"; })) },
     { name: "the turn game's refs as committed (checkRefs alone)", expect: "PASS", run: () => emberRefs(() => {}) },
     { name: "a turn battle placement naming a unit that does not exist", expect: "FIRE", run: () => emberRefs((d) => edit(d, "data/battles/meadow.json", (b) => { b.placements[2].unit = "ghost"; })) },
     { name: "a turn mode naming rules that do not exist", expect: "FIRE", run: () => emberRefs((d) => edit(d, "data/modes/meadow.json", (m) => { m.rules = "moon"; })) },

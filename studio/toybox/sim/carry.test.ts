@@ -14,7 +14,9 @@ import { compileFight } from "./compile";
 import { createState, spawnAll } from "./match";
 import { seedRng } from "./rng";
 import { heroIndex, heroMaxHp } from "./stage";
+import { step } from "./step";
 import { readTape } from "./tape";
+import { NO_INPUT } from "./types";
 import type { Carry, FightData, FightState } from "./types";
 
 /**
@@ -99,6 +101,31 @@ describe("createState with a carry", () => {
     expect(restCarried).toEqual(restFresh);
     const blankHero = (fs: typeof fresh.fighters) => fs.map((f, i) => (i === HERO ? { ...f, hp: 0 } : f));
     expect(blankHero(carried.fighters)).toEqual(blankHero(fresh.fighters));
+  });
+
+  it("edge: a level no xp could have reached still seeds - the hero at that level's hp, the machine stepping 600 ticks without a level lost or thrown", () => {
+    let s = createState(data, { coins: 0, xp: 0, level: 9 });
+    expect(s.fighters[HERO].hp).toBe(heroMaxHp(data, 9));
+    for (let t = 0; t < 600; t++) s = step(s, data.fighters.map(() => NO_INPUT), data);
+    expect(s.stage!.level).toBeGreaterThanOrEqual(9);
+    expect(s.tick).toBe(600);
+  });
+
+  it("edge: the last foe and the hero down on one tick is a FADE, never a clear - the campaign's `until` (wphase 2) cannot fire on the tick the hero dies (stage.ts advancePhase reads the hero's hp before the wave's foes)", () => {
+    const base = createState(data, carry);
+    const lastWave = data.stage!.waves - 1;
+    // every foe row awake and fallen, the queue spent; the hero down on the same tick
+    const foes = base.fighters.map((f, i) => (i === HERO ? f : { ...f, active: 1 as const, hp: 0 }));
+    const down = { ...base, stage: { ...base.stage!, wave: lastWave }, fighters: foes.map((f, i) => (i === HERO ? { ...f, hp: 0 } : f)) };
+    const afterDown = step(down, data.fighters.map(() => NO_INPUT), data);
+    expect(afterDown.stage!.wphase).toBe(3);
+    // control: the hero standing, the same tick is the CLEAR
+    const standing = { ...base, stage: { ...base.stage!, wave: lastWave }, fighters: foes };
+    const afterStanding = step(standing, data.fighters.map(() => NO_INPUT), data);
+    expect(afterStanding.stage!.wphase).toBe(2);
+    // and the fade keeps the purse: the wave restarts with the carry's coins, xp and level
+    expect(afterDown.stage!.coins).toBe(carry.coins);
+    expect(afterDown.stage!.level).toBe(carry.level);
   });
 
   it("refuses a carry on a mode with no stage block, naming the hero it would have levelled", () => {

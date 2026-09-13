@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ellaz.fun/studio/toybox/campaign.schema.json",
+  "title": "Ellaz campaign file",
+  "description": "A campaign is worlds of stages (2026-09-13): each world is a list of mode ids, in play order, every one a FIGHT mode naming a stage file - the engine already plays, tapes, hashes and gates each stage on its own, so a campaign is one more data file and no new rule. A world opens when the one before it is cleared; the purse (coins, xp, level) a stage ends with is what the next stage is created with. The schema holds the shape; that every stage resolves to a stage mode is data/load.ts loadCampaign's job (a schema validates a string, only the filesystem knows what it names).",
+  "type": "object",
+  "required": ["id", "worlds"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "must equal the file's basename; the save is keyed on it" },
+    "worlds": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "stages"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "recorded in the save's `cleared` list; never rename one" },
+          "name": { "type": "string", "pattern": "\\S", "description": "the title the pick shows" },
+          "stages": { "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^[a-z0-9-]+$" }, "description": "basenames under ../modes/, in play order; the last is the world's boss" }
+        }
+      }
+    }
+  }
+}
