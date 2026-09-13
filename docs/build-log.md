@@ -4815,3 +4815,33 @@ harness is not a person, and the numbers bound the difficulty rather than settle
 ruling is still the operator's, and the constants are all named in `logic.ts` (`RULES`
 spawn interval, floor, tighten, speed; `KINDS` speed, and now the arena's own width against
 `TARGET_RANGE`). **Nothing was retuned to make these numbers nicer.**
+
+### The ruling: leave it as it ships (2026-09-13)
+
+Settled the same day, and the way it was put matters as much as the answer. The first ask
+was three options in prose; the operator's reply was *"i dont see. eyeball me the options so
+i can choose"*. So each option was drawn from real simulation state at 60 seconds and
+published one card at a time, with the question and a recommendation attached.
+
+The only alternative worth drawing was a principled one, not "make it easier": on the phone
+arena the gun's 240-unit reach covers the half-width (210), and on the landscape arena it
+does not (324). Widening the reach to 324 restores exactly that property. Measured, it
+**overshoots rather than restoring parity**:
+
+```
+                        normal    wild    shapes on screen at 60 s
+  the phone arena        81.0s    39.1s        6
+  A  as it ships         71.9s    27.3s        6
+  B  reach 240 -> 324    95.7s    29.7s        3
+```
+
+B makes normal easier than the phone ever was, still leaves wild harder, and empties the
+screen - a real cost for a game held to the showcase bar. **A, no code changed.** The
+operator replied "ack" to the reply recommending A and no click reached the page, so this is
+recorded as the recommendation accepted in chat rather than as a click.
+
+**One defect of my own in the pictures, caught before publishing.** The first render drew
+the gun's ring on the player's position at 60 seconds while its caption was computed from
+`range >= w/2`, which is a fact about a ship in the MIDDLE - so on B the caption claimed full
+coverage while the drawn ring visibly stopped short of the right wall. The ring is drawn from
+the arena's centre now and labelled as such, and everything is clipped to the floor.
