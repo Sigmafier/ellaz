@@ -4980,7 +4980,7 @@ background, this change the phone arm and the controls; it committed `8f1ce61` f
 
 The operator asked for *"more super powers, map to go to the sides ... i want also to be able to pick weapons"*, ruled seven questions through the terminal, looked at nine mocks drawn over the live game, and said build it, with the minimap.
 
-**What shipped (local commit, not pushed):**
+**What shipped** (eec71fe, pushed 2026-09-14 on the operator's "a"; Hostinger run 34829356083 upload and assert-live green; the browser check against the live site read **10 of 10** at 390x844 and 1536x639)**:**
 
 - **Big map.** `run.arena` is now the VIEW; `run.world` is three views wide and tall (`survivors/world.ts`). The camera is derived, never stored (`cameraOf`), and stops at striped walls 10 units thick. Shapes enter just outside the view, never on screen and never past a wall; a shape a whole view behind is walked back in, or the enemy cap fills with shapes that never arrive and the game gets easier the more you walk. The golem enters over the top of the view.
 - **Weapons.** Pick one of three on the entrance (remembered under the forever key `startWeapon`, validated by `asStarter`). Five weapons, four slots, each slot on its own clock (`fireEvery * WEAPONS[id].every`); the old rotation was removed because a second weapon would have halved the first. Blades turn around the robot and cut each shape at most once per 420 ms; the drone circles at the shoulder and shoots from where it is. A level-up offers one new weapon card while a slot is free (`survivors/cards.ts`).

@@ -79,6 +79,13 @@ A game declaring `tier: "showcase"` in `meta.ts` takes on all of this:
    equal area: survivors' landscape measured 11-30% harder (a 240-unit gun reach no
    longer spans a 324 half-width) and its golem fight 13% shorter. Pin both arms in a
    test and write the table beside the constant.
+6. **A big map: the arena is the VIEW, the world is derived from it.** Survivors
+   (2026-09-14): `run.world = worldFor(arena)`, three views each way; the camera is a
+   function of the player (`cameraOf`), never stored, clamped to the world. Shapes spawn
+   just outside the VIEW, not the world, and a shape a whole view behind is walked back
+   in - or the enemy cap fills with shapes that never arrive. Rules live in pure modules
+   (`world.ts`, `arsenal.ts`, `powers.ts`, `cards.ts`) that import only TYPES from
+   `logic.ts`, so there is no cycle; `repro-survivors-expansion.mjs` checks it in a browser.
 
 ### Failed attempts (2026-09-13)
 
@@ -89,6 +96,10 @@ A game declaring `tier: "showcase"` in `meta.ts` takes on all of this:
 | Control "moving beats standing still" | a prediction about the game, and false (80.9 vs 56.3 s) | controls are instrument properties: the level ladder, an immortal run reaching 3:00 |
 | Caption computed from the arena centre, ring drawn at the player | the picture refuted its own caption | draw what the sentence measures; clip to the floor |
 | Difficulty options described in prose | operator: "i dont see. eyeball me the options" | render each arm, one per card, on the Visual Hall |
+| Stick on the HUD layer read `pointer.worldX` (2026-09-14) | once the camera scrolls, world coords are off by the camera | a `setScrollFactor(0)` layer reads `pointer.x/y` |
+| Minimap drawn every frame | the canvas showed through the DOM entrance cover | draw it only while playing |
+| Spawn on the WORLD edge | a shape a screen and a half away never arrives; walking made it easier | spawn off the VIEW, recycle a view behind |
+| A walk test that never clears `choosing` | the first level-up froze the run and the wall was never reached | the test clears `choosing` each frame |
 
 ## Before you call it done
 
