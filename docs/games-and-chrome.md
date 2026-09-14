@@ -768,7 +768,7 @@ one line.
   Three pieces. A PICKER goes in `GameChrome`'s `side` prop and takes the empty left
   column on a PC (on a phone it sits under the board, exactly where it was). A
   sideways `.ellaz-strip` wraps on a PC. And a column whose content is taller than the
-  board is SCALED to fit by `fitColumns` (`src/ui/fitColumn.ts`), never scrolled -
+  board is SCALED to fit by `fitColumns` (in `src/ui/GameChrome.tsx`), never scrolled -
   a transform, so the layout box it measures cannot chase its own answer.
   `npm run assert:on-screen` (`scripts/repro/repro-controls-stay-on-screen.mjs`) is
   the check: every button, input and footer child of every game, at 1024x768,
