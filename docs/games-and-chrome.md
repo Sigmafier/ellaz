@@ -730,6 +730,27 @@ one line.
 - **Responsive:** size boards with `min(<vw>, <vh>, <cap>px)` so they fit portrait,
   landscape, and tablet. `GameHost`'s mount is a scroll container with `minHeight:0`
   (flexbox scroll trap) — tall games scroll, never clip.
+- **A PC version for every game, centred** (2026-09-14). The phone arm is untouched
+  and gated equal per game (`scripts/repro/board-phone-baseline.json`). On a PC, above
+  900px:
+
+  ```
+                          phone (<900)          PC (>=900)
+  board width             min(vw, vh, cap)      min(room, window height x ratio, capPc)
+  panel width cap         -                     none; the row keeps 700px
+  game's own footer       under the board       a column beside it, mirrored by an
+                                                empty column so the board is centred
+  arena (bubbles, frog)   its phone box         pcFillArena(): the width it is given
+  ```
+
+  Measured at the operator's 1536x639: sudoku 236 -> 384px tall, coloring's picture
+  120 -> 440px. The first footer-beside layout was two columns and left every such
+  game 184px left of centre; the third, empty column fixed it at the cost of arena
+  width (bubbles 1135 -> 767px there). `chrome` is the height of the game's rows
+  ABOVE the board and is measured, never estimated: the gate reds on more than 8px
+  of drift. `isPcArena()` reads the shape once at mount, because a simulation's
+  floor is a property of the run, not of a resize. Lettercross is the one game not
+  yet converted.
 - **Kids games** (`ageBand: "kids"`): **tap-completable; drag optional.** Drag is
   never REQUIRED. Four of the games coming next (jigsaw, shape-fit, build-a-house,
   build-a-word) do use drag, and every one of them must also be finishable by

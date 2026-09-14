@@ -103,6 +103,26 @@ rows, and a PC keeps both rows. The controls are MOVED into the bar by
 `src/portal/phoneBar.ts` - the same nodes, never copies - so nothing is wired
 twice. Pinned by `phone-bar.test.ts` and `scripts/repro/repro-phone-fills-the-screen.mjs`.
 
+**NARROWED A THIRD TIME 2026-09-14, on a PC, by operator ruling.** A game's own
+footer - the palette, the tray, the keypad, the Controls picker - moves from under
+the board to a column BESIDE it above 900px, because under the board it costs the
+height a PC window is short of (coloring's picture was 120px tall at 1536x639). Still
+the game's own surface, still in one place on every game, so the law holds. The one
+thing it must never do is move the game: the operator's words were *"we must keep
+the game in the middle no matter what"*, so the footer's column is mirrored by an
+empty one of the same width and the board sits on the screen's centre line.
+
+```
+                     two columns (shipped for an hour)   three columns
+  board centre @1536    184px left of centre              0px
+  sudoku board          384px                             384px
+  bubbles arena         1135px wide                       767px wide
+```
+
+`repro-board-fills-the-window.mjs` asserts the centre on every PC arm, and
+`game-panel-clears-widest-board.test.ts` pins the symmetric grid - both watched
+failing on the two-column version.
+
 **The test, and it is one question:** *would this control still make sense on
 the World screen or the Boards?* Yes → platform. No → game. Then, for a game
 control: *is it a button or a number?* Button → the utility row. Number, or the
