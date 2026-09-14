@@ -369,6 +369,8 @@ export function WordGuess({ ctx }: { ctx: GameContext }) {
             cap: length * 72,
             chrome: 111,
             ratio: length / MAX_GUESSES,
+            // The 6px gaps both ways, so 4, 5 and 6 letters are one height.
+            space: { x: (length - 1) * 6, y: (MAX_GUESSES - 1) * 6 },
           }),
           ...(pc ? { containerType: "inline-size" as const } : {}),
         }}

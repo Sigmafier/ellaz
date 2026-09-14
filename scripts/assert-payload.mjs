@@ -366,7 +366,16 @@ function ciNodeMajor() {
 // 20 B of room measures the Node version, not the payload. 820 B is ~25 games
 // at the 32.5 B slope - thinner than the ~3 KB the note below argues for, and
 // deliberately so: the next raise should have to be argued too.
-const CEILING = 56_800;
+//
+// 56,800 -> 56,820 on 2026-09-14, operator ruling, to stop a difficulty change
+// resizing the game. `.ellaz-board` gained one term, `- var(--b-gap)`, so a grid
+// board's gaps are not counted as cells (echo was 495px on one level and 490px on
+// the next; `repro-difficulty-keeps-the-game-size.mjs` went 8 games -> 0).
+// Measured on one tree, Node 24: 56,794 before, 56,808 after - 6 B of that is the
+// term in the inlined stylesheet, the rest is content-hash names in the shell's
+// chunk map. Two terms with fallbacks measured 56,810, so this is already the
+// cheap spelling.
+const CEILING = 56_820;
 
 function gzBytes(path) {
   return gzipSync(readFileSync(path)).length;

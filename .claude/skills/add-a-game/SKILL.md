@@ -114,6 +114,10 @@ rewards, scores, sessions, restart, RTL grids, difficulty — all in `.claude/ru
   page nor resize the game, on a PC and a phone. Do not add scroll-blocking of your own: the
   page holds those keys for every game (`src/portal/keyGuard.ts`). Do give any strip that
   swaps text between phases one fixed height.
+- `npm run assert:difficulty -- --only <id>` - every difficulty keeps one game height, on a PC
+  and a phone. A grid board declares its gaps (`boardVars({ ..., space: { x, y } })`), a list
+  that grows with the level goes in `GameChrome`'s `side` on a PC, and a phone cell cap is a
+  cap on the whole board divided by the grid size.
 - `npm run assert:on-screen -- --only <id>` - every control is on the window and not
   behind a scrollbar, at five PC sizes from 1024x768 up. The board gate is green over a
   cut-off palette; this is the one that sees it (coloring, jigsaw, finddiff, maze and

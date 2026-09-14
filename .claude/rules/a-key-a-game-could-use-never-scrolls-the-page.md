@@ -63,6 +63,29 @@ different-sized piece. Proven instead by dropping 30 pieces and counting distinc
 and a 48px box held one height at the shrunk 507px while the board gate went red. A size
 that depends on game STATE needs a probe that walks the states, not one that presses keys.
 
+## A difficulty change is the same defect through a different input
+
+The key gate found it by accident: Space on a focused difficulty toggle pressed it, and 8
+games changed height. A player taps that toggle between rounds, so the whole game jumping
+under their finger is this rule's defect. `npm run assert:difficulty`
+(`scripts/repro/repro-difficulty-keeps-the-game-size.mjs`) taps every level on every game.
+
+```
+2026-09-14, before -> after       cause                                    fix
+wordsearch @PC  495 -> 536px      word list wrapped to a 2nd line          list in `side` on a PC
+maze @phone     871 -> 894px      a 64px CELL cap bound only the 5x5 grid  640px BOARD cap / size
+echo, vanish,   2-8px             ratio counted gaps as cells              `boardVars({ space })`
+letters, memory,
+wordguess
+shadows         2px               ratio over 99.5 units, board is 100      `ratio: 100 / plate`
+all 43 games    8 games move      -                                        0 of 82 arms
+```
+
+Three shapes, and each has one answer: a board whose ratio ignores its gaps declares them
+(`space: { x, y }`, the non-cell px across and down); a list whose length is the level goes
+beside the board on a PC; a phone cap on a CELL becomes a cap on the BOARD divided by the
+grid size.
+
 ## It cost bytes, so it lives where bytes are cheap
 
 As its own module under `src/portal/`, the guard was swept into the first-visit SHELL by

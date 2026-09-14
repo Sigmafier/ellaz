@@ -319,7 +319,11 @@ export function Shadows({ ctx }: { ctx: GameContext }) {
               vh: 60,
               cap: 560,
               chrome: 169,
-              ratio: (L.plate + L.gap + L.cols * L.tile + (L.cols - 1) * L.tileGap) / L.plate,
+              // 100 over the plate, not the row's own width over the plate: every
+              // length is a share of the board's 100cqw, and the three-choice row
+              // is 99.5 of it, which left that level 2px shorter than the
+              // four-choice one - a jump on every difficulty change (2026-09-14).
+              ratio: 100 / L.plate,
             }),
             containerType: "inline-size",
             display: "flex",

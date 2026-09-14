@@ -693,7 +693,7 @@ body.app-shell h3,
     width: min(
       var(--b-room, var(--b-vw)),
       calc(
-        (100dvh - var(--hh, 0px) - var(--uh, 0px) - var(--oh, 0px) - var(--b-chrome) - 24px) *
+        (100dvh - var(--hh, 0px) - var(--uh, 0px) - var(--oh, 0px) - var(--b-chrome) - 24px - var(--b-gap)) *
           var(--b-ratio)
       ),
       var(--b-cap-pc)

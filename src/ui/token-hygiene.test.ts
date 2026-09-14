@@ -149,6 +149,9 @@ const BOARD_TOKENS = new Set([
   // An arena's own phone height (2026-09-14, bubbles). Unset on every other
   // board, where `height: var(--b-h, auto)` reads its fallback.
   "--b-h", "--b-room", "--gc-side",
+  // The non-cell px of a grid board, across and down (2026-09-14): gaps are not
+  // cells, so a difficulty that adds a column must not change the height.
+  "--b-gap",
 ]);
 
 export const COLOUR_LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\([0-9 ,.%/]+\)|["'](white|black)["']/;

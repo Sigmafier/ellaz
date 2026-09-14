@@ -799,6 +799,14 @@ one line.
   (`scripts/repro/repro-keys-do-not-move-the-game.mjs`) presses seven keys from the
   page and from a game button on every game at 1536x639 and 390x844; its controls
   prove PageUp still scrolls the article and a space still types.
+
+  **Nor does a difficulty change.** `npm run assert:difficulty`
+  (`scripts/repro/repro-difficulty-keeps-the-game-size.mjs`) taps every level of every
+  game at 1536x639 and 390x844. Measured 2026-09-14: 8 games moved (wordsearch 495 ->
+  536px and a PC rescale; maze 871 -> 894px and a phone rescale; six more 2-8px); after,
+  0 of 82 arms. A grid board declares its gaps through `boardVars({ ..., space: { x, y } })`,
+  so `width = (height - y) x ratio + x` and every grid size is one height; wordsearch's word
+  list sits in the side column on a PC; maze caps its phone BOARD at 640px, divided per cell.
 - **Kids games** (`ageBand: "kids"`): **tap-completable; drag optional.** Drag is
   never REQUIRED. Four of the games coming next (jigsaw, shape-fit, build-a-house,
   build-a-word) do use drag, and every one of them must also be finishable by

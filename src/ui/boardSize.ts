@@ -69,6 +69,21 @@ export type BoardSize = {
    */
   ratio?: number;
   /**
+   * The px of the board that is NOT cells, across and down: the gaps between
+   * cells, plus any padding. With it, `ratio` is cols / rows and the desktop
+   * height is exact for every grid size:
+   *
+   *     width = (height - space.y) x ratio + space.x
+   *
+   * Without it a 3-column level and a 2-column level of the same grid ended up
+   * different heights, because the gaps were counted as if they were cells:
+   * echo measured 495 -> 490px when a difficulty added a column (2026-09-14,
+   * `repro-difficulty-keeps-the-game-size.mjs`). Omitted, both are 0px, which is
+   * exactly the old formula. `boardVars` always sets the one token this becomes
+   * (`--b-gap`), so a board that never goes through it has no desktop width.
+   */
+  space?: { x: number; y: number };
+  /**
    * The desktop ceiling, px. Defaults to `PANEL_USABLE`, which never binds on
    * a real screen - see its doc.
    */
@@ -165,6 +180,12 @@ export function boardVars(s: BoardSize): CSSProperties {
     "--b-chrome": `${s.chrome}px`,
     "--b-ratio": String(s.ratio ?? 1),
     "--b-cap-pc": `${s.capPc ?? PANEL_USABLE}px`,
+    // `space` folded into ONE length, `y - x / ratio`, because
+    // (h - y) x ratio + x == (h - (y - x / ratio)) x ratio. One term in the
+    // stylesheet, which every document inlines: two terms with fallbacks were
+    // 16 B gz and pushed the first visit over its ceiling (measured 2026-09-14).
+    // Always set - the stylesheet reads it with no fallback.
+    "--b-gap": `${s.space ? s.space.y - s.space.x / (s.ratio ?? 1) : 0}px`,
     ...(s.h ? { "--b-h": `min(${s.h.vh}vh, ${s.h.cap}px)`, aspectRatio: String(s.ratio ?? 1) } : {}),
   } as CSSProperties;
 }

@@ -24,6 +24,9 @@ import {
   type MazeState,
 } from "./logic";
 
+/** The phone board's px ceiling, shared by every grid size. See `cell` below. */
+const BOARD_CAP = 640;
+
 // The renderer. Every rule about what a tap DOES lives in logic.ts; this file
 // decides what a tap LOOKS and SOUNDS like, and what the outcomes it reports
 // are worth to the economy.
@@ -384,7 +387,14 @@ export function MazeGame({ ctx }: { ctx: GameContext }) {
   // finddiff). `board-fits-the-panel.test.ts` asserts that arithmetic against
   // both sources - the generic gate reads this number as one CELL and cannot
   // see the board at all.
-  const cell = `min(${(88 / size).toFixed(2)}vw, ${(52 / size).toFixed(2)}vh, 64px)`;
+  //
+  // The cap is on the whole BOARD, 640px, divided per cell - not a flat 64px a
+  // cell. A flat cell cap bound only on the small grids: on a 390px phone the
+  // easy 5x5 board stopped at 5 x 64 while every bigger grid filled 88vw, so
+  // changing difficulty grew the game 23px and fitStage rescaled it (2026-09-14,
+  // repro-difficulty-keeps-the-game-size.mjs). 640 is what the expert board
+  // already allowed (10 x 64), so no board gets a bigger ceiling than before.
+  const cell = `min(${(88 / size).toFixed(2)}vw, ${(52 / size).toFixed(2)}vh, ${(BOARD_CAP / size).toFixed(2)}px)`;
   // PC: one track of the board's content box, in `cqw` against the board. The
   // frame's 4px top/left hedge is border, outside the content box `cqw` reads,
   // so `size` tracks land exactly on it. Only the glyph reads it - the tracks

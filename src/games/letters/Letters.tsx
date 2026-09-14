@@ -320,7 +320,8 @@ export function Letters({ ctx }: { ctx: GameContext }): ReactElement {
           // tall (aspectRatio 1 below), so its shape is `options.length`
           // columns over 1 row. chrome 345: the head row, the Prompt chip and the
           // picture-and-speaker card above this row. measured 2026-09-14 by repro-board-fills-the-window.mjs at every PC arm.
-          ...boardVars({ vw: 90, cap: 400, chrome: 345, ratio: challenge.options.length }),
+          // `space`: the 12px gaps, so a level with more letters is not shorter.
+          ...boardVars({ vw: 90, cap: 400, chrome: 345, ratio: challenge.options.length, space: { x: (challenge.options.length - 1) * 12, y: 0 } }),
           ...(pc ? { containerType: "inline-size" as const } : {}),
           touchAction: "none",
         }}

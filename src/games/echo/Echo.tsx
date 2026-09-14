@@ -341,6 +341,8 @@ export function Echo({ ctx }: { ctx: GameContext }) {
             cap: 420,
             chrome: 169,
             ratio: level.cols / Math.ceil(level.pads / level.cols),
+            // The 14px gaps, so a level with a third column is not 5px shorter.
+            space: { x: (level.cols - 1) * 14, y: (Math.ceil(level.pads / level.cols) - 1) * 14 },
           }),
           ...(pc ? { containerType: "inline-size" as const } : {}),
           touchAction: "none",

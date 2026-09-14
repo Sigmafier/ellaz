@@ -269,6 +269,8 @@ export function Vanish({ ctx }: { ctx: GameContext }) {
             cap: 420,
             chrome: 169,
             ratio: round.columns / Math.ceil(round.items.length / round.columns),
+            // The 12px gaps, so every level's board is one height.
+            space: { x: (round.columns - 1) * 12, y: (Math.ceil(round.items.length / round.columns) - 1) * 12 },
           }),
           ...(pc ? { containerType: "inline-size" as const } : {}),
           touchAction: "none",

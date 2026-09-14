@@ -420,9 +420,10 @@ export function Memory({ ctx }: { ctx: GameContext }) {
           gridTemplateColumns: `repeat(${cols}, 1fr)`,
           gap: 12,
           // Phone: `min(92vw, 56vh, 460px)`, as it always was. PC: the height
-          // the page has, times the grid's own shape (cols over rows - the 12px
-          // gaps make it a hair off, which the 24px slack absorbs).
-          ...boardVars({ vw: 92, vh: 56, cap: 460, chrome: 111, ratio: cols / rows }),
+          // the page has, times the grid's own shape (cols over rows), with the
+          // 12px gaps declared so every level is one height - they used to make
+          // a 4x3 board 3px shorter than a 4x4 one.
+          ...boardVars({ vw: 92, vh: 56, cap: 460, chrome: 111, ratio: cols / rows, space: { x: (cols - 1) * 12, y: (rows - 1) * 12 } }),
           ...(pc ? { containerType: "inline-size" as const } : {}),
         }}
       >

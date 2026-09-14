@@ -34,8 +34,9 @@ import { DIFFICULTIES, LEVELS } from "./logic";
  * `-16px` of usable width. What replaced it is the reason it is safe: on a PC
  * the maze no longer sizes a CELL at all. The whole board is `.ellaz-board`,
  * bounded by the height the window leaves and the width beside the footer
- * column, and a cell is one `1fr` track of it. The 64px cell cap now governs
- * the PHONE arm only.
+ * column, and a cell is one `1fr` track of it. The cell cap now governs the
+ * PHONE arm only - and since the same day it is a 640px BOARD cap divided per
+ * cell, so the easy board is not the one grid that stops short.
  *
  * So this asserts both halves: the phone arm's widest board still clears the
  * desktop ceiling every `boardVars` board is held to, and the PC arm really is
@@ -44,10 +45,17 @@ import { DIFFICULTIES, LEVELS } from "./logic";
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const SRC = readFileSync(join(ROOT, "games", "maze", "MazeGame.tsx"), "utf8");
 
-/** The px ceiling of the cell expression, read out of the renderer. */
+/**
+ * The px ceiling of ONE cell of the widest board, read out of the renderer.
+ * Since 2026-09-14 the cap is on the board (`BOARD_CAP`), divided per cell, so
+ * every grid size fills the same box on a phone and a difficulty change cannot
+ * resize the game. The cell expression must divide that constant by `size`.
+ */
 function cellCap(src: string): number | null {
-  const m = src.match(/const cell = `min\([^`]*?(\d+(?:\.\d+)?)px\)`/);
-  return m ? parseFloat(m[1]) : null;
+  const board = src.match(/^const BOARD_CAP = (\d+);/m);
+  const divides = /const cell = `min\([^`]*\$\{\(BOARD_CAP \/ size\)\.toFixed\(2\)\}px\)`/.test(src);
+  if (!board || !divides) return null;
+  return parseFloat(board[1]) / Math.max(...DIFFICULTIES.map((d) => LEVELS[d].size));
 }
 
 /** Whether the renderer's PC arm is sized by the board policy, not the cell cap. */
@@ -88,8 +96,9 @@ describe("the maze board fits the desktop panel", () => {
 
   it("the matchers read what they are given, and report what they are not", () => {
     // The control, in both directions - see the rule file named above.
-    expect(cellCap('const cell = `min(${x}vw, ${y}vh, 64px)`;')).toBe(64);
-    expect(cellCap("const cell = `min(8vw, 8vh)`;")).toBeNull();
+    expect(cellCap("const BOARD_CAP = 640;\nconst cell = `min(${a}vw, ${b}vh, ${(BOARD_CAP / size).toFixed(2)}px)`;")).toBe(64);
+    // A flat per-cell cap - the shape that resized the game - reads as no cap.
+    expect(cellCap("const BOARD_CAP = 640;\nconst cell = `min(8vw, 8vh, 64px)`;")).toBeNull();
     // The PC arm with its cell-cap tracks restored must read as NOT routed.
     const reverted = SRC.replace(
       "gridTemplateColumns: pc ? `repeat(${size}, 1fr)`",

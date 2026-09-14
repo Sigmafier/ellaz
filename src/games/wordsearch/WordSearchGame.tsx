@@ -487,6 +487,58 @@ export function WordSearchGame({ ctx }: { ctx: GameContext }) {
     ctx.locale,
   );
 
+  // On a PC the word list sits in the empty column LEFT of the board. Under it,
+  // a harder level's longer list wrapped to a second line and grew the whole
+  // game 41px, which made fitStage shrink it to 94% (2026-09-14,
+  // repro-difficulty-keeps-the-game-size.mjs). A column's height is not the
+  // game's. The phone keeps it under the board, where it always was.
+  const wordList = (
+    <>
+      {/* The list. Its direction follows the WORDS, not the interface: a
+          Hebrew word list inside an English page still reads right to left. */}
+      <ul
+        dir={dirOf(lang)}
+        style={{
+          listStyle: "none",
+          margin: 0,
+          padding: 0,
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 6,
+          justifyContent: "center",
+          maxWidth: "min(96vw, 560px)",
+        }}
+      >
+        {state.words.map((word, i) => {
+          const got = state.found[i] !== null;
+          return (
+            <li
+              key={word}
+              style={{
+                padding: "5px 10px",
+                borderRadius: "var(--radius-pill)",
+                background: got ? MARKS[i % MARKS.length] : "var(--surface)",
+                color: got ? "#fff" : "var(--text)",
+                boxShadow: "var(--shadow-1)",
+                fontFamily: "Fredoka, inherit",
+                fontWeight: 700,
+                fontSize: 15,
+                // Struck through as well as coloured, so a found word is
+                // marked by SHAPE and not by colour alone.
+                textDecoration: got ? "line-through" : undefined,
+                opacity: got ? 0.85 : 1,
+                transform: flash === i ? "scale(1.12)" : undefined,
+                transition: "transform 0.18s ease, background 0.18s ease",
+              }}
+            >
+              {word}
+            </li>
+          );
+        })}
+      </ul>
+    </>
+  );
+
   const hint = won ? `${ctx.t("youWon")} 🎉` : state.anchor !== null ? T.picking : T.start;
 
   return (
@@ -512,6 +564,7 @@ export function WordSearchGame({ ctx }: { ctx: GameContext }) {
       level={level}
       onLevel={(lv) => restart(lv)}
       onRestart={() => restart()}
+      side={pc ? wordList : undefined}
       footer={
         <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
           <div
@@ -587,10 +640,11 @@ export function WordSearchGame({ ctx }: { ctx: GameContext }) {
               ["--cell" as string]: pc ? `calc((100cqw - ${(size - 1) * CELL_GAP}px) / ${size})` : cell,
               ...(pc
                 ? {
-                    // chrome 273 is an ESTIMATE: the 111 every GameChrome game
-                    // pays, the word list (two rows of pills, 66) and its 10px
-                    // gap, and the hint-and-language footer (72) plus its 14.
-                    ...boardVars({ vw: 90, vh: 50, cap: 550, chrome: 157 }),
+                    // chrome 111: the head row only. The word list sits in the
+                    // column beside the board on a PC, and the footer in the
+                    // other one, so neither costs height. Measured 2026-09-14 by
+                    // repro-board-fills-the-window.mjs at every PC arm.
+                    ...boardVars({ vw: 90, vh: 50, cap: 550, chrome: 111 }),
                     aspectRatio: "1",
                     containerType: "inline-size",
                   }
@@ -663,48 +717,7 @@ export function WordSearchGame({ ctx }: { ctx: GameContext }) {
           })}
         </div>
 
-        {/* The list. Its direction follows the WORDS, not the interface: a
-            Hebrew word list inside an English page still reads right to left. */}
-        <ul
-          dir={dirOf(lang)}
-          style={{
-            listStyle: "none",
-            margin: 0,
-            padding: 0,
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 6,
-            justifyContent: "center",
-            maxWidth: "min(96vw, 560px)",
-          }}
-        >
-          {state.words.map((word, i) => {
-            const got = state.found[i] !== null;
-            return (
-              <li
-                key={word}
-                style={{
-                  padding: "5px 10px",
-                  borderRadius: "var(--radius-pill)",
-                  background: got ? MARKS[i % MARKS.length] : "var(--surface)",
-                  color: got ? "#fff" : "var(--text)",
-                  boxShadow: "var(--shadow-1)",
-                  fontFamily: "Fredoka, inherit",
-                  fontWeight: 700,
-                  fontSize: 15,
-                  // Struck through as well as coloured, so a found word is
-                  // marked by SHAPE and not by colour alone.
-                  textDecoration: got ? "line-through" : undefined,
-                  opacity: got ? 0.85 : 1,
-                  transform: flash === i ? "scale(1.12)" : undefined,
-                  transition: "transform 0.18s ease, background 0.18s ease",
-                }}
-              >
-                {word}
-              </li>
-            );
-          })}
-        </ul>
+        {pc ? null : wordList}
       </div>
     </GameChrome>
   );
