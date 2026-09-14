@@ -777,6 +777,28 @@ one line.
   below) is in play, not cut. Its `--control` plants a control past the edge, a
   footer behind a scrollbar, and a 1px screen-reader button that must NOT be
   flagged, beside the same button at 60x40 that must be.
+- **A key never moves or resizes the game** (operator, 2026-09-14: *"the keyboard
+  changes the entire game screen size which is bad!!!"*). A game page is a document,
+  so the browser scrolled it - live, all 43 games:
+
+  ```
+                        before (live)                      after
+  snake @1536x639       Space 559px, End 6225px            0
+  2048 / blocks / maze  arrows held, Space still scrolled  0
+  38 other games        ArrowDown, Space, PageDown         0
+  snake @390x844        first key rescaled 0.9012->0.9048  0
+  ```
+
+  `guardGameKeys` (`src/portal/keyGuard.ts`, armed by `PageApp` on game pages, pinned
+  to the `page` chunk) holds the scrolling keys while at least half the game is on
+  screen. It never holds them while typing or in a dialog, never holds Space on a
+  button, and lets a reader who has scrolled to the article scroll. Snake's start
+  strip keeps one height in both phases, and blocks' next-piece preview sits in a
+  fixed 36px box (it was 24, 36 or 48px by piece: 483, 495 and 507px of game on a PC,
+  one height across 31 pieces after). `npm run assert:keys`
+  (`scripts/repro/repro-keys-do-not-move-the-game.mjs`) presses seven keys from the
+  page and from a game button on every game at 1536x639 and 390x844; its controls
+  prove PageUp still scrolls the article and a space still types.
 - **Kids games** (`ageBand: "kids"`): **tap-completable; drag optional.** Drag is
   never REQUIRED. Four of the games coming next (jigsaw, shape-fit, build-a-house,
   build-a-word) do use drag, and every one of them must also be finishable by

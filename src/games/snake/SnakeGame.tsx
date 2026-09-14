@@ -56,6 +56,9 @@ const SPEED_OPTIONS: DifficultyOption<SpeedKey>[] = [
 // includes padding - so the canvas was born slightly too big and FIT quietly
 // corrected it. A constant cannot be measured wrong.
 const LOGICAL = 440;
+/** The start strip's height in both of its states: the ready button's measured
+ *  49px, so the ready screen - and the phone frame baseline - are unchanged. */
+const STRIP_H = 49;
 
 export function SnakeGame({ ctx }: { ctx: GameContext }) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -250,11 +253,15 @@ export function SnakeGame({ ctx }: { ctx: GameContext }) {
               logic. Not `disabled` while playing - it is simply not a button
               then, which is the honest shape and keeps the platform's rule
               that `disabled` is reserved for the genuinely impossible. */}
+          {/* ONE HEIGHT in both states. The button's bold 17px line is 49px and
+              the hint's 15px line was 46, so the first key moved the frame 3px
+              and fitStage rescaled the whole phone game (0.9012 -> 0.9048,
+              2026-09-14). A shared minHeight both lines fit under holds it. */}
           {status.phase === "playing" ? (
             <div
               style={{
                 padding: "10px 12px",
-                minHeight: 44,
+                minHeight: STRIP_H,
                 width: "100%",
                 display: "flex",
                 alignItems: "center",
@@ -278,7 +285,7 @@ export function SnakeGame({ ctx }: { ctx: GameContext }) {
                 font: "inherit",
                 color: "inherit",
                 padding: "10px 12px",
-                minHeight: 44,
+                minHeight: STRIP_H,
                 width: "100%",
                 display: "flex",
                 alignItems: "center",

@@ -110,6 +110,10 @@ rewards, scores, sessions, restart, RTL grids, difficulty — all in `.claude/ru
 
 - `node scripts/repro/repro-board-fills-the-window.mjs --only <id>` - the board fills the
   window, sits on the screen's centre line, and the phone frame did not move.
+- `npm run assert:keys -- --only <id>` - arrows, Space, PageDown and End neither scroll the
+  page nor resize the game, on a PC and a phone. Do not add scroll-blocking of your own: the
+  page holds those keys for every game (`src/portal/keyGuard.ts`). Do give any strip that
+  swaps text between phases one fixed height.
 - `npm run assert:on-screen -- --only <id>` - every control is on the window and not
   behind a scrollbar, at five PC sizes from 1024x768 up. The board gate is green over a
   cut-off palette; this is the one that sees it (coloring, jigsaw, finddiff, maze and

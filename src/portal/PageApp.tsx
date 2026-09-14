@@ -8,6 +8,7 @@ import { analytics, startCloudSync } from "@sdk/index";
 import { Boards } from "./Boards";
 import { fitStage } from "./fitStage";
 import { wirePhoneBar } from "./phoneBar";
+import { guardGameKeys } from "./keyGuard";
 import { GameHost } from "./GameHost";
 import { World } from "./world/World";
 import { WalletChip } from "./WalletChip";
@@ -608,6 +609,9 @@ export function bootContentPage(ctx: PageContext): void {
   const exitHref = embed ? wireEmbedHome(appLocale) : undefined;
 
   mountDesignBench(frame);
+  // Arrows, Space and PageDown scrolled every game off its own screen (2026-09-14).
+  // Embedded too: the host page scrolls just the same. See keyGuard.ts.
+  if (ctx.kind === "game") guardGameKeys(frame);
 
   const poster = document.getElementById("game-poster");
   const message = document.getElementById("game-msg");

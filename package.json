@@ -20,6 +20,8 @@
     "preview": "vite preview",
     "assert:on-screen": "node scripts/repro/repro-controls-stay-on-screen.mjs",
     "assert:on-screen:control": "node scripts/repro/repro-controls-stay-on-screen.mjs --control",
+    "assert:keys": "node scripts/repro/repro-keys-do-not-move-the-game.mjs",
+    "assert:keys:control": "node scripts/repro/repro-keys-do-not-move-the-game.mjs --control",
     "test": "vitest run",
     "test:watch": "vitest",
     "probe:cloud": "node scripts/probe-cloud.mjs",

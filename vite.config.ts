@@ -640,6 +640,10 @@ export default defineConfig({
           // choosing a game, for a screen they may never open. Same reasoning as
           // `Boards.tsx` above, and the shell has 473 B of headroom.
           if (/\/src\/portal\/selectionDismiss\.ts$/.test(path)) return "page";
+          // `keyGuard.ts` stops arrows and Space scrolling a game off its own
+          // screen, and only `PageApp` imports it. Left to the catch-all it put
+          // 363 B gz into every first visit (measured 2026-09-14, two builds).
+          if (/\/src\/portal\/keyGuard\.ts$/.test(path)) return "page";
           // `boardsView.ts` is the pure half of the boards screen and `Boards.tsx`
           // above is its ONLY importer, so the catch-all below was shipping it -
           // the ladder order, the record lookup, all of it - to every child on a

@@ -779,7 +779,16 @@ export function BlocksGame({ ctx }: { ctx: GameContext }) {
         <span style={{ fontSize: 12, fontWeight: 800, color: "var(--text-dim)" }}>
           {T.next}
         </span>
-        <NextPiece piece={state.next} />
+        {/* A FIXED 36px box. The preview is drawn from each piece's own 2x2, 3x3
+            or 4x4 matrix, so unboxed it was 24, 36 or 48px tall and every new
+            piece moved the whole game: 483 -> 495px on a PC after one Space, and
+            a fitStage rescale on a phone (2026-09-14,
+            scripts/repro/repro-keys-do-not-move-the-game.mjs). 36, not 48: the
+            board's `chrome: 159` below was measured with this row 36px tall, and
+            a 48px box rendered 171. The 4x4 piece draws smaller cells instead. */}
+        <div style={{ width: 36, height: 36, display: "grid", placeItems: "center" }}>
+          <NextPiece piece={state.next} />
+        </div>
       </div>
 
       <div
@@ -895,14 +904,15 @@ export function BlocksGame({ ctx }: { ctx: GameContext }) {
 function NextPiece({ piece }: { piece: Piece }) {
   const n = piece.cells.length;
   const cells = new Set(filled(piece).map(([r, c]) => r * n + c));
+  const cell = n > 3 ? 9 : 12; // every matrix fits the 36px box it sits in
   return (
     <div
       dir="ltr"
       aria-hidden="true"
       style={{
         display: "grid",
-        gridTemplateColumns: `repeat(${n}, 12px)`,
-        gridTemplateRows: `repeat(${n}, 12px)`,
+        gridTemplateColumns: `repeat(${n}, ${cell}px)`,
+        gridTemplateRows: `repeat(${n}, ${cell}px)`,
       }}
     >
       {Array.from({ length: n * n }, (_, i) => (
