@@ -3,12 +3,15 @@ import { useEffect, useRef, useState } from "react";
 import type { GameContext } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
 import { DirectionPad } from "@ui/DirectionPad";
+import { BoardStick } from "@ui/BoardStick";
+import { ControlModePicker } from "@ui/ControlModePicker";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 // The MODULE, not the `@shared/index` barrel — sanctioned by that barrel's own
 // header, and deliberate here. Snake is the only game importing none of
 // `@shared`, and pulling the barrel in for one hook would drag `spawn`,
 // `Prompt` and the rest of it along for the ride.
 import { useRememberedLevel } from "@shared/useRememberedLevel";
+import { useControlMode } from "@shared/useControlMode";
 // TYPE-ONLY, and that is load-bearing. Importing one VALUE from this module
 // (it was `SPEED_KEYS`, for a decorative exhaustiveness check) makes the static
 // import real, and Rollup then refuses to move the module behind the dynamic
@@ -83,6 +86,9 @@ export function SnakeGame({ ctx }: { ctx: GameContext }) {
     paused: false,
   });
   const [best] = useState(() => ctx.score?.best() ?? 0);
+  // Arrows (the default), one big stick, or a stick born under the thumb on
+  // the board. Keyboard arrows and WASD steer in all three.
+  const [controlMode, setControlMode] = useControlMode(ctx);
 
   useEffect(() => {
     let game: { destroy: (removeCanvas: boolean) => void } | null = null;
@@ -280,25 +286,42 @@ export function SnakeGame({ ctx }: { ctx: GameContext }) {
             </button>
           )}
 
+          {/* The Controls setting, directly above what it controls. */}
+          <ControlModePicker mode={controlMode} onMode={setControlMode} t={ctx.t} />
+
           {/* On-screen controls — the old-school pad for a player with no
               keyboard who would rather tap than swipe, plus the stick in the
-              middle for one who would rather steer. */}
-          <DirectionPad onDir={steer} />
+              middle for one who would rather steer. The Joystick setting draws
+              one big stick instead; "On the board" draws nothing here. */}
+          {controlMode !== "board" && (
+            <DirectionPad onDir={steer} variant={controlMode === "joystick" ? "stick" : "pad"} />
+          )}
         </div>
       }
     >
-      <div
-        ref={hostRef}
-        style={{
-          width: "min(88vw, 46vh, 440px)",
-          aspectRatio: "1",
-          borderRadius: 14,
-          overflow: "hidden",
-          // The canvas owns the gesture: no scroll, no pinch under a finger
-          // that is mid-swipe.
-          touchAction: "none",
-        }}
-      />
+      {/* Always the same wrapper, so switching mode never remounts the node
+          Phaser mounted its canvas into. In board mode its overlay sits over
+          the canvas, so the canvas's own tap and swipe cannot also fire: the
+          overlay's stick steers, and a tap with no travel is the same
+          `startFromChrome` the strip below calls. */}
+      <BoardStick
+        active={controlMode === "board"}
+        onDir={steer}
+        onTap={() => sceneRef.current?.startFromChrome()}
+      >
+        <div
+          ref={hostRef}
+          style={{
+            width: "min(88vw, 46vh, 440px)",
+            aspectRatio: "1",
+            borderRadius: 14,
+            overflow: "hidden",
+            // The canvas owns the gesture: no scroll, no pinch under a finger
+            // that is mid-swipe.
+            touchAction: "none",
+          }}
+        />
+      </BoardStick>
     </GameChrome>
   );
 }

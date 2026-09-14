@@ -69,7 +69,13 @@ export function fitStage(frame: HTMLElement, box: HTMLElement): () => void {
       return;
     }
 
-    frame.style.transformOrigin = "center center";
+    // Shrink toward wherever the box PUTS the game. A game page starts it at
+    // the top (`justify-content: flex-start`), and scaling that around its
+    // centre moves the bottom edge below the box, which clips - measured on a
+    // 390x844 phone, snake's down arrow ended at 855px. The room centres its
+    // scene, so it keeps shrinking toward the centre.
+    frame.style.transformOrigin =
+      getComputedStyle(box).justifyContent === "center" ? "center center" : "top center";
     frame.style.transform = `scale(${scale.toFixed(4)})`;
   };
 

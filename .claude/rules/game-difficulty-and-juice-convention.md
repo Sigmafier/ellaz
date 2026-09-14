@@ -45,6 +45,17 @@ success with **juice**. Follow the established pattern so every game feels consi
   not answer: `snake` is `"all"` and keeps its pad, which is fine, but nothing
   yet says whether an `"all"` game SHOULD have one - that is a judgement per
   game, not a rule.
+
+  **A CONTROLS SETTING, 2026-09-14, by operator ruling**: *"the joystick should
+  be a setting in every game with movement"*. Snake and maze render
+  `ControlModePicker` above their controls: **Arrows** (the pad, the DEFAULT),
+  **Joystick** (`DirectionPad variant="stick"`, one big stick) or **On the
+  board** (`BoardStick` - a stick born under the thumb, no pad). The choice is
+  remembered per game by `useControlMode` under the forever key `controlMode`,
+  and anything unrecognised in storage reads as Arrows. The kids band is still
+  bound: Arrows ships as the default and stays one tap away, so the game is
+  tap-completable out of the box. A new steering game adds the picker rather
+  than choosing a control for the player.
 - **Juice on win**: call **`winMoment(ctx, {...})`** from `@shared`. It owns the
   confetti now, along with the reward grant, the sound, the haptic and the coin
   flight to the wallet chip, in that order. **Do not call `celebrate()` directly

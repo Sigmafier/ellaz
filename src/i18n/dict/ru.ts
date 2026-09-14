@@ -162,4 +162,8 @@ export const ru: Record<StringKey, string> = {
   reportBoardNow: "ровно в текущем виде",
   reportScreen: "Экран",
   reportApp: "Приложение",
+  controls: "Управление",
+  controlArrows: "Стрелки",
+  controlJoystick: "Джойстик",
+  controlBoard: "На поле",
 };

@@ -219,7 +219,18 @@ describe("the utility row carries the game's own control, and only there", () =>
 
 describe("the three screens are the SAME header", () => {
   it("draws the same controls in the same order", () => {
-    const [game, world, boards] = [shape(PAGES.game), shape(PAGES.world), shape(PAGES.boards)];
+    // The GAME page carries one control the other two do not: the phone bar's
+    // "more" button (operator ruling 2026-09-14 - on a phone a game page's two
+    // rows become one bar, and what does not fit goes behind it). It is hidden
+    // above 720px and filled by the runtime below it, so it is taken out BEFORE
+    // the three shapes are compared - and the removal is asserted to have
+    // happened, or a renamed class would make this pass by comparing nothing new.
+    const MORE = /<details class="more">[\s\S]*?<\/details>/;
+    expect(PAGES.game).toMatch(MORE);
+    expect(PAGES.world).not.toMatch(MORE);
+    expect(PAGES.boards).not.toMatch(MORE);
+    const [game, world, boards] = [shape(PAGES.game.replace(MORE, "")), shape(PAGES.world), shape(PAGES.boards)];
+    expect(game).not.toBe(shape(PAGES.game));
     expect(world).toBe(game);
     expect(boards).toBe(game);
     // A positive control: the shape has to be capable of DISAGREEING, or three

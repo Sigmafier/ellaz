@@ -159,4 +159,8 @@ export const it: Record<StringKey, string> = {
   reportBoardNow: "esattamente com'è ora",
   reportScreen: "Schermo",
   reportApp: "App",
+  controls: "Comandi",
+  controlArrows: "Frecce",
+  controlJoystick: "Joystick",
+  controlBoard: "Sul tabellone",
 };

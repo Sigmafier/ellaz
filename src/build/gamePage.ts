@@ -539,6 +539,7 @@ export function gamePage(opts: GamePageOptions): string {
       backLabel: site.chrome.back,
       soundLabel: site.chrome.sound,
       fullLabel: site.chrome.fullScreen,
+      moreLabel: site.chrome.more,
     },
   });
 }

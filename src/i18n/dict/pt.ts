@@ -160,4 +160,8 @@ export const pt: Record<StringKey, string> = {
   reportBoardNow: "exatamente como está agora",
   reportScreen: "Tela",
   reportApp: "Aplicativo",
+  controls: "Controles",
+  controlArrows: "Setas",
+  controlJoystick: "Joystick",
+  controlBoard: "No tabuleiro",
 };

@@ -163,6 +163,10 @@ export const he = {
   reportBoardNow: "בדיוק כמו שהוא עכשיו",
   reportScreen: "מסך",
   reportApp: "אפליקציה",
+  controls: "שליטה",
+  controlArrows: "חצים",
+  controlJoystick: "ג'ויסטיק",
+  controlBoard: "על הלוח",
 } as const;
 
 export type StringKey = keyof typeof he;

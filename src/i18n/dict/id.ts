@@ -167,4 +167,8 @@ export const id: Record<StringKey, string> = {
   reportBoardNow: "persis seperti sekarang",
   reportScreen: "Layar",
   reportApp: "Aplikasi",
+  controls: "Kontrol",
+  controlArrows: "Panah",
+  controlJoystick: "Joystick",
+  controlBoard: "Di papan",
 };

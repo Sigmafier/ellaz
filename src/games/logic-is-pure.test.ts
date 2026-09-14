@@ -35,6 +35,7 @@ const IMPURE_SHARED = new Set([
   "spawn.ts", // the WAAPI/React glue half of the spawner
   "useGameSession.ts", // a React hook — the WHEN of persisting a position
   "useRememberedLevel.ts", // a React hook
+  "useControlMode.ts", // a React hook - the remembered Arrows / Joystick / On the board
 ]);
 
 // Each entry is [pattern, why it is banned] so a failure explains itself

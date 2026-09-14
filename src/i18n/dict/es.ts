@@ -163,4 +163,8 @@ export const es: Record<StringKey, string> = {
   reportBoardNow: "tal como está ahora",
   reportScreen: "Pantalla",
   reportApp: "Aplicación",
+  controls: "Controles",
+  controlArrows: "Flechas",
+  controlJoystick: "Joystick",
+  controlBoard: "En el tablero",
 };

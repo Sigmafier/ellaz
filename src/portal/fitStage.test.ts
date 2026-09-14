@@ -72,8 +72,20 @@ describe("fitStage", () => {
     flush();
     // (638 - 16 gutter) / 680
     expect(frame.style.transform).toBe("scale(0.9147)");
-    expect(frame.style.transformOrigin).toBe("center center");
+    // A game page starts its game at the TOP of the box, so it shrinks toward the
+    // top. Centre-origin there moved the frame's bottom edge BELOW the box and
+    // cut it off - snake's down arrow, measured at 855px on an 844px phone.
+    expect(frame.style.transformOrigin).toBe("top center");
     expect(box.style.height).toBe("");
+  });
+
+  it("shrinks toward the centre only in a box that centres its content", () => {
+    // The room: a composed scene the box centres on purpose.
+    const { frame, box } = stage(680, 638);
+    box.style.justifyContent = "center";
+    start(frame, box);
+    flush();
+    expect(frame.style.transformOrigin).toBe("center center");
   });
 
   it("leaves a game that already fits completely alone", () => {

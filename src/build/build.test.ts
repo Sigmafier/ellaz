@@ -1244,8 +1244,13 @@ describe("the game gets the whole first screen", () => {
     // gap nobody looks for. Each is declared exactly once per breakpoint.
     const hh = declarations.match(/--hh:\s*\d+px/g) ?? [];
     const uh = declarations.match(/--uh:\s*\d+px/g) ?? [];
-    expect(hh.length, "--hh should be declared for the base and one breakpoint").toBe(2);
-    expect(uh.length, "--uh should be declared for the base and one breakpoint").toBe(2);
+    // THREE since 2026-09-14: the base, the phone breakpoint, and the phone GAME
+    // page, where the operator ruled the two rows become one 52px bar. The third
+    // is asserted by its exact scope rather than by count alone, so a stray
+    // fourth declaration cannot hide inside the new number.
+    expect(hh.length, "--hh: the base, one breakpoint, and the phone game page").toBe(3);
+    expect(uh.length, "--uh: the base, one breakpoint, and the phone game page").toBe(3);
+    expect(declarations).toContain('body[data-page="game"].screen{--hh:52px;--uh:0px}');
     expect(declarations).toContain("height:var(--hh)");
     expect(declarations).toContain("height:var(--uh)");
     expect(declarations).toContain("height:calc(100dvh - var(--hh) - var(--uh) - var(--oh))");

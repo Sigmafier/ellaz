@@ -164,4 +164,8 @@ export const tr: Record<StringKey, string> = {
   reportBoardNow: "tam şu anki hâliyle",
   reportScreen: "Ekran",
   reportApp: "Uygulama",
+  controls: "Kontroller",
+  controlArrows: "Oklar",
+  controlJoystick: "Joystick",
+  controlBoard: "Tahtada",
 };

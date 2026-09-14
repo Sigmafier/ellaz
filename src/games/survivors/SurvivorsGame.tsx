@@ -28,6 +28,7 @@ import type { SurvivorsScene, SurvivorsStatus } from "./SurvivorsScene";
 import type { LevelKey, UpgradeId } from "./logic";
 import { ARENA, ARENA_WIDE, RUN_MS, UPGRADE_CAP, UPGRADE_IDS, type Arena } from "./logic";
 import { UPGRADE_ART } from "./upgradeArt";
+import { phoneArena, phoneBox } from "./phoneArena";
 
 // The second Phaser game in the roster, wearing the same chrome as the other
 // forty-two. React owns the bar and the upgrade cards; Phaser owns the arena.
@@ -131,7 +132,16 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
    */
   // The read itself lives in `@ui/boardSize` since 2026-09-14, when a second
   // game needed the same answer - one breakpoint, one function.
-  const [arena] = useState<Arena>(() => (isPcArena() ? ARENA_WIDE : ARENA));
+  // A phone game page takes the TALL arena: the same floor, shaped to the box
+  // under the one 52px bar (operator ruling 2026-09-14, `phoneArena.ts`).
+  // `phoneBox` answers null anywhere that bar is not, so a PC, the standalone
+  // bundle and an embed keep exactly the arena they had.
+  const [arena] = useState<Arena>(() => {
+    if (isPcArena()) return ARENA_WIDE;
+    if (typeof window === "undefined") return ARENA;
+    const box = phoneBox();
+    return box ? phoneArena(box.w, box.h) : ARENA;
+  });
 
   useEffect(() => {
     let game: { destroy: (removeCanvas: boolean) => void } | null = null;
@@ -199,9 +209,9 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
     {
       he: {
         golem: "גולם",
-        stick: "מקל",
-        stickTap: "איפה שנוגעים",
-        stickCorner: "בפינה",
+        stick: "שליטה",
+        stickTap: "על הלוח",
+        stickCorner: "ג'ויסטיק",
         hint: "גררו, חצים או כפתורים - היריות לבד",
         // The entrance screen's words. `title` is a SECOND copy of the name the
         // page's own h1 carries, and that is a real duplication - the renderer
@@ -220,9 +230,9 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
       },
       en: {
         golem: "Golem",
-        stick: "Stick",
-        stickTap: "Where I tap",
-        stickCorner: "Corner",
+        stick: "Controls",
+        stickTap: "On the board",
+        stickCorner: "Joystick",
         hint: "Drag, arrows or buttons - it shoots by itself",
         title: "Neon Survival",
         play: "Play",
@@ -236,9 +246,9 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
       },
       es: {
         golem: "Gólem",
-        stick: "Palanca",
-        stickTap: "Donde toco",
-        stickCorner: "Esquina",
+        stick: "Controles",
+        stickTap: "En el tablero",
+        stickCorner: "Joystick",
         hint: "Arrastra, flechas o botones - dispara solo",
         title: "Supervivencia Neón",
         play: "Jugar",

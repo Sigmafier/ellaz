@@ -3,9 +3,14 @@ import type { GameContext, RewardTier, SessionSpec } from "@sdk/index";
 import type { Locale } from "@i18n/index";
 import { GameChrome } from "@ui/GameChrome";
 import { DirectionPad } from "@ui/DirectionPad";
+import { BoardStick } from "@ui/BoardStick";
+import { ControlModePicker } from "@ui/ControlModePicker";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { burst, haptic } from "@juice/index";
 import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
+// The module, not the barrel - the Controls setting is used by two steering
+// games and adding it to the barrel would hand it to every game that imports it.
+import { useControlMode } from "@shared/useControlMode";
 import {
   DIFFICULTIES,
   LEVELS,
@@ -70,6 +75,10 @@ const WORDS: Record<
   Locale,
   {
     hint: string;
+    /** The hint, when the Controls setting is the big stick. */
+    hintStick: string;
+    /** The hint, when the Controls setting is "On the board". */
+    hintBoard: string;
     perfect: string;
     streak: string;
     mouse: string;
@@ -80,6 +89,8 @@ const WORDS: Record<
 > = {
   he: {
     hint: "השתמשו בחצים כדי להזיז את העכבר",
+    hintStick: "הזיזו את הג'ויסטיק כדי להזיז את העכבר",
+    hintBoard: "גררו על הלוח כדי להזיז את העכבר",
     perfect: "מושלם!",
     streak: "מושלמים",
     mouse: "העכבר",
@@ -89,6 +100,8 @@ const WORDS: Record<
   },
   en: {
     hint: "Use the arrows to move the mouse",
+    hintStick: "Push the stick to move the mouse",
+    hintBoard: "Drag on the board to move the mouse",
     perfect: "Perfect!",
     streak: "Perfect",
     mouse: "the mouse",
@@ -98,6 +111,8 @@ const WORDS: Record<
   },
   es: {
     hint: "Usa las flechas para mover el ratón",
+    hintStick: "Mueve la palanca para mover el ratón",
+    hintBoard: "Arrastra en el tablero para mover el ratón",
     perfect: "¡Perfecto!",
     streak: "Perfectos",
     mouse: "el ratón",
@@ -198,6 +213,11 @@ export function MazeGame({ ctx }: { ctx: GameContext }) {
   // toggle silently disappears. Everything below reads `level`; a hardcoded
   // "easy" here would deal an easy maze under chrome saying "Hard".
   const [level, setLevel] = useRememberedLevel(ctx, DIFFICULTIES, "easy");
+
+  // How the mouse is steered: the arrows (the default, and the one a child who
+  // cannot hold a drag can always play with), one big stick, or a stick born
+  // under the thumb on the board itself. Keyboard arrows work in all three.
+  const [controlMode, setControlMode] = useControlMode(ctx);
 
   // Read ONCE, before the first render, so a resumed maze never flashes as a
   // fresh one.
@@ -416,88 +436,110 @@ export function MazeGame({ ctx }: { ctx: GameContext }) {
                 color: praise ? "var(--green)" : "var(--text-dim)",
               }}
             >
-              {praise ? T.perfect : T.hint}
+              {praise
+                ? T.perfect
+                : controlMode === "board"
+                  ? T.hintBoard
+                  : controlMode === "joystick"
+                    ? T.hintStick
+                    : T.hint}
             </b>
           </div>
+
+          {/* The Controls setting, directly above what it controls. Arrows is
+              always one tap away here, whatever the player last chose. */}
+          <ControlModePicker mode={controlMode} onMode={setControlMode} t={ctx.t} />
 
           {/* The pad — one step per press, and one step per `MOVE_REPEAT_MS`
               while the stick is held, so a child can walk a long corridor by
               leaning on it instead of tapping down it. `move` refuses a solved
-              board and a hedge on its own, so the repeat cannot run away. */}
-          <DirectionPad onDir={move} repeatMs={MOVE_REPEAT_MS} />
+              board and a hedge on its own, so the repeat cannot run away.
+              "On the board" draws no pad: the stick lives on the board. */}
+          {controlMode !== "board" && (
+            <DirectionPad
+              onDir={move}
+              repeatMs={MOVE_REPEAT_MS}
+              variant={controlMode === "joystick" ? "stick" : "pad"}
+            />
+          )}
         </div>
       }
     >
-      <div
-        ref={gridRef}
-        className="ellaz-play-surface"
-        // LTR, always. The app is Hebrew RTL by default, so an RTL grid lays
-        // column 0 out on the visual RIGHT - and a maze whose walls mirror is a
-        // different maze from the one the rules are solving
-        // (rtl-spatial-grid-dir-ltr.md).
-        dir="ltr"
-        style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(${size}, ${cell})`,
-          // Explicit ROWS as well: without them a taller cell stretches its row
-          // and the square board deforms.
-          gridTemplateRows: `repeat(${size}, ${cell})`,
-          // The frame. Cells carry their own right and bottom hedge, so these
-          // two close the other two sides and the whole board is enclosed.
-          borderTop: `${WALL}px solid ${HEDGE}`,
-          borderLeft: `${WALL}px solid ${HEDGE}`,
-          borderRadius: 10,
-          background: FLOOR,
-          boxSizing: "content-box",
-          touchAction: "none",
-        }}
-      >
-        {Array.from({ length: size * size }, (_, i) => {
-          const col = i % size;
-          const row = Math.floor(i / size);
-          const isMouse = i === state.at;
-          const isHome = i === state.home;
-          const isCheese = state.cheese.includes(i);
-          const label = isMouse ? T.mouse : isCheese ? T.cheese : isHome ? T.home : T.empty;
-          return (
-            <div
-              key={i}
-              // Display only now — the arrows drive the mouse, so cells are not
-              // tappable. Still labelled per-square so a screen reader can read
-              // the board out; one-based, because nobody counts from zero aloud.
-              role="img"
-              aria-label={`${label} ${col + 1}, ${row + 1}`}
-              style={{
-                minWidth: 0,
-                minHeight: 0,
-                // A hedge on the far side of the board is drawn even where the
-                // rules keep no wall, so the frame closes; everywhere else the
-                // border is present but transparent, which keeps every cell
-                // exactly the same size whether or not it has a wall.
-                borderRight: `${WALL}px solid ${
-                  col === size - 1 || state.walls.right[i] ? HEDGE : "transparent"
-                }`,
-                borderBottom: `${WALL}px solid ${
-                  row === size - 1 || state.walls.down[i] ? HEDGE : "transparent"
-                }`,
-                boxSizing: "border-box",
-                display: "grid",
-                placeItems: "center",
-                // Sized off the cell rather than fixed, so a glyph fills the
-                // big easy tiles and still fits the small hard ones.
-                fontSize: `calc(${cell} * 0.52)`,
-                lineHeight: 1,
-                background: trail.includes(i) ? FLOOR_TRAIL : isHome ? HOME_TILE : FLOOR,
-                transition: "background 0.18s ease",
-              }}
-            >
-              <span aria-hidden="true">
-                {isMouse ? "🐭" : isCheese ? "🧀" : isHome ? "🏠" : ""}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+      {/* Always the same wrapper, whatever the Controls setting, so switching
+          mode never remounts the board; the overlay is only there on "board".
+          Same one-step-per-`MOVE_REPEAT_MS` walk as the pad's stick. */}
+      <BoardStick active={controlMode === "board"} onDir={move} repeatMs={MOVE_REPEAT_MS}>
+        <div
+          ref={gridRef}
+          className="ellaz-play-surface"
+          // LTR, always. The app is Hebrew RTL by default, so an RTL grid lays
+          // column 0 out on the visual RIGHT - and a maze whose walls mirror is a
+          // different maze from the one the rules are solving
+          // (rtl-spatial-grid-dir-ltr.md).
+          dir="ltr"
+          style={{
+            display: "grid",
+            gridTemplateColumns: `repeat(${size}, ${cell})`,
+            // Explicit ROWS as well: without them a taller cell stretches its row
+            // and the square board deforms.
+            gridTemplateRows: `repeat(${size}, ${cell})`,
+            // The frame. Cells carry their own right and bottom hedge, so these
+            // two close the other two sides and the whole board is enclosed.
+            borderTop: `${WALL}px solid ${HEDGE}`,
+            borderLeft: `${WALL}px solid ${HEDGE}`,
+            borderRadius: 10,
+            background: FLOOR,
+            boxSizing: "content-box",
+            touchAction: "none",
+          }}
+        >
+          {Array.from({ length: size * size }, (_, i) => {
+            const col = i % size;
+            const row = Math.floor(i / size);
+            const isMouse = i === state.at;
+            const isHome = i === state.home;
+            const isCheese = state.cheese.includes(i);
+            const label = isMouse ? T.mouse : isCheese ? T.cheese : isHome ? T.home : T.empty;
+            return (
+              <div
+                key={i}
+                // Display only now — the arrows drive the mouse, so cells are not
+                // tappable. Still labelled per-square so a screen reader can read
+                // the board out; one-based, because nobody counts from zero aloud.
+                role="img"
+                aria-label={`${label} ${col + 1}, ${row + 1}`}
+                style={{
+                  minWidth: 0,
+                  minHeight: 0,
+                  // A hedge on the far side of the board is drawn even where the
+                  // rules keep no wall, so the frame closes; everywhere else the
+                  // border is present but transparent, which keeps every cell
+                  // exactly the same size whether or not it has a wall.
+                  borderRight: `${WALL}px solid ${
+                    col === size - 1 || state.walls.right[i] ? HEDGE : "transparent"
+                  }`,
+                  borderBottom: `${WALL}px solid ${
+                    row === size - 1 || state.walls.down[i] ? HEDGE : "transparent"
+                  }`,
+                  boxSizing: "border-box",
+                  display: "grid",
+                  placeItems: "center",
+                  // Sized off the cell rather than fixed, so a glyph fills the
+                  // big easy tiles and still fits the small hard ones.
+                  fontSize: `calc(${cell} * 0.52)`,
+                  lineHeight: 1,
+                  background: trail.includes(i) ? FLOOR_TRAIL : isHome ? HOME_TILE : FLOOR,
+                  transition: "background 0.18s ease",
+                }}
+              >
+                <span aria-hidden="true">
+                  {isMouse ? "🐭" : isCheese ? "🧀" : isHome ? "🏠" : ""}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </BoardStick>
     </GameChrome>
   );
 }

@@ -4907,3 +4907,71 @@ Phone 390x844 stays 359px wide, as designed.
 **Parked, not ours:** studio CI went red on the same push - `assert-fight` runs a
 knight-facings `reproduce.sh` needing Pillow, which the runner's python lacks. Green on this
 machine because its venv has it. The operator parked it; the site deploys are unaffected.
+
+## Phone games use the whole screen, and steering games get a Controls setting (2026-09-14)
+
+Operator, verbatim: *"the game should have a full height experience right now it doesnt take
+the full mobile height. also the rest of the games should match the entire screen. and the
+joystick should be a setting in every game with movement."* Three rulings were taken off
+real renders before any code (hall `20260914-015912`, `-015922`, `-021853`): the site's bars
+step aside on a phone, as ONE 52px bar that keeps pause, restart and sound with the rest
+behind a "more" button; and steering games offer Arrows / Joystick / On the board, Arrows
+by default.
+
+**Measured first, on live ellaz.fun at 390x844, all 43 games:** 40 left 21-449px of empty
+page under the game (Survivors 236, 2048 200); maze, snake and coloring were shrunk by
+fitStage to 0.87-0.90, and snake's down arrow ended 11px below the screen.
+
+**What shipped.**
+
+- `--hh:52px; --uh:0` under 720px on `body[data-page="game"]`, in the emitted CSS, so a phone
+  paints the final box before any script. `src/portal/phoneBar.ts` then MOVES the real
+  controls - pause and restart into the bar, language, share, full screen, tell us and the
+  coins into the "more" sheet - and back when the screen widens. Moved, never copied: each is
+  wired once by a `querySelector` that finds one node. `phone-bar.test.ts` proves the wide
+  page is byte-identical after a round trip, and that a listener survives the move.
+- The panel gets `min-height` = the box less fitStage's 16px gutter, so a short game fills
+  to exactly the room fitStage allows and is never shrunk. **It needed `!important`**: both
+  chromes put `minHeight: 0` inline, and the first build measured the rule shipped, matching,
+  and computing to 0px.
+- **fitStage shrinks toward the top** when the box starts its game at the top. Centre-origin
+  under `justify-content:flex-start` is what cut snake's arrow off.
+- Survivors' phone arena is `phoneArena()`: the portrait floor (420x560 = 235,200), reshaped
+  to the box under the bar. It lives in `phoneArena.ts`, not `logic.ts`, because
+  `arena-is-a-run-property.test.ts` lets the sim name `ARENA` exactly twice.
+- `ControlModePicker` + `useControlMode` (forever key `controlMode`), `DirectionPad
+  variant="stick"`, and `BoardStick` on snake and maze. Survivors' two stick styles take the
+  same words.
+
+**After, measured on the built artifact** (`scripts/repro/repro-phone-fills-the-screen.mjs`,
+served from disk through Playwright's router, no port):
+
+| | before | after |
+|---|---|---|
+| chrome above the game | 114px | 52px |
+| Survivors arena, 390x844 | 359x478 | 359x756, scale 1 |
+| arms failing (43 games x 2 phones + 3 PC controls) | 86 of 86 phone arms | **0 of 89** |
+| cut off below the screen | snake, maze, coloring, wordguess | none |
+| still shrunk under 0.95 (reported) | - | snake 0.90 / 0.76, maze 0.89 / 0.73, coloring 0.81 and wordguess 0.89 at 360x740 |
+
+The shrink is reported rather than enforced: all six are the same or bigger than before
+except snake and maze at 360x740 (0.78 -> 0.76, 0.75 -> 0.73), which pay for the new Controls
+row. A more compact phone pad is a separate ruling.
+
+**Difficulty on the tall arena** (`arena-difficulty` harness, 40 seeded runs per cell):
+normal circle 56.3 -> 48.1 s (-15%), normal kite 81.0 -> 104.2 s (+29%), wild 39.1 -> 35.5 s,
+calm unmoved; the level ladder holds, the golem fight is 11% longer (18.4 -> 20.4 s). Mixed
+in direction, so the tuning is left as it ships unless the operator rules otherwise.
+
+**Gates.** Build to a scratch `outDir` (a peer's `vite build` wiped `dist/` mid-check once):
+tier, first-visit, pages all 0; first visit **56,589 B gz of 56,800** (56,473 on 8f1ce61,
++116 - mostly the four new words in the static he/en dictionaries, kept there so the eight
+other interface languages get translated labels); slope 34.4 of 45. Suite 4,939 of 4,940,
+the one red a peer's untracked `lettercross/lang.ts`. Three pins amended to the ruled shape,
+never loosened: the `--hh` declaration count (now asserts the scoped third rule), the three
+screens' header shape (compared with the game page's "more" removed, the removal asserted),
+and the Survivors arena pick.
+
+**Coordination.** A peer session (`pc-layout-game-sizing`) was changing the same layout
+files for PC. Split agreed over messages before any edit: it owns the PC arm and the panel
+background, this change the phone arm and the controls; it committed `8f1ce61` first.

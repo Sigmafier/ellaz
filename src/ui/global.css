@@ -552,6 +552,31 @@ body.app-shell h3,
   }
 }
 
+/* A PHONE GAME PAGE IS FILLED TO THE BOTTOM (operator ruling 2026-09-14).
+ *
+ * Measured on live ellaz.fun at 390x844 before this: 40 of 43 games left 21 to
+ * 449px of empty page under the game. The panel is already a flex column whose
+ * board area is `flex: 1`; it simply had no height to spread, because the frame
+ * around it is content-sized so fitStage can read its natural height.
+ *
+ * So the panel gets a MIN-height, never a height: the box's own calc, less
+ * fitStage's 16px gutter. A short game grows to exactly the room fitStage
+ * allows, so it reads scale 1 and is never shrunk; a tall one is taller than
+ * the minimum and fitStage handles it as before. The board centres in the
+ * space, the game's own footer sits at the bottom where a thumb is.
+ *
+ * `body[data-page="game"]` exists only on an emitted game page, so the room,
+ * the boards, the standalone bundle and an embed are untouched. */
+@media (max-width: 719px) {
+  body[data-page="game"] .ellaz-game-panel {
+    /* !important because both chromes put `minHeight: 0` INLINE on the panel
+       (it lets the column shrink), and an inline style beats every stylesheet
+       rule. Measured on the built page: computed min-height 0px, panel 530px in
+       a 792px box, with this rule shipped and matching. */
+    min-height: calc(100dvh - var(--hh, 0px) - var(--uh, 0px) - var(--oh, 0px) - 16px) !important;
+  }
+}
+
 /* THE BOARD SIZING POLICY, in the one place the comment above asked for.
  *
  * A game declares six numbers as custom properties (`src/ui/boardSize.ts`) and

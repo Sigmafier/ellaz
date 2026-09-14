@@ -647,6 +647,11 @@ export default defineConfig({
           // artifact: 90,990 -> 90,822 B gz, and the shell imports nothing from
           // it, which is what `assert-first-visit.mjs` proves rather than assumes.
           if (/\/src\/portal\/boardsView\.ts$/.test(path)) return "page";
+          // `phoneBar.ts` moves the page's controls into the one phone bar and is
+          // imported by `PageApp` alone, which is already `page`. Named for the
+          // same reason as `boardsView` above: the catch-all would ship it to a
+          // child before they chose a game.
+          if (/\/src\/portal\/phoneBar\.ts$/.test(path)) return "page";
 
           // EVERY OTHER portal module goes to the shell side, explicitly.
           //
@@ -708,7 +713,12 @@ export default defineConfig({
           // a game chunk imports it is a cross-chunk cycle, so the miss does not
           // merely cost bytes, it can stop the game running. Only
           // `SurvivorsGame.tsx` imports it, and nothing in the shell does.
-          if (/\/src\/ui\/(GameChrome|ArcadeChrome|DirectionPad)\.tsx$/.test(path)) return "page";
+          // `BoardStick` and `ControlModePicker` (2026-09-14) are the Controls
+          // setting the steering games offer beside the pad: drawn only by
+          // snake and maze, never on the home screen, and both import
+          // `DirectionPad` - so leaving them to the catch-all would be the
+          // same shell-imports-from-page cycle `ArcadeChrome` measured above.
+          if (/\/src\/ui\/(GameChrome|ArcadeChrome|DirectionPad|BoardStick|ControlModePicker)\.tsx$/.test(path)) return "page";
           if (/\/src\/ui\/gameTools\.ts$/.test(path)) return "page";
           // `boardSize.ts` is the one place board sizing is decided. Its only
           // importers are the four game renderers that have been swept onto it

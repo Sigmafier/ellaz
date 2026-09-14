@@ -250,7 +250,11 @@ describe("the box that is drawn and the floor that is played agree", () => {
     // The read moved into `@ui/boardSize` (2026-09-14) so every wide arena
     // shares one breakpoint. Assert the game uses it AND that it still names
     // the stylesheet's number - either half alone passes on a split answer.
-    expect(GAME).toMatch(/useState<Arena>\(\(\) => \(isPcArena\(\) \? ARENA_WIDE : ARENA\)\)/);
+    // Since 2026-09-14 a phone game page takes a THIRD shape (`phoneArena`), so
+    // the pick is a block rather than a ternary. The PC branch must still be the
+    // first thing it asks, off the same breakpoint.
+    expect(GAME).toMatch(/useState<Arena>\(\(\) => \{\s*if \(isPcArena\(\)\) return ARENA_WIDE;/);
+    expect(GAME).toContain("return box ? phoneArena(box.w, box.h) : ARENA;");
     expect(BOARD_SIZE).toContain("export const PC_MIN_WIDTH = 900;");
     expect(BOARD_SIZE).toContain("window.matchMedia(`(min-width: ${PC_MIN_WIDTH}px)`)");
     expect(CSS).toContain("@media (min-width: 900px)");

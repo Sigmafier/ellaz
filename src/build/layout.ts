@@ -636,6 +636,61 @@ body.screen #wallet-slot>*{background:none;box-shadow:none;border:0;
   .hbtn .tx{display:none}
   .wallet-wrap{padding:0 10px}
 }
+
+/* --- ONE BAR ON A PHONE GAME PAGE (operator ruling 2026-09-14) -----------
+
+   The header (58px) and the utility row (56px) cost a 390x844 phone 114px, and
+   the game under them was left 244px of empty page. Picked off real renders
+   (hall 20260914-015912 and -021853): one 52px bar - home, the game's name,
+   pause, restart, sound, and a "more" button holding language, share, full
+   screen, tell us and the coins.
+
+   THE GEOMETRY IS HERE, THE CONTROLS ARE MOVED BY THE RUNTIME. --hh and --uh
+   are what the stage box pays for its bars, so setting them in CSS means a
+   phone paints the final box before any script runs and nothing below the bar
+   shifts. src/portal/phoneBar.ts then moves pause, restart and the rest
+   into place - the real nodes, so every listener comes with them. Until it
+   runs, pause and restart are emitted hidden anyway.
+
+   The NAME comes back on a phone game page because the breadcrumb that said it
+   is gone with the row. It is still in the h1 below either way. */
+.top .more{display:none}
+@media (max-width:719px){
+  body[data-page="game"].screen{--hh:52px;--uh:0px}
+  body[data-page="game"].screen .urow{display:none}
+  body[data-page="game"].screen .gname{display:block}
+  body[data-page="game"].screen .top .in{gap:6px;padding:0 8px}
+  body[data-page="game"].screen .top .more{display:block;position:relative;flex:0 0 auto}
+  body[data-page="game"].screen .top .more>summary{list-style:none}
+  body[data-page="game"].screen .top .more>summary::-webkit-details-marker{display:none}
+  body[data-page="game"].screen .top .more>summary::marker{content:""}
+  /* Pause and restart arrive from the utility row wearing its card styling,
+     which is cream on cream against this bar. */
+  body[data-page="game"].screen .top .in>.ubtn{background:rgba(255,255,255,.12);
+    color:var(--hdr-ink);box-shadow:none;border-radius:var(--hrad)}
+  /* The sheet: a card under the button, pinned to the inline end so it opens
+     inward in both directions, the same way the language sheet does. */
+  body[data-page="game"].screen .moresheet{position:absolute;inset-inline-end:0;
+    top:calc(var(--tap) + 6px);z-index:7;min-width:200px;max-width:min(84vw,300px);
+    padding:6px;display:flex;flex-direction:column;gap:2px;border-radius:var(--urad);
+    background:var(--doc-card);border:1px solid var(--doc-line);
+    box-shadow:0 10px 30px rgba(0,0,0,.25);color:var(--doc-ink)}
+  /* Inside the sheet every control is a ROW with its own label, read off the
+     aria-label it already carries, so no string is written twice. */
+  body[data-page="game"].screen .moresheet .ubtn,
+  body[data-page="game"].screen .moresheet .lang>summary{width:100%;height:var(--tap);
+    justify-content:flex-start;gap:10px;padding:0 10px;margin:0;border-radius:10px;
+    background:transparent;box-shadow:none;color:var(--doc-ink);font:600 15px/1 inherit}
+  body[data-page="game"].screen .moresheet .ubtn::after,
+  body[data-page="game"].screen .moresheet .lang>summary::after{content:attr(aria-label)}
+  body[data-page="game"].screen .moresheet .ubtn[hidden]{display:none}
+  body[data-page="game"].screen .moresheet .lang{margin:0}
+  body[data-page="game"].screen .moresheet .langsheet{position:static;box-shadow:none;
+    border:0;padding:0 0 0 34px;min-width:0}
+  body[data-page="game"].screen .moresheet .wallet-wrap{background:transparent;
+    padding:0 10px;height:var(--tap)}
+  body[data-page="game"].screen .moresheet #wallet-slot>*{color:var(--doc-ink)}
+}
 @media (max-width:480px){body{font-size:16px}h1{font-size:1.6rem}.play{width:100%}
   .stage .box{min-height:clamp(420px,calc(100dvh - 120px),860px)}
   .tagline{display:none}}
@@ -795,6 +850,13 @@ export interface HeaderChrome {
   soundLabel: string;
   /** For the header's full-screen control, which the runtime reveals. */
   fullLabel: string;
+  /**
+   * A GAME page's "more" button, shown on a phone only. Operator ruling
+   * 2026-09-14: the header and the utility row become ONE bar there, and what
+   * does not fit in it - language, share, full screen, tell us, the coins -
+   * goes behind this. Unset on the room and the boards, which keep both rows.
+   */
+  moreLabel?: string;
 }
 
 /**
@@ -994,6 +1056,20 @@ function screenChrome(
     <button type="button" class="hbtn ico" data-sound aria-label="${chrome.soundLabel}" hidden>
       ${icon("sound")}
     </button>
+    ${chrome.moreLabel
+      ? // EMPTY, and filled by the runtime (src/portal/phoneBar.ts) with the
+        // page's REAL controls under 720px - moved, never copied, because each
+        // is wired once by a querySelector that finds one node. Three dots are
+        // drawn here rather than added to the icon table: the table ships in
+        // the shell, and this glyph is emitted markup that costs a first visit
+        // nothing.
+        html`<details class="more">
+          <summary class="hbtn ico" aria-label="${chrome.moreLabel}">
+            ${raw('<span class="gl"><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><circle cx="5.5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="18.5" cy="12" r="1.9"/></svg></span>')}
+          </summary>
+          <div class="moresheet" role="group" aria-label="${chrome.moreLabel}"></div>
+        </details>`
+      : raw("")}
     <div class="wallet-wrap">${slot ?? raw("")}</div>
   `;
 }

@@ -62,6 +62,8 @@ export interface SiteCopy {
     restart: string;
     pause: string;
     resume: string;
+    /** The phone bar's button holding language, share, full screen, report and coins. */
+    more: string;
     /**
      * The word ON the badge of a game still being built, and the sentence a
      * screen reader says instead. Two fields rather than one because "Beta"
@@ -169,7 +171,7 @@ const he: SiteCopy = {
   dataSaver: "חיסכון בנתונים פעיל, אז אנחנו מחכים לאישור ולא מורידים לבד.",
   chrome: {
     back: "כל המשחקים", fullScreen: "מסך מלא", report: "ספרו לנו", sound: "צליל", restart: "מהתחלה",
-    pause: "השהיה", resume: "המשך",
+    pause: "השהיה", resume: "המשך", more: "עוד",
     beta: "בטא", betaNote: "המשחק הזה עדיין בבנייה",
     language: "שפה",
     share: "שיתוף",
@@ -265,7 +267,7 @@ const en: SiteCopy = {
   dataSaver: "Data saver is on, so we wait for your tap instead of downloading on our own.",
   chrome: {
     back: "All games", fullScreen: "Full screen", report: "Tell us", sound: "Sound", restart: "Restart",
-    pause: "Pause", resume: "Resume",
+    pause: "Pause", resume: "Resume", more: "More",
     beta: "Beta", betaNote: "This game is still being built",
     language: "Language",
     share: "Share",
@@ -373,7 +375,7 @@ const es: SiteCopy = {
   dataSaver: "Tienes el ahorro de datos activado, así que esperamos a que toques tú.",
   chrome: {
     back: "Todos los juegos", fullScreen: "Pantalla completa", report: "Cuéntanos", sound: "Sonido",
-    restart: "Reiniciar", pause: "Pausa", resume: "Continuar",
+    restart: "Reiniciar", pause: "Pausa", resume: "Continuar", more: "Más",
     beta: "Beta", betaNote: "Este juego todavía se está construyendo",
     language: "Idioma",
     share: "Compartir",
@@ -477,7 +479,7 @@ const fr: SiteCopy = {
   dataSaver: "L'économiseur de données est actif, alors nous attendons que vous appuyiez.",
   chrome: {
     back: "Tous les jeux", fullScreen: "Plein écran", report: "Dites-nous", sound: "Son",
-    restart: "Recommencer", pause: "Pause", resume: "Reprendre",
+    restart: "Recommencer", pause: "Pause", resume: "Reprendre", more: "Plus",
     beta: "Bêta", betaNote: "Ce jeu est encore en construction",
     language: "Langue",
     share: "Partager",

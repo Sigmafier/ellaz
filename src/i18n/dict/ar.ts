@@ -164,4 +164,8 @@ export const ar: Record<StringKey, string> = {
   reportBoardNow: "تماما كما هي الآن",
   reportScreen: "الشاشة",
   reportApp: "التطبيق",
+  controls: "التحكم",
+  controlArrows: "أسهم",
+  controlJoystick: "عصا تحكم",
+  controlBoard: "على اللوحة",
 };

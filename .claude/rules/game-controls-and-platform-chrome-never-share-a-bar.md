@@ -78,6 +78,31 @@ by `meta.tier === "showcase"`, the same band the arcade HUD uses, and
 `arcade-entrance-covers-the-arena.test.ts` pins the four ways it can regress
 without looking broken.
 
+**NARROWED AGAIN 2026-09-14, by operator ruling, in the change that needed it.**
+On a PHONE, a GAME page's header and utility row are ONE 52px bar: home, the
+game's name, pause, restart, sound, and a "more" button holding language, share,
+full screen, tell us and the coins. The operator asked for *"a full height
+experience"*, was shown the two rows collapsed with pause and restart kept
+beside sound (hall `20260914-021853`), and picked it over keeping both rows.
+
+What survives is the part that was always load-bearing - **a control is in ONE
+place, the same place on every game**, and the families stay in order within the
+row: platform at the start (home), the game's own buttons, platform at the end
+(sound, more). What it costs is stated rather than hidden:
+
+```
+                         BEFORE (two rows)     AFTER (one bar)
+  chrome above the game       114px                 52px
+  Survivors' arena @390x844   359x478               359x756
+  Snake @390x844              shrunk 0.88, cut      0.90, nothing cut
+  rows that mix families        0                     1 (phone only)
+```
+
+Scoped to `body[data-page="game"]` under 720px. The room and the boards keep both
+rows, and a PC keeps both rows. The controls are MOVED into the bar by
+`src/portal/phoneBar.ts` - the same nodes, never copies - so nothing is wired
+twice. Pinned by `phone-bar.test.ts` and `scripts/repro/repro-phone-fills-the-screen.mjs`.
+
 **The test, and it is one question:** *would this control still make sense on
 the World screen or the Boards?* Yes → platform. No → game. Then, for a game
 control: *is it a button or a number?* Button → the utility row. Number, or the

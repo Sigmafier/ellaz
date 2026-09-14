@@ -7,6 +7,7 @@ import { CANONICAL_LOCALE, isAppLocale } from "@i18n/locales";
 import { analytics, startCloudSync } from "@sdk/index";
 import { Boards } from "./Boards";
 import { fitStage } from "./fitStage";
+import { wirePhoneBar } from "./phoneBar";
 import { GameHost } from "./GameHost";
 import { World } from "./world/World";
 import { WalletChip } from "./WalletChip";
@@ -597,6 +598,10 @@ export function bootContentPage(ctx: PageContext): void {
     wireRestart();
     wirePause();
     wireShare(ctx, locale);
+    // A GAME page only: on a phone its header and utility row become one bar.
+    // The room and the boards keep both rows - the operator's ruling was about
+    // games, and neither of those screens is short of height.
+    if (ctx.kind === "game") wirePhoneBar();
     wireEmbedCopy();
     wireEmbedPreview();
   }

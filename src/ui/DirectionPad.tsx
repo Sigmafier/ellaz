@@ -21,6 +21,9 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties, type Reac
 // phone, or anyone on assistive input, cannot reliably hold a sustained pointer
 // gesture — so if this component ever ships with the arrows removed, the games
 // on it are broken for exactly the players this platform is for.
+// The one sanctioned exception (operator ruling 2026-09-14): `variant: "stick"`,
+// shown only behind a game's Controls setting whose Arrows choice is the default
+// and always one tap away (`ControlModePicker`).
 //
 // It lives in `@ui` beside `GameChrome` and `DifficultySelector`, and like
 // `GameChrome` it is pinned to the `page` chunk in vite.config.ts — every game
@@ -98,22 +101,39 @@ export function padDirection(dx: number, dy: number, radius: number): PadDir | n
   return dy > 0 ? "down" : "up";
 }
 
-export function DirectionPad(props: {
-  /** Called once when the stick enters a direction, and on every arrow press. */
-  onDir: (dir: PadDir) => void;
-  /** Edge of one cell, in px. Defaults to `PAD_CELL`, and both games take the
-   *  default — pass this only if a game genuinely needs a different pad. */
-  size?: number;
-  /**
-   * Repeat the held direction every N ms while the stick stays in it. Omit for
-   * a game that steers once and keeps going (snake); pass it for a game where a
-   * direction is a STEP and holding should walk (maze).
-   */
-  repeatMs?: number;
-}): ReactElement {
-  const { onDir, size = PAD_CELL, repeatMs } = props;
+/**
+ * One reading of a stick: where to draw the knob, and which direction it means.
+ *
+ * The ONE implementation of stick maths, shared by the pad's small stick, the
+ * big stick (`variant: "stick"`) and the board stick (`BoardStick.tsx`), so the
+ * three cannot come to disagree about what a drag means.
+ *
+ * The knob is clamped to the rim so it never leaves its well however far the
+ * finger travels; clamping keeps the angle, so the direction is read off the
+ * displacement as given. A zero-length displacement and a zero radius both come
+ * back as a centred knob and no direction, never NaN - a pointer that has
+ * landed and not moved yet is exactly that case, on every gesture.
+ */
+export function readStick(
+  dx: number,
+  dy: number,
+  radius: number,
+): { knob: { x: number; y: number }; dir: PadDir | null } {
+  const dist = Math.hypot(dx, dy);
+  const k = dist > radius && dist > 0 ? Math.max(radius, 0) / dist : 1;
+  return { knob: { x: dx * k, y: dy * k }, dir: padDirection(dx, dy, radius) };
+}
 
-  const wellRef = useRef<HTMLDivElement>(null);
+/**
+ * The held-direction half of a stick: fire once on entering a direction, repeat
+ * it every `repeatMs` while it is held, stop on release or unmount.
+ *
+ * Shared with `BoardStick` for the same reason as `readStick`.
+ */
+export function useHeldDirection(
+  onDir: (dir: PadDir) => void,
+  repeatMs: number | undefined,
+): { hold: (dir: PadDir | null) => void; release: () => void } {
   /** The direction the stick is currently in, so re-entering it does not refire. */
   const heldRef = useRef<PadDir | null>(null);
   const timerRef = useRef<number | null>(null);
@@ -121,9 +141,6 @@ export function DirectionPad(props: {
    *  the repeat timer outlives several of them. */
   const onDirRef = useRef(onDir);
   onDirRef.current = onDir;
-
-  /** Knob offset from the middle, in px. State because it is drawn. */
-  const [knob, setKnob] = useState<{ x: number; y: number } | null>(null);
 
   const stopRepeat = useCallback(() => {
     if (timerRef.current !== null) window.clearInterval(timerRef.current);
@@ -134,22 +151,8 @@ export function DirectionPad(props: {
   // game — a setState into nothing, in front of a child.
   useEffect(() => stopRepeat, [stopRepeat]);
 
-  /** Read the pointer, move the knob, and fire if the direction changed. */
-  const track = useCallback(
-    (clientX: number, clientY: number) => {
-      const box = wellRef.current?.getBoundingClientRect();
-      if (!box || box.width === 0) return;
-      const radius = box.width / 2;
-      const dx = clientX - (box.left + radius);
-      const dy = clientY - (box.top + radius);
-
-      // Clamp to the rim, so the knob never leaves its well however far the
-      // finger travels.
-      const dist = Math.hypot(dx, dy);
-      const k = dist > radius ? radius / dist : 1;
-      setKnob({ x: dx * k, y: dy * k });
-
-      const dir = padDirection(dx, dy, radius);
+  const hold = useCallback(
+    (dir: PadDir | null) => {
       if (dir === heldRef.current) return;
       heldRef.current = dir;
       stopRepeat();
@@ -168,8 +171,62 @@ export function DirectionPad(props: {
   const release = useCallback(() => {
     heldRef.current = null;
     stopRepeat();
-    setKnob(null);
   }, [stopRepeat]);
+
+  return { hold, release };
+}
+
+/**
+ * The big stick's well, in px, when a game's Controls setting is "Joystick".
+ * One stick where the pad was: 200 is inside the pad's own 280px footprint, so
+ * switching modes does not make the footer taller.
+ */
+export const STICK_SIZE = 200;
+
+export function DirectionPad(props: {
+  /** Called once when the stick enters a direction, and on every arrow press. */
+  onDir: (dir: PadDir) => void;
+  /** Edge of one cell, in px. Defaults to `PAD_CELL`, and both games take the
+   *  default — pass this only if a game genuinely needs a different pad. */
+  size?: number;
+  /**
+   * Repeat the held direction every N ms while the stick stays in it. Omit for
+   * a game that steers once and keeps going (snake); pass it for a game where a
+   * direction is a STEP and holding should walk (maze).
+   */
+  repeatMs?: number;
+  /**
+   * "pad" (the default): the four arrows with the small stick in the middle.
+   * "stick": one big stick and no arrows - ONLY ever behind a Controls setting
+   * whose Arrows choice is one tap away, never as the only way to steer.
+   */
+  variant?: "pad" | "stick";
+}): ReactElement {
+  const { onDir, size = PAD_CELL, repeatMs, variant = "pad" } = props;
+
+  const wellRef = useRef<HTMLDivElement>(null);
+  const { hold, release: releaseHeld } = useHeldDirection(onDir, repeatMs);
+
+  /** Knob offset from the middle, in px. State because it is drawn. */
+  const [knob, setKnob] = useState<{ x: number; y: number } | null>(null);
+
+  /** Read the pointer, move the knob, and fire if the direction changed. */
+  const track = useCallback(
+    (clientX: number, clientY: number) => {
+      const box = wellRef.current?.getBoundingClientRect();
+      if (!box || box.width === 0) return;
+      const radius = box.width / 2;
+      const reading = readStick(clientX - (box.left + radius), clientY - (box.top + radius), radius);
+      setKnob(reading.knob);
+      hold(reading.dir);
+    },
+    [hold],
+  );
+
+  const release = useCallback(() => {
+    releaseHeld();
+    setKnob(null);
+  }, [releaseHeld]);
 
   const keyStyle: CSSProperties = {
     border: "none",
@@ -184,6 +241,85 @@ export function DirectionPad(props: {
     touchAction: "none",
     userSelect: "none",
   };
+
+  const stick = variant === "stick";
+  const wellPlace: CSSProperties = stick
+    ? { width: STICK_SIZE, height: STICK_SIZE }
+    : { gridColumn: 2, gridRow: 2 };
+  const knobSize = (stick ? STICK_SIZE : size) * KNOB;
+
+  // The stick. Hidden from assistive tech on purpose: it offers nothing
+  // the four buttons do not, and announcing a drag target to a reader who
+  // cannot drag is worse than silence. As the big stick (`variant: "stick"`)
+  // the arrows live one tap away in the game's Controls setting instead.
+  const well = (
+    <div
+      ref={wellRef}
+      aria-hidden="true"
+      onPointerDown={(e) => {
+        e.preventDefault();
+        // Capture, so a finger that slides off the well keeps steering
+        // instead of silently handing the gesture to whatever is underneath.
+        e.currentTarget.setPointerCapture(e.pointerId);
+        track(e.clientX, e.clientY);
+      }}
+      onPointerMove={(e) => {
+        if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+        track(e.clientX, e.clientY);
+      }}
+      onPointerUp={release}
+      onPointerCancel={release}
+      // The third way a gesture ends, and the one that is easy to miss: the
+      // browser can take the capture back on its own (a system gesture, a
+      // context menu, the page being scrolled out from under the finger).
+      // Without this the stick keeps its held direction after the finger has
+      // gone — and with `repeatMs` set, that is a game that walks by itself.
+      onLostPointerCapture={release}
+      style={{
+        ...wellPlace,
+        borderRadius: "50%",
+        background: "var(--surface-2)",
+        // The RING is what makes it read as a well rather than as a stray
+        // dot. Measured at 390px in the light theme: `--surface-2` is cream
+        // on a cream page, so without an edge the circle all but disappears
+        // and the knob looks like it is floating in the gap between four
+        // keys. `--line` is the one token that stays a visible edge in both
+        // themes, which is the whole reason it exists.
+        border: "2px solid var(--line)",
+        boxSizing: "border-box",
+        boxShadow: "var(--shadow-1)",
+        display: "grid",
+        placeItems: "center",
+        cursor: "grab",
+        touchAction: "none",
+        userSelect: "none",
+      }}
+    >
+      <div
+        style={{
+          width: knobSize,
+          height: knobSize,
+          borderRadius: "50%",
+          background: "var(--brand-fill)",
+          boxShadow: "var(--shadow-2)",
+          // Snap home when the finger lifts; follow it exactly while it is
+          // down, or the knob lags behind the direction already being sent.
+          transform: knob ? `translate(${knob.x}px, ${knob.y}px)` : undefined,
+          transition: knob ? "none" : "transform 0.14s var(--ease)",
+          pointerEvents: "none",
+        }}
+      />
+    </div>
+  );
+
+  if (stick) {
+    // No arrows, so no grid: one well, centred where the pad was.
+    return (
+      <div dir="ltr" style={{ display: "grid", placeItems: "center", touchAction: "none" }}>
+        {well}
+      </div>
+    );
+  }
 
   return (
     // `dir="ltr"`, always. The app is Hebrew RTL by default, so an RTL grid puts
@@ -218,67 +354,8 @@ export function DirectionPad(props: {
         </button>
       ))}
 
-      {/* The stick. Hidden from assistive tech on purpose: it offers nothing
-          the four buttons above do not, and announcing a drag target to a
-          reader who cannot drag is worse than silence. */}
-      <div
-        ref={wellRef}
-        aria-hidden="true"
-        onPointerDown={(e) => {
-          e.preventDefault();
-          // Capture, so a finger that slides off the well keeps steering
-          // instead of silently handing the gesture to whatever is underneath.
-          e.currentTarget.setPointerCapture(e.pointerId);
-          track(e.clientX, e.clientY);
-        }}
-        onPointerMove={(e) => {
-          if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
-          track(e.clientX, e.clientY);
-        }}
-        onPointerUp={release}
-        onPointerCancel={release}
-        // The third way a gesture ends, and the one that is easy to miss: the
-        // browser can take the capture back on its own (a system gesture, a
-        // context menu, the page being scrolled out from under the finger).
-        // Without this the stick keeps its held direction after the finger has
-        // gone — and with `repeatMs` set, that is a game that walks by itself.
-        onLostPointerCapture={release}
-        style={{
-          gridColumn: 2,
-          gridRow: 2,
-          borderRadius: "50%",
-          background: "var(--surface-2)",
-          // The RING is what makes it read as a well rather than as a stray
-          // dot. Measured at 390px in the light theme: `--surface-2` is cream
-          // on a cream page, so without an edge the circle all but disappears
-          // and the knob looks like it is floating in the gap between four
-          // keys. `--line` is the one token that stays a visible edge in both
-          // themes, which is the whole reason it exists.
-          border: "2px solid var(--line)",
-          boxSizing: "border-box",
-          boxShadow: "var(--shadow-1)",
-          display: "grid",
-          placeItems: "center",
-          cursor: "grab",
-          touchAction: "none",
-          userSelect: "none",
-        }}
-      >
-        <div
-          style={{
-            width: size * KNOB,
-            height: size * KNOB,
-            borderRadius: "50%",
-            background: "var(--brand-fill)",
-            boxShadow: "var(--shadow-2)",
-            // Snap home when the finger lifts; follow it exactly while it is
-            // down, or the knob lags behind the direction already being sent.
-            transform: knob ? `translate(${knob.x}px, ${knob.y}px)` : undefined,
-            transition: knob ? "none" : "transform 0.14s var(--ease)",
-            pointerEvents: "none",
-          }}
-        />
-      </div>
+
+      {well}
     </div>
   );
 }
