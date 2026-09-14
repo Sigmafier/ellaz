@@ -3,6 +3,7 @@ import { textFor, AUTONYM, dirOf, type Locale } from "@i18n/index";
 import type { GameContext } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
 import { type DifficultyOption } from "@ui/DifficultySelector";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { Button, IconButton } from "@ui/index";
 import { burst, haptic, popEl, shake } from "@juice/index";
 import { Prompt, winMoment, useRememberedLevel } from "@shared/index";
@@ -46,6 +47,38 @@ const LEVEL_OPTIONS: DifficultyOption<LevelId>[] = LEVELS.map((l) => ({
   id: l.id,
   label: LEVEL_LABELS[l.id],
 }));
+
+/*
+ * THE PC BOARD (2026-09-14): the picture, the word and the tray as one fixed
+ * landscape box under the prompt, every length a share of its width (`cqw`).
+ * In board-widths:
+ *
+ *   the picture row  12 tall - the picture, the speaker, the hint button
+ *   between          1.5
+ *   the slots        11 tall; one slot min(9, 100 / count) wide
+ *   between          1.5
+ *   the tray         9 tall; one tile min(9, 100 / count) square
+ *
+ * 12 + 1.5 + 11 + 1.5 + 9 = 35 tall for 100 wide, whatever the word. A long
+ * word or a big tray shrinks its own cells to keep ONE row; it never adds a
+ * row, so the box keeps its shape from word to word.
+ *
+ * The longest tray this game can deal is 13 tiles (a 9-letter word plus hard's
+ * 4 decoys): min(9, (100 - 12 x 1) / 13) = 6.77. At 1536x639 the board is
+ * min(1119, (639 - 120 - 183 - 24) x 100/35) = 891 wide, so that tile is 60px -
+ * past the 56px floor. Chrome 183 is an ESTIMATE: the 111 every GameChrome game
+ * pays, plus the prompt chip (60) and its 12px gap.
+ */
+const PC_RATIO = 100 / 35;
+const PC_CHROME = 169;
+const PC_ROW = { picture: 12, slot: 11, tile: 9, between: 1.5 } as const;
+/** Gap between two cells in a row, and the widest a cell may be. */
+const PC_CELL_GAP = 1;
+const PC_CELL_MAX = 9;
+/** One cell's width, so `count` cells and their gaps fit one 100-wide row. */
+const pcCell = (count: number) =>
+  Math.min(PC_CELL_MAX, (100 - (Math.max(count, 1) - 1) * PC_CELL_GAP) / Math.max(count, 1));
+const cq = (n: number) => `${Math.round(n * 100) / 100}cqw`;
 
 /** A speaker that says the WORD aloud, in the CONTENT language (not the UI's). */
 function WordSpeaker({
@@ -98,6 +131,9 @@ export function Spell({ ctx }: { ctx: GameContext }): ReactElement {
     "easy",
   );
   const level = levelById(levelId);
+  // Read ONCE at mount: a PC run draws the fixed board below the prompt; a
+  // phone run is exactly as it was.
+  const [pc] = useState(isPcArena);
 
   // Games always receive the app locale narrowed to a shipped locale (he/en/es),
   // so "the interface is Hebrew" is exactly `ctx.locale === "he"` - decided
@@ -303,6 +339,171 @@ export function Spell({ ctx }: { ctx: GameContext }): ReactElement {
   // speaker spelling `dog` must see D-O-G left to right.
   const wordDir = dirOf(contentLang);
 
+  // The picture, the word and the tray. A phone run draws them exactly as it
+  // always did; a PC run draws the same elements at the fixed board's `cqw`
+  // sizes, and every PC-only property is spread in so the phone's markup
+  // cannot move.
+  const slotW = pcCell(slots.length);
+  const tileW = pcCell(puzzle.tray.length);
+
+  /* The hint fills the first letter still unknown, and it can always be
+     pressed - a rationed hint is one a stuck four-year-old cannot reach.
+     It is a big labelled button rather than a small icon because it is the
+     way out of being stuck, which is the moment somebody needs the largest
+     target on the screen. On a PC it rides the picture row. */
+  const hintButton = (
+    <Button
+      variant="ghost"
+      kids
+      onClick={onHint}
+      ariaLabel={T.hint}
+      style={pc ? { height: cq(8), fontSize: cq(2.8) } : undefined}
+    >
+      💡 {T.hint}
+    </Button>
+  );
+
+  /* The picture is the question. The word is never written out - that
+     would be copying rather than spelling - and the speaker is an optional
+     aid that says it aloud. Nothing here needs sound to be playable. */
+  const pictureRow = (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        ...(pc ? { justifyContent: "center" } : {}),
+        gap: pc ? cq(2.5) : 12,
+        ...(pc ? { height: cq(PC_ROW.picture) } : {}),
+      }}
+    >
+      <span
+        aria-label={puzzle.item[ctx.locale]}
+        style={{ fontSize: pc ? cq(10) : "clamp(56px, 20vw, 104px)", lineHeight: 1 }}
+      >
+        {puzzle.item.emoji}
+      </span>
+      <WordSpeaker ctx={ctx} word={puzzle.word} lang={contentLang} />
+      {pc && hintButton}
+    </div>
+  );
+
+  /* The word so far. One box per letter, so the length of the word is
+     visible from the start - a child can see they need four letters
+     before they have found one. On a PC it never wraps: a long word
+     narrows its slots instead. */
+  const slotRow = (
+    <div
+      ref={wordRef}
+      dir={wordDir}
+      style={{
+        display: "flex",
+        ...(pc ? { alignItems: "center" } : {}),
+        gap: pc ? cq(PC_CELL_GAP) : 8,
+        flexWrap: pc ? "nowrap" : "wrap",
+        justifyContent: "center",
+        width: pc ? "100%" : "min(92vw, 560px)",
+        ...(pc ? { height: cq(PC_ROW.slot), marginTop: cq(PC_ROW.between) } : {}),
+      }}
+    >
+      {slots.map((slot, i) => {
+        const letter = slot ? puzzle.tray.find((t) => t.id === slot.tileId)?.letter : undefined;
+        return (
+          <span
+            key={i}
+            style={{
+              ...(pc
+                ? { flex: "0 0 auto", boxSizing: "border-box" as const, width: cq(slotW) }
+                : { minWidth: "clamp(38px, 11vw, 58px)" }),
+              height: pc ? "100%" : "clamp(48px, 14vw, 72px)",
+              display: "grid",
+              placeItems: "center",
+              padding: pc ? 0 : "0 4px",
+              borderRadius: 14,
+              // A hinted letter is drawn softer than one the child found. It
+              // is not a penalty and it is never taken away - it is simply
+              // honest about which letters were given.
+              background: slot ? (slot.hinted ? "var(--surface-2)" : "var(--brand)") : "transparent",
+              color: slot ? (slot.hinted ? "var(--text)" : "#fff") : "var(--text)",
+              border: slot ? "3px solid transparent" : "3px dashed var(--surface-2)",
+              fontFamily: "Fredoka, inherit",
+              fontWeight: 800,
+              fontSize: pc ? cq(Math.min(6, slotW * 0.66)) : "clamp(26px, 8vw, 40px)",
+              lineHeight: 1,
+              transition: "background 0.15s linear, color 0.15s linear",
+            }}
+          >
+            {letter ?? ""}
+          </span>
+        );
+      })}
+    </div>
+  );
+
+  /* dir="ltr": the tray is a spatial grid whose order carries no meaning,
+     so it must not mirror in the Hebrew RTL app - the tile a child sees on
+     the left has to be the tile under their finger. The letters themselves
+     render correctly in either script regardless. */
+  const tray = (
+    <div
+      dir="ltr"
+      className="ellaz-play-surface"
+      style={{
+        display: "flex",
+        ...(pc ? { alignItems: "center" } : {}),
+        gap: pc ? cq(PC_CELL_GAP) : 10,
+        flexWrap: pc ? "nowrap" : "wrap",
+        justifyContent: "center",
+        width: pc ? "100%" : "min(92vw, 560px)",
+        ...(pc ? { height: cq(PC_ROW.tile), marginTop: cq(PC_ROW.between) } : {}),
+        touchAction: "none",
+      }}
+    >
+      {puzzle.tray.map((tile) => {
+        const used = spent.has(tile.id);
+        const out = ruledOut.includes(tile.id);
+        return (
+          <button
+            key={tile.id}
+            type="button"
+            aria-label={tile.letter}
+            disabled={used || out || solved}
+            onPointerDown={() => onTile(tile.id)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onTile(tile.id);
+              }
+            }}
+            style={{
+              ...(pc ? { flex: "0 0 auto", padding: 0 } : {}),
+              width: pc ? cq(tileW) : "clamp(52px, 15vw, 72px)",
+              height: pc ? cq(tileW) : "clamp(52px, 15vw, 72px)",
+              border: "none",
+              borderRadius: 18,
+              background: used ? "transparent" : out ? "var(--surface-2)" : "var(--surface)",
+              color: "var(--text)",
+              fontFamily: "Fredoka, inherit",
+              fontWeight: 800,
+              fontSize: pc ? cq(tileW * 0.55) : "clamp(26px, 8vw, 40px)",
+              lineHeight: 1,
+              display: "grid",
+              placeItems: "center",
+              boxShadow: used ? "none" : "var(--shadow-1)",
+              // A spent tile keeps its space rather than leaving the row, so
+              // the tray never reflows under a child's finger mid-word.
+              opacity: used ? 0.12 : out ? 0.4 : 1,
+              cursor: used || out ? "default" : "pointer",
+              touchAction: "none",
+              transition: "opacity 0.15s linear",
+            }}
+          >
+            {tile.letter}
+          </button>
+        );
+      })}
+    </div>
+  );
+
   return (
     <GameChrome
       ctx={ctx}
@@ -357,132 +558,29 @@ export function Spell({ ctx }: { ctx: GameContext }): ReactElement {
     >
       <Prompt ctx={ctx} glyph="✏️" text={T.prompt} />
 
-      {/* The picture is the question. The word is never written out - that
-          would be copying rather than spelling - and the speaker is an optional
-          aid that says it aloud. Nothing here needs sound to be playable. */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <span
-          aria-label={puzzle.item[ctx.locale]}
-          style={{ fontSize: "clamp(56px, 20vw, 104px)", lineHeight: 1 }}
+      {pc ? (
+        <div
+          className={BOARD_CLASS}
+          style={{
+            ...boardVars({ vw: 94, vh: 60, cap: 560, chrome: PC_CHROME, ratio: PC_RATIO }),
+            containerType: "inline-size",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
         >
-          {puzzle.item.emoji}
-        </span>
-        <WordSpeaker ctx={ctx} word={puzzle.word} lang={contentLang} />
-      </div>
-
-      {/* The word so far. One box per letter, so the length of the word is
-          visible from the start - a child can see they need four letters
-          before they have found one. */}
-      <div
-        ref={wordRef}
-        dir={wordDir}
-        style={{
-          display: "flex",
-          gap: 8,
-          flexWrap: "wrap",
-          justifyContent: "center",
-          width: "min(92vw, 560px)",
-        }}
-      >
-        {slots.map((slot, i) => {
-          const letter = slot ? puzzle.tray.find((t) => t.id === slot.tileId)?.letter : undefined;
-          return (
-            <span
-              key={i}
-              style={{
-                minWidth: "clamp(38px, 11vw, 58px)",
-                height: "clamp(48px, 14vw, 72px)",
-                display: "grid",
-                placeItems: "center",
-                padding: "0 4px",
-                borderRadius: 14,
-                // A hinted letter is drawn softer than one the child found. It
-                // is not a penalty and it is never taken away - it is simply
-                // honest about which letters were given.
-                background: slot ? (slot.hinted ? "var(--surface-2)" : "var(--brand)") : "transparent",
-                color: slot ? (slot.hinted ? "var(--text)" : "#fff") : "var(--text)",
-                border: slot ? "3px solid transparent" : "3px dashed var(--surface-2)",
-                fontFamily: "Fredoka, inherit",
-                fontWeight: 800,
-                fontSize: "clamp(26px, 8vw, 40px)",
-                lineHeight: 1,
-                transition: "background 0.15s linear, color 0.15s linear",
-              }}
-            >
-              {letter ?? ""}
-            </span>
-          );
-        })}
-      </div>
-
-      {/* dir="ltr": the tray is a spatial grid whose order carries no meaning,
-          so it must not mirror in the Hebrew RTL app - the tile a child sees on
-          the left has to be the tile under their finger. The letters themselves
-          render correctly in either script regardless. */}
-      <div
-        dir="ltr"
-        className="ellaz-play-surface"
-        style={{
-          display: "flex",
-          gap: 10,
-          flexWrap: "wrap",
-          justifyContent: "center",
-          width: "min(92vw, 560px)",
-          touchAction: "none",
-        }}
-      >
-        {puzzle.tray.map((tile) => {
-          const used = spent.has(tile.id);
-          const out = ruledOut.includes(tile.id);
-          return (
-            <button
-              key={tile.id}
-              type="button"
-              aria-label={tile.letter}
-              disabled={used || out || solved}
-              onPointerDown={() => onTile(tile.id)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onTile(tile.id);
-                }
-              }}
-              style={{
-                width: "clamp(52px, 15vw, 72px)",
-                height: "clamp(52px, 15vw, 72px)",
-                border: "none",
-                borderRadius: 18,
-                background: used ? "transparent" : out ? "var(--surface-2)" : "var(--surface)",
-                color: "var(--text)",
-                fontFamily: "Fredoka, inherit",
-                fontWeight: 800,
-                fontSize: "clamp(26px, 8vw, 40px)",
-                lineHeight: 1,
-                display: "grid",
-                placeItems: "center",
-                boxShadow: used ? "none" : "var(--shadow-1)",
-                // A spent tile keeps its space rather than leaving the row, so
-                // the tray never reflows under a child's finger mid-word.
-                opacity: used ? 0.12 : out ? 0.4 : 1,
-                cursor: used || out ? "default" : "pointer",
-                touchAction: "none",
-                transition: "opacity 0.15s linear",
-              }}
-            >
-              {tile.letter}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* The hint fills the first letter still unknown, and it can always be
-          pressed - a rationed hint is one a stuck four-year-old cannot reach.
-          It is a big labelled button rather than a small icon because it is the
-          way out of being stuck, which is the moment somebody needs the largest
-          target on the screen. */}
-      <Button variant="ghost" kids onClick={onHint} ariaLabel={T.hint}>
-        💡 {T.hint}
-      </Button>
+          {pictureRow}
+          {slotRow}
+          {tray}
+        </div>
+      ) : (
+        <>
+          {pictureRow}
+          {slotRow}
+          {tray}
+          {hintButton}
+        </>
+      )}
     </GameChrome>
   );
 }

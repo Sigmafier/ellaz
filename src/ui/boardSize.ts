@@ -69,9 +69,8 @@ export type BoardSize = {
    */
   ratio?: number;
   /**
-   * The desktop ceiling, px. Defaults to what the 1680px game panel leaves
-   * after its own 8px padding either side - `game-panel-clears-widest-board.test.ts`
-   * is the gate that holds those two numbers together.
+   * The desktop ceiling, px. Defaults to `PANEL_USABLE`, which never binds on
+   * a real screen - see its doc.
    */
   capPc?: number;
   /**
@@ -87,22 +86,20 @@ export type BoardSize = {
 };
 
 /**
- * What the desktop game panel leaves a board: 1680 - 8px either side.
+ * The desktop ceiling a board sized through `boardVars` may reach.
  *
- * ONE CEILING FOR EVERY GAME since 2026-09-14. It used to be 684 - the 700px
- * panel, which was really a reading width for the controls row - with 1664 as
- * a showcase-only exemption for survivors' landscape arena. The operator ruled
- * that every game has a PC version, so the 700px cap moved onto the row
- * (`global.css`) and every board gets the stage.
+ * THE PANEL HAS NO WIDTH CAP since 2026-09-14 (operator: "use the entire width
+ * of the PC screen"), so this is no longer the panel's arithmetic - it is the
+ * widest CSS viewport we name, a 4K monitor at 1x (3840), less the panel's 8px
+ * either side. It never binds on a real screen: a ratio board is bounded by the
+ * height the window leaves, and a filling arena (`pcFillArena`) is `width: 100%`
+ * and ignores it. It exists so `--b-cap-pc` is always a number, and so
+ * `game-panel-clears-widest-board.test.ts` can refuse a board asking for more.
  *
- * A square board cannot use it and does not need to: the desktop arm sizes
- * from the height the box really has, so at 1920x1080 a ratio-1 board is
- * bounded near 650px by the window. Only a landscape arena reaches this
- * number, and 1680 is the one measured for that case on 2026-09-13 - a ceiling
- * under the 1638 the height term resolves to decided the size instead of the
- * window. `game-panel-clears-widest-board.test.ts` pins it to the CSS.
+ * History: 684 (the 700px panel) until 2026-09-14, then 1664 (a 1680px panel)
+ * for a day.
  */
-export const PANEL_USABLE = 1664;
+export const PANEL_USABLE = 3824;
 
 /** The `min-width` every desktop arm in this repo keys on. Quoted, not chosen. */
 export const PC_MIN_WIDTH = 900;
@@ -120,6 +117,37 @@ export function isPcArena(): boolean {
   return typeof window !== "undefined" && typeof window.matchMedia === "function"
     ? window.matchMedia(`(min-width: ${PC_MIN_WIDTH}px)`).matches
     : false;
+}
+
+/**
+ * A PC arena that takes the WHOLE width the page gives it, and the height the
+ * window leaves under the chrome. Spread AFTER `boardVars(...)`, and only when
+ * `isPcArena()` said so at mount:
+ *
+ *     style={{ ...boardVars({ ..., chrome: 260 }), ...(pc ? pcFillArena() : {}) }}
+ *
+ * Operator, 2026-09-14, on the 16:9 pilot: "if we can use the entire width of
+ * the PC screen its even better! a true PC experience". A fixed 16:9 box is
+ * height-bound on every common screen (1202 of 1920 at 1920x1080), so an arena
+ * has no aspect ratio on a PC at all: its shape is the screen's.
+ *
+ * The height is `.ellaz-board`'s own desktop height term (`global.css`) with
+ * the ratio taken out, reading `--b-chrome` off the same element, so the two
+ * cannot disagree about what the chrome costs. Inline, so it beats the class's
+ * width and `aspect-ratio`; that is safe only because the shape is a property
+ * of the run, read once - a phone run never carries it.
+ *
+ * DIFFICULTY IS NOT THE SHAPE. A wider arena keeps its lane and prop count;
+ * props that must stay one size are sized in `cqh` against this element, which
+ * is why it declares `container-type: size`.
+ */
+export function pcFillArena(): CSSProperties {
+  return {
+    width: "100%",
+    height: "calc(100dvh - var(--hh, 0px) - var(--uh, 0px) - var(--oh, 0px) - var(--b-chrome) - 24px)",
+    aspectRatio: "auto",
+    containerType: "size",
+  };
 }
 
 /**

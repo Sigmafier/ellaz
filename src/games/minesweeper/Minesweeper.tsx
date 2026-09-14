@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { textFor } from "@i18n/index";
 import { formatScore, type GameContext, type SessionSpec } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { burst, shake, haptic } from "@juice/index";
 import { useGameSession, useGameTimer, useRememberedLevel, winMoment } from "@shared/index";
@@ -89,6 +90,9 @@ export function Minesweeper({ ctx }: { ctx: GameContext }) {
   const [best, setBest] = useState<number | undefined>(() => ctx.score?.best(levelId));
   const boardRef = useRef<HTMLDivElement>(null);
   const started = useRef(false);
+  // Read once, for the cell number size only - the grid's own size is the
+  // stylesheet's (`.ellaz-board`).
+  const [pc] = useState(isPcArena);
 
   // Stops on a win AND on a death — a board you lost has no time worth showing.
   // useGameTimer also stops on pause, so putting the tablet down costs nothing.
@@ -273,12 +277,24 @@ export function Minesweeper({ ctx }: { ctx: GameContext }) {
     >
       <div
         ref={boardRef}
-        className="ellaz-play-surface"
+        className={`ellaz-play-surface ${BOARD_CLASS}`}
         style={{
           display: "grid",
           gridTemplateColumns: `repeat(${state.cols}, 1fr)`,
           gap: 3,
-          width: `min(94vw, 52vh, ${state.cols * 42}px)`,
+          // Cap computed exactly as before (42px/cell) - a difficulty-scoped
+          // ceiling, kept as a runtime expression like the phone width always
+          // was; `state.cols` ranges 9-14, so this resolves to 378-588px.
+          // chrome 111: the head row only - the footer sits beside the board on a PC, so it costs no height.
+          // measured 2026-09-14 by repro-board-fills-the-window.mjs at every PC arm.
+          ...boardVars({
+            vw: 94,
+            vh: 52,
+            cap: state.cols * 42,
+            chrome: 111,
+            ratio: state.cols / state.rows,
+          }),
+          ...(pc ? { containerType: "inline-size" as const } : {}),
           aspectRatio: `${state.cols} / ${state.rows}`,
           background: "#2b2f57",
           padding: 4,
@@ -308,7 +324,10 @@ export function Minesweeper({ ctx }: { ctx: GameContext }) {
                     : "linear-gradient(180deg,#5a5fa8,#474c86)",
                   color: cell.revealed && cell.adj > 0 ? NUM_COLORS[cell.adj] : "#fff",
                   fontWeight: 800,
-                  fontSize: "clamp(11px, 3.4vw, 20px)",
+                  // On a PC the number follows the CELL (a share of the
+                  // grid's width per column), or a big board holds a tiny
+                  // digit.
+                  fontSize: pc ? `calc(${20 / state.cols}cqw)` : "clamp(11px, 3.4vw, 20px)",
                   display: "grid",
                   placeItems: "center",
                   padding: 0,

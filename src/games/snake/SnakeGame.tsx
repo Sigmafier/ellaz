@@ -1,6 +1,7 @@
 import { textFor } from "@i18n/index";
 import { useEffect, useRef, useState } from "react";
 import type { GameContext } from "@sdk/index";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { GameChrome } from "@ui/GameChrome";
 import { DirectionPad } from "@ui/DirectionPad";
 import { BoardStick } from "@ui/BoardStick";
@@ -89,6 +90,12 @@ export function SnakeGame({ ctx }: { ctx: GameContext }) {
   // Arrows (the default), one big stick, or a stick born under the thumb on
   // the board. Keyboard arrows and WASD steer in all three.
   const [controlMode, setControlMode] = useControlMode(ctx);
+  // Read ONCE at mount. A phone run keeps the host's viewport expression
+  // untouched; a PC run sizes the host from the height the window leaves
+  // (`.ellaz-board`). The canvas follows either way: Phaser.Scale.FIT fits the
+  // 440x440 logical canvas to whatever box the host is, so the grid, the speed
+  // and the rules do not move - only the CSS size of the same canvas does.
+  const [pc] = useState(isPcArena);
 
   useEffect(() => {
     let game: { destroy: (removeCanvas: boolean) => void } | null = null;
@@ -311,8 +318,15 @@ export function SnakeGame({ ctx }: { ctx: GameContext }) {
       >
         <div
           ref={hostRef}
+          className={pc ? BOARD_CLASS : undefined}
           style={{
-            width: "min(88vw, 46vh, 440px)",
+            // chrome 111 is an ESTIMATE, not a measurement: the head row every
+            // GameChrome game pays once its footer (the strip, the picker and
+            // the pad) sits in the column beside the board. Nothing else shares
+            // this column.
+            ...(pc
+              ? boardVars({ vw: 88, vh: 46, cap: 440, chrome: 111, ratio: 1 })
+              : { width: "min(88vw, 46vh, 440px)" }),
             aspectRatio: "1",
             borderRadius: 14,
             overflow: "hidden",

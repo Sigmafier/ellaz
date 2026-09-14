@@ -10,6 +10,7 @@ import {
 } from "react";
 import type { GameContext, RewardTier, SessionSpec } from "@sdk/index";
 import { Button } from "@ui/components";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { GameChrome, type ChromeLevel } from "@ui/GameChrome";
 import { burst, haptic, shake } from "@juice/index";
 import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
@@ -364,6 +365,9 @@ function HoldPad({
 
 export function BlocksGame({ ctx }: { ctx: GameContext }) {
   const [level, setLevel] = useRememberedLevel(ctx, LEVEL_OPTIONS.map((o) => o.id), "normal");
+  // Read ONCE at mount: a PC run sizes the well from the height the window
+  // gives it, a phone run keeps its per-cell viewport expression untouched.
+  const [pc] = useState(isPcArena);
   const restored = useMemo(() => ctx.session.load(SESSION), [ctx]);
   // A stacked-out run is never resumed — `live` clears it — so a stored `over`
   // board can only come from a build that wrote one, and it is refused here
@@ -780,7 +784,7 @@ export function BlocksGame({ ctx }: { ctx: GameContext }) {
 
       <div
         ref={boardRef}
-        className="ellaz-play-surface"
+        className={pc ? `ellaz-play-surface ${BOARD_CLASS}` : "ellaz-play-surface"}
         // The board is spatial and its controls are directional, so it is
         // pinned LTR inside the Hebrew app - otherwise column 0 draws on the
         // right and every arrow points the wrong way.
@@ -790,10 +794,32 @@ export function BlocksGame({ ctx }: { ctx: GameContext }) {
           // FRACTION of it. With fixed pixels a 5px radius on a 30px desktop
           // cell is a rounded square and on an 11px landscape-phone cell it is
           // a circle, which is what the first build shipped.
-          ["--cell" as string]: cell,
+          //
+          // PC: the well's WIDTH comes from `.ellaz-board` (the height the window
+          // leaves, times cols/rows) and a cell is one column of it, read in
+          // `cqw` against this element - the border is outside the content box
+          // `cqw` measures, so the columns land exactly on it.
+          ["--cell" as string]: pc ? `calc(100cqw / ${L.cols})` : cell,
           position: "relative",
-          width: `calc(${cell} * ${L.cols})`,
-          height: `calc(${cell} * ${L.rows})`,
+          ...(pc
+            ? {
+                // chrome 243 is an ESTIMATE, not a measurement: the 111 every
+                // GameChrome game pays, the "Next" row (48 at its tallest piece)
+                // plus its 12px gap, and the 58px pad plus the footer's 14.
+                ...boardVars({
+                  vw: 88,
+                  vh: Math.round(((52 * L.cols) / L.rows) * 100) / 100,
+                  cap: 30 * L.cols,
+                  chrome: 159,
+                  ratio: L.cols / L.rows,
+                }),
+                aspectRatio: `${L.cols} / ${L.rows}`,
+                containerType: "inline-size" as const,
+              }
+            : {
+                width: `calc(${cell} * ${L.cols})`,
+                height: `calc(${cell} * ${L.rows})`,
+              }),
           display: "grid",
           gridTemplateColumns: `repeat(${L.cols}, 1fr)`,
           gridTemplateRows: `repeat(${L.rows}, 1fr)`,

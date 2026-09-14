@@ -9,7 +9,7 @@ import {
 import type { GameContext } from "@sdk/index";
 import { type DifficultyOption } from "@ui/index";
 import { GameChrome } from "@ui/GameChrome";
-import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
+import { BOARD_CLASS, boardVars, isPcArena, pcFillArena } from "@ui/boardSize";
 import { burst, haptic, shake } from "@juice/index";
 import {
   PLAY_SURFACE_STYLE,
@@ -45,13 +45,14 @@ import {
  * The water, on both shapes (2026-09-14, operator: every game has a PC version).
  *
  * PHONE - byte-identical: `min(94vw, 520px)` wide by `min(56vh, 440px)` tall.
- * PC - LANDSCAPE, 16:9, sized by `.ellaz-board` from the height the page really
- * has. Nothing about the round changes with the shape: the lane count is
+ * PC - the WHOLE width the page gives it, and the height the window leaves
+ * (`pcFillArena`, operator 2026-09-14: "use the entire width of the PC
+ * screen"). The 16:9 pilot was height-bound at 1202 of 1920. Nothing about the
+ * round changes with the shape: the lane count is
  * `LANES` either way, lanes are placed by percentage, and a bubble's rise is a
  * DURATION over whatever height the water has, so a wider arena is the same
  * game drawn bigger rather than an easier one.
  */
-const PC_RATIO = 16 / 9;
 /** The `max(64px, …)` floor holds every bubble above the age-5 target on a small
  *  phone; the `min()` lets it grow on a tablet without four lanes colliding.
  *  On a PC the bubble follows the WATER (`cqh`), holding the phone's share of
@@ -411,10 +412,10 @@ export function BubblesGame({ ctx }: { ctx: GameContext }) {
         className={BOARD_CLASS}
         style={{
           ...PLAY_SURFACE_STYLE,
-          ...boardVars({ vw: 94, cap: 520, h: { vh: 56, cap: 440 }, chrome: 260, ratio: PC_RATIO }),
-          // The bubbles size against the water on a PC, so the water is their
-          // container. Never on a phone, where nothing reads a container unit.
-          ...(pc ? { containerType: "size" as const } : {}),
+          ...boardVars({ vw: 94, cap: 520, h: { vh: 56, cap: 440 }, chrome: 169, ratio: 16 / 9 }),
+          // The whole width on a PC, and the water is the bubbles' container.
+          // Never on a phone, where nothing reads a container unit.
+          ...(pc ? pcFillArena() : {}),
           borderRadius: 24,
           background: "linear-gradient(180deg, #0a2a4d 0%, #0d4f7a 58%, #14709a 100%)",
           boxShadow: "var(--shadow-2)",

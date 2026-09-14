@@ -49,6 +49,12 @@ import { readdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const BASE = argOf("--base") ?? "http://localhost:5180";
+/* `--dist <dir>` serves a build straight from disk through Playwright's router,
+ * with no server and no port. Two sessions building into one `dist/` read each
+ * other's half-written trees (2026-09-14: a build here emptied dist/ under a
+ * peer's build:check), so a measurement build goes to its own outDir and is
+ * read from there. The host in BASE is never contacted. */
+const DIST = argOf("--dist");
 const CONTROL = process.argv.includes("--control");
 
 /** The population, pinned by the expression each board declares in source.
@@ -181,7 +187,17 @@ function probe(expectedExpr) {
   const availH = Math.round(parseFloat(getComputedStyle(q).height));
   q.remove();
 
+  // The room the board's own row gives it: on a PC a game with a footer puts
+  // that footer in a column beside the board, so the frame's width overstates it.
+  const surface = board.closest(".ellaz-play-surface");
   return {
+    surfaceW: surface ? surface.clientWidth : frame.offsetWidth,
+    // Visual position, so the rect is right here: the question is where a
+    // player SEES the board, and a fitStage scale moves that too.
+    offCentre: (() => {
+      const r = board.getBoundingClientRect();
+      return Math.round(r.left + r.width / 2 - document.documentElement.clientWidth / 2);
+    })(),
     frameLayoutW: frame.offsetWidth,
     boardLayoutW: board.offsetWidth, // the LAYOUT box - immune to the transform
     boardLayoutH: board.offsetHeight,
@@ -273,7 +289,17 @@ async function arm(page, game, vp) {
     if (r.released)
       fails.push(`too tall to shrink honestly - fitStage gave the height back, so the game runs ${r.frameLayoutH - r.boxH}px below the fold`);
     if (r.scale !== 1) fails.push(`fitStage shrank the frame to ${r.scale} on a big screen`);
-    if (fill < FILL_FLOOR) fails.push(`frame fills ${(fill * 100).toFixed(0)}% of its box, floor ${FILL_FLOOR * 100}%`);
+    /* Operator, 2026-09-14: "we must keep the game in the middle no matter
+     * what". A footer beside the board once pushed every such game 184px left
+     * of centre at 1536x639 and nothing here could see it. 2px for rounding. */
+    if (Math.abs(r.offCentre) > 2) fails.push(`board is ${r.offCentre}px off the screen's centre line`);
+    /* A board can fill the screen in EITHER direction. A wide board that has
+     * already reached the page's width cannot be taller without changing its
+     * shape - vanish's 3-by-1 round is 1766 of 1920 wide and 581 tall - so
+     * "fills its box" is the height OR the width, never only the height. */
+    const wideFull = r.boardLayoutW >= FILL_FLOOR * r.surfaceW;
+    if (fill < FILL_FLOOR && !wideFull)
+      fails.push(`frame fills ${(fill * 100).toFixed(0)}% of its box and the board ${r.boardLayoutW} of its row's ${r.surfaceW} wide, floor ${FILL_FLOOR * 100}%`);
     /* The ceiling is not symmetry for its own sake. Without it the only thing
      * catching an OVERSIZED frame is fitStage's reaction to it, so the day the
      * valve is touched a game hanging off the bottom of the screen reads green.
@@ -290,7 +316,17 @@ async function arm(page, game, vp) {
 }
 
 const browser = await chromium.launch();
-const ctx = await browser.newContext({ deviceScaleFactor: 1 });
+const ctx = await browser.newContext({ deviceScaleFactor: 1, serviceWorkers: DIST ? "block" : "allow" });
+if (DIST) {
+  const TYPES = { html: "text/html", js: "text/javascript", css: "text/css", json: "application/json", svg: "image/svg+xml", png: "image/png", webp: "image/webp", woff2: "font/woff2", webmanifest: "application/manifest+json", xml: "application/xml", txt: "text/plain" };
+  await ctx.route(`${new URL(BASE).origin}/**`, async (route) => {
+    let path = decodeURIComponent(new URL(route.request().url()).pathname);
+    if (path.endsWith("/")) path += "index.html";
+    const file = `${DIST.replace(/\/$/, "")}${path}`;
+    if (!existsSync(file)) return route.fulfill({ status: 404, body: "not in dist" });
+    route.fulfill({ status: 200, contentType: TYPES[path.split(".").pop()] ?? "application/octet-stream", body: readFileSync(file) });
+  });
+}
 const page = await ctx.newPage();
 const pageErrors = [];
 page.on("pageerror", (e) => pageErrors.push(String(e)));

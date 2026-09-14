@@ -11,6 +11,7 @@ import {
 import type { GameContext } from "@sdk/index";
 import { Button, type DifficultyOption } from "@ui/index";
 import { GameChrome } from "@ui/GameChrome";
+import { BOARD_CLASS, boardVars, isPcArena, pcFillArena } from "@ui/boardSize";
 import { burst, haptic } from "@juice/index";
 import {
   PLAY_SURFACE_STYLE,
@@ -126,6 +127,16 @@ const DIFF_OPTIONS: DifficultyOption<Difficulty>[] = [
 const SIZE = 68;
 
 /**
+ * The creature on a PC, where the sky is the window's shape (2026-09-14,
+ * operator: every game has a PC version). It follows the SKY (`cqh`) at the
+ * phone's share of its height - 68px of 400 at 390x844 - with the same floor,
+ * so a big sky does not float six specks. The flight path reads the same share
+ * off the measured surface (`sizePx`), so CSS and keyframes agree.
+ */
+const SIZE_PC = "max(68px, 17cqh)";
+const SIZE_PC_SHARE = 0.17;
+
+/**
  * The sky's height.
  *
  * Bounded at BOTH ends, and the floor is the load-bearing half. A timed tapping
@@ -134,6 +145,15 @@ const SIZE = 68;
  * stat row; the cap stops it becoming an unreachable field on a desktop.
  */
 const SURFACE_H = "max(300px, min(52vh, 400px))";
+/*
+ * PC: the WHOLE width the page gives it and the height the window leaves
+ * (`pcFillArena`). The phone keeps `min(96vw, 640px)` through `boardVars` (the
+ * same `min()`) and SURFACE_H inline, which has no `boardVars` field. Nothing
+ * about a round changes with the shape: `LANES` is 6 either way, lanes are
+ * spread by percentage, and a crossing spans the creature's whole lifetime -
+ * the same DURATION over a wider sky - so a wide sky is the same round drawn
+ * bigger, never a slower or a busier one.
+ */
 
 /**
  * Where a lane sits vertically, as a `calc` rather than a pixel count — the
@@ -146,8 +166,8 @@ const SURFACE_H = "max(300px, min(52vh, 400px))";
  * per tick, so they never launch together). `hitTest` resolves any such instant
  * in favour of the newest, so nothing is ever untappable.
  */
-function laneTop(lane: number): string {
-  return `calc((100% - ${SIZE}px) * ${lane / (LANES - 1)})`;
+function laneTop(lane: number, size = `${SIZE}px`): string {
+  return `calc((100% - ${size}) * ${lane / (LANES - 1)})`;
 }
 
 /**
@@ -253,6 +273,8 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
   const recentRef = useRef<Creature[]>([]);
   const surfaceRef = useRef<HTMLDivElement>(null);
   const mounted = useRef(false);
+  // Read ONCE: the shape is a property of the run, never a live media query.
+  const [pc] = useState(isPcArena);
 
   const bump = useCallback((next: RoundScore) => {
     scoreRef.current = next;
@@ -289,9 +311,12 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
    */
   const motion = useCallback((p: Prop<Creature>): SpawnMotion => {
     const w = surfaceRef.current?.clientWidth ?? 320;
+    // The phone's 68 exactly; on a PC the same `max(68px, 17cqh)` the button is
+    // drawn at, read off the same surface.
+    const size = pc ? Math.max(SIZE, SIZE_PC_SHARE * (surfaceRef.current?.clientHeight ?? 0)) : SIZE;
     const rightward = p.id % 2 === 0;
-    const from = rightward ? -SIZE : w;
-    const to = rightward ? w : -SIZE;
+    const from = rightward ? -size : w;
+    const to = rightward ? w : -size;
     // A gentle wave, alternating up and down so neighbouring lanes do not bob
     // in unison. Small enough that the target never leaves the finger.
     const dip = p.id % 3 === 0 ? -15 : 13;
@@ -306,7 +331,7 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
       // child aims behind.
       options: { easing: "linear" },
     };
-  }, []);
+  }, [pc]);
 
   const onExpire = useCallback(
     (p: Prop<Creature>) => {
@@ -528,10 +553,13 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
         // when the creature it was on is tapped or flies off.
         tabIndex={-1}
         onPointerDown={onPointerDown}
+        className={BOARD_CLASS}
         style={{
           ...PLAY_SURFACE_STYLE,
-          width: "min(96vw, 640px)",
-          height: SURFACE_H,
+          ...boardVars({ vw: 96, cap: 640, chrome: 169, ratio: 16 / 9 }),
+          // PC: the whole width, and the sky is the creatures' container.
+          // Phone: today's height, inline, since `max(300px, ...)` has no field.
+          ...(pc ? pcFillArena() : { height: SURFACE_H }),
           borderRadius: 26,
           background: "linear-gradient(180deg, #86ccff 0%, #cfeaff 62%, #eaf6d8 100%)",
           boxShadow: "var(--shadow-2)",
@@ -558,9 +586,9 @@ export function BeesGame({ ctx }: { ctx: GameContext }): ReactElement {
             style={{
               position: "absolute",
               left: 0,
-              top: laneTop(p.lane),
-              width: SIZE,
-              height: SIZE,
+              top: pc ? laneTop(p.lane, SIZE_PC) : laneTop(p.lane),
+              width: pc ? SIZE_PC : SIZE,
+              height: pc ? SIZE_PC : SIZE,
               willChange: "transform",
               // The surface owns the pointer: `hitTest` works off bounding
               // rectangles, so a child element intercepting the event would only

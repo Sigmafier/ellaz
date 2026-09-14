@@ -422,7 +422,7 @@ export function Memory({ ctx }: { ctx: GameContext }) {
           // Phone: `min(92vw, 56vh, 460px)`, as it always was. PC: the height
           // the page has, times the grid's own shape (cols over rows - the 12px
           // gaps make it a hair off, which the 24px slack absorbs).
-          ...boardVars({ vw: 92, vh: 56, cap: 460, chrome: 257, ratio: cols / rows }),
+          ...boardVars({ vw: 92, vh: 56, cap: 460, chrome: 111, ratio: cols / rows }),
           ...(pc ? { containerType: "inline-size" as const } : {}),
         }}
       >

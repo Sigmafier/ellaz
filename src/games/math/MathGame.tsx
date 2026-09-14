@@ -3,6 +3,7 @@ import { textFor, type Locale } from "@i18n/index";
 import type { GameContext } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
 import { DifficultySelector, type DifficultyOption } from "@ui/DifficultySelector";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { burst, shake, haptic } from "@juice/index";
 import { winMoment, useRememberedLevel } from "@shared/index";
 import { generateProblem, isCorrect, LEVELS, type MathLevel, type OpMode, type Problem } from "./logic";
@@ -73,6 +74,65 @@ function GlyphGroup({ n, glyph, size }: { n: number; glyph?: string; size: strin
   );
 }
 
+/*
+ * THE PC BOARD (2026-09-14): one fixed landscape shape for every mode, the
+ * question card across the top and the three answers in one row under it.
+ * Every length is a share of the board's width (`cqw`), in board-widths:
+ *
+ *   the card     100 wide, 27 tall, 2 padding a side  -> 96 x 23 to draw in
+ *   between      3
+ *   the answers  3 of 30 wide x 20 tall, 2 gaps of 5  -> 100 wide, 20 tall
+ *
+ * 27 + 3 + 20 = 50 tall for 100 wide, so the ratio is 2 in every mode. What
+ * varies - a long sum, ten pictures, two groups side by side - never changes
+ * the box; its glyph size is worked out from its own item count instead.
+ *
+ * Emoji advance widths differ by platform font, so a glyph column is budgeted
+ * at 1.4em (glyph + the group's 0.12em gap + slack) and a row at 1.27em. A
+ * numeral is budgeted at 0.65em. These are budgets, not measurements.
+ *
+ * At 1536x639 (chrome 111, an ESTIMATE: the head row plus the play surface's
+ * padding, nothing else sits in this column) the board is
+ * min(1119, (639 - 120 - 111 - 24) x 2) = 768 wide, so an answer button is
+ * 230 x 154px - past the 72px kids floor on both axes.
+ */
+const PC_RATIO = 2;
+const PC_CHROME = 111;
+const PC_CARD = 27;
+const PC_CARD_PAD = 2;
+const PC_GAP = 3;
+const PC_ANSWER = { w: 30, h: 20, gap: 5, pad: 1.5 } as const;
+const EM_COL = 1.4;
+const EM_ROW = 1.27;
+/** Room to draw in, inside the card, less a 2cqw margin on the width. */
+const DRAW_W = 100 - 2 * PC_CARD_PAD - 4;
+const DRAW_H = PC_CARD - 2 * PC_CARD_PAD;
+
+const cols = (n: number) => Math.min(Math.max(n, 1), 5);
+const rows = (n: number) => Math.max(1, Math.ceil(n / 5));
+const cq = (n: number) => `${Math.round(n * 100) / 100}cqw`;
+
+/** The equation's numeral size, from its own length. */
+function pcEquationSize(text: string): number {
+  return Math.min(16, DRAW_W / (text.length * 0.65), DRAW_H / 1.1);
+}
+/** One group of `n` pictures filling the card. */
+function pcCountSize(n: number): number {
+  return Math.min(14, DRAW_W / (cols(n) * EM_COL), DRAW_H / (rows(n) * EM_ROW));
+}
+/** Two groups and three signs on ONE line; the signs are 1.2x a picture. */
+function pcVisualSize(a: number, b: number): number {
+  const w = (cols(a) + cols(b)) * EM_COL + 4;
+  return Math.min(12, DRAW_W / w, DRAW_H / (Math.max(rows(a), rows(b)) * EM_ROW));
+}
+/** Every answer group drawn at ONE size - the largest group's - so sizes stay comparable. */
+function pcChoiceSize(choices: number[]): number {
+  const n = Math.max(...choices);
+  const w = PC_ANSWER.w - 2 * PC_ANSWER.pad;
+  const h = PC_ANSWER.h - 2 * PC_ANSWER.pad;
+  return Math.min(9, w / (cols(n) * EM_COL), h / (rows(n) * EM_ROW));
+}
+
 export function MathGame({ ctx }: { ctx: GameContext }) {
   // This game's own words. A locale RECORD, so promoting a language reds
   // this block by name instead of leaving the game speaking English
@@ -82,6 +142,9 @@ export function MathGame({ ctx }: { ctx: GameContext }) {
     ctx.locale,
   );
   const [level, setLevel] = useRememberedLevel(ctx, LEVEL_OPTIONS.map((o) => o.id), "up10");
+  // Read ONCE at mount: a PC run draws the fixed board below; a phone run is
+  // exactly as it was.
+  const [pc] = useState(isPcArena);
   // The chosen operation filter, remembered across mounts and validated on read
   // (an unknown stored value falls back to "mixed"), mirroring useRememberedLevel.
   const [opMode, setOpModeState] = useState<OpMode>(() => {
@@ -181,6 +244,152 @@ export function MathGame({ ctx }: { ctx: GameContext }) {
     [ctx, problem, next],
   );
 
+  // The question and the answers. A phone run draws them exactly as it always
+  // did; a PC run draws the same elements at the fixed board's `cqw` sizes, and
+  // every PC-only property is spread in so the phone's markup cannot move.
+  const visualPc = pcVisualSize(problem.a, problem.b);
+  const card = (
+    <div
+      ref={cardRef}
+      style={{
+        background: "linear-gradient(180deg,#2b3170,#1c2150)",
+        borderRadius: 24,
+        ...(pc
+          ? { boxSizing: "border-box" as const, height: cq(PC_CARD), display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }
+          : {}),
+        padding: pc ? cq(PC_CARD_PAD) : "28px 24px",
+        ...(pc ? {} : { minWidth: "min(88vw, 360px)" }),
+        textAlign: "center",
+        boxShadow: "var(--shadow-2)",
+      }}
+    >
+      {/*
+        Every question is pinned dir="ltr". For the equation that is standard
+        notation in an RTL app; for the two-group visual sum it is load-bearing
+        in the same way - otherwise RTL mirrors the row and 3 + 2 is drawn as
+        2 + 3, which is a different (and for subtraction, unanswerable) sum.
+      */}
+      {problem.mode === "arith" && (
+        <div
+          dir="ltr"
+          style={{
+            fontSize: pc ? cq(pcEquationSize(`${problem.a} ${problem.op} ${problem.b} = ?`)) : "clamp(44px, 15vw, 84px)",
+            fontWeight: 800,
+            lineHeight: 1.1,
+            letterSpacing: pc ? "0.03em" : 2,
+            ...(pc ? { whiteSpace: "nowrap" as const } : {}),
+            // The card ground is a hard navy gradient, so pin the numerals to
+            // white rather than inheriting the app's dark ink (dark-on-dark).
+            color: "#fff",
+          }}
+        >
+          {problem.a} {problem.op} {problem.b} = <span style={{ color: "var(--yellow)" }}>?</span>
+        </div>
+      )}
+
+      {problem.mode === "count" && (
+        <GlyphGroup
+          n={problem.groups[0]}
+          glyph={problem.glyph}
+          size={pc ? cq(pcCountSize(problem.groups[0])) : "clamp(30px, 9vw, 52px)"}
+        />
+      )}
+
+      {/* Matching: the numeral IS the question, and the groups are the buttons. */}
+      {problem.mode === "match" && (
+        <div
+          dir="ltr"
+          style={{
+            fontSize: pc ? cq(20) : "clamp(56px, 20vw, 104px)",
+            fontWeight: 800,
+            lineHeight: 1.1,
+            color: "var(--yellow)",
+          }}
+        >
+          {problem.answer}
+        </div>
+      )}
+
+      {/* On a PC the two groups stay on ONE line: the box is fixed, so the
+          pictures shrink to fit rather than wrapping into a taller card. */}
+      {problem.mode === "visual" && (
+        <div
+          dir="ltr"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexWrap: pc ? "nowrap" : "wrap",
+            gap: pc ? cq(visualPc * 0.2) : 10,
+            fontSize: pc ? cq(visualPc * 1.2) : "clamp(28px, 9vw, 46px)",
+            fontWeight: 800,
+            lineHeight: 1.1,
+            // Same navy card - keep the + / - / = signs light, not dark ink.
+            color: "#fff",
+          }}
+        >
+          <GlyphGroup n={problem.a} glyph={problem.glyph} size={pc ? cq(visualPc) : "clamp(24px, 7vw, 40px)"} />
+          <span>{problem.op}</span>
+          <GlyphGroup n={problem.b} glyph={problem.glyph} size={pc ? cq(visualPc) : "clamp(24px, 7vw, 40px)"} />
+          <span>=</span>
+          <span style={{ color: "var(--yellow)" }}>?</span>
+        </div>
+      )}
+    </div>
+  );
+
+  const answers = (
+    <div
+      style={{
+        display: "flex",
+        gap: pc ? cq(PC_ANSWER.gap) : 14,
+        flexWrap: pc ? "nowrap" : "wrap",
+        justifyContent: "center",
+        ...(pc ? { marginTop: cq(PC_GAP) } : {}),
+      }}
+    >
+      {problem.choices.map((c) => {
+        const isWrong = wrongChoice === c;
+        // In matching mode the buttons ARE the groups, so they need room for
+        // up to six glyphs. Both shapes stay well past the 64px kids target.
+        const isGroup = problem.choiceKind === "group";
+        return (
+          <button
+            key={c}
+            aria-label={`answer ${c}`}
+            onPointerDown={(e) => answer(c, e)}
+            style={{
+              ...(pc ? { flex: "0 0 auto", boxSizing: "border-box" as const } : {}),
+              width: pc ? cq(PC_ANSWER.w) : isGroup ? "auto" : "var(--tap-kids)",
+              height: pc ? cq(PC_ANSWER.h) : isGroup ? "auto" : "var(--tap-kids)",
+              ...(pc ? {} : { minWidth: isGroup ? 96 : 72 }),
+              minHeight: 72,
+              padding: pc ? cq(PC_ANSWER.pad) : isGroup ? "12px 14px" : 0,
+              ...(pc ? { display: "grid", placeItems: "center" } : {}),
+              border: "none",
+              borderRadius: 20,
+              background: isWrong ? "var(--red)" : "linear-gradient(180deg,var(--brand-2),var(--brand))",
+              color: "#fff",
+              fontSize: pc ? cq(11) : 34,
+              fontWeight: 800,
+              boxShadow: "var(--shadow-1)",
+            }}
+          >
+            {isGroup ? (
+              <GlyphGroup
+                n={c}
+                glyph={problem.glyph}
+                size={pc ? cq(pcChoiceSize(problem.choices)) : "clamp(18px, 5vw, 26px)"}
+              />
+            ) : (
+              c
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+
   return (
     <GameChrome
       ctx={ctx}
@@ -237,115 +446,25 @@ export function MathGame({ ctx }: { ctx: GameContext }) {
         </div>
       }
     >
-      <div
-        ref={cardRef}
-        style={{
-          background: "linear-gradient(180deg,#2b3170,#1c2150)",
-          borderRadius: 24,
-          padding: "28px 24px",
-          minWidth: "min(88vw, 360px)",
-          textAlign: "center",
-          boxShadow: "var(--shadow-2)",
-        }}
-      >
-        {/*
-          Every question is pinned dir="ltr". For the equation that is standard
-          notation in an RTL app; for the two-group visual sum it is load-bearing
-          in the same way - otherwise RTL mirrors the row and 3 + 2 is drawn as
-          2 + 3, which is a different (and for subtraction, unanswerable) sum.
-        */}
-        {problem.mode === "arith" && (
-          <div
-            dir="ltr"
-            style={{
-              fontSize: "clamp(44px, 15vw, 84px)",
-              fontWeight: 800,
-              lineHeight: 1.1,
-              letterSpacing: 2,
-              // The card ground is a hard navy gradient, so pin the numerals to
-              // white rather than inheriting the app's dark ink (dark-on-dark).
-              color: "#fff",
-            }}
-          >
-            {problem.a} {problem.op} {problem.b} = <span style={{ color: "var(--yellow)" }}>?</span>
-          </div>
-        )}
-
-        {problem.mode === "count" && (
-          <GlyphGroup n={problem.groups[0]} glyph={problem.glyph} size="clamp(30px, 9vw, 52px)" />
-        )}
-
-        {/* Matching: the numeral IS the question, and the groups are the buttons. */}
-        {problem.mode === "match" && (
-          <div
-            dir="ltr"
-            style={{
-              fontSize: "clamp(56px, 20vw, 104px)",
-              fontWeight: 800,
-              lineHeight: 1.1,
-              color: "var(--yellow)",
-            }}
-          >
-            {problem.answer}
-          </div>
-        )}
-
-        {problem.mode === "visual" && (
-          <div
-            dir="ltr"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexWrap: "wrap",
-              gap: 10,
-              fontSize: "clamp(28px, 9vw, 46px)",
-              fontWeight: 800,
-              lineHeight: 1.1,
-              // Same navy card - keep the + / - / = signs light, not dark ink.
-              color: "#fff",
-            }}
-          >
-            <GlyphGroup n={problem.a} glyph={problem.glyph} size="clamp(24px, 7vw, 40px)" />
-            <span>{problem.op}</span>
-            <GlyphGroup n={problem.b} glyph={problem.glyph} size="clamp(24px, 7vw, 40px)" />
-            <span>=</span>
-            <span style={{ color: "var(--yellow)" }}>?</span>
-          </div>
-        )}
-      </div>
-
-      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "center" }}>
-        {problem.choices.map((c) => {
-          const isWrong = wrongChoice === c;
-          // In matching mode the buttons ARE the groups, so they need room for
-          // up to six glyphs. Both shapes stay well past the 64px kids target.
-          const isGroup = problem.choiceKind === "group";
-          return (
-            <button
-              key={c}
-              aria-label={`answer ${c}`}
-              onPointerDown={(e) => answer(c, e)}
-              style={{
-                width: isGroup ? "auto" : "var(--tap-kids)",
-                height: isGroup ? "auto" : "var(--tap-kids)",
-                minWidth: isGroup ? 96 : 72,
-                minHeight: 72,
-                padding: isGroup ? "12px 14px" : 0,
-                border: "none",
-                borderRadius: 20,
-                background: isWrong ? "var(--red)" : "linear-gradient(180deg,var(--brand-2),var(--brand))",
-                color: "#fff",
-                fontSize: 34,
-                fontWeight: 800,
-                boxShadow: "var(--shadow-1)",
-              }}
-            >
-              {isGroup ? <GlyphGroup n={c} glyph={problem.glyph} size="clamp(18px, 5vw, 26px)" /> : c}
-            </button>
-          );
-        })}
-      </div>
+      {pc ? (
+        <div
+          className={BOARD_CLASS}
+          style={{
+            ...boardVars({ vw: 94, vh: 60, cap: 560, chrome: PC_CHROME, ratio: PC_RATIO }),
+            containerType: "inline-size",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {card}
+          {answers}
+        </div>
+      ) : (
+        <>
+          {card}
+          {answers}
+        </>
+      )}
     </GameChrome>
   );
 }

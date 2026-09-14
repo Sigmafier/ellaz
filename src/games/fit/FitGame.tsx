@@ -3,6 +3,7 @@ import type { GameContext, SessionSpec } from "@sdk/index";
 import type { Locale } from "@i18n/index";
 import { Button } from "@ui/components";
 import { GameChrome } from "@ui/GameChrome";
+import { BOARD_CLASS, boardVars } from "@ui/boardSize";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { burst, haptic, shake } from "@juice/index";
 import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
@@ -536,7 +537,7 @@ export function FitGame({ ctx }: { ctx: GameContext }) {
     >
       <div
         ref={boardRef}
-        className="ellaz-play-surface"
+        className={`ellaz-play-surface ${BOARD_CLASS}`}
         // LTR, always. The app is Hebrew RTL by default, so an RTL grid lays
         // column 0 out on the visual RIGHT and every spatial assumption the
         // player makes inverts - see rtl-spatial-grid-dir-ltr.md.
@@ -544,13 +545,12 @@ export function FitGame({ ctx }: { ctx: GameContext }) {
         onPointerLeave={() => setHover(null)}
         style={{
           position: "relative",
-          // Sized against the VIEWPORT, not this container, like every board
-          // here. 92vw is 359px on a 390px phone, which leaves ~40px cells on
+          // Phone: 92vw is 359px on a 390px phone, which leaves ~40px cells on
           // the 8x8 boards and ~55px on the 6x6 one. 54vh rather than 60 because
-          // this game carries a 96px tray under the board. The 480px cap sits
-          // well under what the 700px desktop panel leaves, so nothing grows a
-          // scrollbar inside it (game-panel-clears-widest-board.test.ts).
-          width: "min(92vw, 54vh, 480px)",
+          // this game carries a 96px tray under the board.
+          // chrome 111: the head row only - the tray is in the footer, and
+          // the footer sits beside the board on a PC, so it costs no height. measured 2026-09-14 by repro-board-fills-the-window.mjs at every PC arm.
+          ...boardVars({ vw: 92, vh: 54, cap: 480, chrome: 111 }),
           aspectRatio: "1",
           boxSizing: "border-box",
           display: "grid",

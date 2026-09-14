@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { textFor, type Locale } from "@i18n/index";
 import type { GameContext } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { haptic, shake } from "@juice/index";
 import { Prompt, winMoment, useRememberedLevel } from "@shared/index";
@@ -102,6 +103,9 @@ export function Echo({ ctx }: { ctx: GameContext }) {
   const [seq, setSeq] = useState<SeqState>(IDLE);
   /** Which pad is lit right now. The ONLY channel the game truly needs. */
   const [lit, setLit] = useState<number | null>(null);
+  // Read once, for the pad glyph size only - the grid's own size is the
+  // stylesheet's (`.ellaz-board`).
+  const [pc] = useState(isPcArena);
   const [paused, setPaused] = useState(false);
   const [best, setBest] = useState(() => ctx.score?.best() ?? 0);
 
@@ -323,12 +327,22 @@ export function Echo({ ctx }: { ctx: GameContext }) {
       <div
         ref={gridRef}
         dir="ltr"
-        className="ellaz-play-surface"
+        className={`ellaz-play-surface ${BOARD_CLASS}`}
         style={{
           display: "grid",
           gridTemplateColumns: `repeat(${level.cols}, 1fr)`,
           gap: 14,
-          width: "min(88vw, 42vh, 420px)",
+          // chrome 169: the head row plus the Prompt chip above the grid.
+          // measured 2026-09-14 by repro-board-fills-the-window.mjs at every PC arm. Every pad is square (aspectRatio 1 below), so the
+          // grid's own shape is cols over its row count.
+          ...boardVars({
+            vw: 88,
+            vh: 42,
+            cap: 420,
+            chrome: 169,
+            ratio: level.cols / Math.ceil(level.pads / level.cols),
+          }),
+          ...(pc ? { containerType: "inline-size" as const } : {}),
           touchAction: "none",
         }}
       >
@@ -356,7 +370,9 @@ export function Echo({ ctx }: { ctx: GameContext }) {
                 borderRadius: 20,
                 background: pad.color,
                 color: "rgba(0,0,0,0.62)",
-                fontSize: "clamp(30px, 9vw, 56px)",
+                // On a PC the glyph follows the CELL (a share of the grid's
+                // width per column), or a big pad holds a small glyph.
+                fontSize: pc ? `calc(${56 / level.cols}cqw)` : "clamp(30px, 9vw, 56px)",
                 lineHeight: 1,
                 display: "grid",
                 placeItems: "center",

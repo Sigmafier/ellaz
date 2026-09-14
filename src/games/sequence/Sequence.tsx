@@ -9,6 +9,7 @@ import {
 } from "react";
 import type { GameContext } from "@sdk/index";
 import { type DifficultyOption } from "@ui/index";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { GameChrome } from "@ui/GameChrome";
 import { burst, haptic, shake } from "@juice/index";
 import { Prompt, shapePath, winMoment, useRememberedLevel } from "@shared/index";
@@ -32,9 +33,41 @@ const FONT = {
   choice: { big: "min(13vw, 60px)", small: "min(7.5vw, 34px)", number: "min(9vw, 42px)" },
 } as const;
 
+/*
+ * THE PC BOARD: the pattern row and the choices, one box, every length a share
+ * of its width (`cqw`), so the whole question grows with the window rather than
+ * sitting in a 560px column. In board-widths:
+ *
+ *   the row      7 slots of 13, 6 gaps of 1, 1.4 padding a side  -> 99.8 wide
+ *                13 tall + 1.6 padding a side                    -> 16.2 tall
+ *   between      2.5
+ *   the choices  up to 4 of 17, 3 gaps of 2                      -> 74 wide, 17 tall
+ *
+ * 16.2 + 2.5 + 17 = 35.7 tall for 100 wide, the same at every difficulty (three
+ * choices are narrower, never taller), so the ratio is 100 / 35.7.
+ *
+ * The glyphs keep the phone's proportions to their box: a big glyph is 42/58 of
+ * a slot and 60/96 of a choice, and so on.
+ */
+const PC_SLOT = "13cqw";
+const PC_CHOICE = "17cqw";
+const PC_RATIO = 100 / 35.7;
+const FONT_PC = {
+  row: { big: "9.4cqw", small: "5.4cqw", number: "6.7cqw" },
+  choice: { big: "10.6cqw", small: "6cqw", number: "7.4cqw" },
+} as const;
+
 /** Draws one pattern element. Purely presentational — identity lives in logic.ts. */
-function ItemView({ item, variant }: { item: SeqItem; variant: "row" | "choice" }): ReactElement | null {
-  const font = FONT[variant];
+function ItemView({
+  item,
+  variant,
+  pc = false,
+}: {
+  item: SeqItem;
+  variant: "row" | "choice";
+  pc?: boolean;
+}): ReactElement | null {
+  const font = pc ? FONT_PC[variant] : FONT[variant];
   switch (item.kind) {
     case "color":
       return (
@@ -90,6 +123,9 @@ export function Sequence({ ctx }: { ctx: GameContext }): ReactElement {
     DIFF_OPTIONS.map((o) => o.id),
     "easy",
   );
+  // Read ONCE at mount: a PC run lays the pattern and the choices out as one
+  // board sized from the window's height; a phone run is exactly as it was.
+  const [pc] = useState(isPcArena);
   const [level, setLevel] = useState(1);
   const [round, setRound] = useState<Round>(() => newRound(difficulty));
   const [solved, setSolved] = useState(false);
@@ -187,6 +223,97 @@ export function Sequence({ ctx }: { ctx: GameContext }): ReactElement {
 
   const promptText = T.ask;
 
+  /* The pattern row is SPATIAL, so it is pinned LTR: in the Hebrew RTL app a
+     plain flex row would mirror and put the blank slot at the far left, which
+     reads as "what came BEFORE". See .claude/rules/rtl-spatial-grid-dir-ltr.md */
+  const patternRow = (
+    <div
+      dir="ltr"
+      style={{
+        display: "flex",
+        ...(pc ? { gap: "1cqw" } : { gap: 6 }),
+        alignItems: "center",
+        justifyContent: "center",
+        flexWrap: "nowrap",
+        ...(pc ? { width: "100%", padding: "1.6cqw 1.4cqw" } : { maxWidth: "min(96vw, 560px)", padding: "10px 8px" }),
+        background: "var(--surface)",
+        borderRadius: "var(--radius-3)",
+        boxShadow: "var(--shadow-1)",
+      }}
+    >
+      {round.shown.map((item, i) => (
+        <div
+          key={`${i}-${itemKey(item)}`}
+          style={{
+            flex: "0 0 auto",
+            width: pc ? PC_SLOT : SLOT,
+            height: pc ? PC_SLOT : SLOT,
+            display: "grid",
+            placeItems: "center",
+            borderRadius: "var(--radius-2)",
+            background: "var(--surface-2)",
+          }}
+        >
+          <ItemView item={item} variant="row" pc={pc} />
+        </div>
+      ))}
+      <div
+        style={{
+          flex: "0 0 auto",
+          width: pc ? PC_SLOT : SLOT,
+          height: pc ? PC_SLOT : SLOT,
+          display: "grid",
+          placeItems: "center",
+          borderRadius: "var(--radius-2)",
+          border: "3px dashed var(--brand)",
+          fontSize: pc ? FONT_PC.row.number : "min(7vw, 30px)",
+          fontWeight: 800,
+          color: "var(--brand)",
+        }}
+      >
+        {solved ? <ItemView item={round.answer} variant="row" pc={pc} /> : "?"}
+      </div>
+    </div>
+  );
+
+  /* The play surface: the tap targets. */
+  const choiceRow = (
+    <div
+      className="ellaz-play-surface"
+      style={{
+        display: "flex",
+        ...(pc ? { gap: "2cqw" } : { gap: 10 }),
+        flexWrap: "wrap",
+        justifyContent: "center",
+        ...(pc ? { width: "100%", marginTop: "2.5cqw" } : { maxWidth: "min(96vw, 560px)" }),
+        touchAction: "none",
+      }}
+    >
+      {round.choices.map((item, i) => (
+        <button
+          key={`${i}-${itemKey(item)}`}
+          aria-label={T.option(i + 1)}
+          disabled={solved}
+          onPointerDown={(e) => onChoice(i, e)}
+          style={{
+            width: pc ? PC_CHOICE : CHOICE,
+            height: pc ? PC_CHOICE : CHOICE,
+            display: "grid",
+            placeItems: "center",
+            border: "none",
+            borderRadius: "var(--radius-3)",
+            background: "var(--surface)",
+            boxShadow: "var(--shadow-1)",
+            opacity: solved ? 0.5 : 1,
+            touchAction: "none",
+          }}
+        >
+          <ItemView item={item} variant="choice" pc={pc} />
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <GameChrome
       ctx={ctx}
@@ -222,93 +349,29 @@ export function Sequence({ ctx }: { ctx: GameContext }): ReactElement {
     >
       <Prompt ctx={ctx} glyph="🔗" text={promptText} />
 
-      {/* The pattern row is SPATIAL, so it is pinned LTR: in the Hebrew RTL app a
-          plain flex row would mirror and put the blank slot at the far left, which
-          reads as "what came BEFORE". See .claude/rules/rtl-spatial-grid-dir-ltr.md */}
-      <div
-        dir="ltr"
-        style={{
-          display: "flex",
-          gap: 6,
-          alignItems: "center",
-          justifyContent: "center",
-          flexWrap: "nowrap",
-          maxWidth: "min(96vw, 560px)",
-          padding: "10px 8px",
-          background: "var(--surface)",
-          borderRadius: "var(--radius-3)",
-          boxShadow: "var(--shadow-1)",
-        }}
-      >
-        {round.shown.map((item, i) => (
-          <div
-            key={`${i}-${itemKey(item)}`}
-            style={{
-              flex: "0 0 auto",
-              width: SLOT,
-              height: SLOT,
-              display: "grid",
-              placeItems: "center",
-              borderRadius: "var(--radius-2)",
-              background: "var(--surface-2)",
-            }}
-          >
-            <ItemView item={item} variant="row" />
-          </div>
-        ))}
+      {pc ? (
+        // PC: one board around both rows. chrome 269 is an ESTIMATE: the 111
+        // every GameChrome game pays, the prompt (72) and its 12px gap, and the
+        // 60px caption card plus the footer's 14.
         <div
+          className={BOARD_CLASS}
           style={{
-            flex: "0 0 auto",
-            width: SLOT,
-            height: SLOT,
-            display: "grid",
-            placeItems: "center",
-            borderRadius: "var(--radius-2)",
-            border: "3px dashed var(--brand)",
-            fontSize: "min(7vw, 30px)",
-            fontWeight: 800,
-            color: "var(--brand)",
+            ...boardVars({ vw: 96, vh: 40, cap: 560, chrome: 169, ratio: PC_RATIO }),
+            containerType: "inline-size",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
           }}
         >
-          {solved ? <ItemView item={round.answer} variant="row" /> : "?"}
+          {patternRow}
+          {choiceRow}
         </div>
-      </div>
-
-      {/* The play surface: the tap targets. */}
-      <div
-        className="ellaz-play-surface"
-        style={{
-          display: "flex",
-          gap: 10,
-          flexWrap: "wrap",
-          justifyContent: "center",
-          maxWidth: "min(96vw, 560px)",
-          touchAction: "none",
-        }}
-      >
-        {round.choices.map((item, i) => (
-          <button
-            key={`${i}-${itemKey(item)}`}
-            aria-label={T.option(i + 1)}
-            disabled={solved}
-            onPointerDown={(e) => onChoice(i, e)}
-            style={{
-              width: CHOICE,
-              height: CHOICE,
-              display: "grid",
-              placeItems: "center",
-              border: "none",
-              borderRadius: "var(--radius-3)",
-              background: "var(--surface)",
-              boxShadow: "var(--shadow-1)",
-              opacity: solved ? 0.5 : 1,
-              touchAction: "none",
-            }}
-          >
-            <ItemView item={item} variant="choice" />
-          </button>
-        ))}
-      </div>
+      ) : (
+        <>
+          {patternRow}
+          {choiceRow}
+        </>
+      )}
     </GameChrome>
   );
 }

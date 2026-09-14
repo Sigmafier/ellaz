@@ -10,6 +10,7 @@ import {
 import { textFor, type Locale } from "@i18n/index";
 import { formatScore, type GameContext, type RewardTier, type SessionSpec } from "@sdk/index";
 import { GameChrome, type ChromeLevel } from "@ui/GameChrome";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { burst, haptic, shake } from "@juice/index";
 import { useGameSession, useGameTimer, useRememberedLevel, winMoment } from "@shared/index";
 import {
@@ -75,17 +76,38 @@ const LEVEL_TIER: Record<LevelId, RewardTier> = {
  * house rule for every board here, so the stage breaks out of the page gutter
  * on a phone instead of being squeezed by it.
  *
- * 560px is the desktop cap. The panel leaves 684px, and the widest board in the
- * catalogue asks for 640, so this sits comfortably under both — a square field
- * gains nothing from the last 80px and loses a lot of vertical room to it.
- * On a 390px phone the vw term binds and the field is ~359px, where the ring
+ * 560px is the phone-arm cap (and was the desktop cap until the PC version
+ * below). On a 390px phone the vw term binds and the field is ~359px, where the ring
  * puts neighbouring dots about 81px apart on the hardest tier.
  */
 const FIELD = "min(92vw, 56vh, 560px)";
 
+/*
+ * PC (2026-09-14, operator: every game has a PC version): THE FIELD STAYS
+ * SQUARE AND GROWS to the height the window leaves - `.ellaz-board` sizes it
+ * with ratio 1 - rather than filling the width. The rules live on a SPAN x SPAN
+ * square; mapping that onto a wide field would stretch the dealt ring into an
+ * ellipse, stretch every line, and make an arrow-key nudge travel further
+ * sideways than up. Which lines cross would survive the stretch, but the
+ * drawing a child is untangling would not be the one the rules dealt. Square is
+ * the same puzzle drawn bigger, with no change to `logic.ts`.
+ *
+ * The phone keeps `min(92vw, 56vh, 560px)` both ways: the width through
+ * `boardVars` (the same `min()`), the height inline.
+ */
+
 /** The dot a finger actually hits, and the dot an eye actually sees. */
-const HIT = "var(--tap)";
-const DOT = "calc(var(--tap) * 0.46)";
+const HIT_PHONE = "var(--tap)";
+const DOT_PHONE = "calc(var(--tap) * 0.46)";
+/** On a PC the dot follows the FIELD (`cqw`) at the phone's share of it - a
+ *  48px target on a 359px field - with the platform target as the floor, so a
+ *  big field does not scatter specks and neighbours keep the phone's spacing. */
+const HIT_PC = "max(var(--tap), 13.4cqw)";
+const DOT_PC = `calc(${HIT_PC} * 0.46)`;
+
+/** This game's own rows inside `#game-frame`, px. An ESTIMATE (2026-09-14) read
+ *  off the phone frame baseline (520 frame - 359 field); the page measures it. */
+const CHROME = 111;
 
 /** Line widths in LOGIC units, so they scale with the field rather than with the screen. */
 const STROKE = 7;
@@ -195,6 +217,10 @@ export function UntangleGame({ ctx }: { ctx: GameContext }) {
   const [best, setBest] = useState<number | undefined>(() => ctx.score?.best(level));
   const fieldRef = useRef<HTMLDivElement>(null);
   const started = useRef(false);
+  // Read ONCE: the shape is a property of the run, never a live media query.
+  const [pc] = useState(isPcArena);
+  const HIT = pc ? HIT_PC : HIT_PHONE;
+  const DOT = pc ? DOT_PC : DOT_PHONE;
 
   // The clock stops the moment the board comes untangled, and `useGameTimer`
   // already stops it on pause. `initialMs` carries the same promise one step
@@ -485,7 +511,7 @@ export function UntangleGame({ ctx }: { ctx: GameContext }) {
       <div
         ref={fieldRef}
         dir="ltr"
-        className="ellaz-play-surface"
+        className={`ellaz-play-surface ${BOARD_CLASS}`}
         onPointerDown={(e) => onFieldDown(e.clientX, e.clientY)}
         onPointerMove={(e) => onMove(e.clientX, e.clientY)}
         onPointerUp={onLift}
@@ -493,8 +519,10 @@ export function UntangleGame({ ctx }: { ctx: GameContext }) {
         style={
           {
             position: "relative",
-            width: FIELD,
-            height: FIELD,
+            ...boardVars({ vw: 92, vh: 56, cap: 560, chrome: CHROME }),
+            // PC: square by ratio, and the field is the dots' container. Phone:
+            // today's height, inline.
+            ...(pc ? { aspectRatio: "1", containerType: "inline-size" } : { height: FIELD }),
             margin: "0 auto",
             borderRadius: "var(--radius-3)",
             background: "rgba(255,255,255,0.05)",

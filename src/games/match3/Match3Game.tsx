@@ -1060,7 +1060,7 @@ export function Match3Game({ ctx }: { ctx: GameContext }) {
           // 294 -> 230 on 2026-09-14: the stat row went to one line in 3212fc7
           // (two lines, 120px -> one, 56px) and this number was not moved with
           // it, so the board reserved 64px it never used - fill 83% at 1536x639.
-          ...boardVars({ vw: 92, vh: 54, cap: 480, chrome: 230 }),
+          ...boardVars({ vw: 92, vh: 54, cap: 480, chrome: 111 }),
           aspectRatio: "1",
           boxSizing: "border-box",
           display: "grid",

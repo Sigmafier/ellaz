@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { textFor, type Locale } from "@i18n/index";
 import type { GameContext, RewardTier, SessionSpec } from "@sdk/index";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { GameChrome, type ChromeLevel } from "@ui/GameChrome";
 import { burst, haptic, shake } from "@juice/index";
 import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
@@ -203,6 +204,9 @@ export function ParkingGame({ ctx }: { ctx: GameContext }) {
     LEVEL_OPTIONS.map((o) => o.id),
     "easy",
   );
+  // Read ONCE at mount. A phone run keeps its viewport expressions; a PC run
+  // sizes the board from the height the window gives it.
+  const [pc] = useState(isPcArena);
   const restored = useMemo(() => ctx.session.load(SESSION), [ctx]);
   // Adopted only for the level this mount opened on, and never once it is
   // solved — a finished board has nothing left to move, and returning to one
@@ -497,13 +501,31 @@ export function ParkingGame({ ctx }: { ctx: GameContext }) {
           See .claude/rules/rtl-spatial-grid-dir-ltr.md. */}
       <div dir="ltr" style={{ display: "flex", justifyContent: "center" }}>
         <div
+          className={pc ? BOARD_CLASS : undefined}
           style={{
             position: "relative",
-            // Room on the right for the wall, the gap and the lane the winning
-            // car drives into. Only on the right: the lane is decoration, and
-            // padding both sides to keep it symmetric costs a whole cell of
-            // board on a 390px phone.
-            paddingRight: `calc(${CELL} * 0.95)`,
+            ...(pc
+              ? {
+                  // PC: THIS box is the board - six cells plus the 0.95 of a cell
+                  // the lane takes - and its width comes from `.ellaz-board`. A
+                  // cell is declared here in `cqw`, so the grid below, every car
+                  // and the wall all resolve it against this box. The lane is
+                  // the width the grid leaves on the right rather than a padding,
+                  // because a padding here could not read this box's own `cqw`.
+                  // chrome 215 is an ESTIMATE: the 111 every GameChrome game
+                  // pays plus the hint line, the 64px undo, their gap and the
+                  // footer's 14.
+                  ...boardVars({ vw: 88, vh: 58, cap: 528, chrome: 111, ratio: (SIZE + 0.95) / SIZE }),
+                  containerType: "inline-size" as const,
+                  ["--cell" as string]: `calc(100cqw / ${SIZE + 0.95})`,
+                }
+              : {
+                  // Room on the right for the wall, the gap and the lane the winning
+                  // car drives into. Only on the right: the lane is decoration, and
+                  // padding both sides to keep it symmetric costs a whole cell of
+                  // board on a 390px phone.
+                  paddingRight: `calc(${CELL} * 0.95)`,
+                }),
             // The winning car drives out THROUGH this edge, so it is clipped
             // here rather than allowed to push the play surface wider and grow
             // a horizontal scrollbar for 420ms.
@@ -515,7 +537,9 @@ export function ParkingGame({ ctx }: { ctx: GameContext }) {
             className="ellaz-play-surface"
             style={
               {
-                ["--cell" as string]: CELL,
+                // PC inherits `--cell` from the board box above, and says its
+                // own width so the lane is what is left beside it.
+                ...(pc ? { width: `calc(var(--cell) * ${SIZE})` } : { ["--cell" as string]: CELL }),
                 position: "relative",
                 display: "grid",
                 gridTemplateColumns: `repeat(${SIZE}, var(--cell))`,

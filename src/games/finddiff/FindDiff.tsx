@@ -2,6 +2,7 @@ import { textFor } from "@i18n/index";
 import { useCallback, useMemo, useRef, useState, useEffect, type PointerEvent as ReactPointerEvent } from "react";
 import type { GameContext, RewardTier } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
+import { BOARD_CLASS, boardVars } from "@ui/boardSize";
 import { burst, shake, haptic } from "@juice/index";
 import { winMoment } from "@shared/index";
 import { newGame, tapAt, isWon, remaining, type FindState } from "./logic";
@@ -220,13 +221,30 @@ export function FindDiff({ ctx }: { ctx: GameContext }) {
           a wrong tap. It used to sit on the outer wrapper this component no
           longer owns - and an unattached ref shakes nothing while the guard
           around it (`if (wrapRef.current)`) keeps every test green. */}
+      {/* THE PAIR, on both shapes (2026-09-14, operator: every game has a PC
+          version). Side by side on a phone and on a PC, as it always was.
+
+          PHONE - byte-identical: `min(94vw, 116vh, 640px)`, now declared through
+          `boardVars` so `.ellaz-board` resolves the same `min()`.
+          PC - sized from the height the window leaves, NOT stretched to the
+          width. Each picture is a square scene (`viewBox` 0 0 100 100) with
+          `aspectRatio: 1`, so the only honest way to make it bigger is taller:
+          ratio 2 makes the pair twice the available height wide, and each square
+          then stands 5px short of that height (the 10px gap, halved). Full width
+          would mean either distorted scenes or dead space, and the pictures
+          would still be the size the height allows. The difference count and
+          every tap radius are in scene units, so nothing about a round changes.
+
+          `chrome` is an ESTIMATE (2026-09-14) read off the phone frame baseline
+          (444 frame - 178 picture); the page measures it and corrects it. */}
       <div
         ref={wrapRef}
+        className={BOARD_CLASS}
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
           gap: 10,
-          width: "min(94vw, 116vh, 640px)",
+          ...boardVars({ vw: 94, vh: 116, cap: 640, chrome: 111, ratio: 2 }),
         }}
       >
         {[leftSvg, rightSvg].map((svg, i) => (

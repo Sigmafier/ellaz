@@ -11,6 +11,7 @@ import {
 } from "react";
 import type { GameContext } from "@sdk/index";
 import { type DifficultyOption } from "@ui/index";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { GameChrome } from "@ui/GameChrome";
 import { burst, haptic, shake } from "@juice/index";
 import { Prompt, useGameTimer, winMoment, useRememberedLevel } from "@shared/index";
@@ -165,6 +166,9 @@ export function ReactionGame({ ctx }: { ctx: GameContext }): ReactElement {
     DIFF_OPTIONS.map((o) => o.id),
     "easy",
   );
+  // Read ONCE at mount. A phone run keeps its viewport expressions; a PC run
+  // sizes the board from the height the window gives it.
+  const [pc] = useState(isPcArena);
   const [attempt, setAttempt] = useState<Attempt>(READY);
   // NO_BEST (0) means "no record yet" here, and the port says the same thing
   // with `undefined` — lower is better, so a stored zero could never be beaten.
@@ -517,8 +521,19 @@ export function ReactionGame({ ctx }: { ctx: GameContext }): ReactElement {
         aria-live="polite"
         onPointerDown={onPointerDown}
         onKeyDown={onKeyDown}
+        className={pc ? BOARD_CLASS : undefined}
         style={{
-          width: LIGHT_W,
+          // PC: the light's width comes from `.ellaz-board` - the height the
+          // window leaves, times the housing's 120:220 - and the SVG inside
+          // fills it. chrome 325 is an ESTIMATE: the 111 every GameChrome game
+          // pays, the prompt (72) and its 12px gap, and the caption card at its
+          // tallest common state (caption + the 52px Go button, 108; the early-tap
+          // line adds ~24) plus the footer's 14. That LIGHT_W's `24vh` was sized
+          // DOWN for the tallest game in the roster is exactly why the chrome is
+          // counted rather than guessed on a PC.
+          ...(pc
+            ? boardVars({ vw: 56, vh: 24, cap: 230, chrome: 169, ratio: 120 / 220 })
+            : { width: LIGHT_W }),
           aspectRatio: "120 / 220",
           // The play surface owns the gesture: no scroll, no pinch, no
           // long-press selection under a five-year-old's finger.

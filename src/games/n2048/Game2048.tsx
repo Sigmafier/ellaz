@@ -362,7 +362,7 @@ export function Game2048({ ctx, skin }: { ctx: GameContext; skin?: TileSkin }) {
           position: "relative",
           // chrome 187 measured 2026-09-13 - the lightest of the four, which is
           // why this board was the emptiest on a big screen: 63% of its box.
-          ...boardVars({ vw: 88, vh: 48, cap: 420, chrome: 187 }),
+          ...boardVars({ vw: 88, vh: 48, cap: 420, chrome: 111 }),
           aspectRatio: "1",
           background: skin ? skin.boardBg : "#bbada0",
           borderRadius: 14,

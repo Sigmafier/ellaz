@@ -3,6 +3,7 @@ import type { GameContext, SessionSpec } from "@sdk/index";
 import type { Locale } from "@i18n/index";
 import { Button } from "@ui/components";
 import { GameChrome } from "@ui/GameChrome";
+import { BOARD_CLASS, boardVars } from "@ui/boardSize";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { burst, haptic, shake } from "@juice/index";
 import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
@@ -690,13 +691,26 @@ export function BubbleShooterGame({ ctx }: { ctx: GameContext }) {
           role="application"
           aria-label={`${WORDS[ctx.locale].field}. ${WORDS[ctx.locale].hint}.`}
           onKeyDown={onKey}
+          className={BOARD_CLASS}
           style={{
-            // Sized against the VIEWPORT like every board here, and the vh term
-            // leads because this board is TALLER than it is wide: capping on
-            // width alone puts the launcher under the fold on a short phone in
-            // landscape. The 430px cap sits well inside the 700px desktop panel
-            // (game-panel-clears-widest-board.test.ts).
-            width: `min(94vw, ${(FIELD_W / FIELD_H) * 66}vh, 430px)`,
+            // PHONE - byte-identical: `min(94vw, <W/H x 66>vh, 430px)`, the vh
+            // term leading because this board is TALLER than it is wide: capping
+            // on width alone puts the launcher under the fold on a short phone
+            // in landscape. Declared through `boardVars`, so `.ellaz-board`
+            // resolves the same `min()`.
+            //
+            // PC (2026-09-14, operator: every game has a PC version) - STILL
+            // PORTRAIT, grown to the height the window leaves. The aim geometry
+            // IS this game: every shot is traced in bubble units across a field
+            // exactly FIELD_W x FIELD_H, so a wider field would be a different
+            // set of bank shots, not a bigger picture of these. So it is not a
+            // full-width arena; `.ellaz-board` sizes the width from the
+            // available height times the field's own ratio, and the canvas
+            // scales every bubble with it (`draw` works in units of `w / FIELD_W`).
+            //
+            // `chrome` is an ESTIMATE (2026-09-14) read off the phone frame
+            // baseline (667 frame - 474 field); the page measures it.
+            ...boardVars({ vw: 94, vh: (FIELD_W / FIELD_H) * 66, cap: 430, chrome: 111, ratio: FIELD_W / FIELD_H }),
             aspectRatio: `${FIELD_W} / ${FIELD_H}`,
             display: "block",
             borderRadius: 16,

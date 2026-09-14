@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointer
 import type { GameContext, SessionSpec } from "@sdk/index";
 import { textFor } from "@i18n/index";
 import { GameChrome } from "@ui/GameChrome";
+import { BOARD_CLASS, boardVars } from "@ui/boardSize";
 import { haptic } from "@juice/index";
 import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
 import { PICTURES, PALETTE, type Picture } from "./pictures";
@@ -464,9 +465,12 @@ export function Coloring({ ctx }: { ctx: GameContext }) {
       }
     >
       <div
-        className="ellaz-play-surface"
+        className={`ellaz-play-surface ${BOARD_CLASS}`}
         style={{
-          width: "min(92vw, 46vh, 440px)",
+          // chrome 55: no head row (no stats, no levels), and the heavy footer
+          // - gallery, tools, brush sizes, palette - sits beside the picture
+          // on a PC. measured 2026-09-14 by repro-board-fills-the-window.mjs at every PC arm; before that move the footer left the picture 120px.
+          ...boardVars({ vw: 92, vh: 46, cap: 440, chrome: 55 }),
           aspectRatio: "1",
           background: "#fff",
           borderRadius: 18,

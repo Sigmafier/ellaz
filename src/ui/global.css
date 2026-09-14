@@ -528,20 +528,19 @@ body.app-shell h3,
      operator ruled that every game has a PC version, so the two numbers now
      cap the two things they were always about:
 
-       .ellaz-game-panel        1680px  the stage a board may grow into
+       .ellaz-game-panel        none    the whole width of the screen
        .gc-head / footer         700px  the controls and numbers, read as a row
 
-     1680 is the number the showcase band already MEASURED on 2026-09-13: at
-     1920x1080 the height term resolves to (960 - 16 - 24) x 1.7802 = 1638, and
-     a ceiling under that decided the size instead of the window. It is one
-     number for every game now rather than a showcase exemption, because
-     `boardSize.ts` sizes a desktop board from the height the box really has -
-     so a square board is bounded by the window long before it reaches 1664,
-     and only a landscape arena can use the width.
+     NO CAP since 2026-09-14, on the operator's ACK of the pilot: "if we can use
+     the entire width of the PC screen its even better! a true PC experience".
+     It was 1680px for a day, and at 1920x1080 that left bubbles' full-width
+     arena 1680 of 1920. A square board still cannot use the width - it is
+     bounded by the height the window leaves (`boardSize.ts`) - so only an
+     arena that fills (`pcFillArena`) reaches the edges, which is the point.
 
-     `game-panel-clears-widest-board.test.ts` holds both numbers. */
+     `game-panel-clears-widest-board.test.ts` holds both. */
   .ellaz-game-panel {
-    max-width: 1680px;
+    max-width: none;
   }
   .ellaz-game-panel > .gc-head,
   .ellaz-game-panel > .ellaz-game-footer {
@@ -549,6 +548,64 @@ body.app-shell h3,
     max-width: 700px;
     margin-inline: auto;
     box-sizing: border-box;
+  }
+
+  /* A PC IS LANDSCAPE, SO A GAME'S OWN CONTROLS GO BESIDE THE BOARD (2026-09-14).
+
+     Under the board, a footer costs HEIGHT, and height is the one thing a PC
+     window is short of. Measured on coloring at the operator's own 1536x639:
+     the palette, tools and picture row took 375 of the 519px box and left the
+     picture 120px tall. Beside the board the same footer costs width, which a
+     PC has spare - and the board's `--b-chrome` stops paying for it.
+
+     Only when the game HAS a footer (`:has`), so a board-only game keeps the
+     plain column. `!important` because GameChrome sets `display: flex` inline
+     and an inline style beats every stylesheet rule. The phone never sees it. */
+  /* A page gutter on a PC. The phone's play surface has no side padding on
+     purpose (every px of a 390px phone is board), but a full-width arena on a
+     PC otherwise runs into the window's left edge - measured on bubbles at
+     1536x639, x = 0. `!important` because the surface's padding is inline. */
+  .ellaz-game-panel > .ellaz-play-surface {
+    padding-inline: 16px !important;
+  }
+  /* THE GAME STAYS IN THE MIDDLE OF THE SCREEN (operator, 2026-09-14: "we must
+     keep the game in the middle no matter what"). The first version was two
+     columns, board then footer, so every game with a footer sat left of centre
+     by half the footer's width - 184px at 1536x639. Three columns, the first
+     one empty and exactly as wide as the footer's, put the board's column on
+     the screen's centre line whatever the footer holds. The cost is width: a
+     filling arena is two side columns narrower, not one. `--b-room` pays both.
+     `repro-board-fills-the-window.mjs` asserts the board's centre is the
+     screen's centre on every PC arm. */
+  .ellaz-game-panel:has(> .ellaz-game-footer) {
+    --gc-side: clamp(280px, 24vw, 400px);
+    --b-room: calc(100vw - 2 * var(--gc-side) - 48px);
+    display: grid !important;
+    grid-template-columns: var(--gc-side) minmax(0, 1fr) var(--gc-side);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .ellaz-game-panel:has(> .ellaz-game-footer) > .gc-head {
+    grid-column: 1 / -1;
+  }
+  .ellaz-game-panel:has(> .ellaz-game-footer) > .ellaz-play-surface {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .ellaz-game-panel > .ellaz-game-footer {
+    grid-column: 3;
+    grid-row: 2;
+    max-width: none;
+    padding: 12px 16px 12px 0 !important;
+    /* The column is as tall as the BOARD, never taller. `contain: size` stops
+       the footer's content from setting the row's height, so a tall control
+       stack (maze's picker plus its pad: 536px on a 519px box at 1536x639)
+       scrolls inside its column instead of making fitStage shrink the game. */
+    contain: size;
+    align-self: stretch;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: safe center;
   }
 }
 
@@ -607,8 +664,12 @@ body.app-shell h3,
 }
 @media (min-width: 900px) {
   .ellaz-board {
+    /* `--b-room` and not a percentage: a board is often inside a shrink-wrapped
+       wrapper, where `100%` resolves to nothing (parking measured 0px wide).
+       `--b-room` is the viewport less the footer column, set on the panel only
+       when the game has a footer beside its board; otherwise the phone's vw. */
     width: min(
-      var(--b-vw),
+      var(--b-room, var(--b-vw)),
       calc(
         (100dvh - var(--hh, 0px) - var(--uh, 0px) - var(--oh, 0px) - var(--b-chrome) - 24px) *
           var(--b-ratio)

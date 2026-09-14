@@ -2,12 +2,13 @@ import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
+import { PANEL_USABLE } from "./boardSize";
 
 /**
  * The desktop panel cap must stay wider than the widest board any game asks for.
  *
- * `.ellaz-game-panel` caps the game panel at 1680px above 900px of viewport,
- * and its ROW (`.gc-head`, the footer) at 700px - the row cap is what stopped
+ * `.ellaz-game-panel` has NO width cap above 900px of viewport since 2026-09-14
+ * (operator: "use the entire width of the PC screen"), and its ROW (`.gc-head`, the footer) at 700px - the row cap is what stopped
  * the difficulty toggle rendering 1193px wide. Until 2026-09-14 the 700px sat on
  * the whole panel and capped every board with it; the operator ruled every game
  * gets a PC version, so it moved to the only thing it was ever measured for. A cap is a
@@ -139,10 +140,15 @@ function maxCols(src: string): number | null {
   return all.length ? Math.max(...all) : null;
 }
 
-/** The `max-width` on `.ellaz-game-panel`, read out of the shipped stylesheet. */
-export function panelCap(css: string): number | null {
-  const rule = css.match(/\.ellaz-game-panel\s*\{[^}]*?max-width:\s*(\d+)px/);
-  return rule ? parseInt(rule[1], 10) : null;
+/**
+ * The `max-width` on `.ellaz-game-panel`, read out of the shipped stylesheet:
+ * a px number, `"none"`, or `null` when no such rule exists. Three states, so a
+ * deleted rule can never read as "uncapped".
+ */
+export function panelCap(css: string): number | "none" | null {
+  const rule = css.match(/\.ellaz-game-panel\s*\{[^}]*?max-width:\s*(\d+px|none)/);
+  if (!rule) return null;
+  return rule[1] === "none" ? "none" : parseInt(rule[1], 10);
 }
 
 /**
@@ -182,8 +188,8 @@ describe("the desktop game panel clears the widest board", () => {
     expect(sources.map((s) => s.file)).toContain("n2048/Game2048.tsx");
   });
 
-  it("declares a cap at all", () => {
-    expect(panelCap(CSS)).toBeGreaterThan(0);
+  it("the panel is the whole screen on a PC - an explicit none, not a missing rule", () => {
+    expect(panelCap(CSS)).toBe("none");
   });
 
   it("leaves room for every board in the tree", () => {
@@ -193,7 +199,7 @@ describe("the desktop game panel clears the widest board", () => {
      * row, so it moved onto the row, and every game gets the stage. What this
      * still refuses is a board asking for more than the stage leaves.
      */
-    const usable = panelCap(CSS)! - PANEL_PADDING;
+    const usable = PANEL_USABLE;
     const tooWide = sources
       .map((s) => ({ file: s.file, widest: Math.max(0, ...pxCeilings(s.src)) }))
       .filter((s) => s.widest > usable);
@@ -205,17 +211,31 @@ describe("the desktop game panel clears the widest board", () => {
     // difficulty toggle 1193px wide. Moving the cap must not DROP it - and a
     // row cap as wide as the panel would be the same drop wearing a number.
     expect(rowCap(CSS)).toBe(700);
-    expect(rowCap(CSS)!).toBeLessThan(panelCap(CSS)!);
+    expect(rowCap(CSS)!).toBeLessThan(PANEL_USABLE);
   });
 
-  it("the desktop ceiling in boardSize.ts IS the panel's own arithmetic", () => {
-    // `boardVars` defaults `capPc` to PANEL_USABLE, so that one number decides
-    // how wide every swept board may grow on a desktop. Re-deriving it by hand
-    // from the panel cap is what makes it a number two files can disagree
-    // about; this is the assertion that stops them drifting apart.
+  it("a footer beside the board keeps the board on the screen's centre line", () => {
+    // Operator, 2026-09-14: "we must keep the game in the middle no matter
+    // what". Two columns (board, footer) put every such game half a footer
+    // left of centre. The board's column must sit between two EQUAL tracks,
+    // and the room it is sized from must pay for both of them.
+    const grid = CSS.match(/:has\(> \.ellaz-game-footer\)\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(grid).toMatch(/grid-template-columns:\s*var\(--gc-side\)\s+minmax\(0,\s*1fr\)\s+var\(--gc-side\);/);
+    expect(grid).toMatch(/--b-room:\s*calc\(100vw - 2 \* var\(--gc-side\)/);
+    const col = (sel: string) =>
+      CSS.match(new RegExp(`${sel.replace(/[.*+?^${}()|[\]\\>]/g, "\\$&")}\\s*\\{[^}]*grid-column:\\s*(\\d)`))?.[1];
+    expect(col(":has(> .ellaz-game-footer) > .ellaz-play-surface")).toBe("2");
+    expect(col(".ellaz-game-panel > .ellaz-game-footer")).toBe("3");
+  });
+
+  it("the desktop ceiling in boardSize.ts is a 4K screen less the panel padding", () => {
+    // With no panel cap there is no panel arithmetic to match; the ceiling is
+    // the widest CSS viewport we name. Read from the source, not the import,
+    // so the number a reviewer sees is the number asserted.
     const src = readFileSync(join(ROOT, "ui", "boardSize.ts"), "utf8");
     const declared = Number(src.match(/PANEL_USABLE\s*=\s*(\d+)/)?.[1]);
-    expect(declared).toBe(panelCap(CSS)! - PANEL_PADDING);
+    expect(declared).toBe(3840 - PANEL_PADDING);
+    expect(declared).toBe(PANEL_USABLE);
   });
 
   it("reads the ceilings of a board sized through boardVars", () => {
@@ -235,7 +255,7 @@ describe("the desktop game panel clears the widest board", () => {
     // survivors' landscape arena, the one board that declares the stage.
     const widest = Math.max(...sources.flatMap((s) => pxCeilings(s.src)));
     expect(widest).toBe(1664);
-    expect(panelCap(CSS)! - PANEL_PADDING).toBeGreaterThanOrEqual(widest);
+    expect(PANEL_USABLE).toBeGreaterThanOrEqual(widest);
   });
 
   describe("the extractor fires on the shapes that exist", () => {
@@ -274,6 +294,7 @@ describe("the desktop game panel clears the widest board", () => {
     it("reads the cap out of real stylesheet text", () => {
       expect(panelCap("@media (min-width: 900px) { .ellaz-game-panel { max-width: 700px; } }")).toBe(700);
       expect(panelCap(".something-else { max-width: 700px; }")).toBeNull();
+      expect(panelCap("@media (min-width: 900px) { .ellaz-game-panel { max-width: none; } }")).toBe("none");
     });
 
     it("reads the panel cap and the row cap SEPARATELY", () => {
@@ -292,8 +313,8 @@ describe("the desktop game panel clears the widest board", () => {
     // The negative control. Without it the suite above passes because nothing
     // is oversized today, which proves the games are fine and says nothing at
     // all about whether this check can see one that is not.
-    const planted = `width: "min(94vw, 60vh, 1700px)"`;
-    const usable = panelCap(CSS)! - PANEL_PADDING;
+    const planted = `width: "min(94vw, 60vh, 3900px)"`;
+    const usable = PANEL_USABLE;
     expect(Math.max(...pxCeilings(planted))).toBeGreaterThan(usable);
   });
 });

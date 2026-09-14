@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { textFor, type Locale } from "@i18n/index";
 import type { GameContext, RewardTier, SessionSpec } from "@sdk/index";
 import { GameChrome, type ChromeLevel } from "@ui/GameChrome";
+import { BOARD_CLASS, PANEL_USABLE, boardVars, isPcArena, pcFillArena } from "@ui/boardSize";
 import { burst, haptic, shake } from "@juice/index";
 import { mulberry32, seedFrom } from "@shared/rng";
 import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
@@ -119,6 +120,34 @@ function artOf(tier: number): { emoji: string; skin: string } {
  * forever.
  */
 const BOX_H = "min(124vw, 52vh, 440px)";
+
+/**
+ * This game's own rows inside `#game-frame`, px: the chrome head and the
+ * two-line footer. An ESTIMATE (2026-09-14) read off the phone frame baseline
+ * (617 frame - 442 box); the page measures it and corrects it.
+ */
+const CHROME = 111;
+
+/** The box's side and bottom borders, px - `content-box`, so they sit OUTSIDE `--u`. */
+const BORDER = 3;
+
+/**
+ * ONE world unit on a PC (2026-09-14, operator: every game has a PC version).
+ *
+ * THE BOX STAYS PORTRAIT AND GROWS; IT DOES NOT FILL THE WIDTH. The box's width
+ * IS the difficulty - Wide, Med and Narrow are three `world.width`s against one
+ * `WORLD_H` - so a box stretched to the screen would be a fourth, far easier
+ * level wearing the name of the one the player picked. So only the SCALE
+ * changes: the unit is the height the window leaves under the chrome (the same
+ * term `.ellaz-board` and `pcFillArena` use, read from `--b-chrome` on this
+ * element), shared by `WORLD_H` units, and bounded by the width too so a tall
+ * narrow window cannot push the widest box off the panel.
+ */
+function pcUnit(worldWidth: number): string {
+  const tall = `calc((${String(pcFillArena().height)} - ${BORDER}px) / ${WORLD_H})`;
+  const wide = `calc((min(92vw, ${PANEL_USABLE}px) - ${BORDER * 2}px) / ${worldWidth})`;
+  return `min(${tall}, ${wide})`;
+}
 
 /**
  * The most real time one animation frame is allowed to hand the simulation.
@@ -250,6 +279,8 @@ export function FruitGame({ ctx }: { ctx: GameContext }) {
   /** Where the pending fruit is hovering, in world units. */
   const [aim, setAim] = useState<number>(() => LEVELS[level].width / 2);
   const boxRef = useRef<HTMLButtonElement>(null);
+  // Read ONCE: the scale policy is a property of the run, never a live media query.
+  const [pc] = useState(isPcArena);
 
   /** Milestone steps already paid. Restored, or a resume pays them all again. */
   const milestoneRef = useRef(resume?.milestone ?? 0);
@@ -576,7 +607,10 @@ export function FruitGame({ ctx }: { ctx: GameContext }) {
       <button
         ref={boxRef}
         type="button"
-        className="ellaz-play-surface"
+        // BOARD_CLASS so the page's sizing policy can find this box and read its
+        // chrome. Its inline width and height beat the class on both shapes -
+        // the size is `--u` times the world, and only `--u` differs.
+        className={`ellaz-play-surface ${BOARD_CLASS}`}
         aria-label={T.board}
         // Pointer Events, with the capture: a tap that begins on the box belongs
         // to the box even if the finger slides past its edge before it lifts.
@@ -614,7 +648,11 @@ export function FruitGame({ ctx }: { ctx: GameContext }) {
             // ONE world unit, as a CSS length. Everything in the box is written
             // in world units and multiplied by this, so the simulation never
             // learns a pixel and the whole board scales with one number.
-            ["--u" as string]: `calc(${BOX_H} / ${WORLD_H})`,
+            // The numbers are BOX_H's, declared for the page's sizing gate; the
+            // class's own width never applies here, since width and height
+            // below are inline. `--b-chrome` is the one field `pcUnit` reads.
+            ...boardVars({ vw: 124, vh: 52, cap: 440, chrome: CHROME, ratio: world.width / WORLD_H }),
+            ["--u" as string]: pc ? pcUnit(world.width) : `calc(${BOX_H} / ${WORLD_H})`,
             position: "relative",
             display: "block",
             padding: 0,
@@ -626,7 +664,7 @@ export function FruitGame({ ctx }: { ctx: GameContext }) {
             // `--u` times the world or every fruit is drawn three pixels off
             // the wall the simulation says it is touching.
             boxSizing: "content-box",
-            border: "3px solid rgba(255,255,255,0.22)",
+            border: `${BORDER}px solid rgba(255,255,255,0.22)`,
             // Square shoulders, round bottom: a box you drop things into, with
             // the open end reading as the end you drop into.
             borderTop: "none",

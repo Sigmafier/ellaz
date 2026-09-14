@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GameContext, RewardTier, SessionSpec } from "@sdk/index";
 import type { Locale } from "@i18n/index";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { GameChrome } from "@ui/GameChrome";
 import { DirectionPad } from "@ui/DirectionPad";
 import { BoardStick } from "@ui/BoardStick";
@@ -219,6 +220,11 @@ export function MazeGame({ ctx }: { ctx: GameContext }) {
   // under the thumb on the board itself. Keyboard arrows work in all three.
   const [controlMode, setControlMode] = useControlMode(ctx);
 
+  // Read ONCE at mount. A phone run keeps its per-cell viewport expression
+  // untouched; a PC run sizes the whole board from the height the window leaves
+  // (`.ellaz-board`) and derives a cell from that.
+  const [pc] = useState(isPcArena);
+
   // Read ONCE, before the first render, so a resumed maze never flashes as a
   // fresh one.
   const restored = useMemo(() => ctx.session.load(SESSION), [ctx]);
@@ -379,6 +385,11 @@ export function MazeGame({ ctx }: { ctx: GameContext }) {
   // both sources - the generic gate reads this number as one CELL and cannot
   // see the board at all.
   const cell = `min(${(88 / size).toFixed(2)}vw, ${(52 / size).toFixed(2)}vh, 64px)`;
+  // PC: one track of the board's content box, in `cqw` against the board. The
+  // frame's 4px top/left hedge is border, outside the content box `cqw` reads,
+  // so `size` tracks land exactly on it. Only the glyph reads it - the tracks
+  // themselves are `1fr`, so the grid never queries its own container.
+  const glyph = pc ? `calc(100cqw / ${size} * 0.52)` : `calc(${cell} * 0.52)`;
 
   return (
     <GameChrome
@@ -471,18 +482,34 @@ export function MazeGame({ ctx }: { ctx: GameContext }) {
       <BoardStick active={controlMode === "board"} onDir={move} repeatMs={MOVE_REPEAT_MS}>
         <div
           ref={gridRef}
-          className="ellaz-play-surface"
+          className={pc ? `ellaz-play-surface ${BOARD_CLASS}` : "ellaz-play-surface"}
           // LTR, always. The app is Hebrew RTL by default, so an RTL grid lays
           // column 0 out on the visual RIGHT - and a maze whose walls mirror is a
           // different maze from the one the rules are solving
           // (rtl-spatial-grid-dir-ltr.md).
           dir="ltr"
           style={{
+            ...(pc
+              ? {
+                  // The phone numbers, as a whole board: `size` cells of
+                  // `88/size vw` is 88vw, of `52/size vh` is 52vh, of 64px is
+                  // 64 * size. On a PC only the chrome and the ratio are read.
+                  // chrome 115 is an ESTIMATE, not a measurement: the 111 every
+                  // GameChrome game with its footer beside the board pays, plus
+                  // this board's own 4px top hedge (content-box, so the width
+                  // `.ellaz-board` sets does not include it). The picker, the
+                  // crumbs and the pad are in the footer column, not above or
+                  // below the board.
+                  ...boardVars({ vw: 88, vh: 52, cap: 64 * size, chrome: 115, ratio: 1 }),
+                  aspectRatio: "1",
+                  containerType: "inline-size" as const,
+                }
+              : {}),
             display: "grid",
-            gridTemplateColumns: `repeat(${size}, ${cell})`,
+            gridTemplateColumns: pc ? `repeat(${size}, 1fr)` : `repeat(${size}, ${cell})`,
             // Explicit ROWS as well: without them a taller cell stretches its row
             // and the square board deforms.
-            gridTemplateRows: `repeat(${size}, ${cell})`,
+            gridTemplateRows: pc ? `repeat(${size}, 1fr)` : `repeat(${size}, ${cell})`,
             // The frame. Cells carry their own right and bottom hedge, so these
             // two close the other two sides and the whole board is enclosed.
             borderTop: `${WALL}px solid ${HEDGE}`,
@@ -526,7 +553,7 @@ export function MazeGame({ ctx }: { ctx: GameContext }) {
                   placeItems: "center",
                   // Sized off the cell rather than fixed, so a glyph fills the
                   // big easy tiles and still fits the small hard ones.
-                  fontSize: `calc(${cell} * 0.52)`,
+                  fontSize: glyph,
                   lineHeight: 1,
                   background: trail.includes(i) ? FLOOR_TRAIL : isHome ? HOME_TILE : FLOOR,
                   transition: "background 0.18s ease",

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { textFor, type Locale } from "@i18n/index";
 import type { GameContext, RewardTier, SessionSpec } from "@sdk/index";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { GameChrome, type ChromeLevel } from "@ui/GameChrome";
 import { burst, haptic, shake } from "@juice/index";
 import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
@@ -102,6 +103,31 @@ function ballSize(cols: number): string {
 /** The tube's own chrome — border 3, padding 5, both sides. */
 const TUBE_TRIM = 16;
 
+/*
+ * THE PC BOARD, where every length is a share of the board's width so its shape
+ * is exact at any size. (A tube's px trim would not scale, so a ratio taken at
+ * one size would overflow at a bigger one.) Measured in balls:
+ *
+ *   a tube      1.32 wide (the ball + its trim), capacity + 0.32 tall
+ *   above it    0.62 - the room a lifted run rises into, as the phone's row gap
+ *   across      PC_COL_GAP per cent of the board between tubes
+ *
+ * so one ball is `PC_BALL(cols)` of the board's width, and the board is
+ * `pcRatio` as wide as it is tall.
+ */
+const PC_TUBE_W = 1.32;
+const PC_TUBE_TRIM = 0.32;
+const PC_LIFT = 0.62;
+const PC_COL_GAP = 2;
+
+function pcBall(cols: number): number {
+  return (1 - ((cols - 1) * PC_COL_GAP) / 100) / (PC_TUBE_W * cols);
+}
+
+function pcRatio(cols: number, capacity: number): number {
+  return 1 / (pcBall(cols) * 2 * (capacity + PC_TUBE_TRIM + PC_LIFT));
+}
+
 /* -------------------------------------------------------------- the session */
 
 /**
@@ -175,6 +201,9 @@ export function SortGame({ ctx }: { ctx: GameContext }) {
     LEVEL_OPTIONS.map((o) => o.id),
     "easy",
   );
+  // Read ONCE at mount. A phone run keeps its viewport expressions; a PC run
+  // sizes the board from the height the window gives it.
+  const [pc] = useState(isPcArena);
   const restored = useMemo(() => ctx.session.load(SESSION), [ctx]);
   // Adopted only for the level this mount opened on, and never once it is
   // solved — a finished puzzle has nothing left to pour, and returning to one
@@ -398,10 +427,20 @@ export function SortGame({ ctx }: { ctx: GameContext }) {
           right way round for the child looking at it. */}
       <div
         ref={boardRef}
-        className="ellaz-play-surface"
+        className={pc ? `ellaz-play-surface ${BOARD_CLASS}` : "ellaz-play-surface"}
         style={
           {
-            ["--ball" as string]: ball,
+            // PC: a ball is a share of the board's width, in `cqw`, and every
+            // tube below reads it against this element. chrome 215 is an
+            // ESTIMATE: the 111 every GameChrome game pays plus the hint line,
+            // the 64px undo, their gap and the footer's 14.
+            ["--ball" as string]: pc ? `calc(100cqw * ${pcBall(cols).toFixed(5)})` : ball,
+            ...(pc
+              ? {
+                  ...boardVars({ vw: 90, vh: 60, cap: 560, chrome: 111, ratio: pcRatio(cols, state.capacity) }),
+                  containerType: "inline-size",
+                }
+              : {}),
             display: "grid",
             gridTemplateColumns: `repeat(${cols}, auto)`,
             justifyContent: "center",
@@ -410,11 +449,14 @@ export function SortGame({ ctx }: { ctx: GameContext }) {
             // which on a 390px phone is ~25px, so an 8px row gap would draw the
             // lifted balls of the bottom row through the tubes of the top one.
             // 0.62 clears 0.5 with a little air.
-            gap: "calc(var(--ball) * 0.62) 8px",
+            // PC: no row gap - this element cannot read its own `cqw` - so
+            // each tube carries the lift room as a top margin instead, and the
+            // column gap is a share of the board.
+            gap: pc ? `0 ${PC_COL_GAP}%` : "calc(var(--ball) * 0.62) 8px",
             // The braces to the arithmetic in `ballSize`. It should never bind;
             // if a future level widens a row past it, the play surface scrolls
             // rather than the tubes being sliced off by the frame.
-            maxWidth: "min(90vw, 560px)",
+            ...(pc ? {} : { maxWidth: "min(90vw, 560px)" }),
             touchAction: "none",
           } as CSSProperties
         }
@@ -457,10 +499,20 @@ export function SortGame({ ctx }: { ctx: GameContext }) {
                 flexDirection: "column-reverse",
                 justifyContent: "flex-start",
                 alignItems: "center",
-                width: `calc(var(--ball) + ${TUBE_TRIM}px)`,
-                height: `calc(var(--ball) * ${state.capacity} + ${TUBE_TRIM}px)`,
-                boxSizing: "border-box",
-                padding: 5,
+                ...(pc
+                  ? {
+                      width: `calc(var(--ball) * ${PC_TUBE_W})`,
+                      height: `calc(var(--ball) * ${state.capacity + PC_TUBE_TRIM})`,
+                      marginTop: `calc(var(--ball) * ${PC_LIFT})`,
+                      boxSizing: "border-box" as const,
+                      padding: "calc(var(--ball) * 0.1)",
+                    }
+                  : {
+                      width: `calc(var(--ball) + ${TUBE_TRIM}px)`,
+                      height: `calc(var(--ball) * ${state.capacity} + ${TUBE_TRIM}px)`,
+                      boxSizing: "border-box" as const,
+                      padding: 5,
+                    }),
                 border: `3px solid ${
                   state.selected === i
                     ? "var(--brand)"

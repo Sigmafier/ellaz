@@ -3,6 +3,7 @@ import { textFor, AUTONYM, type Locale } from "@i18n/index";
 import type { GameContext } from "@sdk/index";
 import type { CastItem } from "@shared/cast";
 import { GameChrome } from "@ui/GameChrome";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { IconButton } from "@ui/index";
 import { haptic, shake } from "@juice/index";
@@ -128,6 +129,9 @@ export function Letters({ ctx }: { ctx: GameContext }): ReactElement {
 
   const pictureRef = useRef<HTMLDivElement>(null);
   const startedRef = useRef(false);
+  // Read once, for the letter glyph size only - the board's own size is the
+  // stylesheet's (`.ellaz-board`).
+  const [pc] = useState(isPcArena);
   // One personal-best moment per run: the score port answers "was that a record?"
   // on every correct answer, and without this a first-timer beats their 0 on
   // literally every tap. See rewards-economy-convention.md.
@@ -307,12 +311,17 @@ export function Letters({ ctx }: { ctx: GameContext }): ReactElement {
           letters themselves render correctly in either script regardless. */}
       <div
         dir="ltr"
-        className="ellaz-play-surface"
+        className={`ellaz-play-surface ${BOARD_CLASS}`}
         style={{
           display: "grid",
           gridTemplateColumns: `repeat(${challenge.options.length}, 1fr)`,
           gap: 12,
-          width: "min(90vw, 400px)",
+          // No vh term, as it always was: this row's own height is one cell
+          // tall (aspectRatio 1 below), so its shape is `options.length`
+          // columns over 1 row. chrome 345: the head row, the Prompt chip and the
+          // picture-and-speaker card above this row. measured 2026-09-14 by repro-board-fills-the-window.mjs at every PC arm.
+          ...boardVars({ vw: 90, cap: 400, chrome: 345, ratio: challenge.options.length }),
+          ...(pc ? { containerType: "inline-size" as const } : {}),
           touchAction: "none",
         }}
       >
@@ -340,7 +349,11 @@ export function Letters({ ctx }: { ctx: GameContext }): ReactElement {
                 color: "var(--text)",
                 fontFamily: "Fredoka, inherit",
                 fontWeight: 800,
-                fontSize: "clamp(36px, 12vw, 64px)",
+                // On a PC the letter follows the CELL (a share of the grid's
+                // width per column), or a big board holds a small glyph.
+                fontSize: pc
+                  ? `calc(${64 / challenge.options.length}cqw)`
+                  : "clamp(36px, 12vw, 64px)",
                 lineHeight: 1,
                 display: "grid",
                 placeItems: "center",

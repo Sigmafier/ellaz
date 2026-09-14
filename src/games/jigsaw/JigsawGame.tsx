@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GameContext, SessionSpec } from "@sdk/index";
 import type { Locale } from "@i18n/index";
 import { GameChrome } from "@ui/GameChrome";
+import { BOARD_CLASS, boardVars } from "@ui/boardSize";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { artGround, gameArt } from "@ui/gameArt";
 import { haptic } from "@juice/index";
@@ -416,21 +417,21 @@ export function JigsawGame({ ctx }: { ctx: GameContext }) {
       }
     >
       <div
-        className="ellaz-play-surface"
+        className={`ellaz-play-surface ${BOARD_CLASS}`}
         // LTR, always. The app is Hebrew RTL by default, so an RTL grid lays
         // column 0 out on the visual RIGHT and the picture assembles mirrored -
         // see rtl-spatial-grid-dir-ltr.md.
         dir="ltr"
         style={{
           position: "relative",
-          // Sized against the VIEWPORT, not this container, like every board
-          // here. 4:3 rather than square, because that is the shape every scene
-          // in `@ui/gameArt` is drawn on and a jigsaw that letterboxes its own
-          // picture is showing the wrong picture. 46vh leaves room for a tray
-          // of twenty pieces under it. The 460px cap sits well under what the
-          // 700px desktop panel leaves, so nothing grows a scrollbar inside it
-          // (game-panel-clears-widest-board.test.ts).
-          width: "min(92vw, 46vh, 460px)",
+          // 4:3 rather than square, because that is the shape every scene in
+          // `@ui/gameArt` is drawn on and a jigsaw that letterboxes its own
+          // picture is showing the wrong picture - true at every level, since
+          // the cut (3x2, 4x3, 5x4) is only an approximation of 4:3 and the
+          // pieces are rectangular slices of the art, not square cells.
+          // chrome 111: the head row only - the tray is in the footer, and
+          // the footer sits beside the board on a PC, so it costs no height. measured 2026-09-14 by repro-board-fills-the-window.mjs at every PC arm.
+          ...boardVars({ vw: 92, vh: 46, cap: 460, chrome: 111, ratio: 4 / 3 }),
           aspectRatio: "4 / 3",
           boxSizing: "border-box",
           display: "grid",

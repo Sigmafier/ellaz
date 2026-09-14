@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { AUTONYM, dirOf, textFor, type Locale } from "@i18n/index";
 import { formatScore, type GameContext, type RewardTier, type SessionSpec } from "@sdk/index";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { GameChrome, type ChromeLevel } from "@ui/GameChrome";
 import { burst, haptic, shake } from "@juice/index";
 import { useGameSession, useGameTimer, useRememberedLevel, winMoment } from "@shared/index";
@@ -213,6 +214,9 @@ export function WordSearchGame({ ctx }: { ctx: GameContext }) {
     LEVEL_OPTIONS.map((o) => o.id),
     "easy",
   );
+  // Read ONCE at mount. A phone run keeps its viewport expressions; a PC run
+  // sizes the board from the height the window gives it.
+  const [pc] = useState(isPcArena);
 
   // Games always receive the app locale narrowed to a shipped one (he/en/es), so
   // "the interface is Hebrew" is exactly `ctx.locale === "he"` - decided inside
@@ -570,16 +574,30 @@ export function WordSearchGame({ ctx }: { ctx: GameContext }) {
         <div
           ref={boardRef}
           dir="ltr"
-          className="ellaz-play-surface"
+          className={pc ? `ellaz-play-surface ${BOARD_CLASS}` : "ellaz-play-surface"}
           onPointerMove={(e) => onMove(e.clientX, e.clientY)}
           onPointerUp={onLift}
           onPointerCancel={onLift}
           style={
             {
-              ["--cell" as string]: cell,
+              // PC: the grid's width comes from `.ellaz-board` and a square is
+              // one track of it, in `cqw` against this element's content box
+              // (padding outside it, gaps subtracted). The tracks are `1fr` so
+              // the grid's own template never reads its own `cqw`.
+              ["--cell" as string]: pc ? `calc((100cqw - ${(size - 1) * CELL_GAP}px) / ${size})` : cell,
+              ...(pc
+                ? {
+                    // chrome 273 is an ESTIMATE: the 111 every GameChrome game
+                    // pays, the word list (two rows of pills, 66) and its 10px
+                    // gap, and the hint-and-language footer (72) plus its 14.
+                    ...boardVars({ vw: 90, vh: 50, cap: 550, chrome: 157 }),
+                    aspectRatio: "1",
+                    containerType: "inline-size",
+                  }
+                : {}),
               display: "grid",
-              gridTemplateColumns: `repeat(${size}, var(--cell))`,
-              gridTemplateRows: `repeat(${size}, var(--cell))`,
+              gridTemplateColumns: pc ? `repeat(${size}, 1fr)` : `repeat(${size}, var(--cell))`,
+              gridTemplateRows: pc ? `repeat(${size}, 1fr)` : `repeat(${size}, var(--cell))`,
               justifyContent: "center",
               gap: CELL_GAP,
               padding: 6,

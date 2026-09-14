@@ -309,7 +309,7 @@ export function Sudoku({ ctx }: { ctx: GameContext }) {
           // desktop branch started handing this board a 236px width.
           gridTemplateRows: `repeat(${n}, 1fr)`,
           // chrome 259 measured 2026-09-13 - the bar plus the number pad.
-          ...boardVars({ vw: 94, vh: 44, cap: 440, chrome: 259 }),
+          ...boardVars({ vw: 94, vh: 44, cap: 440, chrome: 111 }),
           aspectRatio: "1",
           background: "#20244a",
           border: "3px solid #6c5ce7",

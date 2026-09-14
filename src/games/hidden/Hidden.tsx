@@ -2,6 +2,7 @@ import { textFor } from "@i18n/index";
 import { useCallback, useRef, useState, useEffect, type PointerEvent as ReactPointerEvent } from "react";
 import type { GameContext } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { burst, shake, haptic } from "@juice/index";
 import { shuffle, winMoment, useRememberedLevel } from "@shared/index";
@@ -61,6 +62,9 @@ export function Hidden({ ctx }: { ctx: GameContext }) {
   const [round, setRound] = useState(1);
   const [state, setState] = useState<HiddenState>(() => makeRound(difficulty));
   const [justWon, setJustWon] = useState(false);
+  // Read once, for the character glyph size only - the scene's own size is
+  // the stylesheet's (`.ellaz-board`).
+  const [pc] = useState(isPcArena);
   // Furthest round reached, per DIFFICULTY — the round counter resets to 1 on a
   // difficulty change, so a shared record would let an easy streak stand as the
   // record on hard, where a crowd is twice the size.
@@ -206,11 +210,15 @@ export function Hidden({ ctx }: { ctx: GameContext }) {
       {/* The crowd */}
       <div
         ref={sceneRef}
-        className="ellaz-play-surface"
+        className={`ellaz-play-surface ${BOARD_CLASS}`}
         style={{
           position: "relative",
-          width: "min(94vw, 58vh, 580px)",
+          // chrome 111: the head row only - the footer sits beside the board on a PC, so it costs no height.
+          // measured 2026-09-14 by repro-board-fills-the-window.mjs at every PC arm. Phone shape is 1 / 1.15 (width / height); ratio here
+          // is width-over-height, so it is the reciprocal.
+          ...boardVars({ vw: 94, vh: 58, cap: 580, chrome: 111, ratio: 1 / 1.15 }),
           aspectRatio: "1 / 1.15",
+          ...(pc ? { containerType: "inline-size" as const } : {}),
           // A place rather than a void: sky over meadow, so the crowd reads as
           // a scene to search through (Where's-Wally), not icons on black.
           background:
@@ -235,7 +243,10 @@ export function Hidden({ ctx }: { ctx: GameContext }) {
                 transform: "translate(-50%, -50%)",
                 border: found ? "3px solid #00b894" : "none",
                 background: found ? "rgba(0,230,164,0.25)" : "transparent",
-                fontSize: "clamp(17px, 4.4vw, 28px)",
+                // On a PC the glyph follows the SCENE (4.4/94 of its width,
+                // the same share the phone's 4.4vw is of its 94vw), rather
+                // than staying pinned to a phone-sized viewport fraction.
+                fontSize: pc ? "clamp(17px, 4.68cqw, 28px)" : "clamp(17px, 4.4vw, 28px)",
                 lineHeight: 1,
                 padding: 1,
                 borderRadius: 8,

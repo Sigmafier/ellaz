@@ -12,6 +12,7 @@ import {
 import type { GameContext } from "@sdk/index";
 import { type DifficultyOption } from "@ui/index";
 import { GameChrome } from "@ui/GameChrome";
+import { BOARD_CLASS, boardVars, isPcArena, pcFillArena } from "@ui/boardSize";
 import { burst, haptic, shake } from "@juice/index";
 import {
   PLAY_SURFACE_STYLE,
@@ -66,10 +67,22 @@ import {
  */
 const LANES = 4;
 
-const SURFACE_W = "min(94vw, 520px)";
+/**
+ * The sky, on both shapes (2026-09-14, operator: every game has a PC version).
+ *
+ * PHONE - byte-identical: `min(94vw, 520px)` wide by `min(58vh, 440px)` tall,
+ * now declared through `boardVars` so `.ellaz-board` resolves the same `min()`.
+ * PC - the WHOLE width the page gives it and the height the window leaves
+ * (`pcFillArena`). The round does not change with the shape: `LANES` is 4 either
+ * way, lanes are placed by percentage, and a rise is a DURATION over whatever
+ * height the sky has - so a wide sky is the same game drawn bigger.
+ */
 const SURFACE_H = "min(58vh, 440px)";
-const BALLOON_W = "max(68px, min(19vw, 11vh, 96px))";
-const BALLOON_H = `calc(${BALLOON_W} * 1.45)`;
+/** On a phone the floor holds a balloon over the kids target; on a PC it
+ *  follows the SKY (`cqh`) at the phone's share of its height - 74px of 440
+ *  at 390x844 - so a big arena does not float four specks. */
+const BALLOON_W_PHONE = "max(68px, min(19vw, 11vh, 96px))";
+const BALLOON_W_PC = "max(68px, 17cqh)";
 
 /** Where a balloon rests when motion is off. See `motion` below. */
 const RESTING_TOP = "42%";
@@ -267,6 +280,11 @@ export function BalloonsGame({ ctx }: { ctx: GameContext }): ReactElement {
 
   targetRef.current = round.target;
 
+  // Read ONCE: the shape is a property of the run, never a live media query.
+  const [pc] = useState(isPcArena);
+  const BALLOON_W = pc ? BALLOON_W_PC : BALLOON_W_PHONE;
+  const BALLOON_H = `calc(${BALLOON_W} * 1.45)`;
+
   const kindFor = useCallback((): ColorId => {
     const draw = nextBalloon(palette, targetRef.current, sinceRef.current);
     sinceRef.current = draw.sinceTarget;
@@ -305,7 +323,11 @@ export function BalloonsGame({ ctx }: { ctx: GameContext }): ReactElement {
    */
   const motion = useCallback((prop: Prop<ColorId>) => {
     const sway = prop.id % 2 === 0 ? 11 : -11;
-    const rise = (fraction: number) => `translateY(calc(${SURFACE_H} * ${fraction}))`;
+    // A phone keeps the declared length it always had. A PC sky has no CSS
+    // length of its own (it is the window's height), so its height is MEASURED
+    // at spawn, the way bubbles measures its water.
+    const skyH = pc ? `${surfaceRef.current?.clientHeight ?? 440}px` : SURFACE_H;
+    const rise = (fraction: number) => `translateY(calc(${skyH} * ${fraction}))`;
     return {
       keyframes: [
         { transform: `${rise(0.62)} rotate(0deg)` },
@@ -317,7 +339,7 @@ export function BalloonsGame({ ctx }: { ctx: GameContext }): ReactElement {
       ],
       options: { easing: "linear" as const },
     };
-  }, []);
+  }, [pc]);
 
   const spawner = useSpawner<ColorId>({
     ctx,
@@ -571,10 +593,13 @@ export function BalloonsGame({ ctx }: { ctx: GameContext }): ReactElement {
         // lands when the balloon it was on pops or drifts away.
         tabIndex={-1}
         onPointerDown={onTap}
+        className={BOARD_CLASS}
         style={{
           ...PLAY_SURFACE_STYLE,
-          width: SURFACE_W,
-          height: SURFACE_H,
+          ...boardVars({ vw: 94, cap: 520, h: { vh: 58, cap: 440 }, chrome: 187, ratio: 16 / 9 }),
+          // The whole width on a PC, and the sky is the balloons' container.
+          // Never on a phone, where nothing reads a container unit.
+          ...(pc ? pcFillArena() : {}),
           borderRadius: 24,
           // A NEUTRAL indigo-slate, not a sky blue. The obvious choice for a
           // balloon game is a blue sky, and it is the one background the BLUE

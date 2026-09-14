@@ -3,6 +3,7 @@ import type { Locale } from "@i18n/index";
 import type { GameContext } from "@sdk/index";
 import { type DifficultyOption } from "@ui/index";
 import { GameChrome } from "@ui/GameChrome";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { haptic, shake } from "@juice/index";
 import { Prompt, useGameTimer, useRememberedLevel, winMoment } from "@shared/index";
 import {
@@ -95,6 +96,9 @@ export function Vanish({ ctx }: { ctx: GameContext }) {
   const [roundNo, setRoundNo] = useState(1);
   const [foundCount, setFoundCount] = useState(0);
   const started = useRef(false);
+  // Read once, for the item glyph size only - the grid's own size is the
+  // stylesheet's (`.ellaz-board`).
+  const [pc] = useState(isPcArena);
 
   // Pause-aware: a child who puts the tablet down mid-study must not come back
   // to a blown clock, so the study countdown is `useGameTimer` (which stops on
@@ -250,11 +254,23 @@ export function Vanish({ ctx }: { ctx: GameContext }) {
           and touch-action:none so a tap on a tile is never eaten by a scroll. */}
       <div
         dir="ltr"
+        className={BOARD_CLASS}
         style={{
           display: "grid",
           gridTemplateColumns: `repeat(${round.columns}, 1fr)`,
           gap: 12,
-          width: `min(92vw, 52vh, 420px)`,
+          // chrome 169: the head row plus the Prompt chip above the board -
+          // the footer sits beside the board on a PC, so it costs no height. measured 2026-09-14 by repro-board-fills-the-window.mjs at every PC arm. Every item is square
+          // (aspectRatio 1 below), so the grid's own shape is columns over
+          // its row count.
+          ...boardVars({
+            vw: 92,
+            vh: 52,
+            cap: 420,
+            chrome: 169,
+            ratio: round.columns / Math.ceil(round.items.length / round.columns),
+          }),
+          ...(pc ? { containerType: "inline-size" as const } : {}),
           touchAction: "none",
         }}
       >
@@ -278,7 +294,11 @@ export function Vanish({ ctx }: { ctx: GameContext }) {
                 borderRadius: 18,
                 display: "grid",
                 placeItems: "center",
-                fontSize: "clamp(30px, 9vw, 56px)",
+                // On a PC the glyph follows the CELL (a share of the grid's
+                // width per column), or a big board holds a small character.
+                fontSize: pc
+                  ? `calc(${56 / round.columns}cqw)`
+                  : "clamp(30px, 9vw, 56px)",
                 background: covered
                   ? "linear-gradient(180deg,var(--brand-2),var(--brand))"
                   : hole

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { textFor, type Locale } from "@i18n/index";
 import { formatScore, type GameContext, type RewardTier, type SessionSpec } from "@sdk/index";
 import { GameChrome, type ChromeLevel } from "@ui/GameChrome";
+import { BOARD_CLASS, boardVars } from "@ui/boardSize";
 import { burst, haptic, shake } from "@juice/index";
 import { useGameSession, useGameTimer, useRememberedLevel, winMoment } from "@shared/index";
 import {
@@ -53,24 +54,15 @@ const LEVEL_TIER: Record<LevelId, RewardTier> = {
 /* ---------------------------------------------------------------- the board */
 
 /**
- * The whole board's size, against the VIEWPORT and never the container — the
- * house rule for every board here. One `min(...)` per level, written out as
- * literals rather than computed, because `game-panel-clears-widest-board.test.ts`
- * reads these as TEXT: a `${cap}px` built at runtime carries no digits, so the
- * gate that exists to check the ceiling would find nothing and report green
- * about a number it never saw.
+ * The whole board's size, against the VIEWPORT on a phone and against the
+ * STAGE HEIGHT on a desktop (`boardVars` / `.ellaz-board`, `@ui/boardSize`).
  *
- * The px terms are `size * 90`, so a cell is at most 90px on a desktop and the
- * grid never floats in the panel. All three clear the 700px panel cap with
- * room, and the widest (540) is well under the 640 the widest board in the
- * catalogue asks for. On a 390px phone the vw term binds: 88vw is 343px, which
- * is 57px per cell on the 6x6 — above the 44px tap floor.
+ * The phone ceilings are still one per level, `size * 90` px, exactly as they
+ * were: a 390px phone binds the vw term either way, but a 700px tablet does not,
+ * and a single shared 540 would have grown the easy board there. On a PC the
+ * stage height decides and these do not bind.
  */
-const BOARD_SIZE: Record<LevelId, string> = {
-  easy: "min(88vw, 52vh, 360px)",
-  medium: "min(88vw, 52vh, 450px)",
-  hard: "min(88vw, 52vh, 540px)",
-};
+const BOARD_CAP: Record<LevelId, number> = { easy: 360, medium: 450, hard: 540 };
 
 /**
  * One colour per direction, spread across LIGHTNESS as well as hue.
@@ -420,13 +412,14 @@ export function ArrowTapGame({ ctx }: { ctx: GameContext }) {
       <div
         dir="ltr"
         ref={boardRef}
-        className="ellaz-play-surface"
+        className={`ellaz-play-surface ${BOARD_CLASS}`}
         style={
           {
             display: "grid",
             gridTemplateColumns: `repeat(${size}, 1fr)`,
             gridTemplateRows: `repeat(${size}, 1fr)`,
-            width: BOARD_SIZE[level],
+            // chrome 111: the head row only - the footer sits beside the board on a PC, so it costs no height. measured 2026-09-14 by repro-board-fills-the-window.mjs at every PC arm.
+            ...boardVars({ vw: 88, vh: 52, cap: BOARD_CAP[level], chrome: 111 }),
             aspectRatio: "1",
             gap: "1.5%",
             padding: "1.5%",

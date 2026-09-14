@@ -11,6 +11,7 @@ import {
 import type { GameContext } from "@sdk/index";
 import { type DifficultyOption } from "@ui/index";
 import { GameChrome } from "@ui/GameChrome";
+import { BOARD_CLASS, boardVars, isPcArena, pcFillArena } from "@ui/boardSize";
 import { burst, haptic } from "@juice/index";
 import {
   PLAY_SURFACE_STYLE,
@@ -58,12 +59,27 @@ import {
 const POND_W = "min(94vw, 520px)";
 const POND_H = "max(300px, min(58vh, 420px))";
 
+/*
+ * PC (2026-09-14, operator: every game has a PC version): the pond takes the
+ * WHOLE width the page gives it and the height the window leaves
+ * (`pcFillArena`). The phone keeps both expressions above, byte for byte - the
+ * width through `boardVars`, which resolves the same `min()`, and the height
+ * inline, because `max(300px, ...)` has no `boardVars` field.
+ *
+ * Nothing about a round changes with the shape: `PAD_SPOTS` are percentages of
+ * the pond, the pad count is `PAD_COUNT` either way, and the hop is a fixed
+ * HOP_MS - so a wide pond is the same search drawn bigger.
+ */
+
 /**
  * The frog IS the touch target, so it is sized off the 64px kids minimum rather
  * than off the pad. The pad is then sized off the frog, not the other way round.
+ *
+ * On a PC the frog follows the POND (`cqh`) at the phone's share of its height
+ * - 74px of 420 at 390x844 - with the same 66px floor.
  */
-const FROG = "max(66px, min(19vw, 13vh, 104px))";
-const PAD = `calc(${FROG} * 1.5)`;
+const FROG_PHONE = "max(66px, min(19vw, 13vh, 104px))";
+const FROG_PC = "max(66px, 18cqh)";
 
 /** How high the hop arcs, as a fraction of the pond's height. */
 const ARC = 0.15;
@@ -218,6 +234,12 @@ export function FrogGame({ ctx }: { ctx: GameContext }): ReactElement {
   );
   const pads = useMemo(() => padsFor(difficulty), [difficulty]);
 
+  // Read ONCE: the shape is a property of the run, never a live media query.
+  const [pc] = useState(isPcArena);
+  const FROG = pc ? FROG_PC : FROG_PHONE;
+  const PAD = `calc(${FROG} * 1.5)`;
+  const pondRef = useRef<HTMLDivElement>(null);
+
   // Read at CALL time, not render time: the spawner's housekeeping tick and the
   // pointer handler both run outside React's render, where state is stale.
   const padRef = useRef<number | null>(null);
@@ -280,8 +302,12 @@ export function FrogGame({ ctx }: { ctx: GameContext }): ReactElement {
     const dx = (from.x - to.x) / 100;
     const dy = (from.y - to.y) / 100;
 
+    // A phone keeps the declared lengths it always had. A PC pond has no CSS
+    // length of its own (it is the window's shape), so it is MEASURED at spawn.
+    const pondW = pc ? `${pondRef.current?.clientWidth ?? 520}px` : POND_W;
+    const pondH = pc ? `${pondRef.current?.clientHeight ?? 420}px` : POND_H;
     const at = (u: number, lift: number, sx: number, sy: number): string =>
-      `translate(calc(${POND_W} * ${(dx * u).toFixed(4)}), calc(${POND_H} * ${(dy * u - lift).toFixed(4)})) scale(${sx}, ${sy})`;
+      `translate(calc(${pondW} * ${(dx * u).toFixed(4)}), calc(${pondH} * ${(dy * u - lift).toFixed(4)})) scale(${sx}, ${sy})`;
 
     return {
       keyframes: [
@@ -293,7 +319,7 @@ export function FrogGame({ ctx }: { ctx: GameContext }): ReactElement {
       ],
       options: { duration: HOP_MS, easing: "cubic-bezier(0.2, 0.65, 0.3, 1)" },
     };
-  }, []);
+  }, [pc]);
 
   const spawner = useSpawner<Hop>({
     ctx,
@@ -456,14 +482,18 @@ export function FrogGame({ ctx }: { ctx: GameContext }): ReactElement {
           which would mirror them away from the positions the hop's pixel maths
           was computed against. */}
       <div
+        ref={pondRef}
         dir="ltr"
         role="application"
         aria-label={T.scene}
         onPointerDown={onTap}
+        className={BOARD_CLASS}
         style={{
           ...PLAY_SURFACE_STYLE,
-          width: POND_W,
-          height: POND_H,
+          ...boardVars({ vw: 94, cap: 520, chrome: 169, ratio: 16 / 9 }),
+          // PC: the whole width, and the pond is the frog's container. Phone:
+          // today's height, inline, since `max(300px, ...)` has no field.
+          ...(pc ? pcFillArena() : { height: POND_H }),
           borderRadius: 26,
           background: "linear-gradient(180deg, #1d5f74 0%, #2a7f92 55%, #36a0a6 100%)",
           boxShadow: "var(--shadow-2)",

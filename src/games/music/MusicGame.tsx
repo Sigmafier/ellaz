@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GameContext, SessionSpec } from "@sdk/index";
 import type { Locale } from "@i18n/index";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { GameChrome } from "@ui/GameChrome";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { haptic, popEl } from "@juice/index";
@@ -241,6 +242,9 @@ export function MusicGame({ ctx }: { ctx: GameContext }) {
   // id no longer in the list resolves to -1 in GameChrome's findIndex and the
   // toggle silently disappears.
   const [level, setLevel] = useRememberedLevel(ctx, LENGTHS, "medium");
+  // Read ONCE at mount. A phone run keeps its per-cell viewport expression; a
+  // PC run sizes the whole board from the height the window gives it.
+  const [pc] = useState(isPcArena);
 
   // Read ONCE, before the first render, so a returning child's tune never
   // flashes as an empty grid.
@@ -575,18 +579,29 @@ export function MusicGame({ ctx }: { ctx: GameContext }) {
       }
     >
       <div
-        className="ellaz-play-surface"
+        className={pc ? `ellaz-play-surface ${BOARD_CLASS}` : "ellaz-play-surface"}
         // LTR, always. Time runs left to right in every notation there is, and
         // an RTL grid would lay beat 1 out on the visual right - so the tune a
         // child watched would play backwards against the one they drew
         // (rtl-spatial-grid-dir-ltr.md).
         dir="ltr"
         style={{
+          // PC: the strip's width comes from `.ellaz-board` - the height the
+          // window leaves, times beats over notes - and every square is a `1fr`
+          // track of it. chrome 230 is an ESTIMATE: the 111 every GameChrome
+          // game pays plus the controls card (56px row, the hint line, its
+          // padding) and the footer's 14.
+          ...(pc
+            ? {
+                ...boardVars({ vw: 92, vh: 56, cap: 520, chrome: 111, ratio: steps / ROWS }),
+                aspectRatio: `${steps} / ${ROWS}`,
+              }
+            : {}),
           display: "grid",
-          gridTemplateColumns: `repeat(${steps}, ${cell})`,
+          gridTemplateColumns: pc ? `repeat(${steps}, 1fr)` : `repeat(${steps}, ${cell})`,
           // Explicit ROWS as well: without them a taller cell stretches its row
           // and the square grid deforms.
-          gridTemplateRows: `repeat(${ROWS}, ${cell})`,
+          gridTemplateRows: pc ? `repeat(${ROWS}, 1fr)` : `repeat(${ROWS}, ${cell})`,
           gap: 4,
           padding: 6,
           background: WELL,

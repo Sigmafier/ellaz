@@ -2,6 +2,7 @@ import { textFor } from "@i18n/index";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { GameContext } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { burst, shake, haptic } from "@juice/index";
 import { winMoment, useRememberedLevel } from "@shared/index";
@@ -92,6 +93,9 @@ export function TicTacToe({ ctx }: { ctx: GameContext }) {
    * rather than left for the mode to walk through.
    */
   const dealRef = useRef(0);
+  // Read once, for the mark glyph size only - the grid's own size is the
+  // stylesheet's (`.ellaz-board`).
+  const [pc] = useState(isPcArena);
   const win = winner(board);
   const draw = isDraw(board);
   const done = !!win || draw;
@@ -377,6 +381,7 @@ export function TicTacToe({ ctx }: { ctx: GameContext }) {
     >
       <div
         ref={boardRef}
+        className={BOARD_CLASS}
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(3, 1fr)",
@@ -384,7 +389,10 @@ export function TicTacToe({ ctx }: { ctx: GameContext }) {
           // its row taller than the empty rows and the square board deforms
           gridTemplateRows: "repeat(3, 1fr)",
           gap: 10,
-          width: "min(88vw, 46vh, 420px)",
+          // chrome 111: the head row only - the footer sits beside the board on a PC, so it costs no height.
+          // measured 2026-09-14 by repro-board-fills-the-window.mjs at every PC arm.
+          ...boardVars({ vw: 88, vh: 46, cap: 420, chrome: 111 }),
+          ...(pc ? { containerType: "inline-size" as const } : {}),
           aspectRatio: "1",
         }}
       >
@@ -401,7 +409,9 @@ export function TicTacToe({ ctx }: { ctx: GameContext }) {
                 borderRadius: 16,
                 background: winning ? "linear-gradient(180deg,#55efc4,#00cec9)" : "var(--surface)",
                 color: cell === "X" ? "var(--brand-2)" : "var(--teal)",
-                fontSize: "clamp(36px, 12vw, 72px)",
+                // On a PC the mark follows the CELL (a third of the grid's
+                // width), or a big board holds a small X/O.
+                fontSize: pc ? "calc(24cqw)" : "clamp(36px, 12vw, 72px)",
                 fontWeight: 800,
                 lineHeight: 1,
                 // grid items must be allowed to shrink below content size so the

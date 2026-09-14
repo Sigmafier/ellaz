@@ -8,6 +8,7 @@ import {
 } from "react";
 import type { GameContext } from "@sdk/index";
 import { type DifficultyOption } from "@ui/index";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { GameChrome } from "@ui/GameChrome";
 import { burst, haptic, shake } from "@juice/index";
 import { Prompt, winMoment, useRememberedLevel } from "@shared/index";
@@ -37,6 +38,25 @@ const TILE_GLYPH = "max(38px, min(13vw, 9vh, 60px))";
 const PLATE = "max(150px, min(66vw, 32vh, 300px))";
 const PLATE_GLYPH = "max(96px, min(42vw, 20vh, 190px))";
 
+/*
+ * THE PC BOARD: the shadow and the pictures SIDE BY SIDE, because a PC window is
+ * wide and a column of plate-over-tiles would be bounded by its height long
+ * before it used the width. Every length is a share of the board's width (`cqw`),
+ * and the tiles stay a balanced block - two by two for four, one column of three
+ * for three - so no picture is ever stranded on a line of its own.
+ *
+ *   four   plate 49, gap 2, tiles 2 x 23.5 with a 2 gap  -> 100 wide, 49 tall
+ *   three  plate 74, gap 3, tiles 1 x 22.5, 3 x 22.5 + 2 x 3 = 73.5 tall
+ *                                                    -> 99.5 wide, 74 tall
+ *
+ * The glyphs keep the phone's proportions to their box: 60/108 of a tile and
+ * 190/300 of the plate.
+ */
+const PC_LAYOUT = {
+  4: { plate: 49, gap: 2, tile: 23.5, tileGap: 2, cols: 2, tileGlyph: 13, plateGlyph: 31 },
+  3: { plate: 74, gap: 3, tile: 22.5, tileGap: 3, cols: 1, tileGlyph: 12.5, plateGlyph: 47 },
+} as const;
+
 export function Shadows({ ctx }: { ctx: GameContext }) {
   // This game's own words. A locale RECORD, so promoting a language reds
   // this block by name instead of leaving the game speaking English
@@ -54,6 +74,9 @@ export function Shadows({ ctx }: { ctx: GameContext }) {
     DIFF_OPTIONS.map((o) => o.id),
     "easy",
   );
+  // Read ONCE at mount: a PC run lays the shadow and the pictures out as one
+  // board sized from the window's height; a phone run is exactly as it was.
+  const [pc] = useState(isPcArena);
   const [level, setLevel] = useState(1);
   const [round, setRound] = useState<ShadowRound>(() => newRound(difficulty));
   const [solved, setSolved] = useState(false);
@@ -154,6 +177,95 @@ export function Shadows({ ctx }: { ctx: GameContext }) {
     [ctx, round, difficulty, level, deal],
   );
 
+  const L = PC_LAYOUT[round.choices.length === 3 ? 3 : 4];
+
+  /* The shadow, on its light plate. */
+  const plate = (
+    <div
+      className="ellaz-play-surface"
+      style={{
+        width: pc ? `${L.plate}cqw` : PLATE,
+        height: pc ? `${L.plate}cqw` : PLATE,
+        ...(pc ? { flex: "0 0 auto" } : {}),
+        display: "grid",
+        placeItems: "center",
+        borderRadius: 26,
+        background: "linear-gradient(180deg, #ffffff, #ccd6ea)",
+        boxShadow: "var(--shadow-2)",
+        touchAction: "none",
+      }}
+    >
+      {/* On a correct pick the silhouette LIFTS — the real, colourful picture
+          shows for the reveal beat before the next shadow is dealt, so the
+          child sees what was hiding in the shadow. */}
+      <span
+        aria-hidden="true"
+        style={{
+          fontSize: pc ? `${L.plateGlyph}cqw` : PLATE_GLYPH,
+          lineHeight: 1,
+          filter: solved ? "none" : SILHOUETTE,
+          transform: solved ? "scale(1.06)" : "none",
+          transition: "transform 200ms ease",
+        }}
+      >
+        {round.answerEmoji}
+      </span>
+    </div>
+  );
+
+  /* The pictures. `dir="ltr"` because this row is SPATIAL: the app is
+     Hebrew-RTL by default, which would mirror the tiles away from the
+     order the logic dealt them.
+
+     An explicit column count, not `flex-wrap`. Wrapping put four tiles as
+     3+1 on a phone (measured at 420px) — the fourth picture stranded on its
+     own line reads as less of an option than the other three, which is a
+     fairness problem, not a cosmetic one. Two rows of two is balanced at
+     every width. */
+  const tiles = (
+    <div
+      dir="ltr"
+      className="ellaz-play-surface"
+      style={{
+        display: "grid",
+        gridTemplateColumns: pc
+          ? `repeat(${L.cols}, ${L.tile}cqw)`
+          : `repeat(${round.choices.length === 4 ? 2 : round.choices.length}, ${TILE})`,
+        gap: pc ? `${L.tileGap}cqw` : 12,
+        ...(pc ? { flex: "0 0 auto", marginInlineStart: `${L.gap}cqw` } : {}),
+        justifyContent: "center",
+        touchAction: "none",
+      }}
+    >
+      {round.choices.map((c) => {
+        const isAnswer = solved && c.id === round.answerId;
+        return (
+          <button
+            key={c.id}
+            aria-label={textFor(c, ctx.locale)}
+            onPointerDown={(e) => onChoice(c, e)}
+            style={{
+              width: pc ? `${L.tile}cqw` : TILE,
+              height: pc ? `${L.tile}cqw` : TILE,
+              display: "grid",
+              placeItems: "center",
+              padding: 0,
+              fontSize: pc ? `${L.tileGlyph}cqw` : TILE_GLYPH,
+              lineHeight: 1,
+              borderRadius: 20,
+              border: `4px solid ${isAnswer ? "var(--green)" : "transparent"}`,
+              background: "var(--surface)",
+              boxShadow: "var(--shadow-1)",
+              touchAction: "none",
+            }}
+          >
+            {c.emoji}
+          </button>
+        );
+      })}
+    </div>
+  );
+
   return (
     <GameChrome
       ctx={ctx}
@@ -193,84 +305,37 @@ export function Shadows({ ctx }: { ctx: GameContext }) {
         text={T.ask}
       />
 
-      {/* The shadow, on its light plate. */}
-      <div
-        className="ellaz-play-surface"
-        style={{
-          width: PLATE,
-          height: PLATE,
-          display: "grid",
-          placeItems: "center",
-          borderRadius: 26,
-          background: "linear-gradient(180deg, #ffffff, #ccd6ea)",
-          boxShadow: "var(--shadow-2)",
-          touchAction: "none",
-        }}
-      >
-        {/* On a correct pick the silhouette LIFTS — the real, colourful picture
-            shows for the reveal beat before the next shadow is dealt, so the
-            child sees what was hiding in the shadow. */}
-        <span
-          aria-hidden="true"
+      {pc ? (
+        // PC: one board, the shadow beside the pictures. It follows the
+        // current difficulty's choice count, so its ratio changes with it.
+        // chrome 269 is an ESTIMATE: the 111 every GameChrome game pays, the
+        // prompt (72) and its 12px gap, and the 60px caption card plus the
+        // footer's 14.
+        <div
+          className={BOARD_CLASS}
           style={{
-            fontSize: PLATE_GLYPH,
-            lineHeight: 1,
-            filter: solved ? "none" : SILHOUETTE,
-            transform: solved ? "scale(1.06)" : "none",
-            transition: "transform 200ms ease",
+            ...boardVars({
+              vw: 92,
+              vh: 60,
+              cap: 560,
+              chrome: 169,
+              ratio: (L.plate + L.gap + L.cols * L.tile + (L.cols - 1) * L.tileGap) / L.plate,
+            }),
+            containerType: "inline-size",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          {round.answerEmoji}
-        </span>
-      </div>
-
-      {/* The pictures. `dir="ltr"` because this row is SPATIAL: the app is
-          Hebrew-RTL by default, which would mirror the tiles away from the
-          order the logic dealt them.
-
-          An explicit column count, not `flex-wrap`. Wrapping put four tiles as
-          3+1 on a phone (measured at 420px) — the fourth picture stranded on its
-          own line reads as less of an option than the other three, which is a
-          fairness problem, not a cosmetic one. Two rows of two is balanced at
-          every width. */}
-      <div
-        dir="ltr"
-        className="ellaz-play-surface"
-        style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(${round.choices.length === 4 ? 2 : round.choices.length}, ${TILE})`,
-          gap: 12,
-          justifyContent: "center",
-          touchAction: "none",
-        }}
-      >
-        {round.choices.map((c) => {
-          const isAnswer = solved && c.id === round.answerId;
-          return (
-            <button
-              key={c.id}
-              aria-label={textFor(c, ctx.locale)}
-              onPointerDown={(e) => onChoice(c, e)}
-              style={{
-                width: TILE,
-                height: TILE,
-                display: "grid",
-                placeItems: "center",
-                padding: 0,
-                fontSize: TILE_GLYPH,
-                lineHeight: 1,
-                borderRadius: 20,
-                border: `4px solid ${isAnswer ? "var(--green)" : "transparent"}`,
-                background: "var(--surface)",
-                boxShadow: "var(--shadow-1)",
-                touchAction: "none",
-              }}
-            >
-              {c.emoji}
-            </button>
-          );
-        })}
-      </div>
+          {plate}
+          {tiles}
+        </div>
+      ) : (
+        <>
+          {plate}
+          {tiles}
+        </>
+      )}
     </GameChrome>
   );
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { textFor, type Locale } from "@i18n/index";
 import { formatScore, type GameContext, type RewardTier, type SessionSpec } from "@sdk/index";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { GameChrome, type ChromeLevel } from "@ui/GameChrome";
 import { burst, haptic, shake } from "@juice/index";
 import { useGameSession, useGameTimer, useRememberedLevel, winMoment } from "@shared/index";
@@ -212,6 +213,9 @@ export function OneStrokeGame({ ctx }: { ctx: GameContext }) {
     LEVEL_OPTIONS.map((o) => o.id),
     "easy",
   );
+  // Read ONCE at mount. A phone run keeps its per-cell viewport expression; a
+  // PC run sizes the whole board from the height the window gives it.
+  const [pc] = useState(isPcArena);
   const restored = useMemo(() => ctx.session.load(SESSION), [ctx]);
   // Adopted only for the level this mount opened on, and never once it is
   // finished - a covered board has nothing left to draw, and returning to one
@@ -550,16 +554,29 @@ export function OneStrokeGame({ ctx }: { ctx: GameContext }) {
       <div
         ref={boardRef}
         dir="ltr"
-        className="ellaz-play-surface"
+        className={pc ? `ellaz-play-surface ${BOARD_CLASS}` : "ellaz-play-surface"}
         onPointerMove={(e) => onMove(e.clientX, e.clientY)}
         onPointerUp={onLift}
         onPointerCancel={onLift}
         style={
           {
-            ["--cell" as string]: cell,
+            // PC: the board's width comes from `.ellaz-board` and a square is one
+            // track of it, in `cqw` against this element's content box (the 6px
+            // padding is outside it, the gaps are subtracted). The tracks are
+            // `1fr` so the board's own template never reads its own `cqw`.
+            ["--cell" as string]: pc ? `calc((100cqw - ${(size - 1) * CELL_GAP}px) / ${size})` : cell,
+            ...(pc
+              ? {
+                  // chrome 169 is an ESTIMATE: the 111 every GameChrome game
+                  // pays plus the 44px undo-and-hint footer and its 14px padding.
+                  ...boardVars({ vw: 90, vh: 60, cap: 640, chrome: 111 }),
+                  aspectRatio: "1",
+                  containerType: "inline-size",
+                }
+              : {}),
             display: "grid",
-            gridTemplateColumns: `repeat(${size}, var(--cell))`,
-            gridTemplateRows: `repeat(${size}, var(--cell))`,
+            gridTemplateColumns: pc ? `repeat(${size}, 1fr)` : `repeat(${size}, var(--cell))`,
+            gridTemplateRows: pc ? `repeat(${size}, 1fr)` : `repeat(${size}, var(--cell))`,
             justifyContent: "center",
             gap: CELL_GAP,
             padding: 6,

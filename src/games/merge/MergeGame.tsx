@@ -3,6 +3,7 @@ import type { GameContext } from "@sdk/index";
 import type { Locale } from "@i18n/index";
 import { Button } from "@ui/components";
 import { GameChrome } from "@ui/GameChrome";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { burst, haptic, shake } from "@juice/index";
 import { useRememberedLevel, winMoment } from "@shared/index";
@@ -77,6 +78,9 @@ export function MergeGame({ ctx }: { ctx: GameContext }) {
    * literally every merge. It resets where a new run begins, and nowhere else.
    */
   const bestFiredRef = useRef(false);
+  // Read once, for the creature glyph size only - the grid's own size is the
+  // stylesheet's (`.ellaz-board`).
+  const [pc] = useState(isPcArena);
 
   const cfg = LEVELS[level];
   const dead = isDead(state);
@@ -227,19 +231,19 @@ export function MergeGame({ ctx }: { ctx: GameContext }) {
     >
       <div
         ref={boardRef}
-        className="ellaz-play-surface"
+        className={`ellaz-play-surface ${BOARD_CLASS}`}
         // LTR, always. The app is Hebrew RTL by default, so an RTL grid lays
         // column 0 out on the visual RIGHT and every spatial assumption the
         // player makes inverts — see rtl-spatial-grid-dir-ltr.md.
         dir="ltr"
         style={{
           position: "relative",
-          // Sized against the VIEWPORT, not this container, like every board
-          // here. 94vw is 366px on a 390px phone, which leaves ~63px squares on
-          // the 5x5 board and ~80px on the 4x4 ones. The 480px cap sits well
-          // under the 700px desktop panel, so nothing grows a scrollbar inside
-          // it (game-panel-clears-widest-board.test.ts).
-          width: "min(94vw, 60vh, 480px)",
+          // Phone: 94vw is 366px on a 390px phone, which leaves ~63px squares
+          // on the 5x5 board and ~80px on the 4x4 ones.
+          // chrome 111: the head row only - the footer sits beside the board on a PC, so it costs no height.
+          // measured 2026-09-14 by repro-board-fills-the-window.mjs at every PC arm.
+          ...boardVars({ vw: 94, vh: 60, cap: 480, chrome: 111 }),
+          ...(pc ? { containerType: "inline-size" as const } : {}),
           aspectRatio: "1",
           boxSizing: "border-box",
           display: "grid",
@@ -280,7 +284,9 @@ export function MergeGame({ ctx }: { ctx: GameContext }) {
                 placeItems: "center",
                 overflow: "hidden",
                 fontFamily: "inherit",
-                fontSize: "clamp(24px, 9vw, 46px)",
+                // On a PC the glyph follows the CELL (a share of the grid's
+                // width per column), or a big cell holds a small creature.
+                fontSize: pc ? `calc(${46 / cfg.cols}cqw)` : "clamp(24px, 9vw, 46px)",
                 background: rung ? "var(--surface)" : "rgba(0, 0, 0, 0.07)",
                 boxShadow: rung ? "var(--shadow-1)" : "none",
                 // An outline rather than a ring in the box shadow: the cell

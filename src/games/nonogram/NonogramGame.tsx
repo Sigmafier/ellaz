@@ -9,6 +9,7 @@ import {
 } from "react";
 import { textFor, type Locale } from "@i18n/index";
 import { formatScore, type GameContext, type RewardTier, type SessionSpec } from "@sdk/index";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { GameChrome, type ChromeLevel } from "@ui/GameChrome";
 import { burst, haptic, shake } from "@juice/index";
 import { useGameSession, useGameTimer, useRememberedLevel, winMoment } from "@shared/index";
@@ -194,6 +195,9 @@ export function NonogramGame({ ctx }: { ctx: GameContext }) {
     LEVEL_OPTIONS.map((o) => o.id),
     "easy",
   );
+  // Read ONCE at mount. A phone run keeps its per-cell viewport expression; a
+  // PC run sizes the whole board from the height the window gives it.
+  const [pc] = useState(isPcArena);
   const restored = useMemo(() => ctx.session.load(SESSION), [ctx]);
   // Adopted only for the tier this mount opened on, and never once it is
   // solved - a finished picture has nothing left to fill, and returning to one
@@ -541,16 +545,40 @@ export function NonogramGame({ ctx }: { ctx: GameContext }) {
       <div
         ref={boardRef}
         dir="ltr"
-        className="ellaz-play-surface"
+        className={pc ? `ellaz-play-surface ${BOARD_CLASS}` : "ellaz-play-surface"}
         onPointerMove={(e) => onMove(e.clientX, e.clientY)}
         onPointerUp={onLift}
         onPointerCancel={onLift}
         style={
           {
-            ["--cell" as string]: cell,
+            // PC: the board (clue gutter + grid, square by construction) takes
+            // its width from `.ellaz-board`, and a cell is one track of it in
+            // `cqw` against this element's content box: `size` 1px gaps out,
+            // then `gutter + size` cell-widths across. The tracks are `fr` so the
+            // board's own template never reads its own `cqw`. No `min()` here:
+            // `logic.test.ts` reads this file's px caps out of `min()` as text.
+            ["--cell" as string]: pc ? `calc((100cqw - ${size}px) / ${gutter + size})` : cell,
+            ...(pc
+              ? {
+                  // chrome 215 is an ESTIMATE: the 111 every GameChrome game
+                  // pays plus the hint line, the 56px mode toggle, their 8px gap
+                  // and the footer's 14.
+                  ...boardVars({ vw: 92, vh: 60, cap: 600, chrome: 111 }),
+                  aspectRatio: "1",
+                  // Without this the clue numbers' min-content height beats the
+                  // aspect ratio: measured 721 wide by 777 tall at 1920x1080,
+                  // and fitStage shrank the frame to 0.95.
+                  minHeight: 0,
+                  containerType: "inline-size",
+                }
+              : {}),
             display: "grid",
-            gridTemplateColumns: `calc(var(--cell) * ${gutter}) repeat(${size}, var(--cell))`,
-            gridTemplateRows: `calc(var(--cell) * ${gutter}) repeat(${size}, var(--cell))`,
+            gridTemplateColumns: pc
+              ? `minmax(0, ${gutter}fr) repeat(${size}, minmax(0, 1fr))`
+              : `calc(var(--cell) * ${gutter}) repeat(${size}, var(--cell))`,
+            gridTemplateRows: pc
+              ? `minmax(0, ${gutter}fr) repeat(${size}, minmax(0, 1fr))`
+              : `calc(var(--cell) * ${gutter}) repeat(${size}, var(--cell))`,
             justifyContent: "center",
             gap: 1,
             padding: 6,

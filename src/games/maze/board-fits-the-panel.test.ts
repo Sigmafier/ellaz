@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
+import { PANEL_USABLE } from "@ui/boardSize";
 import { DIFFICULTIES, LEVELS } from "./logic";
 
 /**
@@ -22,18 +23,26 @@ import { DIFFICULTIES, LEVELS } from "./logic";
  * play surface that is `overflow: auto`, which reads as "this game is a bit
  * awkward on desktop" rather than as a regression anybody files.
  *
- * So the cap is 64 now, and this asserts the arithmetic that makes 64 the right
- * number rather than a taste. It reads BOTH sides - the literal out of the
- * renderer and the cap out of the shipped stylesheet - so neither can move
- * without the other being checked against it.
+ * So the cap is 64, and until 2026-09-14 this asserted it against the panel cap
+ * read out of the shipped stylesheet. See below for what it asserts now.
  */
 
+/*
+ * 2026-09-14: the panel lost its px cap (`.ellaz-game-panel { max-width: none }`
+ * on a PC, operator: "use the entire width of the PC screen"), so the number
+ * this file used to read out of `global.css` is gone and its old assertion read
+ * `-16px` of usable width. What replaced it is the reason it is safe: on a PC
+ * the maze no longer sizes a CELL at all. The whole board is `.ellaz-board`,
+ * bounded by the height the window leaves and the width beside the footer
+ * column, and a cell is one `1fr` track of it. The 64px cell cap now governs
+ * the PHONE arm only.
+ *
+ * So this asserts both halves: the phone arm's widest board still clears the
+ * desktop ceiling every `boardVars` board is held to, and the PC arm really is
+ * routed through the policy rather than through the cell cap.
+ */
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const SRC = readFileSync(join(ROOT, "games", "maze", "MazeGame.tsx"), "utf8");
-const CSS = readFileSync(join(ROOT, "ui", "global.css"), "utf8");
-
-/** GameChrome's own padding, both sides - the width the board cannot use. */
-const PANEL_PADDING = 8 * 2;
 
 /** The px ceiling of the cell expression, read out of the renderer. */
 function cellCap(src: string): number | null {
@@ -41,29 +50,34 @@ function cellCap(src: string): number | null {
   return m ? parseFloat(m[1]) : null;
 }
 
-/** `.ellaz-game-panel`'s max-width, read out of the shipped stylesheet. */
-function panelCap(css: string): number | null {
-  const m = css.match(/\.ellaz-game-panel\s*\{[^}]*?max-width:\s*(\d+)px/);
-  return m ? parseInt(m[1], 10) : null;
+/** Whether the renderer's PC arm is sized by the board policy, not the cell cap. */
+function pcArmUsesPolicy(src: string): boolean {
+  return (
+    /className=\{pc \? `ellaz-play-surface \$\{BOARD_CLASS\}`/.test(src) &&
+    /\bboardVars\(\{[^}]*\bratio: 1\b/.test(src) &&
+    /gridTemplateColumns: pc \? `repeat\(\$\{size\}, 1fr\)`/.test(src)
+  );
 }
 
 describe("the maze board fits the desktop panel", () => {
-  it("finds both numbers at all", () => {
+  it("finds the cell cap at all", () => {
     // Non-vacuity first. Every assertion below passes on a null it never
     // noticed, and a matcher that stops matching is the failure this whole file
     // is about.
     expect(cellCap(SRC), "no px cap in MazeGame's cell expression").toBeGreaterThan(0);
-    expect(panelCap(CSS), "no max-width on .ellaz-game-panel").toBeGreaterThan(0);
   });
 
-  it("leaves the widest board room to lie flat", () => {
+  it("the phone arm's widest board clears the desktop ceiling", () => {
     const widest = Math.max(...DIFFICULTIES.map((d) => LEVELS[d].size));
     const board = widest * cellCap(SRC)!;
-    const usable = panelCap(CSS)! - PANEL_PADDING;
     expect(
       board,
-      `${widest} cells at ${cellCap(SRC)}px is a ${board}px board, panel leaves ${usable}px`,
-    ).toBeLessThanOrEqual(usable);
+      `${widest} cells at ${cellCap(SRC)}px is a ${board}px board, the ceiling is ${PANEL_USABLE}px`,
+    ).toBeLessThanOrEqual(PANEL_USABLE);
+  });
+
+  it("the PC arm is sized by the board policy, not by the cell cap", () => {
+    expect(pcArmUsesPolicy(SRC)).toBe(true);
   });
 
   it("knows which level is the widest", () => {
@@ -72,11 +86,16 @@ describe("the maze board fits the desktop panel", () => {
     expect(Math.max(...DIFFICULTIES.map((d) => LEVELS[d].size))).toBe(LEVELS.expert.size);
   });
 
-  it("the matcher reads a cap it is given, and reports one it is not", () => {
+  it("the matchers read what they are given, and report what they are not", () => {
     // The control, in both directions - see the rule file named above.
     expect(cellCap('const cell = `min(${x}vw, ${y}vh, 64px)`;')).toBe(64);
     expect(cellCap("const cell = `min(8vw, 8vh)`;")).toBeNull();
-    expect(panelCap(".ellaz-game-panel { max-width: 700px }")).toBe(700);
-    expect(panelCap(".ellaz-game-panel { padding: 8px }")).toBeNull();
+    // The PC arm with its cell-cap tracks restored must read as NOT routed.
+    const reverted = SRC.replace(
+      "gridTemplateColumns: pc ? `repeat(${size}, 1fr)`",
+      "gridTemplateColumns: pc ? `repeat(${size}, ${cell})`",
+    );
+    expect(reverted).not.toBe(SRC);
+    expect(pcArmUsesPolicy(reverted)).toBe(false);
   });
 });

@@ -2,6 +2,7 @@ import { textFor } from "@i18n/index";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GameContext, SessionSpec } from "@sdk/index";
 import { GameChrome } from "@ui/GameChrome";
+import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
 import { type DifficultyOption } from "@ui/DifficultySelector";
 import { haptic, shake } from "@juice/index";
 import { useGameSession, useRememberedLevel, winMoment } from "@shared/index";
@@ -147,6 +148,9 @@ export function WordGuess({ ctx }: { ctx: GameContext }) {
   const [best, setBest] = useState<number | undefined>(() => ctx.score?.best(levelId));
   const boardRef = useRef<HTMLDivElement>(null);
   const started = useRef(false);
+  // Read once, for the tile letter size only - the board's own size is the
+  // stylesheet's (`.ellaz-board`).
+  const [pc] = useState(isPcArena);
 
   /**
    * The live state, for the handlers that must not read a stale one.
@@ -350,7 +354,24 @@ export function WordGuess({ ctx }: { ctx: GameContext }) {
         // word reads right to left. Pinning this one would spell every answer
         // backwards — the exact bug that rule exists to prevent, mirrored.
         dir={ctx.dir}
-        style={{ display: "grid", gap: 6, width: `min(92vw, 52vh, ${length * 72}px)` }}
+        className={BOARD_CLASS}
+        style={{
+          display: "grid",
+          gap: 6,
+          // Cap computed exactly as before (72px/letter) - a difficulty-scoped
+          // ceiling, kept as a runtime expression like the phone width always
+          // was; `length` ranges 4-6, so this resolves to 288-432px.
+          // chrome 111: the head row only - the keyboard is the footer, and
+          // the footer sits beside the board on a PC, so it costs no height. measured 2026-09-14 by repro-board-fills-the-window.mjs at every PC arm.
+          ...boardVars({
+            vw: 92,
+            vh: 52,
+            cap: length * 72,
+            chrome: 111,
+            ratio: length / MAX_GUESSES,
+          }),
+          ...(pc ? { containerType: "inline-size" as const } : {}),
+        }}
       >
         {rows.map((row, r) => (
           <div key={r} style={{ display: "grid", gridTemplateColumns: `repeat(${length}, 1fr)`, gap: 6 }}>
@@ -363,7 +384,11 @@ export function WordGuess({ ctx }: { ctx: GameContext }) {
                   style={{
                     aspectRatio: "1", minHeight: 40, borderRadius: 10,
                     display: "grid", placeItems: "center",
-                    fontSize: "clamp(18px, 6vw, 30px)", fontWeight: 900, lineHeight: 1,
+                    // On a PC the letter follows the TILE (a share of the
+                    // grid's width per column), or a big board holds a small
+                    // letter.
+                    fontSize: pc ? `calc(${30 / length}cqw)` : "clamp(18px, 6vw, 30px)",
+                    fontWeight: 900, lineHeight: 1,
                     background: m ? TILE[m].bg : "var(--surface)",
                     color: m ? TILE[m].fg : "var(--text)",
                     border: m ? "none" : `2px solid ${ch ? "var(--brand-2)" : "var(--line)"}`,
