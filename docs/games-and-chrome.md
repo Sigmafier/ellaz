@@ -751,6 +751,32 @@ one line.
   of drift. `isPcArena()` reads the shape once at mount, because a simulation's
   floor is a property of the run, not of a resize. Lettercross is the one game not
   yet converted.
+
+  **And every control beside the board is on screen** (operator, 2026-09-14: *"i see
+  the colors ... are out of the screen"*). The first version of the side column was
+  `overflow-y: auto`, and the board gate stayed green while five games hid controls:
+
+  ```
+                            before (live, 2026-09-14)          after
+  coloring 1024x768         24 of 53 controls cut              0
+                            pictures 240px past the edge       pictures in the left column
+  jigsaw / maze / snake     tray, arrows under a scrollbar     column scaled 0.85 / 0.84 / 0.93
+  finddiff 1024-1366        scenes past the window edge        scenes in the left column
+  all 43 games x 5 sizes    19 of 215 arms cut                 0 of 215
+  ```
+
+  Three pieces. A PICKER goes in `GameChrome`'s `side` prop and takes the empty left
+  column on a PC (on a phone it sits under the board, exactly where it was). A
+  sideways `.ellaz-strip` wraps on a PC. And a column whose content is taller than the
+  board is SCALED to fit by `fitColumns` (`src/ui/fitColumn.ts`), never scrolled -
+  a transform, so the layout box it measures cannot chase its own answer.
+  `npm run assert:on-screen` (`scripts/repro/repro-controls-stay-on-screen.mjs`) is
+  the check: every button, input and footer child of every game, at 1024x768,
+  1280x720, 1366x768, 1536x639 and 1920x1080, must be inside the window and not
+  hidden by any scrolling ancestor. A thing the BOARD clips (a balloon rising in from
+  below) is in play, not cut. Its `--control` plants a control past the edge, a
+  footer behind a scrollbar, and a 1px screen-reader button that must NOT be
+  flagged, beside the same button at 60x40 that must be.
 - **Kids games** (`ageBand: "kids"`): **tap-completable; drag optional.** Drag is
   never REQUIRED. Four of the games coming next (jigsaw, shape-fit, build-a-house,
   build-a-word) do use drag, and every one of them must also be finishable by

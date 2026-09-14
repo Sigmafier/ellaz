@@ -3,6 +3,7 @@ import type { GameContext } from "@sdk/index";
 import type { Locale } from "@i18n/index";
 import { Icon, type IconName } from "./icons";
 import { pageOwnsRestart, setPause, setRestart } from "./gameTools";
+import { fitColumns } from "./fitColumn";
 
 /**
  * The one screen shape every game wears.
@@ -251,6 +252,7 @@ export function GameChrome<T extends string>({
   paused,
   onPaused,
   footer,
+  side,
   children,
 }: {
   ctx: GameContext;
@@ -277,8 +279,17 @@ export function GameChrome<T extends string>({
    */
   paused?: boolean;
   onPaused?: (next: boolean) => void;
-  /** The game's own secondary area, under the board. */
+  /** The game's own secondary area: under the board on a phone, beside it on a PC. */
   footer?: ReactNode;
+  /**
+   * A PICKER - the gallery a game chooses its picture or scene from. Under the
+   * board on a phone, just above `footer`; on a PC it takes the empty column on
+   * the board's OTHER side, so a picker and a palette stop competing for one
+   * column while the board stays on the screen's centre line. Wrap a sideways
+   * row of choices in `.ellaz-strip` and it wraps on a PC instead of scrolling
+   * past the window edge (coloring's pictures did, measured 2026-09-14).
+   */
+  side?: ReactNode;
   /** The board. */
   children: ReactNode;
 }) {
@@ -286,6 +297,12 @@ export function GameChrome<T extends string>({
   // eleven-language dictionary, so a hand-written he/en pair was strictly
   // less translated than the shared bar it sits in.
   const t = ctx.t;
+  // On a PC the side columns are as tall as the board, and what is in them is
+  // scaled to fit rather than scrolled or cut - see fitColumn.ts.
+  const panelRef = useRef<HTMLDivElement>(null);
+  const hasFooter = Boolean(footer);
+  const hasSide = Boolean(side);
+  useEffect(() => (panelRef.current ? fitColumns(panelRef.current) : undefined), [hasFooter, hasSide]);
   const i = levels && level ? levels.findIndex((l) => l.id === level) : -1;
   const current = i >= 0 && levels ? levels[i] : undefined;
   const cells = (levels && current && onLevel ? 1 : 0) + padSlots(stats, Boolean(levels && current)).length;
@@ -379,6 +396,7 @@ export function GameChrome<T extends string>({
       // Classic", three 456px cards each holding one digit, and a 420px board
       // adrift in 1409px. Measured on the built artifact, all three.
       className="ellaz-game-panel"
+      ref={panelRef}
       style={{
         display: "flex",
         flexDirection: "column",
@@ -767,6 +785,13 @@ export function GameChrome<T extends string>({
         )}
       </div>
 
+      {side && (
+        <div className="ellaz-game-side" style={{ flex: "0 0 auto", padding: "0 12px" }}>
+          {/* One wrapper, because `fitColumns` scales exactly one element. */}
+          <div>{side}</div>
+        </div>
+      )}
+
       {footer && (
         <div
           /* The one hook anything outside this component has on a game's own
@@ -781,7 +806,7 @@ export function GameChrome<T extends string>({
             padding: "0 12px 14px",
           }}
         >
-          {footer}
+          <div>{footer}</div>
         </div>
       )}
     </div>

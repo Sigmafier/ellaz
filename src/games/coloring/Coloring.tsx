@@ -291,55 +291,58 @@ export function Coloring({ ctx }: { ctx: GameContext }) {
       // the footer, which a child understands at a glance where a "3/15" toggle
       // did not.
       onRestart={clearPage}
+      // The picture gallery is a PICKER, so on a PC it takes the column on the
+      // board's other side and wraps there (GameChrome `side`). On a phone it is
+      // exactly where it was: under the board, above the tools, 10px apart.
+      side={
+        <div style={{ paddingBottom: 10 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-dim)", marginBottom: 4 }}>
+            {T.pick}
+          </div>
+          <div
+            className="ellaz-strip"
+            style={{
+              display: "flex",
+              gap: 8,
+              overflowX: "auto",
+              paddingBottom: 4,
+              WebkitOverflowScrolling: "touch",
+            }}
+          >
+            {PICTURES.map((p) => {
+              const active = p.id === pic.id;
+              return (
+                <button
+                  key={p.id}
+                  ref={active ? activeThumbRef : undefined}
+                  aria-label={p.name[ctx.locale]}
+                  aria-pressed={active}
+                  onClick={() => goToPicture(p.id)}
+                  style={{
+                    flex: "0 0 auto",
+                    width: 58,
+                    height: 58,
+                    padding: 4,
+                    borderRadius: 12,
+                    border: active ? "3px solid var(--brand)" : "2px solid var(--line)",
+                    background: "#fff",
+                    boxShadow: active ? "var(--shadow-2)" : "var(--shadow-1)",
+                    cursor: "pointer",
+                  }}
+                >
+                  {p.id === "blank" ? (
+                    <span style={{ fontSize: 30, display: "grid", placeItems: "center", height: "100%" }}>✏️</span>
+                  ) : (
+                    <Thumb pic={p} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      }
       footer={
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {/* The picture gallery — SEE the drawings and tap one. Horizontal
-              scroll so it stays one row however many pictures ship. */}
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-dim)", marginBottom: 4 }}>
-              {T.pick}
-            </div>
-            <div
-              style={{
-                display: "flex",
-                gap: 8,
-                overflowX: "auto",
-                paddingBottom: 4,
-                WebkitOverflowScrolling: "touch",
-              }}
-            >
-              {PICTURES.map((p) => {
-                const active = p.id === pic.id;
-                return (
-                  <button
-                    key={p.id}
-                    ref={active ? activeThumbRef : undefined}
-                    aria-label={p.name[ctx.locale]}
-                    aria-pressed={active}
-                    onClick={() => goToPicture(p.id)}
-                    style={{
-                      flex: "0 0 auto",
-                      width: 58,
-                      height: 58,
-                      padding: 4,
-                      borderRadius: 12,
-                      border: active ? "3px solid var(--brand)" : "2px solid var(--line)",
-                      background: "#fff",
-                      boxShadow: active ? "var(--shadow-2)" : "var(--shadow-1)",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {p.id === "blank" ? (
-                      <span style={{ fontSize: 30, display: "grid", placeItems: "center", height: "100%" }}>✏️</span>
-                    ) : (
-                      <Thumb pic={p} />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
           {/* Tool row: fill vs brush. Both buttons share the width. */}
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <button

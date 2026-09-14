@@ -132,11 +132,12 @@ export function FindDiff({ ctx }: { ctx: GameContext }) {
       // finddiff has no difficulty - it is one endless ladder of scenes, so the
       // toggle is simply absent rather than showing a single dead option.
       onRestart={() => reset()}
-      footer={
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {/* Pick a scene by SEEING it, like the drawing game's gallery.
-              Horizontal scroll so it stays one row however many scenes ship. */}
-          <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>
+      // The scene gallery is a PICKER: under the board on a phone, in the column
+      // on the board's other side on a PC, where it wraps instead of running
+      // past the window edge (GameChrome `side`, measured 2026-09-14).
+      side={
+        <div style={{ paddingBottom: 8 }}>
+          <div className="ellaz-strip" style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>
             {SCENES.map((s, i) => {
               const active = i === sceneIdx;
               return (
@@ -172,6 +173,10 @@ export function FindDiff({ ctx }: { ctx: GameContext }) {
               );
             })}
           </div>
+        </div>
+      }
+      footer={
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {won ? (
           <button
             type="button"

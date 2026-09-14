@@ -219,13 +219,31 @@ describe("the desktop game panel clears the widest board", () => {
     // what". Two columns (board, footer) put every such game half a footer
     // left of centre. The board's column must sit between two EQUAL tracks,
     // and the room it is sized from must pay for both of them.
-    const grid = CSS.match(/:has\(> \.ellaz-game-footer\)\s*\{([^}]*)\}/)?.[1] ?? "";
+    const grid = CSS.match(/:has\(> \.ellaz-game-footer, > \.ellaz-game-side\)\s*\{([^}]*)\}/)?.[1] ?? "";
     expect(grid).toMatch(/grid-template-columns:\s*var\(--gc-side\)\s+minmax\(0,\s*1fr\)\s+var\(--gc-side\);/);
     expect(grid).toMatch(/--b-room:\s*calc\(100vw - 2 \* var\(--gc-side\)/);
     const col = (sel: string) =>
       CSS.match(new RegExp(`${sel.replace(/[.*+?^${}()|[\]\\>]/g, "\\$&")}\\s*\\{[^}]*grid-column:\\s*(\\d)`))?.[1];
-    expect(col(":has(> .ellaz-game-footer) > .ellaz-play-surface")).toBe("2");
+    expect(col(":has(> .ellaz-game-footer, > .ellaz-game-side) > .ellaz-play-surface")).toBe("2");
     expect(col(".ellaz-game-panel > .ellaz-game-footer")).toBe("3");
+    // A game's picker takes the column that only existed to keep the board centred.
+    expect(col(".ellaz-game-panel > .ellaz-game-side")).toBe("1");
+  });
+
+  it("a control beside the board is never behind a scrollbar or past the window", () => {
+    // Operator, 2026-09-14: "i see the colors ... are out of the screen". The
+    // columns were `overflow-y: auto`, so maze's down arrow sat under a
+    // scrollbar at 1024x768 and coloring's pictures ran past the window edge.
+    // Content now scales to fit (fitColumn.ts) and a sideways strip wraps; the
+    // browser half of this is scripts/repro/repro-controls-stay-on-screen.mjs.
+    const pc = CSS.slice(CSS.indexOf(".ellaz-game-panel > .ellaz-game-footer,\n  .ellaz-game-panel > .ellaz-game-side {"));
+    // Comments stripped first: the block's own comment names the old `overflow-y: auto`.
+    const cols = (pc.match(/^[^}]*\}/)?.[0] ?? "").replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(cols).toMatch(/overflow:\s*visible;/);
+    expect(cols).not.toMatch(/overflow(-y|-x)?:\s*(auto|scroll|hidden)/);
+    expect(CSS).toMatch(/\.ellaz-strip\s*\{[^}]*flex-wrap:\s*wrap !important;[^}]*overflow:\s*visible !important;/);
+    const chrome = readFileSync(join(ROOT, "ui", "GameChrome.tsx"), "utf8");
+    expect(chrome).toMatch(/fitColumns\(panelRef\.current\)/);
   });
 
   it("the desktop ceiling in boardSize.ts is a 4K screen less the panel padding", () => {

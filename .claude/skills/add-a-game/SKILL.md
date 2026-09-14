@@ -105,3 +105,17 @@ A game declaring `tier: "showcase"` in `meta.ts` takes on all of this:
 
 `npm test` · `npm run build:check` · then read the rule for whatever the game does:
 rewards, scores, sessions, restart, RTL grids, difficulty — all in `.claude/rules/`.
+
+**Then look at it on a PC, with a tool rather than your eyes** (`npm run build && npm run preview`):
+
+- `node scripts/repro/repro-board-fills-the-window.mjs --only <id>` - the board fills the
+  window, sits on the screen's centre line, and the phone frame did not move.
+- `npm run assert:on-screen -- --only <id>` - every control is on the window and not
+  behind a scrollbar, at five PC sizes from 1024x768 up. The board gate is green over a
+  cut-off palette; this is the one that sees it (coloring, jigsaw, finddiff, maze and
+  snake all shipped cut on 2026-09-14 behind a green board gate).
+
+Two layout choices keep a game green on both: a PICKER (a gallery of pictures or
+scenes to choose from) goes in `GameChrome`'s `side` prop, not the footer, so a PC
+puts it in the column on the board's other side; and a sideways row of choices
+carries `className="ellaz-strip"`, which scrolls on a phone and wraps on a PC.

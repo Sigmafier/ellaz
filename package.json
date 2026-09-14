@@ -18,6 +18,8 @@
     "assert:pages": "node scripts/assert-pages.mjs",
     "assert:context": "node scripts/assert-context-complete.mjs",
     "preview": "vite preview",
+    "assert:on-screen": "node scripts/repro/repro-controls-stay-on-screen.mjs",
+    "assert:on-screen:control": "node scripts/repro/repro-controls-stay-on-screen.mjs --control",
     "test": "vitest run",
     "test:watch": "vitest",
     "probe:cloud": "node scripts/probe-cloud.mjs",
