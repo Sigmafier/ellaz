@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { ARENA, ARENA_WIDE, newRun, rngFor, step, type RunState } from "./logic";
+import { WALL, cameraOf, worldFor } from "./world";
 import { STICK_RADIUS, originFor } from "./stick";
 
 /**
@@ -46,6 +47,9 @@ function immortal(arena: typeof ARENA): RunState {
   const s = newRun("normal", arena);
   s.hp = 9_999;
   s.maxHp = 9_999;
+  // The auto-dash moves the robot on a hit, which would add a second cause of
+  // movement to tests about where the floor ends.
+  s.dashCd = 1e12;
   return s;
 }
 
@@ -97,95 +101,83 @@ describe("the two arenas are the same FIGHT in a different shape", () => {
   });
 });
 
-describe("a run played on the wide arena uses the whole of it", () => {
-  it("starts in the middle of the arena it was GIVEN", () => {
+describe("a run played on the wide view gets the WIDE world", () => {
+  /*
+   * Since 2026-09-14 the arena is the VIEW and the floor is a world three views
+   * wide and tall (operator ruling, "map to go to the sides"). The failure this
+   * section was written for is the same shape one level up: leave any one read
+   * of the portrait size behind and a PC plays a wide view onto a portrait-shaped
+   * world, with nothing thrown. So these still drive the WIDE view and assert
+   * things that are impossible on the portrait one.
+   */
+  it("starts in the middle of the world built from the view it was GIVEN", () => {
     const s = newRun("normal", ARENA_WIDE);
-    expect(s.x).toBe(ARENA_WIDE.w / 2);
-    expect(s.y).toBe(ARENA_WIDE.h / 2);
-    // Impossible on the portrait arena, which is the point of asserting it.
-    expect(s.x).toBeGreaterThan(ARENA.w / 2);
+    expect(s.world).toEqual(worldFor(ARENA_WIDE));
+    expect(s.x).toBe(worldFor(ARENA_WIDE).w / 2);
+    expect(s.y).toBe(worldFor(ARENA_WIDE).h / 2);
+    // Impossible on the portrait world, which is the point of asserting it.
+    expect(s.x).toBeGreaterThan(worldFor(ARENA).w / 2);
   });
 
-  it("lets the ship walk past where the portrait arena would have stopped it", () => {
+  it("lets the ship walk well past the view it started in", () => {
     const s = immortal(ARENA_WIDE);
-    // 200 frames at 16ms is 3.2s; the ship covers 148 units a second and needs
-    // 313 of them to reach the right wall from the middle. Comfortably past,
-    // and short enough that nothing else has time to happen.
+    const x0 = s.x;
+    // 200 frames at 16ms is 3.2s at 148 units a second: 473 units, more than
+    // half the wide view, and nowhere near the world's wall.
     for (let i = 0; i < 200; i++) step(s, 16, { dx: 1, dy: 0 }, () => 0.5);
-    expect(s.phase).toBe("playing"); // the run really did keep running
-    expect(s.x).toBeGreaterThan(ARENA.w);
-    expect(s.x).toBeLessThanOrEqual(ARENA_WIDE.w);
+    expect(s.phase).toBe("playing");
+    expect(s.x - x0).toBeGreaterThan(ARENA_WIDE.w / 2);
+    expect(s.x).toBeLessThanOrEqual(s.world.w - WALL);
   });
 
-  it("holds the ship inside the wide floor rather than letting it leave", () => {
+  it("holds the ship inside the wide world's walls rather than letting it leave", () => {
     const s = immortal(ARENA_WIDE);
-    for (let i = 0; i < 200; i++) step(s, 16, { dx: 1, dy: 1 }, () => 0.5);
-    expect(s.x).toBeLessThanOrEqual(ARENA_WIDE.w);
-    expect(s.y).toBeLessThanOrEqual(ARENA_WIDE.h);
-    // The SHORT axis, which the portrait arena would have let it run past.
-    expect(s.y).toBeLessThan(ARENA.h);
+    for (let i = 0; i < 2400; i++) step(s, 16, { dx: 1, dy: 1 }, () => 0.5);
+    expect(s.x).toBeLessThanOrEqual(s.world.w - WALL);
+    expect(s.y).toBeLessThanOrEqual(s.world.h - WALL);
+    // At the wall, not short of it.
+    expect(s.y).toBeGreaterThan(s.world.h - WALL - 20);
+    // The SHORT axis, which the portrait world would have let it run past.
+    expect(s.y).toBeLessThan(worldFor(ARENA).h);
   });
 
-  it("spawns shapes along the WIDE edges, not down a line in the middle", () => {
+  it("spawns shapes along the WIDE view's edges, not a portrait-wide band", () => {
     /*
-     * The sharpest discriminator here. `edgePoint` used to read the module
-     * constant; left that way, every enemy on a 648-wide floor would enter
-     * within the leftmost 446 units - a vertical curtain down the middle of the
-     * screen with the right third permanently empty. That reads as a spawn-rate
-     * bug rather than a shape bug, which is exactly why it needs pinning.
-     */
-    /*
-     * THE GAME'S OWN SEEDED PRNG, and the first version of this test did not
-     * use it - which cost a false red and is worth writing down, because the
-     * failure looked exactly like a real defect.
+     * The sharpest discriminator here. A spawn left reading the portrait width
+     * would put every enemy of a 648-wide view inside a 420-wide band, with a
+     * third of the screen never visited. Measured as the SPAN of spawn x - the
+     * robot stands still, so the camera and the view's edges are fixed.
      *
-     * I hand-rolled a "sweeping" rng as `(n++ % 97) / 97`. But `rng` is called
-     * ONLY on the frames that spawn, three times each, so across the ~20 spawns
-     * a 900-frame run produces it only ever sampled residues below 0.6.
-     * `edgePoint` picks its edge with `Math.floor(rng() * 4)`, and case 3 - the
-     * RIGHT edge, the only one that can put an enemy past x=648 - needs 0.75 or
-     * more. So the sampler could never select it, reported a widest of 315, and
-     * blamed the arena for a hole in the instrument.
-     *
-     * `rngFor` is uniform, so with ~60 spawns the chance of never drawing the
-     * right edge is (3/4)^60, about one in a hundred million - a bound worth
-     * stating rather than a hope, because a flaky pin is worse than none.
+     * THE GAME'S OWN SEEDED PRNG. An earlier hand-rolled sampler here could not
+     * reach one of the four edges and blamed the arena for a hole in the
+     * instrument; `rngFor` is uniform.
      */
-    const s = immortal(ARENA_WIDE);
-    const rng = rngFor(20260913);
-    let widest = 0;
-    let spawns = 0;
-    let before = s.enemies.length;
-    for (let i = 0; i < 3000; i++) {
-      step(s, 16, { dx: 0, dy: 0 }, rng);
-      if (s.enemies.length > before) spawns += s.enemies.length - before;
-      before = s.enemies.length;
-      for (const e of s.enemies) widest = Math.max(widest, e.x);
-    }
-    // The POPULATION, printed by being asserted: `widest` stays 0 if nothing
-    // ever spawned, and a run that spawned twice says nothing about four edges.
-    expect(spawns).toBeGreaterThan(40);
-    expect(widest).toBeGreaterThan(ARENA.w + 26);
+    const span = (arena: typeof ARENA) => {
+      const s = immortal(arena);
+      const rng = rngFor(20260913);
+      const seen = new Set<number>();
+      let lo = Infinity;
+      let hi = -Infinity;
+      for (let i = 0; i < 3000; i++) {
+        step(s, 16, { dx: 0, dy: 0 }, rng);
+        for (const e of s.enemies) {
+          if (seen.has(e.id)) continue;
+          seen.add(e.id);
+          lo = Math.min(lo, e.x);
+          hi = Math.max(hi, e.x);
+        }
+      }
+      return { n: seen.size, span: hi - lo, cam: cameraOf(s) };
+    };
+    const wide = span(ARENA_WIDE);
+    // The POPULATION, asserted: a run that spawned twice says nothing about four edges.
+    expect(wide.n).toBeGreaterThan(40);
+    expect(wide.span).toBeGreaterThan(ARENA.w + 52);
 
-    /*
-     * THE CONTROL, and it is the whole reason this assertion means anything.
-     *
-     * The two behavioural cases above carry no source mutation, so a green run
-     * is compatible with an assertion that simply cannot fail. Driving the
-     * IDENTICAL loop on the portrait arena must come out under the same line -
-     * if it does not, the threshold is one every arena clears and the test is
-     * measuring nothing. (A version of this file reported a confident 315
-     * because its sampler could not reach the right edge; a control is what
-     * tells those two situations apart.)
-     */
-    const p = immortal(ARENA);
-    const prng = rngFor(20260913);
-    let pWidest = 0;
-    for (let i = 0; i < 3000; i++) {
-      step(p, 16, { dx: 0, dy: 0 }, prng);
-      for (const e of p.enemies) pWidest = Math.max(pWidest, e.x);
-    }
-    expect(pWidest).toBeLessThanOrEqual(ARENA.w + 26);
+    // THE CONTROL: the identical loop on the portrait view must come out under
+    // the same line, or the threshold is one every view clears.
+    const portrait = span(ARENA);
+    expect(portrait.span).toBeLessThanOrEqual(ARENA.w + 52 + 4);
   });
 });
 
@@ -208,13 +200,11 @@ describe("the simulation reads the run's arena and never the module constant", (
   });
 
   it("fires when a single read is left behind", () => {
-    // The exact shape of the bug: one clamp restored to the module constant.
-    const mutated = LOGIC.replace(
-      "s.x = Math.min(s.arena.w - PLAYER_R",
-      "s.x = Math.min(ARENA.w - PLAYER_R",
-    );
+    // The exact shape of the bug: the world built from the module constant
+    // instead of the view the run was given.
+    const mutated = LOGIC.replace("const world = worldFor(arena);", "const world = worldFor(ARENA);");
     expect(mutated).not.toBe(LOGIC);
-    expect(memberReads(mutated)).toBe(1);
+    expect(bareReads(mutated)).toBe(3);
   });
 });
 

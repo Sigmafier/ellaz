@@ -21,7 +21,11 @@ const GAMES_DIR = HERE;
 const SHARED_DIR = join(HERE, "..", "shared");
 
 // Modules that must stay free of DOM, React and Phaser.
-const PURE_BASENAMES = ["logic.ts", "skin.ts"];
+// `world.ts`, `arsenal.ts`, `powers.ts` and `cards.ts` joined on 2026-09-14: survivors'
+// big map, weapon slots, powers and level-up cards were split out of its `logic.ts`,
+// and a rule split into a second file is still a rule - it must stay as headless as
+// the file it came from.
+const PURE_BASENAMES = ["logic.ts", "skin.ts", "world.ts", "arsenal.ts", "powers.ts", "cards.ts"];
 
 // `src/shared` is guarded by EXCLUSION, not by a hand-kept list of pure files.
 // A list of pure files fails OPEN: a new shared module is unguarded until

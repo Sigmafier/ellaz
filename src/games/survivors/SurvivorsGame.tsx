@@ -7,7 +7,11 @@ import type { GameContext } from "@sdk/index";
 // pins that this correspondence is the BAND's and never this game's name.
 import { ArcadeChrome } from "@ui/ArcadeChrome";
 import { BOARD_CLASS, boardVars, isPcArena } from "@ui/boardSize";
-import { WEAPON_ORDER, weaponAt } from "./logic";
+import { shake } from "@juice/index";
+import { SLOTS_MAX, STARTERS, asStarter, type StarterId } from "./arsenal";
+import { DASH_MS } from "./powers";
+import type { Card } from "./cards";
+import { WEAPON_ART, WEAPON_INK_CSS } from "./weaponArt";
 // NO `DirectionPad` HERE, and that is the point of this game's control.
 // `CLAUDE.md` used to say every game ships the four-arrow pad and never the
 // stick alone; the operator ruled on 2026-09-13 that the steering moves ONTO the
@@ -25,7 +29,7 @@ import { useRememberedLevel } from "@shared/useRememberedLevel";
 // claims it is lazy. `logic.ts` is a different matter: it is pure, pulls nothing,
 // and the arena's size is needed to shape the box before Phaser exists.
 import type { SurvivorsScene, SurvivorsStatus } from "./SurvivorsScene";
-import type { LevelKey, UpgradeId } from "./logic";
+import type { LevelKey, UpgradeId, WeaponId } from "./logic";
 import { ARENA, ARENA_WIDE, RUN_MS, UPGRADE_CAP, UPGRADE_IDS, type Arena } from "./logic";
 import { UPGRADE_ART } from "./upgradeArt";
 import { phoneArena, phoneBox } from "./phoneArena";
@@ -50,6 +54,30 @@ const LEVEL_OPTIONS: DifficultyOption<LevelKey>[] = [
  */
 const STICK_KEY = "stickStyle";
 
+/** Where this device remembers the starting weapon. Persisted, so never renamed. */
+const START_KEY = "startWeapon";
+
+/** The dash chip's drawing: two chevrons, in ice. */
+const DASH_ART = (
+  <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="#22e7ff" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 6l6 6-6 6" />
+    <path d="M12 6l6 6-6 6" />
+  </svg>
+);
+
+/** The freeze button's drawing: a six-armed snowflake. */
+const FREEZE_ART = (
+  <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+    {[0, 60, 120].map((d) => (
+      <g key={d} transform={`rotate(${d} 12 12)`}>
+        <path d="M12 2v20" />
+        <path d="M9 5l3 2.5L15 5" />
+        <path d="M9 19l3-2.5 3 2.5" />
+      </g>
+    ))}
+  </svg>
+);
+
 const clock = (ms: number) => {
   const s = Math.ceil(ms / 1000);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -60,7 +88,8 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
   // Typed as the half the chrome actually calls, rather than the whole scene.
   const sceneRef = useRef<Pick<
     SurvivorsScene,
-    "setLevel" | "setPaused" | "restartFromChrome" | "startFromChrome" | "setStickStyle" | "choose"
+    | "setLevel" | "setPaused" | "restartFromChrome" | "startFromChrome" | "setStickStyle" | "choose"
+    | "setStartWeapon" | "freezeFromChrome"
   > | null>(null);
 
   const [level, setLevel] = useRememberedLevel(
@@ -85,12 +114,21 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
     return saved === "corner" || saved === "tap" ? saved : "tap";
   });
 
+  // The weapon the next run starts with, remembered on this device and validated
+  // on the way in - `asStarter` reads anything unrecognised as the bolt.
+  const [startWeapon, setStartWeapon] = useState<StarterId>(() => asStarter(ctx.storage.get<string>(START_KEY, "bolt")));
+  const startRef = useRef(startWeapon);
+  startRef.current = startWeapon;
+
   const [status, setStatus] = useState<SurvivorsStatus>({
     score: 0,
     timeLeft: RUN_MS,
-    // The rotation starts at the first weapon, so a HUD drawn before the scene
-    // has published anything shows the same pip the first shot will use.
-    shots: 0,
+    // The run starts carrying the chosen weapon, so a HUD drawn before the scene
+    // has published anything shows the same slot the first shot will use.
+    slots: [startWeapon],
+    dash: 1,
+    charge: 0,
+    frozen: false,
     hp: 3,
     maxHp: 3,
     power: 1,
@@ -183,6 +221,9 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
         onReady: (scene: SurvivorsScene) => {
           if (cancelled) return;
           sceneRef.current = scene;
+          // The remembered starting weapon, before the level: both only reshape
+          // a run that has not started, so the order changes nothing a player sees.
+          scene.setStartWeapon(startRef.current);
           // The remembered level, applied the moment the scene exists. Read
           // through a REF: this effect depends on `[ctx]` alone, and closing over
           // `level` would either go stale or reboot Phaser on every change.
@@ -227,6 +268,12 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
         score: "צורות",
         time: "נשאר",
         hearts: "לבבות",
+        pickWeapon: "בחרו נשק",
+        newWeapon: "נשק חדש",
+        takesSlot: "תופס תא {n} מתוך 4",
+        dash: "זינוק",
+        dashReady: "זינוק מוכן",
+        freeze: "הקפאה",
       },
       en: {
         golem: "Golem",
@@ -243,6 +290,12 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
         score: "Shapes",
         time: "Left",
         hearts: "Hearts",
+        pickWeapon: "Pick your weapon",
+        newWeapon: "New weapon",
+        takesSlot: "takes slot {n} of 4",
+        dash: "Dash",
+        dashReady: "Dash ready",
+        freeze: "Freeze",
       },
       es: {
         golem: "Gólem",
@@ -259,6 +312,12 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
         score: "Formas",
         time: "Queda",
         hearts: "Corazones",
+        pickWeapon: "Elige tu arma",
+        newWeapon: "Arma nueva",
+        takesSlot: "ocupa la ranura {n} de 4",
+        dash: "Salto",
+        dashReady: "Salto listo",
+        freeze: "Congelar",
       },
     },
     ctx.locale,
@@ -297,6 +356,34 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
     ctx.locale,
   );
 
+  // The five weapons' names and one line each, for the pick and the cards.
+  const WN = textFor(
+    {
+      he: {
+        bolt: ["קרן", "ישר ומהיר"],
+        arc: ["קשת", "מתעקל אחריהם"],
+        burst: ["פיצוץ", "טבעת מסביבך"],
+        blades: ["להבים", "מסתובבים סביבך"],
+        drone: ["רחפן", "יורה לצידך"],
+      },
+      en: {
+        bolt: ["Bolt", "straight and fast"],
+        arc: ["Arc", "curves after them"],
+        burst: ["Burst", "a ring all around"],
+        blades: ["Blades", "spin around you"],
+        drone: ["Drone", "shoots beside you"],
+      },
+      es: {
+        bolt: ["Rayo", "recto y rápido"],
+        arc: ["Arco", "los persigue en curva"],
+        burst: ["Estallido", "un anillo alrededor"],
+        blades: ["Cuchillas", "giran a tu alrededor"],
+        drone: ["Dron", "dispara a tu lado"],
+      },
+    } satisfies Record<"he" | "en" | "es", Record<WeaponId, [string, string]>>,
+    ctx.locale,
+  );
+
   const asking = status.phase !== "playing";
   const choosing = status.offer.length > 0;
 
@@ -325,12 +412,43 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
         // larger of the two is what a player should see.
         best: Math.max(best, status.score),
         clock: clock(status.timeLeft),
-        weapons: WEAPON_ORDER.map((id) => ({ id, on: id === weaponAt(status.shots) })),
+        // Four slots, the carried weapons first and the rest dashed-empty.
+        slots: Array.from({ length: SLOTS_MAX }, (_, i) => {
+          const id = status.slots[i];
+          return id
+            ? { id, art: <span style={{ color: WEAPON_INK_CSS[id], display: "flex" }}>{WEAPON_ART[id](22)}</span> }
+            : { id: "empty", art: null };
+        }),
+        chip: {
+          art: DASH_ART,
+          ready: status.dash >= 1,
+          text:
+            status.dash >= 1
+              ? T.dashReady
+              : `${T.dash} ${Math.ceil(((1 - status.dash) * DASH_MS) / 1000)}s`,
+        },
         boss: status.boss
           ? { now: status.boss.hp, max: status.boss.maxHp, label: T.golem }
           : null,
         labels: { hearts: T.hearts, score: T.score },
       }}
+      // The freeze: its ring fills with gems and one press stops every shape.
+      // Offered only mid-run, and pressable while it charges - it wiggles rather
+      // than being `disabled`, which this platform keeps for the impossible.
+      power={
+        status.phase === "playing" && !choosing
+          ? {
+              label: T.freeze,
+              charge: status.charge,
+              ready: status.charge >= 1 && !status.frozen,
+              art: FREEZE_ART,
+              onUse: (el) => {
+                if (status.charge >= 1 && !status.frozen) sceneRef.current?.freezeFromChrome();
+                else shake(el, 4, 200);
+              },
+            }
+          : null
+      }
       levels={LEVEL_OPTIONS}
       level={status.level}
       // Reachable mid-run. The scene treats it as a fresh run at that level.
@@ -377,6 +495,63 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
               result:
                 status.phase === "won" ? T.beat : status.phase === "over" ? T.lost : undefined,
               onAction: () => sceneRef.current?.startFromChrome(),
+              // The starting weapon, chosen before Play because it changes what
+              // Play starts (operator ruling 2026-09-14).
+              pick: (
+                <div
+                  role="group"
+                  aria-label={T.pickWeapon}
+                  style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}
+                >
+                  <b style={{ color: "#fff", fontSize: 16, fontFamily: "Fredoka, inherit" }}>{T.pickWeapon}</b>
+                  <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+                    {STARTERS.map((id) => {
+                      const on = startWeapon === id;
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          aria-pressed={on}
+                          onClick={() => {
+                            setStartWeapon(id);
+                            // From the handler, never a state updater - the house rule.
+                            ctx.storage.set(START_KEY, id);
+                            sceneRef.current?.setStartWeapon(id);
+                          }}
+                          style={{
+                            width: 96,
+                            minHeight: 96,
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: 3,
+                            padding: "8px 4px",
+                            borderRadius: "var(--radius-2)",
+                            border: on ? "3px solid #22e7ff" : "2px solid rgba(34, 231, 255, 0.45)",
+                            background: on ? "rgba(34, 231, 255, 0.2)" : "rgba(34, 231, 255, 0.08)",
+                            boxShadow: on ? "0 0 16px rgba(34, 231, 255, 0.55)" : "none",
+                            color: "#fff",
+                            font: "inherit",
+                            fontFamily: "Fredoka, inherit",
+                            fontWeight: 700,
+                            fontSize: 14,
+                            cursor: "pointer",
+                            touchAction: "manipulation",
+                          }}
+                        >
+                          <span aria-hidden="true" style={{ color: WEAPON_INK_CSS[id], display: "flex" }}>
+                            {WEAPON_ART[id](34)}
+                          </span>
+                          {WN[id][0]}
+                          <span style={{ fontSize: 11, fontWeight: 500, opacity: 0.85, lineHeight: 1.2 }}>
+                            {WN[id][1]}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ),
               extra: (
                 /* The stick's style, still this game's own chrome rather than a
                    site-wide setting - the operator ruled that, and moving the
@@ -567,14 +742,72 @@ export function SurvivorsGame({ ctx }: { ctx: GameContext }) {
 
                 The row is NOT pinned `dir`: in Hebrew it should mirror, and the
                 drawing belongs on the side the reading starts from. */}
-            {status.offer.map((id: UpgradeId) => {
+            {status.offer.map((card: Card) => {
+              if (card.kind === "weapon") {
+                const id = card.id;
+                return (
+                  <button
+                    key={`weapon-${id}`}
+                    type="button"
+                    onClick={() => sceneRef.current?.choose(card)}
+                    aria-label={`${T.newWeapon}: ${WN[id][0]}`}
+                    style={{
+                      position: "relative",
+                      width: "100%",
+                      minHeight: 64,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "8px 12px",
+                      borderRadius: "var(--radius-2)",
+                      // The weapon's own ink as the border, so the card and the
+                      // thing it adds to the arena read as one weapon.
+                      border: `2px solid ${WEAPON_INK_CSS[id]}`,
+                      background: "rgba(255, 255, 255, 0.1)",
+                      color: "#fff",
+                      font: "inherit",
+                      fontFamily: "Fredoka, inherit",
+                      cursor: "pointer",
+                      touchAction: "manipulation",
+                    }}
+                  >
+                    <span aria-hidden="true" style={{ display: "flex", flex: "0 0 auto", color: WEAPON_INK_CSS[id] }}>
+                      {WEAPON_ART[id](36)}
+                    </span>
+                    <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 3, minWidth: 0 }}>
+                      <span style={{ fontSize: 16, fontWeight: 700, textAlign: "start" }}>{WN[id][0]}</span>
+                      <span style={{ fontSize: 12, fontWeight: 500, opacity: 0.9, textAlign: "start" }}>
+                        {T.takesSlot.replace("{n}", String(status.slots.length + 1))}
+                      </span>
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        position: "absolute",
+                        insetInlineEnd: 10,
+                        top: -10,
+                        padding: "2px 8px",
+                        borderRadius: "var(--radius-pill)",
+                        background: WEAPON_INK_CSS[id],
+                        color: "#0b0d1f",
+                        fontSize: 11,
+                        fontWeight: 800,
+                        letterSpacing: "0.04em",
+                      }}
+                    >
+                      {T.newWeapon}
+                    </span>
+                  </button>
+                );
+              }
+              const id = card.id;
               const held = status.taken[id];
               const cap = UPGRADE_CAP[id];
               return (
                 <button
                   key={id}
                   type="button"
-                  onClick={() => sceneRef.current?.choose(id)}
+                  onClick={() => sceneRef.current?.choose(card)}
                   // The pips are a picture of the count, so the count is said
                   // here too - a screen reader gets the number rather than
                   // seven anonymous dots.

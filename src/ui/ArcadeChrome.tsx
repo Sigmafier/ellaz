@@ -26,7 +26,7 @@ import { pageOwnsRestart, setPause, setRestart } from "./gameTools";
  *
  * WHAT IT DELIBERATELY DOES NOT DO
  *
- * - It does not import a game. The pips arrive as DATA (`hud.weapons`), so this
+ * - It does not import a game. The slots arrive as DATA (`hud.slots`), so this
  *   file knows nothing about weapons, golems or upgrades - `src/ui` may not
  *   import from `src/games`, and a HUD that needed to would be a HUD for one
  *   game wearing a general name.
@@ -58,11 +58,17 @@ export type ArcadeHud = {
   /** Already formatted - "2:41". This component does no time arithmetic. */
   clock: string;
   /**
-   * The weapon rotation, one entry per weapon, `on` for the one that fires
-   * next. A LIST rather than a count, so a game with four weapons needs no
-   * change here and this file never learns what a weapon is.
+   * The carried-weapon slots, one entry per slot, `art` null for an empty one.
+   * The drawing is the GAME's, handed in as a node, so this file never learns
+   * what a weapon is. Was a rotation of lit pips until 2026-09-14, when a run
+   * started picking and collecting its weapons instead of taking turns.
    */
-  weapons: { id: string; on: boolean }[];
+  slots: { id: string; art: ReactNode | null }[];
+  /**
+   * One short status line under the hearts - survivors' dash ("Dash ready").
+   * `art` is the game's drawing; `ready` lights it. Absent draws nothing.
+   */
+  chip?: { art: ReactNode; text: string; ready: boolean };
   /** The boss bar, or null while there is no boss on the board. */
   boss: { now: number; max: number; label: string } | null;
   /** Localised by the game, because this component does no translation. */
@@ -113,6 +119,35 @@ export type ArcadeEntrance = {
    * never learns what a stick is.
    */
   extra?: ReactNode;
+  /**
+   * A choice the player makes BEFORE pressing the button, drawn between the
+   * difficulty and the button - survivors' weapon pick. Above the button rather
+   * than under it, because it changes what the button starts.
+   */
+  pick?: ReactNode;
+};
+
+/**
+ * The one game action a showcase game may put ON its arena mid-run: survivors'
+ * freeze. A real button, with its own words, and drawn OUTSIDE the HUD overlay -
+ * the overlay refuses pointers and is hidden from assistive tech, and this has
+ * to accept both.
+ *
+ * NEVER `disabled` while it charges. The house rule is that "you have not earned
+ * this yet" stays pressable and answers gently, so `onUse` is always called and
+ * the GAME decides whether it fires or wiggles - which is also why it is handed
+ * the element.
+ */
+export type ArcadePower = {
+  /** The action's name, already localised. It is the button's accessible name. */
+  label: string;
+  /** How full the charge ring is, 0..1. */
+  charge: number;
+  /** True when pressing it will do something. Lights the ring. */
+  ready: boolean;
+  /** The game's drawing for the action. */
+  art: ReactNode;
+  onUse: (el: HTMLButtonElement) => void;
 };
 
 /**
@@ -132,6 +167,7 @@ const DIM = 0.72;
 export function ArcadeChrome<T extends string>({
   ctx,
   hud,
+  power,
   entrance,
   levels,
   level,
@@ -144,6 +180,8 @@ export function ArcadeChrome<T extends string>({
 }: {
   ctx: GameContext;
   hud: ArcadeHud;
+  /** The one action a player can press on the arena mid-run, or absent. */
+  power?: ArcadePower | null;
   /**
    * The entrance screen, or null while the game is actually running. When it is
    * present the difficulty moves ONTO it, so the panel below the arena is
@@ -292,6 +330,25 @@ export function ArcadeChrome<T extends string>({
             <div style={{ width: "38%" }}>
               {label(hud.labels.hearts)}
               {bar(hp, "var(--red)", "clamp(5px, 1.5cqw, 12px)")}
+              {hud.chip && (
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.4em",
+                    marginTop: "0.6em",
+                    padding: "0.2em 0.7em 0.2em 0.35em",
+                    borderRadius: "var(--radius-pill)",
+                    background: "var(--stage-cover)",
+                    fontSize: "clamp(10px, 2.3cqw, 15px)",
+                    whiteSpace: "nowrap",
+                    opacity: hud.chip.ready ? 1 : DIM,
+                  }}
+                >
+                  <span style={{ display: "flex", width: "1.5em", height: "1.5em" }}>{hud.chip.art}</span>
+                  {hud.chip.text}
+                </div>
+              )}
             </div>
             <div style={{ marginInlineStart: "auto", textAlign: "end" }}>
               {label(hud.labels.score)}
@@ -312,39 +369,40 @@ export function ArcadeChrome<T extends string>({
             </div>
           </div>
 
-          {/* THE PIPS: one per weapon, the next one lit. Countable at a glance,
-              which is the whole reason this HUD was picked over four corner
-              numbers. */}
+          {/* THE SLOTS: one box per slot, each holding the drawing of what it
+              carries, the empty ones dashed. Countable at a glance - "two of
+              four" reads without a number - which is the same reason the pips
+              they replaced were picked over four corner numbers. */}
           <div
             style={{
               position: "absolute",
               insetInlineStart: "3.5%",
               bottom: "3.5%",
               display: "flex",
-              gap: "0.5em",
+              gap: "clamp(4px, 1cqw, 8px)",
+              padding: "clamp(3px, 0.8cqw, 6px)",
+              borderRadius: "var(--radius-2)",
+              background: "var(--stage-cover)",
             }}
           >
-            {hud.weapons.map((w) => (
+            {hud.slots.map((slot, i) => (
               <div
-                key={w.id}
+                key={`${i}-${slot.id}`}
                 style={{
-                  width: "clamp(12px, 2.6cqw, 28px)",
-                  height: "clamp(12px, 2.6cqw, 28px)",
+                  width: "clamp(26px, 6.2cqw, 44px)",
+                  height: "clamp(26px, 6.2cqw, 44px)",
+                  boxSizing: "border-box",
                   borderRadius: "var(--radius-1)",
-                  background: w.on ? "var(--brand)" : "var(--line)",
+                  border: slot.art ? "2px solid var(--line)" : "2px dashed var(--line)",
                   display: "grid",
                   placeItems: "center",
+                  // No percentage padding: a percentage resolves against the
+                  // ROW's width, not this box's, and pushed every drawing out
+                  // through the corner of its slot on the first render.
+                  overflow: "hidden",
                 }}
               >
-                <div
-                  style={{
-                    width: "40%",
-                    height: "40%",
-                    borderRadius: "50%",
-                    background: w.on ? "var(--yellow)" : INK,
-                    opacity: w.on ? 1 : 0.35,
-                  }}
-                />
+                {slot.art}
               </div>
             ))}
           </div>
@@ -370,6 +428,54 @@ export function ArcadeChrome<T extends string>({
             </div>
           )}
         </div>
+
+        {/* THE POWER BUTTON, outside the HUD for the two reasons `ArcadePower`
+            gives: it must accept a pointer and it must be announced. Bottom
+            corner on the trailing side, above the clock, where a thumb that is
+            not steering already rests. Hidden with the HUD on the entrance. */}
+        {power && !entrance && (
+          <button
+            type="button"
+            aria-label={power.label}
+            onClick={(e) => power.onUse(e.currentTarget)}
+            style={{
+              position: "absolute",
+              insetInlineEnd: "3%",
+              bottom: "max(11%, 64px)",
+              width: 68,
+              height: 68,
+              borderRadius: "50%",
+              border: "none",
+              padding: 0,
+              cursor: "pointer",
+              touchAction: "manipulation",
+              // The ring IS the charge: a conic sweep, full and glowing when ready.
+              // Light sweep over a DARK track: the charge is a length, and the
+              // two halves differ in lightness rather than only in hue.
+              background: `conic-gradient(var(--on-brand) ${Math.round(power.charge * 100)}%, var(--stage-cover) 0)`,
+              boxShadow: power.ready ? "0 0 18px var(--on-brand)" : "none",
+              display: "grid",
+              placeItems: "center",
+            }}
+          >
+            <span
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: "50%",
+                // The same dark cover the HUD reads on, so the art's ink is measured
+                // against the surface it actually sits on.
+                background: "var(--stage-cover)",
+                color: INK,
+                display: "grid",
+                placeItems: "center",
+                opacity: power.ready ? 1 : DIM,
+              }}
+            >
+              {power.art}
+            </span>
+          </button>
+        )}
 
         {/* THE ENTRANCE. It ACCEPTS pointers, unlike the HUD above it - this is
             the one surface here a player presses, and it exists only while
@@ -426,6 +532,8 @@ export function ArcadeChrome<T extends string>({
                 locale={ctx.locale}
               />
             )}
+
+            {entrance.pick}
 
             <button
               type="button"

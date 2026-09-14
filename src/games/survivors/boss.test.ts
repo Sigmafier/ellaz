@@ -16,6 +16,7 @@
 //   - the swarm has to stop, or the duel happens inside a crowd arriving every
 //     230 ms, which is `spawnEvery` at its floor by three minutes.
 import { describe, expect, it } from "vitest";
+import { cameraOf } from "./world";
 import {
   ARENA, ARENA_WIDE, KINDS, RUN_MS, applyUpgrade, bossOf, kindsAt, newRun, rngFor, step,
   type Arena, type Enemy, type EnemyKind, type RunState, type UpgradeId,
@@ -67,6 +68,9 @@ function atTheGolem(
 function msToKill(s: RunState): number {
   s.maxHp = 9999;
   s.hp = 9999;
+  // Standing still means STILL: an auto-dash would blink the robot 70 units
+  // each time the golem arrives, and this measures the gun, not the dash.
+  s.dashCd = 1e12;
   let ms = 0;
   while (s.phase === "playing" && ms < 300_000) {
     step(s, 16, STILL, rngFor(1));
@@ -131,7 +135,8 @@ describe("the golem does not die by touching you", () => {
     const s = atTheGolem();
     const g = bossOf(s)!;
     // Hold the gun: this test is about the collision, not about the weapon.
-    s.fireIn = 9000;
+    for (const k of s.slots) k.cd = 9000;
+    s.dashCd = 9000;
     s.x = g.x;
     s.y = g.y;
     step(s, 16, STILL, rngFor(1));
@@ -148,7 +153,8 @@ describe("the golem does not die by touching you", () => {
     // Without this, "the golem survives contact" is satisfied by a build where
     // NOTHING dies on contact - which would be a different, larger bug.
     const s = newRun("normal");
-    s.fireIn = 9000;
+    for (const k of s.slots) k.cd = 9000;
+    s.dashCd = 9000;
     place(s, "runner", s.x, s.y);
     step(s, 16, STILL, rngFor(1));
     expect(s.enemies).toHaveLength(0);
@@ -186,7 +192,8 @@ describe("beating it is what wins the run", () => {
     s.enemies = s.enemies.filter((e) => e.id !== s.boss);
     s.hp = 1;
     s.invuln = 0;
-    s.fireIn = 9000;
+    for (const k of s.slots) k.cd = 9000;
+    s.dashCd = 9000;
     place(s, "runner", s.x, s.y);
     step(s, 16, STILL, rngFor(1));
 
@@ -201,7 +208,8 @@ describe("beating it is what wins the run", () => {
     const s = atTheGolem();
     s.hp = 1;
     s.invuln = 0;
-    s.fireIn = 9000;
+    for (const k of s.slots) k.cd = 9000;
+    s.dashCd = 9000;
     place(s, "runner", s.x, s.y);
     step(s, 16, STILL, rngFor(1));
     expect(s.phase).toBe("over");
@@ -226,21 +234,26 @@ describe("the fight is a fight, measured rather than felt", () => {
     expect(bare).toBeGreaterThan(loaded);
   });
 
-  it("walks in from outside the arena, so it is seen coming", () => {
+  it("walks in from just above the VIEW, so it is seen coming", () => {
+    // Since the big map (2026-09-14) the golem enters over the top edge of what
+    // the player can SEE, wherever on the world that is - not at the top of a
+    // world three screens tall, from where it would walk for most of a minute.
     const s = atTheGolem();
     const g = bossOf(s)!;
-    expect(g.y).toBeLessThan(0);
-    expect(g.x).toBeGreaterThan(0);
-    expect(g.x).toBeLessThan(ARENA.w);
+    const c = cameraOf(s);
+    expect(g.y).toBeLessThan(c.y);
+    expect(g.y).toBeGreaterThan(c.y - 60);
+    expect(g.x).toBeGreaterThan(c.x);
+    expect(g.x).toBeLessThan(c.x + ARENA.w);
 
-    // The same on the landscape floor, which is a different arrival: it enters
-    // at that arena's own middle, not at a number baked in when there was only
-    // one shape.
+    // The same on the landscape view, which is a different arrival: it enters
+    // at that view's own middle, not at a number baked in for one shape.
     const w = atTheGolem({}, ARENA_WIDE);
     const gw = bossOf(w)!;
-    expect(gw.y).toBeLessThan(0);
-    expect(gw.x).toBeGreaterThan(0);
-    expect(gw.x).toBeLessThan(ARENA_WIDE.w);
+    const cw = cameraOf(w);
+    expect(gw.y).toBeLessThan(cw.y);
+    expect(gw.x).toBeGreaterThan(cw.x);
+    expect(gw.x).toBeLessThan(cw.x + ARENA_WIDE.w);
   });
 
   it("is still a fight on the LANDSCAPE arena, and shorter for a reason", () => {

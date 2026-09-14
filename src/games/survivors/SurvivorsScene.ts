@@ -22,9 +22,13 @@ import {
   type Stick, type StickStyle,
 } from "./stick";
 import {
-  ARENA, KINDS, RUN_MS, TIER, WEAPONS, applyUpgrade, bossOf, newRun, offerUpgrades, rngFor, step,
-  type Arena, type EnemyKind, type LevelKey, type RunState, type UpgradeId, type WeaponId,
+  ARENA, KINDS, RUN_MS, TIER, WEAPONS, bossOf, newRun, rngFor, step,
+  type Arena, type EnemyKind, type LevelKey, type RunState, type ShotKind, type UpgradeId, type WeaponId,
 } from "./logic";
+import { WALL, cameraOf } from "./world";
+import { BLADES, bladePositions, dronePosition, holds } from "./arsenal";
+import { chargeOf, dashReady, triggerFreeze } from "./powers";
+import { applyCard, offerCards, type Card } from "./cards";
 
 // Phaser draws the arena and reads the input. Every rule is in `logic.ts`, so this
 // class owns exactly three things: pixels, pointers, and telling the React chrome
@@ -48,15 +52,17 @@ export type SurvivorsStatus = {
   maxHp: number;
   power: number;
   /**
-   * How many shots this run has fired.
-   *
-   * Published for ONE reason: `weaponAt(shots)` is what decides which of the
-   * three weapons goes out next, and the arcade HUD draws that as pips. It is
-   * the rotation's only source, so the HUD reads the same number the simulation
-   * rotates on rather than keeping a second count that can disagree with it -
-   * the same argument the `boss` field's own comment makes about health.
+   * The weapons this run carries, in slot order. The HUD draws four slots from
+   * this - the run's own list, so the HUD cannot show a weapon the run does not
+   * fire.
    */
-  shots: number;
+  slots: WeaponId[];
+  /** The dash: 1 when ready, rising from 0 while it recharges. */
+  dash: number;
+  /** The freeze: how full its ring is, 0..1. The button can be pressed at 1. */
+  charge: number;
+  /** True while everything is frozen. */
+  frozen: boolean;
   xp: number;
   need: number;
   level: LevelKey;
@@ -66,8 +72,8 @@ export type SurvivorsStatus = {
    * its own: the scene is what stops moving, so the scene is the one that knows.
    */
   paused: boolean;
-  /** The three upgrades on offer, or empty when nothing is being chosen. */
-  offer: UpgradeId[];
+  /** The cards on offer - upgrades, and a new weapon while a slot is free - or empty. */
+  offer: Card[];
   /**
    * The golem's health once it is on the board, and null for the first three
    * minutes. The chrome swaps its countdown cell for this: after 3:00 the clock
@@ -103,11 +109,21 @@ const INK = {
  * shape throwing it. Checked against ENEMY_INK above: none of these three is
  * within reach of runner pink, orb amber-orange or brute violet at speed.
  */
-const WEAPON_INK: Record<WeaponId, number> = {
+const WEAPON_INK: Record<ShotKind, number> = {
   bolt: 0xd8fbff,
   arc: 0xffd166,
   burst: 0xff5ce1,
+  // Mint, the one hue no shape and no other shot uses, so the drone's shots are
+  // told from the robot's own at a glance.
+  drone: 0x7df9a6,
 };
+
+/** The blades' ink. Pink is a runner's colour, so the blades are a PALER pink with a white edge. */
+const BLADE_INK = 0xff8fc0;
+/** Ice, for the freeze: the frozen shapes' tint and the cover over the view. */
+const ICE = 0x9fe3ff;
+/** The world's scenery and walls. Dim on purpose: nothing decorative may read as a shape. */
+const SCENERY = { crystal: 0x6a5cff, rock: 0x262b52, tuft: 0x2f8f73, crack: 0x252a4d, wall: 0x1a1d38, stripe: 0xffb020, edge: 0xffd166 } as const;
 
 /** Kept for the sparks a kill throws, which are still drawn rather than sprited. */
 const ENEMY_INK: Record<EnemyKind, number> = {
@@ -165,13 +181,23 @@ export class SurvivorsScene extends Phaser.Scene {
    */
   private paused = false;
   private selectedLevel: LevelKey = "normal";
-  private offer: UpgradeId[] = [];
+  /** The weapon a run starts with, chosen on the entrance. */
+  private startWeapon: WeaponId = "bolt";
+  private offer: Card[] = [];
   private nextMilestone = MILESTONE_EVERY;
   /** Ground and grid. Drawn ONCE - they never change, and clearing a Graphics
    *  every frame to redraw the same 22 lines was work for nothing. */
   private bg!: Phaser.GameObjects.Graphics;
   /** Bolts, gems and sparks. These do change, so this one is cleared per frame. */
   private fg!: Phaser.GameObjects.Graphics;
+  /**
+   * Things drawn in SCREEN space, over the scrolling world: the stick, the boss
+   * bar, the minimap and the freeze cover. `setScrollFactor(0)` pins it to the
+   * view, so none of them slides away as the camera follows the robot.
+   */
+  private hud!: Phaser.GameObjects.Graphics;
+  /** Whether the shapes were frozen last frame, so their clips pause and resume once. */
+  private wasFrozen = false;
   private sparks: Spark[] = [];
   private rng: () => number = Math.random;
 
@@ -182,12 +208,6 @@ export class SurvivorsScene extends Phaser.Scene {
   /** When the ship's one-shot clips stop holding, in scene time. */
   private attackUntil = 0;
   private hurtUntil = 0;
-  /**
-   * Last frame's `fireIn`. Kept, but no longer how a shot is detected: `logic.ts`
-   * now announces one with a `shot` event carrying WHICH weapon, which the
-   * inference could never have told us.
-   */
-  private lastFireIn = 0;
   /** Scene time the next shot may sound at. See the throttle in `consume`. */
   private nextShotSfx = 0;
 
@@ -245,7 +265,10 @@ export class SurvivorsScene extends Phaser.Scene {
 
   create() {
     this.rng = rngFor(Date.now() >>> 0);
-    this.run = newRun(this.selectedLevel, this.arena);
+    this.run = newRun(this.selectedLevel, this.arena, this.startWeapon);
+    // The camera never shows past the world; its scroll is set from `cameraOf`
+    // every frame, so the view the scene draws is the view the simulation spawns around.
+    this.cameras.main.setBounds(0, 0, this.run.world.w, this.run.world.h);
 
     // NEAREST, per texture, and this is the whole reason the art survives. Every
     // authored pixel is a 5x5 block on the sheet and is drawn at 0.2, so one
@@ -269,6 +292,7 @@ export class SurvivorsScene extends Phaser.Scene {
     this.bg = this.add.graphics().setDepth(DEPTH.bg);
     this.drawGround();
     this.fg = this.add.graphics().setDepth(DEPTH.fg);
+    this.hud = this.add.graphics().setDepth(DEPTH.fg + 1).setScrollFactor(0);
 
     this.ship = this.spriteFor(PLAYER, this.run.x, this.run.y, DEPTH.player);
     this.ship.play(animKey(PLAYER, "idle"));
@@ -277,17 +301,21 @@ export class SurvivorsScene extends Phaser.Scene {
     // landed; for the corner style the origin is fixed and the touch only says
     // where the knob starts. One `originFor` decides, so the two styles cannot
     // drift into two different controls.
+    // SCREEN coordinates (`p.x`), never world ones (`p.worldX`). The stick is a
+    // thing under a thumb on the glass; once the camera follows the robot the
+    // world point under that thumb moves every frame while the thumb does not,
+    // and a stick read in world units would steer by the scroll.
     this.input.on("pointerdown", (p: Phaser.Input.Pointer) => {
       if (this.paused) return;
       if (this.phase !== "playing") return void this.startFromChrome();
-      const o = stickOriginFor(this.stickStyle, p.worldX, p.worldY, this.arena);
-      this.stick = { ox: o.ox, oy: o.oy, px: p.worldX, py: p.worldY };
+      const o = stickOriginFor(this.stickStyle, p.x, p.y, this.arena);
+      this.stick = { ox: o.ox, oy: o.oy, px: p.x, py: p.y };
     });
     this.input.on("pointermove", (p: Phaser.Input.Pointer) => {
       if (this.paused) return;
       if (p.isDown && this.phase === "playing" && this.stick) {
-        this.stick.px = p.worldX;
-        this.stick.py = p.worldY;
+        this.stick.px = p.x;
+        this.stick.py = p.y;
       }
     });
     this.input.on("pointerup", () => {
@@ -303,6 +331,8 @@ export class SurvivorsScene extends Phaser.Scene {
     const kb = this.input.keyboard;
     kb?.on("keydown", (e: KeyboardEvent) => {
       if (this.paused) return;
+      // Space is the freeze on a keyboard - the same action as the button.
+      if (e.key === " ") return void this.freezeFromChrome();
       this.keys.add(e.key.toLowerCase());
     });
     kb?.on("keyup", (e: KeyboardEvent) => {
@@ -336,7 +366,10 @@ export class SurvivorsScene extends Phaser.Scene {
       hp: this.run.hp,
       maxHp: this.run.maxHp,
       power: this.run.power,
-      shots: this.run.shots,
+      slots: this.run.slots.map((k) => k.id),
+      dash: dashReady(this.run),
+      charge: chargeOf(this.run),
+      frozen: this.run.frozen > 0,
       xp: this.run.xp,
       need: this.run.need,
       level: this.selectedLevel,
@@ -380,17 +413,37 @@ export class SurvivorsScene extends Phaser.Scene {
     this.publish();
   }
 
-  /** The chrome's upgrade cards. An empty offer simply carries on. */
-  choose(id: UpgradeId) {
+  /** The chrome's level-up cards. An empty offer simply carries on. */
+  choose(card: Card) {
     if (this.offer.length === 0) return;
-    applyUpgrade(this.run, id);
+    applyCard(this.run, card);
     this.offer = [];
     this.ctx.audio.play("pop");
     this.publish();
   }
 
+  /**
+   * The entrance's weapon pick. Only a run that has not started takes a new
+   * starting weapon - a run in progress keeps the loadout it is playing.
+   */
+  setStartWeapon(next: WeaponId) {
+    if (this.startWeapon === next) return;
+    this.startWeapon = next;
+    if (this.phase === "ready") this.restart();
+  }
+
+  /** The freeze button, and Space. Plays the moment only when a freeze really started. */
+  freezeFromChrome() {
+    if (this.paused || this.phase !== "playing") return;
+    if (!triggerFreeze(this.run)) return;
+    this.ctx.audio.play("success");
+    haptic.tap();
+    this.cameras.main.flash(260, 180, 230, 255);
+    this.publish();
+  }
+
   private restart() {
-    this.run = newRun(this.selectedLevel, this.arena);
+    this.run = newRun(this.selectedLevel, this.arena, this.startWeapon);
     this.phase = "ready";
     // A new run is never a paused one: restarting from behind the cover would
     // otherwise leave a lid over a ready screen nobody can read or reach.
@@ -408,7 +461,7 @@ export class SurvivorsScene extends Phaser.Scene {
     this.corpses.length = 0;
     this.attackUntil = 0;
     this.hurtUntil = 0;
-    this.lastFireIn = 0;
+    this.wasFrozen = false;
     this.ship.setPosition(this.run.x, this.run.y).clearTint().setAlpha(1);
     this.ship.play(animKey(PLAYER, "idle"));
     this.draw();
@@ -490,6 +543,22 @@ export class SurvivorsScene extends Phaser.Scene {
         // Android-Chrome, which is what makes it safe to fire unconditionally.
         haptic.fail();
         this.hurtUntil = this.time.now + HURT_MS;
+      } else if (e.type === "dash") {
+        // The dash saved a heart. A streak of ice from where the robot was to
+        // where it is, and a sound that is not the hurt sound - a save must never
+        // be mistaken for a hit.
+        this.ctx.audio.play("pop");
+        for (let i = 0; i <= 8; i++) {
+          const t = i / 8;
+          this.sparks.push({
+            x: e.x + (this.run.x - e.x) * t,
+            y: e.y + (this.run.y - e.y) * t,
+            vx: 0,
+            vy: 0,
+            life: 180 + 140 * t,
+            ink: WEAPON_INK.bolt,
+          });
+        }
       } else if (e.type === "boss") {
         // The arrival is the loudest thing in the run, and it is the only place
         // `streak` is played: three minutes of the same handful of sounds, then
@@ -504,7 +573,7 @@ export class SurvivorsScene extends Phaser.Scene {
         // rare and worth a puff. Per-kill it would be a DOM storm.
         const at = this.screenPoint(this.run.x, this.run.y);
         juiceBurst(at.x, at.y, { count: 12 });
-        this.offer = offerUpgrades(this.run, this.rng);
+        this.offer = offerCards(this.run, this.rng);
         // Nothing left to offer: carry on rather than stopping dead in front of
         // no cards. `logic.ts` returns an empty list for exactly this case.
         if (this.offer.length === 0) this.run.choosing = false;
@@ -565,7 +634,13 @@ export class SurvivorsScene extends Phaser.Scene {
   private screenPoint(x: number, y: number): { x: number; y: number } {
     const c = this.game.canvas?.getBoundingClientRect();
     if (!c) return { x: 0, y: 0 };
-    return { x: c.left + (x / this.arena.w) * c.width, y: c.top + (y / this.arena.h) * c.height };
+    // A WORLD point, so the camera comes off first - without this every coin and
+    // puff would fly from where the robot would be if the camera had never moved.
+    const cam = cameraOf(this.run);
+    return {
+      x: c.left + ((x - cam.x) / this.arena.w) * c.width,
+      y: c.top + ((y - cam.y) / this.arena.h) * c.height,
+    };
   }
 
   /** Where the coins should fly from: the ship, in viewport pixels. */
@@ -618,11 +693,7 @@ export class SurvivorsScene extends Phaser.Scene {
   /** Every cast member follows the simulation: position, facing, clip, flash. */
   private syncSprites(input: { dx: number; dy: number }) {
     const now = this.time.now;
-
-    // A shot, SEEN rather than announced: `logic.ts` emits no event for firing,
-    // and `fireIn` counting back up is the one honest tell that it just did.
-    if (this.run.fireIn > this.lastFireIn) this.attackUntil = now + ATTACK_MS;
-    this.lastFireIn = this.run.fireIn;
+    const frozen = this.run.frozen > 0;
 
     // The ship. It blinks while the mercy window is open, so a player can see why
     // the next shape went through them without costing a heart.
@@ -662,9 +733,18 @@ export class SurvivorsScene extends Phaser.Scene {
       // the line above would have left the other half of the pair broken with
       // nothing to say so.
       if (e.flash > 0) s.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
+      // Ice while frozen, and the walk cycle stops with them: a shape that keeps
+      // walking on the spot reads as a shape that is only slowed.
+      else if (frozen) s.setTint(ICE).setTintMode(Phaser.TintModes.MULTIPLY);
       else s.clearTint();
-      this.want(s, key, e.flash > 0 ? "hurt" : "walk");
+      if (frozen) {
+        if (!this.wasFrozen || !s.anims.isPaused) s.anims.pause();
+      } else {
+        if (s.anims.isPaused) s.anims.resume();
+        this.want(s, key, e.flash > 0 ? "hurt" : "walk");
+      }
     }
+    this.wasFrozen = frozen;
     for (const [id, s] of this.mobs) {
       if (seen.has(id)) continue;
       s.destroy();
@@ -675,21 +755,86 @@ export class SurvivorsScene extends Phaser.Scene {
   /** The arena floor. Static, so this runs once rather than sixty times a second. */
   private drawGround() {
     const g = this.bg;
+    const { w, h } = this.run.world;
     g.clear();
     g.fillStyle(INK.ground, 1);
-    g.fillRect(0, 0, this.arena.w, this.arena.h);
+    g.fillRect(0, 0, w, h);
     g.lineStyle(1, INK.grid, 1);
-    // The grid pitch stays 42 units on both arenas rather than scaling with the
-    // floor: it is a sense of SPEED, and a cell that grew with the arena would
-    // make the wide floor read as the same room seen from further away.
-    for (let x = 42; x < this.arena.w; x += 42) g.lineBetween(x, 0, x, this.arena.h);
-    for (let y = 42; y < this.arena.h; y += 42) g.lineBetween(0, y, this.arena.w, y);
+    // The grid pitch stays 42 units on every floor rather than scaling with it:
+    // it is a sense of SPEED, and with the camera following the robot it is also
+    // what tells a player they are moving at all.
+    for (let x = 42; x < w; x += 42) g.lineBetween(x, 0, x, h);
+    for (let y = 42; y < h; y += 42) g.lineBetween(0, y, w, y);
+    this.drawScenery(g, w, h);
+    this.drawWalls(g, w, h);
+  }
+
+  /**
+   * Scenery you walk over (operator ruling 2026-09-14: decoration, not
+   * obstacles). Seeded, so a floor looks the same every run and a landmark can be
+   * learned. Dim, so nothing here can be mistaken for a shape coming at you, and
+   * sparse near the start so the first seconds read clearly.
+   */
+  private drawScenery(g: Phaser.GameObjects.Graphics, w: number, h: number) {
+    const rnd = rngFor(20260914);
+    const n = Math.round((w * h) / 5200);
+    for (let i = 0; i < n; i++) {
+      const x = rnd() * w;
+      const y = rnd() * h;
+      const k = rnd();
+      if (Math.hypot(x - w / 2, y - h / 2) < 70) continue;
+      if (k < 0.25) {
+        g.fillStyle(SCENERY.crystal, 0.32);
+        g.fillTriangle(x, y - 7, x + 4, y, x, y + 7);
+        g.fillTriangle(x, y - 7, x - 4, y, x, y + 7);
+      } else if (k < 0.5) {
+        g.fillStyle(SCENERY.rock, 1);
+        g.fillRoundedRect(x, y, 10, 7, 2);
+        g.fillRoundedRect(x + 6, y - 4, 8, 6, 2);
+      } else if (k < 0.8) {
+        g.lineStyle(1.6, SCENERY.tuft, 0.55);
+        g.lineBetween(x, y, x - 3, y - 7);
+        g.lineBetween(x, y, x, y - 9);
+        g.lineBetween(x, y, x + 3, y - 7);
+      } else {
+        g.lineStyle(1.6, SCENERY.crack, 1);
+        g.lineBetween(x, y, x + 9, y + 4);
+        g.lineBetween(x + 9, y + 4, x + 14, y + 1);
+        g.lineBetween(x + 14, y + 1, x + 22, y + 7);
+      }
+    }
+  }
+
+  /** The edge of the world: a striped band the robot cannot cross, `WALL` units thick. */
+  private drawWalls(g: Phaser.GameObjects.Graphics, w: number, h: number) {
+    g.fillStyle(SCENERY.wall, 1);
+    g.fillRect(0, 0, w, WALL);
+    g.fillRect(0, h - WALL, w, WALL);
+    g.fillRect(0, 0, WALL, h);
+    g.fillRect(w - WALL, 0, WALL, h);
+    g.fillStyle(SCENERY.stripe, 0.9);
+    for (let x = 0; x < w; x += 16) {
+      g.fillRect(x, 0, 8, WALL);
+      g.fillRect(x, h - WALL, 8, WALL);
+    }
+    for (let y = 0; y < h; y += 16) {
+      g.fillRect(0, y, WALL, 8);
+      g.fillRect(w - WALL, y, WALL, 8);
+    }
+    g.lineStyle(2, SCENERY.edge, 0.9);
+    g.strokeRect(WALL, WALL, w - WALL * 2, h - WALL * 2);
   }
 
   /** Everything that is still a primitive: the shots, the gems and the sparks. */
   private draw() {
     const g = this.fg;
     g.clear();
+    const hud = this.hud;
+    hud.clear();
+    // The view follows the robot. Set from `cameraOf`, the same function the
+    // simulation spawns around, so what is drawn and what is played agree.
+    const cam = cameraOf(this.run);
+    this.cameras.main.setScroll(cam.x, cam.y);
 
     for (const gem of this.run.gems) {
       g.fillStyle(INK.gem, 1);
@@ -709,7 +854,7 @@ export class SurvivorsScene extends Phaser.Scene {
     // as it dies. Each is drawn in its own ink.
     for (const b of this.run.bolts) {
       const ink = WEAPON_INK[b.kind];
-      if (b.kind === "bolt") {
+      if (b.kind === "bolt" || b.kind === "drone") {
         const sp = Math.hypot(b.vx, b.vy) || 1;
         g.lineStyle(3, ink, 1);
         g.lineBetween(b.x, b.y, b.x - (b.vx / sp) * 9, b.y - (b.vy / sp) * 9);
@@ -747,18 +892,31 @@ export class SurvivorsScene extends Phaser.Scene {
       g.fillCircle(s.x, s.y, 2.5);
     }
 
-    // The joystick, drawn where the thumb put it. Only while a thumb is down -
-    // a ring sitting on an untouched screen is furniture, and this game's whole
-    // point is that the arena is the control now.
+    this.drawBlades(g);
+    this.drawDrone(g);
+
+    if (this.run.frozen > 0) {
+      // A cool cover over the whole view, fading out over the last half second
+      // so the thaw is seen coming.
+      hud.fillStyle(ICE, 0.14 * Math.min(1, this.run.frozen / 500));
+      hud.fillRect(0, 0, this.arena.w, this.arena.h);
+    }
+
+    // The joystick, drawn where the thumb put it - in SCREEN space, on the HUD
+    // layer. Only while a thumb is down: a ring sitting on an untouched screen is
+    // furniture, and this game's whole point is that the arena is the control.
     if (this.stick) {
       const k = knobAt(this.stick);
-      g.lineStyle(2, INK.bolt, 0.35);
-      g.strokeCircle(this.stick.ox, this.stick.oy, STICK_RADIUS);
-      g.fillStyle(INK.bolt, 0.14);
-      g.fillCircle(this.stick.ox, this.stick.oy, STICK_RADIUS);
-      g.fillStyle(INK.bolt, 0.8);
-      g.fillCircle(k.x, k.y, 13);
+      hud.lineStyle(2, INK.bolt, 0.35);
+      hud.strokeCircle(this.stick.ox, this.stick.oy, STICK_RADIUS);
+      hud.fillStyle(INK.bolt, 0.14);
+      hud.fillCircle(this.stick.ox, this.stick.oy, STICK_RADIUS);
+      hud.fillStyle(INK.bolt, 0.8);
+      hud.fillCircle(k.x, k.y, 13);
     }
+
+    // Only mid-run: on the entrance and the end screens it would show through the cover.
+    if (this.phase === "playing") this.drawMinimap(hud, cam);
 
     // The golem's health, along the top of the arena. It is a LENGTH, not a
     // colour code - the bar shortens, and nothing in it has to be read as red
@@ -772,12 +930,93 @@ export class SurvivorsScene extends Phaser.Scene {
       const m = 16;
       const w = this.arena.w - m * 2;
       const p = Math.max(0, Math.min(1, boss.hp / KINDS.golem.hp));
-      g.fillStyle(INK.ground, 0.9);
-      g.fillRect(m - 3, 11, w + 6, 13);
-      g.fillStyle(INK.grid, 1);
-      g.fillRect(m, 14, w, 7);
-      g.fillStyle(ENEMY_INK.golem, 1);
-      g.fillRect(m, 14, w * p, 7);
+      hud.fillStyle(INK.ground, 0.9);
+      hud.fillRect(m - 3, 11, w + 6, 13);
+      hud.fillStyle(INK.grid, 1);
+      hud.fillRect(m, 14, w, 7);
+      hud.fillStyle(ENEMY_INK.golem, 1);
+      hud.fillRect(m, 14, w * p, 7);
     }
+  }
+
+  /** The blades, where the simulation cuts with them: `bladePositions` is the one source. */
+  private drawBlades(g: Phaser.GameObjects.Graphics) {
+    if (!holds(this.run, "blades")) return;
+    g.lineStyle(1, BLADE_INK, 0.28);
+    g.strokeCircle(this.run.x, this.run.y, BLADES.radius);
+    for (const b of bladePositions(this.run)) {
+      // A crescent leading in the direction of spin: a wide triangle along the
+      // tangent, with a pale edge on its outer side.
+      const t = b.a + Math.PI / 2;
+      const cx = Math.cos(t);
+      const cy = Math.sin(t);
+      const ox = Math.cos(b.a);
+      const oy = Math.sin(b.a);
+      g.fillStyle(BLADE_INK, 1);
+      g.fillTriangle(
+        b.x + cx * 11, b.y + cy * 11,
+        b.x - cx * 9 + ox * 4, b.y - cy * 9 + oy * 4,
+        b.x - cx * 9 - ox * 4, b.y - cy * 9 - oy * 4,
+      );
+      g.lineStyle(1.5, 0xffffff, 0.8);
+      g.lineBetween(b.x + cx * 11, b.y + cy * 11, b.x - cx * 9 + ox * 4, b.y - cy * 9 + oy * 4);
+    }
+  }
+
+  /** The drone at the robot's shoulder: a saucer with a dome and one dark eye. */
+  private drawDrone(g: Phaser.GameObjects.Graphics) {
+    if (!holds(this.run, "drone")) return;
+    const d = dronePosition(this.run);
+    const bob = Math.sin(this.time.now / 180) * 1.5;
+    g.fillStyle(WEAPON_INK.drone, 0.25);
+    g.fillEllipse(d.x, d.y + 9, 16, 4);
+    g.fillStyle(0xd6ffe6, 1);
+    g.fillCircle(d.x, d.y - 2 + bob, 5);
+    g.fillStyle(WEAPON_INK.drone, 1);
+    g.fillEllipse(d.x, d.y + 1 + bob, 22, 7);
+    g.fillStyle(INK.ground, 1);
+    g.fillCircle(d.x, d.y - 3 + bob, 1.6);
+  }
+
+  /**
+   * The minimap (the operator took it with the build, 2026-09-14): the world,
+   * the view, the robot, every shape and the golem, top-right under the score.
+   *
+   * Sized in CSS pixels and converted to arena units here, because the HUD's
+   * score block is DOM and sized in CSS pixels - a minimap sized in units would
+   * slide under the score on one screen and float away from it on another.
+   */
+  private drawMinimap(g: Phaser.GameObjects.Graphics, cam: { x: number; y: number }) {
+    const cssPerUnit = this.scale.displaySize.width / this.arena.w || 1;
+    const wide = this.arena.w > this.arena.h;
+    const size = (wide ? 104 : 72) / cssPerUnit;
+    const top = (wide ? 122 : 118) / cssPerUnit;
+    const right = 14 / cssPerUnit;
+    const world = this.run.world;
+    // Keep the world's shape inside a square box.
+    const k = Math.min(size / world.w, size / world.h);
+    const mw = world.w * k;
+    const mh = world.h * k;
+    const x0 = this.arena.w - right - size + (size - mw) / 2;
+    const y0 = top + (size - mh) / 2;
+
+    g.fillStyle(INK.ground, 0.82);
+    g.fillRoundedRect(x0 - 3, y0 - 3, mw + 6, mh + 6, 4);
+    g.lineStyle(1, SCENERY.stripe, 0.9);
+    g.strokeRect(x0, y0, mw, mh);
+    g.fillStyle(ENEMY_INK.runner, 0.85);
+    for (const e of this.run.enemies) {
+      if (e.id === this.run.boss) continue;
+      g.fillRect(x0 + e.x * k - 1, y0 + e.y * k - 1, 2, 2);
+    }
+    const boss = bossOf(this.run);
+    if (boss) {
+      g.fillStyle(ENEMY_INK.golem, 1);
+      g.fillCircle(x0 + boss.x * k, y0 + boss.y * k, 3);
+    }
+    g.lineStyle(1, 0xffffff, 0.9);
+    g.strokeRect(x0 + cam.x * k, y0 + cam.y * k, this.arena.w * k, this.arena.h * k);
+    g.fillStyle(WEAPON_INK.bolt, 1);
+    g.fillCircle(x0 + this.run.x * k, y0 + this.run.y * k, 2.2);
   }
 }

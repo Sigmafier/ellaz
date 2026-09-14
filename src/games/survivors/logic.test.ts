@@ -4,6 +4,7 @@ import {
   applyUpgrade, boltCount, fireEvery, newRun, offerUpgrades, rngFor, step,
   type Enemy, type EnemyKind, type RunState,
 } from "./logic";
+import { WALL, WORLD_SCALE } from "./world";
 
 // The whole game is in `logic.ts`, so the whole game can be played here with no
 // canvas. Every test below drives it the way a frame would: a handful of
@@ -17,6 +18,18 @@ function place(s: RunState, kind: EnemyKind, x: number, y: number): Enemy {
 }
 
 const STILL = { dx: 0, dy: 0 };
+
+/**
+ * Hold every gun still and put the dash out of reach. The tests that use this are
+ * about what a shape COSTS when it reaches you, not about the weapons shooting it
+ * first or the dash blinking you clear of it - both of those are pinned in their
+ * own files (`weapons.test.ts`, `powers.test.ts`).
+ */
+function defenceless(s: RunState): RunState {
+  for (const k of s.slots) k.cd = 9_000;
+  s.dashCd = 9_000;
+  return s;
+}
 /** Run n frames of 16 ms, the way a 60 Hz display would. */
 function frames(s: RunState, n: number, rng = rngFor(1), input = STILL) {
   for (let i = 0; i < n; i++) step(s, 16, input, rng);
@@ -24,13 +37,14 @@ function frames(s: RunState, n: number, rng = rngFor(1), input = STILL) {
 }
 
 describe("a new run", () => {
-  it("starts in the middle, on three hearts, with nothing on screen", () => {
+  it("starts in the middle of the world, on three hearts, with nothing on screen", () => {
     const s = newRun("normal");
     expect(s.phase).toBe("playing");
     expect(s.hp).toBe(3);
     expect(s.maxHp).toBe(3);
-    expect(s.x).toBe(ARENA.w / 2);
-    expect(s.y).toBe(ARENA.h / 2);
+    expect(s.world).toEqual({ w: ARENA.w * WORLD_SCALE, h: ARENA.h * WORLD_SCALE });
+    expect(s.x).toBe(s.world.w / 2);
+    expect(s.y).toBe(s.world.h / 2);
     expect(s.enemies).toHaveLength(0);
     expect(s.popped).toBe(0);
     expect(s.power).toBe(1);
@@ -81,10 +95,9 @@ describe("shooting", () => {
 
 describe("being hit", () => {
   it("costs exactly one heart even when three shapes arrive together", () => {
-    const s = newRun("normal");
     // The ship would otherwise shoot one of them off the board on frame one,
     // and this test is about what the survivors cost, not about the gun.
-    s.fireIn = 500;
+    const s = defenceless(newRun("normal"));
     place(s, "runner", s.x, s.y);
     place(s, "runner", s.x + 2, s.y);
     place(s, "runner", s.x, s.y + 2);
@@ -94,8 +107,7 @@ describe("being hit", () => {
   });
 
   it("gives mercy afterwards, so the next shape in the queue is free", () => {
-    const s = newRun("normal");
-    s.fireIn = 500;
+    const s = defenceless(newRun("normal"));
     place(s, "runner", s.x, s.y);
     step(s, 16, STILL, rngFor(1));
     expect(s.hp).toBe(2);
@@ -106,10 +118,9 @@ describe("being hit", () => {
   });
 
   it("ends the run when the last heart goes", () => {
-    const s = newRun("normal");
+    const s = defenceless(newRun("normal"));
     s.hp = 1;
     s.invuln = 0;
-    s.fireIn = 500;
     place(s, "runner", s.x, s.y);
     step(s, 16, STILL, rngFor(1));
     expect(s.phase).toBe("over");
@@ -201,14 +212,29 @@ describe("levelling up", () => {
   });
 });
 
-describe("the arena holds you", () => {
+describe("the world's walls hold you", () => {
   it("never lets you walk out of it", () => {
+    // Immortal, or a run that ends part way stops the robot short of the wall
+    // and the assertion reads a death rather than a wall.
     const s = newRun("normal");
-    frames(s, 400, rngFor(2), { dx: -1, dy: -1 });
-    expect(s.x).toBeGreaterThanOrEqual(0);
-    expect(s.y).toBeGreaterThanOrEqual(0);
-    frames(s, 400, rngFor(2), { dx: 1, dy: 1 });
-    expect(s.x).toBeLessThanOrEqual(ARENA.w);
-    expect(s.y).toBeLessThanOrEqual(ARENA.h);
+    s.hp = 9_999;
+    // A level-up stops the simulation until a card is taken, and nobody takes one
+    // here - so the choice is dismissed every frame or the robot stalls mid-floor.
+    const walk = (n: number, dx: number, dy: number) => {
+      for (let i = 0; i < n; i++) {
+        s.choosing = false;
+        step(s, 16, { dx, dy }, rngFor(2));
+      }
+    };
+    walk(1200, -1, -1);
+    expect(s.x).toBeGreaterThanOrEqual(WALL);
+    expect(s.y).toBeGreaterThanOrEqual(WALL);
+    // Actually AT the wall, so the two lines above are not satisfied by a robot
+    // that never got near it.
+    expect(s.x).toBeLessThan(WALL + 20);
+    walk(2400, 1, 1);
+    expect(s.x).toBeLessThanOrEqual(s.world.w - WALL);
+    expect(s.y).toBeLessThanOrEqual(s.world.h - WALL);
+    expect(s.x).toBeGreaterThan(s.world.w - WALL - 20);
   });
 });

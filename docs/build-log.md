@@ -4975,3 +4975,33 @@ and the Survivors arena pick.
 **Coordination.** A peer session (`pc-layout-game-sizing`) was changing the same layout
 files for PC. Split agreed over messages before any edit: it owns the PC arm and the panel
 background, this change the phone arm and the controls; it committed `8f1ce61` first.
+
+## Survivors gets a big map, weapon slots, blades, a drone, dash and freeze (2026-09-14)
+
+The operator asked for *"more super powers, map to go to the sides ... i want also to be able to pick weapons"*, ruled seven questions through the terminal, looked at nine mocks drawn over the live game, and said build it, with the minimap.
+
+**What shipped (local commit, not pushed):**
+
+- **Big map.** `run.arena` is now the VIEW; `run.world` is three views wide and tall (`survivors/world.ts`). The camera is derived, never stored (`cameraOf`), and stops at striped walls 10 units thick. Shapes enter just outside the view, never on screen and never past a wall; a shape a whole view behind is walked back in, or the enemy cap fills with shapes that never arrive and the game gets easier the more you walk. The golem enters over the top of the view.
+- **Weapons.** Pick one of three on the entrance (remembered under the forever key `startWeapon`, validated by `asStarter`). Five weapons, four slots, each slot on its own clock (`fireEvery * WEAPONS[id].every`); the old rotation was removed because a second weapon would have halved the first. Blades turn around the robot and cut each shape at most once per 420 ms; the drone circles at the shoulder and shoots from where it is. A level-up offers one new weapon card while a slot is free (`survivors/cards.ts`).
+- **Powers** (`survivors/powers.ts`). Dash fires by itself: a hit that would cost a heart blinks you 70 units away, once per 8 s. Freeze is the one button: gems fill it (30), one press stops every shape for 2 s, frozen shapes neither move nor hurt, and the spawn clock holds. Space does the same on a keyboard. The button wiggles while charging - never `disabled`.
+- **Chrome.** `ArcadeChrome` gained slots (replacing the pips), a status chip, a power button outside the aria-hidden HUD, and `entrance.pick`. Still no game import; still exactly one `pointerEvents: "none"`. Minimap drawn in the canvas, sized in CSS px so it sits under the DOM score on both shapes.
+
+**Measured:**
+
+| | before | after |
+|---|---|---|
+| browser check `repro-survivors-expansion.mjs`, 390x844 + 1536x639 | 0 of 10 (live site) | 10 of 10 (build) |
+| survivors tests (`vitest run src/games/survivors`) | 70 in 6 files (HEAD 694a677) | 106 in 9 files (new: world 11, powers 11, cards 9) |
+| planted defects killed (recycle, dash, frozen contact, on-screen spawn, blade cooldown, cards with slots full) | - | 6 of 6 |
+| first visit | 56,589 B gz | 56,589 B gz (the game is a lazy chunk) |
+| golem fight, rapid 3 / power 2 / spread 1 | 18.4 s (three weapons rotating) | 29.6 s one weapon · 14.9 s two · 11.6 s four |
+| golem fight, no upgrades | 83.6 s | 263 s bolt only · 78.7 s four weapons |
+
+**Difficulty is an open question, not a result.** The fight numbers come from a robot standing still; a real run collects weapons as it goes (the shots script had three cards by ~35 s). The scripted player proves the golem can be beaten, not how hard it is - the operator's play sets the tuning ([`a-perfect-bot-proves-a-level-can-be-won-not-how-hard-it-is.md`](../.claude/rules/a-perfect-bot-proves-a-level-can-be-won-not-how-hard-it-is.md)).
+
+**Traps this cost:**
+
+- A percentage `padding` on a grid item resolves against the ROW's width, not the box: every weapon drawing sat outside its slot's corner on the first render. Found only by looking at the screenshot.
+- Arrow keys scroll the page on PC while playing, on the live build too - pre-existing, reported to the operator and the PC-layout session, not fixed here. The screenshot script steers with WASD for that reason.
+- The full suite was stopped by the memory guard three times on a clean snapshot (shared box, several sessions); the gate proof is the working-tree suite (4,976 of 4,977, the one red is another session's lettercross file), 436 of 436 affected tests on the clean snapshot, and `build:check` exit 0 there.

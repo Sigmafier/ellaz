@@ -15,6 +15,11 @@
 // components, and `logic-is-pure.test.ts` fails the build for importing it here.
 
 import { mulberry32 } from "@shared/rng";
+// The big map, the slots and the powers each live in their own module, and each
+// imports only TYPES from this file - so these are one-way imports, never a cycle.
+import { cameraOf, clampToWorld, inView, isLeftBehind, spawnPoint, worldFor } from "./world";
+import { BLADES, DRONE, bladePositions, dronePosition, holds } from "./arsenal";
+import { FREEZE_NEED, dashAway, tickPowers } from "./powers";
 
 /** A battlefield, in logical units. The canvas is scaled to fit it. */
 export type Arena = { readonly w: number; readonly h: number };
@@ -172,29 +177,47 @@ export interface Enemy {
   hp: number;
   /** Milliseconds of white flash left after taking a hit. Drawn, never simulated. */
   flash: number;
+  /**
+   * Milliseconds before the blades may cut this shape again. Optional, so a test
+   * that places a shape by hand does not have to know the blades exist.
+   */
+  bladeCd?: number;
 }
 
-export type WeaponId = "bolt" | "arc" | "burst";
+/**
+ * Five weapons since 2026-09-14. Two of them are not projectiles: `blades` turn
+ * around the robot and `drone` shoots from a little bot at its shoulder.
+ */
+export type WeaponId = "bolt" | "arc" | "burst" | "blades" | "drone";
+/** The four that throw something. The blades never leave the robot. */
+export type ShotKind = Exclude<WeaponId, "blades">;
+
+/** A carried weapon and the milliseconds until it may fire again. */
+export interface Slot {
+  id: WeaponId;
+  cd: number;
+}
 
 /**
- * The three weapons, and every way they differ lives in this one row each.
+ * The four weapons that throw something, and every way they differ lives in
+ * this one row each.
  *
- * They fire in ROTATION off the single `fireIn` cadence rather than each owning
- * a timer. That is a deliberate design choice and not a shortcut: three
- * independent timers would mean a burst going off on the frame a test places a
- * shape on the ship, and `fireIn` is what every collision test in
- * `logic.test.ts` sets to hold the gun still. One clock keeps the gun
- * suppressible by one field, and the player still sees all three inside two
- * seconds because the rotation advances on every shot.
+ * EACH SLOT FIRES ON ITS OWN CLOCK since 2026-09-14. They used to take turns on
+ * one shared cadence, and that was right while a run held all three from the
+ * start - it showed a player every weapon within two seconds. The operator then
+ * ruled that a run PICKS one and collects more, and a rotation would make each
+ * new weapon slow the others down: picking up a second gun would halve the
+ * first. So a slot's clock is `fireEvery(s) * every`, and a test that needs the
+ * gun still sets every slot's `cd` (see `holdFire` in the tests).
  *
- * `turn` is what makes the three MOTIONS different rather than one projectile
- * at three speeds - the arc is the only one that steers after it leaves, and the
- * burst is the only one that ignores the target and goes out as a ring. Colour
- * and sound are the scene's to draw and play; they are named here so that one
- * row is the whole answer to "what is this weapon".
+ * `turn` is what makes the MOTIONS different rather than one projectile at four
+ * speeds - the arc is the only one that steers after it leaves, and the burst is
+ * the only one that ignores the target and goes out as a ring. Colour and sound
+ * are the scene's to draw and play; they are named here so that one row is the
+ * whole answer to "what is this weapon".
  */
 export const WEAPONS: Record<
-  WeaponId,
+  ShotKind,
   {
     /** Units per second. */
     speed: number;
@@ -209,26 +232,30 @@ export const WEAPONS: Record<
     /** Collision radius, so a fat burst fragment is not a pinpoint. */
     r: number;
     /** The sound the scene plays. One of the nine real sfx names - never invent one. */
-    sfx: "tap" | "flip" | "star";
+    sfx: "tap" | "flip" | "star" | "coin";
+    /** This weapon's cadence as a multiple of `fireEvery`. A ring costs more than a bolt. */
+    every: number;
   }
 > = {
   // Straight, fast, cheap. The one this game already had.
-  bolt: { speed: 330, life: 1500, turn: 0, count: 1, bonus: 0, r: 4, sfx: "tap" },
+  bolt: { speed: 330, life: 1500, turn: 0, count: 1, bonus: 0, r: 4, sfx: "tap", every: 1 },
   // Slower, and it CURVES - it keeps steering at the nearest shape after it has
   // left, so it rounds corners the bolt drives past. Hits harder to pay for it.
-  arc: { speed: 205, life: 2200, turn: 3.4, count: 1, bonus: 1, r: 5, sfx: "flip" },
+  arc: { speed: 205, life: 2200, turn: 3.4, count: 1, bonus: 1, r: 5, sfx: "flip", every: 1.2 },
   // A ring, thrown outward in every direction at once, dying quickly. It ignores
   // the target entirely, which is what makes it the answer to being surrounded.
-  burst: { speed: 150, life: 520, turn: 0, count: 7, bonus: 0, r: 6, sfx: "star" },
+  // Slowest to come round, because seven fragments a shot is a lot of floor.
+  burst: { speed: 150, life: 520, turn: 0, count: 7, bonus: 0, r: 6, sfx: "star", every: 1.8 },
+  // The drone's shot: quick and thin, thrown from the drone rather than the
+  // robot, at whatever is nearest to the DRONE - so it covers the side the robot
+  // is not facing.
+  drone: { speed: 300, life: 1300, turn: 0, count: 1, bonus: 0, r: 4, sfx: "coin", every: 1.4 },
 };
-
-/** The order the ship cycles through. Rotation index lives on the run. */
-export const WEAPON_ORDER: WeaponId[] = ["bolt", "arc", "burst"];
 
 export interface Bolt {
   id: number;
   /** Which weapon threw this. The scene draws and sounds each one differently. */
-  kind: WeaponId;
+  kind: ShotKind;
   x: number;
   y: number;
   vx: number;
@@ -257,8 +284,10 @@ export interface Gem {
 export type RunEvent =
   | { type: "pop"; x: number; y: number; kind: EnemyKind }
   /** A shot left the ship. Carries WHICH weapon, so the scene can sound it. */
-  | { type: "shot"; weapon: WeaponId; x: number; y: number }
+  | { type: "shot"; weapon: ShotKind; x: number; y: number }
   | { type: "hurt" }
+  /** A hit was dodged by the dash. Carries where the robot blinked FROM, for the trail. */
+  | { type: "dash"; x: number; y: number }
   | { type: "gem" }
   /** The golem has arrived. Fires once a run, at three minutes, and never twice. */
   | { type: "boss" }
@@ -279,6 +308,12 @@ export interface RunState {
    * same run, and a test can drive either shape without touching a global.
    */
   arena: Arena;
+  /**
+   * The whole floor, three views wide and tall (operator ruling 2026-09-14, "map
+   * to go to the sides"). `arena` is still the VIEW - what the canvas shows and
+   * what the camera window is - and the world is derived from it in `newRun`.
+   */
+  world: Arena;
   /** Milliseconds survived. The clock, and the only thing that ends a run well. */
   t: number;
   phase: "playing" | "won" | "over";
@@ -300,8 +335,18 @@ export interface RunState {
   bolts: Bolt[];
   gems: Gem[];
   up: Record<UpgradeId, number>;
-  /** How many shots this run has fired. Drives the weapon rotation, nothing else. */
-  shots: number;
+  /** The weapons this run carries, up to `SLOTS_MAX`, each on its own clock. */
+  slots: Slot[];
+  /** Where the blades are in their turn, in radians. Advances only while they are carried. */
+  bladeAngle: number;
+  /** Where the drone is in its circle, in radians. */
+  droneAngle: number;
+  /** Milliseconds until the dash can save you again. 0 is ready. */
+  dashCd: number;
+  /** Gem value collected toward the freeze, up to `FREEZE_NEED`. */
+  charge: number;
+  /** Milliseconds left of a freeze. While above 0 no shape moves or hurts. */
+  frozen: number;
   /**
    * The golem's enemy id once it has arrived, and null for the first three
    * minutes. An ID rather than a copy of its health: a second copy of a number
@@ -309,7 +354,6 @@ export interface RunState {
    * first time one of them is updated and the other is not. `bossOf` reads it.
    */
   boss: number | null;
-  fireIn: number;
   spawnIn: number;
   nextId: number;
   /** Reused between frames rather than replaced, for the reason at the top. */
@@ -339,10 +383,12 @@ const SPREAD_RAD = 0.16;
  * had, so a red in `logic.test.ts` after this change means a real regression
  * rather than a signature churn.
  */
-export function newRun(level: LevelKey, arena: Arena = ARENA): RunState {
+export function newRun(level: LevelKey, arena: Arena = ARENA, start: WeaponId = "bolt"): RunState {
+  const world = worldFor(arena);
   return {
     level,
     arena,
+    world,
     t: 0,
     phase: "playing",
     hp: 3,
@@ -353,15 +399,20 @@ export function newRun(level: LevelKey, arena: Arena = ARENA): RunState {
     power: 1,
     popped: 0,
     choosing: false,
-    x: arena.w / 2,
-    y: arena.h / 2,
+    // The middle of the WORLD, one full view from every wall.
+    x: world.w / 2,
+    y: world.h / 2,
     enemies: [],
     bolts: [],
     gems: [],
     up: { rapid: 0, power: 0, spread: 0, swift: 0, magnet: 0, heart: 0, pierce: 0 },
-    shots: 0,
+    slots: [{ id: start, cd: 0 }],
+    bladeAngle: 0,
+    droneAngle: 0,
+    dashCd: 0,
+    charge: 0,
+    frozen: 0,
     boss: null,
-    fireIn: 0,
     spawnIn: RULES[level].spawnMs,
     nextId: 1,
     events: [],
@@ -426,44 +477,31 @@ export function nearestEnemy(s: RunState, fromX = s.x, fromY = s.y): Enemy | nul
 export const bossOf = (s: RunState): Enemy | null =>
   s.boss === null ? null : (s.enemies.find((e) => e.id === s.boss) ?? null);
 
-/** A point just outside the arena, on a random edge. */
-function edgePoint(rng: () => number, arena: Arena): { x: number; y: number } {
-  const m = 26;
-  switch (Math.floor(rng() * 4)) {
-    case 0:
-      return { x: rng() * arena.w, y: -m };
-    case 1:
-      return { x: rng() * arena.w, y: arena.h + m };
-    case 2:
-      return { x: -m, y: rng() * arena.h };
-    default:
-      return { x: arena.w + m, y: rng() * arena.h };
-  }
-}
-
 function spawn(s: RunState, rng: () => number) {
   if (s.enemies.length >= CAP_ENEMIES) return;
   const kinds = kindsAt(s);
   const kind = kinds[Math.floor(rng() * kinds.length)];
-  const p = edgePoint(rng, s.arena);
+  // Just outside the VIEW, not the world - see `spawnPoint`.
+  const p = spawnPoint(rng, s);
   s.enemies.push({ id: s.nextId++, kind, x: p.x, y: p.y, hp: KINDS[kind].hp, flash: 0 });
 }
 
-/** Which weapon this shot uses. Rotation, so all three are seen within seconds. */
-export const weaponAt = (shots: number): WeaponId =>
-  WEAPON_ORDER[((shots % WEAPON_ORDER.length) + WEAPON_ORDER.length) % WEAPON_ORDER.length];
+/**
+ * One weapon's shot. Returns whether it fired, so a slot with nothing in range
+ * holds its clock at zero and goes off the moment something walks in.
+ *
+ * The drone throws from the DRONE and aims at what is nearest to it; every other
+ * weapon throws from the robot.
+ */
+function fireSlot(s: RunState, id: ShotKind): boolean {
+  const from = id === "drone" ? dronePosition(s) : { x: s.x, y: s.y };
+  const target = nearestEnemy(s, from.x, from.y);
+  // The burst does not aim, but it still holds its shot when the view is empty:
+  // a ring thrown at nothing is noise.
+  if (!target) return false;
 
-function fire(s: RunState) {
-  const target = nearestEnemy(s);
-  // The burst does not aim, but it still holds its shot when the arena is empty:
-  // a ring thrown at nothing is noise and a wasted rotation slot.
-  if (!target) return;
-
-  const id = weaponAt(s.shots);
   const w = WEAPONS[id];
-  s.shots += 1;
-
-  const aim = Math.atan2(target.y - s.y, target.x - s.x);
+  const aim = Math.atan2(target.y - from.y, target.x - from.x);
   // The spread upgrade widens every weapon, but the burst is already a full
   // circle, so there it adds fragments to the ring instead of fanning it.
   const n = w.count + (boltCount(s) - 1);
@@ -477,8 +515,8 @@ function fire(s: RunState) {
     s.bolts.push({
       id: s.nextId++,
       kind: id,
-      x: s.x,
-      y: s.y,
+      x: from.x,
+      y: from.y,
       vx: Math.cos(a) * w.speed,
       vy: Math.sin(a) * w.speed,
       dmg: boltDamage(s) + w.bonus,
@@ -488,7 +526,23 @@ function fire(s: RunState) {
       hit: [],
     });
   }
-  s.events.push({ type: "shot", weapon: id, x: s.x, y: s.y });
+  s.events.push({ type: "shot", weapon: id, x: from.x, y: from.y });
+  return true;
+}
+
+/**
+ * One hit on one shape, from anything - a bolt, a blade. The kill, the score,
+ * the gem and the pop all happen HERE, so a weapon added later cannot pay out a
+ * kill differently from the ones already here.
+ */
+function damage(s: RunState, e: Enemy, dmg: number) {
+  e.hp -= dmg;
+  e.flash = FLASH_MS;
+  if (e.hp <= 0) {
+    s.popped += 1;
+    s.events.push({ type: "pop", x: e.x, y: e.y, kind: e.kind });
+    s.gems.push({ id: s.nextId++, x: e.x, y: e.y, value: KINDS[e.kind].xp });
+  }
 }
 
 function grantXp(s: RunState, value: number) {
@@ -525,29 +579,32 @@ export function step(
   // to show in that cell: the golem's health, instead of a countdown that has
   // nothing left to count.
   //
-  // It enters at the top edge, outside the arena, and walks in like every other
-  // shape. `s.boss === null` is what makes this fire once: without it a frame at
-  // t = RUN_MS would push a fresh golem sixty times a second.
+  // It enters at the top edge of the VIEW, just out of sight, and walks in like
+  // every other shape. `s.boss === null` is what makes this fire once: without it
+  // a frame at t = RUN_MS would push a fresh golem sixty times a second.
   if (s.t >= RUN_MS) {
     s.t = RUN_MS;
     if (s.boss === null) {
       const id = s.nextId++;
-      s.enemies.push({ id, kind: "golem", x: s.arena.w / 2, y: -34, hp: KINDS.golem.hp, flash: 0 });
+      const cam = cameraOf(s);
+      s.enemies.push({ id, kind: "golem", x: cam.x + s.arena.w / 2, y: cam.y - 34, hp: KINDS.golem.hp, flash: 0 });
       s.boss = id;
       s.events.push({ type: "boss" });
     }
   }
   if (s.invuln > 0) s.invuln = Math.max(0, s.invuln - dt);
+  tickPowers(s, dt);
+  const frozen = s.frozen > 0;
 
   // Steering. The vector arrives in -1..1; normalise it, or a diagonal is faster
-  // than a straight line - the oldest bug in the genre.
+  // than a straight line - the oldest bug in the genre. Held inside the walls of
+  // the WORLD, not the view: the view follows you, the walls do not.
   const len = Math.hypot(input.dx, input.dy);
   if (len > 0.02) {
     const v = playerSpeed(s) * sec;
-    s.x += (input.dx / len) * v;
-    s.y += (input.dy / len) * v;
-    s.x = Math.min(s.arena.w - PLAYER_R, Math.max(PLAYER_R, s.x));
-    s.y = Math.min(s.arena.h - PLAYER_R, Math.max(PLAYER_R, s.y));
+    const p = clampToWorld(s, s.x + (input.dx / len) * v, s.y + (input.dy / len) * v, PLAYER_R);
+    s.x = p.x;
+    s.y = p.y;
   }
 
   // The swarm stops the moment the golem is on the board. The finish is a duel,
@@ -555,7 +612,10 @@ export function step(
   // `spawnEvery` is at its floor, so leaving it on would mean a shape every 230
   // ms for as long as the fight lasts. Whatever was already on the board stays
   // and has to be dealt with; nothing new arrives behind it.
-  if (s.boss === null) {
+  //
+  // A freeze holds the spawn clock too, so two seconds of calm is not followed
+  // by two seconds of shapes arriving at once.
+  if (s.boss === null && !frozen) {
     s.spawnIn -= dt;
     while (s.spawnIn <= 0) {
       spawn(s, rng);
@@ -563,19 +623,50 @@ export function step(
     }
   }
 
-  s.fireIn -= dt;
-  if (s.fireIn <= 0) {
-    fire(s);
-    s.fireIn = fireEvery(s);
+  // Every carried weapon on its own clock. A slot with nothing in range holds at
+  // zero rather than banking shots, so it fires once when a shape walks in, not
+  // a burst of everything it "owed".
+  const every = fireEvery(s);
+  for (const slot of s.slots) {
+    if (slot.id === "blades") continue;
+    slot.cd -= dt;
+    if (slot.cd <= 0 && fireSlot(s, slot.id)) slot.cd = every * WEAPONS[slot.id].every;
+    if (slot.cd < 0) slot.cd = 0;
   }
+  if (holds(s, "drone")) s.droneAngle = (s.droneAngle + DRONE.spin * sec) % (Math.PI * 2);
 
   const pace = RULES[s.level].speed;
   for (const e of s.enemies) {
+    if (e.flash > 0) e.flash = Math.max(0, e.flash - dt);
+    if (e.bladeCd) e.bladeCd = Math.max(0, e.bladeCd - dt);
+    if (frozen) continue;
+    // Walked back in from off the view once it has fallen a whole view behind -
+    // see `isLeftBehind`. Never the golem: the finish does not teleport.
+    if (e.id !== s.boss && isLeftBehind(s, e.x, e.y)) {
+      const p = spawnPoint(rng, s);
+      e.x = p.x;
+      e.y = p.y;
+      continue;
+    }
     const d = Math.hypot(s.x - e.x, s.y - e.y) || 1;
     const v = KINDS[e.kind].speed * pace * sec;
     e.x += ((s.x - e.x) / d) * v;
     e.y += ((s.y - e.y) / d) * v;
-    if (e.flash > 0) e.flash = Math.max(0, e.flash - dt);
+  }
+
+  // The blades: a ring that turns around the robot and cuts what it touches,
+  // each shape at most once per `BLADES.hitMs`.
+  if (holds(s, "blades")) {
+    s.bladeAngle = (s.bladeAngle + BLADES.spin * sec) % (Math.PI * 2);
+    const blades = bladePositions(s);
+    const dmg = boltDamage(s);
+    for (const e of s.enemies) {
+      if (e.hp <= 0 || (e.bladeCd ?? 0) > 0) continue;
+      const r = KINDS[e.kind].r + BLADES.r;
+      if (!blades.some((b) => dist2(b.x, b.y, e.x, e.y) <= r * r)) continue;
+      damage(s, e, dmg);
+      e.bladeCd = BLADES.hitMs;
+    }
   }
 
   for (const b of s.bolts) {
@@ -612,14 +703,8 @@ export function step(
       if (e.hp <= 0 || b.hit.includes(e.id)) continue;
       const r = KINDS[e.kind].r + WEAPONS[b.kind].r;
       if (dist2(b.x, b.y, e.x, e.y) > r * r) continue;
-      e.hp -= b.dmg;
-      e.flash = FLASH_MS;
+      damage(s, e, b.dmg);
       b.hit.push(e.id);
-      if (e.hp <= 0) {
-        s.popped += 1;
-        s.events.push({ type: "pop", x: e.x, y: e.y, kind: e.kind });
-        s.gems.push({ id: s.nextId++, x: e.x, y: e.y, value: KINDS[e.kind].xp });
-      }
       if (b.pierce > 0) b.pierce -= 1;
       else {
         b.life = 0;
@@ -631,7 +716,11 @@ export function step(
   // Shapes against the player. The one that reaches you is spent doing it, so a
   // crowd arriving together costs a heart rather than all of them at once. It is
   // not scored: a shape that got through is not a shape you popped.
+  //
+  // A FROZEN shape hurts nobody and is not spent - it is ice, and a player who
+  // walks through the crowd during a freeze is using the freeze, not being hit.
   for (const e of s.enemies) {
+    if (frozen) break;
     if (e.hp <= 0) continue;
     const r = KINDS[e.kind].r + PLAYER_R;
     if (dist2(s.x, s.y, e.x, e.y) > r * r) continue;
@@ -647,6 +736,16 @@ export function step(
       s.events.push({ type: "pop", x: e.x, y: e.y, kind: e.kind });
     }
     if (s.invuln > 0) continue;
+    // THE DASH, and it fires by itself (operator ruling 2026-09-14): a hit that
+    // would cost a heart blinks you out of it instead, once per `DASH_MS`. The
+    // same mercy window follows, so the rest of the crowd that arrived with it
+    // cannot land on the spot you blinked to.
+    if (s.dashCd <= 0) {
+      const from = dashAway(s, e.x, e.y, PLAYER_R);
+      s.invuln = MERCY_MS;
+      s.events.push({ type: "dash", x: from.x, y: from.y });
+      continue;
+    }
     s.hp -= 1;
     s.invuln = MERCY_MS;
     s.events.push({ type: "hurt" });
@@ -669,13 +768,16 @@ export function step(
   });
   if (gained > 0) {
     s.events.push({ type: "gem" });
+    // The same gems fill the freeze. Capped, so a full ring stays full rather
+    // than banking a second freeze behind the first.
+    s.charge = Math.min(FREEZE_NEED, s.charge + gained);
     grantXp(s, gained);
   }
 
   s.enemies = s.enemies.filter((e) => e.hp > 0);
-  s.bolts = s.bolts.filter(
-    (b) => b.life > 0 && b.x > -40 && b.x < s.arena.w + 40 && b.y > -40 && b.y < s.arena.h + 40,
-  );
+  // A shot that has left the view is spent: a bolt crossing a three-screen world
+  // would otherwise kill shapes the player never saw.
+  s.bolts = s.bolts.filter((b) => b.life > 0 && inView(s, b.x, b.y, 40));
 
   // The run is won by beating the golem, and by nothing else. Checked after the
   // dead have been filtered out, so "the boss is gone" is read off the board
